@@ -1,6 +1,6 @@
 *~
 *.pyc
-data/
+dependencies/
 
 # Generated documentation files
 /doc/build

@@ -22,7 +22,7 @@ flags.DEFINE_bool('lidar', False, 'True to enable the lidar sensor')
 flags.DEFINE_bool('segmentation_drn', False,
                   'True to enable DRN segmantation operator')
 flags.DEFINE_string('segmentation_drn_model_path',
-                    'dependencies/data/drn_d_22_cityscapes.pth',
+                    'dependencies/models/drn_d_22_cityscapes.pth',
                     'Path to the model')
 flags.DEFINE_bool('segmentation_dla', False,
                   'True to enable DLA segmantation operator')
@@ -37,19 +37,19 @@ flags.DEFINE_bool('detector_ssd_mobilenet_v1', False,
                   'True to enable SSD mobilenet v1 detector')
 flags.DEFINE_string(
     'detector_ssd_mobilenet_v1_model_path',
-    'dependencies/data/ssd_mobilenet_v1_coco_2018_01_28/frozen_inference_graph.pb',
+    'dependencies/models/ssd_mobilenet_v1_coco_2018_01_28/frozen_inference_graph.pb',
     'Path to the model')
 flags.DEFINE_bool('detector_frcnn_resnet101', False,
                   'True to enable faster RCNN resnet101 detector')
 flags.DEFINE_string(
     'detector_frcnn_resnet101_model_path',
-    'dependencies/data/faster_rcnn_resnet101_coco_2018_01_28/frozen_inference_graph.pb',
+    'dependencies/models/faster_rcnn_resnet101_coco_2018_01_28/frozen_inference_graph.pb',
     'Path to the model')
 flags.DEFINE_bool('detector_ssd_resnet50_v1', False,
                   'True to enable SSD resnet50 v1 detector')
 flags.DEFINE_string(
     'detector_ssd_resnet50_v1_model_path',
-    'dependencies/data/ssd_resnet50_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03/frozen_inference_graph.pb',
+    'dependencies/models/ssd_resnet50_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03/frozen_inference_graph.pb',
     'Path to the model')
 flags.DEFINE_bool('detector_center_net', False,
                   'True to enable CenterNet detector')
@@ -58,14 +58,14 @@ flags.DEFINE_string('detector_center_net_model_path',
                     'Path to the model')
 flags.DEFINE_float('detector_min_score_threshold', 0.5,
                    'Min score threshold for bounding box')
-flags.DEFINE_string('path_coco_labels', 'dependencies/data/coco.names',
+flags.DEFINE_string('path_coco_labels', 'dependencies/models/coco.names',
                     'Path to the COCO labels')
 flags.DEFINE_bool('obj_tracking', False,
                   'True to enable object tracking operator')
 flags.DEFINE_string('tracker_type', 'cv2',
                     'Tracker type: cv2 | crv | da_siam_rpn')
 flags.DEFINE_string('da_siam_rpn_model_path',
-                    'dependencies/data/SiamRPNVOT.model',
+                    'dependencies/models/SiamRPNVOT.model',
                     'Path to the model')
 flags.DEFINE_bool('lane_detection', False, 'True to enable lane detection')
 flags.DEFINE_bool('fusion', False, 'True to enable fusion operator')
@@ -73,7 +73,7 @@ flags.DEFINE_bool('traffic_light_det', False,
                   'True to enable traffic light detection operator')
 flags.DEFINE_string(
     'traffic_light_det_model_path',
-    'dependencies/data/traffic_light_det_inference_graph.pb',
+    'dependencies/models/traffic_light_det_inference_graph.pb',
     'Path to the traffic light model protobuf')
 flags.DEFINE_float('traffic_light_det_min_score_threshold', 0.3,
                    'Min score threshold for bounding box')

@@ -1,24 +1,29 @@
 from setuptools import find_packages, setup
 
 setup(
-    name = "pylot",
-    version = "0.1",
-    packages = find_packages(),
-    license = "Apache 2.0",
-    url = "https://github.com/erdos-project/pylot",
-    long_description = open("README.md").read(),
-    install_requires = [
+    name="erdos-pylot",
+    version="0.1",
+    author="ERDOS Team",
+    description=("A platform for developing autonomous vehicles."),
+    long_description=open("README.md").read(),
+    url="https://github.com/erdos-project/pylot",
+    keywords=("autonomous vehicles driving python"),
+    packages=find_packages(),
+    license="Apache 2.0",
+
+    install_requires=[
         "absl-py",
         "cffi",
         "gdown",
-        "erdos",
+        "erdos>=0.1.1",
         "matplotlib==2.2.4",
         "open3d-original",
-        "opencv-python",
-        "opencv-contrib-python",
+        "opencv-python>=4.1.0.25",
+        "opencv-contrib-python>=4.1.0.25",
         "pid_controller",
         "pillow",
-#        "pptk",
+        "pptk", # TODO(ionel): Fix pptk install (https://github.com/heremaps/pptk/issues/3)
+        "tensorflow-gpu>=1.12",
         "protobuf",
         "ray",
         "rospkg",
