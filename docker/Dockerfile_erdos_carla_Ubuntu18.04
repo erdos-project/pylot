@@ -1,0 +1,71 @@
+FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
+MAINTAINER Sukrit Kalra (sukrit.kalra@berkeley.edu)
+
+# Set up a erdos user first.
+RUN apt-get -y update && apt-get -y install sudo
+ENV uid 1000
+ENV gid 1000
+
+RUN mkdir -p /home/erdos
+RUN groupadd erdos -g ${gid} 
+RUN useradd -r -u ${uid} -g erdos erdos
+RUN echo "erdos ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/erdos
+RUN chmod 0440 /etc/sudoers.d/erdos
+RUN chown ${uid}:${gid} -R /home/erdos
+
+
+USER erdos
+ENV HOME /home/erdos
+ENV SHELL /bin/bash
+WORKDIR /home/erdos
+
+# Install tzdata without prompt.
+ENV DEBIAN_FRONTEND=noninteractive
+RUN sudo DEBIAN_FRONTEND=noninteractive sudo DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata
+
+# Install ROS
+# Get ROS Melodic for Ubuntu 18.04
+RUN sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu bionic main" > /etc/apt/sources.list.d/ros-latest.list'
+RUN sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key 421C365BD9FF1F717815A3895523BAEEB01FA116
+RUN sudo apt-get update
+RUN sudo apt-get install -y --allow-unauthenticated ros-melodic-ros-base
+
+# Initialize rosdep
+RUN sudo rosdep init
+RUN rosdep update
+
+# Install rosinstall
+RUN sudo apt-get install -y python-rosinstall
+RUN sudo apt-get install -y python-cv-bridge
+
+# Install Tensorflow
+RUN sudo apt-get install -y python-pip
+RUN pip install tensorflow-gpu==1.13.1
+
+# Get the erdos directory.
+RUN sudo apt-get -y install git
+RUN mkdir -p /home/erdos/workspace
+RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/erdos.git
+WORKDIR /home/erdos/workspace/erdos
+# Install erdos Python dependencies
+RUN cd /home/erdos/workspace/erdos && pip install -r requirements.txt
+# Install Pylot Python dependencies
+RUN cd /home/erdos/workspace/erdos/examples/pylot && pip install -r requirements.txt
+
+# Set this env value to run carla in headless CARLA
+ENV SDL_VIDEODRIVER offscreen
+
+# Get the Pylot models and code dependencies.
+RUN sudo apt-get install -y wget
+# Install toolkit for Centernet
+RUN sudo apt-get -y install cuda-toolkit-10.0
+RUN cd /home/erdos/workspace/erdos/examples/pylot/scripts/ && ./get_dependencies.sh
+
+# Export PYTHONPATH
+RUN echo "export PYTHONPATH=$PYTHONPATH:/home/erdos/workspace/erdos/:/home/erdos/workspace/erdos/examples/pylot/dependencies/:/home/erdos/workspace/erdos/examples/pylot/dependencies/CARLA_0.8.4/PythonClient/:/home/erdos/workspace/erdos/examples/pylot/dependencies/CenterNet/src/lib/" >> ~/.bashrc
+
+# Source the ROS setup script at the init of the shell.
+RUN echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
+
+# Expose the required ports.
+EXPOSE 2000 2001 2002

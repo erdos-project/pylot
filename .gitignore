@@ -1,0 +1,8 @@
+*~
+*.pyc
+data/
+
+# Generated documentation files
+/doc/build
+.idea/
+venv/

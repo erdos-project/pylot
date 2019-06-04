@@ -1,0 +1,17 @@
+absl-py
+cffi
+gdown
+matplotlib==2.2.4
+open3d-original
+opencv-python
+opencv-contrib-python
+pid_controller
+pillow
+pptk
+protobuf
+ray
+rospkg
+scipy  
+setproctitle
+torch==0.4.1
+torchvision==0.2.1
