@@ -1,7 +1,7 @@
 #!/bin/bash
 # Assumes the script is called from PYLOT_HOME directory
 
-sudo apt-get -y install git wget python-pip
+sudo apt-get install -y git wget python-pip
 pip install --user gdown
 
 sudo apt-get install -y lsb-release
