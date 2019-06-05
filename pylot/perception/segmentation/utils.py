@@ -23,10 +23,12 @@ CITYSCAPES_CLASSES = {
 
 
 def is_segmented_road_pixel(segmented_frame, x, y):
+    """ Checks if a pixel is a road pixel in a Carla segmented frame."""
     return segmented_frame[x][y] == 7
 
 
 def get_traffic_sign_pixels(segmented_frame):
+    """ Returns a frame with the traffic sign pixels set to True."""
     # Shape is height, width
     traffic_signs_frame = np.zeros((segmented_frame.shape[0],
                                     segmented_frame.shape[1]),
@@ -38,6 +40,7 @@ def get_traffic_sign_pixels(segmented_frame):
 
 
 def transform_to_cityscapes_palette(frame_array):
+    """ Transforms a frame to the Carla cityscapes pallete."""
     result = np.zeros((frame_array.shape[0], frame_array.shape[1], 3))
     for key, value in CITYSCAPES_CLASSES.items():
         result[np.where(frame_array == key)] = value
@@ -45,13 +48,21 @@ def transform_to_cityscapes_palette(frame_array):
 
 
 def compute_semantic_iou(ground_frame, predicted_frame):
+    """ Computes IoU for a segmented frame.
+
+    Args:
+        ground_frame: Ground segmented frame.
+        predicted_frame: The frame for which to compute IoU.
+    """
     iou = {}
     for key, value in CITYSCAPES_CLASSES.items():
         #  Do not include None in the mIoU
         if key == 0:
             continue
         target = np.zeros((ground_frame.shape[0], ground_frame.shape[1], 3))
-        prediction = np.zeros((ground_frame.shape[0], ground_frame.shape[1], 3))
+        prediction = np.zeros((ground_frame.shape[0],
+                               ground_frame.shape[1],
+                               3))
         target[np.where(ground_frame == value)] = 1
         prediction[np.where(predicted_frame == value)] = 1
         intersection = np.logical_and(target, prediction)
@@ -66,8 +77,14 @@ def compute_semantic_iou(ground_frame, predicted_frame):
 
 
 def tf_compute_semantic_iou(tf_session, ground_frame, predicted_frame):
-    iou = {}
+    """ Tensorflow-based method to computes IoU for a segmented frame.
 
+    Args:
+        tf_session: A Tensorflow session.
+        ground_frame: Ground segmented frame.
+        predicted_frame: The frame for which to compute IoU.
+    """
+    iou = {}
     zeros = tf.zeros((ground_frame.shape[0], ground_frame.shape[1]),
                      dtype=tf.bool)
     ones = tf.ones((ground_frame.shape[0], ground_frame.shape[1]),
@@ -120,13 +137,3 @@ def generate_masks(frame):
         mask[np.where(frame == key)] = 1
         masks.append(mask)
     return masks
-
-
-def compute_instance_iou(ground_frame, predicted_frame):
-    # iIou = iTP/(iTP + FP + iFN)
-    # iTP and iFN are computed by weighting the contribution of each pixel
-    # by the ratio of the class' average instance size to the size of the
-    # respective ground truth instance.
-
-    # TODO(ionel): Implement!
-    pass

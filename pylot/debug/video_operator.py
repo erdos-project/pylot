@@ -7,6 +7,7 @@ from pylot.utils import add_timestamp, is_camera_stream
 
 
 class VideoOperator(Op):
+    """ Subscribes to camera streams, and visualizes frames."""
     def __init__(self, name, flags, log_file_name=None):
         super(VideoOperator, self).__init__(name)
         self._logger = setup_logging(self.name, log_file_name)

@@ -6,7 +6,6 @@ from carla.client import CarlaClient
 from carla.sensor import Camera, Lidar
 from carla.settings import CarlaSettings
 
-from erdos.data_stream import DataStream
 from erdos.message import Message, WatermarkMessage
 from erdos.op import Op
 from erdos.timestamp import Timestamp
@@ -20,11 +19,11 @@ import pylot.simulation.utils
 
 
 class CarlaLegacyOperator(Op):
-    """Provides an ERDOS interface to the CARLA simulator.
+    """ CarlaLegacyOperator initializes and controls the simulat.
 
-    Args:
-        synchronous_mode (bool): whether the simulator will wait for control
-            input from the client.
+    This operator connects to the simulator, spawns actors, gets and publishes
+    ground info, and sends vehicle commands. The operator works with
+    Carla 0.8.4.
     """
     def __init__(self,
                  name,
@@ -37,27 +36,29 @@ class CarlaLegacyOperator(Op):
         self._flags = flags
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
-        self.message_num = 0
+        self._message_num = 0
         if self._flags.carla_high_quality:
             quality = 'Epic'
         else:
             quality = 'Low'
-        self.settings = CarlaSettings()
-        self.settings.set(
+        self._settings = CarlaSettings()
+        self._settings.set(
             SynchronousMode=self._flags.carla_synchronous_mode,
             SendNonPlayerAgentsInfo=True,
             NumberOfVehicles=self._flags.carla_num_vehicles,
             NumberOfPedestrians=self._flags.carla_num_pedestrians,
             WeatherId=self._flags.carla_weather,
             QualityLevel=quality)
-        self.settings.randomize_seeds()
+        self._settings.randomize_seeds()
         self._transforms = {}
+        # Add cameras to the simulation.
         for cs in camera_setups:
             transform = self.__add_camera(name=cs.name,
                                           postprocessing=cs.type,
                                           image_size=cs.resolution,
                                           position=cs.pos)
             self._transforms[cs.name] = transform
+        # Add lidars to the simulation.
         for ls in lidar_setups:
             self.__add_lidar(name=ls.name,
                              channels=ls.channels,
@@ -69,6 +70,15 @@ class CarlaLegacyOperator(Op):
                              position=ls.pos)
         self.agent_id_map = {}
         self.pedestrian_count = 0
+
+        # Initialize the control state.
+        self.control = {
+            'steer': 0.0,
+            'throttle': 0.0,
+            'brake': 0.0,
+            'hand_brake': False,
+            'reverse': False
+        }
         # Register custom serializers for Messages and WatermarkMessages
         ray.register_custom_serializer(Message, use_pickle=True)
         ray.register_custom_serializer(WatermarkMessage, use_pickle=True)
@@ -81,11 +91,11 @@ class CarlaLegacyOperator(Op):
         lidar_streams = [pylot.utils.create_lidar_stream(ls)
                          for ls in lidar_setups]
         return [
-            DataStream(name='can_bus'),
-            DataStream(name='traffic_lights'),
-            DataStream(name='pedestrians'),
-            DataStream(name='vehicles'),
-            DataStream(name='traffic_signs'),
+            pylot.utils.create_can_bus_stream(),
+            pylot.utils.create_ground_traffic_lights_stream(),
+            pylot.utils.create_ground_vehicles_stream(),
+            pylot.utils.create_ground_pedestrians_stream(),
+            pylot.utils.create_ground_traffic_signs_stream()
         ] + camera_streams + lidar_streams
 
     def __add_camera(self,
@@ -103,6 +113,7 @@ class CarlaLegacyOperator(Op):
             name: A string naming the camera.
             postprocessing: "SceneFinal", "Depth", "SemanticSegmentation".
         """
+        # Transform from Carla 0.9.x postprocessing strings to Carla 0.8.4.
         if postprocessing == 'sensor.camera.rgb':
             postprocessing = 'SceneFinal'
         elif postprocessing == 'sensor.camera.depth':
@@ -123,15 +134,15 @@ class CarlaLegacyOperator(Op):
             RotationRoll=rotation_roll,
             RotationYaw=rotation_yaw)
 
-        self.settings.add_sensor(camera)
+        self._settings.add_sensor(camera)
         return camera.get_transform()
 
     def __add_lidar(self,
                     name,
                     channels=32,
                     range=50,
-                    points_per_second=100000,
-                    rotation_frequency=10,
+                    points_per_second=500000,
+                    rotation_frequency=20,
                     upper_fov=10,
                     lower_fov=-30,
                     position=(0, 0, 1.4),
@@ -158,7 +169,7 @@ class CarlaLegacyOperator(Op):
             RotationYaw=rotation_yaw,
             RotationRoll=rotation_roll)
 
-        self.settings.add_sensor(lidar)
+        self._settings.add_sensor(lidar)
 
     def read_carla_data(self):
         read_start_time = time.time()
@@ -170,12 +181,13 @@ class CarlaLegacyOperator(Op):
                 measurements.game_timestamp, measurements.platform_timestamp))
 
         timestamp = Timestamp(
-            coordinates=[measurements.game_timestamp, self.message_num])
-        self.message_num += 1
+            coordinates=[measurements.game_timestamp, self._message_num])
+        self._message_num += 1
         watermark = WatermarkMessage(timestamp)
 
         # Send player data on data streams.
-        self.__send_player_data(measurements.player_measurements, timestamp, watermark)
+        self.__send_player_data(
+            measurements.player_measurements, timestamp, watermark)
         # Extract agent data from measurements.
         agents = self.__get_ground_agents(measurements)
         # Send agent data on data streams.
@@ -194,6 +206,10 @@ class CarlaLegacyOperator(Op):
             time_epoch_ms(), self.name, measurement_runtime, total_runtime))
 
     def __send_player_data(self, player_measurements, timestamp, watermark):
+        """ Sends hero vehicle information.
+
+        It populates a CanBus tuple.
+        """
         location = pylot.simulation.utils.Location(
             carla_loc=player_measurements.transform.location)
         orientation = pylot.simulation.utils.Orientation(
@@ -207,7 +223,8 @@ class CarlaLegacyOperator(Op):
             player_measurements.transform.rotation.roll,
             orientation=orientation)
         forward_speed = player_measurements.forward_speed * 3.6
-        can_bus = pylot.simulation.utils.CanBus(vehicle_transform, forward_speed)
+        can_bus = pylot.simulation.utils.CanBus(
+            vehicle_transform, forward_speed)
         self.get_output_stream('can_bus').send(Message(can_bus, timestamp))
         self.get_output_stream('can_bus').send(watermark)
 
@@ -222,21 +239,23 @@ class CarlaLegacyOperator(Op):
                     carla_loc=agent.vehicle.transform.location)
                 transform = pylot.simulation.utils.to_erdos_transform(
                     agent.vehicle.transform)
-                bb = pylot.simulation.utils.BoundingBox(agent.vehicle.bounding_box)
+                bb = pylot.simulation.utils.BoundingBox(
+                    agent.vehicle.bounding_box)
                 forward_speed = agent.vehicle.forward_speed
-                vehicle = pylot.simulation.utils.Vehicle(pos, transform, bb, forward_speed)
+                vehicle = pylot.simulation.utils.Vehicle(
+                    pos, transform, bb, forward_speed)
                 vehicles.append(vehicle)
             elif agent.HasField('pedestrian'):
                 if not self.agent_id_map.get(agent.id):
                     self.pedestrian_count += 1
                     self.agent_id_map[agent.id] = self.pedestrian_count
-
                 pedestrian_index = self.agent_id_map[agent.id]
                 pos = pylot.simulation.utils.Location(
                     carla_loc=agent.pedestrian.transform.location)
                 transform = pylot.simulation.utils.to_erdos_transform(
                     agent.pedestrian.transform)
-                bb = pylot.simulation.utils.BoundingBox(agent.pedestrian.bounding_box)
+                bb = pylot.simulation.utils.BoundingBox(
+                    agent.pedestrian.bounding_box)
                 forward_speed = agent.pedestrian.forward_speed
                 pedestrian = pylot.simulation.utils.Pedestrian(
                     pedestrian_index, pos, transform, bb, forward_speed)
@@ -303,6 +322,7 @@ class CarlaLegacyOperator(Op):
             data_stream.send(watermark)
 
     def read_data_at_frequency(self):
+        """ Reads data from Carla at a given frequency."""
         period = 1.0 / self._flags.carla_step_frequency
         trigger_at = time.time() + period
         while True:
@@ -310,13 +330,19 @@ class CarlaLegacyOperator(Op):
             if time_until_trigger > 0:
                 time.sleep(time_until_trigger)
             else:
-                self._logger.error('Cannot read Carla data at frequency {}'.format(
-                    self._flags.carla_step_frequency))
+                self._logger.error(
+                    'Cannot read Carla data at frequency {}'.format(
+                        self._flags.carla_step_frequency))
             self.read_carla_data()
             trigger_at += period
 
     def update_control(self, msg):
-        """Updates the control dict"""
+        """ Invoked when a ControlMessage is received.
+
+        Args:
+            msg: A control.messages.ControlMessage message.
+        """
+        # Update the control dict state.
         self.control['steer'] = msg.steer
         self.control['throttle'] = msg.throttle
         self.control['brake'] = msg.brake
@@ -324,19 +350,12 @@ class CarlaLegacyOperator(Op):
         self.control['reverse'] = msg.reverse
 
     def execute(self):
-        # Subscribe to control streams
-        self.control = {
-            'steer': 0.0,
-            'throttle': 0.0,
-            'brake': 0.0,
-            'hand_brake': False,
-            'reverse': False
-        }
+        # Connect to the simulator.
         self.client = CarlaClient(self._flags.carla_host,
                                   self._flags.carla_port,
                                   timeout=10)
         self.client.connect()
-        scene = self.client.load_settings(self.settings)
+        scene = self.client.load_settings(self._settings)
 
         # Choose one player start at random.
         number_of_player_starts = len(scene.player_start_spots)

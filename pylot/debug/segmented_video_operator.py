@@ -10,6 +10,7 @@ from pylot.utils import rgb_to_bgr, is_ground_segmented_camera_stream
 
 
 class SegmentedVideoOperator(Op):
+    """ Subscribes to the ground segmented stream, and visualizes frames."""
     def __init__(self, name, flags, log_file_name=None):
         super(SegmentedVideoOperator, self).__init__(name)
         self._logger = setup_logging(self.name, log_file_name)

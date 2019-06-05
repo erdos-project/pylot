@@ -9,7 +9,10 @@ from pylot.utils import is_ground_segmented_camera_stream
 
 
 class SegmentationEvalGroundOperator(Op):
+    """ Computes how much segmentation accuracy decreases over time.
 
+    The operator subscribes to the Carla perfect segmented frames stream.
+    """
     def __init__(self, name, flags, log_file_name=None, csv_file_name=None):
         super(SegmentationEvalGroundOperator, self).__init__(name)
         self._flags = flags
@@ -32,7 +35,8 @@ class SegmentationEvalGroundOperator(Op):
             start_time = time.time()
             # We don't fully transform it to cityscapes palette to avoid
             # introducing extra latency.
-            frame_masks = generate_masks(transform_to_cityscapes_palette(msg.frame))
+            frame_masks = generate_masks(
+                transform_to_cityscapes_palette(msg.frame))
 
             if len(self._ground_masks) > 0:
                 if self._time_delta is None:
@@ -52,7 +56,8 @@ class SegmentationEvalGroundOperator(Op):
 
                 cur_time = time_epoch_ms()
                 for timestamp, ground_masks in self._ground_masks:
-                    (mean_iou, class_iou) = compute_semantic_iou_from_masks(ground_masks, frame_masks)
+                    (mean_iou, class_iou) = compute_semantic_iou_from_masks(
+                        ground_masks, frame_masks)
                     time_diff = msg.timestamp.coordinates[0] - timestamp
                     self._logger.info(
                         'Segmentation ground latency {} ; mean IoU {}'.format(
@@ -65,7 +70,10 @@ class SegmentationEvalGroundOperator(Op):
                             'Segmentation ground latency {} ; pedestrian IoU {}'.format(
                                 time_diff, class_iou[pedestrian_key]))
                         self._csv_logger.info('{},{},pedestrianIoU,{},{}'.format(
-                            cur_time, self.name, time_diff, class_iou[pedestrian_key]))
+                            cur_time,
+                            self.name,
+                            time_diff,
+                            class_iou[pedestrian_key]))
 
                     vehicle_key = 10
                     if vehicle_key in class_iou:
@@ -73,13 +81,18 @@ class SegmentationEvalGroundOperator(Op):
                             'Segmentation ground latency {} ; vehicle IoU {}'.format(
                                 time_diff, class_iou[vehicle_key]))
                         self._csv_logger.info('{},{},vehicleIoU,{},{}'.format(
-                            cur_time, self.name, time_diff, class_iou[vehicle_key]))
+                            cur_time,
+                            self.name,
+                            time_diff,
+                            class_iou[vehicle_key]))
 
             # Append the processed image to the buffer.
-            self._ground_masks.append((msg.timestamp.coordinates[0], frame_masks))
+            self._ground_masks.append(
+                (msg.timestamp.coordinates[0], frame_masks))
 
             runtime = (time.time() - start_time) * 1000
-            self._logger.info('Segmentation eval ground runtime {}'.format(runtime))
+            self._logger.info('Segmentation eval ground runtime {}'.format(
+                runtime))
 
     def execute(self):
         self.spin()

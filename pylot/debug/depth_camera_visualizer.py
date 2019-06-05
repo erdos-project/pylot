@@ -7,6 +7,7 @@ from pylot.utils import add_timestamp, is_depth_camera_stream
 
 
 class DepthCameraVisualizer(Op):
+    """ Subscribes to depth camera streams, and visualizes frames."""
     def __init__(self, name, flags, log_file_name=None):
         super(DepthCameraVisualizer, self).__init__(name)
         self._logger = setup_logging(self.name, log_file_name)

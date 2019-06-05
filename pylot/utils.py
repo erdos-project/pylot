@@ -42,16 +42,32 @@ def is_ground_vehicle_id_stream(stream):
     return stream.name == 'vehicle_id_stream'
 
 
+def create_ground_pedestrians_stream():
+    return DataStream(name='pedestrians')
+
+
 def is_ground_pedestrians_stream(stream):
     return stream.name == 'pedestrians'
+
+
+def create_ground_vehicles_stream():
+    return DataStream(name='vehicles')
 
 
 def is_ground_vehicles_stream(stream):
     return stream.name == 'vehicles'
 
 
+def create_ground_traffic_lights_stream():
+    return DataStream(name='traffic_lights')
+
+
 def is_ground_traffic_lights_stream(stream):
     return stream.name == 'traffic_lights'
+
+
+def create_ground_traffic_signs_stream():
+    return DataStream(name='traffic_signs')
 
 
 def is_ground_traffic_signs_stream(stream):
@@ -99,6 +115,10 @@ def create_control_stream():
                       labels={'no_watermark': 'true'})
 
 
+def is_control_stream(stream):
+    return stream.name == 'control_stream'
+
+
 def create_waypoints_stream():
     return DataStream(name='waypoints')
 
@@ -123,6 +143,10 @@ def is_global_trajectory_stream(stream):
 
 def is_open_drive_stream(stream):
     return stream.name == 'open_drive_stream'
+
+
+def create_can_bus_stream():
+    return DataStream(name='can_bus')
 
 
 def is_can_bus_stream(stream):

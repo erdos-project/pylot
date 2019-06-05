@@ -11,6 +11,7 @@ from pylot.utils import create_obstacles_stream, is_camera_stream
 
 
 class DetectionOperator(Op):
+    """ Subscribes to a camera stream, and runs a model for each frame."""
     def __init__(self,
                  name,
                  output_stream_name,
@@ -24,6 +25,7 @@ class DetectionOperator(Op):
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
         self._output_stream_name = output_stream_name
         self._detection_graph = tf.Graph()
+        # Load the model from the model file.
         with self._detection_graph.as_default():
             od_graph_def = tf.GraphDef()
             with tf.gfile.GFile(model_path, 'rb') as fid:
@@ -33,9 +35,11 @@ class DetectionOperator(Op):
 
         self._gpu_options = tf.GPUOptions(
             per_process_gpu_memory_fraction=flags.obj_detection_gpu_memory_fraction)
+        # Create a TensorFlow session.
         self._tf_session = tf.Session(
             graph=self._detection_graph,
             config=tf.ConfigProto(gpu_options=self._gpu_options))
+        # Get the tensors we're interested in.
         self._image_tensor = self._detection_graph.get_tensor_by_name(
             'image_tensor:0')
         self._detection_boxes = self._detection_graph.get_tensor_by_name(
@@ -50,12 +54,20 @@ class DetectionOperator(Op):
         self._bbox_colors = load_coco_bbox_colors(self._coco_labels)
 
     @staticmethod
-    def setup_streams(input_streams, output_stream_name):
-        input_streams.filter(is_camera_stream).add_callback(
-            DetectionOperator.on_msg_camera_stream)
+    def setup_streams(input_streams,
+                      output_stream_name,
+                      camera_stream_name=None):
+        # Select camera input streams.
+        camera_streams = input_streams.filter(is_camera_stream)
+        if camera_stream_name:
+            # Select only the camera the operator is interested in.
+            camera_streams = camera_streams.filter_name(camera_stream_name)
+        # Register a callback on the camera input stream.
+        camera_streams.add_callback(DetectionOperator.on_msg_camera_stream)
         return [create_obstacles_stream(output_stream_name)]
 
     def on_msg_camera_stream(self, msg):
+        """ Invoked when the operator receives a message on the data stream."""
         self._logger.info('{} received frame {}'.format(
             self.name, msg.timestamp))
         start_time = time.time()
@@ -91,19 +103,8 @@ class DetectionOperator(Op):
         self._logger.info('Object scores {}'.format(scores))
         self._logger.info('Object labels {}'.format(labels))
 
-        index = 0
-        detected_objects = []
-
-        while index < len(boxes) and index < len(scores):
-            if scores[index] >= self._flags.detector_min_score_threshold:
-                ymin = int(boxes[index][0] * msg.height)
-                xmin = int(boxes[index][1] * msg.width)
-                ymax = int(boxes[index][2] * msg.height)
-                xmax = int(boxes[index][3] * msg.width)
-                corners = (xmin, xmax, ymin, ymax)
-                detected_objects.append(
-                    DetectedObject(corners, scores[index], labels[index]))
-            index += 1
+        detected_objects = self.__convert_to_detected_objs(
+            boxes, scores, labels, msg.height, msg.width)
 
         if self._flags.visualize_detector_output:
             visualize_bboxes(self.name, msg.timestamp, image_np,
@@ -118,3 +119,18 @@ class DetectionOperator(Op):
 
     def execute(self):
         self.spin()
+
+    def __convert_to_detected_objs(self, boxes, scores, labels, height, width):
+        index = 0
+        detected_objects = []
+        while index < len(boxes) and index < len(scores):
+            if scores[index] >= self._flags.detector_min_score_threshold:
+                ymin = int(boxes[index][0] * height)
+                xmin = int(boxes[index][1] * width)
+                ymax = int(boxes[index][2] * height)
+                xmax = int(boxes[index][3] * width)
+                corners = (xmin, xmax, ymin, ymax)
+                detected_objects.append(
+                    DetectedObject(corners, scores[index], labels[index]))
+            index += 1
+        return detected_objects

@@ -32,13 +32,22 @@ class DetectionCenterNetOperator(Op):
         self._bbox_colors = load_coco_bbox_colors(self._coco_labels)
 
     @staticmethod
-    def setup_streams(input_streams, output_stream_name):
-        input_streams.filter(is_camera_stream).add_callback(
+    def setup_streams(input_streams,
+                      output_stream_name,
+                      camera_stream_name=None):
+        # Select camera input streams.
+        camera_streams = input_streams.filter(is_camera_stream)
+        if camera_stream_name:
+            # Select only the camera the operator is interested in.
+            camera_streams = camera_streams.filter_name(camera_stream_name)
+        # Register a callback on the camera input stream.
+        camera_streams.add_callback(
             DetectionCenterNetOperator.on_msg_camera_stream)
         return [create_obstacles_stream(output_stream_name)]
 
     def on_msg_camera_stream(self, msg):
-        self._logger.info('{} received frame {}'.format(self.name, msg.timestamp))
+        self._logger.info('{} received frame {}'.format(
+            self.name, msg.timestamp))
         start_time = time.time()
         assert msg.encoding == 'BGR', 'Expects BGR frames'
         image_np = msg.frame
@@ -65,6 +74,9 @@ class DetectionCenterNetOperator(Op):
             for bbox in results[category]:
                 confidence = bbox[4]
                 if confidence >= self._flags.detector_min_score_threshold:
-                    corners = (int(bbox[0]), int(bbox[2]), int(bbox[1]), int(bbox[3]))
-                    output.append(DetectedObject(corners, confidence, self._coco_labels[category]))
+                    corners = (int(bbox[0]), int(bbox[2]),
+                               int(bbox[1]), int(bbox[3]))
+                    output.append(DetectedObject(corners,
+                                                 confidence,
+                                                 self._coco_labels[category]))
         return output

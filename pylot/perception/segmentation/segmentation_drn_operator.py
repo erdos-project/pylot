@@ -13,6 +13,7 @@ from pylot.utils import add_timestamp, create_segmented_camera_stream, is_camera
 
 
 class SegmentationDRNOperator(Op):
+    """ Subscribes to a camera stream, and segments frames using DRN."""
     def __init__(self,
                  name,
                  output_stream_name,
@@ -37,9 +38,16 @@ class SegmentationDRNOperator(Op):
             self._model = torch.nn.DataParallel(self._model).cuda()
 
     @staticmethod
-    def setup_streams(input_streams, output_stream_name):
+    def setup_streams(input_streams,
+                      output_stream_name,
+                      filter_stream_name=None):
+        # Select camera input streams.
+        camera_streams = input_streams.filter(is_camera_stream)
+        if filter_stream_name:
+            # Select only the camera the operator is interested in.
+            camera_streams = camera_streams.filter_name(filter_stream_name)
         # Register a callback on the camera input stream.
-        input_streams.filter(is_camera_stream).add_callback(
+        camera_streams.add_callback(
             SegmentationDRNOperator.on_msg_camera_stream)
         return [create_segmented_camera_stream(output_stream_name)]
 
@@ -47,7 +55,8 @@ class SegmentationDRNOperator(Op):
         """Camera stream callback method.
         Invoked upon the receipt of a message on the camera stream.
         """
-        self._logger.info('{} received frame {}'.format(self.name, msg.timestamp))
+        self._logger.info('{} received frame {}'.format(
+            self.name, msg.timestamp))
         start_time = time.time()
         assert msg.encoding == 'BGR', 'Expects BGR frames'
         image = torch.from_numpy(msg.frame.transpose([2, 0,

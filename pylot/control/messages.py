@@ -22,5 +22,6 @@ class ControlMessage(Message):
         self.reverse = reverse
 
     def __str__(self):
-        return 'timestamp: {}, steer: {}, throttle: {}, brake: {}, hand_brake: {}, reverse: {}'.format(
-            self.timestamp, self.steer, self.throttle, self.brake, self.hand_brake, self.reverse)
+        return 'ControlMessage(timestamp: {}, steer: {}, throttle: {}, brake: {}, hand_brake: {}, reverse: {})'.format(
+            self.timestamp, self.steer, self.throttle, self.brake,
+            self.hand_brake, self.reverse)

@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from numpy.linalg import inv
 try:
     import queue as queue
 except ImportError:
@@ -97,12 +96,20 @@ coco_bbox_color_list = np.array(
 
 
 class DetectedObject(object):
+    """ Class that stores info about a detected object.
+
+    Attributes:
+        corners: The corners of the bounding box.
+        confidence: The confidence of the detection.
+        label: The label of the detected object.
+    """
     def __init__(self, corners, confidence, label):
         self.corners = corners
         self.confidence = confidence
         self.label = label
 
     def visualize_on_img(self, image_np, bbox_color_map):
+        """ Annotate the image with the bounding box of the obstacle."""
         txt_font = cv2.FONT_HERSHEY_SIMPLEX
         (xmin, xmax, ymin, ymax) = self.corners
         label_confidence_txt = '{}{:.1f}'.format(self.label, self.confidence)
@@ -115,10 +122,12 @@ class DetectedObject(object):
                       (xmin, ymin - txt_size[1] - 2),
                       (xmin + txt_size[0], ymin - 2), color, -1)
         cv2.putText(image_np, label_confidence_txt, (xmin, ymin - 2),
-                    txt_font, 0.5, (0, 0, 0), thickness=1, lineType=cv2.LINE_AA)
+                    txt_font, 0.5, (0, 0, 0), thickness=1,
+                    lineType=cv2.LINE_AA)
 
 
 def compute_miou(bboxes1, bboxes2):
+    """ Compute mIoU for two lists of bounding boxes."""
     bboxes1, bboxes2 = np.array(bboxes1), np.array(bboxes2)
     x11, x12, y11, y12 = np.split(bboxes1, 4, axis=1)
     x21, y21, x22, y22 = np.split(bboxes2, 4, axis=1)
@@ -139,7 +148,7 @@ def compute_miou(bboxes1, bboxes2):
     return inter_area / (union+0.0001)
 
 
-def get_neighbors(x, y, width, height):
+def __get_neighbors(x, y, width, height):
     neighbours = []
     for (dx, dy) in ADJACENT_POS:
         new_x = x + dx
@@ -150,6 +159,10 @@ def get_neighbors(x, y, width, height):
 
 
 def get_bounding_boxes_from_segmented(segmented_frame):
+    """ Extract bounding boxes from a binary frame.
+
+    The pixels that must be included in bounding boxes are marked as True.
+    """
     bboxes = []
     for x in range(segmented_frame.shape[0]):
         for y in range(segmented_frame.shape[1]):
@@ -169,9 +182,9 @@ def get_bounding_boxes_from_segmented(segmented_frame):
                     max_x = max(max_x, x)
                     min_y = min(min_y, y)
                     max_y = max(max_y, y)
-                    for (new_x, new_y) in get_neighbors(x, y,
-                                                        segmented_frame.shape[0],
-                                                        segmented_frame.shape[1]):
+                    for (new_x, new_y) in __get_neighbors(x, y,
+                                                          segmented_frame.shape[0],
+                                                          segmented_frame.shape[1]):
                         if segmented_frame[new_x][new_y]:
                             to_visit.put((new_x, new_y))
                             segmented_frame[new_x][new_y] = False
@@ -193,11 +206,12 @@ def load_coco_labels(labels_path):
             index += 1
     return labels_map
 
+
 def load_coco_bbox_colors(coco_labels):
     # Transform to RGB values.
     bbox_color_list = coco_bbox_color_list.reshape((-1, 3)) * 255
     # Transform to ints
-    bbox_colors = [(bbox_color_list[_]).astype(np.uint8) \
+    bbox_colors = [(bbox_color_list[_]).astype(np.uint8)
                    for _ in range(len(bbox_color_list))]
     bbox_colors = np.array(bbox_colors, dtype=np.uint8).reshape(
         len(bbox_colors), 1, 1, 3)

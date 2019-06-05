@@ -23,9 +23,16 @@ class LaneDetectionOperator(Op):
         self._output_stream_name = output_stream_name
 
     @staticmethod
-    def setup_streams(input_streams, output_stream_name):
+    def setup_streams(input_streams,
+                      output_stream_name,
+                      camera_stream_name=None):
+        # Select camera input streams.
+        camera_streams = input_streams.filter(is_camera_stream)
+        if camera_stream_name:
+            # Select only the camera the operator is interested in.
+            camera_streams = camera_streams.filter_name(camera_stream_name)
         # Register a callback on the camera input stream.
-        input_streams.filter(is_camera_stream).add_callback(
+        camera_streams.add_callback(
             LaneDetectionOperator.on_msg_camera_stream)
         return [create_detected_lane_stream(output_stream_name)]
 

@@ -46,14 +46,22 @@ class ObjectTrackerOp(Op):
         self._lock = threading.Lock()
 
     @staticmethod
-    def setup_streams(input_streams, output_stream_name):
+    def setup_streams(input_streams,
+                      output_stream_name,
+                      camera_stream_name=None):
         input_streams.filter(is_obstacles_stream).add_callback(
             ObjectTrackerOp.on_objects_msg)
-        input_streams.filter(is_camera_stream).add_callback(
-            ObjectTrackerOp.on_frame_msg)
+        # Select camera input streams.
+        camera_streams = input_streams.filter(is_camera_stream)
+        if camera_stream_name:
+            # Select only the camera the operator is interested in.
+            camera_streams = camera_streams.filter_name(camera_stream_name)
+        # Register a callback on the camera input stream.
+        camera_streams.add_callback(ObjectTrackerOp.on_frame_msg)
         return [DataStream(name=output_stream_name)]
 
     def on_frame_msg(self, msg):
+        """ Invoked when a FrameMessage is received on the camera stream."""
         self._lock.acquire()
         start_time = time.time()
         assert msg.encoding == 'BGR', 'Expects BGR frames'
@@ -72,6 +80,7 @@ class ObjectTrackerOp(Op):
         self._lock.release()
 
     def on_objects_msg(self, msg):
+        """ Invoked when detected objects are received on the stream."""
         self._lock.acquire()
         self._ready_to_update = False
         self._logger.info("Received {} bboxes for {}".format(
@@ -107,27 +116,43 @@ class ObjectTrackerOp(Op):
         self.spin()
 
     def checkpoint(self, timestamp):
+        """ Invoked by ERDOS when the operator must checkpoint state.
+
+        The checkpoint should include all the state up to and including
+        timestamp.
+
+        Args:
+            timestamp: The timestamp at which the checkpoint is taken.
+        """
         # We can't checkpoint the tracker itself because it has internal state.
         state = [self._ready_to_update_timestamp,
                  self._ready_to_update,
                  self._to_process]
-        # XXX(ionel): This doesn't work if we have other time dimensions.
+        # TODO(ionel): This doesn't work if we have other time dimensions.
         file_name = '{}{}.checkpoint'.format(
             self._name, timestamp.coordinates[1])
         pickle.dump(state, open(file_name, 'wb'))
         return file_name
 
-    def restore(self, timestamp, state):
-        state = pickle.load(open(state, 'rb'))
-        self._ready_to_update_timestamp = state[0]
-        self._ready_to_update = state[1]
-        self._to_process = state[2]
+    def restore(self, timestamp, checkpoint):
+        """ Invoked by ERDOS when the operator must restore state.
+
+        The method rebuilds the state from the checkpoint.
+        Args:
+            timestamp: The timestamp the checkpoint was taken at.
+            checkpoint: The checkpoint was taken at timestamp.
+        """
+        checkpoint = pickle.load(open(checkpoint, 'rb'))
+        self._ready_to_update_timestamp = checkpoint[0]
+        self._ready_to_update = checkpoint[1]
+        self._to_process = checkpoint[2]
 
     def __get_highest_confidence_pedestrian(self, detected_objs):
         max_confidence = 0
         max_corners = None
         for detected_obj in detected_objs:
-            if detected_obj.label == 'person' and detected_obj.confidence > max_confidence:
+            if (detected_obj.label == 'person' and
+                detected_obj.confidence > max_confidence):
                 max_corners = detected_obj.corners
                 max_confidence = detected_obj.confidence
         if max_corners:

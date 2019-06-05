@@ -8,11 +8,13 @@ import pylot.utils
 
 
 class LidarVisualizerOperator(Op):
+    """ Subscribes to pointcloud streams and visualizes pointclouds."""
+
     def __init__(self, name, flags, log_file_name=None):
         super(LidarVisualizerOperator, self).__init__(name)
         self._logger = setup_logging(self.name, log_file_name)
         self._flags = flags
-        self.cnt = 0
+        self._cnt = 0
 
     @staticmethod
     def setup_streams(input_streams):
@@ -21,7 +23,7 @@ class LidarVisualizerOperator(Op):
         return []
 
     def display_point_cloud(self, msg):
-        #        filename = './carla-point-cloud{}.ply'.format(self.cnt)
+        #        filename = './carla-point-cloud{}.ply'.format(self._cnt)
         pptk.viewer(msg.point_cloud)
         # pcd = open3d.PointCloud()
         # pcd.points = open3d.Vector3dVector(msg.point_cloud)
