@@ -6,29 +6,29 @@ Carla simulator.
 Please ensure you have `nvidia-docker` on your machine before you start installing Pylot.
 In case you do not have `nvidia-docker` please run ```./scripts/install-nvidia-docker.sh```
 
-To install Pylot, use the Dockerfiles we provide:
+## Deploy using Docker
+
+The easiest way to get Pylot running is to use our Docker images. We provide a Docker
+image to run the Carla simulator in, and a Docker image with Pylot and ERDOS already setup.
 
 ```console
-cd docker
-./build_Ubuntu18.04_images.sh
+docker pull erdosproject/pylot
+docker pull erdosproject/carla
 ```
-
-The script creates two docker images: one that contains the Carla simulator and
-another one that contains ERDOS and Pylot.
 
 Next, create a Docker network, a Carla container, and a Pylot container:
 
 ```console
 docker network create carla-net
-nvidia-docker run -itd --name carla_v1 --net carla-net carla_ubuntu_18.04 /bin/bash
-nvidia-docker run -itd --name pylot_v1 -p 20022:22 --net carla-net pylot_ubuntu_18.04 /bin/bash
+nvidia-docker run -itd --name carla_v1 --net carla-net erdosproject/carla /bin/bash
+nvidia-docker run -itd --name pylot_v1 -p 20022:22 --net carla-net erdosproject/pylot /bin/bash
 ```
 
 Following, start the simulator in the Carla container:
 
 ```console
 nvidia-docker exec -i -t carla_v1 /bin/bash
-SDL_VIDEODRIVER=offscreen ${CARLA_ROOT}/CarlaUE4.sh -windowed -ResX=800 -ResY=600 -carla-server -benchmark -fps=10
+SDL_VIDEODRIVER=offscreen /home/erdos/workspace/CARLA_0.9.5/CarlaUE4.sh -windowed -ResX=800 -ResY=600 -carla-server -benchmark -fps=10
 ```
 
 Finally, start Pylot in the container:
@@ -46,7 +46,7 @@ following steps:
 ```console
 ssh-keygen
 # Copy yout public ssh key into .ssh/authorized_keys
-sudo sed -i 's/#X11UseLocalhost yes/#X11UseLocalhost no/g' /etc/ssh/sshd_config
+sudo sed -i 's/#X11UseLocalhost yes/X11UseLocalhost no/g' /etc/ssh/sshd_config
 sudo service ssh restart
 exit
 ```
@@ -56,8 +56,35 @@ Finally, ssh into the container with X forwarding:
 ssh -p 20022 -X erdos@localhost
 /bin/bash
 cd /home/erdos/workspace/pylot/pylot
+python pylot.py --flagfile=configs/only_ground_agent.conf --visualize_rgb_camera --carla_version=0.9.5 --carla_host=carla_v1
+```
+
+To execute using Carla 0.8.4 execute the following:
+```console
+ssh -p 20022 -X erdos@localhost
+/bin/bash
+export PYTHONPATH=$CARLA_0_8_4
+source /opt/ros/melodic/setup.bash
+cd /home/erdos/workspace/pylot/pylot
 python pylot.py --flagfile=configs/only_ground_agent.conf --visualize_rgb_camera --carla_version=0.8.4 --carla_host=carla_v1
 ```
+
+Next, in the Carla container execute:
+```console
+SDL_VIDEODRIVER=offscreen /home/erdos/workspace/CARLA_0.8.4/CarlaUE4.sh -windowed -ResX=800 -ResY=600 -carla-server -benchmark -fps=10
+```
+
+## Build your own Docker images
+
+In case you want to build your own images from the latest code, you can execute:
+
+```console
+cd docker
+./build_Ubuntu18.04_images.sh
+```
+
+The script creates two Docker images: one that contains the Carla simulator and
+another one that contains ERDOS and Pylot.
 
 ## Manual installation instructions
 Alternatively, you can install Pylot on your base system by executing the
