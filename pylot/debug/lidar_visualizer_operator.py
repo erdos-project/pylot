@@ -4,7 +4,7 @@ import pptk
 from erdos.op import Op
 from erdos.utils import setup_logging
 
-import pylot_utils
+import pylot.utils
 
 
 class LidarVisualizerOperator(Op):
@@ -16,7 +16,7 @@ class LidarVisualizerOperator(Op):
 
     @staticmethod
     def setup_streams(input_streams):
-        input_streams.filter(pylot_utils.is_lidar_stream).add_callback(
+        input_streams.filter(pylot.utils.is_lidar_stream).add_callback(
             LidarVisualizerOperator.display_point_cloud)
         return []
 

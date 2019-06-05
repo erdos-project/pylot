@@ -1,4 +1,3 @@
-from collections import namedtuple
 import cv2
 import numpy as np
 from numpy.linalg import inv
@@ -6,11 +5,8 @@ try:
     import queue as queue
 except ImportError:
     import Queue as queue
-from open3d import draw_geometries, read_point_cloud
-import PIL.ImageDraw as ImageDraw
-import PIL.ImageFont as ImageFont
 
-from pylot_utils import add_timestamp
+from pylot.utils import add_timestamp
 
 ADJACENT_POS = [(0, 1), (0, -1), (1, 0), (-1, 0)]
 

@@ -1,8 +1,9 @@
 import cv2
 
 from erdos.op import Op
+
 from erdos.utils import setup_logging
-from pylot_utils import add_timestamp, is_depth_camera_stream
+from pylot.utils import add_timestamp, is_depth_camera_stream
 
 
 class DepthCameraVisualizer(Op):

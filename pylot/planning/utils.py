@@ -1,5 +1,6 @@
 import math
 
+
 def get_distance(loc1, loc2):
     x_diff = loc1.x - loc2.x
     y_diff = loc1.y - loc2.y

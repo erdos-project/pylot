@@ -5,12 +5,12 @@ from absl import app
 from absl import flags
 from collections import deque
 
-import config
-from perception.detection.utils import get_bounding_boxes_from_segmented, visualize_ground_bboxes
-from perception.segmentation.utils import get_traffic_sign_pixels, transform_to_cityscapes_palette
-import simulation.utils
-import operator_creator
-import pylot_utils
+import pylot.config
+from pylot.perception.detection.utils import get_bounding_boxes_from_segmented, visualize_ground_bboxes
+from pylot.perception.segmentation.utils import get_traffic_sign_pixels, transform_to_cityscapes_palette
+import pylot.simulation.utils
+import pylot.operator_creator
+import pylot.utils
 
 import erdos.graph
 from erdos.op import Op
@@ -39,10 +39,10 @@ class CameraLoggerOp(Op):
 
     @staticmethod
     def setup_streams(input_streams):
-        input_streams.filter(pylot_utils.is_camera_stream).add_callback(
+        input_streams.filter(pylot.utils.is_camera_stream).add_callback(
             CameraLoggerOp.on_bgr_frame)
         input_streams.filter(
-            pylot_utils.is_ground_segmented_camera_stream).add_callback(
+            pylot.utils.is_ground_segmented_camera_stream).add_callback(
                 CameraLoggerOp.on_segmented_frame)
         return []
 
@@ -55,7 +55,7 @@ class CameraLoggerOp(Op):
             return
         # Write the image.
         assert msg.encoding == 'BGR', 'Expects BGR frames'
-        rgb_array = pylot_utils.bgr_to_rgb(msg.frame)
+        rgb_array = pylot.utils.bgr_to_rgb(msg.frame)
         file_name = '{}carla-{}.png'.format(
             self._flags.data_path, self._last_bgr_timestamp)
         rgb_img = Image.fromarray(np.uint8(rgb_array))
@@ -95,28 +95,28 @@ class GroundTruthObjectLoggerOp(Op):
         self._segmented_imgs = deque()
         self._vehicles = deque()
         (self._bgr_intrinsic, self._bgr_transform,
-         self._bgr_img_size) = simulation.utils.get_camera_intrinsic_and_transform(
+         self._bgr_img_size) = pylot.simulation.utils.get_camera_intrinsic_and_transform(
              image_size=bgr_camera_setup.resolution,
              position=bgr_camera_setup.pos)
         self._last_notification = -1
 
     @staticmethod
     def setup_streams(input_streams):
-        input_streams.filter(pylot_utils.is_depth_camera_stream).add_callback(
+        input_streams.filter(pylot.utils.is_depth_camera_stream).add_callback(
             GroundTruthObjectLoggerOp.on_depth_camera_update)
-        input_streams.filter(pylot_utils.is_camera_stream).add_callback(
+        input_streams.filter(pylot.utils.is_camera_stream).add_callback(
             GroundTruthObjectLoggerOp.on_bgr_camera_update)
         input_streams.filter(
-            pylot_utils.is_ground_segmented_camera_stream).add_callback(
+            pylot.utils.is_ground_segmented_camera_stream).add_callback(
                 GroundTruthObjectLoggerOp.on_segmented_frame)
         input_streams.filter(
-            pylot_utils.is_can_bus_stream).add_callback(
+            pylot.utils.is_can_bus_stream).add_callback(
                 GroundTruthObjectLoggerOp.on_can_bus_update)
         input_streams.filter(
-            pylot_utils.is_ground_pedestrians_stream).add_callback(
+            pylot.utils.is_ground_pedestrians_stream).add_callback(
                 GroundTruthObjectLoggerOp.on_pedestrians_update)
         input_streams.filter(
-            pylot_utils.is_ground_vehicles_stream).add_callback(
+            pylot.utils.is_ground_vehicles_stream).add_callback(
                 GroundTruthObjectLoggerOp.on_vehicles_update)
         input_streams.add_completion_callback(
             GroundTruthObjectLoggerOp.on_notification)
@@ -202,7 +202,7 @@ class GroundTruthObjectLoggerOp(Op):
                                  depth_array):
         bboxes = []
         for pedestrian in pedestrians:
-            bbox = simulation.utils.get_2d_bbox_from_3d_box(
+            bbox = pylot.simulation.utils.get_2d_bbox_from_3d_box(
                 depth_array, vehicle_transform, pedestrian.transform,
                 pedestrian.bounding_box, self._bgr_transform, self._bgr_intrinsic,
                 self._bgr_img_size, 1.5, 3.0)
@@ -214,7 +214,7 @@ class GroundTruthObjectLoggerOp(Op):
     def __get_vehicles_bboxes(self, vehicles, vehicle_transform, depth_array):
         vec_bboxes = []
         for vehicle in vehicles:
-            bbox = simulation.utils.get_2d_bbox_from_3d_box(
+            bbox = pylot.simulation.utils.get_2d_bbox_from_3d_box(
                 depth_array, vehicle_transform, vehicle.transform,
                 vehicle.bounding_box, self._bgr_transform, self._bgr_intrinsic,
                 self._bgr_img_size, 3.0, 3.0)
@@ -231,17 +231,17 @@ class GroundTruthObjectLoggerOp(Op):
 
 
 def create_camera_setups(position=(2.0, 0.0, 1.4)):
-    rgb_camera_setup = simulation.utils.CameraSetup(
+    rgb_camera_setup = pylot.simulation.utils.CameraSetup(
         CENTER_CAMERA_NAME,
         'sensor.camera.rgb',
         (FLAGS.carla_camera_image_width, FLAGS.carla_camera_image_height),
         position)
-    depth_camera_setup = simulation.utils.CameraSetup(
+    depth_camera_setup = pylot.simulation.utils.CameraSetup(
         DEPTH_CAMERA_NAME,
         'sensor.camera.depth',
         (FLAGS.carla_camera_image_width, FLAGS.carla_camera_image_height),
         position)
-    segmented_camera_setup = simulation.utils.CameraSetup(
+    segmented_camera_setup = pylot.simulation.utils.CameraSetup(
         SEGMENTED_CAMERA_NAME,
         'sensor.camera.semantic_segmentation',
         (FLAGS.carla_camera_image_width, FLAGS.carla_camera_image_height),
@@ -283,12 +283,12 @@ def main(argv):
     # Add operator that interacts with the Carla simulator.
     carla_op = None
     if '0.8' in FLAGS.carla_version:
-        carla_op = operator_creator.create_carla_legacy_op(
+        carla_op = pylot.operator_creator.create_carla_legacy_op(
             graph, camera_setups, [])
         camera_ops = [carla_op]
     elif '0.9' in FLAGS.carla_version:
-        carla_op = operator_creator.create_carla_op(graph)
-        camera_ops = [operator_creator.create_camera_driver_op(graph, cs)
+        carla_op = pylot.operator_creator.create_carla_op(graph)
+        camera_ops = [pylot.operator_creator.create_camera_driver_op(graph, cs)
                       for cs in camera_setups]
         graph.connect([carla_op], camera_ops)
     else:
@@ -296,7 +296,7 @@ def main(argv):
             'Unexpected Carla version {}'.format(FLAGS.carla_version))
     graph.connect([carla_op] + camera_ops, logging_ops)
 
-    agent_op = operator_creator.create_ground_agent_op(graph)
+    agent_op = pylot.operator_creator.create_ground_agent_op(graph)
     graph.connect([carla_op], [agent_op])
     graph.connect([agent_op], [carla_op])
 
@@ -305,12 +305,13 @@ def main(argv):
     goal_orientation = (1.0, 0.0, 0.22)
 
     if '0.8' in FLAGS.carla_version:
-        waypointer_op = operator_creator.create_waypointer_op(
+        waypointer_op = pylot.operator_creator.create_waypointer_op(
             graph, goal_location, goal_orientation)
         graph.connect([carla_op], [waypointer_op])
         graph.connect([waypointer_op], [agent_op])
     elif '0.9' in FLAGS.carla_version:
-        planning_op = operator_creator.create_planning_op(graph, goal_location)
+        planning_op = pylot.operator_creator.create_planning_op(
+            graph, goal_location)
         graph.connect([carla_op], [planning_op])
         graph.connect([planning_op], [agent_op])
 

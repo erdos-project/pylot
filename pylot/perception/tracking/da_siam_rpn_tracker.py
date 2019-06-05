@@ -4,7 +4,7 @@ import torch
 from DaSiamRPN.code.net import SiamRPNvot
 from DaSiamRPN.code.run_SiamRPN import SiamRPN_init, SiamRPN_track
 
-from perception.tracking.multi_object_tracker import MultiObjectTracker
+from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 
 class SingleObjectDaSiamRPNTracker(object):

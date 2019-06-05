@@ -4,10 +4,10 @@ import threading
 
 import carla
 
-import pylot_utils
-import simulation.carla_utils
-from simulation.messages import PointCloudMessage
-import simulation.utils
+import pylot.utils
+from pylot.simulation.carla_utils import get_world
+from pylot.simulation.messages import PointCloudMessage
+from pylot.simulation.utils import to_erdos_transform
 
 
 # ERDOS specific imports.
@@ -44,9 +44,8 @@ class LidarDriverOperator(Op):
         self._logger = setup_logging(self.name, log_file_name)
         self._lidar_setup = lidar_setup
 
-        _, self._world = simulation.carla_utils.get_world(
-            self._flags.carla_host,
-            self._flags.carla_port)
+        _, self._world = get_world(
+            self._flags.carla_host, self._flags.carla_port)
         if self._world is None:
             raise ValueError("There was an issue connecting to the simulator.")
 
@@ -59,9 +58,9 @@ class LidarDriverOperator(Op):
 
     @staticmethod
     def setup_streams(input_streams, lidar_setup):
-        input_streams.filter(pylot_utils.is_ground_vehicle_id_stream)\
+        input_streams.filter(pylot.utils.is_ground_vehicle_id_stream)\
                      .add_callback(LidarDriverOperator.on_vehicle_id)
-        return [pylot_utils.create_lidar_stream(lidar_setup)]
+        return [pylot.utils.create_lidar_stream(lidar_setup)]
 
     def process_point_clouds(self, carla_pc):
         with self._lock:
@@ -76,7 +75,7 @@ class LidarDriverOperator(Op):
 
             msg = PointCloudMessage(
                 points,
-                simulation.utils.to_erdos_transform(carla_pc.transform),
+                to_erdos_transform(carla_pc.transform),
                 timestamp)
 
             self.get_output_stream(self._lidar_setup.name).send(msg)

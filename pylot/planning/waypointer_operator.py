@@ -1,12 +1,12 @@
 import time
 
 from erdos.op import Op
-from erdos.utils import frequency, setup_csv_logging, setup_logging, time_epoch_ms
+from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from control.utils import get_angle, get_world_vec_dist
-from planning.messages import WaypointsMessage
-from simulation.planner.waypointer import Waypointer
-import pylot_utils
+from pylot.control.utils import get_angle, get_world_vec_dist
+from pylot.planning.messages import WaypointsMessage
+from pylot.simulation.planner.waypointer import Waypointer
+import pylot.utils
 
 
 class WaypointerOperator(Op):
@@ -29,9 +29,9 @@ class WaypointerOperator(Op):
 
     @staticmethod
     def setup_streams(input_streams):
-        input_streams.filter(pylot_utils.is_can_bus_stream).add_callback(
+        input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
             WaypointerOperator.on_can_bus_update)
-        return [pylot_utils.create_waypoints_stream()]
+        return [pylot.utils.create_waypoints_stream()]
 
     def on_can_bus_update(self, msg):
         start_time = time.time()

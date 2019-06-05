@@ -1,6 +1,6 @@
 import cv2
 
-from perception.tracking.multi_object_tracker import MultiObjectTracker
+from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 
 class MultiObjectCV2Tracker(MultiObjectTracker):

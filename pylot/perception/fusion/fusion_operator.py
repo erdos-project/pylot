@@ -2,12 +2,11 @@ from collections import deque
 import numpy as np
 import time
 
-from erdos.data_stream import DataStream
 from erdos.op import Op
 from erdos.utils import frequency, setup_csv_logging, setup_logging, time_epoch_ms
 
-from perception.messages import ObjPositionsMessage
-import pylot_utils
+from pylot.perception.messages import ObjPositionsMessage
+import pylot.utils
 
 
 class FusionOperator(Op):
@@ -45,13 +44,13 @@ class FusionOperator(Op):
 
     @staticmethod
     def setup_streams(input_streams, output_stream_name):
-        input_streams.filter(pylot_utils.is_can_bus_stream).add_callback(
+        input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
             FusionOperator.update_pos)
-        input_streams.filter(pylot_utils.is_obstacles_stream).add_callback(
+        input_streams.filter(pylot.utils.is_obstacles_stream).add_callback(
             FusionOperator.update_objects)
-        input_streams.filter(pylot_utils.is_depth_camera_stream).add_callback(
+        input_streams.filter(pylot.utils.is_depth_camera_stream).add_callback(
             FusionOperator.update_distances)
-        return [pylot_utils.create_fusion_stream(output_stream_name)]
+        return [pylot.utils.create_fusion_stream(output_stream_name)]
 
     def __calc_object_positions(self,
                                 object_bounds,

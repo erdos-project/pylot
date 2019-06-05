@@ -3,9 +3,9 @@ import heapq
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from perception.detection.utils import get_pedestrian_mAP, visualize_ground_bboxes
-import pylot_utils
-from simulation.utils import get_2d_bbox_from_3d_box, get_camera_intrinsic_and_transform, have_same_depth, map_ground_3D_transform_to_2D
+from pylot.perception.detection.utils import get_pedestrian_mAP, visualize_ground_bboxes
+import pylot.utils
+from pylot.simulation.utils import get_2d_bbox_from_3d_box, get_camera_intrinsic_and_transform, have_same_depth, map_ground_3D_transform_to_2D
 
 
 class ObstacleAccuracyOperator(Op):
@@ -44,19 +44,19 @@ class ObstacleAccuracyOperator(Op):
     def setup_streams(input_streams, depth_camera_name):
         input_streams.filter_name(depth_camera_name).add_callback(
             ObstacleAccuracyOperator.on_depth_camera_update)
-        input_streams.filter(pylot_utils.is_camera_stream).add_callback(
+        input_streams.filter(pylot.utils.is_camera_stream).add_callback(
             ObstacleAccuracyOperator.on_bgr_camera_update)
-        input_streams.filter(pylot_utils.is_vehicle_transform_stream).add_callback(
+        input_streams.filter(pylot.utils.is_vehicle_transform_stream).add_callback(
             ObstacleAccuracyOperator.on_vehicle_transform_update)
-        input_streams.filter(pylot_utils.is_ground_pedestrians_stream).add_callback(
+        input_streams.filter(pylot.utils.is_ground_pedestrians_stream).add_callback(
             ObstacleAccuracyOperator.on_pedestrians_update)
-        input_streams.filter(pylot_utils.is_ground_vehicles_stream).add_callback(
+        input_streams.filter(pylot.utils.is_ground_vehicles_stream).add_callback(
             ObstacleAccuracyOperator.on_vehicles_update)
-        input_streams.filter(pylot_utils.is_ground_traffic_lights_stream).add_callback(
+        input_streams.filter(pylot.utils.is_ground_traffic_lights_stream).add_callback(
             ObstacleAccuracyOperator.on_traffic_lights_update)
-        input_streams.filter(pylot_utils.is_ground_traffic_signs_stream).add_callback(
+        input_streams.filter(pylot.utils.is_ground_traffic_signs_stream).add_callback(
             ObstacleAccuracyOperator.on_traffic_signs_update)
-        input_streams.filter(pylot_utils.is_obstacles_stream).add_callback(
+        input_streams.filter(pylot.utils.is_obstacles_stream).add_callback(
             ObstacleAccuracyOperator.on_obstacles)
         # Register a watermark callback.
         input_streams.add_completion_callback(

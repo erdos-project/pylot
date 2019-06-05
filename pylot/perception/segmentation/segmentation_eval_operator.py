@@ -1,11 +1,10 @@
 import heapq
-import numpy as np
 
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from perception.segmentation.utils import compute_semantic_iou, transform_to_cityscapes_palette
-from pylot_utils import is_ground_segmented_camera_stream, is_segmented_camera_stream
+from pylot.perception.segmentation.utils import compute_semantic_iou, transform_to_cityscapes_palette
+from pylot.utils import is_ground_segmented_camera_stream, is_segmented_camera_stream
 
 
 class SegmentationEvalOperator(Op):

@@ -6,7 +6,7 @@ from erdos.message import Message
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from pylot_utils import add_timestamp, bgra_to_bgr, create_detected_lane_stream, is_camera_stream
+from pylot.utils import add_timestamp, bgra_to_bgr, create_detected_lane_stream, is_camera_stream
 
 
 class LaneDetectionOperator(Op):

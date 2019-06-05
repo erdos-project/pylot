@@ -10,7 +10,10 @@ class DetectorMessage(Message):
         runtime: Operator runtime (in ms).
     """
 
-    def __init__(self, detected_objects, runtime, timestamp, stream_name='default'):
+    def __init__(self,
+                 detected_objects,
+                 runtime, timestamp,
+                 stream_name='default'):
         """ Constructs the DetectorMessage with the given data and timestamp.
 
         Args:
@@ -44,11 +47,13 @@ class SegmentedFrameMessage(Message):
                 frame.
             timestamp: The timestamp of the message.
         """
-        super(SegmentedFrameMessage, self).__init__(None, timestamp, stream_name)
+        super(SegmentedFrameMessage, self).__init__(None,
+                                                    timestamp,
+                                                    stream_name)
         self.frame = frame
         self.width = frame.shape[1]
         self.height = frame.shape[0]
-        self.runtime= runtime
+        self.runtime = runtime
 
     def __str__(self):
         return 'timestamp {}, width: {}, height: {}, runtime: {}'.format(

@@ -20,7 +20,7 @@ class ControlMessage(Message):
         self.brake = brake
         self.hand_brake = hand_brake
         self.reverse = reverse
-        
+
     def __str__(self):
         return 'timestamp: {}, steer: {}, throttle: {}, brake: {}, hand_brake: {}, reverse: {}'.format(
             self.timestamp, self.steer, self.throttle, self.brake, self.hand_brake, self.reverse)

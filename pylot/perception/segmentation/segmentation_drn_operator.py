@@ -5,12 +5,11 @@ from torch.autograd import Variable
 import time
 import torch
 
-from erdos.data_stream import DataStream
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from perception.messages import SegmentedFrameMessage
-from pylot_utils import add_timestamp, create_segmented_camera_stream, is_camera_stream, rgb_to_bgr, bgra_to_bgr
+from pylot.perception.messages import SegmentedFrameMessage
+from pylot.utils import add_timestamp, create_segmented_camera_stream, is_camera_stream, rgb_to_bgr, bgra_to_bgr
 
 
 class SegmentationDRNOperator(Op):

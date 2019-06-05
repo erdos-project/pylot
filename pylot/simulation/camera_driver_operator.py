@@ -2,11 +2,10 @@ import threading
 
 import carla
 
-from perception.messages import SegmentedFrameMessage
-import pylot_utils
-import simulation.carla_utils
-import simulation.utils
-from simulation.utils import depth_to_array, labels_to_array, to_bgra_array
+from pylot.perception.messages import SegmentedFrameMessage
+import pylot.utils
+from pylot.simulation.carla_utils import get_world
+from pylot.simulation.utils import depth_to_array, labels_to_array, to_bgra_array, to_erdos_transform
 
 # ERDOS specific imports.
 from erdos.op import Op
@@ -46,9 +45,8 @@ class CameraDriverOperator(Op):
         self._logger = setup_logging(self.name, log_file_name)
         self._camera_setup = camera_setup
 
-        _, self._world = simulation.carla_utils.get_world(
-            self._flags.carla_host,
-            self._flags.carla_port)
+        _, self._world = get_world(
+            self._flags.carla_host, self._flags.carla_port)
         if self._world is None:
             raise ValueError("There was an issue connecting to the simulator.")
 
@@ -68,9 +66,9 @@ class CameraDriverOperator(Op):
             input_streams: The streams that this operator is connected to.
             camera_setup: A CameraSetup tuple.
         """
-        input_streams.filter(pylot_utils.is_ground_vehicle_id_stream)\
+        input_streams.filter(pylot.utils.is_ground_vehicle_id_stream)\
                      .add_callback(CameraDriverOperator.on_vehicle_id)
-        return [pylot_utils.create_camera_stream(camera_setup)]
+        return [pylot.utils.create_camera_stream(camera_setup)]
 
     def process_images(self, carla_image):
         with self._lock:
@@ -81,12 +79,12 @@ class CameraDriverOperator(Op):
 
             msg = None
             if self._camera_setup.type == 'sensor.camera.rgb':
-                msg = simulation.messages.FrameMessage(
-                    pylot_utils.bgra_to_bgr(to_bgra_array(carla_image)), timestamp)
+                msg = pylot.simulation.messages.FrameMessage(
+                    pylot.utils.bgra_to_bgr(to_bgra_array(carla_image)), timestamp)
             elif self._camera_setup.type == 'sensor.camera.depth':
-                msg = simulation.messages.DepthFrameMessage(
+                msg = pylot.simulation.messages.DepthFrameMessage(
                     depth_to_array(carla_image),
-                    simulation.utils.to_erdos_transform(carla_image.transform),
+                    to_erdos_transform(carla_image.transform),
                     carla_image.fov,
                     timestamp)
             elif self._camera_setup.type == 'sensor.camera.semantic_segmentation':

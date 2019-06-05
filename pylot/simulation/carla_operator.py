@@ -2,17 +2,17 @@ import random
 import time
 import carla
 
-import pylot_utils
-import simulation.carla_utils
-import simulation.messages
-import simulation.utils
-
 # ERDOS specific imports.
 from erdos.op import Op
 from erdos.timestamp import Timestamp
 from erdos.data_stream import DataStream
 from erdos.utils import frequency, setup_logging, setup_csv_logging
 from erdos.message import Message, WatermarkMessage
+
+import pylot.utils
+import pylot.simulation.carla_utils
+import pylot.simulation.messages
+import pylot.simulation.utils
 
 
 class CarlaOperator(Op):
@@ -51,7 +51,7 @@ class CarlaOperator(Op):
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
 
         # Connect to CARLA and retrieve the world running.
-        self._client, self._world = simulation.carla_utils.get_world(
+        self._client, self._world = pylot.simulation.carla_utils.get_world(
             self._flags.carla_host,
             self._flags.carla_port)
         if self._client is None or self._world is None:
@@ -62,10 +62,10 @@ class CarlaOperator(Op):
         # previous runs of the simulation may persist. We need to clean them
         # up right now. In future, move this logic to a seperate destroy
         # function.
-        simulation.carla_utils.reset_world(self._world)
+        pylot.simulation.carla_utils.reset_world(self._world)
 
         # Set the weather.
-        weather, name = simulation.carla_utils.get_weathers()[self._flags.carla_weather - 1]
+        weather, name = pylot.simulation.carla_utils.get_weathers()[self._flags.carla_weather - 1]
         self._logger.info('Setting the weather to {}'.format(name))
         self._world.set_weather(weather)
         # Turn on the synchronous mode so we can control the simulation.
@@ -94,7 +94,7 @@ class CarlaOperator(Op):
             DataStream(name='vehicles'),
             DataStream(name='traffic_signs')]
 
-        return ground_agent_streams + [pylot_utils.create_vehicle_id_stream()]
+        return ground_agent_streams + [pylot.utils.create_vehicle_id_stream()]
 
     def on_control_msg(self, msg):
         vec_control = carla.VehicleControl(
@@ -229,11 +229,11 @@ class CarlaOperator(Op):
         self.spin()
 
     def __publish_hero_vehicle_data(self, timestamp, watermark_msg):
-        vec_transform = simulation.utils.to_erdos_transform(
+        vec_transform = pylot.simulation.utils.to_erdos_transform(
             self._driving_vehicle.get_transform())
-        forward_speed = simulation.utils.get_speed(
+        forward_speed = pylot.simulation.utils.get_speed(
             self._driving_vehicle.get_velocity())
-        can_bus = simulation.utils.CanBus(vec_transform, forward_speed)
+        can_bus = pylot.simulation.utils.CanBus(vec_transform, forward_speed)
         self.get_output_stream('can_bus').send(
             Message(can_bus, timestamp))
         self.get_output_stream('can_bus').send(watermark_msg)
@@ -253,22 +253,22 @@ class CarlaOperator(Op):
         # TODO(ionel): Handle hero vehicle!
         for vec_actor in vec_actors:
             loc = vec_actor.get_location()
-            pos = simulation.utils.Location(loc.x, loc.y, loc.z)
-            transform = simulation.utils.to_erdos_transform(vec_actor.get_transform())
+            pos = pylot.simulation.utils.Location(loc.x, loc.y, loc.z)
+            transform = pylot.simulation.utils.to_erdos_transform(vec_actor.get_transform())
             # TODO(ionel): Set the vehicle bounding box.
-            speed = simulation.utils.get_speed(vec_actor.get_velocity())
-            vehicle = simulation.utils.Vehicle(pos, transform, None, speed)
+            speed = pylot.simulation.utils.get_speed(vec_actor.get_velocity())
+            vehicle = pylot.simulation.utils.Vehicle(pos, transform, None, speed)
             vehicles.append(vehicle)
 
         pedestrian_actors =actor_list.filter('*walker*')
         pedestrians = []
         for ped_actor in pedestrian_actors:
             loc = ped_actor.get_location()
-            pos = simulation.utils.Location(loc.x, loc.y, loc.z)
-            transform = simulation.utils.to_erdos_transform(ped_actor.get_transform())
-            speed = simulation.utils.get_speed(vec_actor.get_velocity())
+            pos = pylot.simulation.utils.Location(loc.x, loc.y, loc.z)
+            transform = pylot.simulation.utils.to_erdos_transform(ped_actor.get_transform())
+            speed = pylot.simulation.utils.get_speed(vec_actor.get_velocity())
             # TODO(ionel): Pedestrians do not have a bounding box in 0.9.5.
-            pedestrian = simulation.utils.Pedestrian(
+            pedestrian = pylot.simulation.utils.Pedestrian(
                     ped_actor.id, pos, transform, None, speed)
             pedestrians.append(pedestrian)
 
@@ -276,9 +276,9 @@ class CarlaOperator(Op):
         traffic_lights = []
         for tl_actor in tl_actors:
             loc = tl_actor.get_location()
-            pos = simulation.utils.Location(loc.x, loc.y, loc.z)
-            transform = simulation.utils.to_erdos_transform(tl_actor.get_transform())
-            traffic_light = simulation.utils.TrafficLight(
+            pos = pylot.simulation.utils.Location(loc.x, loc.y, loc.z)
+            transform = pylot.simulation.utils.to_erdos_transform(tl_actor.get_transform())
+            traffic_light = pylot.simulation.utils.TrafficLight(
                 pos, transform, tl_actor.get_state())
             traffic_lights.append(traffic_light)
 
@@ -286,33 +286,33 @@ class CarlaOperator(Op):
         speed_limits = []
         for ts_actor in traffic_sign_actors:
             loc = ts_actor.get_location()
-            pos = simulation.utils.Location(loc.x, loc.y, loc.z)
-            transform = simulation.utils.to_erdos_transform(ts_actor.get_transform())
+            pos = pylot.simulation.utils.Location(loc.x, loc.y, loc.z)
+            transform = pylot.simulation.utils.to_erdos_transform(ts_actor.get_transform())
             speed_limit = int(ts_actor.type_id.split('.')[-1])
-            speed_sign = simulation.utils.SpeedLimitSign(
+            speed_sign = pylot.simulation.utils.SpeedLimitSign(
                 pos, transform, speed_limit)
             speed_limits.append(speed_sign)
 
         traffic_stop_actors = actor_list.filter('traffic.stop')
         for ts_actor in traffic_stop_actors:
             loc = ts_actor.get_location()
-            pos = simulation.utils.Location(loc.x, loc.y, loc.z)
-            transform = simulation.utils.to_erdos_transform(ts_actor.get_transform())
+            pos = pylot.simulation.utils.Location(loc.x, loc.y, loc.z)
+            transform = pylot.simulation.utils.to_erdos_transform(ts_actor.get_transform())
             # TODO(ionel): Send traffic stops.
 
-        vehicles_msg = simulation.messages.GroundVehiclesMessage(
+        vehicles_msg = pylot.simulation.messages.GroundVehiclesMessage(
             vehicles, timestamp)
         self.get_output_stream('vehicles').send(vehicles_msg)
         self.get_output_stream('vehicles').send(watermark_msg)
-        pedestrians_msg = simulation.messages.GroundPedestriansMessage(
+        pedestrians_msg = pylot.simulation.messages.GroundPedestriansMessage(
             pedestrians, timestamp)
         self.get_output_stream('pedestrians').send(pedestrians_msg)
         self.get_output_stream('pedestrians').send(watermark_msg)
-        traffic_lights_msg = simulation.messages.GroundTrafficLightsMessage(
+        traffic_lights_msg = pylot.simulation.messages.GroundTrafficLightsMessage(
             traffic_lights, timestamp)
         self.get_output_stream('traffic_lights').send(traffic_lights_msg)
         self.get_output_stream('traffic_lights').send(watermark_msg)
-        traffic_signs_msg = simulation.messages.GroundSpeedSignsMessage(
+        traffic_signs_msg = pylot.simulation.messages.GroundSpeedSignsMessage(
             speed_limits, timestamp)
         self.get_output_stream('traffic_signs').send(traffic_signs_msg)
         self.get_output_stream('traffic_signs').send(watermark_msg)

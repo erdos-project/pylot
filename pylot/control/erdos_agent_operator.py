@@ -1,17 +1,16 @@
 import math
 import numpy as np
 import time
+from pid_controller.pid import PID
 
-from erdos.data_stream import DataStream
 from erdos.op import Op
 from erdos.timestamp import Timestamp
 from erdos.utils import frequency, setup_csv_logging, setup_logging, time_epoch_ms
 
-from control.messages import ControlMessage
-import control.utils as agent_utils
-from pid_controller.pid import PID
-from simulation.utils import get_3d_world_position_with_depth_map
-import pylot_utils
+from pylot.control.messages import ControlMessage
+import pylot.control.utils
+from pylot.simulation.utils import get_3d_world_position_with_depth_map
+import pylot.utils
 
 
 class ERDOSAgentOperator(Op):
@@ -42,17 +41,17 @@ class ERDOSAgentOperator(Op):
             ERDOSAgentOperator.on_depth_camera_update)
 
         # XXX(ionel): We get the exact position from the simulator.
-        input_streams.filter(pylot_utils.is_can_bus_stream).add_callback(
+        input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
             ERDOSAgentOperator.on_can_bus_update)
-        input_streams.filter(pylot_utils.is_waypoints_stream).add_callback(
+        input_streams.filter(pylot.utils.is_waypoints_stream).add_callback(
             ERDOSAgentOperator.on_waypoints_update)
-        input_streams.filter(pylot_utils.is_traffic_lights_stream).add_callback(
+        input_streams.filter(pylot.utils.is_traffic_lights_stream).add_callback(
             ERDOSAgentOperator.on_traffic_lights_update)
-        input_streams.filter(pylot_utils.is_segmented_camera_stream).add_callback(
+        input_streams.filter(pylot.utils.is_segmented_camera_stream).add_callback(
             ERDOSAgentOperator.on_segmented_frame)
-        input_streams.filter(pylot_utils.is_obstacles_stream).add_callback(
+        input_streams.filter(pylot.utils.is_obstacles_stream).add_callback(
             ERDOSAgentOperator.on_obstacles_update)
-        input_streams.filter(pylot_utils.is_detected_lane_stream).add_callback(
+        input_streams.filter(pylot.utils.is_detected_lane_stream).add_callback(
             ERDOSAgentOperator.on_detected_lane_update)
 
         input_streams.add_completion_callback(
@@ -60,7 +59,7 @@ class ERDOSAgentOperator(Op):
 
         # Set no watermark on the output stream so that we do not
         # close the watermark loop with the carla operator.
-        return [pylot_utils.create_control_stream()]
+        return [pylot.utils.create_control_stream()]
 
     def on_notification(self, msg):
         self._logger.info("Timestamps {} {} {} {}".format(
@@ -174,16 +173,16 @@ class ERDOSAgentOperator(Op):
         speed_factor_v = 1
 
         for obs_vehicle_pos in vehicles:
-            if agent_utils.is_vehicle_on_same_lane(
+            if pylot.control.utils.is_vehicle_on_same_lane(
                     vehicle_transform, obs_vehicle_pos):
-                new_speed_factor_v = agent_utils.stop_vehicle(
+                new_speed_factor_v = pylot.control.utils.stop_vehicle(
                     vehicle_transform, obs_vehicle_pos, wp_vector,
                     speed_factor_v, self._flags)
                 speed_factor_v = min(speed_factor_v, new_speed_factor_v)
 
         for obs_ped_pos in pedestrians:
-            if agent_utils.is_pedestrian_hitable(obs_ped_pos):
-                new_speed_factor_p = agent_utils.stop_pedestrian(
+            if pylot.control.utils.is_pedestrian_hitable(obs_ped_pos):
+                new_speed_factor_p = pylot.control.utils.stop_pedestrian(
                     vehicle_transform,
                     obs_ped_pos,
                     wp_vector,
@@ -192,12 +191,12 @@ class ERDOSAgentOperator(Op):
                 speed_factor_p = min(speed_factor_p, new_speed_factor_p)
 
         for tl in traffic_lights:
-            if (agent_utils.is_traffic_light_active(
+            if (pylot.control.utils.is_traffic_light_active(
                     vehicle_transform, tl[0]) and
-                agent_utils.is_traffic_light_visible(
+                pylot.control.utils.is_traffic_light_visible(
                     vehicle_transform, tl[0], self._flags)):
                 tl_state = tl[1]
-                new_speed_factor_tl = agent_utils.stop_traffic_light(
+                new_speed_factor_tl = pylot.control.utils.stop_traffic_light(
                     vehicle_transform,
                     tl[0],
                     tl_state,

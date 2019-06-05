@@ -5,8 +5,8 @@ import PIL.Image as Image
 from erdos.op import Op
 from erdos.utils import setup_logging
 
-from perception.segmentation.utils import transform_to_cityscapes_palette
-from pylot_utils import rgb_to_bgr, is_ground_segmented_camera_stream
+from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
+from pylot.utils import rgb_to_bgr, is_ground_segmented_camera_stream
 
 
 class SegmentedVideoOperator(Op):

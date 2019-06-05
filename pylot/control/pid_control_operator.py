@@ -3,13 +3,12 @@ import math
 from pid_controller.pid import PID
 
 # Pipeline imports.
-from control.messages import ControlMessage
-import pylot_utils
+from pylot.control.messages import ControlMessage
+import pylot.utils
 
 # ERDOS specific imports.
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging
-from erdos.data_stream import DataStream
 
 
 class PIDControlOperator(Op):
@@ -78,11 +77,11 @@ class PIDControlOperator(Op):
             An empty list representing that this operator does not send out
             any information.
         """
-        input_streams.filter(pylot_utils.is_waypoints_stream).add_callback(
+        input_streams.filter(pylot.utils.is_waypoints_stream).add_callback(
             PIDControlOperator.on_waypoint)
-        input_streams.filter(pylot_utils.is_can_bus_stream).add_callback(
+        input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
             PIDControlOperator.on_can_bus_update)
-        return [pylot_utils.create_control_stream()]
+        return [pylot.utils.create_control_stream()]
 
     def _get_throttle_brake(self, target_speed):
         """ Computes the throttle/brake required to reach the target speed.

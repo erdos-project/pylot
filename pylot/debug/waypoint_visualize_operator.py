@@ -5,8 +5,8 @@ from erdos.op import Op
 from erdos.utils import setup_logging
 
 # Pylot specific imports.
-import pylot_utils
-import simulation.carla_utils
+import pylot.utils
+import pylot.simulation.carla_utils
 
 
 class WaypointVisualizerOperator(Op):
@@ -33,7 +33,7 @@ class WaypointVisualizerOperator(Op):
         super(WaypointVisualizerOperator, self).__init__(name)
         self._logger = setup_logging(self.name, log_file_name)
         self._flags = flags
-        _, self._world = simulation.carla_utils.get_world(
+        _, self._world = pylot.simulation.carla_utils.get_world(
             self._flags.carla_host,
             self._flags.carla_port)
         if self._world is None:
@@ -66,7 +66,7 @@ class WaypointVisualizerOperator(Op):
                 "The WaypointVisualizerOperator should not receive more than"
                 " two inputs. Please check the graph connections.")
 
-        input_streams.filter(pylot_utils.is_waypoints_stream).add_callback(
+        input_streams.filter(pylot.utils.is_waypoints_stream).add_callback(
             WaypointVisualizerOperator.on_wp_update)
         return []
 

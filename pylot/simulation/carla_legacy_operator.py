@@ -12,11 +12,11 @@ from erdos.op import Op
 from erdos.timestamp import Timestamp
 from erdos.utils import frequency, setup_csv_logging, setup_logging, time_epoch_ms
 
-from perception.messages import SegmentedFrameMessage
-import pylot_utils
-import simulation.messages
-from simulation.utils import depth_to_array, labels_to_array, to_bgra_array
-import simulation.utils
+from pylot.perception.messages import SegmentedFrameMessage
+import pylot.utils
+import pylot.simulation.messages
+from pylot.simulation.utils import depth_to_array, labels_to_array, to_bgra_array
+import pylot.simulation.utils
 
 
 class CarlaLegacyOperator(Op):
@@ -76,9 +76,9 @@ class CarlaLegacyOperator(Op):
     @staticmethod
     def setup_streams(input_streams, camera_setups, lidar_setups):
         input_streams.add_callback(CarlaLegacyOperator.update_control)
-        camera_streams = [pylot_utils.create_camera_stream(cs)
+        camera_streams = [pylot.utils.create_camera_stream(cs)
                           for cs in camera_setups]
-        lidar_streams = [pylot_utils.create_lidar_stream(ls)
+        lidar_streams = [pylot.utils.create_lidar_stream(ls)
                          for ls in lidar_setups]
         return [
             DataStream(name='can_bus'),
@@ -194,20 +194,20 @@ class CarlaLegacyOperator(Op):
             time_epoch_ms(), self.name, measurement_runtime, total_runtime))
 
     def __send_player_data(self, player_measurements, timestamp, watermark):
-        location = simulation.utils.Location(
+        location = pylot.simulation.utils.Location(
             carla_loc=player_measurements.transform.location)
-        orientation = simulation.utils.Orientation(
+        orientation = pylot.simulation.utils.Orientation(
             player_measurements.transform.orientation.x,
             player_measurements.transform.orientation.y,
             player_measurements.transform.orientation.z)
-        vehicle_transform = simulation.utils.Transform(
+        vehicle_transform = pylot.simulation.utils.Transform(
             location,
             player_measurements.transform.rotation.pitch,
             player_measurements.transform.rotation.yaw,
             player_measurements.transform.rotation.roll,
             orientation=orientation)
         forward_speed = player_measurements.forward_speed * 3.6
-        can_bus = simulation.utils.CanBus(vehicle_transform, forward_speed)
+        can_bus = pylot.simulation.utils.CanBus(vehicle_transform, forward_speed)
         self.get_output_stream('can_bus').send(Message(can_bus, timestamp))
         self.get_output_stream('can_bus').send(watermark)
 
@@ -218,13 +218,13 @@ class CarlaLegacyOperator(Op):
         speed_limit_signs = []
         for agent in measurements.non_player_agents:
             if agent.HasField('vehicle'):
-                pos = simulation.utils.Location(
+                pos = pylot.simulation.utils.Location(
                     carla_loc=agent.vehicle.transform.location)
-                transform = simulation.utils.to_erdos_transform(
+                transform = pylot.simulation.utils.to_erdos_transform(
                     agent.vehicle.transform)
-                bb = simulation.utils.BoundingBox(agent.vehicle.bounding_box)
+                bb = pylot.simulation.utils.BoundingBox(agent.vehicle.bounding_box)
                 forward_speed = agent.vehicle.forward_speed
-                vehicle = simulation.utils.Vehicle(pos, transform, bb, forward_speed)
+                vehicle = pylot.simulation.utils.Vehicle(pos, transform, bb, forward_speed)
                 vehicles.append(vehicle)
             elif agent.HasField('pedestrian'):
                 if not self.agent_id_map.get(agent.id):
@@ -232,29 +232,29 @@ class CarlaLegacyOperator(Op):
                     self.agent_id_map[agent.id] = self.pedestrian_count
 
                 pedestrian_index = self.agent_id_map[agent.id]
-                pos = simulation.utils.Location(
+                pos = pylot.simulation.utils.Location(
                     carla_loc=agent.pedestrian.transform.location)
-                transform = simulation.utils.to_erdos_transform(
+                transform = pylot.simulation.utils.to_erdos_transform(
                     agent.pedestrian.transform)
-                bb = simulation.utils.BoundingBox(agent.pedestrian.bounding_box)
+                bb = pylot.simulation.utils.BoundingBox(agent.pedestrian.bounding_box)
                 forward_speed = agent.pedestrian.forward_speed
-                pedestrian = simulation.utils.Pedestrian(
+                pedestrian = pylot.simulation.utils.Pedestrian(
                     pedestrian_index, pos, transform, bb, forward_speed)
                 pedestrians.append(pedestrian)
             elif agent.HasField('traffic_light'):
-                pos = simulation.utils.Location(
+                pos = pylot.simulation.utils.Location(
                     carla_loc=agent.traffic_light.transform.location)
-                transform = simulation.utils.to_erdos_transform(
+                transform = pylot.simulation.utils.to_erdos_transform(
                     agent.traffic_light.transform)
-                traffic_light = simulation.utils.TrafficLight(
+                traffic_light = pylot.simulation.utils.TrafficLight(
                     pos, transform, agent.traffic_light.state)
                 traffic_lights.append(traffic_light)
             elif agent.HasField('speed_limit_sign'):
-                pos = simulation.utils.Location(
+                pos = pylot.simulation.utils.Location(
                     carla_loc=agent.speed_limit_sign.transform.location)
-                transform = simulation.utils.to_erdos_transform(
+                transform = pylot.simulation.utils.to_erdos_transform(
                     agent.speed_limit_sign.transform)
-                speed_sign = simulation.utils.SpeedLimitSign(
+                speed_sign = pylot.simulation.utils.SpeedLimitSign(
                     pos, transform, agent.speed_limit_sign.speed_limit)
                 speed_limit_signs.append(speed_sign)
 
@@ -262,19 +262,19 @@ class CarlaLegacyOperator(Op):
 
     def __send_ground_agent_data(self, agents, timestamp, watermark):
         vehicles, pedestrians, traffic_lights, speed_limit_signs = agents
-        vehicles_msg = simulation.messages.GroundVehiclesMessage(
+        vehicles_msg = pylot.simulation.messages.GroundVehiclesMessage(
             vehicles, timestamp)
         self.get_output_stream('vehicles').send(vehicles_msg)
         self.get_output_stream('vehicles').send(watermark)
-        pedestrians_msg = simulation.messages.GroundPedestriansMessage(
+        pedestrians_msg = pylot.simulation.messages.GroundPedestriansMessage(
             pedestrians, timestamp)
         self.get_output_stream('pedestrians').send(pedestrians_msg)
         self.get_output_stream('pedestrians').send(watermark)
-        traffic_lights_msg = simulation.messages.GroundTrafficLightsMessage(
+        traffic_lights_msg = pylot.simulation.messages.GroundTrafficLightsMessage(
             traffic_lights, timestamp)
         self.get_output_stream('traffic_lights').send(traffic_lights_msg)
         self.get_output_stream('traffic_lights').send(watermark)
-        traffic_sings_msg = simulation.messages.GroundSpeedSignsMessage(
+        traffic_sings_msg = pylot.simulation.messages.GroundSpeedSignsMessage(
             speed_limit_signs, timestamp)
         self.get_output_stream('traffic_signs').send(traffic_sings_msg)
         self.get_output_stream('traffic_signs').send(watermark)
@@ -285,15 +285,15 @@ class CarlaLegacyOperator(Op):
             if data_stream.get_label('camera_type') == 'sensor.camera.rgb':
                 # Transform the Carla RGB images to BGR.
                 data_stream.send(
-                    simulation.messages.FrameMessage(
-                        pylot_utils.bgra_to_bgr(to_bgra_array(measurement)), timestamp))
+                    pylot.simulation.messages.FrameMessage(
+                        pylot.utils.bgra_to_bgr(to_bgra_array(measurement)), timestamp))
             elif data_stream.get_label('camera_type') == 'sensor.camera.semantic_segmentation':
                 frame = labels_to_array(measurement)
                 data_stream.send(SegmentedFrameMessage(frame, 0, timestamp))
             elif data_stream.get_label('camera_type') == 'sensor.camera.depth':
                 # NOTE: depth_to_array flips the image.
                 data_stream.send(
-                    simulation.messages.DepthFrameMessage(
+                    pylot.simulation.messages.DepthFrameMessage(
                         depth_to_array(measurement),
                         self._transforms[name],
                         measurement.fov,

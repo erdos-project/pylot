@@ -4,13 +4,12 @@ import numpy as np
 import time
 import torch
 
-from erdos.data_stream import DataStream
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from perception.messages import SegmentedFrameMessage
-from perception.segmentation.utils import transform_to_cityscapes_palette
-from pylot_utils import add_timestamp, create_segmented_camera_stream, is_camera_stream, rgb_to_bgr, bgra_to_bgr
+from pylot.perception.messages import SegmentedFrameMessage
+from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
+from pylot.utils import add_timestamp, create_segmented_camera_stream, is_camera_stream, rgb_to_bgr, bgra_to_bgr
 
 
 class SegmentationDLAOperator(Op):
@@ -52,7 +51,7 @@ class SegmentationDLAOperator(Op):
             torch.argmax(output, dim=1).cpu().numpy()[0])
 
         output = rgb_to_bgr(output)
-        
+
         if self._flags.visualize_segmentation_output:
             add_timestamp(msg.timestamp, output)
             cv2.imshow(self.name, output)

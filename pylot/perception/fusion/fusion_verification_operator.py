@@ -4,7 +4,7 @@ import numpy as np
 from erdos.op import Op
 from erdos.utils import setup_logging
 
-from pylot_utils import is_fusion_stream, is_ground_vehicles_stream
+from pylot.utils import is_fusion_stream, is_ground_vehicles_stream
 
 
 class FusionVerificationOperator(Op):

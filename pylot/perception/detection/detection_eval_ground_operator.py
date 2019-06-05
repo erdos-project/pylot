@@ -1,7 +1,4 @@
 import cv2
-import numpy as np
-import PIL.Image as Image
-import PIL.ImageDraw as ImageDraw
 import time
 
 from collections import deque
@@ -9,9 +6,9 @@ from collections import deque
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from perception.detection.utils import get_precision_recall_at_iou
-import pylot_utils
-from simulation.utils import get_2d_bbox_from_3d_box, get_camera_intrinsic_and_transform
+from pylot.perception.detection.utils import get_precision_recall_at_iou
+import pylot.utils
+from pylot.simulation.utils import get_2d_bbox_from_3d_box, get_camera_intrinsic_and_transform
 
 
 class DetectionEvalGroundOperator(Op):
@@ -41,14 +38,14 @@ class DetectionEvalGroundOperator(Op):
 
     @staticmethod
     def setup_streams(input_streams, depth_camera_name):
-        input_streams.filter(pylot_utils.is_depth_camera_stream).filter_name(
+        input_streams.filter(pylot.utils.is_depth_camera_stream).filter_name(
             depth_camera_name).add_callback(
                 DetectionEvalGroundOperator.on_depth_camera_update)
-        input_streams.filter(pylot_utils.is_camera_stream).add_callback(
+        input_streams.filter(pylot.utils.is_camera_stream).add_callback(
             DetectionEvalGroundOperator.on_bgr_camera_update)
-        input_streams.filter(pylot_utils.is_vehicle_transform_stream).add_callback(
+        input_streams.filter(pylot.utils.is_vehicle_transform_stream).add_callback(
             DetectionEvalGroundOperator.on_vehicle_transform_update)
-        input_streams.filter(pylot_utils.is_ground_pedestrians_stream).add_callback(
+        input_streams.filter(pylot.utils.is_ground_pedestrians_stream).add_callback(
             DetectionEvalGroundOperator.on_pedestrians_update)
 
         input_streams.add_completion_callback(

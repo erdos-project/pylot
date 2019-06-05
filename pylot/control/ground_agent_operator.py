@@ -1,17 +1,16 @@
 import math
 import time
+from pid_controller.pid import PID
 
-from erdos.data_stream import DataStream
 from erdos.op import Op
 from erdos.timestamp import Timestamp
 from erdos.utils import frequency, setup_csv_logging, setup_logging, time_epoch_ms
 
-from control.messages import ControlMessage
-import control.utils as agent_utils
-import control.ground_utils
-from pid_controller.pid import PID
-from simulation.planner.map import CarlaMap
-import pylot_utils
+from pylot.control.messages import ControlMessage
+import pylot.control.utils
+import pylot.control.ground_utils
+from pylot.simulation.planner.map import CarlaMap
+import pylot.utils
 
 
 class GroundAgentOperator(Op):
@@ -39,21 +38,21 @@ class GroundAgentOperator(Op):
 
     @staticmethod
     def setup_streams(input_streams):
-        input_streams.filter(pylot_utils.is_can_bus_stream).add_callback(
+        input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
             GroundAgentOperator.on_can_bus_update)
-        input_streams.filter(pylot_utils.is_ground_pedestrians_stream).add_callback(
+        input_streams.filter(pylot.utils.is_ground_pedestrians_stream).add_callback(
             GroundAgentOperator.on_pedestrians_update)
-        input_streams.filter(pylot_utils.is_ground_vehicles_stream).add_callback(
+        input_streams.filter(pylot.utils.is_ground_vehicles_stream).add_callback(
             GroundAgentOperator.on_vehicles_update)
-        input_streams.filter(pylot_utils.is_ground_traffic_lights_stream).add_callback(
+        input_streams.filter(pylot.utils.is_ground_traffic_lights_stream).add_callback(
             GroundAgentOperator.on_traffic_lights_update)
-        input_streams.filter(pylot_utils.is_ground_traffic_signs_stream).add_callback(
+        input_streams.filter(pylot.utils.is_ground_traffic_signs_stream).add_callback(
             GroundAgentOperator.on_traffic_signs_update)
-        input_streams.filter(pylot_utils.is_waypoints_stream).add_callback(
+        input_streams.filter(pylot.utils.is_waypoints_stream).add_callback(
             GroundAgentOperator.on_waypoints_update)
         # Set no watermark on the output stream so that we do not
         # close the watermark loop with the carla operator.
-        return [pylot_utils.create_control_stream()]
+        return [pylot.utils.create_control_stream()]
 
     def on_waypoints_update(self, msg):
         self._wp_angle = msg.wp_angle
@@ -101,9 +100,9 @@ class GroundAgentOperator(Op):
 
         if self._flags.stop_for_vehicles:
             for vehicle in vehicles:
-                if control.ground_utils.is_vehicle_on_same_lane(
+                if pylot.control.ground_utils.is_vehicle_on_same_lane(
                         self._vehicle_transform, vehicle.location, self._map):
-                    new_speed_factor_v = agent_utils.stop_vehicle(
+                    new_speed_factor_v = pylot.control.utils.stop_vehicle(
                         self._vehicle_transform,
                         vehicle.location,
                         wp_vector,
@@ -113,9 +112,9 @@ class GroundAgentOperator(Op):
 
         if self._flags.stop_for_pedestrians:
             for pedestrian in pedestrians:
-                if control.ground_utils.is_pedestrian_hitable(
+                if pylot.control.ground_utils.is_pedestrian_hitable(
                         pedestrian.location, self._map):
-                    new_speed_factor_p = agent_utils.stop_pedestrian(
+                    new_speed_factor_p = pylot.control.utils.stop_pedestrian(
                         self._vehicle_transform,
                         pedestrian.location,
                         wp_vector,
@@ -125,11 +124,11 @@ class GroundAgentOperator(Op):
 
         if self._flags.stop_for_traffic_lights:
             for tl in traffic_lights:
-                if (control.ground_utils.is_traffic_light_active(
+                if (pylot.control.ground_utils.is_traffic_light_active(
                         self._vehicle_transform, tl.location, self._map) and
-                    agent_utils.is_traffic_light_visible(
+                    pylot.control.utils.is_traffic_light_visible(
                         self._vehicle_transform, tl.location, self._flags)):
-                    new_speed_factor_tl = agent_utils.stop_traffic_light(
+                    new_speed_factor_tl = pylot.control.utils.stop_traffic_light(
                         self._vehicle_transform,
                         tl.location,
                         tl.state,

@@ -4,8 +4,8 @@ import threading
 from erdos.op import Op
 from erdos.utils import setup_logging
 
-from pylot_utils import is_camera_stream, is_can_bus_stream, is_depth_camera_stream, is_lidar_stream
-from simulation.utils import get_3d_world_position, depth_to_local_point_cloud
+from pylot.utils import is_camera_stream, is_can_bus_stream, is_depth_camera_stream, is_lidar_stream
+from pylot.simulation.utils import get_3d_world_position, depth_to_local_point_cloud
 
 
 class DepthEstimationOp(Op):

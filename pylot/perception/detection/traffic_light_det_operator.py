@@ -2,13 +2,12 @@ import numpy as np
 import tensorflow as tf
 import time
 
-from erdos.data_stream import DataStream
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from perception.detection.utils import DetectedObject, load_coco_labels, load_coco_bbox_colors, visualize_bboxes
-from perception.messages import DetectorMessage
-from pylot_utils import bgr_to_rgb, rgb_to_bgr, create_traffic_lights_stream, is_camera_stream
+from pylot.perception.detection.utils import DetectedObject, load_coco_labels, load_coco_bbox_colors, visualize_bboxes
+from pylot.perception.messages import DetectorMessage
+from pylot.utils import bgr_to_rgb, rgb_to_bgr, create_traffic_lights_stream, is_camera_stream
 
 
 class TrafficLightDetOperator(Op):

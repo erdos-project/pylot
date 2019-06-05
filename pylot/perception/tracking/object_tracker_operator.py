@@ -7,8 +7,8 @@ from erdos.data_stream import DataStream
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from perception.detection.utils import visualize_no_colors_bboxes
-from pylot_utils import is_camera_stream, is_obstacles_stream
+from pylot.perception.detection.utils import visualize_no_colors_bboxes
+from pylot.utils import is_camera_stream, is_obstacles_stream
 
 
 class ObjectTrackerOp(Op):
@@ -26,13 +26,13 @@ class ObjectTrackerOp(Op):
         self._output_stream_name = output_stream_name
         try:
             if tracker_type == 'cv2':
-                from perception.tracking.cv2_tracker import MultiObjectCV2Tracker
+                from pylot.perception.tracking.cv2_tracker import MultiObjectCV2Tracker
                 self._tracker = MultiObjectCV2Tracker(self._flags)
             elif tracker_type == 'crv':
-                from perception.tracking.crv_tracker import MultiObjectCRVTracker
+                from pylot.perception.tracking.crv_tracker import MultiObjectCRVTracker
                 self._tracker = MultiObjectCRVTracker(self._flags)
             elif tracker_type == 'da_siam_rpn':
-                from perception.tracking.da_siam_rpn_tracker import MultiObjectDaSiamRPNTracker
+                from pylot.perception.tracking.da_siam_rpn_tracker import MultiObjectDaSiamRPNTracker
                 self._tracker = MultiObjectDaSiamRPNTracker(self._flags)
             else:
                 self._logger.fatal(

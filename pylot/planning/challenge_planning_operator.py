@@ -1,15 +1,13 @@
 from collections import deque
 import carla
-import math
-import numpy as np
 
 from erdos.op import Op
-from erdos.utils import frequency, setup_csv_logging, setup_logging
+from erdos.utils import setup_csv_logging, setup_logging
 
-import pylot_utils
-from planning.messages import WaypointsMessage
-from planning.utils import get_distance, get_target_speed
-from control.utils import get_angle, get_world_vec_dist
+import pylot.utils
+from pylot.planning.messages import WaypointsMessage
+from pylot.planning.utils import get_distance, get_target_speed
+from pylot.control.utils import get_angle, get_world_vec_dist
 
 
 class ChallengePlanningOperator(Op):
@@ -26,13 +24,13 @@ class ChallengePlanningOperator(Op):
 
     @staticmethod
     def setup_streams(input_streams):
-        input_streams.filter(pylot_utils.is_can_bus_stream).add_callback(
+        input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
             ChallengePlanningOperator.on_can_bus_update)
-        input_streams.filter(pylot_utils.is_open_drive_stream).add_callback(
+        input_streams.filter(pylot.utils.is_open_drive_stream).add_callback(
             ChallengePlanningOperator.on_opendrive_map)
-        input_streams.filter(pylot_utils.is_global_trajectory_stream).add_callback(
+        input_streams.filter(pylot.utils.is_global_trajectory_stream).add_callback(
             ChallengePlanningOperator.on_global_trajectory)
-        return [pylot_utils.create_waypoints_stream()]
+        return [pylot.utils.create_waypoints_stream()]
 
     def on_can_bus_update(self, msg):
         self._vehicle_transform = msg.data.transform

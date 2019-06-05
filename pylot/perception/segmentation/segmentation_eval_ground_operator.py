@@ -1,13 +1,11 @@
 from collections import deque
-import numpy as np
-import PIL.Image as Image
 import time
 
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from perception.segmentation.utils import tf_compute_semantic_iou, generate_masks, compute_semantic_iou_from_masks, transform_to_cityscapes_palette
-from pylot_utils import is_ground_segmented_camera_stream
+from pylot.perception.segmentation.utils import tf_compute_semantic_iou, generate_masks, compute_semantic_iou_from_masks, transform_to_cityscapes_palette
+from pylot.utils import is_ground_segmented_camera_stream
 
 
 class SegmentationEvalGroundOperator(Op):

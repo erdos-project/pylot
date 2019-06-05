@@ -16,14 +16,14 @@ from erdos.operators import NoopOp
 from erdos.ros.ros_output_data_stream import ROSOutputDataStream
 from erdos.timestamp import Timestamp
 
-import config
-from control.pid_control_operator import PIDControlOperator
-from control.lidar_erdos_agent_operator import LidarERDOSAgentOperator
-import operator_creator
-from planning.challenge_planning_operator import ChallengePlanningOperator
-import pylot_utils
-import simulation.messages
-import simulation.utils
+import pylot.config
+from pylot.control.pid_control_operator import PIDControlOperator
+from pylot.control.lidar_erdos_agent_operator import LidarERDOSAgentOperator
+import pylot.operator_creator
+from pylot.planning.challenge_planning_operator import ChallengePlanningOperator
+from pylot.utils import bgra_to_bgr
+import pylot.simulation.messages
+import pylot.simulation.utils
 
 
 FLAGS = flags.FLAGS
@@ -35,12 +35,12 @@ RIGHT_CAMERA_NAME = 'front_right_camera'
 def add_visualization_operators(graph, rgb_camera_name):
     visualization_ops = []
     if FLAGS.visualize_rgb_camera:
-        camera_video_op = operator_creator.create_camera_video_op(
+        camera_video_op = pylot.operator_creator.create_camera_video_op(
             graph, rgb_camera_name, rgb_camera_name)
         visualization_ops.append(camera_video_op)
     if FLAGS.visualize_segmentation:
         # Segmented camera. The stream comes from CARLA.
-        segmented_video_op = operator_creator.create_segmented_video_op(graph)
+        segmented_video_op = pylot.operator_creator.create_segmented_video_op(graph)
         visualization_ops.append(segmented_video_op)
     return visualization_ops
 
@@ -93,10 +93,10 @@ class ERDOSAgent(AutonomousAgent):
         self.track = Track.ALL_SENSORS_HDMAP_WAYPOINTS
 #        self.track = Track.ALL_SENSORS
 #        self.track = Track.CAMERAS
-        loc = simulation.utils.Location(2.0, 0.0, 1.40)
-        self._camera_transform = simulation.utils.Transform(
+        loc = pylot.simulation.utils.Location(2.0, 0.0, 1.40)
+        self._camera_transform = pylot.simulation.utils.Transform(
             loc, pitch=0, yaw=0, roll=0)
-        self._lidar_transform = simulation.utils.Transform(
+        self._lidar_transform = pylot.simulation.utils.Transform(
             loc, pitch=0, yaw=0, roll=0)
         self._camera_names = {CENTER_CAMERA_NAME}
         if FLAGS.depth_estimation:
@@ -124,39 +124,40 @@ class ERDOSAgent(AutonomousAgent):
             right_ops = add_visualization_operators(
                 self.graph, RIGHT_CAMERA_NAME)
             self.graph.connect([scenario_input_op], left_ops + right_ops)
-            depth_estimation_op = operator_creator.create_depth_estimation_op(
+            depth_estimation_op = pylot.operator_creator.create_depth_estimation_op(
                 self.graph, LEFT_CAMERA_NAME, RIGHT_CAMERA_NAME)
             self.graph.connect([scenario_input_op], [depth_estimation_op])
 
         segmentation_ops = []
         if FLAGS.segmentation_drn:
-            segmentation_op = operator_creator.create_segmentation_drn_op(
+            segmentation_op = pylot.operator_creator.create_segmentation_drn_op(
                 self.graph)
             segmentation_ops.append(segmentation_op)
 
         if FLAGS.segmentation_dla:
-            segmentation_op = operator_creator.create_segmentation_dla_op(
+            segmentation_op = pylot.operator_creator.create_segmentation_dla_op(
                 self.graph)
             segmentation_ops.append(segmentation_op)
 
         obj_detector_ops = []
         tracker_ops = []
         if FLAGS.obj_detection:
-            obj_detector_ops = operator_creator.create_detector_ops(self.graph)
+            obj_detector_ops = pylot.operator_creator.create_detector_ops(
+                self.graph)
             if FLAGS.obj_tracking:
-                tracker_op = operator_creator.create_object_tracking_op(
+                tracker_op = pylot.operator_creator.create_object_tracking_op(
                     self.graph)
                 tracker_ops.append(tracker_op)
 
         traffic_light_det_ops = []
         if FLAGS.traffic_light_det:
             traffic_light_det_ops.append(
-                operator_creator.create_traffic_light_op(self.graph))
+                pylot.operator_creator.create_traffic_light_op(self.graph))
 
         lane_detection_ops = []
         if FLAGS.lane_detection:
             lane_detection_ops.append(
-                operator_creator.create_lane_detection_op(self.graph))
+                pylot.operator_creator.create_lane_detection_op(self.graph))
 
         planning_ops = [create_planning_op(self.graph)]
 
@@ -275,7 +276,7 @@ class ERDOSAgent(AutonomousAgent):
         # Send once the global waypoints.
         if self._waypoints is None:
             self._waypoints = self._global_plan_world_coord
-            data = [(simulation.utils.to_erdos_transform(transform), road_option)
+            data = [(pylot.simulation.utils.to_erdos_transform(transform), road_option)
                     for (transform, road_option) in self._waypoints]
             self._global_trajectory_stream.send(Message(data, erdos_timestamp))
             self._global_trajectory_stream.send(watermark)
@@ -288,25 +289,24 @@ class ERDOSAgent(AutonomousAgent):
             #print("{} {} {}".format(key, val[0], type(val[1])))
             if key in self._camera_names:
                 self._camera_streams[key].send(
-                    simulation.messages.FrameMessage(
-                        pylot_utils.bgra_to_bgr(val[1]),
-                        erdos_timestamp))
+                    pylot.simulation.messages.FrameMessage(
+                        bgra_to_bgr(val[1]), erdos_timestamp))
                 self._camera_streams[key].send(watermark)
             elif key == 'can_bus':
                 # The can bus dict contains other fields as well, but we don't
                 # curently use them.
-                self._vehicle_transform = simulation.utils.to_erdos_transform(
+                self._vehicle_transform = pylot.simulation.utils.to_erdos_transform(
                     val[1]['transform'])
                 # TODO(ionel): Scenario runner computes speed differently from
                 # the way we do it in the CARLA operator. This affects
                 # agent stopping constants. Check!
                 forward_speed = val[1]['speed']
-                can_bus = simulation.utils.CanBus(
+                can_bus = pylot.simulation.utils.CanBus(
                     self._vehicle_transform, forward_speed)
                 self._can_bus_stream.send(Message(can_bus, erdos_timestamp))
                 self._can_bus_stream.send(watermark)
             elif key == 'GPS':
-                gps = simulation.utils.LocationGeo(
+                gps = pylot.simulation.utils.LocationGeo(
                     val[1][0], val[1][1], val[1][2])
             elif key == 'hdmap':
                 # Sending once opendrive data
@@ -326,7 +326,7 @@ class ERDOSAgent(AutonomousAgent):
                 # TODO(ionel): Send point cloud data.
                 pc_file = val[1]['map_file']
             elif key == 'LIDAR':
-                msg = simulation.messages.PointCloudMessage(
+                msg = pylot.simulation.messages.PointCloudMessage(
                     point_cloud=val[1],
                     transform=self._lidar_transform,
                     timestamp=erdos_timestamp)

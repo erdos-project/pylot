@@ -35,7 +35,7 @@ Finally, start Pylot in the container:
 
 ```console
 nvidia-docker exec -i -t pylot_v1 /bin/bash
-cd examples/pylot/scripts; ./install_centernet.sh
+cd workspace/pylot/scripts; ./install_centernet.sh
 cd ../
 python pylot.py --flagfile=configs/eval/segmentation_drn.conf --carla_host=carla_v1
 ```
@@ -55,7 +55,7 @@ Finally, ssh into the container with X forwarding:
 ```console
 ssh -p 20022 -X erdos@localhost
 /bin/bash
-cd /home/erdos/workspace/pylot/pylot
+cd /home/erdos/workspace/pylot/
 python pylot.py --flagfile=configs/only_ground_agent.conf --visualize_rgb_camera --carla_version=0.9.5 --carla_host=carla_v1
 ```
 
@@ -65,7 +65,7 @@ ssh -p 20022 -X erdos@localhost
 /bin/bash
 export PYTHONPATH=$CARLA_0_8_4
 source /opt/ros/melodic/setup.bash
-cd /home/erdos/workspace/pylot/pylot
+cd /home/erdos/workspace/pylot/
 python pylot.py --flagfile=configs/only_ground_agent.conf --visualize_rgb_camera --carla_version=0.8.4 --carla_host=carla_v1
 ```
 
@@ -112,7 +112,7 @@ source ./set_pythonpath.sh
 
 Finally, execute Pylot in a different terminal:
 ```console
-cd  $PYLOT_HOME/pylot/
+cd  $PYLOT_HOME/
 python pylot.py --flagfile=configs/eval/segmentation.conf
 ```
 

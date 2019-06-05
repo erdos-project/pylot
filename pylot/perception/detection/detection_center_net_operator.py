@@ -1,16 +1,12 @@
 import cv2
-import numpy as np
-import PIL.Image as Image
-import PIL.ImageDraw as ImageDraw
 import time
 
-from erdos.data_stream import DataStream
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from perception.detection.utils import DetectedObject, load_coco_labels, load_coco_bbox_colors, visualize_bboxes
-from perception.messages import DetectorMessage
-from pylot_utils import create_obstacles_stream, is_camera_stream
+from pylot.perception.detection.utils import DetectedObject, load_coco_labels, load_coco_bbox_colors, visualize_bboxes
+from pylot.perception.messages import DetectorMessage
+from pylot.utils import create_obstacles_stream, is_camera_stream
 
 from detectors.detector_factory import detector_factory
 from opts import opts
@@ -29,12 +25,12 @@ class DetectionCenterNetOperator(Op):
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
         self._output_stream_name = output_stream_name
         self._opt = opts().init()
-        self._opt.load_model=self._flags.detector_center_net_model_path
+        self._opt.load_model = self._flags.detector_center_net_model_path
         Detector = detector_factory[self._opt.task]
         self._detector = Detector(self._opt)
         self._coco_labels = load_coco_labels(self._flags.path_coco_labels)
         self._bbox_colors = load_coco_bbox_colors(self._coco_labels)
-                
+
     @staticmethod
     def setup_streams(input_streams, output_stream_name):
         input_streams.filter(is_camera_stream).add_callback(

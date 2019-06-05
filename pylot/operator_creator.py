@@ -1,44 +1,44 @@
 from absl import flags
 
 # import Control operators.
-from control.erdos_agent_operator import ERDOSAgentOperator
-from control.ground_agent_operator import GroundAgentOperator
+from pylot.control.erdos_agent_operator import ERDOSAgentOperator
+from pylot.control.ground_agent_operator import GroundAgentOperator
 # Import debug operators.
-from debug.camera_replay_operator import CameraReplayOperator
-from debug.depth_camera_visualizer import DepthCameraVisualizer
-from debug.depth_estimation_operator import DepthEstimationOp
-from debug.lidar_visualizer_operator import LidarVisualizerOperator
-from debug.segmented_video_operator import SegmentedVideoOperator
-from debug.video_operator import VideoOperator
+from pylot.debug.camera_replay_operator import CameraReplayOperator
+from pylot.debug.depth_camera_visualizer import DepthCameraVisualizer
+from pylot.debug.depth_estimation_operator import DepthEstimationOp
+from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
+from pylot.debug.segmented_video_operator import SegmentedVideoOperator
+from pylot.debug.video_operator import VideoOperator
 # Import perception operators.
-from perception.detection.detection_operator import DetectionOperator
-from perception.detection.detection_eval_ground_operator import DetectionEvalGroundOperator
+from pylot.perception.detection.detection_operator import DetectionOperator
+from pylot.perception.detection.detection_eval_ground_operator import DetectionEvalGroundOperator
 try:
-    from perception.detection.detection_center_net_operator import DetectionCenterNetOperator
+    from pylot.perception.detection.detection_center_net_operator import DetectionCenterNetOperator
 except ImportError:
     print("Error importing CenterNet detector.")
-from perception.detection.lane_detection_operator import LaneDetectionOperator
-from perception.detection.obstacle_accuracy_operator import ObstacleAccuracyOperator
-from perception.detection.traffic_light_det_operator import TrafficLightDetOperator
-from perception.fusion.fusion_operator import FusionOperator
-from perception.fusion.fusion_verification_operator import FusionVerificationOperator
-from perception.segmentation.segmentation_drn_operator import SegmentationDRNOperator
+from pylot.perception.detection.lane_detection_operator import LaneDetectionOperator
+from pylot.perception.detection.obstacle_accuracy_operator import ObstacleAccuracyOperator
+from pylot.perception.detection.traffic_light_det_operator import TrafficLightDetOperator
+from pylot.perception.fusion.fusion_operator import FusionOperator
+from pylot.perception.fusion.fusion_verification_operator import FusionVerificationOperator
+from pylot.perception.segmentation.segmentation_drn_operator import SegmentationDRNOperator
 try:
-    from perception.segmentation.segmentation_dla_operator import SegmentationDLAOperator
+    from pylot.perception.segmentation.segmentation_dla_operator import SegmentationDLAOperator
 except ImportError:
     print("Error importing DLA segmentation.")
-from perception.segmentation.segmentation_eval_operator import SegmentationEvalOperator
-from perception.segmentation.segmentation_eval_ground_operator import SegmentationEvalGroundOperator
-from perception.tracking.object_tracker_operator import ObjectTrackerOp
+from pylot.perception.segmentation.segmentation_eval_operator import SegmentationEvalOperator
+from pylot.perception.segmentation.segmentation_eval_ground_operator import SegmentationEvalGroundOperator
+from pylot.perception.tracking.object_tracker_operator import ObjectTrackerOp
 # Import planning operators.
-from planning.waypointer_operator import WaypointerOperator
+from pylot.planning.waypointer_operator import WaypointerOperator
 
 FLAGS = flags.FLAGS
 
 
 def create_carla_legacy_op(graph, camera_setups, lidar_setups):
     # Import operator that works with Carla 0.8.4
-    from simulation.carla_legacy_operator import CarlaLegacyOperator
+    from pylot.simulation.carla_legacy_operator import CarlaLegacyOperator
     carla_op = graph.add(
         CarlaLegacyOperator,
         name='carla',
@@ -57,7 +57,7 @@ def create_carla_legacy_op(graph, camera_setups, lidar_setups):
 
 
 def create_carla_op(graph):
-    from simulation.carla_operator import CarlaOperator
+    from pylot.simulation.carla_operator import CarlaOperator
     carla_op = graph.add(
         CarlaOperator,
         name='carla',
@@ -70,7 +70,7 @@ def create_carla_op(graph):
 
 
 def create_camera_driver_op(graph, camera_setup):
-    from simulation.camera_driver_operator import CameraDriverOperator
+    from pylot.simulation.camera_driver_operator import CameraDriverOperator
     camera_op = graph.add(
         CameraDriverOperator,
         name=camera_setup.name,
@@ -84,7 +84,7 @@ def create_camera_driver_op(graph, camera_setup):
 
 
 def create_lidar_driver_op(graph, lidar_setup):
-    from simulation.lidar_driver_operator import LidarDriverOperator
+    from pylot.simulation.lidar_driver_operator import LidarDriverOperator
     lidar_op = graph.add(
         LidarDriverOperator,
         name=lidar_setup.name,
@@ -98,7 +98,7 @@ def create_lidar_driver_op(graph, lidar_setup):
 
 
 def create_planning_op(graph, goal_location):
-    from planning.planning_operator import PlanningOperator
+    from pylot.planning.planning_operator import PlanningOperator
     planning_op = graph.add(
         PlanningOperator,
         name='planning',
@@ -112,7 +112,7 @@ def create_planning_op(graph, goal_location):
 
 
 def create_control_op(graph):
-    from control.pid_control_operator import PIDControlOperator
+    from pylot.control.pid_control_operator import PIDControlOperator
     control_op = graph.add(
         PIDControlOperator,
         name='controller',
@@ -130,7 +130,7 @@ def create_control_op(graph):
 
 
 def create_waypoint_visualizer_op(graph):
-    from debug.waypoint_visualize_operator import WaypointVisualizerOperator
+    from pylot.debug.waypoint_visualize_operator import WaypointVisualizerOperator
     waypoint_viz_op = graph.add(
         WaypointVisualizerOperator,
         name='waypoint_viz',

@@ -6,10 +6,10 @@ import time
 
 import carla
 
-import pylot_utils
-import simulation.messages
-import simulation.utils
-from simulation.utils import depth_to_array, to_bgra_array, get_3d_world_position, map_ground_3D_transform_to_2D, get_camera_intrinsic_and_transform, camera_to_unreal_transform, lidar_to_unreal_transform, get_3d_world_position_with_depth_map
+import pylot.pylot_utils
+import pylot.simulation.messages
+import pylot.simulation.utils
+from pylot.simulation.utils import depth_to_array, to_bgra_array, get_3d_world_position, map_ground_3D_transform_to_2D, get_camera_intrinsic_and_transform, camera_to_unreal_transform, lidar_to_unreal_transform, get_3d_world_position_with_depth_map
 from matplotlib import pyplot as plt
 
 lidar_pc = None
@@ -48,7 +48,7 @@ def on_lidar_msg(carla_pc):
     points = copy.deepcopy(points)
     points = np.reshape(points, (int(points.shape[0] / 3), 3))
 
-    lidar_transform = simulation.utils.to_erdos_transform(carla.Transform(
+    lidar_transform = pylot.simulation.utils.to_erdos_transform(carla.Transform(
         carla.Location(2, 8, 1.4),
         carla.Rotation(pitch=0, yaw=0, roll=0)))
     transform = lidar_to_unreal_transform(lidar_transform)
@@ -63,7 +63,7 @@ def on_camera_msg(carla_image):
     game_time = int(carla_image.timestamp * 1000)
     print("Received camera msg {}".format(game_time))
     global last_frame
-    last_frame = pylot_utils.bgra_to_bgr(to_bgra_array(carla_image))
+    last_frame = pylot.pylot_utils.bgra_to_bgr(to_bgra_array(carla_image))
 
 
 def equality_test(x, y, depth_msg):
@@ -83,7 +83,7 @@ def equality_test(x, y, depth_msg):
     while lidar_pc is None:
         time.sleep(0.2)
 
-    pos3d_pc = simulation.utils.get_3d_world_position_with_point_cloud(
+    pos3d_pc = pylot.simulation.utils.get_3d_world_position_with_point_cloud(
         x, y, lidar_pc, depth_msg.transform, 800, 600, 90.0)
     print("{} Computed using lidar {}".format((x, y), pos3d_pc))
 
@@ -100,15 +100,15 @@ def on_depth_msg(carla_image):
     game_time = int(carla_image.timestamp * 1000)
     print("Received depth camera msg {}".format(game_time))
 
-    depth_camera_transform = simulation.utils.to_erdos_transform(
+    depth_camera_transform = pylot.simulation.utils.to_erdos_transform(
         carla_image.transform)
-    depth_msg = simulation.messages.DepthFrameMessage(
+    depth_msg = pylot.simulation.messages.DepthFrameMessage(
         depth_to_array(carla_image),
         depth_camera_transform,
         carla_image.fov,
         None)
 
-    depth_point_cloud = simulation.utils.depth_to_local_point_cloud(
+    depth_point_cloud = pylot.simulation.utils.depth_to_local_point_cloud(
             depth_msg, max_depth=1.0)
 
     # Transform the depth cloud to world coordinates.

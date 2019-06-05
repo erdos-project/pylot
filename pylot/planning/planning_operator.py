@@ -6,14 +6,14 @@ from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 
 from erdos.op import Op
-from erdos.utils import frequency, setup_csv_logging, setup_logging
+from erdos.utils import setup_csv_logging, setup_logging
 
-import pylot_utils
-from planning.messages import WaypointsMessage
-from planning.utils import get_target_speed
-import simulation.carla_utils
-from simulation.utils import to_erdos_transform
-from control.utils import get_angle, get_world_vec_dist
+import pylot.utils
+from pylot.control.utils import get_angle, get_world_vec_dist
+from pylot.planning.messages import WaypointsMessage
+from pylot.planning.utils import get_target_speed
+from pylot.simulation.carla_utils import get_world
+from pylot.simulation.utils import to_erdos_transform
 
 
 class PlanningOperator(Op):
@@ -32,9 +32,8 @@ class PlanningOperator(Op):
         # Transform goal location to carla.Location
         self._goal_location = carla.Location(*goal_location)
 
-        _, self._world = simulation.carla_utils.get_world(
-            self._flags.carla_host,
-            self._flags.carla_port)
+        _, self._world = get_world(
+            self._flags.carla_host, self._flags.carla_port)
         if self._world is None:
             raise ValueError("There was an issue connecting to the simulator.")
         self._map = self._world.get_map()
@@ -46,9 +45,9 @@ class PlanningOperator(Op):
 
     @staticmethod
     def setup_streams(input_streams):
-        input_streams.filter(pylot_utils.is_can_bus_stream).add_callback(
+        input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
             PlanningOperator.on_can_bus_update)
-        return [pylot_utils.create_waypoints_stream()]
+        return [pylot.utils.create_waypoints_stream()]
 
     def on_can_bus_update(self, msg):
         self._vehicle_transform = msg.data.transform
