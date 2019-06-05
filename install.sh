@@ -70,7 +70,7 @@ cd ../
 ###### Get the CRV Tracker model and dependencies ######
 ~/.local/bin/gdown http://drive.google.com/uc?id=0B1sg8Yyw1JCDOUNsYkpQTGdLYVU
 mkdir -p conv_reg_vot/vgg_model
-mv data/VGG_16_layers_py3.npz conv_reg_vot/vgg_model/
+mv models/VGG_16_layers_py3.npz conv_reg_vot/vgg_model/
 pip install --user matplotlib
 sudo apt-get -y install python-tk
 
@@ -90,6 +90,9 @@ cd CARLA_0.8.4
 gdown https://drive.google.com/uc?id=18OaDbQ2K9Dcs25d-nIxpw3GPRHhG1r_2
 tar xvf CARLA_0.8.4.tar.gz
 rm CARLA_0.8.4.tar.gz
+if [ "$1" == 'docker' ]; then
+    rm -r CarlaUE4
+fi
 
 cd ../
 mkdir CARLA_0.9.5
@@ -97,3 +100,6 @@ cd CARLA_0.9.5
 wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.5.tar.gz
 tar xvf CARLA_0.9.5.tar.gz
 rm CARLA_0.9.5.tar.gz
+if [ "$1" == 'docker' ]; then
+    rm -r CarlaUE4; rm -r HDMaps
+fi

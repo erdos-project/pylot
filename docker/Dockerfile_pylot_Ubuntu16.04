@@ -21,6 +21,7 @@ WORKDIR /home/erdos
 SHELL ["/bin/bash", "-c"]
 
 # Get the erdos directory.
+RUN sudo apt-get -y update
 RUN sudo apt-get -y install git
 RUN mkdir -p /home/erdos/workspace
 RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/erdos.git
@@ -38,7 +39,7 @@ RUN  cd /home/erdos/workspace/pylot/ && pip install -e ./
 RUN sudo apt-get install -y wget
 # Install toolkit for Centernet
 RUN sudo apt-get -y install cuda-toolkit-9.0
-RUN cd /home/erdos/workspace/pylot/ && ./install.sh
+RUN cd /home/erdos/workspace/pylot/ && ./install.sh docker
 
 # Set this env value to run carla in headless CARLA
 ENV SDL_VIDEODRIVER offscreen

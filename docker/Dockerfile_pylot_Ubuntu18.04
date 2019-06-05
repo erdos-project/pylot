@@ -21,6 +21,7 @@ WORKDIR /home/erdos
 SHELL ["/bin/bash", "-c"]
 
 # Install tzdata without prompt.
+RUN sudo apt-get -y update
 ENV DEBIAN_FRONTEND=noninteractive
 RUN sudo DEBIAN_FRONTEND=noninteractive sudo DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata
 
@@ -42,7 +43,7 @@ RUN  cd /home/erdos/workspace/pylot/ && pip install -e ./
 RUN sudo apt-get install -y wget
 # Install toolkit for Centernet
 RUN sudo apt-get -y install cuda-toolkit-10.0
-RUN cd /home/erdos/workspace/pylot/ && ./install.sh
+RUN cd /home/erdos/workspace/pylot/ && ./install.sh docker
 
 # Set this env value to run carla in headless CARLA
 ENV SDL_VIDEODRIVER offscreen
