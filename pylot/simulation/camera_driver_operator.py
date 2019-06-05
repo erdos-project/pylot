@@ -2,16 +2,16 @@ import threading
 
 import carla
 
-from pylot.perception.messages import SegmentedFrameMessage
-import pylot.utils
-from pylot.simulation.carla_utils import get_world
-from pylot.simulation.utils import depth_to_array, labels_to_array, to_bgra_array, to_erdos_transform
-
 # ERDOS specific imports.
 from erdos.op import Op
 from erdos.utils import setup_logging
 from erdos.message import WatermarkMessage
 from erdos.timestamp import Timestamp
+
+from pylot.perception.messages import SegmentedFrameMessage
+import pylot.utils
+from pylot.simulation.carla_utils import get_world
+from pylot.simulation.utils import depth_to_array, labels_to_array, to_bgra_array, to_erdos_transform
 
 
 class CameraDriverOperator(Op):
@@ -24,6 +24,7 @@ class CameraDriverOperator(Op):
     Attributes:
         _camera_setup: A CameraSetup tuple.
         _camera: Handle to the camera inside the simulation.
+        _vehicle: Handle to the simulated hero vehicle.
     """
     def __init__(self,
                  name,
@@ -53,8 +54,11 @@ class CameraDriverOperator(Op):
         # Starts from 1 because the world ticks once before the drivers are
         # added.
         self._message_cnt = 1
+        # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None
+        # The camera sensor actor object we obtain from Carla.
         self._camera = None
+        # Lock to ensure that the callbacks do not execute simultaneously.
         self._lock = threading.Lock()
 
     @staticmethod
@@ -71,6 +75,12 @@ class CameraDriverOperator(Op):
         return [pylot.utils.create_camera_stream(camera_setup)]
 
     def process_images(self, carla_image):
+        """ Invoked when an image is received from the simulator.
+
+        Args:
+            carla_image: a carla.Image.
+        """
+        # Ensure that the code executes serially
         with self._lock:
             game_time = int(carla_image.timestamp * 1000)
             timestamp = Timestamp(coordinates=[game_time, self._message_cnt])
@@ -80,7 +90,8 @@ class CameraDriverOperator(Op):
             msg = None
             if self._camera_setup.type == 'sensor.camera.rgb':
                 msg = pylot.simulation.messages.FrameMessage(
-                    pylot.utils.bgra_to_bgr(to_bgra_array(carla_image)), timestamp)
+                    pylot.utils.bgra_to_bgr(to_bgra_array(carla_image)),
+                    timestamp)
             elif self._camera_setup.type == 'sensor.camera.depth':
                 msg = pylot.simulation.messages.DepthFrameMessage(
                     depth_to_array(carla_image),
@@ -104,7 +115,7 @@ class CameraDriverOperator(Op):
         """
         vehicle_id = msg.data
         self._logger.info(
-            "The CameraDriverOperator received the vehicle identifier: {}".format(
+            "The CameraDriverOperator received the vehicle id: {}".format(
                 vehicle_id))
 
         self._vehicle = self._world.get_actors().find(vehicle_id)

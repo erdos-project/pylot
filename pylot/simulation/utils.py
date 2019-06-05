@@ -4,16 +4,18 @@ import math
 import numpy as np
 from numpy.linalg import inv
 from numpy.matlib import repmat
-import time
 
 CameraSetup = namedtuple('CameraSetup', 'name, type, resolution, pos')
-LidarSetup = namedtuple('LidarSetup', 'name, type, pos, range, rotation_frequency, channels, upper_fov, lower_fov, points_per_second')
+LidarSetup = namedtuple('LidarSetup',
+                        'name, type, pos, range, rotation_frequency, channels, upper_fov, lower_fov, points_per_second')
 Acceleration = namedtuple('Acceleration', 'x, y, z')
 Orientation = namedtuple('Orientation', 'x, y, z')
 Rotation = namedtuple('Rotation', 'pitch, yaw, roll')
 Position = namedtuple('Position', 'location, orientation')
-Vehicle = namedtuple('Vehicle', 'location, transform, bounding_box, forward_speed')
-Pedestrian = namedtuple('Pedestrian', 'id, location, transform, bounding_box, forward_speed')
+Vehicle = namedtuple('Vehicle',
+                     'location, transform, bounding_box, forward_speed')
+Pedestrian = namedtuple('Pedestrian',
+                        'id, location, transform, bounding_box, forward_speed')
 TrafficLight = namedtuple('TrafficLight', 'location, transform, state')
 SpeedLimitSign = namedtuple('SpeedLimitSign', 'location, transform, limit')
 LocationGeo = namedtuple('LocationGeo', 'latitude, longitude, altitude')
@@ -50,7 +52,7 @@ class BoundingBox(object):
         return self.__str__()
 
     def __str__(self):
-        return "transform: {}, x: {}, y: {}, z: {}".format(str(self.transform), self.extent)
+        return "transform: {}, extent: {}".format(self.transform, self.extent)
 
 
 class Location(object):
@@ -128,7 +130,8 @@ class Transform(object):
 
     def __str__(self):
         if self.location:
-            return "location: {}, rotation: {}".format(self.location, self.rotation)
+            return "location: {}, rotation: {}".format(
+                self.location, self.rotation)
         else:
             return str(self.matrix)
 

@@ -2,30 +2,56 @@ from erdos.message import Message
 
 
 class FrameMessage(Message):
+    """ Message class to be used to send camera frames.
+
+    Attributes:
+        frame: A numpy array storing the frame.
+        width: The width of the frame.
+        height: The height of the frame.
+        encoding: The encoding of the frame.
+    """
     def __init__(self,
                  frame_array,
                  timestamp,
-                 encoding='BGR',
-                 stream_name='default'):
-        super(FrameMessage, self).__init__(None, timestamp, stream_name)
+                 encoding='BGR'):
+        """ Initializes the frame messsage.
+
+        Args:
+            frame_array: A numpy array storing the frame.
+            timestamp: A erdos.timestamp.Timestamp of the message.
+            encoding: The encoding of the message.
+        """
+        super(FrameMessage, self).__init__(None, timestamp, 'default')
         self.frame = frame_array
         self.width = frame_array.shape[1]
         self.height = frame_array.shape[0]
         self.encoding = 'BGR'
 
     def __str__(self):
-        return 'timestamp: {}, width: {}, height: {}, encoding: {}'.format(
+        return 'FrameMessage(timestamp: {}, width: {}, height: {}, encoding: {})'.format(
             self.timestamp, self.width, self.height, self.encoding)
 
 
 class DepthFrameMessage(Message):
-    def __init__(self,
-                 frame,
-                 transform,
-                 fov,
-                 timestamp,
-                 stream_name='default'):
-        super(DepthFrameMessage, self).__init__(None, timestamp, stream_name)
+    """ Message class to be used to send depth camera frames.
+
+    Attributes:
+        frame: A numpy array storing the frame.
+        transform: The simulation.utils.Transform of the camera.
+        width: The width of the frame.
+        height: The height of the frame.
+        fov: The field of view of the camera.
+    """
+    def __init__(self, frame, transform, fov, timestamp):
+        """ Initializes the depth frame messsage.
+
+        Args:
+            frame_array: A numpy array storing the depth frame.
+            transform: The simulation.utils.Transform of the camera.
+            fov: The field of view of the camera.
+            timestamp: A erdos.timestamp.Timestamp of the message.
+        """
+        super(DepthFrameMessage, self).__init__(None, timestamp, 'default')
         self.frame = frame
         self.transform = transform
         self.width = frame.shape[1]
@@ -33,63 +59,92 @@ class DepthFrameMessage(Message):
         self.fov = fov
 
     def __str__(self):
-        return 'timestamp: {}, width: {}, height: {}, fov: {}'.format(
+        return 'DepthMessage(timestamp: {}, width: {}, height: {}, fov: {})'.format(
             self.timestamp, self.width, self.height, self.fov)
 
 
 class PointCloudMessage(Message):
-    def __init__(self,
-                 point_cloud,
-                 transform,
-                 timestamp,
-                 stream_name='default'):
-        super(PointCloudMessage, self).__init__(None, timestamp, stream_name)
+    """ Message class to be used to send point clouds.
+
+    Attributes:
+        point_cloud: A numpy array storing the point cloud.
+        transform: The simulation.utils.Transform of the Lidar.
+    """
+    def __init__(self, point_cloud, transform, timestamp):
+        """ Initializes the point cloud messsage.
+
+        Args:
+            point_cloud: A numpy array storing the point cloud.
+            transform: The simulation.utils.Transform of the Lidar.
+            timestamp: A erdos.timestamp.Timestamp of the message.
+        """
+        super(PointCloudMessage, self).__init__(None, timestamp, 'default')
         self.point_cloud = point_cloud
         self.transform = transform
 
     def __str__(self):
-        return 'timestamp: {}, num point clouds: {}'.format(
+        return 'PointCloudMessage(timestamp: {}, num point clouds: {})'.format(
             self.timestamp, len(self.point_cloud))
 
 
 class GroundVehiclesMessage(Message):
-    def __init__(self, vehicles, timestamp, stream_name='default'):
-        super(GroundVehiclesMessage, self).__init__(None, timestamp, stream_name)
+    """ Message class to be used to send ground info about vehicle actors.
+
+    Attributes:
+        vehicles: A list of simulation.utils.Vehicle tuples.
+    """
+    def __init__(self, vehicles, timestamp):
+        super(GroundVehiclesMessage, self).__init__(None, timestamp, 'default')
         self.vehicles = vehicles
 
     def __str__(self):
-        return 'timestamp: {}, vehicles: {}'.format(
+        return 'GroundVehiclesMessage(timestamp: {}, vehicles: {})'.format(
             self.timestamp, self.vehicles)
 
 
 class GroundPedestriansMessage(Message):
-    def __init__(self, pedestrians, timestamp, stream_name='default'):
+    """ Message class to be used to send ground info about pedestrian actors.
+
+    Attributes:
+        pedestrians: A list of simulation.utils.Pedestrian tuples.
+    """
+    def __init__(self, pedestrians, timestamp):
         super(GroundPedestriansMessage, self).__init__(
-            None, timestamp, stream_name)
+            None, timestamp, 'default')
         self.pedestrians = pedestrians
 
     def __str__(self):
-        return 'timestmap: {}, pedestrians: {}'.format(
+        return 'GroundPedestriansMessage(timestmap: {}, pedestrians: {})'.format(
             self.timestamp, self.pedestrians)
 
 
 class GroundTrafficLightsMessage(Message):
-    def __init__(self, traffic_lights, timestamp, stream_name='default'):
+    """ Message class to be used to send ground info about traffic lights actors.
+
+    Attributes:
+        traffic_lights: A list of simulation.utils.TrafficLight tuples.
+    """
+    def __init__(self, traffic_lights, timestamp):
         super(GroundTrafficLightsMessage, self).__init__(
-            None, timestamp, stream_name)
+            None, timestamp, 'default')
         self.traffic_lights = traffic_lights
 
     def __str__(self):
-        return 'timestamp: {}, traffic lights: {}'.format(
+        return 'GroundTrafficLightsMessage(timestamp: {}, traffic lights: {})'.format(
             self.timestamp, self.traffic_lights)
 
 
 class GroundSpeedSignsMessage(Message):
-    def __init__(self, speed_signs, timestamp, stream_name='default'):
+    """ Message class to be used to send ground info about speed limit actors.
+
+    Attributes:
+        speed_signs: A list of simulation.utils.SpeedLimitSign tuples.
+    """
+    def __init__(self, speed_signs, timestamp):
         super(GroundSpeedSignsMessage, self).__init__(
-            None, timestamp, stream_name)
+            None, timestamp, 'default')
         self.speed_signs = speed_signs
 
     def __str__(self):
-        return 'timestamp: {}, speed signs: {}'.format(
+        return 'GroundSpeedSignsMessage(timestamp: {}, speed signs: {})'.format(
             self.timestamp, self.speed_signs)
