@@ -87,7 +87,7 @@ git clone https://github.com/ICGog/CenterNet.git
 ###### Download the Carla simulator ######
 mkdir CARLA_0.8.4
 cd CARLA_0.8.4
-gdown https://drive.google.com/uc?id=18OaDbQ2K9Dcs25d-nIxpw3GPRHhG1r_2
+~/.local/bin/gdown https://drive.google.com/uc?id=18OaDbQ2K9Dcs25d-nIxpw3GPRHhG1r_2
 tar xvf CARLA_0.8.4.tar.gz
 rm CARLA_0.8.4.tar.gz
 if [ "$1" == 'docker' ]; then

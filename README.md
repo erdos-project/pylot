@@ -9,19 +9,19 @@ In case you do not have `nvidia-docker` please run ```./scripts/install-nvidia-d
 To install Pylot, use the Dockerfiles we provide:
 
 ```console
-$ cd docker
-$ ./build_Ubuntu18.04_images.sh
+cd docker
+./build_Ubuntu18.04_images.sh
 ```
 
 The script creates two docker images: one that contains the Carla simulator and
 another one that contains ERDOS and Pylot.
 
-Next, create a Docker network, a Carla container, and an ERDOS container:
+Next, create a Docker network, a Carla container, and a Pylot container:
 
 ```console
 docker network create carla-net
 nvidia-docker run -itd --name carla_v1 --net carla-net carla_ubuntu_18.04 /bin/bash
-nvidia-docker run -itd --name erdos_v1 --net carla-net pylot_ubuntu_18.04 /bin/bash
+nvidia-docker run -itd --name pylot_v1 -p 20022:22 --net carla-net pylot_ubuntu_18.04 /bin/bash
 ```
 
 Following, start the simulator in the Carla container:
@@ -31,13 +31,32 @@ nvidia-docker exec -i -t carla_v1 /bin/bash
 SDL_VIDEODRIVER=offscreen ${CARLA_ROOT}/CarlaUE4.sh -windowed -ResX=800 -ResY=600 -carla-server -benchmark -fps=10
 ```
 
-Finally, start Pylot in the ERDOS container:
+Finally, start Pylot in the container:
 
 ```console
-nvidia-docker exec -i -t erdos_v1 /bin/bash
+nvidia-docker exec -i -t pylot_v1 /bin/bash
 cd examples/pylot/scripts; ./install_centernet.sh
 cd ../
 python pylot.py --flagfile=configs/eval/segmentation_drn.conf --carla_host=carla_v1
+```
+
+In case you desire to visualize outputs of different components (e.g., bounding boxes),
+you have to forward X from the pylot container. First, in the container execute the
+following steps:
+```console
+ssh-keygen
+# Copy yout public ssh key into .ssh/authorized_keys
+sudo sed -i 's/#X11UseLocalhost yes/#X11UseLocalhost no/g' /etc/ssh/sshd_config
+sudo service ssh restart
+exit
+```
+
+Finally, ssh into the container with X forwarding:
+```console
+ssh -p 20022 -X erdos@localhost
+/bin/bash
+cd /home/erdos/workspace/pylot/pylot
+python pylot.py --flagfile=configs/only_ground_agent.conf --visualize_rgb_camera --carla_version=0.8.4 --carla_host=carla_v1
 ```
 
 ## Manual installation instructions
@@ -45,23 +64,23 @@ Alternatively, you can install Pylot on your base system by executing the
 following steps:
 
 ```console
-$ ./install.sh
-$ pip install -e ./
-$ cd scripts
-$ ./install_centernet.sh
+./install.sh
+pip install -e ./
+cd scripts
+./install_centernet.sh
 ```
 
 Next, start the simulator:
 ```console
-$ export CARLA_ROOT=$PYLOT_HOME/dependencies/CARLA_0.8.4/
-$ ./scripts/run_simulator.sh
+export CARLA_ROOT=$PYLOT_HOME/dependencies/CARLA_0.8.4/
+./scripts/run_simulator.sh
 ```
 
 In a different terminal, setup the paths:
 ```console
-$ export CARLA_ROOT=$PYLOT_HOME/dependencies/CARLA_0.8.4/
-$ cd $PYLOT_HOME/scripts/
-$ source ./set_pythonpath.sh
+export CARLA_ROOT=$PYLOT_HOME/dependencies/CARLA_0.8.4/
+cd $PYLOT_HOME/scripts/
+source ./set_pythonpath.sh
 ```
 
 Finally, execute Pylot in a different terminal:

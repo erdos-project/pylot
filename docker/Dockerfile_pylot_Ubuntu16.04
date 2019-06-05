@@ -47,7 +47,8 @@ ENV SDL_VIDEODRIVER offscreen
 RUN sudo apt-get -y install ssh
 
 # Export PYTHONPATH
-RUN echo "export PYTHONPATH=$PYTHONPATH:/home/erdos/workspace/pylot/dependencies/:/home/erdos/workspace/pylot/dependencies/CARLA_0.8.4/PythonClient/:/home/erdos/workspace/pylot/dependencies/CenterNet/src/lib/" >> ~/.bashrc
+RUN echo "export PYTHONPATH=/home/erdos/workspace/pylot/dependencies/:/home/erdos/workspace/pylot/dependencies/CARLA_0.8.4/PythonClient/:/home/erdos/workspace/pylot/dependencies/CenterNet/src/lib/" >> ~/.bashrc
+RUN echo "source /opt/ros/kinetic/setup.bash" >> ~/.bashrc
 
 # Expose the required ports.
 EXPOSE 2000 2001 2002
