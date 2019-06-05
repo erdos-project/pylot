@@ -1,0 +1,56 @@
+FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
+MAINTAINER Sukrit Kalra (sukrit.kalra@berkeley.edu)
+
+# Set up a erdos user first.
+RUN apt-get -y update && apt-get -y install sudo
+ENV uid 1000
+ENV gid 1000
+
+RUN mkdir -p /home/erdos
+RUN groupadd erdos -g ${gid} 
+RUN useradd -r -u ${uid} -g erdos erdos
+RUN echo "erdos ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/erdos
+RUN chmod 0440 /etc/sudoers.d/erdos
+RUN chown ${uid}:${gid} -R /home/erdos
+
+
+USER erdos
+ENV HOME /home/erdos
+ENV SHELL /bin/bash
+WORKDIR /home/erdos
+SHELL ["/bin/bash", "-c"]
+
+# Install tzdata without prompt.
+ENV DEBIAN_FRONTEND=noninteractive
+RUN sudo DEBIAN_FRONTEND=noninteractive sudo DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata
+
+# Get the erdos directory.
+RUN sudo apt-get -y install git
+RUN mkdir -p /home/erdos/workspace
+RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/erdos.git
+# Install all the requirements.
+RUN cd /home/erdos/workspace/erdos/ && ./install.sh
+
+# Install Tensorflow
+RUN pip install tensorflow-gpu==1.13.1
+
+# Get the Pylot directory.
+RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/pylot.git
+# Install all the Python dependencies.
+RUN  cd /home/erdos/workspace/pylot/ && pip install -e ./
+# Get the Pylot models and code dependencies.
+RUN sudo apt-get install -y wget
+# Install toolkit for Centernet
+RUN sudo apt-get -y install cuda-toolkit-10.0
+RUN cd /home/erdos/workspace/pylot/ && ./install.sh
+
+# Set this env value to run carla in headless CARLA
+ENV SDL_VIDEODRIVER offscreen
+# Install ssh in order to be able to forward X for Carla visualization.
+RUN sudo apt-get -y install ssh
+
+# Export PYTHONPATH
+RUN echo "export PYTHONPATH=$PYTHONPATH:/home/erdos/workspace/pylot/dependencies/:/home/erdos/workspace/pylot/dependencies/CARLA_0.8.4/PythonClient/:/home/erdos/workspace/pylot/dependencies/CenterNet/src/lib/" >> ~/.bashrc
+
+# Expose the required ports.
+EXPOSE 2000 2001 2002

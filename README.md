@@ -21,7 +21,7 @@ Next, create a Docker network, a Carla container, and an ERDOS container:
 ```console
 docker network create carla-net
 nvidia-docker run -itd --name carla_v1 --net carla-net carla_ubuntu_18.04 /bin/bash
-nvidia-docker run -itd --name erdos_v1 --net carla-net erdos_ubuntu_18.04 /bin/bash
+nvidia-docker run -itd --name erdos_v1 --net carla-net pylot_ubuntu_18.04 /bin/bash
 ```
 
 Following, start the simulator in the Carla container:
@@ -45,30 +45,30 @@ Alternatively, you can install Pylot on your base system by executing the
 following steps:
 
 ```console
-$ sudo apt-get install python-rosinstall python-cv-bridge python-pip wget
-$ pip install -r requirements.txt
-$ pip install tensorflow-gpu
+$ ./install.sh
+$ pip install -e ./
 $ cd scripts
-$ ./get_dependencies.sh
 $ ./install_centernet.sh
 ```
 
-Next, setup the paths:
+Next, start the simulator:
 ```console
-$ export CARLA_ROOT=$ERDOS_HOME/examples/pylot/dependencies/CARLA_0.8.4/
-$ source ./set_pythonpath.sh
+$ export CARLA_ROOT=$PYLOT_HOME/dependencies/CARLA_0.8.4/
+$ ./scripts/run_simulator.sh
 ```
 
-Following, execute the simulator:
+In a different terminal, setup the paths:
 ```console
-$ ./scripts/run_simulator.sh
+$ export CARLA_ROOT=$PYLOT_HOME/dependencies/CARLA_0.8.4/
+$ cd $PYLOT_HOME/scripts/
+$ source ./set_pythonpath.sh
 ```
 
 Finally, execute Pylot in a different terminal:
 ```console
-python pylot.py --flagfile=configs/eval/segmentation_drn.conf
+cd  $PYLOT_HOME/pylot/
+python pylot.py --flagfile=configs/eval/segmentation.conf
 ```
-
 
 # Pylot components
 
