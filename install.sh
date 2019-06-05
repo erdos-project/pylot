@@ -1,6 +1,7 @@
 #!/bin/bash
 # Assumes the script is called from PYLOT_HOME directory
 
+sudo apt-get -y update
 sudo apt-get install -y git wget python-pip
 pip install --user gdown
 
