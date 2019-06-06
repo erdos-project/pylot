@@ -95,15 +95,15 @@ class CarlaLegacyOperator(Op):
             camera_setup: A camera setup object.
         """
         # Transform from Carla 0.9.x postprocessing strings to Carla 0.8.4.
-        if camera_setyp.camera_type == 'sensor.camera.rgb':
+        if camera_setup.camera_type == 'sensor.camera.rgb':
             postprocessing = 'SceneFinal'
-        elif camera_setyp.camera_type == 'sensor.camera.depth':
+        elif camera_setup.camera_type == 'sensor.camera.depth':
             postprocessing = 'Depth'
-        elif camera_setyp.camera_type == 'sensor.camera.semantic_segmentation':
+        elif camera_setup.camera_type == 'sensor.camera.semantic_segmentation':
             postprocessing = 'SemanticSegmentation'
         transform = camera_setup.get_transform()
         camera = Camera(
-            name,
+            name=camera_setup.name,
             PostProcessing=postprocessing,
             FOV=camera_setup.fov,
             ImageSizeX=camera_setup.width,

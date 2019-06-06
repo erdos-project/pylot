@@ -192,7 +192,7 @@ def get_bounding_boxes_from_segmented(segmented_frame):
                 if (max_x - min_x > 2 and max_y - min_y > 2):
                     # Invert the axis because the segmented_frame is in
                     # height, width shape.
-                    bboxes.append(((min_y, min_x), (max_y, max_x)))
+                    bboxes.append((min_y, max_y, min_x, max_x))
     return bboxes
 
 
