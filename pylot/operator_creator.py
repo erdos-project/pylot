@@ -348,13 +348,13 @@ def create_eval_ground_truth_detector_op(graph,
 
 
 def create_obstacle_accuracy_op(graph,
-                             rgb_camera_setup,
-                             depth_camera_name):
+                                camera_setup,
+                                depth_camera_name):
     obstacle_accuracy_op = graph.add(
         ObstacleAccuracyOperator,
         name='obstacle_accuracy',
         setup_args={'depth_camera_name': depth_camera_name},
-        init_args={'rgb_camera_setup': rgb_camera_setup,
+        init_args={'camera_setup': camera_setup,
                    'flags': FLAGS,
                    'log_file_name': FLAGS.log_file_name,
                    'csv_file_name': FLAGS.csv_log_file_name})

@@ -34,8 +34,8 @@ class LidarERDOSAgentOperator(Op):
         self._point_clouds = deque()
         # TODO(ionel): DANGEROUS! DO NOT HARDCODE!
         loc = pylot.simulation.utils.Location(2.0, 0.0, 1.40)
-        self._camera_transform = pylot.simulation.utils.Transform(
-            loc, pitch=0, yaw=0, roll=0)
+        rot = pylot.simulation.utils.Rotation(0, 0, 0)
+        self._camera_transform = pylot.simulation.utils.Transform(loc, rot)
         self._camera_width = 800
         self._camera_height = 600
         self._camera_fov = 100

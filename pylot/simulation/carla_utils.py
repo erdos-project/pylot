@@ -63,3 +63,13 @@ def reset_world(world):
             pass
         else:
             actor.destroy()
+
+
+def to_carla_transform(transform):
+    return carla.Transform(
+        carla.Location(transform.location.x,
+                       transform.location.y,
+                       transform.location.z),
+        carla.Rotation(pitch=transform.rotation.pitch,
+                       yaw=transform.rotation.yaw,
+                       roll=transform.rotation.roll))

@@ -53,21 +53,11 @@ class CarlaLegacyOperator(Op):
         self._transforms = {}
         # Add cameras to the simulation.
         for cs in camera_setups:
-            transform = self.__add_camera(name=cs.name,
-                                          postprocessing=cs.type,
-                                          image_size=cs.resolution,
-                                          position=cs.pos)
-            self._transforms[cs.name] = transform
+            self.__add_camera(cs)
+            self._transforms[cs.name] = cs.get_transform()
         # Add lidars to the simulation.
         for ls in lidar_setups:
-            self.__add_lidar(name=ls.name,
-                             channels=ls.channels,
-                             range=ls.range,
-                             points_per_second=ls.points_per_second,
-                             rotation_frequency=ls.rotation_frequency,
-                             upper_fov=ls.upper_fov,
-                             lower_fov=ls.lower_fov,
-                             position=ls.pos)
+            self.__add_lidar(ls)
         self.agent_id_map = {}
         self.pedestrian_count = 0
 
@@ -98,76 +88,56 @@ class CarlaLegacyOperator(Op):
             pylot.utils.create_ground_traffic_signs_stream()
         ] + camera_streams + lidar_streams
 
-    def __add_camera(self,
-                     name,
-                     postprocessing,
-                     image_size=(800, 600),
-                     field_of_view=90.0,
-                     position=(0.3, 0, 1.3),
-                     rotation_pitch=0,
-                     rotation_roll=0,
-                     rotation_yaw=0):
+    def __add_camera(self, camera_setup):
         """Adds a camera and a corresponding output stream.
 
         Args:
-            name: A string naming the camera.
-            postprocessing: "SceneFinal", "Depth", "SemanticSegmentation".
+            camera_setup: A camera setup object.
         """
         # Transform from Carla 0.9.x postprocessing strings to Carla 0.8.4.
-        if postprocessing == 'sensor.camera.rgb':
+        if camera_setyp.camera_type == 'sensor.camera.rgb':
             postprocessing = 'SceneFinal'
-        elif postprocessing == 'sensor.camera.depth':
+        elif camera_setyp.camera_type == 'sensor.camera.depth':
             postprocessing = 'Depth'
-        elif postprocessing == 'sensor.camera.semantic_segmentation':
+        elif camera_setyp.camera_type == 'sensor.camera.semantic_segmentation':
             postprocessing = 'SemanticSegmentation'
-
+        transform = camera_setup.get_transform()
         camera = Camera(
             name,
             PostProcessing=postprocessing,
-            FOV=field_of_view,
-            ImageSizeX=image_size[0],
-            ImageSizeY=image_size[1],
-            PositionX=position[0],
-            PositionY=position[1],
-            PositionZ=position[2],
-            RotationPitch=rotation_pitch,
-            RotationRoll=rotation_roll,
-            RotationYaw=rotation_yaw)
+            FOV=camera_setup.fov,
+            ImageSizeX=camera_setup.width,
+            ImageSizeY=camera_setup.height,
+            PositionX=transform.location.x,
+            PositionY=transform.location.y,
+            PositionZ=transform.location.z,
+            RotationPitch=transform.rotation.pitch,
+            RotationRoll=transform.rotation.roll,
+            RotationYaw=transform.rotation.yaw)
 
         self._settings.add_sensor(camera)
-        return camera.get_transform()
 
-    def __add_lidar(self,
-                    name,
-                    channels=32,
-                    range=50,
-                    points_per_second=500000,
-                    rotation_frequency=20,
-                    upper_fov=10,
-                    lower_fov=-30,
-                    position=(0, 0, 1.4),
-                    rotation_pitch=0,
-                    rotation_yaw=0,
-                    rotation_roll=0):
+    def __add_lidar(self, lidar_setup):
         """Adds a LIDAR sensor and a corresponding output stream.
 
         Args:
-            name: A string naming the camera.
+            lidar_setup: A LidarSetup object..
         """
+        transform = lidar_setup.get_transform()
         lidar = Lidar(
-            name,
-            Channels=channels,
-            Range=range,
-            PointsPerSecond=points_per_second,
-            RotationFrequency=rotation_frequency,
-            UpperFovLimit=upper_fov,
-            LowerFovLimit=lower_fov,
-            PositionX=position[0],
-            PositionY=position[1],
-            PositionZ=position[2],
-            RotationPitch=rotation_pitch,
-            RotationYaw=rotation_yaw,
-            RotationRoll=rotation_roll)
+            lidar_setup.name,
+            Channels=lidar_setup.channels,
+            Range=lidar_setup.range,
+            PointsPerSecond=lidar_setup.points_per_second,
+            RotationFrequency=lidar_setup.rotation_frequency,
+            UpperFovLimit=lidar_setup.upper_fov,
+            LowerFovLimit=lidar_setup.lower_fov,
+            PositionX=transform.location.x,
+            PositionY=transform.location.y,
+            PositionZ=transform.location.z,
+            RotationPitch=transform.rotation.pitch,
+            RotationYaw=transform.rotation.yaw,
+            RotationRoll=transform.rotation.roll)
 
         self._settings.add_sensor(lidar)
 
@@ -212,16 +182,16 @@ class CarlaLegacyOperator(Op):
         """
         location = pylot.simulation.utils.Location(
             carla_loc=player_measurements.transform.location)
+        rotation = pylot.simulation.utils.Rotation(
+            player_measurements.transform.rotation.pitch,
+            player_measurements.transform.rotation.yaw,
+            player_measurements.transform.rotation.roll)
         orientation = pylot.simulation.utils.Orientation(
             player_measurements.transform.orientation.x,
             player_measurements.transform.orientation.y,
             player_measurements.transform.orientation.z)
         vehicle_transform = pylot.simulation.utils.Transform(
-            location,
-            player_measurements.transform.rotation.pitch,
-            player_measurements.transform.rotation.yaw,
-            player_measurements.transform.rotation.roll,
-            orientation=orientation)
+            location, rotation, orientation=orientation)
         forward_speed = player_measurements.forward_speed * 3.6
         can_bus = pylot.simulation.utils.CanBus(
             vehicle_transform, forward_speed)

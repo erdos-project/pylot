@@ -12,7 +12,7 @@ class ObstacleAccuracyOperator(Op):
 
     def __init__(self,
                  name,
-                 rgb_camera_setup,
+                 camera_setup,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
@@ -27,7 +27,7 @@ class ObstacleAccuracyOperator(Op):
         self._traffic_signs = []
         self._depth_imgs = []
         self._bgr_imgs = []
-        (camera_name, _, img_size, pos) = rgb_camera_setup
+        (camera_name, _, img_size, pos) = camera_setup
         (self._rgb_intrinsic, self._rgb_transform, self._rgb_img_size) = get_camera_intrinsic_and_transform(
             image_size=img_size, position=pos)
         self._last_notification = -1

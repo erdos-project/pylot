@@ -94,10 +94,9 @@ class GroundTruthObjectLoggerOp(Op):
         self._pedestrians = deque()
         self._segmented_imgs = deque()
         self._vehicles = deque()
-        (self._bgr_intrinsic, self._bgr_transform,
-         self._bgr_img_size) = pylot.simulation.utils.get_camera_intrinsic_and_transform(
-             image_size=bgr_camera_setup.resolution,
-             position=bgr_camera_setup.pos)
+        self._bgr_intrinsic = bgr_camera_setup.get_intrinsic()
+        self._bgr_transform = bgr_camera_setup.get_unreal_transform()
+        self._bgr_img_size = (bgr_camera_setup.width, bgr_camera_setup.height)
         self._last_notification = -1
 
     @staticmethod
@@ -230,22 +229,28 @@ class GroundTruthObjectLoggerOp(Op):
         return traffic_sign_bboxes
 
 
-def create_camera_setups(position=(2.0, 0.0, 1.4)):
+def create_camera_setups():
+    location = pylot.simulation.utils.Location(2.0, 0.0, 1.4)
+    rotation = pylot.simulation.utils.Rotation(0, 0, 0)
+    transform = pylot.simulation.utils.Transform(location, rotation)
     rgb_camera_setup = pylot.simulation.utils.CameraSetup(
         CENTER_CAMERA_NAME,
         'sensor.camera.rgb',
-        (FLAGS.carla_camera_image_width, FLAGS.carla_camera_image_height),
-        position)
+        FLAGS.carla_camera_image_width,
+        FLAGS.carla_camera_image_height,
+        transform)
     depth_camera_setup = pylot.simulation.utils.CameraSetup(
         DEPTH_CAMERA_NAME,
         'sensor.camera.depth',
-        (FLAGS.carla_camera_image_width, FLAGS.carla_camera_image_height),
-        position)
+        FLAGS.carla_camera_image_width,
+        FLAGS.carla_camera_image_height,
+        transform)
     segmented_camera_setup = pylot.simulation.utils.CameraSetup(
         SEGMENTED_CAMERA_NAME,
         'sensor.camera.semantic_segmentation',
-        (FLAGS.carla_camera_image_width, FLAGS.carla_camera_image_height),
-        position)
+        FLAGS.carla_camera_image_width,
+        FLAGS.carla_camera_image_height,
+        transform)
     return (rgb_camera_setup, depth_camera_setup, segmented_camera_setup)
 
 

@@ -94,10 +94,9 @@ class ERDOSAgent(AutonomousAgent):
 #        self.track = Track.ALL_SENSORS
 #        self.track = Track.CAMERAS
         loc = pylot.simulation.utils.Location(2.0, 0.0, 1.40)
-        self._camera_transform = pylot.simulation.utils.Transform(
-            loc, pitch=0, yaw=0, roll=0)
-        self._lidar_transform = pylot.simulation.utils.Transform(
-            loc, pitch=0, yaw=0, roll=0)
+        rot = pylot.simulation.utils.Rotation(0, 0, 0)
+        self._camera_transform = pylot.simulation.utils.Transform(loc, rot)
+        self._lidar_transform = pylot.simulation.utils.Transform(loc, rot)
         self._camera_names = {CENTER_CAMERA_NAME}
         if FLAGS.depth_estimation:
             self._camera_names.add(LEFT_CAMERA_NAME)

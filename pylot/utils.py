@@ -13,10 +13,10 @@ def is_depth_camera_stream(stream):
             stream.get_label('camera_type') == 'sensor.camera.depth')
 
 
-def create_camera_stream(camera_stream):
-    return DataStream(name=camera_stream.name,
+def create_camera_stream(camera_setup):
+    return DataStream(name=camera_setup.name,
                       labels={'sensor_type': 'camera',
-                              'camera_type': camera_stream.type})
+                              'camera_type': camera_setup.camera_type})
 
 
 def is_lidar_stream(stream):
@@ -25,7 +25,7 @@ def is_lidar_stream(stream):
 
 def create_lidar_stream(lidar_setup):
     return DataStream(name=lidar_setup.name,
-                      labels={'sensor_type': lidar_setup.type})
+                      labels={'sensor_type': lidar_setup.lidar_type})
 
 
 # Ground streams

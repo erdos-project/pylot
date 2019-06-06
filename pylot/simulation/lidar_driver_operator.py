@@ -2,10 +2,8 @@ import copy
 import numpy as np
 import threading
 
-import carla
-
 import pylot.utils
-from pylot.simulation.carla_utils import get_world
+from pylot.simulation.carla_utils import get_world, to_carla_transform
 from pylot.simulation.messages import PointCloudMessage
 from pylot.simulation.utils import to_erdos_transform
 
@@ -117,7 +115,7 @@ class LidarDriverOperator(Op):
 
         # Install the Lidar.
         lidar_blueprint = self._world.get_blueprint_library().find(
-                self._lidar_setup.type)
+                self._lidar_setup.lidar_type)
 
         lidar_blueprint.set_attribute('channels',
                                       str(self._lidar_setup.channels))
@@ -135,10 +133,7 @@ class LidarDriverOperator(Op):
         # XXX(ionel): Set sensor tick.
         # lidar_blueprint.set_attribute('sensor_tick')
 
-        transform = carla.Transform(
-            carla.Location(*self._lidar_setup.pos),
-            carla.Rotation(pitch=0, yaw=0, roll=0),
-        )
+        transform = to_carla_transform(self._lidar_setup.get_transform())
 
         self._logger.info("Spawning a lidar: {}".format(self._lidar_setup))
 

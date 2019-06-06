@@ -1,7 +1,5 @@
 import threading
 
-import carla
-
 # ERDOS specific imports.
 from erdos.op import Op
 from erdos.utils import setup_logging
@@ -10,7 +8,7 @@ from erdos.timestamp import Timestamp
 
 from pylot.perception.messages import SegmentedFrameMessage
 import pylot.utils
-from pylot.simulation.carla_utils import get_world
+from pylot.simulation.carla_utils import get_world, to_carla_transform
 from pylot.simulation.utils import depth_to_array, labels_to_array, to_bgra_array, to_erdos_transform
 
 
@@ -88,17 +86,17 @@ class CameraDriverOperator(Op):
             self._message_cnt += 1
 
             msg = None
-            if self._camera_setup.type == 'sensor.camera.rgb':
+            if self._camera_setup.camera_type == 'sensor.camera.rgb':
                 msg = pylot.simulation.messages.FrameMessage(
                     pylot.utils.bgra_to_bgr(to_bgra_array(carla_image)),
                     timestamp)
-            elif self._camera_setup.type == 'sensor.camera.depth':
+            elif self._camera_setup.camera_type == 'sensor.camera.depth':
                 msg = pylot.simulation.messages.DepthFrameMessage(
                     depth_to_array(carla_image),
                     to_erdos_transform(carla_image.transform),
                     carla_image.fov,
                     timestamp)
-            elif self._camera_setup.type == 'sensor.camera.semantic_segmentation':
+            elif self._camera_setup.camera_type == 'sensor.camera.semantic_segmentation':
                 frame = labels_to_array(carla_image)
                 msg = SegmentedFrameMessage(frame, 0, timestamp)
                 # Send the message containing the frame.
@@ -124,17 +122,14 @@ class CameraDriverOperator(Op):
 
         # Install the camera.
         camera_blueprint = self._world.get_blueprint_library().find(
-                self._camera_setup.type)
+                self._camera_setup.camera_type)
 
         camera_blueprint.set_attribute('image_size_x',
-                                       str(self._camera_setup.resolution[0]))
+                                       str(self._camera_setup.width))
         camera_blueprint.set_attribute('image_size_y',
-                                       str(self._camera_setup.resolution[1]))
+                                       str(self._camera_setup.height))
 
-        transform = carla.Transform(
-            carla.Location(*self._camera_setup.pos),
-            carla.Rotation(pitch=0, yaw=0, roll=0),
-        )
+        transform = to_carla_transform(self._camera_setup.get_transform())
 
         self._logger.info("Spawning a camera: {}".format(self._camera_setup))
 

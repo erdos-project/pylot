@@ -17,35 +17,49 @@ SEGMENTED_CAMERA_NAME = 'front_semantic_camera'
 
 
 def create_left_right_camera_setups():
+    rotation = pylot.simulation.utils.Rotation(0, 0, 0)
+    left_loc = pylot.simulation.utils.Location(2.0, -0.4, 1.4)
+    right_loc = pylot.simulation.utils.Location(2.0, 0.4, 1.4)
+    left_transform = pylot.simulation.utils.Transform(left_loc, rotation)
+    right_transform = pylot.simulation.utils.Transform(right_loc, rotation)
+
     left_camera_setup = pylot.simulation.utils.CameraSetup(
         LEFT_CAMERA_NAME,
         'sensor.camera.rgb',
-        (FLAGS.carla_camera_image_width, FLAGS.carla_camera_image_height),
-        (2.0, -0.4, 1.4))
+        FLAGS.carla_camera_image_width,
+        FLAGS.carla_camera_image_height,
+        left_transform)
     right_camera_setup = pylot.simulation.utils.CameraSetup(
         RIGHT_CAMERA_NAME,
         'sensor.camera.rgb',
-        (FLAGS.carla_camera_image_width, FLAGS.carla_camera_image_height),
-        (2.0, 0.4, 1.4))
+        FLAGS.carla_camera_image_width,
+        FLAGS.carla_camera_image_height,
+        right_transform)
     return [left_camera_setup, right_camera_setup]
 
 
-def create_camera_setups(position=(2.0, 0.0, 1.4)):
+def create_camera_setups():
+    location = pylot.simulation.utils.Location(2.0, 0.0, 1.4)
+    rotation = pylot.simulation.utils.Rotation(0, 0, 0)
+    transform = pylot.simulation.utils.Transform(location, rotation)
     rgb_camera_setup = pylot.simulation.utils.CameraSetup(
         CENTER_CAMERA_NAME,
         'sensor.camera.rgb',
-        (FLAGS.carla_camera_image_width, FLAGS.carla_camera_image_height),
-        position)
+        FLAGS.carla_camera_image_width,
+        FLAGS.carla_camera_image_height,
+        transform)
     depth_camera_setup = pylot.simulation.utils.CameraSetup(
         DEPTH_CAMERA_NAME,
         'sensor.camera.depth',
-        (FLAGS.carla_camera_image_width, FLAGS.carla_camera_image_height),
-        position)
+        FLAGS.carla_camera_image_width,
+        FLAGS.carla_camera_image_height,
+        transform)
     segmented_camera_setup = pylot.simulation.utils.CameraSetup(
         SEGMENTED_CAMERA_NAME,
         'sensor.camera.semantic_segmentation',
-        (FLAGS.carla_camera_image_width, FLAGS.carla_camera_image_height),
-        position)
+        FLAGS.carla_camera_image_width,
+        FLAGS.carla_camera_image_height,
+        transform)
     return (rgb_camera_setup, depth_camera_setup, segmented_camera_setup)
 
 
@@ -64,10 +78,13 @@ def main(argv):
 
     lidar_setups = []
     if FLAGS.lidar:
+        location = pylot.simulation.utils.Location(2.0, 0.0, 1.4)
+        rotation = pylot.simulation.utils.Rotation(0, 0, 0)
+        lidar_transform = pylot.simulation.utils.Transform(location, rotation)
         lidar_setup = pylot.simulation.utils.LidarSetup(
             name='front_center_lidar',
-            type='sensor.lidar.ray_cast',
-            pos=(2.0, 0.0, 1.4),
+            lidar_type='sensor.lidar.ray_cast',
+            transform=lidar_transform,
             range=5000,  # in centimers
             rotation_frequency=20,
             channels=32,

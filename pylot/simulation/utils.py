@@ -5,9 +5,6 @@ import numpy as np
 from numpy.linalg import inv
 from numpy.matlib import repmat
 
-CameraSetup = namedtuple('CameraSetup', 'name, type, resolution, pos')
-LidarSetup = namedtuple('LidarSetup',
-                        'name, type, pos, range, rotation_frequency, channels, upper_fov, lower_fov, points_per_second')
 Acceleration = namedtuple('Acceleration', 'x, y, z')
 Orientation = namedtuple('Orientation', 'x, y, z')
 Rotation = namedtuple('Rotation', 'pitch, yaw, roll')
@@ -24,6 +21,78 @@ Scale = namedtuple('Scale', 'x y z')
 Scale.__new__.__defaults__ = (1.0, 1.0, 1.0)
 
 
+class CameraSetup(object):
+    def __init__(self,
+                 name,
+                 camera_type,
+                 width,
+                 height,
+                 transform,
+                 fov=90):
+        self.name = name
+        self.camera_type = camera_type
+        self.width = width
+        self.height = height
+        self.transform = transform
+        self.fov = fov
+        self.intrinsic_mat = create_intrinsic_matrix(
+            self.width, self.height, self.fov)
+
+    def get_intrinsic(self):
+        return self.intrinsic_mat
+
+    def get_transform(self):
+        return self.transform
+
+    def get_unreal_transform(self):
+        return camera_to_unreal_transform(self.transform)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return 'CameraSetup(name: {}, type: {}, width: {}, height: {}, transform: {}, fov: {}'.format(
+            self.name, self.camera_type, self.width, self.height,
+            self.transform, self.fov)
+
+
+class LidarSetup(object):
+    def __init__(self,
+                 name,
+                 lidar_type,
+                 transform,
+                 range,
+                 rotation_frequency,
+                 channels,
+                 upper_fov,
+                 lower_fov,
+                 points_per_second):
+        self.name = name
+        self.lidar_type = lidar_type
+        self.transform = transform
+        self.range = range
+        self.rotation_frequency = rotation_frequency
+        self.channels = channels
+        self.upper_fov = upper_fov
+        self.lower_fov = lower_fov
+        self.points_per_second = points_per_second
+
+    def get_transform(self):
+        return self.transform
+
+    def get_unreal_transform(self):
+        return lidar_to_unreal_transform(self.transform)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return 'LidarSetup(name: {}, type: {}, transform: {}, range: {}, rotation freq: {}, channels: {}, upper_fov: {}, lower_fov: {}, points_per_second: {}'.format(
+            self.name, self.lidar_type, self.transform, self.range,
+            self.rotation_frequency, self.channels, self.upper_fov,
+            self.lower_fov, self.points_per_second)
+
+
 class CanBus(object):
     def __init__(self, transform, forward_speed):
         self.transform = transform
@@ -33,7 +102,7 @@ class CanBus(object):
         return self.__str__()
 
     def __str__(self):
-        return "transform: {}, forward speed: {}".format(
+        return "CanBus(transform: {}, forward speed: {})".format(
             self.transform, self.forward_speed)
 
 
@@ -42,17 +111,18 @@ class BoundingBox(object):
         pos = Location(bb.transform.location.x,
                        bb.transform.location.y,
                        bb.transform.location.z)
-        self.transform = Transform(pos,
-                                   bb.transform.rotation.pitch,
-                                   bb.transform.rotation.yaw,
-                                   bb.transform.rotation.roll)
+        rot = Rotation(bb.transform.rotation.pitch,
+                       bb.transform.rotation.yaw,
+                       bb.transform.rotation.roll)
+        self.transform = Transform(pos, rot)
         self.extent = Extent(bb.extent.x, bb.extent.y, bb.extent.z)
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return "transform: {}, extent: {}".format(self.transform, self.extent)
+        return "BoundingBox(transform: {}, extent: {})".format(
+            self.transform, self.extent)
 
 
 class Location(object):
@@ -71,27 +141,27 @@ class Location(object):
         return self.__str__()
 
     def __str__(self):
-        return 'location: ({}, {}, {})'.format(self.x, self.y, self.z)
+        return 'Location({}, {}, {})'.format(self.x, self.y, self.z)
 
 
 class Transform(object):
 
-    def __init__(self, pos=None, pitch=0, yaw=0, roll=0, orientation=None,
-                 scale=None, matrix=None):
+    def __init__(self, pos=None, rotation=None, orientation=None, scale=None,
+                 matrix=None):
         self.orientation = orientation
-        self.rotation = Rotation(pitch, yaw, roll)
+        self.rotation = rotation
         self.location = pos
         self.scale = scale
         if scale is None:
             scale = Scale()
         if matrix is None:
             self.matrix = np.matrix(np.identity(4))
-            cy = math.cos(np.radians(yaw))
-            sy = math.sin(np.radians(yaw))
-            cr = math.cos(np.radians(roll))
-            sr = math.sin(np.radians(roll))
-            cp = math.cos(np.radians(pitch))
-            sp = math.sin(np.radians(pitch))
+            cy = math.cos(np.radians(rotation.yaw))
+            sy = math.sin(np.radians(rotation.yaw))
+            cr = math.cos(np.radians(rotation.roll))
+            sr = math.sin(np.radians(rotation.roll))
+            cp = math.cos(np.radians(rotation.pitch))
+            sp = math.sin(np.radians(rotation.pitch))
             self.matrix[0, 3] = pos.x
             self.matrix[1, 3] = pos.y
             self.matrix[2, 3] = pos.z
@@ -130,10 +200,10 @@ class Transform(object):
 
     def __str__(self):
         if self.location:
-            return "location: {}, rotation: {}".format(
+            return "Transform(location: {}, rotation: {})".format(
                 self.location, self.rotation)
         else:
-            return str(self.matrix)
+            return "Trastorm({})".format(str(self.matrix))
 
 
 def to_erdos_transform(transform):
@@ -146,9 +216,9 @@ def to_erdos_transform(transform):
 
     return Transform(
         Location(carla_loc=transform.location),
-        transform.rotation.pitch,
-        transform.rotation.yaw,
-        transform.rotation.roll,
+        Rotation(transform.rotation.pitch,
+                 transform.rotation.yaw,
+                 transform.rotation.roll),
         orientation)
 
 
@@ -235,9 +305,7 @@ def depth_to_local_point_cloud(depth_msg, max_depth=0.9):
 def camera_to_unreal_transform(camera_transform):
     to_unreal_transform = Transform(
         Location(0, 0, 0),
-        pitch=0,
-        yaw=90,
-        roll=-90,
+        Rotation(pitch=0, yaw=90, roll=-90),
         scale=Scale(x=-1))
     return camera_transform * to_unreal_transform
 
@@ -245,9 +313,7 @@ def camera_to_unreal_transform(camera_transform):
 def lidar_to_unreal_transform(lidar_transform):
     to_unreal_transform = Transform(
         Location(0, 0, 0),
-        pitch=0,
-        yaw=90,
-        roll=0,
+        Rotation(pitch=0, yaw=90, roll=0),
         scale=Scale(z=-1))
     return lidar_transform * to_unreal_transform
 
@@ -325,9 +391,9 @@ def get_camera_intrinsic_and_transform(image_size=(800, 600),
                                        rotation_yaw=0,
                                        fov=90.0):
     intrinsic_mat = create_intrinsic_matrix(image_size[0], image_size[1], fov)
-    pos = Location(position[0], position[1], position[2])
-    camera_transform = Transform(
-        pos, rotation_pitch, rotation_roll, rotation_yaw)
+    loc = Location(position[0], position[1], position[2])
+    rot = Rotation(rotation_pitch, rotation_yaw, rotation_roll)
+    camera_transform = Transform(loc, rot)
     camera_unreal_transform = camera_to_unreal_transform(camera_transform)
     return (intrinsic_mat, camera_unreal_transform, image_size)
 
