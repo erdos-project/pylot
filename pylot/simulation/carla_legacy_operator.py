@@ -321,7 +321,7 @@ class CarlaLegacyOperator(Op):
         # Connect to the simulator.
         self.client = CarlaClient(self._flags.carla_host,
                                   self._flags.carla_port,
-                                  timeout=self._flags.timeout)
+                                  timeout=self._flags.carla_timeout)
         self.client.connect()
         scene = self.client.load_settings(self._settings)
         # Choose one player start at random.

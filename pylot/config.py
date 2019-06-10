@@ -124,6 +124,8 @@ flags.DEFINE_integer('coast_factor', 2, 'Factor to control coasting')
 flags.DEFINE_string('carla_version', '0.8.4', 'Carla simulator version.')
 flags.DEFINE_string('carla_host', 'localhost', 'Carla host.')
 flags.DEFINE_integer('carla_port', 2000, 'Carla port.')
+flags.DEFINE_integer('carla_timeout', 10,
+                     'Timeout limit for Carla operator')
 flags.DEFINE_bool('carla_synchronous_mode', True,
                   'Run Carla in synchronous mode.')
 flags.DEFINE_float('carla_step_frequency', 10,

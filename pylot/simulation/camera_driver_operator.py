@@ -44,8 +44,9 @@ class CameraDriverOperator(Op):
         self._logger = setup_logging(self.name, log_file_name)
         self._camera_setup = camera_setup
 
-        _, self._world = get_world(
-            self._flags.carla_host, self._flags.carla_port)
+        _, self._world = get_world(self._flags.carla_host,
+                                   self._flags.carla_port,
+                                   self._flags.carla_timeout)
         if self._world is None:
             raise ValueError("There was an issue connecting to the simulator.")
 
