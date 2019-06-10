@@ -21,8 +21,7 @@ class BoundingBoxLoggerOp(Op):
         for detected_obj in msg.detected_objects:
             (xmin, xmax, ymin, ymax) = detected_obj.corners
             bboxes.append((detected_obj.label, ((xmin, ymin), (xmax, ymax))))
-        # XXX(ionel): This assumes that the timestamps are tuples.
-        timestamp = msg.timestamp.coordinates[1]
+        timestamp = msg.timestamp.coordinates[0]
         # Write the bounding boxes.
         file_name = '{}bboxes-{}.json'.format(self._flags.data_path, timestamp)
         with open(file_name, 'w') as outfile:

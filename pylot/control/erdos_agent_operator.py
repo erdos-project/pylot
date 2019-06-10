@@ -85,7 +85,7 @@ class ERDOSAgentOperator(Op):
 
         control_msg = self.get_control_message(
             self._wp_angle, self._wp_angle_speed, speed_factor,
-            self._vehicle_speed, Timestamp(coordinates=[0]))
+            self._vehicle_speed, msg.timestamp)
         self.get_output_stream('control_stream').send(control_msg)
 
     def __is_ready_to_run(self):

@@ -108,13 +108,19 @@ class CanBus(object):
 
 class BoundingBox(object):
     def __init__(self, bb):
-        pos = Location(bb.transform.location.x,
-                       bb.transform.location.y,
-                       bb.transform.location.z)
-        rot = Rotation(bb.transform.rotation.pitch,
-                       bb.transform.rotation.yaw,
-                       bb.transform.rotation.roll)
-        self.transform = Transform(pos, rot)
+        if hasattr(bb, 'location'):
+            # Path for Carla 0.9.x.
+            loc = Location(bb.location.x, bb.location.y, bb.location.z)
+            rot = Rotation(0, 0, 0)
+        else:
+            # Path for Carla 0.8.4.
+            loc = Location(bb.transform.location.x,
+                           bb.transform.location.y,
+                           bb.transform.location.z)
+            rot = Rotation(bb.transform.rotation.pitch,
+                           bb.transform.rotation.yaw,
+                           bb.transform.rotation.roll)
+        self.transform = Transform(loc, rot)
         self.extent = Extent(bb.extent.x, bb.extent.y, bb.extent.z)
 
     def __repr__(self):

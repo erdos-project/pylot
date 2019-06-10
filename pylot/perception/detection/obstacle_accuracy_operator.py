@@ -30,7 +30,7 @@ class ObstacleAccuracyOperator(Op):
         (camera_name, _, img_size, pos) = camera_setup
         (self._rgb_intrinsic, self._rgb_transform, self._rgb_img_size) = get_camera_intrinsic_and_transform(
             image_size=img_size, position=pos)
-        self._last_notification = -1
+        self._last_notification = None
         # Buffer of detected obstacles.
         self._detected_obstacles = []
         # Buffer of ground truth bboxes.
@@ -64,21 +64,12 @@ class ObstacleAccuracyOperator(Op):
         return []
 
     def on_notification(self, msg):
-        # Check that we didn't skip any notification. We only skip
-        # notifications if messages or watermarks are lost.
-        if self._last_notification != -1:
-            assert self._last_notification + 1 == msg.timestamp.coordinates[1]
-        self._last_notification = msg.timestamp.coordinates[1]
-
-        # Ignore the first two messages. We use them to get sim time
-        # between frames.
-        if self._last_notification < 2:
-            if self._last_notification == 0:
-                self._sim_interval = int(msg.timestamp.coordinates[0])
-            elif self._last_notification == 1:
-                # Set he real simulation interval.
-                self._sim_interval = int(msg.timestamp.coordinates[0]) - self._sim_interval
+        if not self._last_notification:
+            self._last_notification = msg.timestamp.coordinates[0]
             return
+        else:
+            self._sim_interval = msg.timestamp.coordinates[0] - self._last_notification
+            self._last_notification = msg.timestamp.coordinates[0]
 
         game_time = msg.timestamp.coordinates[0]
         # Transform the 3D boxes at time watermark game time to 2D.
@@ -164,38 +155,27 @@ class ObstacleAccuracyOperator(Op):
             self._ground_obstacles = self._ground_obstacles[index:]
 
     def on_vehicle_transform_update(self, msg):
-        if msg.timestamp.coordinates[1] >= 2:
-            self._vehicle_transforms.append(msg)
+        self._vehicle_transforms.append(msg)
 
     def on_pedestrians_update(self, msg):
-        if msg.timestamp.coordinates[1] >= 2:
-            self._pedestrians.append(msg)
+        self._pedestrians.append(msg)
 
     def on_vehicles_update(self, msg):
-        if msg.timestamp.coordinates[1] >= 2:
-            self._vehicles.append(msg)
+        self._vehicles.append(msg)
 
     def on_traffic_lights_update(self, msg):
-        if msg.timestamp.coordinates[1] >= 2:
-            self._traffic_lights.append(msg)
+        self._traffic_lights.append(msg)
 
     def on_traffic_signs_update(self, msg):
-        if msg.timestamp.coordinates[1] >= 2:
-            self._traffic_signs.append(msg)
+        self._traffic_signs.append(msg)
 
     def on_depth_camera_update(self, msg):
-        if msg.timestamp.coordinates[1] >= 2:
-            self._depth_imgs.append(msg)
+        self._depth_imgs.append(msg)
 
     def on_bgr_camera_update(self, msg):
-        if msg.timestamp.coordinates[1] >= 2:
-            self._bgr_imgs.append(msg)
+        self._bgr_imgs.append(msg)
 
     def on_obstacles(self, msg):
-        # Ignore the first two messages. We use them to get sim time
-        # between frames.
-        if msg.timestamp.coordinates[1] < 2:
-            return
         game_time = msg.timestamp.coordinates[0]
         self._detected_obstacles.append((game_time, msg.detected_objects))
         # Two metrics: 1) mAP, and 2) timely-mAP

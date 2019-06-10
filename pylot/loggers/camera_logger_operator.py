@@ -14,8 +14,8 @@ class CameraLoggerOp(Op):
         self._flags = flags
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
-        self._last_bgr_timestamp = -1
-        self._last_segmented_timestamp = -1
+        self._bgr_frame_cnt = 0
+        self._segmented_frame_cnt = 0
 
     @staticmethod
     def setup_streams(input_streams):
@@ -27,31 +27,24 @@ class CameraLoggerOp(Op):
         return []
 
     def on_bgr_frame(self, msg):
-        # Ensure we didn't skip a frame.
-        if self._last_bgr_timestamp != -1:
-            assert self._last_bgr_timestamp + 1 == msg.timestamp.coordinates[1]
-        self._last_bgr_timestamp = msg.timestamp.coordinates[1]
-        if self._last_bgr_timestamp % self._flags.log_every_nth_frame != 0:
+        self._bgr_frame_cnt += 1
+        if self._bgr_frame_cnt % self._flags.log_every_nth_frame != 0:
             return
         # Write the image.
         assert msg.encoding == 'BGR', 'Expects BGR frames'
         rgb_array = pylot.utils.bgr_to_rgb(msg.frame)
         file_name = '{}carla-{}.png'.format(
-            self._flags.data_path, self._last_bgr_timestamp)
+            self._flags.data_path, msg.timestamp.coordinates[0])
         rgb_img = Image.fromarray(np.uint8(rgb_array))
         rgb_img.save(file_name)
 
     def on_segmented_frame(self, msg):
-        # Ensure we didn't skip a frame.
-        if self._last_segmented_timestamp != -1:
-            assert (self._last_segmented_timestamp + 1 ==
-                    msg.timestamp.coordinates[1])
-        self._last_segmented_timestamp = msg.timestamp.coordinates[1]
-        if self._last_bgr_timestamp % self._flags.log_every_nth_frame != 0:
+        self._segmented_frame_cnt += 1
+        if self._segmented_frame_cnt % self._flags.log_every_nth_frame != 0:
             return
         frame = transform_to_cityscapes_palette(msg.frame)
         # Write the segmented image.
         img = Image.fromarray(np.uint8(frame))
         file_name = '{}carla-segmented-{}.png'.format(
-            self._flags.data_path, self._last_segmented_timestamp)
+            self._flags.data_path, msg.timestamp.coordinates[0])
         img.save(file_name)

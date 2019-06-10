@@ -33,7 +33,6 @@ class DetectionEvalGroundOperator(Op):
          self._rgb_img_size) = get_camera_intrinsic_and_transform(
              image_size=img_size,
              position=pos)
-        self._last_notification = -1
         self._iou_thresholds = [0.1 * i for i in range(1, 10)]
 
     @staticmethod
@@ -53,12 +52,6 @@ class DetectionEvalGroundOperator(Op):
         return []
 
     def on_notification(self, msg):
-        # Check that we didn't skip any notification. We only skip
-        # notifications if messages or watermarks are lost.
-        if self._last_notification != -1:
-            assert self._last_notification + 1 == msg.timestamp.coordinates[1]
-        self._last_notification = msg.timestamp.coordinates[1]
-
         # Ignore the first several seconds of the simulation because the car is
         # not moving at the beginning.
         if msg.timestamp.coordinates[

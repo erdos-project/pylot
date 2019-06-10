@@ -62,7 +62,7 @@ def create_perfect_detector_op(graph, bgr_camera_setup):
     output_stream_name = bgr_camera_setup.name + '_detected'
     perfect_det_op = graph.add(
         PerfectDetectorOp,
-        name='ground_truth_obj_logger',
+        name='perfect_detector',
         init_args={'bgr_camera_setup': bgr_camera_setup,
                    'output_stream_name': output_stream_name,
                    'flags': FLAGS,

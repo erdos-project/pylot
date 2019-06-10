@@ -1,4 +1,5 @@
 import random
+import sys
 import time
 import carla
 
@@ -27,7 +28,6 @@ class CarlaOperator(Op):
         _client: A connection to the simulator.
         _world: A handle to the world running inside the simulation.
         _vehicles: A list of identifiers of the vehicles inside the simulation.
-        _message_cnt: A counter that timestamps each tick of the simulation.
     """
 
     def __init__(self, name, flags, log_file_name=None, csv_file_name=None):
@@ -75,8 +75,6 @@ class CarlaOperator(Op):
         # Tick once to ensure that the actors are spawned before the data-flow
         # starts.
         self._world.tick()
-
-        self._message_cnt = 0
 
     @staticmethod
     def setup_streams(input_streams):
@@ -202,9 +200,8 @@ class CarlaOperator(Op):
         game_time = int(msg.elapsed_seconds * 1000)
         self._logger.info('The world is at the timestamp {}'.format(game_time))
         # Create a timestamp and send a WatermarkMessage on the output stream.
-        timestamp = Timestamp(coordinates=[game_time, self._message_cnt])
+        timestamp = Timestamp(coordinates=[game_time])
         watermark_msg = WatermarkMessage(timestamp)
-        self._message_cnt += 1
         self.__publish_hero_vehicle_data(timestamp, watermark_msg)
         self.__publish_ground_actors_data(timestamp, watermark_msg)
         # XXX(ionel): We tick after we send data. Otherwise, we may fall
@@ -218,9 +215,9 @@ class CarlaOperator(Op):
 
     def execute(self):
         # Register a callback function and a function that ticks the world.
-        timestamp = Timestamp(coordinates=[0, 0])
-        vehicle_id_msg = Message(
-            self._driving_vehicle.id, timestamp)
+        # TODO(ionel): We do not currently have a top message.
+        timestamp = Timestamp(coordinates=[sys.maxint])
+        vehicle_id_msg = Message(self._driving_vehicle.id, timestamp)
         self.get_output_stream('vehicle_id_stream').send(vehicle_id_msg)
         self.get_output_stream('vehicle_id_stream').send(
             WatermarkMessage(timestamp))
@@ -289,10 +286,11 @@ class CarlaOperator(Op):
             loc = vec_actor.get_location()
             pos = pylot.simulation.utils.Location(loc.x, loc.y, loc.z)
             transform = to_erdos_transform(vec_actor.get_transform())
-            # TODO(ionel): Set the vehicle bounding box.
+            bounding_box = pylot.simulation.utils.BoundingBox(
+                vec_actor.bounding_box)
             speed = pylot.simulation.utils.get_speed(vec_actor.get_velocity())
             vehicle = pylot.simulation.utils.Vehicle(
-                pos, transform, None, speed)
+                pos, transform, bounding_box, speed)
             vehicles.append(vehicle)
         return vehicles
 

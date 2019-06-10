@@ -2,6 +2,7 @@ from absl import flags
 import pickle
 import rospy
 from std_msgs.msg import String
+import sys
 import time
 import threading
 
@@ -108,6 +109,10 @@ class ERDOSAgent(AutonomousAgent):
         self._sent_open_drive_data = False
         self._open_drive_data = None
         self._message_num = 0
+
+        # TODO(ionel): We should have a top watermark.
+        self._top_watermark = WatermarkMessage(
+            Timestamp(coordinates=[sys.maxint]))
 
         # Set up graph
         self.graph = erdos.graph.get_current_graph()
@@ -268,7 +273,7 @@ class ERDOSAgent(AutonomousAgent):
             self._control = None
             self._control_timestamp = None
         game_time = int(timestamp * 1000)
-        erdos_timestamp = Timestamp(coordinates=[game_time, self._message_num])
+        erdos_timestamp = Timestamp(coordinates=[game_time])
         watermark = WatermarkMessage(erdos_timestamp)
         self._message_num += 1
 
@@ -278,9 +283,7 @@ class ERDOSAgent(AutonomousAgent):
             data = [(pylot.simulation.utils.to_erdos_transform(transform), road_option)
                     for (transform, road_option) in self._waypoints]
             self._global_trajectory_stream.send(Message(data, erdos_timestamp))
-            self._global_trajectory_stream.send(watermark)
-        else:
-            self._global_trajectory_stream.send(watermark)
+            self._global_trajectory_stream.send(self._top_watermark)
         assert self._waypoints == self._global_plan_world_coord,\
             'Global plan has been updated.'
 
@@ -314,11 +317,7 @@ class ERDOSAgent(AutonomousAgent):
                     self._sent_open_drive_data = True
                     self._open_drive_stream.send(
                         Message(self._open_drive_data, erdos_timestamp))
-                    # TODO(ionel): We should have a top watermark.
-                    # This is dangerous!
-                    top_watermark = WatermarkMessage(
-                        Timestamp(coordinates=[1000000000.0, 1000000000]))
-                self._open_drive_stream.send(watermark)
+                    self._open_drive_stream.send(self._top_watermark)
                 assert self._open_drive_data == val[1]['opendrive'],\
                     'Opendrive data changed.'
 

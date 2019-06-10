@@ -48,9 +48,6 @@ class LidarDriverOperator(Op):
         if self._world is None:
             raise ValueError("There was an issue connecting to the simulator.")
 
-        # Starts from 1 because the world ticks once before the drivers are
-        # added.
-        self._message_cnt = 1
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None
         # Handle to the Lidar Carla actor.
@@ -79,9 +76,8 @@ class LidarDriverOperator(Op):
         # Ensure that the code executes serially
         with self._lock:
             game_time = int(carla_pc.timestamp * 1000)
-            timestamp = Timestamp(coordinates=[game_time, self._message_cnt])
+            timestamp = Timestamp(coordinates=[game_time])
             watermark_msg = WatermarkMessage(timestamp)
-            self._message_cnt += 1
 
             # Transform the raw_data into a point cloud.
             points = np.frombuffer(carla_pc.raw_data, dtype=np.dtype('f4'))
@@ -94,7 +90,11 @@ class LidarDriverOperator(Op):
                 timestamp)
 
             self.get_output_stream(self._lidar_setup.name).send(msg)
-            self.get_output_stream(self._lidar_setup.name).send(watermark_msg)
+            # XXX(ionel): The operator does not have to send watermarks.
+            # They are automatically propagated from the input data stream.
+            # This happens because the driver operator is not truly an input
+            # operator. It receives vehicle id from the carla operator.
+            # self.get_output_stream(self._lidar_setup.name).send(watermark_msg)
 
     def on_vehicle_id(self, msg):
         """ This function receives the identifier for the vehicle, retrieves

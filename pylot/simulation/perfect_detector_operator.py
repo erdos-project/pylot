@@ -52,7 +52,7 @@ class PerfectDetectorOp(Op):
         self._bgr_intrinsic = bgr_camera_setup.get_intrinsic()
         self._bgr_transform = bgr_camera_setup.get_unreal_transform()
         self._bgr_img_size = (bgr_camera_setup.width, bgr_camera_setup.height)
-        self._last_notification = -1
+        self._notification_cnt = 0
         self._lock = threading.Lock()
 
     @staticmethod
@@ -87,12 +87,6 @@ class PerfectDetectorOp(Op):
         return [pylot.utils.create_obstacles_stream(output_stream_name)]
 
     def on_notification(self, msg):
-        # Check that we didn't skip any notification. We only skip
-        # notifications if messages or watermarks are lost.
-        if self._last_notification != -1:
-            assert self._last_notification + 1 == msg.timestamp.coordinates[1]
-        self._last_notification = msg.timestamp.coordinates[1]
-
         # Pop the oldest message from each buffer.
         with self._lock:
             depth_msg = self._depth_imgs.popleft()
@@ -112,7 +106,8 @@ class PerfectDetectorOp(Op):
                 segmented_msg.timestamp == can_bus_msg.timestamp ==
                 pedestrians_msg.timestamp == vehicles_msg.timestamp)
 
-        if self._last_notification % self._flags.log_every_nth_frame != 0:
+        self._notification_cnt += 1
+        if self._notification_cnt % self._flags.log_every_nth_frame != 0:
             return
 
         depth_array = depth_msg.frame

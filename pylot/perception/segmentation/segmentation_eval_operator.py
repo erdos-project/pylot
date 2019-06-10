@@ -14,9 +14,6 @@ class SegmentationEvalOperator(Op):
         self._flags = flags
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
-        self._last_seq_num_ground_segmented = -1
-        self._last_seq_num_segmented = -1
-        self._last_notification = -1
         # Buffer of ground truth segmented frames.
         self._ground_frames = []
         # Buffer of segmentation output frames.
@@ -24,6 +21,7 @@ class SegmentationEvalOperator(Op):
         # Heap storing pairs of (ground/output time, game time).
         self._segmented_start_end_times = []
         self._sim_interval = None
+        self._last_notification = None
 
     @staticmethod
     def setup_streams(input_streams,
@@ -40,21 +38,12 @@ class SegmentationEvalOperator(Op):
         return []
 
     def on_notification(self, msg):
-        # Check that we didn't skip any notification. We only skip
-        # notifications if messages or watermarks are lost.
-        if self._last_notification != -1:
-            assert self._last_notification + 1 == msg.timestamp.coordinates[1]
-        self._last_notification = msg.timestamp.coordinates[1]
-
-        # Ignore the first two messages. We use them to get sim time
-        # between frames.
-        if self._last_notification < 2:
-            if self._last_notification == 0:
-                self._sim_interval = int(msg.timestamp.coordinates[0])
-            elif self._last_notification == 1:
-                # Set he real simulation interval.
-                self._sim_interval = int(msg.timestamp.coordinates[0]) - self._sim_interval
+        if not self._last_notification:
+            self._last_notification = msg.timestamp.coordinates[0]
             return
+        else:
+            self._sim_interval = msg.timestamp.coordinates[0] - self._last_notification
+            self._last_notification = msg.timestamp.coordinates[0]
 
         game_time = msg.timestamp.coordinates[0]
         while len(self._segmented_start_end_times) > 0:
@@ -82,30 +71,12 @@ class SegmentationEvalOperator(Op):
         self.__garbage_collect_segmentation()
 
     def on_ground_segmented_frame(self, msg):
-        if self._last_seq_num_ground_segmented + 1 != msg.timestamp.coordinates[1]:
-            self._logger.error('Expected msg with seq num {} but received {}'.format(
-                (self._last_seq_num_ground_segmented + 1), msg.timestamp.coordinates[1]))
-            if self._flags.fail_on_message_loss:
-                assert self._last_seq_num_ground_segmented + 1 == msg.timestamp.coordinates[1]
-        self._last_seq_num_ground_segmented = msg.timestamp.coordinates[1]
-
-        if msg.timestamp.coordinates[1] >= 2:
-            # Buffer the ground truth frames.
-            game_time = msg.timestamp.coordinates[0]
-            self._ground_frames.append((game_time, transform_to_cityscapes_palette(msg.frame)))
+        # Buffer the ground truth frames.
+        game_time = msg.timestamp.coordinates[0]
+        self._ground_frames.append(
+            (game_time, transform_to_cityscapes_palette(msg.frame)))
 
     def on_segmented_frame(self, msg):
-        if self._last_seq_num_segmented + 1 != msg.timestamp.coordinates[1]:
-            self._logger.error('Expected msg with seq num {} but received {}'.format(
-                (self._last_seq_num_segmented + 1), msg.timestamp.coordinates[1]))
-            if self._flags.fail_on_message_loss:
-                assert self._last_seq_num_segmented + 1 == msg.timestamp.coordinates[1]
-        self._last_seq_num_segmented = msg.timestamp.coordinates[1]
-        # Ignore the first two messages. We use them to get sim time
-        # between frames.
-        if msg.timestamp.coordinates[1] < 2:
-            return
-
         game_time = msg.timestamp.coordinates[0]
         self._segmented_frames.append((game_time, msg.frame))
         # Two metrics: 1) mIoU, and 2) timely-mIoU

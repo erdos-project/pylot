@@ -36,7 +36,6 @@ class CarlaLegacyOperator(Op):
         self._flags = flags
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
-        self._message_num = 0
         if self._flags.carla_high_quality:
             quality = 'Epic'
         else:
@@ -151,8 +150,7 @@ class CarlaLegacyOperator(Op):
                 measurements.game_timestamp, measurements.platform_timestamp))
 
         timestamp = Timestamp(
-            coordinates=[measurements.game_timestamp, self._message_num])
-        self._message_num += 1
+            coordinates=[measurements.game_timestamp])
         watermark = WatermarkMessage(timestamp)
 
         # Send player data on data streams.
