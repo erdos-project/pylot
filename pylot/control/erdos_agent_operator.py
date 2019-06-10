@@ -1,3 +1,4 @@
+from collections import deque
 import math
 import numpy as np
 import time
@@ -26,11 +27,10 @@ class ERDOSAgentOperator(Op):
         self._pid = PID(p=self._flags.pid_p,
                         i=self._flags.pid_i,
                         d=self._flags.pid_d)
-        self._vehicle_transforms = []
-        self._depth_msgs = []
-        self._traffic_lights = []
-        self._obstacles = []
-        self._vehicle_speed = None
+        self._can_bus_msgs = deque()
+        self._depth_msgs = deque()
+        self._traffic_lights = deque()
+        self._obstacles = deque()
         self._wp_angle = None
         self._wp_vector = None
         self._wp_angle_speed = None
@@ -62,22 +62,28 @@ class ERDOSAgentOperator(Op):
         return [pylot.utils.create_control_stream()]
 
     def on_notification(self, msg):
+
+        # Get can bus information.
+        can_bus_msg = self._can_bus_msgs.popleft()
+        vehicle_transform = can_bus_msg.data.transform
+        vehicle_speed = can_bus_msg.data.forward_speed
+
+        depth_msg = self._depth_msgs.popleft()
+
+        # Transform traffic light output.
+        tl_det_msg = self._traffic_lights.popleft()
+        traffic_lights = self.__transform_tl_output(tl_det_msg, depth_msg)
+
+        # Transform detector output.
+        det_msg = self._obstacles.popleft()
+        (pedestrians, vehicles) = self.__transform_detector_output(
+            det_msg, depth_msg)
+
         self._logger.info("Timestamps {} {} {} {}".format(
-            self._obstacles[0].timestamp,
-            self._traffic_lights[0].timestamp,
-            self._depth_msgs[0].timestamp,
-            self._vehicle_transforms[0].timestamp))
-        vehicle_transform = self._vehicle_transforms[0]
-        self._vehicle_transforms = self._vehicle_transforms[1:]
-
-        depth_msg = self._depth_msgs[0]
-        self._depth_msgs = self._depth_msgs[1:]
-
-        traffic_lights = self.__transform_tl_output(depth_msg)
-        self._traffic_lights = self._traffic_lights[1:]
-
-        (pedestrians, vehicles) = self.__transform_detector_output(depth_msg)
-        self._obstacles = self._obstacles[1:]
+            can_bus_msg.timestamp,
+            tl_det_msg.timestamp,
+            depth_msg.timestamp,
+            det_msg.timestamp))
 
         speed_factor, state = self.__stop_for_agents(
             vehicle_transform,  self._wp_angle, self._wp_vector, vehicles,
@@ -85,15 +91,8 @@ class ERDOSAgentOperator(Op):
 
         control_msg = self.get_control_message(
             self._wp_angle, self._wp_angle_speed, speed_factor,
-            self._vehicle_speed, msg.timestamp)
+            vehicle_speed, msg.timestamp)
         self.get_output_stream('control_stream').send(control_msg)
-
-    def __is_ready_to_run(self):
-        vehicle_data = ((len(self._vehicle_transforms) > 0) and
-                        self._vehicle_speed and self._wp_angle)
-        perception_data = (len(self._obstacles) > 0) and (len(self._traffic_lights) > 0)
-        ground_data = (len(self._depth_msgs) > 0)
-        return vehicle_data and perception_data and ground_data
 
     def on_waypoints_update(self, msg):
         self._wp_angle = msg.wp_angle
@@ -101,8 +100,7 @@ class ERDOSAgentOperator(Op):
         self._wp_angle_speed = msg.wp_angle_speed
 
     def on_can_bus_update(self, msg):
-        self._vehicle_transforms.append(msg.data.transform)
-        self._vehicle_speed = msg.data.forward_speed
+        self._can_bus_msgs.append(msg)
 
     def on_depth_camera_update(self, msg):
         self._depth_msgs.append(msg)
@@ -130,9 +128,9 @@ class ERDOSAgentOperator(Op):
     def execute(self):
         self.spin()
 
-    def __transform_tl_output(self, depth_msg):
+    def __transform_tl_output(self, tl_msg, depth_msg):
         traffic_lights = []
-        for tl in self._traffic_lights[0].detected_objects:
+        for tl in tl_msg.detected_objects:
             x = (tl.corners[0] + tl.corners[1]) / 2
             y = (tl.corners[2] + tl.corners[3]) / 2
             pos = get_3d_world_position_with_depth_map(x, y, depth_msg)
@@ -142,10 +140,10 @@ class ERDOSAgentOperator(Op):
             traffic_lights.append((pos, state))
         return traffic_lights
 
-    def __transform_detector_output(self, depth_msg):
+    def __transform_detector_output(self, det_msg, depth_msg):
         vehicles = []
         pedestrians = []
-        for detected_obj in self._obstacles[0].detected_objects:
+        for detected_obj in det_msg.detected_objects:
             x = (detected_obj.corners[0] + detected_obj.corners[1]) / 2
             y = (detected_obj.corners[2] + detected_obj.corners[3]) / 2
             if detected_obj.label == 'person':
