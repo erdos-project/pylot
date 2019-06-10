@@ -32,8 +32,9 @@ class PlanningOperator(Op):
         # Transform goal location to carla.Location
         self._goal_location = carla.Location(*goal_location)
 
-        _, self._world = get_world(
-            self._flags.carla_host, self._flags.carla_port)
+        _, self._world = get_world(self._flags.carla_host,
+                                   self._flags.carla_port,
+                                   self._flags.carla_timeout)
         if self._world is None:
             raise ValueError("There was an issue connecting to the simulator.")
         self._map = self._world.get_map()

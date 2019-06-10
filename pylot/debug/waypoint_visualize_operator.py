@@ -35,7 +35,8 @@ class WaypointVisualizerOperator(Op):
         self._flags = flags
         _, self._world = pylot.simulation.carla_utils.get_world(
             self._flags.carla_host,
-            self._flags.carla_port)
+            self._flags.carla_port,
+            self._flags.carla_timeout)
         if self._world is None:
             raise ValueError("Error connecting to the simulator.")
         self._colors = [carla.Color(255, 0, 0),

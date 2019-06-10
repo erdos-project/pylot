@@ -22,8 +22,7 @@ flags.DEFINE_string('data_path', 'data/',
                     'Path where to store Carla camera images')
 flags.DEFINE_integer('log_every_nth_frame', 1,
                      'Control how often the script logs frames')
-flags.DEFINE_integer('timeout', 10,
-                     'Timeout limit for Carla operator')
+
 
 def create_camera_setups():
     location = pylot.simulation.utils.Location(2.0, 0.0, 1.4)

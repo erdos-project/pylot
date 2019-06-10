@@ -1,7 +1,7 @@
 import carla
 
 
-def get_world(host="localhost", port=2000):
+def get_world(host="localhost", port=2000, timeout=10):
     """ Get a handle to the world running inside the simulation.
 
     Args:
@@ -16,7 +16,7 @@ def get_world(host="localhost", port=2000):
     client, world = None, None
     try:
         client = carla.Client(host, port)
-        client.set_timeout(10.0)
+        client.set_timeout(timeout)
         world = client.get_world()
     except RuntimeError as r:
         client, world = None, None
