@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 import PIL.Image as Image
 
 import pylot.utils
@@ -16,6 +17,7 @@ class CameraLoggerOp(Op):
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
         self._bgr_frame_cnt = 0
         self._segmented_frame_cnt = 0
+        self._depth_frame_cnt = 0
 
     @staticmethod
     def setup_streams(input_streams):
@@ -24,6 +26,9 @@ class CameraLoggerOp(Op):
         input_streams.filter(
             pylot.utils.is_ground_segmented_camera_stream).add_callback(
                 CameraLoggerOp.on_segmented_frame)
+        input_streams.filter(
+            pylot.utils.is_depth_camera_stream).add_callback(
+                CameraLoggerOp.on_depth_frame)
         return []
 
     def on_bgr_frame(self, msg):
@@ -48,3 +53,12 @@ class CameraLoggerOp(Op):
         file_name = '{}carla-segmented-{}.png'.format(
             self._flags.data_path, msg.timestamp.coordinates[0])
         img.save(file_name)
+
+    def on_depth_frame(self, msg):
+        self._depth_frame_cnt += 1
+        if self._depth_frame_cnt % self._flags.log_every_nth_frame != 0:
+            return
+        # Write the depth information.
+        file_name = '{}carla-depth-{}.pkl'.format(
+            self._flags.data_path, msg.timestamp.coordinates[0])
+        pickle.dump(msg.frame, open(file_name, 'wb'))

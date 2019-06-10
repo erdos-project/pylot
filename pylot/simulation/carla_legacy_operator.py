@@ -19,7 +19,7 @@ import pylot.simulation.utils
 
 
 class CarlaLegacyOperator(Op):
-    """ CarlaLegacyOperator initializes and controls the simulat.
+    """ CarlaLegacyOperator initializes and controls the simulator.
 
     This operator connects to the simulator, spawns actors, gets and publishes
     ground info, and sends vehicle commands. The operator works with
@@ -321,10 +321,9 @@ class CarlaLegacyOperator(Op):
         # Connect to the simulator.
         self.client = CarlaClient(self._flags.carla_host,
                                   self._flags.carla_port,
-                                  timeout=10)
+                                  timeout=self._flags.timeout)
         self.client.connect()
         scene = self.client.load_settings(self._settings)
-
         # Choose one player start at random.
         number_of_player_starts = len(scene.player_start_spots)
         player_start = self._flags.carla_start_player_num
