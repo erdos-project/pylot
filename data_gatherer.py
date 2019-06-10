@@ -4,6 +4,7 @@ from absl import flags
 import pylot.config
 from pylot.loggers.bounding_box_logger_operator import BoundingBoxLoggerOp
 from pylot.loggers.camera_logger_operator import CameraLoggerOp
+from pylot.loggers.lidar_logger_operator import LidarLoggerOp
 from pylot.simulation.perfect_detector_operator import PerfectDetectorOp
 import pylot.simulation.utils
 import pylot.operator_creator
@@ -21,7 +22,8 @@ flags.DEFINE_string('data_path', 'data/',
                     'Path where to store Carla camera images')
 flags.DEFINE_integer('log_every_nth_frame', 1,
                      'Control how often the script logs frames')
-
+flags.DEFINE_integer('timeout', 10,
+                     'Timeout limit for Carla operator')
 
 def create_camera_setups():
     location = pylot.simulation.utils.Location(2.0, 0.0, 1.4)
@@ -57,6 +59,15 @@ def create_camera_logger_op(graph):
                    'csv_file_name': FLAGS.csv_log_file_name})
     return camera_logger_op
 
+def create_lidar_logger_op(graph):
+    lidar_logger_op = graph.add(
+        LidarLoggerOp,
+        name='lidar_logger_op',
+        init_args={'flags': FLAGS,
+                   'log_file_name': FLAGS.log_file_name,
+                   'csv_file_name': FLAGS.csv_log_file_name})
+    return lidar_logger_op
+
 
 def create_perfect_detector_op(graph, bgr_camera_setup):
     output_stream_name = bgr_camera_setup.name + '_detected'
@@ -79,6 +90,24 @@ def create_bounding_box_logger_op(graph):
         init_args={'flags': FLAGS})
     return bbox_logger_op
 
+def create_lidar_setups():
+    lidar_setups = []
+    if FLAGS.lidar:
+	location = pylot.simulation.utils.Location(2.0, 0.0, 1.4)
+	rotation = pylot.simulation.utils.Rotation(0, 0, 0)
+	lidar_transform = pylot.simulation.utils.Transform(location, rotation)
+	lidar_setup = pylot.simulation.utils.LidarSetup(
+	    name='front_center_lidar',
+	    lidar_type='sensor.lidar.ray_cast',
+	    transform=lidar_transform,
+	    range=5000,  # in centimeters
+	    rotation_frequency=20,
+	    channels=32,
+	    upper_fov=15,
+	    lower_fov=-30,
+	    points_per_second=500000)
+	lidar_setups.append(lidar_setup)
+    return lidar_setups 
 
 def main(argv):
     # Define graph
@@ -91,23 +120,27 @@ def main(argv):
                      depth_camera_setup,
                      segmented_camera_setup]
 
+    lidar_setups = create_lidar_setups()
+
     # Add operator that interacts with the Carla simulator.
     if '0.8' in FLAGS.carla_version:
         carla_op = pylot.operator_creator.create_carla_legacy_op(
-            graph, camera_setups, [])
+            graph, camera_setups, lidar_setups)
         # The legacy carla op implements the camera drivers.
         camera_ops = [carla_op]
     elif '0.9' in FLAGS.carla_version:
         carla_op = pylot.operator_creator.create_carla_op(graph)
         camera_ops = [pylot.operator_creator.create_camera_driver_op(graph, cs)
                       for cs in camera_setups]
-        graph.connect([carla_op], camera_ops)
+        lidar_ops = [pylot.operator_creator.create_lidar_driver_op(graph, ls)
+                     for ls in lidar_setups]
+        graph.connect([carla_op], camera_ops + lidar_ops)
     else:
         raise ValueError(
             'Unexpected Carla version {}'.format(FLAGS.carla_version))
 
     # Add an operator that logs BGR frames and segmented frames.
-    logging_ops = [create_camera_logger_op(graph)]
+    logging_ops = [create_camera_logger_op(graph), create_lidar_logger_op(graph)]
 
     # Connect the camera logging ops with the camera ops.
     graph.connect(camera_ops, logging_ops)
