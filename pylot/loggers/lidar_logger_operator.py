@@ -1,5 +1,5 @@
 import numpy as np
-import PIL.Image as Image
+import open3d as o3d
 
 import pylot.utils
 from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
@@ -33,11 +33,8 @@ class LidarLoggerOp(Op):
         if self._last_lidar_timestamp % self._flags.log_every_nth_frame != 0:
             return
         # Write the lidar information.
-        file_name = '{}carla-lidar-{}.pkl'.format(
+        file_name = '{}carla-lidar-{}.ply'.format(
             self._flags.data_path, self._last_lidar_timestamp)
-        print(msg.data.__dict__.keys())
-        lidar_data = msg.data.__dict__
-        lidar_data['point_cloud'] = lidar_data['point_cloud'].array
-        pickle.dump(msg.data.__dict__, open(file_name, 'wb'))
-
-
+        pcd = o3d.PointCloud()
+        pcd.points = o3d.Vector3dVector(msg.data.data)
+        o3d.write_point_cloud(file_name, pcd)
