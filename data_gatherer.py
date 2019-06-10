@@ -16,6 +16,8 @@ FLAGS = flags.FLAGS
 CENTER_CAMERA_NAME = 'front_rgb_camera'
 DEPTH_CAMERA_NAME = 'front_depth_camera'
 SEGMENTED_CAMERA_NAME = 'front_semantic_camera'
+LEFT_CAMERA_NAME = 'left_rgb_camera'
+RIGHT_CAMERA_NAME = 'right_rgb_camera'
 
 # Flags that control what data is recorded.
 flags.DEFINE_string('data_path', 'data/',
@@ -24,6 +26,17 @@ flags.DEFINE_integer('log_every_nth_frame', 1,
                      'Control how often the script logs frames')
 flags.DEFINE_integer('timeout', 10,
                      'Timeout limit for Carla operator')
+# Flags for logging data from left and right cameras.
+flags.DEFINE_bool('camera_left_right', False,
+                  'Control whether we log left and right cameras.')
+flags.DEFINE_float('offset_left_right', 0.05,
+                  'How much we offset the left and right cameras from the center.')
+
+# Flags for logging data from left and right cameras.
+flags.DEFINE_bool('camera_left_right', False,
+                  'Control whether we log left and right cameras.')
+flags.DEFINE_float('offset_left_right', 0.05,
+                  'How much we offset the left and right cameras from the center.')
 
 def create_camera_setups():
     location = pylot.simulation.utils.Location(2.0, 0.0, 1.4)
@@ -47,7 +60,32 @@ def create_camera_setups():
         FLAGS.carla_camera_image_width,
         FLAGS.carla_camera_image_height,
         transform)
-    return (rgb_camera_setup, depth_camera_setup, segmented_camera_setup)
+    if FLAGS.camera_left_right:
+        location_left = pylot.simulation.utils.Location(2.0, -1 * FLAGS.offset_left_right, 1.4)
+        rotation_left = pylot.simulation.utils.Rotation(0, 0, 0)
+        transform_left = pylot.simulation.utils.Transform(location_left, rotation_left)
+
+        left_camera_setup = pylot.simulation.utils.CameraSetup(
+            LEFT_CAMERA_NAME,
+            'sensor.camera.rgb',
+            FLAGS.carla_camera_image_width,
+            FLAGS.carla_camera_image_height,
+            transform_left)
+
+        location_right = pylot.simulation.utils.Location(2.0, FLAGS.offset_left_right, 1.4)
+        rotation_right = pylot.simulation.utils.Rotation(0, 0, 0)
+        transform_right = pylot.simulation.utils.Transform(location_right, rotation_right)
+
+        right_camera_setup = pylot.simulation.utils.CameraSetup(
+            RIGHT_CAMERA_NAME,
+            'sensor.camera.rgb',
+            FLAGS.carla_camera_image_width,
+            FLAGS.carla_camera_image_height,
+            transform_right)
+        return (rgb_camera_setup, depth_camera_setup, segmented_camera_setup,
+                left_camera_setup, right_camera_setup)
+    else:
+        return (rgb_camera_setup, depth_camera_setup, segmented_camera_setup)
 
 
 def create_camera_logger_op(graph):
@@ -113,13 +151,25 @@ def main(argv):
     # Define graph
     graph = erdos.graph.get_current_graph()
 
-    (bgr_camera_setup,
-     depth_camera_setup,
-     segmented_camera_setup) = create_camera_setups()
-    camera_setups = [bgr_camera_setup,
-                     depth_camera_setup,
-                     segmented_camera_setup]
-
+    if FLAGS.camera_left_right:
+        (bgr_camera_setup,
+         depth_camera_setup,
+         segmented_camera_setup,
+         left_camera_setup,
+         right_camera_setup) = create_camera_setups()
+        camera_setups = [bgr_camera_setup,
+                         depth_camera_setup,
+                         segmented_camera_setup,
+                         left_camera_setup,
+                         right_camera_setup]
+    else:
+        (bgr_camera_setup,
+         depth_camera_setup,
+         segmented_camera_setup) = create_camera_setups()
+        camera_setups = [bgr_camera_setup,
+                         depth_camera_setup,
+                         segmented_camera_setup]
+    
     lidar_setups = create_lidar_setups()
 
     # Add operator that interacts with the Carla simulator.
@@ -145,7 +195,7 @@ def main(argv):
     # Connect the camera logging ops with the camera ops.
     graph.connect(camera_ops, logging_ops)
 
-    # Add operator that converts from 3D bounding boxes to 2D bouding boxes.
+    # Add operator that converts from 3D bounding boxes to 2D bounding boxes.
     detector_ops = [create_perfect_detector_op(graph, bgr_camera_setup)]
     # Connect the detector to the cameras.
     if '0.8' in FLAGS.carla_version:
