@@ -15,7 +15,7 @@ class LidarLoggerOp(Op):
         self._flags = flags
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
-        self._last_lidar_timestamp = -1
+        self._pc_msg_cnt = 0
 
     @staticmethod
     def setup_streams(input_streams):
@@ -25,16 +25,12 @@ class LidarLoggerOp(Op):
         return []
 
     def on_lidar_frame(self, msg):
-        # Ensure we didn't skip a frame.
-        if self._last_lidar_timestamp != -1:
-            assert (self._last_lidar_timestamp + 1 ==
-                    msg.timestamp.coordinates[1])
-        self._last_lidar_timestamp = msg.timestamp.coordinates[1]
-        if self._last_lidar_timestamp % self._flags.log_every_nth_frame != 0:
+        self._pc_msg_cnt += 1
+        if self._pc_msg_cnt % self._flags.log_every_nth_frame != 0:
             return
         # Write the lidar information.
         file_name = '{}carla-lidar-{}.ply'.format(
-            self._flags.data_path, self._last_lidar_timestamp)
+            self._flags.data_path, msg.timestamp.coordinates[0])
         pcd = o3d.PointCloud()
         pcd.points = o3d.Vector3dVector(msg.data.data)
         o3d.write_point_cloud(file_name, pcd)

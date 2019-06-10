@@ -17,12 +17,10 @@ class CameraLoggerOp(Op):
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
         self._bgr_frame_cnt = 0
         self._segmented_frame_cnt = 0
+        self._depth_frame_cnt = 0
 
         self._left_bgr_frame_cnt = 0
         self._right_bgr_frame_cnt = 0
-
-        self._last_bgr_left_timestamp = -1
-        self._last_bgr_right_timestamp = -1
 
     @staticmethod
     def setup_streams(input_streams):
@@ -90,14 +88,10 @@ class CameraLoggerOp(Op):
         img.save(file_name)
 
     def on_depth_frame(self, msg):
-        # Ensure we didn't skip a frame.
-        if self._last_depth_timestamp != -1:
-            assert (self._last_depth_timestamp + 1 ==
-                    msg.timestamp.coordinates[1])
-        self._last_depth_timestamp = msg.timestamp.coordinates[1]
-        if self._last_depth_timestamp % self._flags.log_every_nth_frame != 0:
+        self._depth_frame_cnt += 1 
+        if self._depth_frame_cnt % self._flags.log_every_nth_frame != 0:
             return
         # Write the depth information.
         file_name = '{}carla-depth-{}.pkl'.format(
-            self._flags.data_path, self._last_depth_timestamp)
+            self._flags.data_path, msg.timestamp.coordinates[0])
         pickle.dump(msg.frame, open(file_name, 'wb'))

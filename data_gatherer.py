@@ -26,11 +26,6 @@ flags.DEFINE_integer('log_every_nth_frame', 1,
                      'Control how often the script logs frames')
 flags.DEFINE_integer('timeout', 10,
                      'Timeout limit for Carla operator')
-# Flags for logging data from left and right cameras.
-flags.DEFINE_bool('camera_left_right', False,
-                  'Control whether we log left and right cameras.')
-flags.DEFINE_float('offset_left_right', 0.05,
-                  'How much we offset the left and right cameras from the center.')
 
 # Flags for logging data from left and right cameras.
 flags.DEFINE_bool('camera_left_right', False,
