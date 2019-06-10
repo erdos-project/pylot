@@ -1,8 +1,6 @@
-import numpy as np
 import open3d as o3d
 
 import pylot.utils
-from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
 
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging

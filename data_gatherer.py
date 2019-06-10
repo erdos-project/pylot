@@ -24,8 +24,6 @@ flags.DEFINE_string('data_path', 'data/',
                     'Path where to store Carla camera images')
 flags.DEFINE_integer('log_every_nth_frame', 1,
                      'Control how often the script logs frames')
-flags.DEFINE_integer('timeout', 10,
-                     'Timeout limit for Carla operator')
 
 # Flags for logging data from left and right cameras.
 flags.DEFINE_bool('camera_left_right', False,
