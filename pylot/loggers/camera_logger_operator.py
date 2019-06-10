@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 import PIL.Image as Image
 
 import pylot.utils
@@ -88,7 +89,7 @@ class CameraLoggerOp(Op):
         img.save(file_name)
 
     def on_depth_frame(self, msg):
-        self._depth_frame_cnt += 1 
+        self._depth_frame_cnt += 1
         if self._depth_frame_cnt % self._flags.log_every_nth_frame != 0:
             return
         # Write the depth information.

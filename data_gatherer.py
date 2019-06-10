@@ -167,6 +167,8 @@ def main(argv):
     
     lidar_setups = create_lidar_setups()
 
+    lidar_setups = create_lidar_setups()
+
     # Add operator that interacts with the Carla simulator.
     if '0.8' in FLAGS.carla_version:
         carla_op = pylot.operator_creator.create_carla_legacy_op(

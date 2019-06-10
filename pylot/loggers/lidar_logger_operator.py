@@ -7,8 +7,6 @@ from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging
 
-import pickle
-
 class LidarLoggerOp(Op):
     def __init__(self, name, flags, log_file_name=None, csv_file_name=None):
         super(LidarLoggerOp, self).__init__(name)
