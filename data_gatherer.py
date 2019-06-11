@@ -24,7 +24,8 @@ flags.DEFINE_integer('log_every_nth_frame', 1,
 flags.DEFINE_bool('camera_left_right', False,
                   'Control whether we log left and right cameras.')
 flags.DEFINE_float('offset_left_right', 0.05,
-                  'How much we offset the left and right cameras from the center.')
+                   'How much we offset the left and right cameras '
+                   'from the center.')
 
 
 def create_camera_setups():
@@ -111,28 +112,18 @@ def main(argv):
     lidar_setups = create_lidar_setups()
 
     # Add operator that interacts with the Carla simulator.
-    if '0.8' in FLAGS.carla_version:
-        carla_op = pylot.operator_creator.create_carla_legacy_op(
-            graph, camera_setups, lidar_setups)
-        # The legacy carla op implements the camera drivers.
-        camera_ops = [carla_op]
-    elif '0.9' in FLAGS.carla_version:
-        carla_op = pylot.operator_creator.create_carla_op(graph)
-        camera_ops = [pylot.operator_creator.create_camera_driver_op(graph, cs)
-                      for cs in camera_setups]
-        lidar_ops = [pylot.operator_creator.create_lidar_driver_op(graph, ls)
-                     for ls in lidar_setups]
-        graph.connect([carla_op], camera_ops + lidar_ops)
-    else:
-        raise ValueError(
-            'Unexpected Carla version {}'.format(FLAGS.carla_version))
+    (carla_op,
+     camera_ops,
+     lidar_ops) = pylot.operator_creator.create_driver_ops(
+         graph, camera_setups, lidar_setups)
 
     # Add an operator that logs BGR frames and segmented frames.
-    logging_ops = [pylot.operator_creator.create_camera_logger_op(graph),
-                   pylot.operator_creator.create_lidar_logger_op(graph)]
+    camera_log_ops = [pylot.operator_creator.create_camera_logger_op(graph)]
+    lidar_log_ops = [pylot.operator_creator.create_lidar_logger_op(graph)]
 
     # Connect the camera logging ops with the camera ops.
-    graph.connect(camera_ops, logging_ops)
+    graph.connect(camera_ops, camera_log_ops)
+    graph.connect(lidar_ops, lidar_log_ops)
 
     # Add operator that converts from 3D bounding boxes to 2D bouding boxes.
     detector_ops = [

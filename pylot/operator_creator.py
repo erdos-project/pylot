@@ -88,6 +88,28 @@ def create_camera_driver_op(graph, camera_setup):
     return camera_op
 
 
+def create_driver_ops(graph, camera_setups, lidar_setups):
+    camera_ops = []
+    lidar_ops = []
+    if '0.8' in FLAGS.carla_version:
+        carla_op = create_carla_legacy_op(
+            graph, camera_setups, lidar_setups)
+        # The legacy carla op implements the camera drivers.
+        camera_ops = [carla_op]
+        lidar_ops = [carla_op]
+    elif '0.9' in FLAGS.carla_version:
+        carla_op = create_carla_op(graph)
+        camera_ops = [create_camera_driver_op(graph, cs)
+                      for cs in camera_setups]
+        lidar_ops = [create_lidar_driver_op(graph, ls)
+                     for ls in lidar_setups]
+        graph.connect([carla_op], camera_ops + lidar_ops)
+    else:
+        raise ValueError(
+            'Unexpected Carla version {}'.format(FLAGS.carla_version))
+    return (carla_op, camera_ops, lidar_ops)
+
+
 def create_camera_logger_op(graph):
     camera_logger_op = graph.add(
         CameraLoggerOp,

@@ -42,7 +42,7 @@ def create_camera_setups():
     location = pylot.simulation.utils.Location(2.0, 0.0, 1.4)
     rotation = pylot.simulation.utils.Rotation(0, 0, 0)
     transform = pylot.simulation.utils.Transform(location, rotation)
-    rgb_camera_setup = pylot.simulation.utils.CameraSetup(
+    bgr_camera_setup = pylot.simulation.utils.CameraSetup(
         CENTER_CAMERA_NAME,
         'sensor.camera.rgb',
         FLAGS.carla_camera_image_width,
@@ -60,28 +60,15 @@ def create_camera_setups():
         FLAGS.carla_camera_image_width,
         FLAGS.carla_camera_image_height,
         transform)
-    return (rgb_camera_setup, depth_camera_setup, segmented_camera_setup)
+    return (bgr_camera_setup, depth_camera_setup, segmented_camera_setup)
 
 
-def main(argv):
-    # Define graph
-    graph = erdos.graph.get_current_graph()
-
-    (rgb_camera_setup,
-     depth_camera_setup,
-     segmented_camera_setup) = create_camera_setups()
-    camera_setups = [rgb_camera_setup,
-                     depth_camera_setup,
-                     segmented_camera_setup]
-    if FLAGS.depth_estimation:
-        camera_setups = camera_setups + create_left_right_camera_setups()
-
-    lidar_setups = []
+def create_lidar_setups():
     if FLAGS.lidar:
         location = pylot.simulation.utils.Location(2.0, 0.0, 1.4)
         rotation = pylot.simulation.utils.Rotation(0, 0, 0)
         lidar_transform = pylot.simulation.utils.Transform(location, rotation)
-        lidar_setup = pylot.simulation.utils.LidarSetup(
+        return [pylot.simulation.utils.LidarSetup(
             name='front_center_lidar',
             lidar_type='sensor.lidar.ray_cast',
             transform=lidar_transform,
@@ -90,26 +77,44 @@ def main(argv):
             channels=32,
             upper_fov=15,
             lower_fov=-30,
-            points_per_second=500000)
-        lidar_setups.append(lidar_setup)
+            points_per_second=500000)]
+    return []
+
+
+def create_segmentation_ops(graph):
+    segmentation_ops = []
+    if FLAGS.segmentation_drn:
+        segmentation_op = pylot.operator_creator.create_segmentation_drn_op(
+            graph)
+        segmentation_ops.append(segmentation_op)
+
+    if FLAGS.segmentation_dla:
+        segmentation_op = pylot.operator_creator.create_segmentation_dla_op(
+            graph)
+        segmentation_ops.append(segmentation_op)
+    return segmentation_ops
+
+
+def main(argv):
+    # Define graph
+    graph = erdos.graph.get_current_graph()
+
+    (bgr_camera_setup,
+     depth_camera_setup,
+     segmented_camera_setup) = create_camera_setups()
+    camera_setups = [bgr_camera_setup,
+                     depth_camera_setup,
+                     segmented_camera_setup]
+    if FLAGS.depth_estimation:
+        camera_setups = camera_setups + create_left_right_camera_setups()
+
+    lidar_setups = create_lidar_setups()
 
     # Add operators to the graph.
-    camera_ops = []
-    lidar_ops = []
-    if '0.8' in FLAGS.carla_version:
-        carla_op = pylot.operator_creator.create_carla_legacy_op(
-            graph, camera_setups, lidar_setups)
-        camera_ops = [carla_op]
-    elif '0.9' in FLAGS.carla_version:
-        carla_op = pylot.operator_creator.create_carla_op(graph)
-        camera_ops = [pylot.operator_creator.create_camera_driver_op(graph, cs)
-                      for cs in camera_setups]
-        lidar_ops = [pylot.operator_creator.create_lidar_driver_op(graph, ls)
-                     for ls in lidar_setups]
-        graph.connect([carla_op], camera_ops + lidar_ops)
-    else:
-        raise ValueError(
-            'Unexpected Carla version {}'.format(FLAGS.carla_version))
+    (carla_op,
+     camera_ops,
+     lidar_ops) = pylot.operator_creator.create_driver_ops(
+         graph, camera_setups, lidar_setups)
 
     # Add visual operators.
     pylot.operator_creator.add_visualization_operators(
@@ -123,17 +128,7 @@ def main(argv):
                                                    CENTER_CAMERA_NAME,
                                                    DEPTH_CAMERA_NAME)
 
-    segmentation_ops = []
-    if FLAGS.segmentation_drn:
-        segmentation_op = pylot.operator_creator.create_segmentation_drn_op(
-            graph)
-        segmentation_ops.append(segmentation_op)
-
-    if FLAGS.segmentation_dla:
-        segmentation_op = pylot.operator_creator.create_segmentation_dla_op(
-            graph)
-        segmentation_ops.append(segmentation_op)
-
+    segmentation_ops = create_segmentation_ops(graph)
     graph.connect(camera_ops, segmentation_ops)
 
     if FLAGS.evaluate_segmentation:
@@ -150,7 +145,7 @@ def main(argv):
     # object detection across timestamps.
     if FLAGS.eval_ground_truth_object_detection:
         eval_ground_det_op = pylot.operator_creator.create_eval_ground_truth_detector_op(
-            graph, rgb_camera_setup, DEPTH_CAMERA_NAME)
+            graph, bgr_camera_setup, DEPTH_CAMERA_NAME)
         graph.connect([carla_op] + camera_ops, [eval_ground_det_op])
 
     obj_detector_ops = []
@@ -160,7 +155,7 @@ def main(argv):
 
         if FLAGS.evaluate_obj_detection:
             obstacle_accuracy_op = pylot.operator_creator.create_obstacle_accuracy_op(
-                graph, rgb_camera_setup, DEPTH_CAMERA_NAME)
+                graph, bgr_camera_setup, DEPTH_CAMERA_NAME)
             graph.connect(obj_detector_ops + [carla_op] + camera_ops,
                           [obstacle_accuracy_op])
 
