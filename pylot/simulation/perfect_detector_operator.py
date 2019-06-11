@@ -1,6 +1,7 @@
 from collections import deque
 import threading
 
+from erdos.message import WatermarkMessage
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging
 
@@ -85,9 +86,23 @@ class PerfectDetectorOp(Op):
         # Stream on which to output bounding boxes.
         return [pylot.utils.create_obstacles_stream(output_stream_name)]
 
+    def synchronize_msg_buffers(self, timestamp, buffers):
+        for buffer in buffers:
+            while (len(buffer) > 0 and buffer[0].timestamp < timestamp):
+                buffer.popleft()
+            if len(buffer) == 0:
+                return False
+            assert buffer[0].timestamp == timestamp
+        return True
+
     def on_notification(self, msg):
         # Pop the oldest message from each buffer.
         with self._lock:
+            if not self.synchronize_msg_buffers(
+                    msg.timestamp,
+                    [self._depth_imgs, self._bgr_imgs, self._segmented_imgs,
+                     self._can_bus_msgs, self._pedestrians, self._vehicles]):
+                return
             depth_msg = self._depth_imgs.popleft()
             bgr_msg = self._bgr_imgs.popleft()
             segmented_msg = self._segmented_imgs.popleft()
@@ -124,6 +139,11 @@ class PerfectDetectorOp(Op):
         output_msg = DetectorMessage(det_ped + det_vec + det_traffic_signs,
                                      0, msg.timestamp)
         self.get_output_stream(self._output_stream_name).send(output_msg)
+        # Send watermark on the output stream because operators do not
+        # automatically forward watermarks when they've registed an
+        # on completion callback.
+        self.get_output_stream(self._output_stream_name)\
+            .send(WatermarkMessage(msg.timestamp))
 
         if self._flags.visualize_ground_obstacles:
             ped_bboxes = [det_obj.corners for det_obj in det_ped]

@@ -104,6 +104,11 @@ class CarlaOperator(Op):
             hand_brake=msg.hand_brake,
             reverse=msg.reverse)
         self._driving_vehicle.apply_control(vec_control)
+        # Tick the world after the operator received a control command.
+        # This usually indicates that all the operators have completed
+        # processing the previous timestamp. However, this is not always
+        # true (e.g., logging operators that are not part of the main loop).
+        self._world.tick()
 
     def _set_synchronous_mode(self, value):
         """ Sets the synchronous mode to the desired value.
@@ -205,9 +210,6 @@ class CarlaOperator(Op):
         watermark_msg = WatermarkMessage(timestamp)
         self.__publish_hero_vehicle_data(timestamp, watermark_msg)
         self.__publish_ground_actors_data(timestamp, watermark_msg)
-        # XXX(ionel): We tick after we send data. Otherwise, we may fall
-        # behind.
-        self._world.tick()
 
 #    @frequency(10)
     def tick_at_frequency(self):
