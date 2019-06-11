@@ -60,7 +60,7 @@ class PerfectDetectorOp(Op):
         input_streams.filter(pylot.utils.is_depth_camera_stream).add_callback(
             PerfectDetectorOp.on_depth_camera_update)
         # Register a callback on BGR frames data stream.
-        input_streams.filter(pylot.utils.is_camera_stream).add_callback(
+        input_streams.filter(pylot.utils.is_center_camera_stream).add_callback(
             PerfectDetectorOp.on_bgr_camera_update)
         # Register a callback on segmented frames data stream.
         input_streams.filter(

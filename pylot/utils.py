@@ -7,6 +7,20 @@ def is_camera_stream(stream):
     return (stream.get_label('sensor_type') == 'camera' and
             stream.get_label('camera_type') == 'sensor.camera.rgb')
 
+def is_center_camera_stream(stream):
+    return (stream.get_label('sensor_type') == 'camera' and
+            stream.get_label('camera_type') == 'sensor.camera.rgb' and
+            stream.name == 'front_rgb_camera')
+
+def is_left_camera_stream(stream):
+    return (stream.get_label('sensor_type') == 'camera' and
+            stream.get_label('camera_type') == 'sensor.camera.rgb' and
+            stream.name == 'left_rgb_camera')
+
+def is_right_camera_stream(stream):
+    return (stream.get_label('sensor_type') == 'camera' and
+            stream.get_label('camera_type') == 'sensor.camera.rgb' and
+            stream.name == 'right_rgb_camera')
 
 def is_depth_camera_stream(stream):
     return (stream.get_label('sensor_type') == 'camera' and

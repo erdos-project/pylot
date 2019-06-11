@@ -8,6 +8,7 @@ from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging
 
+import pickle
 
 class CameraLoggerOp(Op):
     def __init__(self, name, flags, log_file_name=None, csv_file_name=None):
@@ -19,10 +20,18 @@ class CameraLoggerOp(Op):
         self._segmented_frame_cnt = 0
         self._depth_frame_cnt = 0
 
+        self._left_bgr_frame_cnt = 0
+        self._right_bgr_frame_cnt = 0
+
     @staticmethod
     def setup_streams(input_streams):
-        input_streams.filter(pylot.utils.is_camera_stream).add_callback(
-            CameraLoggerOp.on_bgr_frame)
+        input_streams.filter(pylot.utils.is_center_camera_stream).add_callback(
+        CameraLoggerOp.on_bgr_frame)
+        input_streams.filter(pylot.utils.is_left_camera_stream).add_callback(
+        CameraLoggerOp.on_bgr_frame_left)
+        input_streams.filter(pylot.utils.is_right_camera_stream).add_callback(
+        CameraLoggerOp.on_bgr_frame_right)
+
         input_streams.filter(
             pylot.utils.is_ground_segmented_camera_stream).add_callback(
                 CameraLoggerOp.on_segmented_frame)
@@ -42,6 +51,31 @@ class CameraLoggerOp(Op):
             self._flags.data_path, msg.timestamp.coordinates[0])
         rgb_img = Image.fromarray(np.uint8(rgb_array))
         rgb_img.save(file_name)
+
+    def on_bgr_frame_left(self, msg):
+        self._left_bgr_frame_cnt += 1
+        if self._left_bgr_frame_cnt % self._flags.log_every_nth_frame != 0:
+            return
+        # Write the image.
+        assert msg.encoding == 'BGR', 'Expects BGR frames'
+        rgb_array = pylot.utils.bgr_to_rgb(msg.frame)
+        file_name = '{}carla-left-{}.png'.format(
+            self._flags.data_path, msg.timestamp.coordinates[0])
+        rgb_img = Image.fromarray(np.uint8(rgb_array))
+        rgb_img.save(file_name)
+
+    def on_bgr_frame_right(self, msg):
+        self._right_bgr_frame_cnt += 1
+        if self._right_bgr_frame_cnt % self._flags.log_every_nth_frame != 0:
+            return
+        # Write the image.
+        assert msg.encoding == 'BGR', 'Expects BGR frames'
+        rgb_array = pylot.utils.bgr_to_rgb(msg.frame)
+        file_name = '{}carla-right-{}.png'.format(
+            self._flags.data_path, msg.timestamp.coordinates[0])
+        rgb_img = Image.fromarray(np.uint8(rgb_array))
+        rgb_img.save(file_name)
+
 
     def on_segmented_frame(self, msg):
         self._segmented_frame_cnt += 1
