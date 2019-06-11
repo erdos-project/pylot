@@ -43,16 +43,21 @@ class LidarERDOSAgentOperator(Op):
 
     @staticmethod
     def setup_streams(input_streams):
-        input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
-            LidarERDOSAgentOperator.on_can_bus_update)
-        input_streams.filter(pylot.utils.is_waypoints_stream).add_callback(
-            LidarERDOSAgentOperator.on_waypoints_update)
-        input_streams.filter(pylot.utils.is_traffic_lights_stream).add_callback(
-            LidarERDOSAgentOperator.on_traffic_lights_update)
-        input_streams.filter(pylot.utils.is_obstacles_stream).add_callback(
-            LidarERDOSAgentOperator.on_obstacles_update)
-        input_streams.filter(pylot.utils.is_lidar_stream).add_callback(
-            LidarERDOSAgentOperator.on_lidar_update)
+        input_streams.filter(
+            pylot.utils.is_can_bus_stream).add_callback(
+                LidarERDOSAgentOperator.on_can_bus_update)
+        input_streams.filter(
+            pylot.utils.is_waypoints_stream).add_callback(
+                LidarERDOSAgentOperator.on_waypoints_update)
+        input_streams.filter(
+            pylot.utils.is_traffic_lights_stream).add_callback(
+                LidarERDOSAgentOperator.on_traffic_lights_update)
+        input_streams.filter(
+            pylot.utils.is_obstacles_stream).add_callback(
+                LidarERDOSAgentOperator.on_obstacles_update)
+        input_streams.filter(
+            pylot.utils.is_lidar_stream).add_callback(
+                LidarERDOSAgentOperator.on_lidar_update)
 
         input_streams.add_completion_callback(
             LidarERDOSAgentOperator.on_notification)

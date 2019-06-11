@@ -28,12 +28,10 @@ class ERDOSAgentOperator(Op):
                         i=self._flags.pid_i,
                         d=self._flags.pid_d)
         self._can_bus_msgs = deque()
+        self._waypoint_msgs = deque()
         self._depth_msgs = deque()
         self._traffic_lights = deque()
         self._obstacles = deque()
-        self._wp_angle = None
-        self._wp_vector = None
-        self._wp_angle_speed = None
 
     @staticmethod
     def setup_streams(input_streams, depth_camera_name):
@@ -41,18 +39,24 @@ class ERDOSAgentOperator(Op):
             ERDOSAgentOperator.on_depth_camera_update)
 
         # XXX(ionel): We get the exact position from the simulator.
-        input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
-            ERDOSAgentOperator.on_can_bus_update)
-        input_streams.filter(pylot.utils.is_waypoints_stream).add_callback(
-            ERDOSAgentOperator.on_waypoints_update)
-        input_streams.filter(pylot.utils.is_traffic_lights_stream).add_callback(
-            ERDOSAgentOperator.on_traffic_lights_update)
-        input_streams.filter(pylot.utils.is_segmented_camera_stream).add_callback(
-            ERDOSAgentOperator.on_segmented_frame)
-        input_streams.filter(pylot.utils.is_obstacles_stream).add_callback(
-            ERDOSAgentOperator.on_obstacles_update)
-        input_streams.filter(pylot.utils.is_detected_lane_stream).add_callback(
-            ERDOSAgentOperator.on_detected_lane_update)
+        input_streams.filter(
+            pylot.utils.is_can_bus_stream).add_callback(
+                ERDOSAgentOperator.on_can_bus_update)
+        input_streams.filter(
+            pylot.utils.is_waypoints_stream).add_callback(
+                ERDOSAgentOperator.on_waypoints_update)
+        input_streams.filter(
+            pylot.utils.is_traffic_lights_stream).add_callback(
+                ERDOSAgentOperator.on_traffic_lights_update)
+        input_streams.filter(
+            pylot.utils.is_segmented_camera_stream).add_callback(
+                ERDOSAgentOperator.on_segmented_frame)
+        input_streams.filter(
+            pylot.utils.is_obstacles_stream).add_callback(
+                ERDOSAgentOperator.on_obstacles_update)
+        input_streams.filter(
+            pylot.utils.is_detected_lane_stream).add_callback(
+                ERDOSAgentOperator.on_detected_lane_update)
 
         input_streams.add_completion_callback(
             ERDOSAgentOperator.on_notification)
@@ -62,11 +66,16 @@ class ERDOSAgentOperator(Op):
         return [pylot.utils.create_control_stream()]
 
     def on_notification(self, msg):
-
         # Get can bus information.
         can_bus_msg = self._can_bus_msgs.popleft()
         vehicle_transform = can_bus_msg.data.transform
         vehicle_speed = can_bus_msg.data.forward_speed
+
+        # Get waypoints.
+        waypoint_msg = self._waypoint_msgs.popleft()
+        wp_angle = waypoint_msg.wp_angle
+        wp_vector = waypoint_msg.wp_vector
+        wp_angle_speed = waypoint_msg.wp_angle_speed
 
         depth_msg = self._depth_msgs.popleft()
 
@@ -86,18 +95,16 @@ class ERDOSAgentOperator(Op):
             det_msg.timestamp))
 
         speed_factor, state = self.__stop_for_agents(
-            vehicle_transform,  self._wp_angle, self._wp_vector, vehicles,
+            vehicle_transform,  wp_angle, wp_vector, vehicles,
             pedestrians, traffic_lights)
 
         control_msg = self.get_control_message(
-            self._wp_angle, self._wp_angle_speed, speed_factor,
+            wp_angle, wp_angle_speed, speed_factor,
             vehicle_speed, msg.timestamp)
         self.get_output_stream('control_stream').send(control_msg)
 
     def on_waypoints_update(self, msg):
-        self._wp_angle = msg.wp_angle
-        self._wp_vector = msg.wp_vector
-        self._wp_angle_speed = msg.wp_angle_speed
+        self._waypoint_msgs.append(msg)
 
     def on_can_bus_update(self, msg):
         self._can_bus_msgs.append(msg)
