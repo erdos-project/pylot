@@ -2,13 +2,8 @@ from absl import app
 from absl import flags
 
 import pylot.config
-from pylot.loggers.bounding_box_logger_operator import BoundingBoxLoggerOp
-from pylot.loggers.camera_logger_operator import CameraLoggerOp
-from pylot.loggers.lidar_logger_operator import LidarLoggerOp
-from pylot.simulation.perfect_detector_operator import PerfectDetectorOp
 import pylot.simulation.utils
 import pylot.operator_creator
-import pylot.utils
 
 import erdos.graph
 
@@ -49,64 +44,25 @@ def create_camera_setups():
     return (rgb_camera_setup, depth_camera_setup, segmented_camera_setup)
 
 
-def create_camera_logger_op(graph):
-    camera_logger_op = graph.add(
-        CameraLoggerOp,
-        name='camera_logger_op',
-        init_args={'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name,
-                   'csv_file_name': FLAGS.csv_log_file_name})
-    return camera_logger_op
-
-def create_lidar_logger_op(graph):
-    lidar_logger_op = graph.add(
-        LidarLoggerOp,
-        name='lidar_logger_op',
-        init_args={'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name,
-                   'csv_file_name': FLAGS.csv_log_file_name})
-    return lidar_logger_op
-
-
-def create_perfect_detector_op(graph, bgr_camera_setup):
-    output_stream_name = bgr_camera_setup.name + '_detected'
-    perfect_det_op = graph.add(
-        PerfectDetectorOp,
-        name='perfect_detector',
-        init_args={'bgr_camera_setup': bgr_camera_setup,
-                   'output_stream_name': output_stream_name,
-                   'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name,
-                   'csv_file_name': FLAGS.csv_log_file_name},
-        setup_args={'output_stream_name': output_stream_name})
-    return perfect_det_op
-
-
-def create_bounding_box_logger_op(graph):
-    bbox_logger_op = graph.add(
-        BoundingBoxLoggerOp,
-        name='bounding_box_logger',
-        init_args={'flags': FLAGS})
-    return bbox_logger_op
-
 def create_lidar_setups():
     lidar_setups = []
     if FLAGS.lidar:
-	location = pylot.simulation.utils.Location(2.0, 0.0, 1.4)
-	rotation = pylot.simulation.utils.Rotation(0, 0, 0)
-	lidar_transform = pylot.simulation.utils.Transform(location, rotation)
-	lidar_setup = pylot.simulation.utils.LidarSetup(
-	    name='front_center_lidar',
-	    lidar_type='sensor.lidar.ray_cast',
-	    transform=lidar_transform,
-	    range=5000,  # in centimeters
-	    rotation_frequency=20,
-	    channels=32,
-	    upper_fov=15,
-	    lower_fov=-30,
-	    points_per_second=500000)
-	lidar_setups.append(lidar_setup)
-    return lidar_setups 
+        location = pylot.simulation.utils.Location(2.0, 0.0, 1.4)
+        rotation = pylot.simulation.utils.Rotation(0, 0, 0)
+        lidar_transform = pylot.simulation.utils.Transform(location, rotation)
+        lidar_setup = pylot.simulation.utils.LidarSetup(
+            name='front_center_lidar',
+            lidar_type='sensor.lidar.ray_cast',
+            transform=lidar_transform,
+            range=5000,  # in centimeters
+            rotation_frequency=20,
+            channels=32,
+            upper_fov=15,
+            lower_fov=-30,
+            points_per_second=500000)
+        lidar_setups.append(lidar_setup)
+    return lidar_setups
+
 
 def main(argv):
     # Define graph
@@ -139,21 +95,22 @@ def main(argv):
             'Unexpected Carla version {}'.format(FLAGS.carla_version))
 
     # Add an operator that logs BGR frames and segmented frames.
-    logging_ops = [create_camera_logger_op(graph), create_lidar_logger_op(graph)]
+    logging_ops = [pylot.operator_creator.create_camera_logger_op(graph),
+                   pylot.operator_creator.create_lidar_logger_op(graph)]
 
     # Connect the camera logging ops with the camera ops.
     graph.connect(camera_ops, logging_ops)
 
     # Add operator that converts from 3D bounding boxes to 2D bouding boxes.
-    detector_ops = [create_perfect_detector_op(graph, bgr_camera_setup)]
+    detector_ops = [
+        pylot.operator_creator.create_perfect_detector_op(
+            graph, bgr_camera_setup)]
     # Connect the detector to the cameras.
-    if '0.8' in FLAGS.carla_version:
-        graph.connect([carla_op], detector_ops)
-    elif '0.9' in FLAGS.carla_version:
-        graph.connect([carla_op] + camera_ops, detector_ops)
+    graph.connect([carla_op] + camera_ops, detector_ops)
 
     # Add operator that logs bboxes to json.
-    bbox_logger_ops = [create_bounding_box_logger_op(graph)]
+    bbox_logger_ops = [
+        pylot.operator_creator.create_bounding_box_logger_op(graph)]
     graph.connect(detector_ops, bbox_logger_ops)
 
     # Add agent that uses ground data to drive around.

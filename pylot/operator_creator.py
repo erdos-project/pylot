@@ -1,5 +1,6 @@
 from absl import flags
 
+
 # import Control operators.
 from pylot.control.erdos_agent_operator import ERDOSAgentOperator
 from pylot.control.ground_agent_operator import GroundAgentOperator
@@ -10,6 +11,10 @@ from pylot.debug.depth_estimation_operator import DepthEstimationOp
 from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
 from pylot.debug.segmented_video_operator import SegmentedVideoOperator
 from pylot.debug.video_operator import VideoOperator
+# Import logging operators.
+from pylot.loggers.bounding_box_logger_operator import BoundingBoxLoggerOp
+from pylot.loggers.camera_logger_operator import CameraLoggerOp
+from pylot.loggers.lidar_logger_operator import LidarLoggerOp
 # Import perception operators.
 from pylot.perception.detection.detection_operator import DetectionOperator
 from pylot.perception.detection.detection_eval_ground_operator import DetectionEvalGroundOperator
@@ -83,6 +88,24 @@ def create_camera_driver_op(graph, camera_setup):
     return camera_op
 
 
+def create_camera_logger_op(graph):
+    camera_logger_op = graph.add(
+        CameraLoggerOp,
+        name='camera_logger_op',
+        init_args={'flags': FLAGS,
+                   'log_file_name': FLAGS.log_file_name,
+                   'csv_file_name': FLAGS.csv_log_file_name})
+    return camera_logger_op
+
+
+def create_bounding_box_logger_op(graph):
+    bbox_logger_op = graph.add(
+        BoundingBoxLoggerOp,
+        name='bounding_box_logger',
+        init_args={'flags': FLAGS})
+    return bbox_logger_op
+
+
 def create_lidar_driver_op(graph, lidar_setup):
     from pylot.simulation.lidar_driver_operator import LidarDriverOperator
     lidar_op = graph.add(
@@ -95,6 +118,16 @@ def create_lidar_driver_op(graph, lidar_setup):
         },
         setup_args={'lidar_setup': lidar_setup})
     return lidar_op
+
+
+def create_lidar_logger_op(graph):
+    lidar_logger_op = graph.add(
+        LidarLoggerOp,
+        name='lidar_logger_op',
+        init_args={'flags': FLAGS,
+                   'log_file_name': FLAGS.log_file_name,
+                   'csv_file_name': FLAGS.csv_log_file_name})
+    return lidar_logger_op
 
 
 def create_planning_op(graph, goal_location):
@@ -267,6 +300,21 @@ def create_record_carla_op(graph):
         init_args={'filename': 'pylot_carla_data.erdos'},
         setup_args={'filter': input_names})
     return record_carla_op
+
+
+def create_perfect_detector_op(graph, bgr_camera_setup):
+    from pylot.simulation.perfect_detector_operator import PerfectDetectorOp
+    output_stream_name = bgr_camera_setup.name + '_detected'
+    perfect_det_op = graph.add(
+        PerfectDetectorOp,
+        name='perfect_detector',
+        init_args={'bgr_camera_setup': bgr_camera_setup,
+                   'output_stream_name': output_stream_name,
+                   'flags': FLAGS,
+                   'log_file_name': FLAGS.log_file_name,
+                   'csv_file_name': FLAGS.csv_log_file_name},
+        setup_args={'output_stream_name': output_stream_name})
+    return perfect_det_op
 
 
 def create_detector_op_helper(graph, name, model_path, gpu_memory_fraction):

@@ -117,11 +117,11 @@ def main(argv):
 
     # Add recording operators.
     pylot.operator_creator.add_recording_operators(graph,
-                                             camera_ops,
-                                             carla_op,
-                                             lidar_ops,
-                                             CENTER_CAMERA_NAME,
-                                             DEPTH_CAMERA_NAME)
+                                                   camera_ops,
+                                                   carla_op,
+                                                   lidar_ops,
+                                                   CENTER_CAMERA_NAME,
+                                                   DEPTH_CAMERA_NAME)
 
     segmentation_ops = []
     if FLAGS.segmentation_drn:
