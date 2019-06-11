@@ -38,7 +38,9 @@ class LidarDriverOperator(Op):
                 configuration.
             log_file_name: The file to log the required information to.
         """
-        super(LidarDriverOperator, self).__init__(name)
+        super(LidarDriverOperator, self).__init__(
+            name, no_watermark_passthrough=True)
+        # The operator does not pass watermarks by defaults.
         self._flags = flags
         self._logger = setup_logging(self.name, log_file_name)
         self._lidar_setup = lidar_setup
@@ -91,11 +93,10 @@ class LidarDriverOperator(Op):
                 timestamp)
 
             self.get_output_stream(self._lidar_setup.name).send(msg)
-            # XXX(ionel): The operator does not have to send watermarks.
-            # They are automatically propagated from the input data stream.
-            # This happens because the driver operator is not truly an input
-            # operator. It receives vehicle id from the carla operator.
-            # self.get_output_stream(self._lidar_setup.name).send(watermark_msg)
+            # Note: The operator is set not to automatically propagate
+            # watermark messages received on input streams. Thus, we can
+            # issue watermarks only after the Carla callback is invoked.
+            self.get_output_stream(self._lidar_setup.name).send(watermark_msg)
 
     def on_vehicle_id(self, msg):
         """ This function receives the identifier for the vehicle, retrieves

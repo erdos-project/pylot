@@ -8,7 +8,6 @@ from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging
 
-import pickle
 
 class CameraLoggerOp(Op):
     def __init__(self, name, flags, log_file_name=None, csv_file_name=None):
@@ -76,7 +75,6 @@ class CameraLoggerOp(Op):
         rgb_img = Image.fromarray(np.uint8(rgb_array))
         rgb_img.save(file_name)
 
-
     def on_segmented_frame(self, msg):
         self._segmented_frame_cnt += 1
         if self._segmented_frame_cnt % self._flags.log_every_nth_frame != 0:
@@ -95,4 +93,6 @@ class CameraLoggerOp(Op):
         # Write the depth information.
         file_name = '{}carla-depth-{}.pkl'.format(
             self._flags.data_path, msg.timestamp.coordinates[0])
-        pickle.dump(msg.frame, open(file_name, 'wb'))
+        pickle.dump(msg.frame,
+                    open(file_name, 'wb'),
+                    protocol=pickle.HIGHEST_PROTOCOL)
