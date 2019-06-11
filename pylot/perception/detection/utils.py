@@ -4,6 +4,7 @@ try:
     import queue as queue
 except ImportError:
     import Queue as queue
+from skimage import measure
 
 from pylot.utils import add_timestamp
 
@@ -148,54 +149,6 @@ def compute_miou(bboxes1, bboxes2):
     return inter_area / (union+0.0001)
 
 
-def __get_neighbors(x, y, width, height):
-    neighbours = []
-    for (dx, dy) in ADJACENT_POS:
-        new_x = x + dx
-        new_y = y + dy
-        if (new_x >= 0 and new_y >= 0 and new_x < width and new_y < height):
-            neighbours.append((new_x, new_y))
-    return neighbours
-
-
-def get_bounding_boxes_from_segmented(segmented_frame):
-    """ Extract bounding boxes from a binary frame.
-
-    The pixels that must be included in bounding boxes are marked as True.
-    """
-    bboxes = []
-    for x in range(segmented_frame.shape[0]):
-        for y in range(segmented_frame.shape[1]):
-            if segmented_frame[x][y]:
-                # BFS traversal to visit all pixels marked in the segmented
-                # frame.
-                to_visit = queue.Queue()
-                to_visit.put((x, y))
-                segmented_frame[x][y] = False
-                min_x = x
-                max_x = x
-                min_y = y
-                max_y = y
-                while not to_visit.empty():
-                    (x, y) = to_visit.get()
-                    min_x = min(min_x, x)
-                    max_x = max(max_x, x)
-                    min_y = min(min_y, y)
-                    max_y = max(max_y, y)
-                    for (new_x, new_y) in __get_neighbors(x, y,
-                                                          segmented_frame.shape[0],
-                                                          segmented_frame.shape[1]):
-                        if segmented_frame[new_x][new_y]:
-                            to_visit.put((new_x, new_y))
-                            segmented_frame[new_x][new_y] = False
-                # Filter out small bounding boxes.
-                if (max_x - min_x > 2 and max_y - min_y > 2):
-                    # Invert the axis because the segmented_frame is in
-                    # height, width shape.
-                    bboxes.append((min_y, max_y, min_x, max_x))
-    return bboxes
-
-
 def load_coco_labels(labels_path):
     labels_map = {}
     with open(labels_path) as labels_file:
@@ -246,6 +199,22 @@ def calculate_iou(ground_truth, prediction):
     gt_area = (x2_gt - x1_gt + 1) * (y2_gt - y1_gt + 1)
     pred_area = (x2_p - x1_p + 1) * (y2_p - y1_p + 1)
     return float(inter_area) / (gt_area + pred_area - inter_area)
+
+
+def get_bounding_boxes_from_segmented(frame, min_width=2, min_height=6):
+    bboxes = []
+    # Labels the connected segmented pixels.
+    map_labeled = measure.label(frame, connectivity=1)
+    # Extract the regions out of the labeled frames.
+    for region in measure.regionprops(map_labeled):
+        x_min = region.bbox[1]
+        x_max = region.bbox[3]
+        y_min = region.bbox[0]
+        y_max = region.bbox[2]
+        # Filter the bboxes that are extremely small.
+        if x_max - x_min > min_width and y_max - y_min > min_height:
+            bboxes.append((x_min, x_max, y_min, y_max))
+    return bboxes
 
 
 def get_prediction_results(ground_truths, predictions, iou_threshold):

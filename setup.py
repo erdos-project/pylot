@@ -28,6 +28,7 @@ setup(
         "protobuf",
         "ray",
         "rospkg",
+        "scikit-image",
         "scipy",
         "setproctitle",
         "torch==0.4.1",
