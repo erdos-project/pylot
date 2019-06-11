@@ -32,6 +32,8 @@ flags.DEFINE_float('offset_left_right', 0.05,
                   'How much we offset the left and right cameras from the center.')
 
 def create_camera_setups():
+    # Note: main assumes that the first camera setup returned by this method is always the
+    # rgb_camera_setup.
     location = pylot.simulation.utils.Location(2.0, 0.0, 1.4)
     rotation = pylot.simulation.utils.Rotation(0, 0, 0)
     transform = pylot.simulation.utils.Transform(location, rotation)
@@ -75,10 +77,10 @@ def create_camera_setups():
             FLAGS.carla_camera_image_width,
             FLAGS.carla_camera_image_height,
             transform_right)
-        return (rgb_camera_setup, depth_camera_setup, segmented_camera_setup,
-                left_camera_setup, right_camera_setup)
+        return [rgb_camera_setup, depth_camera_setup, segmented_camera_setup,
+                left_camera_setup, right_camera_setup]
     else:
-        return (rgb_camera_setup, depth_camera_setup, segmented_camera_setup)
+        return [rgb_camera_setup, depth_camera_setup, segmented_camera_setup]
 
 
 def create_camera_logger_op(graph):
@@ -144,27 +146,7 @@ def main(argv):
     # Define graph
     graph = erdos.graph.get_current_graph()
 
-    if FLAGS.camera_left_right:
-        (bgr_camera_setup,
-         depth_camera_setup,
-         segmented_camera_setup,
-         left_camera_setup,
-         right_camera_setup) = create_camera_setups()
-        camera_setups = [bgr_camera_setup,
-                         depth_camera_setup,
-                         segmented_camera_setup,
-                         left_camera_setup,
-                         right_camera_setup]
-    else:
-        (bgr_camera_setup,
-         depth_camera_setup,
-         segmented_camera_setup) = create_camera_setups()
-        camera_setups = [bgr_camera_setup,
-                         depth_camera_setup,
-                         segmented_camera_setup]
-    
-    lidar_setups = create_lidar_setups()
-
+    camera_setups = create_camera_setups()
     lidar_setups = create_lidar_setups()
 
     # Add operator that interacts with the Carla simulator.
@@ -191,7 +173,7 @@ def main(argv):
     graph.connect(camera_ops, logging_ops)
 
     # Add operator that converts from 3D bounding boxes to 2D bounding boxes.
-    detector_ops = [create_perfect_detector_op(graph, bgr_camera_setup)]
+    detector_ops = [create_perfect_detector_op(graph, camera_setups[0])]
     # Connect the detector to the cameras.
     if '0.8' in FLAGS.carla_version:
         graph.connect([carla_op], detector_ops)
