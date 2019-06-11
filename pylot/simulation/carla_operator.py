@@ -133,7 +133,7 @@ class CarlaOperator(Op):
         # Get the spawn points and ensure that the number of vehicles
         # requested are less than the number of spawn points.
         spawn_points = self._world.get_map().get_spawn_points()
-        if num_vehicles > len(spawn_points):
+        if num_vehicles >= len(spawn_points):
             self._logger.warning(
                 'Requested {} vehicles but only found {} spawn points'.format(
                     num_vehicles, len(spawn_points)))
@@ -182,18 +182,15 @@ class CarlaOperator(Op):
         """
         self._logger.debug('Spawning the vehicle to be driven around.')
 
-        v_blueprint = random.choice(
-            self._world.get_blueprint_library().filter('vehicle.*'))
+        # Set our vehicle to be the one used in the CARLA challenge.
+        v_blueprint = self._world.get_blueprint_library().filter(
+            'vehicle.lincoln.mkz2017')[0]
 
-        # Make sure that the vehicle is a car and not a two-wheeler.
-        while not v_blueprint.has_attribute('number_of_wheels') or not int(
-                v_blueprint.get_attribute('number_of_wheels')) == 4:
-            v_blueprint = random.choice(
-                self._world.get_blueprint_library().filter('vehicle.*'))
-
-        # Get a random start position and spawn the vehicle.
-        start_pose = random.choice(self._world.get_map().get_spawn_points())
-        return self._world.spawn_actor(v_blueprint, start_pose)
+        driving_vehicle = None
+        while not driving_vehicle:
+            start_pose = random.choice(self._world.get_map().get_spawn_points())
+            driving_vehicle = self._world.try_spawn_actor(v_blueprint, start_pose)
+        return driving_vehicle
 
     def on_world_tick(self, msg):
         """ Callback function that gets called when the world is ticked.
