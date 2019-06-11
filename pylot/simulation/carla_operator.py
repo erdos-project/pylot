@@ -73,6 +73,7 @@ class CarlaOperator(Op):
         # the downstream operators.
         self._driving_vehicle = self._spawn_driving_vehicle()
 
+        self._tick_at = time.time() + 1.0 / self._flags.carla_step_frequency
         # Tick once to ensure that the actors are spawned before the data-flow
         # starts.
         self._world.tick()
@@ -108,7 +109,18 @@ class CarlaOperator(Op):
         # This usually indicates that all the operators have completed
         # processing the previous timestamp. However, this is not always
         # true (e.g., logging operators that are not part of the main loop).
+        self._wait_until_next_tick()
         self._world.tick()
+
+    def _wait_until_next_tick(self):
+        time_until_tick = self._tick_at - time.time()
+        if time_until_tick > 0:
+            time.sleep(time_until_tick)
+        else:
+            self._logger.error(
+                'Cannot tick Carla at frequency {}'.format(
+                    self._flags.carla_step_frequency))
+        self._tick_at += 1.0 / self._flags.carla_step_frequency
 
     def _set_synchronous_mode(self, value):
         """ Sets the synchronous mode to the desired value.
@@ -211,6 +223,7 @@ class CarlaOperator(Op):
 #    @frequency(10)
     def tick_at_frequency(self):
         """ This function ticks the world at the desired frequency. """
+        self._wait_until_next_tick()
         self._world.tick()
 
     def execute(self):
