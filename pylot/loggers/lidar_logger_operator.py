@@ -29,5 +29,5 @@ class LidarLoggerOp(Op):
         file_name = '{}carla-lidar-{}.ply'.format(
             self._flags.data_path, msg.timestamp.coordinates[0])
         pcd = o3d.PointCloud()
-        pcd.points = o3d.Vector3dVector(msg.data.data)
+        pcd.points = o3d.Vector3dVector(msg.point_cloud)
         o3d.write_point_cloud(file_name, pcd)

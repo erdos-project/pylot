@@ -57,6 +57,7 @@ class CarlaLegacyOperator(Op):
         # Add lidars to the simulation.
         for ls in lidar_setups:
             self.__add_lidar(ls)
+            self._transforms[ls.name] = ls.get_transform()
         self.agent_id_map = {}
         self.pedestrian_count = 0
 
@@ -285,6 +286,10 @@ class CarlaLegacyOperator(Op):
                         self._transforms[name],
                         measurement.fov,
                         timestamp))
+            elif data_stream.get_label('sensor_type') == 'sensor.lidar.ray_cast':
+                pc_msg = pylot.simulation.messages.PointCloudMessage(
+                    measurement.data, self._transforms[name], timestamp)
+                data_stream.send(pc_msg)
             else:
                 data_stream.send(Message(measurement, timestamp))
             data_stream.send(watermark)
