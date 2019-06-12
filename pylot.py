@@ -81,61 +81,22 @@ def create_lidar_setups():
     return []
 
 
-def create_segmentation_ops(graph):
-    segmentation_ops = []
-    if FLAGS.segmentation_drn:
-        segmentation_op = pylot.operator_creator.create_segmentation_drn_op(
-            graph)
-        segmentation_ops.append(segmentation_op)
-
-    if FLAGS.segmentation_dla:
-        segmentation_op = pylot.operator_creator.create_segmentation_dla_op(
-            graph)
-        segmentation_ops.append(segmentation_op)
-    return segmentation_ops
-
-
-def main(argv):
-    # Define graph
-    graph = erdos.graph.get_current_graph()
-
-    (bgr_camera_setup,
-     depth_camera_setup,
-     segmented_camera_setup) = create_camera_setups()
-    camera_setups = [bgr_camera_setup,
-                     depth_camera_setup,
-                     segmented_camera_setup]
+def add_driver_operators(graph):
+    camera_setups = create_camera_setups()
+    bgr_camera_setup = camera_setups[0]
     if FLAGS.depth_estimation:
         camera_setups = camera_setups + create_left_right_camera_setups()
 
     lidar_setups = create_lidar_setups()
 
-    # Add operators to the graph.
     (carla_op,
      camera_ops,
      lidar_ops) = pylot.operator_creator.create_driver_ops(
          graph, camera_setups, lidar_setups)
+    return (bgr_camera_setup, carla_op, camera_ops, lidar_ops)
 
-    # Add visual operators.
-    pylot.operator_creator.add_visualization_operators(
-        graph, camera_ops, lidar_ops, CENTER_CAMERA_NAME, DEPTH_CAMERA_NAME)
 
-    # Add recording operators.
-    pylot.operator_creator.add_recording_operators(graph,
-                                                   camera_ops,
-                                                   carla_op,
-                                                   lidar_ops,
-                                                   CENTER_CAMERA_NAME,
-                                                   DEPTH_CAMERA_NAME)
-
-    segmentation_ops = create_segmentation_ops(graph)
-    graph.connect(camera_ops, segmentation_ops)
-
-    if FLAGS.evaluate_segmentation:
-        eval_segmentation_op = pylot.operator_creator.create_segmentation_eval_op(
-            graph, SEGMENTED_CAMERA_NAME, 'segmented_stream')
-        graph.connect(camera_ops + segmentation_ops, [eval_segmentation_op])
-
+def add_ground_eval_ops(graph, bgr_camera_setup, carla_op, camera_ops):
     if FLAGS.eval_ground_truth_segmentation:
         eval_ground_seg_op = pylot.operator_creator.create_segmentation_ground_eval_op(
             graph, SEGMENTED_CAMERA_NAME)
@@ -148,6 +109,8 @@ def main(argv):
             graph, bgr_camera_setup, DEPTH_CAMERA_NAME)
         graph.connect([carla_op] + camera_ops, [eval_ground_det_op])
 
+
+def add_detection_component(graph, bgr_camera_setup, camera_ops, carla_op):
     obj_detector_ops = []
     if FLAGS.obj_detection:
         obj_detector_ops = pylot.operator_creator.create_detector_ops(graph)
@@ -165,10 +128,11 @@ def main(argv):
             graph.connect(camera_ops + obj_detector_ops, [tracker_op])
 
         if FLAGS.fusion:
-            (fusion_op, fusion_verification_op) = pylot.operator_creator.create_fusion_ops(graph)
+            (fusion_op,
+             fusion_verif_op) = pylot.operator_creator.create_fusion_ops(graph)
             graph.connect(obj_detector_ops + camera_ops + [carla_op],
                           [fusion_op])
-            graph.connect([fusion_op, carla_op], [fusion_verification_op])
+            graph.connect([fusion_op, carla_op], [fusion_verif_op])
 
     traffic_light_det_ops = []
     if FLAGS.traffic_light_det:
@@ -181,13 +145,36 @@ def main(argv):
         lane_detection_ops.append(
             pylot.operator_creator.create_lane_detection_op(graph))
         graph.connect(camera_ops, lane_detection_ops)
+    return (obj_detector_ops, traffic_light_det_ops, lane_detection_ops)
 
-    if FLAGS.depth_estimation:
-        depth_estimation_op = pylot.operator_creator.create_depth_estimation_op(
-            graph, LEFT_CAMERA_NAME, RIGHT_CAMERA_NAME)
-        graph.connect(camera_ops + lidar_ops + [carla_op],
-                      [depth_estimation_op])
 
+def add_segmentation_component(graph, camera_ops):
+    segmentation_ops = []
+    if FLAGS.segmentation_drn:
+        segmentation_op = pylot.operator_creator.create_segmentation_drn_op(
+            graph)
+        segmentation_ops.append(segmentation_op)
+
+    if FLAGS.segmentation_dla:
+        segmentation_op = pylot.operator_creator.create_segmentation_dla_op(
+            graph)
+        segmentation_ops.append(segmentation_op)
+    graph.connect(camera_ops, segmentation_ops)
+
+    if FLAGS.evaluate_segmentation:
+        eval_segmentation_op = pylot.operator_creator.create_segmentation_eval_op(
+            graph, SEGMENTED_CAMERA_NAME, 'segmented_stream')
+        graph.connect(camera_ops + segmentation_ops, [eval_segmentation_op])
+
+    return segmentation_ops
+
+
+def add_agent_op(graph,
+                 carla_op,
+                 traffic_light_det_ops,
+                 obj_detector_ops,
+                 segmentation_ops,
+                 lane_detection_ops):
     agent_op = None
     if FLAGS.ground_agent_operator:
         agent_op = pylot.operator_creator.create_ground_agent_op(graph)
@@ -201,10 +188,14 @@ def main(argv):
                     segmentation_ops + lane_detection_ops
         graph.connect(input_ops, [agent_op])
         graph.connect([agent_op], [carla_op])
+    return agent_op
 
-    goal_location = (234.269989014, 59.3300170898, 39.4306259155)
-    goal_orientation = (1.0, 0.0, 0.22)
 
+def add_planning_component(graph,
+                           goal_location,
+                           goal_orientation,
+                           carla_op,
+                           agent_op):
     if '0.8' in FLAGS.carla_version:
         waypointer_op = pylot.operator_creator.create_waypointer_op(
             graph, goal_location, goal_orientation)
@@ -220,6 +211,68 @@ def main(argv):
             waypoint_viz_op = pylot.operator_creator.create_waypoint_visualizer_op(
                 graph)
             graph.connect([planning_op], [waypoint_viz_op])
+
+
+def add_debugging_component(graph, carla_op, camera_ops, lidar_ops):
+    # Add visual operators.
+    pylot.operator_creator.add_visualization_operators(
+        graph, camera_ops, lidar_ops, CENTER_CAMERA_NAME, DEPTH_CAMERA_NAME)
+
+    # Add recording operators.
+    pylot.operator_creator.add_recording_operators(graph,
+                                                   camera_ops,
+                                                   carla_op,
+                                                   lidar_ops,
+                                                   CENTER_CAMERA_NAME,
+                                                   DEPTH_CAMERA_NAME)
+    # Add operator that estimates depth.
+    if FLAGS.depth_estimation:
+        depth_estimation_op = pylot.operator_creator.create_depth_estimation_op(
+            graph, LEFT_CAMERA_NAME, RIGHT_CAMERA_NAME)
+        graph.connect(camera_ops + lidar_ops + [carla_op],
+                      [depth_estimation_op])
+
+
+def main(argv):
+    # Define graph
+    graph = erdos.graph.get_current_graph()
+
+    # Add camera and lidar driver operators to the data-flow graph.
+    (bgr_camera_setup,
+     carla_op,
+     camera_ops,
+     lidar_ops) = add_driver_operators(graph)
+
+    # Add debugging operators (e.g., visualizers) to the data-flow graph.
+    add_debugging_component(graph, carla_op, camera_ops, lidar_ops)
+
+    add_ground_eval_ops(graph, bgr_camera_setup, carla_op, camera_ops)
+
+    # Add detectors.
+    (obj_det_ops,
+     traffic_light_det_ops,
+     lane_det_ops) = add_detection_component(
+         graph, bgr_camera_setup, camera_ops, carla_op)
+
+    # Add segmentation operators.
+    segmentation_ops = add_segmentation_component(graph, camera_ops)
+
+    # Add the behaviour planning agent operator.
+    agent_op = add_agent_op(graph,
+                            carla_op,
+                            traffic_light_det_ops,
+                            obj_det_ops,
+                            segmentation_ops,
+                            lane_det_ops)
+
+    # Add planning operators.
+    goal_location = (234.269989014, 59.3300170898, 39.4306259155)
+    goal_orientation = (1.0, 0.0, 0.22)
+    add_planning_component(graph,
+                           goal_location,
+                           goal_orientation,
+                           carla_op,
+                           agent_op)
 
     graph.execute(FLAGS.framework)
 
