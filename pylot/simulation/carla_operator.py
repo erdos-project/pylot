@@ -264,10 +264,8 @@ class CarlaOperator(Op):
 
         pedestrian_actors = actor_list.filter('*walker*')
         pedestrians = self.__convert_pedestrian_actors(pedestrian_actors)
-
         tl_actors = actor_list.filter('traffic.traffic_light*')
         traffic_lights = self.__convert_traffic_light_actors(tl_actors)
-
         speed_limit_actors = actor_list.filter('traffic.speed_limit*')
         speed_limits = self.__convert_speed_limit_actors(speed_limit_actors)
 
@@ -326,6 +324,7 @@ class CarlaOperator(Op):
             loc = tl_actor.get_location()
             pos = pylot.simulation.utils.Location(loc.x, loc.y, loc.z)
             transform = to_erdos_transform(tl_actor.get_transform())
+            
             traffic_light = pylot.simulation.utils.TrafficLight(
                 pos, transform, tl_actor.get_state())
             traffic_lights.append(traffic_light)

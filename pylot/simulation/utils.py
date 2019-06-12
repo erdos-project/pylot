@@ -334,6 +334,17 @@ def get_3d_world_position_with_depth_map(x, y, depth_msg):
     (x, y, z) = point_cloud.tolist()[y * depth_msg.width + x]
     return Location(x, y, z)
 
+def batch_get_3d_world_position_with_depth_map(xs, ys, depth_msg):
+    assert len(xs) == len(ys)
+    far = 1.0
+    point_cloud = depth_to_local_point_cloud(depth_msg, max_depth=far)
+    # Transform the points in 3D world coordinates.
+    camera_unreal_transform = camera_to_unreal_transform(
+        depth_msg.transform)
+    point_cloud = camera_unreal_transform.transform_points(point_cloud)
+    point_cloud = point_cloud.tolist()
+    locs = [point_cloud[ys[i] * depth_msg.width + xs[i]] for i in range(len(xs))]
+    return [Location(loc[0], loc[1], loc[2]) for loc in locs]
 
 def find_depth(x, y, point_cloud):
     closest_point = None
@@ -619,3 +630,22 @@ def map_ground_3D_transform_to_2D(location,
         loc_2d.y >= 0 and loc_2d.y < img_height):
         return (loc_2d.x, loc_2d.y, loc_2d.z)
     return None
+
+def match_bboxes_with_traffic_lights(bboxes, traffic_lights):
+    # Match bounding boxes with traffic lights. In order to match,
+    # the bounding box must be within 20 m of the base of the traffic light
+    # in the (x,y) plane, and must be within 5 and 7 meters above the base
+    # of the traffic light. If there are multiple possibilities, take the closest.
+    result = []
+    for bbox in bboxes:
+        best_tl_idx = 0
+        best_dist = 1000000
+        for idx in range(len(traffic_lights)):
+            tl = traffic_lights[idx]
+            dist = (bbox[0].x - tl[0].x)**2 + (bbox[0].y - tl[0].y)**2
+            if dist < best_dist and bbox[0].z - tl[0].z > 5 and bbox[0].z - tl[0].z < 7:
+                best_tl_idx = idx
+                best_dist = dist
+        if best_dist < 20 ** 2:
+            result.append((bbox[1], traffic_lights[best_tl_idx][1]))
+    return result
