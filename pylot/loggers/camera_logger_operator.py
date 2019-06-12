@@ -32,7 +32,7 @@ class CameraLoggerOp(Op):
         CameraLoggerOp.on_bgr_frame_right)
 
         input_streams.filter(
-            pylot.utils.is_ground_segmented_camera_stream).add_callback(
+            pylot.utils.is_segmented_camera_stream).add_callback(
                 CameraLoggerOp.on_segmented_frame)
         input_streams.filter(
             pylot.utils.is_depth_camera_stream).add_callback(

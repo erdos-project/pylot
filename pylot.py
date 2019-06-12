@@ -233,6 +233,18 @@ def add_debugging_component(graph, carla_op, camera_ops, lidar_ops):
                       [depth_estimation_op])
 
 
+def add_perfect_perception_component(
+        graph, bgr_camera_setup, camera_ops, carla_op):
+    obj_det_ops = [pylot.operator_creator.create_perfect_detector_op(
+        graph, bgr_camera_setup)]
+    # TODO(ionel): Populate the other types of detectors.
+    traffic_light_det_ops = []
+    lane_det_ops = []
+    # Get the ground segmented frames from the driver operators.
+    segmentation_ops = camera_ops
+    return (obj_det_ops, traffic_light_det_ops, lane_det_ops, segmentation_ops)
+
+
 def main(argv):
     # Define graph
     graph = erdos.graph.get_current_graph()
@@ -248,14 +260,22 @@ def main(argv):
 
     add_ground_eval_ops(graph, bgr_camera_setup, carla_op, camera_ops)
 
-    # Add detectors.
-    (obj_det_ops,
-     traffic_light_det_ops,
-     lane_det_ops) = add_detection_component(
-         graph, bgr_camera_setup, camera_ops, carla_op)
+    if FLAGS.use_perfect_perception:
+        # Add operators that use ground information.
+        (obj_det_ops,
+         traffic_light_det_ops,
+         lane_det_ops,
+         segmentation_ops) = add_perfect_perception_component(
+             graph, bgr_camera_setup, camera_ops, carla_op)
+    else:
+        # Add detectors.
+        (obj_det_ops,
+         traffic_light_det_ops,
+         lane_det_ops) = add_detection_component(
+             graph, bgr_camera_setup, camera_ops, carla_op)
 
-    # Add segmentation operators.
-    segmentation_ops = add_segmentation_component(graph, camera_ops)
+        # Add segmentation operators.
+        segmentation_ops = add_segmentation_component(graph, camera_ops)
 
     # Add the behaviour planning agent operator.
     agent_op = add_agent_op(graph,

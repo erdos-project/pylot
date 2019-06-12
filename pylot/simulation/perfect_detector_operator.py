@@ -65,7 +65,7 @@ class PerfectDetectorOp(Op):
             PerfectDetectorOp.on_bgr_camera_update)
         # Register a callback on segmented frames data stream.
         input_streams.filter(
-            pylot.utils.is_ground_segmented_camera_stream).add_callback(
+            pylot.utils.is_segmented_camera_stream).add_callback(
                 PerfectDetectorOp.on_segmented_frame)
         # Register a callback on can bus messages data stream.
         input_streams.filter(

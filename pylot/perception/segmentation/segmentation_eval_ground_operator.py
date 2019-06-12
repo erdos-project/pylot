@@ -5,7 +5,7 @@ from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
 from pylot.perception.segmentation.utils import tf_compute_semantic_iou, generate_masks, compute_semantic_iou_from_masks, transform_to_cityscapes_palette
-from pylot.utils import is_ground_segmented_camera_stream
+from pylot.utils import is_segmented_camera_stream
 
 
 class SegmentationEvalGroundOperator(Op):
@@ -23,7 +23,7 @@ class SegmentationEvalGroundOperator(Op):
 
     @staticmethod
     def setup_streams(input_streams, ground_stream_name):
-        input_streams.filter(is_ground_segmented_camera_stream) \
+        input_streams.filter(is_segmented_camera_stream) \
                      .filter_name(ground_stream_name).add_callback(
             SegmentationEvalGroundOperator.on_ground_segmented_frame)
         return []

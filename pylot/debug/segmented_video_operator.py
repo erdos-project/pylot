@@ -6,7 +6,7 @@ from erdos.op import Op
 from erdos.utils import setup_logging
 
 from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
-from pylot.utils import rgb_to_bgr, is_ground_segmented_camera_stream
+from pylot.utils import rgb_to_bgr, is_segmented_camera_stream
 
 
 class SegmentedVideoOperator(Op):
@@ -18,7 +18,7 @@ class SegmentedVideoOperator(Op):
 
     @staticmethod
     def setup_streams(input_streams):
-        input_streams.filter(is_ground_segmented_camera_stream) \
+        input_streams.filter(is_segmented_camera_stream) \
                      .add_callback(SegmentedVideoOperator.display_frame)
         return []
 

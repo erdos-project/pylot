@@ -7,30 +7,37 @@ def is_camera_stream(stream):
     return (stream.get_label('sensor_type') == 'camera' and
             stream.get_label('camera_type') == 'sensor.camera.rgb')
 
+
 def is_center_camera_stream(stream):
     return (stream.get_label('sensor_type') == 'camera' and
             stream.get_label('camera_type') == 'sensor.camera.rgb' and
             stream.name == 'front_rgb_camera')
+
 
 def is_left_camera_stream(stream):
     return (stream.get_label('sensor_type') == 'camera' and
             stream.get_label('camera_type') == 'sensor.camera.rgb' and
             stream.name == 'left_rgb_camera')
 
+
 def is_right_camera_stream(stream):
     return (stream.get_label('sensor_type') == 'camera' and
             stream.get_label('camera_type') == 'sensor.camera.rgb' and
             stream.name == 'right_rgb_camera')
+
 
 def is_depth_camera_stream(stream):
     return (stream.get_label('sensor_type') == 'camera' and
             stream.get_label('camera_type') == 'sensor.camera.depth')
 
 
-def create_camera_stream(camera_setup):
-    return DataStream(name=camera_setup.name,
-                      labels={'sensor_type': 'camera',
-                              'camera_type': camera_setup.camera_type})
+def create_camera_stream(camera_setup, ground='true'):
+    labels = {'sensor_type': 'camera',
+              'camera_type': camera_setup.camera_type,
+              'ground': ground}
+    if camera_setup.camera_type == 'sensor.camera.semantic_segmentation':
+        labels['segmented'] = 'true'
+    return DataStream(name=camera_setup.name, labels=labels)
 
 
 def is_lidar_stream(stream):
@@ -45,7 +52,8 @@ def create_lidar_stream(lidar_setup):
 # Ground streams
 def is_ground_segmented_camera_stream(stream):
     return (stream.get_label('sensor_type') == 'camera' and
-            stream.get_label('camera_type') == 'sensor.camera.semantic_segmentation')
+            stream.get_label('camera_type') == 'sensor.camera.semantic_segmentation' and
+            stream.get_label('ground') == 'true')
 
 
 def create_vehicle_id_stream():
@@ -96,6 +104,11 @@ def create_segmented_camera_stream(name):
 
 def is_segmented_camera_stream(stream):
     return stream.get_label('segmented') == 'true'
+
+
+def is_non_ground_segmented_camera_stream(stream):
+    return (stream.get_label('segmented') == 'true' and
+            stream.get_label('ground') != 'true')
 
 
 def create_obstacles_stream(name):

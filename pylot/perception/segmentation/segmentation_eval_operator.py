@@ -4,7 +4,7 @@ from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
 from pylot.perception.segmentation.utils import compute_semantic_iou, transform_to_cityscapes_palette
-from pylot.utils import is_ground_segmented_camera_stream, is_segmented_camera_stream
+from pylot.utils import is_ground_segmented_camera_stream, is_non_ground_segmented_camera_stream
 
 
 class SegmentationEvalOperator(Op):
@@ -29,7 +29,7 @@ class SegmentationEvalOperator(Op):
                       segmented_stream_name):
         input_streams.filter(is_ground_segmented_camera_stream).add_callback(
             SegmentationEvalOperator.on_ground_segmented_frame)
-        input_streams.filter(is_segmented_camera_stream) \
+        input_streams.filter(is_non_ground_segmented_camera_stream) \
                      .filter_name(segmented_stream_name) \
                      .add_callback(SegmentationEvalOperator.on_segmented_frame)
         # Register a watermark callback.
