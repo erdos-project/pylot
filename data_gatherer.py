@@ -117,6 +117,10 @@ def main(argv):
      lidar_ops) = pylot.operator_creator.create_driver_ops(
          graph, camera_setups, lidar_setups)
 
+    # Add visual operators.
+    pylot.operator_creator.add_visualization_operators(
+        graph, camera_ops, lidar_ops, CENTER_CAMERA_NAME, DEPTH_CAMERA_NAME)
+
     # Add an operator that logs BGR frames and segmented frames.
     camera_log_ops = [pylot.operator_creator.create_camera_logger_op(graph)]
     lidar_log_ops = [pylot.operator_creator.create_lidar_logger_op(graph)]
