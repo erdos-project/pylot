@@ -337,7 +337,7 @@ def visualize_no_colors_bboxes(op_name, timestamp, image_np, bboxes):
 
 
 def visualize_ground_bboxes(op_name, timestamp, image_np, pedestrian_bboxes,
-                            vehicles_bboxes, traffic_sign_bboxes=[]):
+                            vehicles_bboxes, traffic_sign_bboxes=[], traffic_light_bboxes=[]):
     add_timestamp(timestamp, image_np)
     for corners in pedestrian_bboxes:
         (xmin, xmax, ymin, ymax) = corners
@@ -350,6 +350,17 @@ def visualize_ground_bboxes(op_name, timestamp, image_np, pedestrian_bboxes,
     for corners in traffic_sign_bboxes:
         (xmin, xmax, ymin, ymax) = corners
         color = [255, 255, 0]
+        cv2.rectangle(image_np, (xmin, ymin), (xmax, ymax), color, 2)
+    for (corners, color) in traffic_light_bboxes:
+        (xmin, xmax, ymin, ymax) = corners
+        if color == 'red traffic light':
+            color = [0, 0, 255]
+        elif color == 'yellow traffic light':
+            color = [0, 255, 255]
+        elif color == 'green traffic light':
+            color = [0, 255, 0]
+        else:
+            raise ValueError('Not a valid traffic light color.')
         cv2.rectangle(image_np, (xmin, ymin), (xmax, ymax), color, 2)
     cv2.imshow(op_name, image_np)
     cv2.waitKey(1)
