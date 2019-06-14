@@ -634,7 +634,7 @@ def map_ground_3D_transform_to_2D(location,
 def match_bboxes_with_traffic_lights(bboxes, traffic_lights):
     # Match bounding boxes with traffic lights. In order to match,
     # the bounding box must be within 20 m of the base of the traffic light
-    # in the (x,y) plane, and must be within 5 and 7 meters above the base
+    # in the (x,y) plane, and must be between 5 and 7 meters above the base
     # of the traffic light. If there are multiple possibilities, take the closest.
     result = []
     for bbox in bboxes:
@@ -643,6 +643,9 @@ def match_bboxes_with_traffic_lights(bboxes, traffic_lights):
         for idx in range(len(traffic_lights)):
             tl = traffic_lights[idx]
             dist = (bbox[0].x - tl[0].x)**2 + (bbox[0].y - tl[0].y)**2
+            # Check whether the traffic light is the closest so far to the
+            # bounding box, and that the traffic light is between 5 and 7
+            # meters above the base of the traffic light.
             if dist < best_dist and bbox[0].z - tl[0].z > 5 and bbox[0].z - tl[0].z < 7:
                 best_tl_idx = idx
                 best_dist = dist

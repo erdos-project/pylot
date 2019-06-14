@@ -107,7 +107,7 @@ class PerfectDetectorOp(Op):
             if not self.synchronize_msg_buffers(
                     msg.timestamp,
                     [self._depth_imgs, self._bgr_imgs, self._segmented_imgs,
-                        self._can_bus_msgs, self._pedestrians, self._vehicles,
+                     self._can_bus_msgs, self._pedestrians, self._vehicles,
                      self._traffic_lights]):
                 return
             depth_msg = self._depth_imgs.popleft()
@@ -121,7 +121,7 @@ class PerfectDetectorOp(Op):
         self._logger.info('Timestamps {} {} {} {} {} {}'.format(
             depth_msg.timestamp, bgr_msg.timestamp, segmented_msg.timestamp,
             can_bus_msg.timestamp, pedestrians_msg.timestamp,
-            vehicles_msg.timestamp, traffic_light_msg))
+            vehicles_msg.timestamp, traffic_light_msg.timestamp))
 
         # The popper messages should have the same timestamp.
         assert (depth_msg.timestamp == bgr_msg.timestamp ==
@@ -242,7 +242,7 @@ class PerfectDetectorOp(Op):
         sign_bboxes = zip(pos_3d, bboxes)
         light_bboxes = []
         for tl in traffic_lights:
-            light_bboxes.append((tl.location,tl.state))
+            light_bboxes.append((tl.location, tl.state))
 
         # Map traffic lights to bounding boxes based on 3d world position.
         tl_bboxes = match_bboxes_with_traffic_lights(sign_bboxes, light_bboxes)
