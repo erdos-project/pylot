@@ -348,7 +348,7 @@ def batch_get_3d_world_position_with_depth_map(
     return [Location(loc[0], loc[1], loc[2]) for loc in locs]
 
 
-def find_depth(x, y, point_cloud, max_x_dist=2, max_y_dist=2):
+def slow_find_depth(x, y, point_cloud, max_x_dist=20, max_y_dist=20):
     closest_point = None
     dist = 1000000
     # Find the closest lidar point to the point we're trying to get depth for.
@@ -366,6 +366,24 @@ def find_depth(x, y, point_cloud, max_x_dist=2, max_y_dist=2):
         return closest_point
     else:
         return None
+
+
+def find_depth(x, y, point_cloud):
+    if len(point_cloud) == 0:
+        return None
+    # Select x and y.
+    pc_xy = point_cloud[:, 0:2]
+    # Select z
+    pc_z = point_cloud[:, 2]
+    # Divize x, y by z
+    normalized_pc = pc_xy / pc_z[:, None]
+    xy = np.array([x, y]).transpose()
+    # Compute distance
+    dist = np.sum((normalized_pc - xy)**2, axis=1)
+    # Select index of the closest point.
+    closest_index = np.argmin(dist)
+    # Return the closest point.
+    return (x, y, point_cloud[closest_index][0])
 
 
 def get_3d_world_position_with_point_cloud(

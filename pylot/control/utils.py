@@ -33,7 +33,7 @@ def get_speed(velocity_vector):
     return speed
 
 
-def is_pedestrian_hitable(pos):
+def is_pedestrian_hitable(vehicle_transform, ped_pos):
     # TODO(ionel): Implement.
     return True
 
@@ -45,6 +45,16 @@ def is_traffic_light_active(vehicle_transform, tl_pos):
 
 def is_vehicle_on_same_lane(vehicle_transform, obs_vehicle_pos):
     # TODO(ionel): Implement.
+    # vec_loc = carla.Location(vehicle_transform.location.x,
+    #                          vehicle_transform.location.y,
+    #                          vehicle_transform.location.z)
+    # vec_waypoint = hd_map.get_waypoint(vec_loc,
+    #                                    project_to_road=True,
+    #                                    lane_type=carla.LaneType.Driving)
+    # obs_loc = carla.Location(obstacle_pos.x,
+    #                          obstacle_pos.y,
+    #                          obstacle_pos.z)
+    # obs_waypoint = hd_map.get_waypoint(obs_loc)
     return True
 
 

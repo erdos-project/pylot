@@ -194,7 +194,8 @@ class ERDOSAgentOperator(Op):
                 speed_factor_v = min(speed_factor_v, new_speed_factor_v)
 
         for obs_ped_pos in pedestrians:
-            if pylot.control.utils.is_pedestrian_hitable(obs_ped_pos):
+            if pylot.control.utils.is_pedestrian_hitable(
+                    vehicle_transform, obs_ped_pos):
                 new_speed_factor_p = pylot.control.utils.stop_pedestrian(
                     vehicle_transform,
                     obs_ped_pos,

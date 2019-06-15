@@ -3,10 +3,15 @@ import math
 import numpy as np
 from pid_controller.pid import PID
 import threading
+import time
 
+import carla
+
+# ERDOS imports
 from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging
+from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
+# Pylot imports
 from pylot.control.messages import ControlMessage
 import pylot.control.utils
 import pylot.simulation.utils
@@ -24,6 +29,7 @@ class LidarERDOSAgentOperator(Op):
         self._flags = flags
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+        self._map = None
         self._pid = PID(p=self._flags.pid_p,
                         i=self._flags.pid_i,
                         d=self._flags.pid_d)
@@ -58,6 +64,9 @@ class LidarERDOSAgentOperator(Op):
         input_streams.filter(
             pylot.utils.is_lidar_stream).add_callback(
                 LidarERDOSAgentOperator.on_lidar_update)
+        input_streams.filter(
+            pylot.utils.is_open_drive_stream).add_callback(
+                LidarERDOSAgentOperator.on_opendrive_map)
 
         input_streams.add_completion_callback(
             LidarERDOSAgentOperator.on_notification)
@@ -67,12 +76,7 @@ class LidarERDOSAgentOperator(Op):
         return [pylot.utils.create_control_stream()]
 
     def on_notification(self, msg):
-        can_bus_msg = None
-        waypoint_msg = None
-        pc_msg = None
-        tl_output = None
-        obstacles = None
-
+        start_time = time.time()
         with self._lock:
             can_bus_msg = self._can_bus_msgs.popleft()
             waypoint_msg = self._waypoint_msgs.popleft()
@@ -92,7 +96,9 @@ class LidarERDOSAgentOperator(Op):
         wp_vector = waypoint_msg.wp_vector
         wp_angle_speed = waypoint_msg.wp_angle_speed
         target_speed = waypoint_msg.target_speed
-        point_cloud = pc_msg.point_cloud.tolist()
+        point_cloud = pc_msg.point_cloud
+        # Get only the points that are in front.
+        point_cloud = point_cloud[np.where(point_cloud[:, 2] > 0.0)]
 
         traffic_lights = self.__transform_tl_output(
             tl_output, point_cloud, vehicle_transform)
@@ -116,6 +122,12 @@ class LidarERDOSAgentOperator(Op):
         control_msg = self.get_control_message(
             wp_angle, wp_angle_speed, speed_factor,
             vehicle_speed, target_speed, msg.timestamp)
+
+        # Get runtime in ms.
+        runtime = (time.time() - start_time) * 1000
+        self._csv_logger.info('{},{},"{}",{}'.format(
+            time_epoch_ms(), self.name, msg.timestamp, runtime))
+
         self.get_output_stream('control_stream').send(control_msg)
 
     def on_waypoints_update(self, msg):
@@ -142,6 +154,10 @@ class LidarERDOSAgentOperator(Op):
         self._logger.info("Lidar update at {}".format(msg.timestamp))
         with self._lock:
             self._point_clouds.append(msg)
+
+    def on_opendrive_map(self, msg):
+        assert self._map is None, 'Already receveid opendrive map'
+        self._map = carla.Map('challenge', msg.data)
 
     def execute(self):
         self.spin()
@@ -217,7 +233,8 @@ class LidarERDOSAgentOperator(Op):
                 speed_factor_v = min(speed_factor_v, new_speed_factor_v)
 
         for obs_ped_pos in pedestrians:
-            if pylot.control.utils.is_pedestrian_hitable(obs_ped_pos):
+            if pylot.control.utils.is_pedestrian_hitable(
+                    vehicle_transform, obs_ped_pos):
                 new_speed_factor_p = pylot.control.utils.stop_pedestrian(
                     vehicle_transform,
                     obs_ped_pos,
