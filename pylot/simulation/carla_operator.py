@@ -6,12 +6,11 @@ import carla
 # ERDOS specific imports.
 from erdos.op import Op
 from erdos.timestamp import Timestamp
-from erdos.data_stream import DataStream
 from erdos.utils import frequency, setup_logging, setup_csv_logging
 from erdos.message import Message, WatermarkMessage
 
 import pylot.utils
-from pylot.simulation.carla_utils import get_weathers, get_world, reset_world
+from pylot.simulation.carla_utils import get_ground_data, get_weathers, get_world, reset_world
 import pylot.simulation.messages
 from pylot.simulation.utils import to_erdos_transform
 import pylot.simulation.utils
@@ -259,21 +258,12 @@ class CarlaOperator(Op):
         # Get all the actors in the simulation.
         actor_list = self._world.get_actors()
 
-        vec_actors = actor_list.filter('vehicle.*')
-        vehicles = self.__convert_vehicle_actors(vec_actors)
-
-        pedestrian_actors = actor_list.filter('*walker*')
-        pedestrians = self.__convert_pedestrian_actors(pedestrian_actors)
-
-        tl_actors = actor_list.filter('traffic.traffic_light*')
-        traffic_lights = self.__convert_traffic_light_actors(tl_actors)
-
-        speed_limit_actors = actor_list.filter('traffic.speed_limit*')
-        speed_limits = self.__convert_speed_limit_actors(speed_limit_actors)
-
-        traffic_stop_actors = actor_list.filter('traffic.stop')
-        traffic_stops = self.__convert_traffic_stop_actors(traffic_stop_actors)
-        # TODO(ionel): Send traffic stops.
+        (vehicles,
+         pedestrians,
+         traffic_lights,
+         speed_limits,
+         traffic_stops) = get_ground_data(actor_list)
+        # TODO(ionel): Send traffic stops data as well.
 
         vehicles_msg = pylot.simulation.messages.GroundVehiclesMessage(
             vehicles, timestamp)
@@ -291,60 +281,3 @@ class CarlaOperator(Op):
             speed_limits, timestamp)
         self.get_output_stream('traffic_signs').send(traffic_signs_msg)
         self.get_output_stream('traffic_signs').send(watermark_msg)
-
-    def __convert_vehicle_actors(self, vec_actors):
-        vehicles = []
-        # TODO(ionel): Handle hero vehicle!
-        for vec_actor in vec_actors:
-            loc = vec_actor.get_location()
-            pos = pylot.simulation.utils.Location(loc.x, loc.y, loc.z)
-            transform = to_erdos_transform(vec_actor.get_transform())
-            bounding_box = pylot.simulation.utils.BoundingBox(
-                vec_actor.bounding_box)
-            speed = pylot.simulation.utils.get_speed(vec_actor.get_velocity())
-            vehicle = pylot.simulation.utils.Vehicle(
-                pos, transform, bounding_box, speed)
-            vehicles.append(vehicle)
-        return vehicles
-
-    def __convert_pedestrian_actors(self, pedestrian_actors):
-        pedestrians = []
-        for ped_actor in pedestrian_actors:
-            loc = ped_actor.get_location()
-            pos = pylot.simulation.utils.Location(loc.x, loc.y, loc.z)
-            transform = to_erdos_transform(ped_actor.get_transform())
-            speed = pylot.simulation.utils.get_speed(ped_actor.get_velocity())
-            # TODO(ionel): Pedestrians do not have a bounding box in 0.9.5.
-            pedestrian = pylot.simulation.utils.Pedestrian(
-                    ped_actor.id, pos, transform, None, speed)
-            pedestrians.append(pedestrian)
-        return pedestrians
-
-    def __convert_traffic_light_actors(self, tl_actors):
-        traffic_lights = []
-        for tl_actor in tl_actors:
-            loc = tl_actor.get_location()
-            pos = pylot.simulation.utils.Location(loc.x, loc.y, loc.z)
-            transform = to_erdos_transform(tl_actor.get_transform())
-            traffic_light = pylot.simulation.utils.TrafficLight(
-                pos, transform, tl_actor.get_state())
-            traffic_lights.append(traffic_light)
-        return traffic_lights
-
-    def __convert_speed_limit_actors(self, speed_limit_actors):
-        speed_limits = []
-        for ts_actor in speed_limit_actors:
-            loc = ts_actor.get_location()
-            pos = pylot.simulation.utils.Location(loc.x, loc.y, loc.z)
-            transform = to_erdos_transform(ts_actor.get_transform())
-            speed_limit = int(ts_actor.type_id.split('.')[-1])
-            speed_sign = pylot.simulation.utils.SpeedLimitSign(
-                pos, transform, speed_limit)
-            speed_limits.append(speed_sign)
-        return speed_limits
-
-    def __convert_traffic_stop_actors(self, traffic_stop_actors):
-        for ts_actor in traffic_stop_actors:
-            loc = ts_actor.get_location()
-            pos = pylot.simulation.utils.Location(loc.x, loc.y, loc.z)
-            transform = to_erdos_transform(ts_actor.get_transform())

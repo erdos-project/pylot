@@ -74,6 +74,20 @@ def create_carla_op(graph):
     return carla_op
 
 
+def create_carla_replay_op(graph):
+    from pylot.simulation.carla_replay_operator import CarlaReplayOperator
+    carla_replay_op = graph.add(
+        CarlaReplayOperator,
+        name='carla_replay',
+        init_args={
+            'flags': FLAGS,
+            'log_file_name': FLAGS.log_file_name,
+            'csv_file_name': FLAGS.csv_log_file_name
+
+        })
+    return carla_replay_op
+
+
 def create_camera_driver_op(graph, camera_setup):
     from pylot.simulation.camera_driver_operator import CameraDriverOperator
     camera_op = graph.add(
@@ -98,7 +112,10 @@ def create_driver_ops(graph, camera_setups, lidar_setups):
         camera_ops = [carla_op]
         lidar_ops = [carla_op]
     elif '0.9' in FLAGS.carla_version:
-        carla_op = create_carla_op(graph)
+        if FLAGS.carla_replay_file == '':
+            carla_op = create_carla_op(graph)
+        else:
+            carla_op = create_carla_replay_op(graph)
         camera_ops = [create_camera_driver_op(graph, cs)
                       for cs in camera_setups]
         lidar_ops = [create_lidar_driver_op(graph, ls)

@@ -146,6 +146,13 @@ flags.DEFINE_integer('carla_camera_image_width', 800,
                      'Carla camera image width')
 flags.DEFINE_integer('carla_camera_image_height', 600,
                      'Carla camera image height')
+flags.DEFINE_string('carla_replay_file', '', 'Path to the Carla log file')
+flags.DEFINE_float('carla_replay_start_time', 0.0,
+                   'The time at which to start replaying')
+flags.DEFINE_float('carla_replay_duration', 0.0,
+                   'The duration of the replay run')
+flags.DEFINE_integer('carla_replay_id', 0,
+                     'The actor id to follow during the replay')
 
 # Estimate depth using two cameras.
 flags.DEFINE_bool('depth_estimation', False,
