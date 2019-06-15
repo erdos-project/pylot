@@ -126,6 +126,13 @@ class DetectedObject(object):
                     txt_font, 0.5, (0, 0, 0), thickness=1,
                     lineType=cv2.LINE_AA)
 
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return 'DetectedObject(label: {}, confidence: {}, bbox: {})'.format(
+            self.label, self.confidence, self.corners)
+
 
 def compute_miou(bboxes1, bboxes2):
     """ Compute mIoU for two lists of bounding boxes."""

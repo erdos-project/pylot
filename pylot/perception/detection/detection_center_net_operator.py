@@ -53,6 +53,7 @@ class DetectionCenterNetOperator(Op):
         image_np = msg.frame
         results = self._detector.run(image_np)
         detected_objs = self.__get_output_bboxes(results['results'])
+        self._logger.info('Detected objects: {}'.format(detected_objs))
         if self._flags.visualize_detector_output:
             visualize_bboxes(self.name, msg.timestamp, image_np, detected_objs,
                              self._bbox_colors)

@@ -5,7 +5,6 @@ import time
 from pid_controller.pid import PID
 
 from erdos.op import Op
-from erdos.timestamp import Timestamp
 from erdos.utils import frequency, setup_csv_logging, setup_logging, time_epoch_ms
 
 from pylot.control.messages import ControlMessage
@@ -81,12 +80,17 @@ class ERDOSAgentOperator(Op):
 
         # Transform traffic light output.
         tl_det_msg = self._traffic_lights.popleft()
-        traffic_lights = self.__transform_tl_output(tl_det_msg, depth_msg)
+        traffic_lights = self.__transform_tl_output(
+            tl_det_msg, depth_msg, vehicle_transform)
 
         # Transform detector output.
         det_msg = self._obstacles.popleft()
         (pedestrians, vehicles) = self.__transform_detector_output(
-            det_msg, depth_msg)
+            det_msg, depth_msg, vehicle_transform)
+
+        self._logger.info('Current location {}'.format(vehicle_transform))
+        self._logger.info('Pedestrians {}'.format(pedestrians))
+        self._logger.info('Vehicles {}'.format(vehicles))
 
         self._logger.info("Timestamps {} {} {} {}".format(
             can_bus_msg.timestamp,
@@ -135,33 +139,37 @@ class ERDOSAgentOperator(Op):
     def execute(self):
         self.spin()
 
-    def __transform_tl_output(self, tl_msg, depth_msg):
+    def __transform_tl_output(self, tl_msg, depth_msg, vehicle_transform):
         traffic_lights = []
         for tl in tl_msg.detected_objects:
             x = (tl.corners[0] + tl.corners[1]) / 2
             y = (tl.corners[2] + tl.corners[3]) / 2
-            pos = get_3d_world_position_with_depth_map(x, y, depth_msg)
+            pos = get_3d_world_position_with_depth_map(
+                x, y, depth_msg, vehicle_transform)
             state = 0
             if tl.label is not 'Green':
                 state = 1
             traffic_lights.append((pos, state))
         return traffic_lights
 
-    def __transform_detector_output(self, det_msg, depth_msg):
+    def __transform_detector_output(
+            self, det_msg, depth_msg, vehicle_transform):
         vehicles = []
         pedestrians = []
         for detected_obj in det_msg.detected_objects:
             x = (detected_obj.corners[0] + detected_obj.corners[1]) / 2
             y = (detected_obj.corners[2] + detected_obj.corners[3]) / 2
             if detected_obj.label == 'person':
-                pos = get_3d_world_position_with_depth_map(x, y, depth_msg)
+                pos = get_3d_world_position_with_depth_map(
+                    x, y, depth_msg, vehicle_transform)
                 pedestrians.append(pos)
             elif (detected_obj.label == 'car' or
                   detected_obj.label == 'bicycle' or
                   detected_obj.label == 'motorcycle' or
                   detected_obj.label == 'bus' or
                   detected_obj.label == 'truck'):
-                pos = get_3d_world_position_with_depth_map(x, y, depth_msg)
+                pos = get_3d_world_position_with_depth_map(
+                    x, y, depth_msg, vehicle_transform)
                 vehicles.append(pos)
         return (pedestrians, vehicles)
 

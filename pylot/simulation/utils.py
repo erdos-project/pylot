@@ -324,29 +324,31 @@ def lidar_to_unreal_transform(lidar_transform):
     return lidar_transform * to_unreal_transform
 
 
-def get_3d_world_position_with_depth_map(x, y, depth_msg):
+def get_3d_world_position_with_depth_map(x, y, depth_msg, vehicle_transform):
     far = 1.0
     point_cloud = depth_to_local_point_cloud(depth_msg, max_depth=far)
     # Transform the points in 3D world coordinates.
-    camera_unreal_transform = camera_to_unreal_transform(
-        depth_msg.transform)
-    point_cloud = camera_unreal_transform.transform_points(point_cloud)
+    to_world_transform = depth_msg.transform * vehicle_transform
+    point_cloud = to_world_transform.transform_points(point_cloud)
     (x, y, z) = point_cloud.tolist()[y * depth_msg.width + x]
     return Location(x, y, z)
 
-def batch_get_3d_world_position_with_depth_map(xs, ys, depth_msg):
+
+def batch_get_3d_world_position_with_depth_map(
+        xs, ys, depth_msg, vehicle_transform):
     assert len(xs) == len(ys)
     far = 1.0
     point_cloud = depth_to_local_point_cloud(depth_msg, max_depth=far)
     # Transform the points in 3D world coordinates.
-    camera_unreal_transform = camera_to_unreal_transform(
-        depth_msg.transform)
-    point_cloud = camera_unreal_transform.transform_points(point_cloud)
+    to_world_transform = vehicle_transform * depth_msg.transform
+    point_cloud = to_world_transform.transform_points(point_cloud)
     point_cloud = point_cloud.tolist()
-    locs = [point_cloud[ys[i] * depth_msg.width + xs[i]] for i in range(len(xs))]
+    locs = [point_cloud[ys[i] * depth_msg.width + xs[i]]
+            for i in range(len(xs))]
     return [Location(loc[0], loc[1], loc[2]) for loc in locs]
 
-def find_depth(x, y, point_cloud):
+
+def find_depth(x, y, point_cloud, max_x_dist=2, max_y_dist=2):
     closest_point = None
     dist = 1000000
     # Find the closest lidar point to the point we're trying to get depth for.
@@ -356,7 +358,7 @@ def find_depth(x, y, point_cloud):
             continue
         x_dist = abs(x - px / pz)
         y_dist = abs(y - py / pz)
-        if x_dist < 0.01 and y_dist < 0.01:
+        if x_dist < max_x_dist and y_dist < max_y_dist:
             if y_dist + x_dist < dist:
                 closest_point = (px, py, pz)
                 dist = y_dist + x_dist
@@ -367,7 +369,7 @@ def find_depth(x, y, point_cloud):
 
 
 def get_3d_world_position_with_point_cloud(
-        x, y, pc, camera_transform, width, height, fov):
+        x, y, pc, camera_transform, width, height, fov, vehicle_transform):
     intrinsic_mat = create_intrinsic_matrix(width, height, fov)
     u = width - 1 - x
     v = height - 1 - y
@@ -376,29 +378,12 @@ def get_3d_world_position_with_point_cloud(
     if depth:
         scale = depth[2] / p3d[2]
         p3d *= np.array([scale])
-        camera_unreal_transform = camera_to_unreal_transform(camera_transform)
-        point_cloud = camera_unreal_transform.transform_points(p3d.transpose())
+        to_world_transform = camera_transform * vehicle_transform
+        point_cloud = to_world_transform.transform_points(p3d.transpose())
         (x, y, z) = point_cloud.tolist()[0]
         return Location(x, y, z)
     else:
         None
-
-
-def get_3d_world_position(x, y, z, camera_transform, width, height, fov):
-    far = 1000.0  # max depth in meters.
-    intrinsic_mat = create_intrinsic_matrix(width, height, fov)
-    u = width - 1 - x
-    v = height - 1 - y
-    p2d = np.array([[u], [v], [1]])
-    p3d = np.dot(inv(intrinsic_mat), p2d)
-    normalized_depth = np.array([[z]])
-    p3d *= normalized_depth * far
-    p3d = np.transpose(p3d)
-    camera_unreal_transform = camera_to_unreal_transform(
-            camera_transform)
-    point_cloud = camera_unreal_transform.transform_points(p3d)
-    (x, y, z) = point_cloud.tolist()[0]
-    return Location(x, y, z)
 
 
 def get_camera_intrinsic_and_transform(image_size=(800, 600),

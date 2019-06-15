@@ -99,12 +99,9 @@ class DetectionOperator(Op):
                 boxes.append(res_boxes[i])
                 scores.append(res_scores[i])
 
-        self._logger.info('Object boxes {}'.format(boxes))
-        self._logger.info('Object scores {}'.format(scores))
-        self._logger.info('Object labels {}'.format(labels))
-
         detected_objects = self.__convert_to_detected_objs(
             boxes, scores, labels, msg.height, msg.width)
+        self._logger.info('Detected objects: {}'.format(detected_objects))
 
         if self._flags.visualize_detector_output:
             visualize_bboxes(self.name, msg.timestamp, image_np,

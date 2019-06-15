@@ -383,7 +383,8 @@ class ERDOSAgent(AutonomousAgent):
                 DataStream(name=name,
                            uid=name,
                            labels={'sensor_type': 'camera',
-                                   'camera_type': 'sensor.camera.rgb'}))
+                                   'camera_type': 'sensor.camera.rgb',
+                                   'ground': 'true'}))
             self._camera_streams[name] = stream
 
         self._can_bus_stream = ROSOutputDataStream(

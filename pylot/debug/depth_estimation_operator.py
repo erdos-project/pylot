@@ -5,7 +5,7 @@ from erdos.op import Op
 from erdos.utils import setup_logging
 
 from pylot.utils import is_camera_stream, is_can_bus_stream, is_depth_camera_stream, is_lidar_stream
-from pylot.simulation.utils import get_3d_world_position, depth_to_local_point_cloud
+from pylot.simulation.utils import depth_to_local_point_cloud
 
 
 class DepthEstimationOp(Op):
@@ -59,7 +59,6 @@ class DepthEstimationOp(Op):
                             point_cloud_msg):
         car_transform = vehicle_transform * point_cloud_msg.transform
         points = car_transform.transform_points(point_cloud_msg.point_cloud)
-        #get_3d_world_position(frame_x, frame_y, depth_msg, vehicle_transform)
 
     def compare_depth_helper(self,
                              vehicle_transform,

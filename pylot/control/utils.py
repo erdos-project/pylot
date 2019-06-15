@@ -5,7 +5,10 @@ import numpy as np
 def get_world_vec_dist(x_dst, y_dst, x_src, y_src):
     vec = np.array([x_dst, y_dst] - np.array([x_src, y_src]))
     dist = math.sqrt(vec[0]**2 + vec[1]**2)
-    return vec / dist, dist
+    if abs(dist) < 0.00001:
+        return vec, dist
+    else:
+        return vec / dist, dist
 
 
 def get_angle(vec_dst, vec_src):

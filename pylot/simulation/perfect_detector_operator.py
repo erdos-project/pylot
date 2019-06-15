@@ -142,7 +142,10 @@ class PerfectDetectorOp(Op):
 
         det_traffic_signs = self.__get_traffic_signs(segmented_msg.frame)
         det_traffic_lights = self.__get_traffic_lights(
-            traffic_light_msg.traffic_lights, vehicle_transform, depth_msg, segmented_msg.frame)
+            traffic_light_msg.traffic_lights,
+            vehicle_transform,
+            depth_msg,
+            segmented_msg.frame)
         # Send the detected obstacles.
         output_msg = DetectorMessage(det_ped + det_vec + det_traffic_signs + \
                                      det_traffic_lights,
@@ -230,7 +233,11 @@ class PerfectDetectorOp(Op):
                     for bbox in bboxes]
         return det_objs
 
-    def __get_traffic_lights(self, traffic_lights, vehicle_transform, depth_msg, segmented_frame):
+    def __get_traffic_lights(self,
+                             traffic_lights,
+                             vehicle_transform,
+                             depth_msg,
+                             segmented_frame):
         # Get 3d world positions for all traffic signs (some of which are traffic lights).
         traffic_signs_frame = get_traffic_sign_pixels(segmented_frame)
         bboxes = get_bounding_boxes_from_segmented(traffic_signs_frame)
@@ -238,7 +245,8 @@ class PerfectDetectorOp(Op):
         # Get the positions of the bounding box centers.
         x_mids = [(bbox[0] + bbox[1]) / 2 for bbox in bboxes]
         y_mids = [(bbox[2] + bbox[3]) / 2 for bbox in bboxes]
-        pos_3d = batch_get_3d_world_position_with_depth_map(x_mids, y_mids, depth_msg)
+        pos_3d = batch_get_3d_world_position_with_depth_map(
+            x_mids, y_mids, depth_msg, vehicle_transform)
         sign_bboxes = zip(pos_3d, bboxes)
         light_bboxes = []
         for tl in traffic_lights:
@@ -248,10 +256,13 @@ class PerfectDetectorOp(Op):
         tl_bboxes = match_bboxes_with_traffic_lights(sign_bboxes, light_bboxes)
         det_objs = []
         for bbox, color in tl_bboxes:
-            if color == 0: # Red
-                det_objs.append(DetectedObject(bbox, 1.0, 'red traffic light'))
-            if color == 1: # Yellow
-                det_objs.append(DetectedObject(bbox, 1.0, 'yellow traffic light'))
-            if color == 2: # Green
-                det_objs.append(DetectedObject(bbox, 1.0, 'green traffic light'))
+            if color == 0:  # Red
+                det_objs.append(
+                    DetectedObject(bbox, 1.0, 'red traffic light'))
+            if color == 1:  # Yellow
+                det_objs.append(
+                    DetectedObject(bbox, 1.0, 'yellow traffic light'))
+            if color == 2:  # Green
+                det_objs.append(
+                    DetectedObject(bbox, 1.0, 'green traffic light'))
         return det_objs

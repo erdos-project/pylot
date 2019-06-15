@@ -95,12 +95,10 @@ class TrafficLightDetOperator(Op):
         boxes = boxes[0][:num_detections]
         scores = scores[0][:num_detections]
 
-        self._logger.info('Traffic light boxes {}'.format(boxes))
-        self._logger.info('Traffic light scores {}'.format(scores))
-        self._logger.info('Traffic light labels {}'.format(labels))
-
         traffic_lights = self.__convert_to_detected_tl(
             boxes, scores, labels, msg.height, msg.width)
+
+        self._logger.info('Detected traffic lights {}'.format(traffic_lights))
 
         if self._flags.visualize_traffic_light_output:
             visualize_bboxes(self.name, msg.timestamp, rgb_to_bgr(image_np),

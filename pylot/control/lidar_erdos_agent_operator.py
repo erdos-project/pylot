@@ -92,12 +92,12 @@ class LidarERDOSAgentOperator(Op):
         wp_vector = waypoint_msg.wp_vector
         wp_angle_speed = waypoint_msg.wp_angle_speed
         target_speed = waypoint_msg.target_speed
-        #point_cloud = self.__point_cloud_to_world_coordinates(pc_msg)
         point_cloud = pc_msg.point_cloud.tolist()
 
-        traffic_lights = self.__transform_tl_output(tl_output, point_cloud)
+        traffic_lights = self.__transform_tl_output(
+            tl_output, point_cloud, vehicle_transform)
         (pedestrians, vehicles) = self.__transform_detector_output(
-            obstacles, point_cloud)
+            obstacles, point_cloud, vehicle_transform)
 
         self._logger.info('Current location {}'.format(vehicle_transform))
         self._logger.info('Pedestrians {}'.format(pedestrians))
@@ -117,11 +117,6 @@ class LidarERDOSAgentOperator(Op):
             wp_angle, wp_angle_speed, speed_factor,
             vehicle_speed, target_speed, msg.timestamp)
         self.get_output_stream('control_stream').send(control_msg)
-
-    def __point_cloud_to_world_coordinates(self, point_cloud_msg):
-        transform = pylot.simulation.utils.lidar_to_unreal_transform(
-            point_cloud_msg.transform)
-        return transform.transform_points(point_cloud_msg.point_cloud).tolist()
 
     def on_waypoints_update(self, msg):
         self._logger.info("Waypoints update at {}".format(msg.timestamp))
@@ -151,25 +146,26 @@ class LidarERDOSAgentOperator(Op):
     def execute(self):
         self.spin()
 
-    def __transform_to_3d(self, x, y, point_cloud):
+    def __transform_to_3d(self, x, y, point_cloud, vehicle_transform):
         pos = get_3d_world_position_with_point_cloud(x,
                                                      y,
                                                      point_cloud,
                                                      self._camera_transform,
                                                      self._camera_width,
                                                      self._camera_height,
-                                                     self._camera_fov)
+                                                     self._camera_fov,
+                                                     vehicle_transform)
         if pos is None:
             self._logger.error(
                 'Could not find lidar point for {} {}'.format(x, y))
         return pos
 
-    def __transform_tl_output(self, tls, point_cloud):
+    def __transform_tl_output(self, tls, point_cloud, vehicle_transform):
         traffic_lights = []
         for tl in tls.detected_objects:
             x = (tl.corners[0] + tl.corners[1]) / 2
             y = (tl.corners[2] + tl.corners[3]) / 2
-            pos = self.__transform_to_3d(x, y, point_cloud)
+            pos = self.__transform_to_3d(x, y, point_cloud, vehicle_transform)
             if pos:
                 state = 0
                 if tl.label is not 'Green':
@@ -177,14 +173,16 @@ class LidarERDOSAgentOperator(Op):
                 traffic_lights.append((pos, state))
         return traffic_lights
 
-    def __transform_detector_output(self, obstacles, point_cloud):
+    def __transform_detector_output(
+            self, obstacles, point_cloud, vehicle_transform):
         vehicles = []
         pedestrians = []
         for detected_obj in obstacles.detected_objects:
             x = (detected_obj.corners[0] + detected_obj.corners[1]) / 2
             y = (detected_obj.corners[2] + detected_obj.corners[3]) / 2
             if detected_obj.label == 'person':
-                pos = self.__transform_to_3d(x, y, point_cloud)
+                pos = self.__transform_to_3d(
+                    x, y, point_cloud, vehicle_transform)
                 if pos:
                     pedestrians.append(pos)
             elif (detected_obj.label == 'car' or
@@ -192,7 +190,8 @@ class LidarERDOSAgentOperator(Op):
                   detected_obj.label == 'motorcycle' or
                   detected_obj.label == 'bus' or
                   detected_obj.label == 'truck'):
-                pos = self.__transform_to_3d(x, y, point_cloud)
+                pos = self.__transform_to_3d(
+                    x, y, point_cloud, vehicle_transform)
                 if pos:
                     vehicles.append(pos)
         return (pedestrians, vehicles)
