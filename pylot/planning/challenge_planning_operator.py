@@ -63,11 +63,9 @@ class ChallengePlanningOperator(Op):
         self.get_output_stream('waypoints').send(output_msg)
 
     def on_opendrive_map(self, msg):
-        assert self._map is None, 'Already receveid opendrive map'
         self._map = carla.Map('test', msg.data)
 
     def on_global_trajectory(self, msg):
-        assert self._waypoints is None, 'Already received global trajectory'
         self._waypoints = deque()
         for waypoint_option in msg.data:
             self._waypoints.append(waypoint_option)

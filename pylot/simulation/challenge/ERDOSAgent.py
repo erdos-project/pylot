@@ -32,6 +32,11 @@ CENTER_CAMERA_NAME = 'front_center_camera'
 LEFT_CAMERA_NAME = 'front_left_camera'
 RIGHT_CAMERA_NAME = 'front_right_camera'
 
+# XXX(ionel): Hacks to work around issues with ROS init_node().
+# Variable used to check if the Agent ROS node has already been initialized.
+ROS_NODE_INITIALIZED = False
+# Variable use to denote top watermark. It is increased by one before each run.
+TOP_TIME = sys.maxint - 10000
 
 flags.DEFINE_integer('track', 3, 'Track to execute')
 
@@ -122,35 +127,10 @@ def add_depth_estimation_op(graph, scenario_input_op):
 
 class ERDOSAgent(AutonomousAgent):
 
-    def setup(self, path_to_conf_file):
-        flags.FLAGS([__file__, '--flagfile={}'.format(path_to_conf_file)])
-        if FLAGS.track == 1:
-            self.track = Track.ALL_SENSORS
-        elif FLAGS.track == 2:
-            self.track = Track.CAMERAS
-        elif FLAGS.track == 3:
-            self.track = Track.ALL_SENSORS_HDMAP_WAYPOINTS
-        else:
-            print('Unexpected track {}'.format(FLAGS.track))
-
-        self.__setup_sensors()
-        self._camera_streams = {}
-        self._lock = threading.Lock()
-        # Planning related attributes
-        self._waypoints = None
-        self._sent_open_drive_data = False
-        self._open_drive_data = None
-
-        # TODO(ionel): We should have a top watermark.
-        self._top_watermark = WatermarkMessage(
-            Timestamp(coordinates=[sys.maxint]))
-
-        # Set up graph
-        self.graph = erdos.graph.get_current_graph()
-
+    def __initialize_data_flow(self, input_streams):
         # Create an operator to which we connect all the input streams we
         # publish data from this script.
-        (scenario_input_op, input_streams) = self.__create_scenario_input_op()
+        scenario_input_op = self.__create_scenario_input_op(input_streams)
 
         visualization_ops = add_visualization_operators(
             self.graph, CENTER_CAMERA_NAME)
@@ -181,14 +161,57 @@ class ERDOSAgent(AutonomousAgent):
         # input data into the data-flow graph.
         self.graph.execute(FLAGS.framework, blocking=False)
 
+    def setup(self, path_to_conf_file):
+        flags.FLAGS([__file__, '--flagfile={}'.format(path_to_conf_file)])
+        if FLAGS.track == 1:
+            self.track = Track.ALL_SENSORS
+        elif FLAGS.track == 2:
+            self.track = Track.CAMERAS
+        elif FLAGS.track == 3:
+            self.track = Track.ALL_SENSORS_HDMAP_WAYPOINTS
+        else:
+            print('Unexpected track {}'.format(FLAGS.track))
+
+        self.__setup_sensors()
+        self._camera_streams = {}
+        self._lock = threading.Lock()
+        # Planning related attributes
+        self._waypoints = None
+        self._sent_open_drive_data = False
+        self._open_drive_data = None
+
+        # TODO(ionel): We should have a top watermark.
+        global TOP_TIME
+        self._top_watermark = WatermarkMessage(
+            Timestamp(coordinates=[TOP_TIME]))
+        TOP_TIME += 1
+
+        # Set up graph
+        self.graph = erdos.graph.get_current_graph()
+
+        # The publishers must be re-created every time the Agent object
+        # is constructed.
+        input_streams = self.__create_input_streams()
+
+        global ROS_NODE_INITIALIZED
+        # We only initialize the data-flow once. On the first run.
+        # We do not re-initialize it before each run because ROS does not
+        # support several init_node calls from the same process or from
+        # a process started with Python multiprocess.
+        if not ROS_NODE_INITIALIZED:
+            self.__initialize_data_flow(input_streams)
+            ROS_NODE_INITIALIZED = True
+
         # Initialize the driver script as a ROS node so that we can receive
         # data back from the data-flow.
         rospy.init_node('erdos_driver', anonymous=True)
-        # Subscribe to the control stream
-        rospy.Subscriber('default/lidar_erdos_agent/control_stream',
-                         String,
-                         callback=self.__on_control_msg,
-                         queue_size=None)
+
+        # Subscribe to the control stream.
+        self._subscriber = rospy.Subscriber(
+            'default/lidar_erdos_agent/control_stream',
+            String,
+            callback=self.__on_control_msg,
+            queue_size=None)
         # Setup all the input streams.
         for input_stream in input_streams:
             input_stream.setup()
@@ -267,6 +290,18 @@ class ERDOSAgent(AutonomousAgent):
             time.sleep(0.01)
 
         return self._control
+
+    def destroy(self):
+        """
+        Destroy (clean-up) the agent
+        :return:
+        """
+        # Unregister the subscriber. We will register it again when
+        # a new Agent object is created.
+        self._subscriber.unregister()
+        # We do not kill the agent driver ROS node.
+        # rospy.signal_shutdown("Completed track")
+        time.sleep(5)
 
     def send_waypoints(self, timestamp):
         # Send once the global waypoints.
@@ -377,7 +412,7 @@ class ERDOSAgent(AutonomousAgent):
             self._camera_names.add(LEFT_CAMERA_NAME)
             self._camera_names.add(RIGHT_CAMERA_NAME)
 
-    def __create_scenario_input_op(self):
+    def __create_input_streams(self):
         for name in self._camera_names:
             stream = ROSOutputDataStream(
                 DataStream(name=name,
@@ -415,8 +450,10 @@ class ERDOSAgent(AutonomousAgent):
                            uid='lidar',
                            labels={'sensor_type': 'sensor.lidar.ray_cast'}))
             input_streams.append(self._point_cloud_stream)
+        return input_streams
 
+    def __create_scenario_input_op(self, input_streams):
         input_op = self.graph.add(NoopOp,
                                   name='scenario_input',
                                   input_streams=input_streams)
-        return (input_op, input_streams)
+        return input_op

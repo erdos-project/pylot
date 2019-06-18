@@ -156,7 +156,6 @@ class LidarERDOSAgentOperator(Op):
             self._point_clouds.append(msg)
 
     def on_opendrive_map(self, msg):
-        assert self._map is None, 'Already receveid opendrive map'
         self._map = carla.Map('challenge', msg.data)
 
     def execute(self):
