@@ -21,6 +21,8 @@ class ChallengePlanningOperator(Op):
         self._map = None
         self._waypoints = None
         self._vehicle_transform = None
+        self._wp_num_steer = 9  # use 9th waypoint for steering
+        self._wp_num_speed = 4  # use 4th waypoint for speed
 
     @staticmethod
     def setup_streams(input_streams):
@@ -34,11 +36,11 @@ class ChallengePlanningOperator(Op):
 
     def on_can_bus_update(self, msg):
         self._vehicle_transform = msg.data.transform
-        next_waypoint, _ = self.__compute_next_waypoint()
+        next_waypoint_steer, next_waypoint_speed = self.__compute_next_waypoints()
 
         wp_vector, wp_mag = get_world_vec_dist(
-            next_waypoint.location.x,
-            next_waypoint.location.y,
+            next_waypoint_steer.location.x,
+            next_waypoint_steer.location.y,
             self._vehicle_transform.location.x,
             self._vehicle_transform.location.y)
 
@@ -50,16 +52,30 @@ class ChallengePlanningOperator(Op):
         else:
             wp_angle = 0
 
+        wp_vector_speed, wp_speed_mag = get_world_vec_dist(
+            next_waypoint_speed.location.x,
+            next_waypoint_speed.location.y,
+            self._vehicle_transform.location.x,
+            self._vehicle_transform.location.y)
+
+        if wp_speed_mag > 0:
+            wp_angle_speed = get_angle(
+                wp_vector_speed,
+                [self._vehicle_transform.orientation.x,
+                 self._vehicle_transform.orientation.y])
+        else:
+            wp_angle_speed = 0
+
         target_speed = get_target_speed(
-            self._vehicle_transform.location, next_waypoint)
+            self._vehicle_transform.location, next_waypoint_steer)
 
         output_msg = WaypointsMessage(
             msg.timestamp,
-            waypoints=[next_waypoint],
+            waypoints=[next_waypoint_steer],
             target_speed=target_speed,
             wp_angle=wp_angle,
             wp_vector=wp_vector,
-            wp_angle_speed=wp_angle)
+            wp_angle_speed=wp_angle_speed)
         self.get_output_stream('waypoints').send(output_msg)
 
     def on_opendrive_map(self, msg):
@@ -68,11 +84,11 @@ class ChallengePlanningOperator(Op):
     def on_global_trajectory(self, msg):
         self._waypoints = deque()
         for waypoint_option in msg.data:
-            self._waypoints.append(waypoint_option)
+            self._waypoints.append(waypoint_option[0])
 
-    def __compute_next_waypoint(self):
+    def __compute_next_waypoints(self):
         if self._waypoints is None or len(self._waypoints) == 0:
-            return self._vehicle_transform, None
+            return (self._vehicle_transform, self._vehicle_transform)
 
         dist, index = self.__get_closest_waypoint()
         # Waypoints that are before the closest waypoint are irrelevant now.
@@ -84,7 +100,9 @@ class ChallengePlanningOperator(Op):
         if dist < self._min_distance:
             self._waypoints.popleft()
 
-        return self._waypoints[min(len(self._waypoints) - 1, 3)]
+        return (
+            self._waypoints[min(len(self._waypoints) - 1, self._wp_num_steer)],
+            self._waypoints[min(len(self._waypoints) - 1, self._wp_num_speed)])
 
     def __get_closest_waypoint(self):
         min_dist = 10000000
@@ -94,7 +112,7 @@ class ChallengePlanningOperator(Op):
             # We only check the first 10 waypoints.
             if index > 10:
                 break
-            dist = get_distance(waypoint[0].location,
+            dist = get_distance(waypoint.location,
                                 self._vehicle_transform.location)
             if dist < min_dist:
                 min_dist = dist
