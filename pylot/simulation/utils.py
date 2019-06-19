@@ -491,7 +491,8 @@ def get_2d_bbox_from_3d_box(
                                 middle_point[2],
                                 depth_array,
                                 middle_depth_threshold)):
-                (xmin, xmax, ymin, ymax) = select_max_bbox(ends)
+                (xmin, xmax, ymin, ymax) = select_max_bbox(ends, rgb_img_size[0],
+                                                           rgb_img_size[1])
                 width = xmax - xmin
                 height = ymax - ymin
                 # Filter out the small bounding boxes (they're far away).
@@ -519,7 +520,8 @@ def get_2d_bbox_from_3d_box(
                 ]
                 if len(same_depth_points) > 0 and \
                         same_depth_points.count(True) >= 0.4 * len(same_depth_points):
-                    (xmin, xmax, ymin, ymax) = select_max_bbox(ends)
+                    (xmin, xmax, ymin, ymax) = select_max_bbox(ends, rgb_img_size[0],
+                                                               rgb_img_size[1])
                     width = xmax - xmin
                     height = ymax - ymin
                     width = xmax - xmin
@@ -543,7 +545,7 @@ def inside_image(x, y, img_width, img_height):
     return x >= 0 and y >= 0 and x < img_width and y < img_height
 
 
-def select_max_bbox(ends):
+def select_max_bbox(ends, img_width, img_height):
     (xmin, ymin) = tuple(map(int, ends[0][:2]))
     (xmax, ymax) = tuple(map(int, ends[0][:2]))
     corner = tuple(map(int, ends[1][:2]))
@@ -555,6 +557,11 @@ def select_max_bbox(ends):
     ymin = min(ymin, corner[1])
     xmax = max(xmax, corner[0])
     ymax = max(ymax, corner[1])
+    # Make sure box vertices are within the image.
+    xmin = max(xmin, 0)
+    ymin = max(ymin, 0)
+    xmax = min(xmax, img_width - 1)
+    ymax = min(ymax, img_height - 1)
     return (xmin, xmax, ymin, ymax)
 
 
