@@ -36,7 +36,7 @@ RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/pylot
 # Install all the Python dependencies.
 RUN  cd /home/erdos/workspace/pylot/ && pip install -e ./
 # Get the Pylot models and code dependencies.
-RUN sudo apt-get install -y wget
+RUN sudo apt-get update && sudo apt-get install -y wget
 # Install toolkit for Centernet
 RUN sudo apt-get -y install cuda-toolkit-9.0
 RUN cd /home/erdos/workspace/pylot/ && ./install.sh docker

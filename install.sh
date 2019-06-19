@@ -70,7 +70,7 @@ cd ../
 ###### Get the CRV Tracker model and dependencies ######
 ~/.local/bin/gdown http://drive.google.com/uc?id=0B1sg8Yyw1JCDOUNsYkpQTGdLYVU
 mkdir -p conv_reg_vot/vgg_model
-mv models/VGG_16_layers_py3.npz conv_reg_vot/vgg_model/
+mv VGG_16_layers_py3.npz conv_reg_vot/vgg_model/
 pip install --user matplotlib
 sudo apt-get -y install python-tk
 
