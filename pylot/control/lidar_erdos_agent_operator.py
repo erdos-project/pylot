@@ -264,7 +264,7 @@ class LidarERDOSAgentOperator(Op):
             'stop_vehicle': speed_factor_v,
             'stop_traffic_lights': speed_factor_tl
         }
-        self._logger.info('Aggent speed factors {}'.format(state))
+        self._logger.info('Agent speed factors {}'.format(state))
         return speed_factor, state
 
     def __get_steer(self, wp_angle):

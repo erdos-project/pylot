@@ -316,6 +316,14 @@ def camera_to_unreal_transform(camera_transform):
     return camera_transform * to_unreal_transform
 
 
+def unreal_to_camera_transform(transform):
+    to_camera_transform = Transform(
+        Location(0, 0, 0),
+        Rotation(pitch=0, yaw=-90, roll=90),
+        scale=Scale(x=-1))
+    return transform * to_camera_transform
+
+
 def lidar_to_unreal_transform(lidar_transform):
     to_unreal_transform = Transform(
         Location(0, 0, 0),
@@ -328,7 +336,8 @@ def get_3d_world_position_with_depth_map(x, y, depth_msg, vehicle_transform):
     far = 1.0
     point_cloud = depth_to_local_point_cloud(depth_msg, max_depth=far)
     # Transform the points in 3D world coordinates.
-    to_world_transform = depth_msg.transform * vehicle_transform
+    to_world_transform = (
+        camera_to_unreal_transform(depth_msg.transform) * vehicle_transform)
     point_cloud = to_world_transform.transform_points(point_cloud)
     (x, y, z) = point_cloud.tolist()[y * depth_msg.width + x]
     return Location(x, y, z)
@@ -340,7 +349,8 @@ def batch_get_3d_world_position_with_depth_map(
     far = 1.0
     point_cloud = depth_to_local_point_cloud(depth_msg, max_depth=far)
     # Transform the points in 3D world coordinates.
-    to_world_transform = vehicle_transform * depth_msg.transform
+    to_world_transform = (
+        camera_to_unreal_transform(depth_msg.transform) * vehicle_transform)
     point_cloud = to_world_transform.transform_points(point_cloud)
     point_cloud = point_cloud.tolist()
     locs = [point_cloud[ys[i] * depth_msg.width + xs[i]]
@@ -350,18 +360,18 @@ def batch_get_3d_world_position_with_depth_map(
 
 def slow_find_depth(x, y, point_cloud, max_x_dist=20, max_y_dist=20):
     closest_point = None
-    dist = 1000000
+    dist = 100000000
     # Find the closest lidar point to the point we're trying to get depth for.
     for (px, py, pz) in point_cloud:
         # Ignore if the point is behind.
         if pz <= 0:
             continue
-        x_dist = abs(x - px / pz)
-        y_dist = abs(y - py / pz)
-        if x_dist < max_x_dist and y_dist < max_y_dist:
-            if y_dist + x_dist < dist:
-                closest_point = (px, py, pz)
-                dist = y_dist + x_dist
+        x_dist = x - px / pz
+        y_dist = y - py / pz
+        cur_dist = x_dist**2 + y_dist**2
+        if cur_dist < dist:
+            closest_point = (px, py, pz)
+            dist = cur_dist
     if closest_point:
         return closest_point
     else:
@@ -392,11 +402,10 @@ def get_3d_world_position_with_point_cloud(
     u = width - 1 - x
     v = height - 1 - y
     p3d = np.dot(inv(intrinsic_mat), np.array([[u], [v], [1.0]]))
-    depth = find_depth(p3d[0], p3d[1], pc)
+    depth = slow_find_depth(p3d[0], p3d[1], pc)
     if depth:
-        scale = depth[2] / p3d[2]
-        p3d *= np.array([scale])
-        to_world_transform = camera_transform * vehicle_transform
+        p3d *= np.array([depth[2]])
+        to_world_transform = camera_to_unreal_transform(camera_transform)
         point_cloud = to_world_transform.transform_points(p3d.transpose())
         (x, y, z) = point_cloud.tolist()[0]
         return Location(x, y, z)

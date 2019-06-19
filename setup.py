@@ -17,7 +17,7 @@ setup(
         "gdown",
         "erdos>=0.1.1",
         "matplotlib==2.2.4",
-        "networkx>=2.2",
+        "networkx==2.2",
         "open3d-original",
         "opencv-python>=4.1.0.25",
         "opencv-contrib-python>=4.1.0.25",

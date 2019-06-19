@@ -1,20 +1,52 @@
 import copy
 import numpy as np
-from numpy.linalg import inv
 import pptk
 import time
 
 import carla
 
-import pylot.pylot_utils
+import pylot.utils
 import pylot.simulation.messages
 import pylot.simulation.utils
-from pylot.simulation.utils import depth_to_array, to_bgra_array, get_3d_world_position, map_ground_3D_transform_to_2D, get_camera_intrinsic_and_transform, camera_to_unreal_transform, lidar_to_unreal_transform, get_3d_world_position_with_depth_map
+from pylot.simulation.utils import depth_to_array, to_bgra_array,\
+    camera_to_unreal_transform, lidar_to_unreal_transform,\
+    unreal_to_camera_transform, get_3d_world_position_with_depth_map,\
+    get_3d_world_position_with_point_cloud, to_erdos_transform
 from matplotlib import pyplot as plt
 
 lidar_pc = None
 depth_pc = None
 last_frame = None
+
+# Pixels to check for when the target vehicle is set at (20, 2, 0) and
+# the sensor position at (2, 8, 1.4)
+#pixels_to_check = [(400, 285), (400, 350), (500, 285), (245, 320)]
+
+# Pixels to check for when the target vehicle is set at (257, 133.239990234, 0)
+# and the sensor position at (237.699996948, 133.239990234, 1.32062494755).
+pixels_to_check = [(400, 315)]
+
+
+target_vehicle_transform = carla.Transform(
+    carla.Location(257, 133.239990234, 0),
+    carla.Rotation(pitch=0, yaw=0, roll=0))
+
+# target_vehicle_transform = carla.Transform(
+#     carla.Location(20, 2, 0),
+#     carla.Rotation(pitch=0, yaw=0, roll=0))
+
+# Create the camera, lidar, depth camera position.
+sensor_transform = carla.Transform(
+    carla.Location(237.699996948, 133.239990234, 1.32062494755),
+    carla.Rotation(pitch=0, yaw=0, roll=0))
+
+# sensor_transform = carla.Transform(
+#     carla.Location(2, 8, 1.4),
+#     carla.Rotation(pitch=0, yaw=0, roll=0))
+
+vehicle_transform = pylot.simulation.utils.Transform(
+    pylot.simulation.utils.Location(0, 0, 0),
+    pylot.simulation.utils.Rotation(pitch=0, yaw=0, roll=0))
 
 
 def get_world(host="localhost", port=2000):
@@ -48,78 +80,56 @@ def on_lidar_msg(carla_pc):
     points = copy.deepcopy(points)
     points = np.reshape(points, (int(points.shape[0] / 3), 3))
 
-    lidar_transform = pylot.simulation.utils.to_erdos_transform(carla.Transform(
-        carla.Location(2, 8, 1.4),
-        carla.Rotation(pitch=0, yaw=0, roll=0)))
-    transform = lidar_to_unreal_transform(lidar_transform)
-    # Transform lidar points to world coordiantes.
+    lidar_transform = to_erdos_transform(carla_pc.transform)
+    # Transfrom: 1) lidar to unreal, 2) unreal to camera
+    transform = unreal_to_camera_transform(
+        lidar_to_unreal_transform(lidar_transform))
     points = transform.transform_points(points)
+
+    for (x, y) in pixels_to_check:
+        pos3d_pc = get_3d_world_position_with_point_cloud(
+            x, y, points.tolist(), lidar_transform, 800, 600, 90.0, vehicle_transform)
+        print("{} Computed using lidar {}".format((x, y), pos3d_pc))
+
     global lidar_pc
-    lidar_pc = points
-    pptk.viewer(points)
+    lidar_pc = points.tolist()
+#    pptk.viewer(points)
 
 
 def on_camera_msg(carla_image):
     game_time = int(carla_image.timestamp * 1000)
     print("Received camera msg {}".format(game_time))
     global last_frame
-    last_frame = pylot.pylot_utils.bgra_to_bgr(to_bgra_array(carla_image))
-
-
-def equality_test(x, y, depth_msg):
-    # Print the woorld coordinates positions obtained using different
-    # methods. They should all be the same.
-
-    print("{} Depth at pixel {}".format((x, y), depth_msg.frame[y][x]))
-
-    pos3d = get_3d_world_position(
-        x, y, depth_msg.frame[y][x], depth_msg.transform, 800, 600, 90.0)
-    print("{} Computed using depth {}".format((x, y), pos3d))
-
-    pos3d_depth = get_3d_world_position_with_depth_map(x, y, depth_msg)
-    print("{} Computed using depth map {}".format((x, y), pos3d_depth))
-
-    global lidar_pc
-    while lidar_pc is None:
-        time.sleep(0.2)
-
-    pos3d_pc = pylot.simulation.utils.get_3d_world_position_with_point_cloud(
-        x, y, lidar_pc, depth_msg.transform, 800, 600, 90.0)
-    print("{} Computed using lidar {}".format((x, y), pos3d_pc))
-
-
-def check_equality_tests(depth_msg):
-    # Pixel (400, 285) is where the car is, and the world position should
-    # be around (18, 0, 0)
-    coords = [(400, 285), (400, 350), (500, 285), (245, 320)]
-    for (x, y) in coords:
-        equality_test(x, y, depth_msg)
+    last_frame = pylot.utils.bgra_to_bgr(to_bgra_array(carla_image))
 
 
 def on_depth_msg(carla_image):
     game_time = int(carla_image.timestamp * 1000)
     print("Received depth camera msg {}".format(game_time))
 
-    depth_camera_transform = pylot.simulation.utils.to_erdos_transform(
-        carla_image.transform)
+    depth_camera_transform = to_erdos_transform(carla_image.transform)
+
     depth_msg = pylot.simulation.messages.DepthFrameMessage(
         depth_to_array(carla_image),
         depth_camera_transform,
         carla_image.fov,
         None)
 
-    depth_point_cloud = pylot.simulation.utils.depth_to_local_point_cloud(
-            depth_msg, max_depth=1.0)
+    for (x, y) in pixels_to_check:
+        print("{} Depth at pixel {}".format((x, y), depth_msg.frame[y][x]))
+        pos3d_depth = get_3d_world_position_with_depth_map(
+            x, y, depth_msg, vehicle_transform)
+        print("{} Computed using depth map {}".format((x, y), pos3d_depth))
 
+    depth_point_cloud = pylot.simulation.utils.depth_to_local_point_cloud(
+        depth_msg, max_depth=1.0)
     # Transform the depth cloud to world coordinates.
     transform = camera_to_unreal_transform(depth_camera_transform)
     depth_point_cloud = transform.transform_points(depth_point_cloud)
 
     global depth_pc
-    depth_pc = depth_point_cloud
-    pptk.viewer(depth_point_cloud)
-
-    check_equality_tests(depth_msg)
+    depth_pc = depth_point_cloud.tolist()
+#    pptk.viewer(depth_point_cloud)
 
 
 def add_lidar(transform, callback):
@@ -159,11 +169,8 @@ def add_camera(transform, callback):
     return camera
 
 
-def add_vehicle():
+def add_vehicle(transform):
     # Location of the vehicle in world coordinates.
-    transform = carla.Transform(
-        carla.Location(20, 2, 0),
-        carla.Rotation(pitch=0, yaw=0, roll=0))
     v_blueprint = world.get_blueprint_library().find('vehicle.audi.a2')
     vehicle = world.spawn_actor(v_blueprint, transform)
     return vehicle
@@ -175,19 +182,15 @@ settings = world.get_settings()
 settings.synchronous_mode = True
 world.apply_settings(settings)
 
-# Create the camera, lidar, depth camera position.
-transform = carla.Transform(
-    carla.Location(2, 8, 1.4),
-    carla.Rotation(pitch=0, yaw=0, roll=0))
 
 print("Adding sensors")
-lidar = add_lidar(transform, on_lidar_msg)
-depth_camera = add_depth_camera(transform, on_depth_msg)
-vehicle = add_vehicle()
-camera = add_camera(transform, on_camera_msg)
+target_vehicle = add_vehicle(target_vehicle_transform)
+lidar = add_lidar(sensor_transform, on_lidar_msg)
+depth_camera = add_depth_camera(sensor_transform, on_depth_msg)
+camera = add_camera(sensor_transform, on_camera_msg)
 
 # Move the spectactor view to the camera position.
-world.get_spectator().set_transform(transform)
+world.get_spectator().set_transform(sensor_transform)
 
 try:
     # Tick the simulator once to get 1 data reading.
@@ -203,5 +206,5 @@ finally:
     # Destroy the actors.
     lidar.destroy()
     depth_camera.destroy()
-    vehicle.destroy()
+    target_vehicle.destroy()
     camera.destroy()
