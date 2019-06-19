@@ -18,8 +18,8 @@ SEGMENTED_CAMERA_NAME = 'front_semantic_camera'
 
 def create_left_right_camera_setups():
     rotation = pylot.simulation.utils.Rotation(0, 0, 0)
-    left_loc = pylot.simulation.utils.Location(2.0, -0.4, 1.4)
-    right_loc = pylot.simulation.utils.Location(2.0, 0.4, 1.4)
+    left_loc = pylot.simulation.utils.Location(1.25, -0.4, 1.4)
+    right_loc = pylot.simulation.utils.Location(1.25, 0.4, 1.4)
     left_transform = pylot.simulation.utils.Transform(left_loc, rotation)
     right_transform = pylot.simulation.utils.Transform(right_loc, rotation)
 
@@ -39,7 +39,7 @@ def create_left_right_camera_setups():
 
 
 def create_camera_setups():
-    location = pylot.simulation.utils.Location(2.0, 0.0, 1.4)
+    location = pylot.simulation.utils.Location(1.25, 0.0, 1.4)
     rotation = pylot.simulation.utils.Rotation(0, 0, 0)
     transform = pylot.simulation.utils.Transform(location, rotation)
     bgr_camera_setup = pylot.simulation.utils.CameraSetup(
@@ -65,7 +65,7 @@ def create_camera_setups():
 
 def create_lidar_setups():
     if FLAGS.lidar:
-        location = pylot.simulation.utils.Location(2.0, 0.0, 1.4)
+        location = pylot.simulation.utils.Location(1.25, 0.0, 1.4)
         rotation = pylot.simulation.utils.Rotation(0, 0, 0)
         lidar_transform = pylot.simulation.utils.Transform(location, rotation)
         return [pylot.simulation.utils.LidarSetup(

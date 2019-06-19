@@ -377,7 +377,7 @@ class ERDOSAgent(AutonomousAgent):
                            'id': CENTER_CAMERA_NAME}]
         if self.track == Track.CAMERAS:
             left_camera_sensor = {'type': 'sensor.camera.rgb',
-                                  'x': 2.0,
+                                  'x': 1.25,
                                   'y': -0.4,
                                   'z': 1.40,
                                   'roll': 0,
@@ -389,7 +389,7 @@ class ERDOSAgent(AutonomousAgent):
                                   'id': LEFT_CAMERA_NAME}
             camera_sensors.append(left_camera_sensor)
             right_camera_sensor = {'type': 'sensor.camera.rgb',
-                                   'x': 2.0,
+                                   'x': 1.25,
                                    'y': 0.4,
                                    'z': 1.40,
                                    'roll': 0,
@@ -403,7 +403,7 @@ class ERDOSAgent(AutonomousAgent):
         return camera_sensors
 
     def __setup_sensors(self):
-        loc = pylot.simulation.utils.Location(2.0, 0.0, 1.40)
+        loc = pylot.simulation.utils.Location(1.25, 0.0, 1.40)
         rot = pylot.simulation.utils.Rotation(0, 0, 0)
         self._camera_transform = pylot.simulation.utils.Transform(loc, rot)
         self._lidar_transform = pylot.simulation.utils.Transform(loc, rot)

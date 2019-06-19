@@ -31,7 +31,7 @@ flags.DEFINE_float('offset_left_right', 0.05,
 def create_camera_setups():
     # Note: main assumes that the first camera setup returned by this method is
     # always the rgb_camera_setup.
-    location = pylot.simulation.utils.Location(2.0, 0.0, 1.4)
+    location = pylot.simulation.utils.Location(1.25, 0.0, 1.4)
     rotation = pylot.simulation.utils.Rotation(0, 0, 0)
     transform = pylot.simulation.utils.Transform(location, rotation)
     rgb_camera_setup = pylot.simulation.utils.CameraSetup(
@@ -54,7 +54,7 @@ def create_camera_setups():
         transform)
     if FLAGS.camera_left_right:
         location_left = pylot.simulation.utils.Location(
-            2.0, -1 * FLAGS.offset_left_right, 1.4)
+            1.25, -1 * FLAGS.offset_left_right, 1.4)
         rotation_left = pylot.simulation.utils.Rotation(0, 0, 0)
         transform_left = pylot.simulation.utils.Transform(
             location_left, rotation_left)
@@ -67,7 +67,7 @@ def create_camera_setups():
             transform_left)
 
         location_right = pylot.simulation.utils.Location(
-            2.0, FLAGS.offset_left_right, 1.4)
+            1.25, FLAGS.offset_left_right, 1.4)
         rotation_right = pylot.simulation.utils.Rotation(0, 0, 0)
         transform_right = pylot.simulation.utils.Transform(
             location_right, rotation_right)
@@ -87,7 +87,7 @@ def create_camera_setups():
 def create_lidar_setups():
     lidar_setups = []
     if FLAGS.lidar:
-        location = pylot.simulation.utils.Location(2.0, 0.0, 1.4)
+        location = pylot.simulation.utils.Location(1.25, 0.0, 1.4)
         rotation = pylot.simulation.utils.Rotation(0, 0, 0)
         lidar_transform = pylot.simulation.utils.Transform(location, rotation)
         lidar_setup = pylot.simulation.utils.LidarSetup(

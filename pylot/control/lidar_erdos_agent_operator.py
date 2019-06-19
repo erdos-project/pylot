@@ -39,7 +39,7 @@ class LidarERDOSAgentOperator(Op):
         self._obstacles = deque()
         self._point_clouds = deque()
         # TODO(ionel): DANGEROUS! DO NOT HARDCODE!
-        loc = pylot.simulation.utils.Location(2.0, 0.0, 1.40)
+        loc = pylot.simulation.utils.Location(1.25, 0.0, 1.40)
         rot = pylot.simulation.utils.Rotation(0, 0, 0)
         self._camera_transform = pylot.simulation.utils.Transform(loc, rot)
         self._camera_width = 800

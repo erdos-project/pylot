@@ -414,7 +414,7 @@ def get_3d_world_position_with_point_cloud(
 
 
 def get_camera_intrinsic_and_transform(image_size=(800, 600),
-                                       position=(2.0, 0.0, 1.4),
+                                       position=(1.25, 0.0, 1.4),
                                        rotation_pitch=0,
                                        rotation_roll=0,
                                        rotation_yaw=0,
