@@ -23,7 +23,7 @@ import pylot.operator_creator
 from pylot.planning.challenge_planning_operator import ChallengePlanningOperator
 from pylot.utils import bgra_to_bgr
 import pylot.simulation.messages
-from pylot.simulation.utils import to_erdos_transform
+from pylot.simulation.utils import to_erdos_transform, Location, Rotation, Transform
 import pylot.simulation.utils
 
 
@@ -66,12 +66,13 @@ def create_planning_op(graph):
     return planning_op
 
 
-def create_agent_op(graph):
+def create_agent_op(graph, bgr_camera_setup):
     agent_op = graph.add(
         LidarERDOSAgentOperator,
         name='lidar_erdos_agent',
         init_args={
             'flags': FLAGS,
+            'bgr_camera_setup': bgr_camera_setup,
             'log_file_name': FLAGS.log_file_name,
             'csv_file_name': FLAGS.csv_log_file_name
         })
@@ -127,7 +128,7 @@ def add_depth_estimation_op(graph, scenario_input_op):
 
 class ERDOSAgent(AutonomousAgent):
 
-    def __initialize_data_flow(self, input_streams):
+    def __initialize_data_flow(self, input_streams, bgr_camera_setup):
         # Create an operator to which we connect all the input streams we
         # publish data from this script.
         scenario_input_op = self.__create_scenario_input_op(input_streams)
@@ -149,7 +150,7 @@ class ERDOSAgent(AutonomousAgent):
 
         planning_ops = [create_planning_op(self.graph)]
 
-        agent_op = create_agent_op(self.graph)
+        agent_op = create_agent_op(self.graph, bgr_camera_setup)
 
         self.graph.connect(
             [scenario_input_op],
@@ -172,7 +173,15 @@ class ERDOSAgent(AutonomousAgent):
         else:
             print('Unexpected track {}'.format(FLAGS.track))
 
-        self.__setup_sensors()
+        (bgr_camera_setup, all_camera_setups) = self.__create_camera_setups()
+        self._camera_setups = all_camera_setups
+        self._lidar_transform = Transform(
+            Location(1.25, 0.0, 1.40), Rotation(0, 0, 0))
+        self._camera_names = {CENTER_CAMERA_NAME}
+        if FLAGS.depth_estimation or self.track == Track.CAMERAS:
+            self._camera_names.add(LEFT_CAMERA_NAME)
+            self._camera_names.add(RIGHT_CAMERA_NAME)
+
         self._camera_streams = {}
         self._lock = threading.Lock()
         # Planning related attributes
@@ -199,7 +208,7 @@ class ERDOSAgent(AutonomousAgent):
         # support several init_node calls from the same process or from
         # a process started with Python multiprocess.
         if not ROS_NODE_INITIALIZED:
-            self.__initialize_data_flow(input_streams)
+            self.__initialize_data_flow(input_streams, bgr_camera_setup)
             ROS_NODE_INITIALIZED = True
 
         # Initialize the driver script as a ROS node so that we can receive
@@ -248,7 +257,21 @@ class ERDOSAgent(AutonomousAgent):
                               'yaw': self._lidar_transform.rotation.yaw,
                               'id': 'LIDAR'}]
 
-        camera_sensors = self.__define_camera_sensors()
+        camera_sensors = []
+        for cs in self._camera_setups:
+            camera_sensor = {
+                'type': cs.camera_type,
+                'x': cs.transform.location.x,
+                'y': cs.transform.location.y,
+                'z': cs.transform.location.z,
+                'roll': cs.transform.rotation.roll,
+                'pitch': cs.transform.rotation.pitch,
+                'yaw': cs.transform.rotation.yaw,
+                'width': cs.width,
+                'height': cs.height,
+                'fov': cs.fov,
+                'id': cs.name}
+            camera_sensors.append(camera_sensor)
 
         return (can_sensors +
                 gps_sensors +
@@ -363,54 +386,41 @@ class ERDOSAgent(AutonomousAgent):
                 self._control.hand_brake = msg.hand_brake
                 self._control.manual_gear_shift = False
 
-    def __define_camera_sensors(self):
-        camera_sensors = [{'type': 'sensor.camera.rgb',
-                           'x': self._camera_transform.location.x,
-                           'y': self._camera_transform.location.y,
-                           'z': self._camera_transform.location.z,
-                           'roll': self._camera_transform.rotation.roll,
-                           'pitch': self._camera_transform.rotation.pitch,
-                           'yaw': self._camera_transform.rotation.yaw,
-                           'width': 800,
-                           'height': 600,
-                           'fov': 100,
-                           'id': CENTER_CAMERA_NAME}]
+    def __create_camera_setups(self):
+        location = Location(1.25, 0.0, 1.4)
+        rotation = Rotation(0, 0, 0)
+        transform = Transform(location, rotation)
+        bgr_camera_setup = pylot.simulation.utils.CameraSetup(
+            CENTER_CAMERA_NAME,
+            'sensor.camera.rgb',
+            FLAGS.carla_camera_image_width,
+            FLAGS.carla_camera_image_height,
+            transform,
+            100)
+        camera_setups = [bgr_camera_setup]
         if self.track == Track.CAMERAS:
-            left_camera_sensor = {'type': 'sensor.camera.rgb',
-                                  'x': 1.25,
-                                  'y': -0.4,
-                                  'z': 1.40,
-                                  'roll': 0,
-                                  'pitch': 0,
-                                  'yaw': 0,
-                                  'width': 800,
-                                  'height': 600,
-                                  'fov': 100,
-                                  'id': LEFT_CAMERA_NAME}
-            camera_sensors.append(left_camera_sensor)
-            right_camera_sensor = {'type': 'sensor.camera.rgb',
-                                   'x': 1.25,
-                                   'y': 0.4,
-                                   'z': 1.40,
-                                   'roll': 0,
-                                   'pitch': 0,
-                                   'yaw': 0,
-                                   'width': 800,
-                                   'height': 600,
-                                   'fov': 100,
-                                   'id': RIGHT_CAMERA_NAME}
-            camera_sensors.append(right_camera_sensor)
-        return camera_sensors
+            left_loc = Location(1.25, -0.3, 1.4)
+            left_transform = Transform(left_loc, rotation)
+            left_camera_setup = pylot.simulation.utils.CameraSetup(
+                LEFT_CAMERA_NAME,
+                'sensor.camera.rgb',
+                FLAGS.carla_camera_image_width,
+                FLAGS.carla_camera_image_height,
+                left_transform,
+                100)
+            camera_setups.append(left_camera_setup)
+            right_loc = Location(1.25, 0.3, 1.4)
+            right_transform = Transform(right_loc, rotation)
+            right_camera_setup = pylot.simulation.utils.CameraSetup(
+                RIGHT_CAMERA_NAME,
+                'sensor.camera.rgb',
+                FLAGS.carla_camera_image_width,
+                FLAGS.carla_camera_image_height,
+                right_transform,
+                100)
+            camera_setups.append(right_camera_setup)
 
-    def __setup_sensors(self):
-        loc = pylot.simulation.utils.Location(1.25, 0.0, 1.40)
-        rot = pylot.simulation.utils.Rotation(0, 0, 0)
-        self._camera_transform = pylot.simulation.utils.Transform(loc, rot)
-        self._lidar_transform = pylot.simulation.utils.Transform(loc, rot)
-        self._camera_names = {CENTER_CAMERA_NAME}
-        if FLAGS.depth_estimation:
-            self._camera_names.add(LEFT_CAMERA_NAME)
-            self._camera_names.add(RIGHT_CAMERA_NAME)
+        return (bgr_camera_setup, camera_setups)
 
     def __create_input_streams(self):
         for name in self._camera_names:

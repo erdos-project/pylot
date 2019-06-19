@@ -23,12 +23,14 @@ class LidarERDOSAgentOperator(Op):
     def __init__(self,
                  name,
                  flags,
+                 bgr_camera_setup,
                  log_file_name=None,
                  csv_file_name=None):
         super(LidarERDOSAgentOperator, self).__init__(name)
         self._flags = flags
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+        self._bgr_camera_setup = bgr_camera_setup
         self._map = None
         self._pid = PID(p=self._flags.pid_p,
                         i=self._flags.pid_i,
@@ -38,13 +40,6 @@ class LidarERDOSAgentOperator(Op):
         self._traffic_lights = deque()
         self._obstacles = deque()
         self._point_clouds = deque()
-        # TODO(ionel): DANGEROUS! DO NOT HARDCODE!
-        loc = pylot.simulation.utils.Location(1.25, 0.0, 1.40)
-        rot = pylot.simulation.utils.Rotation(0, 0, 0)
-        self._camera_transform = pylot.simulation.utils.Transform(loc, rot)
-        self._camera_width = 800
-        self._camera_height = 600
-        self._camera_fov = 100
         self._lock = threading.Lock()
 
     @staticmethod
@@ -162,14 +157,13 @@ class LidarERDOSAgentOperator(Op):
         self.spin()
 
     def __transform_to_3d(self, x, y, point_cloud, vehicle_transform):
-        pos = get_3d_world_position_with_point_cloud(x,
-                                                     y,
-                                                     point_cloud,
-                                                     self._camera_transform,
-                                                     self._camera_width,
-                                                     self._camera_height,
-                                                     self._camera_fov,
-                                                     vehicle_transform)
+        pos = get_3d_world_position_with_point_cloud(
+            x, y, point_cloud,
+            self._bgr_camera_setup.transform,
+            self._bgr_camera_setup.width,
+            self._bgr_camera_setup.height,
+            self._bgr_camera_setup.fov,
+            vehicle_transform)
         if pos is None:
             self._logger.error(
                 'Could not find lidar point for {} {}'.format(x, y))
