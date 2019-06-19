@@ -87,9 +87,12 @@ class LidarDriverOperator(Op):
             points = copy.deepcopy(points)
             points = np.reshape(points, (int(points.shape[0] / 3), 3))
 
+            # Include the transform relative to the vehicle.
+            # Carla carla_pc.transform returns the world transform, but
+            # we do not use it directly.
             msg = PointCloudMessage(
                 points,
-                to_erdos_transform(carla_pc.transform),
+                self._lidar_setup.get_transform(),
                 timestamp)
 
             self.get_output_stream(self._lidar_setup.name).send(msg)

@@ -90,9 +90,12 @@ class CameraDriverOperator(Op):
                     pylot.utils.bgra_to_bgr(to_bgra_array(carla_image)),
                     timestamp)
             elif self._camera_setup.camera_type == 'sensor.camera.depth':
+                # Include the transform relative to the vehicle.
+                # Carla carla_image.transform returns the world transform, but
+                # we do not use it directly.
                 msg = pylot.simulation.messages.DepthFrameMessage(
                     depth_to_array(carla_image),
-                    to_erdos_transform(carla_image.transform),
+                    self._camera_setup.get_transform(),
                     carla_image.fov,
                     timestamp)
             elif self._camera_setup.camera_type == 'sensor.camera.semantic_segmentation':
