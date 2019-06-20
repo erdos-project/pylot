@@ -402,7 +402,7 @@ def get_3d_world_position_with_point_cloud(
     u = width - 1 - x
     v = height - 1 - y
     p3d = np.dot(inv(intrinsic_mat), np.array([[u], [v], [1.0]]))
-    depth = slow_find_depth(p3d[0], p3d[1], pc)
+    depth = find_depth(p3d[0], p3d[1], pc)
     if depth:
         p3d *= np.array([depth[2]])
         to_world_transform = camera_to_unreal_transform(camera_transform)

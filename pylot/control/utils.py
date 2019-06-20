@@ -98,11 +98,17 @@ def stop_pedestrian(vehicle_transform,
     return speed_factor_p
 
 
-
-def stop_vehicle(vehicle_transform, obs_vehicle_pos, wp_vector, speed_factor_v, flags):
+def stop_vehicle(vehicle_transform,
+                 obs_vehicle_pos,
+                 wp_vector,
+                 speed_factor_v,
+                 flags):
     speed_factor_v_temp = 1
     v_vector, v_dist = get_world_vec_dist(
-        obs_vehicle_pos.x, obs_vehicle_pos.y, vehicle_transform.location.x, vehicle_transform.location.y)
+        obs_vehicle_pos.x,
+        obs_vehicle_pos.y,
+        vehicle_transform.location.x,
+        vehicle_transform.location.y)
     v_angle = get_angle(v_vector, wp_vector)
 
     if ((-0.5 * flags.vehicle_angle_thres / flags.coast_factor <
