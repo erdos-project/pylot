@@ -32,7 +32,7 @@ else
     echo "Unsupported OS version"
     exit 1
 fi
-sudo apt-get install -y python-cv-bridge python-rosinstall
+sudo apt-get install -y --allow-unauthenticated python-cv-bridge python-rosinstall
 
 # Initialize rosdep
 sudo rosdep init
@@ -85,21 +85,23 @@ git clone https://github.com/ICGog/drn.git
 git clone https://github.com/ICGog/CenterNet.git
 
 ###### Download the Carla simulator ######
-mkdir CARLA_0.8.4
-cd CARLA_0.8.4
-~/.local/bin/gdown https://drive.google.com/uc?id=18OaDbQ2K9Dcs25d-nIxpw3GPRHhG1r_2
-tar xvf CARLA_0.8.4.tar.gz
-rm CARLA_0.8.4.tar.gz
-if [ "$1" == 'docker' ]; then
-    rm -r CarlaUE4
-fi
+if [ "$1" != 'challenge' ]; then
+    mkdir CARLA_0.8.4
+    cd CARLA_0.8.4
+    ~/.local/bin/gdown https://drive.google.com/uc?id=18OaDbQ2K9Dcs25d-nIxpw3GPRHhG1r_2
+    tar xvf CARLA_0.8.4.tar.gz
+    rm CARLA_0.8.4.tar.gz
+    if [ "$1" == 'docker' ]; then
+        rm -r CarlaUE4
+    fi
 
-cd ../
-mkdir CARLA_0.9.5
-cd CARLA_0.9.5
-wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.5.tar.gz
-tar xvf CARLA_0.9.5.tar.gz
-rm CARLA_0.9.5.tar.gz
-if [ "$1" == 'docker' ]; then
-    rm -r CarlaUE4; rm -r HDMaps
+    cd ../
+    mkdir CARLA_0.9.5
+    cd CARLA_0.9.5
+    wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.5.tar.gz
+    tar xvf CARLA_0.9.5.tar.gz
+    rm CARLA_0.9.5.tar.gz
+    if [ "$1" == 'docker' ]; then
+        rm -r CarlaUE4; rm -r HDMaps
+    fi
 fi
