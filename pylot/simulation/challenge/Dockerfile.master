@@ -1,0 +1,98 @@
+FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG http_proxy
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+         build-essential \
+         cmake \
+         git \
+         curl \
+         vim \
+         ca-certificates \
+         libjpeg-dev \
+	     libpng16-16 \
+	     libtiff5 \
+         libpng-dev \
+         python-dev \
+         python-networkx \
+         python-pip \
+         python-setuptools && \
+         pip install --upgrade pip && \
+         rm -rf /var/lib/apt/lists/*
+
+RUN pip install setuptools psutil py_trees==0.8.3 shapely six
+
+
+WORKDIR /workspace
+COPY PythonAPI /workspace/CARLA/PythonAPI
+COPY HDMaps /workspace/CARLA/HDMaps
+ENV CARLA_ROOT /workspace/CARLA
+
+# adding CARLA egg to default python environment
+RUN pip install --user py_trees==0.8.3 psutil shapely six
+
+ENV ROOT_SCENARIO_RUNNER "/workspace/scenario_runner"
+#ENV PYTHONPATH "/workspace/CARLA/PythonAPI/carla/dist/carla-0.9.5-py3.5-linux-x86_64.egg":"${ROOT_SCENARIO_RUNNER}":"${CARLA_ROOT}/PythonAPI/carla":${PYTHONPATH}
+
+COPY .tmp /workspace/scenario_runner
+COPY team_code /workspace/team_code
+RUN mkdir -p /workspace/results
+RUN chmod +x /workspace/scenario_runner/srunner/challenge/run_evaluator.sh
+
+
+########################################################################################################################
+########################################################################################################################
+############                                BEGINNING OF USER COMMANDS                                      ############
+########################################################################################################################
+########################################################################################################################
+
+SHELL ["/bin/bash", "-c"]
+
+# Add command at the beginning of the bash file to ensure that it executes even
+# when executing in non-interactive mode.
+RUN sed -i '1isource /opt/ros/kinetic/setup.bash' /root/.bashrc
+
+RUN apt-get -y update && apt-get -y install git sudo
+# Uninstall old pillow and setuptools versions
+RUN pip uninstall --yes pillow setuptools
+# Installed new versions
+RUN pip install pillow setuptools
+
+RUN cd /workspace && git clone https://github.com/erdos-project/erdos.git
+# Install all the requirements.
+RUN cd /workspace/erdos/ && ./install.sh
+
+# Install Tensorflow
+RUN pip install tensorflow-gpu==1.12
+
+# Get the Pylot directory.
+RUN cd /workspace && git clone https://github.com/erdos-project/pylot.git
+# Install all the Python dependencies.
+RUN  cd /workspace/pylot/ && pip install -e ./
+# Get the Pylot models and code dependencies.
+RUN apt-get update && apt-get install -y wget
+# Install toolkit for Centernet
+RUN apt-get -y install cuda-toolkit-9.0
+RUN cd /workspace/pylot/ && ./install.sh challenge
+
+# Export PYTHONPATH
+ENV PYTHONPATH "/opt/ros/kinetic/lib/python2.7/dist-packages:/workspace/CARLA/PythonAPI/carla/dist/carla-0.9.5-py2.7-linux-x86_64.egg":"${ROOT_SCENARIO_RUNNER}":"${CARLA_ROOT}/PythonAPI/carla":"/workspace/pylot/dependencies/:${PYTHONPATH}"
+
+ENV TEAM_AGENT /workspace/pylot/pylot/simulation/challenge/ERDOSAgent.py
+ENV TEAM_CONFIG /workspace/pylot/pylot/simulation/challenge/challenge.conf
+
+########################################################################################################################
+########################################################################################################################
+############                                   END OF USER COMMANDS                                         ############
+########################################################################################################################
+########################################################################################################################
+
+ENV HTTP_PROXY ""
+ENV HTTPS_PROXY ""
+ENV http_proxy ""
+ENV https_proxy ""
+
+
+CMD ["/bin/bash"]
