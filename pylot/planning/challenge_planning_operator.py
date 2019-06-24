@@ -1,5 +1,4 @@
 from collections import deque
-import math
 
 import carla
 
@@ -7,6 +6,7 @@ from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging
 
 import pylot.utils
+import pylot.planning.cost_functions
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.utils import get_distance, get_target_speed,\
     BehaviorPlannerState
@@ -28,9 +28,17 @@ class ChallengePlanningOperator(Op):
         self._wp_num_steer = 9  # use 9th waypoint for steering
         self._wp_num_speed = 4  # use 4th waypoint for speed
         # Cost functions. Output between 0 and 1.
-        self._cost_functions = None
+        self._cost_functions = [
+            pylot.planning_cost_speed,
+            pylot.planning.cost_functions.cost_lane_change,
+            pylot.planning.cost_functions.cost_inefficiency]
+        reach_speed_weight = 10 ** 5
+        reach_goal_weight = 10 ** 6
+        efficiency_weight = 10 ** 4
         # How important a cost function is.
-        self._function_weights = None
+        self._function_weights = [reach_speed_weight,
+                                  reach_goal_weight,
+                                  efficiency_weight]
 
     @staticmethod
     def setup_streams(input_streams):
@@ -38,13 +46,17 @@ class ChallengePlanningOperator(Op):
             ChallengePlanningOperator.on_can_bus_update)
         input_streams.filter(pylot.utils.is_open_drive_stream).add_callback(
             ChallengePlanningOperator.on_opendrive_map)
-        input_streams.filter(pylot.utils.is_global_trajectory_stream).add_callback(
-            ChallengePlanningOperator.on_global_trajectory)
+        input_streams.filter(pylot.utils.is_global_trajectory_stream)\
+                     .add_callback(
+                         ChallengePlanningOperator.on_global_trajectory)
+        # input_streams.filter(pylot.utils.is_predictions_stream).add_callback(
+        #     ChallengePlanningOperator.on_predictions)
         return [pylot.utils.create_waypoints_stream()]
 
     def on_can_bus_update(self, msg):
         self._vehicle_transform = msg.data.transform
-        next_waypoint_steer, next_waypoint_speed = self.__compute_next_waypoints()
+        (next_waypoint_steer,
+         next_waypoint_speed) = self.__compute_next_waypoints()
 
         wp_vector, wp_mag = get_world_vec_dist(
             next_waypoint_steer.location.x,
@@ -166,48 +178,22 @@ class ChallengePlanningOperator(Op):
 
     def best_transition(self, vehicle_transform, predictions):
         """ Computes most likely state transition from current state."""
-        # Get possible next states.
+        # Get possible next state machine states.
         possible_next_states = self.__successor_states()
         best_next_state = None
         min_state_cost = 10000000
         for state in possible_next_states:
-            trajectory_for_state = self.__generate_trajectory(
+            # Generate trajectory for next state.
+            vehicle_info, trajectory_for_state = self.__generate_trajectory(
                 state, vehicle_transform, predictions)
             state_cost = 0
+            # Compute the cost of the trajectory.
             for i in range(len(self._cost_functions)):
                 cost_func = self._cost_functions[i](
-                    trajectory_for_state, predictions)
+                    vehicle_info, predictions, trajectory_for_state)
                 state_cost += self._function_weights[i] * cost_func
+            # Check if it's the best trajectory.
             if best_next_state is None or state_cost < min_state_cost:
                 best_next_state = state
                 min_state_cost = state_cost
         return best_next_state
-
-    def cost_speed(self, current_speed, speed_limit):
-        # Cost of the car stopping.
-        STOP_COST = 0.7
-        # How many km/h to drive at bellow speed limit.
-        BUFFER_SPEED = 5.0
-        target_speed = speed_limit - BUFFER_SPEED
-        if current_speed < target_speed:
-            return STOP_COST * (target_speed - current_speed) / target_speed
-        elif current_speed >= target_speed and current_speed < speed_limit:
-            return (current_speed - target_speed) / BUFFER_SPEED
-        else:
-            return 1
-
-    def cost_lane_change(
-            self, goal_lane, intended_lane, final_lane, distance_goal):
-        delta_d = 2.0 * goal_lane - intended_lane - final_lane
-        cost = 1 - math.exp(-abs(delta_d) / distance_goal)
-        return cost
-
-    def cost_inefficiency(
-            target_speed, intended_lane, final_lane, lane_speeds):
-        # Cost becomes higher for trajectories with intended and final_lane
-        # lane that have traffic slower than target_speed.
-        speed_intended = lane_speeds[final_lane]
-        speed_final = lane_speeds[final_lane]
-        cost = (2.0 * target_speed -
-                speed_intended - speed_final) / target_speed
-        return cost
