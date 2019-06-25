@@ -91,9 +91,9 @@ class LidarERDOSAgentOperator(Op):
         wp_vector = waypoint_msg.wp_vector
         wp_angle_speed = waypoint_msg.wp_angle_speed
         target_speed = waypoint_msg.target_speed
-        point_cloud = pc_msg.point_cloud
-        # Get only the points that are in front.
-        point_cloud = point_cloud[np.where(point_cloud[:, 2] > 0.0)]
+        # Transform point cloud to camera coordinates.
+        point_cloud = pylot.simulation.utils.lidar_point_cloud_to_camera_coordinates(
+            pc_msg.point_cloud)
 
         traffic_lights = self.__transform_tl_output(
             tl_output, point_cloud, vehicle_transform)
@@ -159,11 +159,10 @@ class LidarERDOSAgentOperator(Op):
     def __transform_to_3d(self, x, y, point_cloud, vehicle_transform):
         pos = get_3d_world_position_with_point_cloud(
             x, y, point_cloud,
-            self._bgr_camera_setup.transform,
+            self._bgr_camera_setup.transform * vehicle_transform,
             self._bgr_camera_setup.width,
             self._bgr_camera_setup.height,
-            self._bgr_camera_setup.fov,
-            vehicle_transform)
+            self._bgr_camera_setup.fov)
         if pos is None:
             self._logger.error(
                 'Could not find lidar point for {} {}'.format(x, y))
@@ -339,6 +338,10 @@ class LidarERDOSAgentOperator(Op):
                                  obs_vehicle_loc.y,
                                  obs_vehicle_loc.z)
         obs_waypoint = self._map.get_waypoint(obs_loc)
+
+        self._logger.info('Hero waypoint {}, obstacle vec waypoint {}'.format(
+            (hero_waypoint, hero_waypoint.road_id, hero_waypoint.lane_id),
+            (obs_waypoint, obs_waypoint.road_id, obs_waypoint.lane_id)))
 
         if hero_waypoint.road_id == obs_waypoint.road_id:
             # Same lane if the ids match.

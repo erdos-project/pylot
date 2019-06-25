@@ -11,8 +11,10 @@ import pylot.utils
 import pylot.simulation.messages
 import pylot.simulation.utils
 from pylot.simulation.utils import depth_to_array, to_bgra_array,\
-     camera_to_unreal_transform, lidar_to_unreal_transform,\
-     get_3d_world_position_with_depth_map, get_3d_world_position_with_point_cloud,\
+     camera_to_unreal_transform,\
+     get_3d_world_position_with_depth_map,\
+     get_3d_world_position_with_point_cloud,\
+     lidar_point_cloud_to_camera_coordinates,\
      to_erdos_transform
 from matplotlib import pyplot as plt
 
@@ -91,18 +93,10 @@ def on_lidar_msg(carla_pc):
     lidar_transform = to_erdos_transform(carla_pc.transform)
 
     # Transform lidar points from lidar coordinates to camera coordinates.
-    identity_transform = pylot.simulation.utils.Transform(matrix=
-        np.array([[1, 0, 0, 0],
-                  [0, 1, 0, 0],
-                  [0, 0, 1, 0],
-                  [0, 0, 0, 1]]))
-
-    lidar_to_camera_transform = pylot.simulation.utils.lidar_to_camera_transform(identity_transform)
-    points = lidar_to_camera_transform.transform_points(points)
-
+    points = lidar_point_cloud_to_camera_coordinates(points)
     for (x, y) in pixels_to_check:
         pos3d_pc = get_3d_world_position_with_point_cloud(
-            x, y, points.tolist(), lidar_transform, 800, 600, 90.0, vehicle_transform)
+            x, y, points.tolist(), lidar_transform, 800, 600, 90.0)
         print("{} Computed using lidar {}".format((x, y), pos3d_pc))
 
     global lidar_pc
@@ -132,11 +126,13 @@ def on_depth_msg(carla_image):
     for (x, y) in pixels_to_check:
         print("{} Depth at pixel {}".format((x, y), depth_msg.frame[y][x]))
         pos3d_depth = get_3d_world_position_with_depth_map(
-            x, y, depth_msg, vehicle_transform)
+            x, y, depth_msg.frame, depth_msg.width, depth_msg.height,
+            depth_msg.fov, depth_camera_transform)
         print("{} Computed using depth map {}".format((x, y), pos3d_depth))
 
     depth_point_cloud = pylot.simulation.utils.depth_to_local_point_cloud(
-        depth_msg, max_depth=1.0)
+        depth_msg.frame, depth_msg.width, depth_msg.height,
+        depth_msg.fov, max_depth=1.0)
     # Transform the depth cloud to world coordinates.
     transform = camera_to_unreal_transform(depth_camera_transform)
     depth_point_cloud = transform.transform_points(depth_point_cloud)

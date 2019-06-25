@@ -29,7 +29,7 @@ class ChallengePlanningOperator(Op):
         self._wp_num_speed = 4  # use 4th waypoint for speed
         # Cost functions. Output between 0 and 1.
         self._cost_functions = [
-            pylot.planning_cost_speed,
+            pylot.planning.cost_functions.cost_speed,
             pylot.planning.cost_functions.cost_lane_change,
             pylot.planning.cost_functions.cost_inefficiency]
         reach_speed_weight = 10 ** 5

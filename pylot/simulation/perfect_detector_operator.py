@@ -247,7 +247,8 @@ class PerfectDetectorOp(Op):
         x_mids = [(bbox[0] + bbox[1]) / 2 for bbox in bboxes]
         y_mids = [(bbox[2] + bbox[3]) / 2 for bbox in bboxes]
         pos_3d = batch_get_3d_world_position_with_depth_map(
-            x_mids, y_mids, depth_msg, vehicle_transform)
+            x_mids, y_mids, depth_msg.frame, depth_msg.width, depth_msg.height,
+            depth_msg.fov, depth_msg.transform * vehicle_transform)
         sign_bboxes = zip(pos_3d, bboxes)
         light_bboxes = []
         for tl in traffic_lights:

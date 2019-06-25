@@ -51,9 +51,10 @@ class CameraSetup(object):
         return self.__str__()
 
     def __str__(self):
-        return 'CameraSetup(name: {}, type: {}, width: {}, height: {}, transform: {}, fov: {}'.format(
-            self.name, self.camera_type, self.width, self.height,
-            self.transform, self.fov)
+        return 'CameraSetup(name: {}, type: {}, width: {}, height: {}, '\
+            'transform: {}, fov: {}'.format(
+                self.name, self.camera_type, self.width, self.height,
+                self.transform, self.fov)
 
 
 class LidarSetup(object):
@@ -87,10 +88,12 @@ class LidarSetup(object):
         return self.__str__()
 
     def __str__(self):
-        return 'LidarSetup(name: {}, type: {}, transform: {}, range: {}, rotation freq: {}, channels: {}, upper_fov: {}, lower_fov: {}, points_per_second: {}'.format(
-            self.name, self.lidar_type, self.transform, self.range,
-            self.rotation_frequency, self.channels, self.upper_fov,
-            self.lower_fov, self.points_per_second)
+        return 'LidarSetup(name: {}, type: {}, transform: {}, range: {}, '\
+            'rotation freq: {}, channels: {}, upper_fov: {}, lower_fov: {}, '\
+            'points_per_second: {}'.format(
+                self.name, self.lidar_type, self.transform, self.range,
+                self.rotation_frequency, self.channels, self.upper_fov,
+                self.lower_fov, self.points_per_second)
 
 
 class CanBus(object):
@@ -238,8 +241,8 @@ def to_erdos_transform(transform):
 
 def depth_to_array(image):
     """
-    Convert an image containing CARLA encoded depth-map to a 2D array containing
-    the depth value of each pixel normalized between [0.0, 1.0].
+    Convert an image containing CARLA encoded depth-map to a 2D array
+    containing the depth value of each pixel normalized between [0.0, 1.0].
     """
     array = to_bgra_array(image)
     array = array.astype(np.float32)
@@ -258,8 +261,8 @@ def to_bgra_array(image):
 
 def labels_to_array(image):
     """
-    Convert an image containing CARLA semantic segmentation labels to a 2D array
-    containing the label of each pixel.
+    Convert an image containing CARLA semantic segmentation labels to a 2D
+    array containing the label of each pixel.
     """
     return to_bgra_array(image)[:, :, 2]
 
@@ -285,20 +288,25 @@ def create_intrinsic_matrix(width, height, fov=90.0):
     return k
 
 
-def depth_to_local_point_cloud(depth_msg, max_depth=0.9):
+def depth_to_local_point_cloud(depth_frame, width, height, fov, max_depth=0.9):
     """
     Convert a CARLA-encoded depth-map to a 2D array containing
     the 3D position (relative to the camera) of each pixel.
     "max_depth" is used to omit the points that are far enough.
+
+    Args:
+        depth_frame: the normalized depth frame
+        width: frame width
+        height: frame height
+        fov: camera field of view
     """
     far = 1000.0  # max depth in meters.
-    normalized_depth = depth_msg.frame
-    intrinsic_mat = create_intrinsic_matrix(
-        depth_msg.width, depth_msg.height, depth_msg.fov)
+    normalized_depth = depth_frame
+    intrinsic_mat = create_intrinsic_matrix(width, height, fov)
     # 2d pixel coordinates
-    pixel_length = depth_msg.width * depth_msg.height
-    u_coord = repmat(np.r_[0:depth_msg.width:1], depth_msg.height, 1).reshape(pixel_length)
-    v_coord = repmat(np.c_[0:depth_msg.height:1], 1, depth_msg.width).reshape(pixel_length)
+    pixel_length = width * height
+    u_coord = repmat(np.r_[0:width:1], height, 1).reshape(pixel_length)
+    v_coord = repmat(np.c_[0:height:1], 1, width).reshape(pixel_length)
     normalized_depth = np.reshape(normalized_depth, pixel_length)
 
     # Search for pixels where the depth is greater than max_depth to
@@ -318,6 +326,7 @@ def depth_to_local_point_cloud(depth_msg, max_depth=0.9):
     # [[X1,Y1,Z1],[X2,Y2,Z2], ... [Xn,Yn,Zn]]
     return np.transpose(p3d)
 
+
 def camera_to_unreal_transform(transform):
     """
     Takes in a Transform that occurs in unreal coordinates,
@@ -327,9 +336,10 @@ def camera_to_unreal_transform(transform):
     to_unreal_transform = Transform(matrix=np.array(
         [[0, 0, 1, 0],
          [1, 0, 0, 0],
-         [0,-1, 0, 0],
+         [0, -1, 0, 0],
          [0, 0, 0, 1]]))
     return transform * to_unreal_transform
+
 
 def lidar_to_unreal_transform(transform):
     """
@@ -338,11 +348,12 @@ def lidar_to_unreal_transform(transform):
     coordinates to unreal coordinates.
     """
     to_unreal_transform = Transform(matrix=np.array(
-        [[ 0,-1, 0, 0],
+        [[0, -1, 0, 0],
          [-1, 0, 0, 0],
-         [ 0, 0,-1, 0],
-         [ 0, 0, 0, 1]]))
+         [0, 0, -1, 0],
+         [0, 0, 0, 1]]))
     return transform * to_unreal_transform
+
 
 def lidar_to_camera_transform(transform):
     """
@@ -353,58 +364,69 @@ def lidar_to_camera_transform(transform):
     to_camera_transform = Transform(matrix=np.array(
         [[1, 0, 0, 0],
          [0, 0, 1, 0],
-         [0,-1, 0, 0],
+         [0, -1, 0, 0],
          [0, 0, 0, 1]]))
     return transform * to_camera_transform
 
-def get_3d_world_position_with_depth_map(x, y, depth_msg, vehicle_transform):
+
+def get_3d_world_position_with_depth_map(
+        x, y, depth_frame, width, height, fov, camera_transform):
+    """ Gets the 3D world position from pixel coordiantes using a depth frame.
+
+        Args:
+            x: Pixel x coordinate.
+            y: Pixel y coordinate.
+            depth_frame: Normalized depth frame.
+            width: frame width
+            height: frame height
+            fov: camera field of view
+            camera_transform: Camera transform relative to the world.
+       Returns:
+            3D world location.
+    """
     far = 1.0
-    point_cloud = depth_to_local_point_cloud(depth_msg, max_depth=far)
+    point_cloud = depth_to_local_point_cloud(
+        depth_frame, width, height, fov, max_depth=far)
     # Transform the points in 3D world coordinates.
-    to_world_transform = (
-        camera_to_unreal_transform(depth_msg.transform))
+    to_world_transform = camera_to_unreal_transform(camera_transform)
     point_cloud = to_world_transform.transform_points(point_cloud)
-    (x, y, z) = point_cloud.tolist()[y * depth_msg.width + x]
+    (x, y, z) = point_cloud.tolist()[y * width + x]
     return Location(x, y, z)
 
 
 def batch_get_3d_world_position_with_depth_map(
-        xs, ys, depth_msg, vehicle_transform):
+        xs, ys, depth_frame, width, height, fov, camera_transform):
+    """ Gets the 3D world positions from pixel coordiantes using a depth frame.
+
+        Args:
+            xs: List of pixel x coordinate.
+            ys: List of pixel y coordinate.
+            depth_frame: Normalized depth frame.
+            width: frame width
+            height: frame height
+            fov: camera field of view
+            camera_transform: Camera transform relative to the world.
+       Returns:
+            List of 3D world locations.
+    """
     assert len(xs) == len(ys)
     far = 1.0
-    point_cloud = depth_to_local_point_cloud(depth_msg, max_depth=far)
+    point_cloud = depth_to_local_point_cloud(
+        depth_frame, width, height, fov, max_depth=far)
     # Transform the points in 3D world coordinates.
-    to_world_transform = (
-        camera_to_unreal_transform(depth_msg.transform))
+    to_world_transform = camera_to_unreal_transform(camera_transform)
     point_cloud = to_world_transform.transform_points(point_cloud)
     point_cloud = point_cloud.tolist()
-    locs = [point_cloud[ys[i] * depth_msg.width + xs[i]]
-            for i in range(len(xs))]
+    locs = [point_cloud[ys[i] * width + xs[i]] for i in range(len(xs))]
     return [Location(loc[0], loc[1], loc[2]) for loc in locs]
 
 
-def slow_find_depth(x, y, point_cloud, max_x_dist=20, max_y_dist=20):
-    # Note: currently we don't use max_x_dist and max_y_dist.
-    closest_point = None
-    dist = 100000000
-    # Find the closest lidar point to the point we're trying to get depth for.
-    for (px, py, pz) in point_cloud:
-        # Ignore if the point is behind.
-        if pz <= 0:
-            continue
-        # Project the point onto the z=1 plane, and compare its location with
-        # that of our query point.
-        x_dist = x - px / pz
-        y_dist = y - py / pz
-        cur_dist = x_dist**2 + y_dist**2
-        if cur_dist < dist:
-            closest_point = (px, py, pz)
-            dist = cur_dist
-    return closest_point
-
-def find_depth(x, y, point_cloud):
+def find_point_depth(x, y, point_cloud):
+    """ Finds the closest depth normalized point cloud point to x, y."""
     if len(point_cloud) == 0:
         return None
+    # Select only points that are in front.
+    point_cloud = point_cloud[np.where(point_cloud[:, 2] > 0.0)]
     # Select x and y.
     pc_xy = point_cloud[:, 0:2]
     # Select z
@@ -420,14 +442,37 @@ def find_depth(x, y, point_cloud):
     return tuple(point_cloud[closest_index])
 
 
+def lidar_point_cloud_to_camera_coordinates(point_cloud):
+    """ Transforms a point cloud from lidar to camera coordinates."""
+    identity_transform = Transform(
+        matrix=np.array([[1, 0, 0, 0],
+                         [0, 1, 0, 0],
+                         [0, 0, 1, 0],
+                         [0, 0, 0, 1]]))
+    transform = lidar_to_camera_transform(identity_transform)
+    return transform.transform_points(point_cloud)
+
+
 def get_3d_world_position_with_point_cloud(
-        u, v, pc, camera_transform, width, height, fov, vehicle_transform):
+        u, v, pc, camera_transform, width, height, fov):
+    """ Gets the 3D world position from pixel coordiantes using a Lidar
+        point cloud.
+
+        Args:
+            u: Pixel x coordinate.
+            v: Pixel y coordinate.
+            pc: Point cloud in camera coordinates.
+            camera_transform: Camera transform relative to the world.
+            width: frame width
+            height: frame height
+            fov: camera field of view
+       Returns:
+            3D world location or None if it could not be computed.
+    """
     intrinsic_mat = create_intrinsic_matrix(width, height, fov)
     # Project our 2D pixel location into 3D space, onto the z=1 plane.
     p3d = np.dot(inv(intrinsic_mat), np.array([[u], [v], [1.0]]))
-    depth = find_depth(p3d[0], p3d[1], np.array(pc))
-    # depth = slow_find_depth(p3d[0], p3d[1], pc)
-
+    depth = find_point_depth(p3d[0], p3d[1], np.array(pc))
     if depth:
         # Normalize our point to have the same depth as our closest point.
         p3d *= np.array([depth[2]])
@@ -438,6 +483,7 @@ def get_3d_world_position_with_point_cloud(
         return Location(x, y, z)
     else:
         return None
+
 
 def get_camera_intrinsic_and_transform(image_size=(800, 600),
                                        position=(1.25, 0.0, 1.4),

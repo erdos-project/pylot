@@ -70,7 +70,8 @@ class DepthEstimationOp(Op):
             point_cloud_msg.point_cloud).tolist()
 
         depth_point_cloud = depth_to_local_point_cloud(
-            depth_msg, max_depth=1.0)
+            depth_msg.frame, depth_msg.width, depth_msg.height,
+            depth_msg.fov, max_depth=1.0)
         car_transform = vehicle_transform * depth_msg.transform
         depth_point_cloud = car_transform.transform_points(
             depth_point_cloud).tolist()
