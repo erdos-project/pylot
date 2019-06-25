@@ -242,6 +242,7 @@ class PerfectDetectorOp(Op):
         traffic_signs_frame = get_traffic_sign_pixels(segmented_frame)
         bboxes = get_bounding_boxes_from_segmented(traffic_signs_frame)
         sign_bboxes = []
+
         # Get the positions of the bounding box centers.
         x_mids = [(bbox[0] + bbox[1]) / 2 for bbox in bboxes]
         y_mids = [(bbox[2] + bbox[3]) / 2 for bbox in bboxes]
