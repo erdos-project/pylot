@@ -1,3 +1,5 @@
+# Checks methods for getting 3d world locations from depth map and from point cloud.
+
 import copy
 import numpy as np
 import pptk
@@ -9,9 +11,9 @@ import pylot.utils
 import pylot.simulation.messages
 import pylot.simulation.utils
 from pylot.simulation.utils import depth_to_array, to_bgra_array,\
-    camera_to_unreal_transform, lidar_to_unreal_transform,\
-    unreal_to_camera_transform, get_3d_world_position_with_depth_map,\
-    get_3d_world_position_with_point_cloud, to_erdos_transform
+     camera_to_unreal_transform, lidar_to_unreal_transform,\
+     get_3d_world_position_with_depth_map, get_3d_world_position_with_point_cloud,\
+     to_erdos_transform
 from matplotlib import pyplot as plt
 
 lidar_pc = None
@@ -22,14 +24,17 @@ last_frame = None
 # the sensor position at (2, 8, 1.4)
 #pixels_to_check = [(400, 285), (400, 350), (500, 285), (245, 320)]
 
-# Pixels to check for when the target vehicle is set at (257, 133.239990234, 0)
-# and the sensor position at (237.699996948, 133.239990234, 1.32062494755).
-pixels_to_check = [(400, 315)]
-
+# Pixels to check for when the target vehicle is set at (242, 131.239990234, 0)
+# and the sensor position at (237.699996948, 132.239990234, 1.32062494755).
+pixels_to_check = [(200, 370)]
 
 target_vehicle_transform = carla.Transform(
-    carla.Location(257, 133.239990234, 0),
+    carla.Location(242, 131.239990234, 0),
     carla.Rotation(pitch=0, yaw=0, roll=0))
+
+print ("Target Vehicle Location:", target_vehicle_transform.location.x,
+                                   target_vehicle_transform.location.y,
+                                   target_vehicle_transform.location.z)
 
 # target_vehicle_transform = carla.Transform(
 #     carla.Location(20, 2, 0),
@@ -37,8 +42,11 @@ target_vehicle_transform = carla.Transform(
 
 # Create the camera, lidar, depth camera position.
 sensor_transform = carla.Transform(
-    carla.Location(237.699996948, 133.239990234, 1.32062494755),
+    carla.Location(237.699996948, 132.239990234, 1.32062494755),
     carla.Rotation(pitch=0, yaw=0, roll=0))
+print ("Our Location:", sensor_transform.location.x,
+                        sensor_transform.location.y,
+                        sensor_transform.location.z)
 
 # sensor_transform = carla.Transform(
 #     carla.Location(2, 8, 1.4),
@@ -81,10 +89,16 @@ def on_lidar_msg(carla_pc):
     points = np.reshape(points, (int(points.shape[0] / 3), 3))
 
     lidar_transform = to_erdos_transform(carla_pc.transform)
-    # Transfrom: 1) lidar to unreal, 2) unreal to camera
-    transform = unreal_to_camera_transform(
-        lidar_to_unreal_transform(lidar_transform))
-    points = transform.transform_points(points)
+
+    # Transform lidar points from lidar coordinates to camera coordinates.
+    identity_transform = pylot.simulation.utils.Transform(matrix=
+        np.array([[1, 0, 0, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 1, 0],
+                  [0, 0, 0, 1]]))
+
+    lidar_to_camera_transform = pylot.simulation.utils.lidar_to_camera_transform(identity_transform)
+    points = lidar_to_camera_transform.transform_points(points)
 
     for (x, y) in pixels_to_check:
         pos3d_pc = get_3d_world_position_with_point_cloud(

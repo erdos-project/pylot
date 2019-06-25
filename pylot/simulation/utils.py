@@ -151,6 +151,14 @@ class Location(object):
 
 
 class Transform(object):
+    # Transformations are applied in the order: Scale, Rotation, Translation.
+    # Rotations are applied in the order: Roll (X), Pitch (Y), Yaw (Z).
+    # A 90-degree "Roll" rotation maps the positive Z-axis to the positive
+    # Y-axis. A 90-degree "Pitch" rotation maps the positive X-axis to the
+    # positive Z-axis. A 90-degree "Yaw" rotation maps the positive X-axis
+    # to the positive Y-axis.
+    # Warning: in general, the different stages of the transform
+    # are non-commutative!
 
     def __init__(self, pos=None, rotation=None, orientation=None, scale=None,
                  matrix=None):
@@ -194,7 +202,7 @@ class Transform(object):
         # Add 0s row: [[X0..,Xn],[Y0..,Yn],[Z0..,Zn],[0,..0]]
         points = np.append(points, np.ones((1, points.shape[1])), axis=0)
         # Point transformation
-        points = self.matrix * points
+        points = np.dot(self.matrix, points)
         # Return all but last row
         return points[0:3].transpose()
 
@@ -278,16 +286,19 @@ def create_intrinsic_matrix(width, height, fov=90.0):
 
 
 def depth_to_local_point_cloud(depth_msg, max_depth=0.9):
+    """
+    Convert a CARLA-encoded depth-map to a 2D array containing
+    the 3D position (relative to the camera) of each pixel.
+    "max_depth" is used to omit the points that are far enough.
+    """
     far = 1000.0  # max depth in meters.
     normalized_depth = depth_msg.frame
     intrinsic_mat = create_intrinsic_matrix(
         depth_msg.width, depth_msg.height, depth_msg.fov)
     # 2d pixel coordinates
     pixel_length = depth_msg.width * depth_msg.height
-    u_coord = repmat(np.r_[depth_msg.width-1:-1:-1],
-                     depth_msg.height, 1).reshape(pixel_length)
-    v_coord = repmat(np.c_[depth_msg.height-1:-1:-1],
-                     1, depth_msg.width).reshape(pixel_length)
+    u_coord = repmat(np.r_[0:depth_msg.width:1], depth_msg.height, 1).reshape(pixel_length)
+    v_coord = repmat(np.c_[0:depth_msg.height:1], 1, depth_msg.width).reshape(pixel_length)
     normalized_depth = np.reshape(normalized_depth, pixel_length)
 
     # Search for pixels where the depth is greater than max_depth to
@@ -307,37 +318,51 @@ def depth_to_local_point_cloud(depth_msg, max_depth=0.9):
     # [[X1,Y1,Z1],[X2,Y2,Z2], ... [Xn,Yn,Zn]]
     return np.transpose(p3d)
 
+def camera_to_unreal_transform(transform):
+    """
+    Takes in a Transform that occurs in unreal coordinates,
+    and converts it into a Transform that goes from camera
+    coordinates to unreal coordinates.
+    """
+    to_unreal_transform = Transform(matrix=np.array(
+        [[0, 0, 1, 0],
+         [1, 0, 0, 0],
+         [0,-1, 0, 0],
+         [0, 0, 0, 1]]))
+    return transform * to_unreal_transform
 
-def camera_to_unreal_transform(camera_transform):
-    to_unreal_transform = Transform(
-        Location(0, 0, 0),
-        Rotation(pitch=0, yaw=90, roll=-90),
-        scale=Scale(x=-1))
-    return camera_transform * to_unreal_transform
+def lidar_to_unreal_transform(transform):
+    """
+    Takes in a Transform that occurs in unreal coordinates,
+    and converts it into a Transform that goes from lidar
+    coordinates to unreal coordinates.
+    """
+    to_unreal_transform = Transform(matrix=np.array(
+        [[ 0,-1, 0, 0],
+         [-1, 0, 0, 0],
+         [ 0, 0,-1, 0],
+         [ 0, 0, 0, 1]]))
+    return transform * to_unreal_transform
 
-
-def unreal_to_camera_transform(transform):
-    to_camera_transform = Transform(
-        Location(0, 0, 0),
-        Rotation(pitch=0, yaw=-90, roll=90),
-        scale=Scale(x=-1))
+def lidar_to_camera_transform(transform):
+    """
+    Takes in a Transform that occurs in camera coordinates,
+    and converts it into a Transform that goes from lidar
+    coordinates to camera coordinates.
+    """
+    to_camera_transform = Transform(matrix=np.array(
+        [[1, 0, 0, 0],
+         [0, 0, 1, 0],
+         [0,-1, 0, 0],
+         [0, 0, 0, 1]]))
     return transform * to_camera_transform
-
-
-def lidar_to_unreal_transform(lidar_transform):
-    to_unreal_transform = Transform(
-        Location(0, 0, 0),
-        Rotation(pitch=0, yaw=90, roll=0),
-        scale=Scale(z=-1))
-    return lidar_transform * to_unreal_transform
-
 
 def get_3d_world_position_with_depth_map(x, y, depth_msg, vehicle_transform):
     far = 1.0
     point_cloud = depth_to_local_point_cloud(depth_msg, max_depth=far)
     # Transform the points in 3D world coordinates.
     to_world_transform = (
-        camera_to_unreal_transform(depth_msg.transform) * vehicle_transform)
+        camera_to_unreal_transform(depth_msg.transform))
     point_cloud = to_world_transform.transform_points(point_cloud)
     (x, y, z) = point_cloud.tolist()[y * depth_msg.width + x]
     return Location(x, y, z)
@@ -350,7 +375,7 @@ def batch_get_3d_world_position_with_depth_map(
     point_cloud = depth_to_local_point_cloud(depth_msg, max_depth=far)
     # Transform the points in 3D world coordinates.
     to_world_transform = (
-        camera_to_unreal_transform(depth_msg.transform) * vehicle_transform)
+        camera_to_unreal_transform(depth_msg.transform))
     point_cloud = to_world_transform.transform_points(point_cloud)
     point_cloud = point_cloud.tolist()
     locs = [point_cloud[ys[i] * depth_msg.width + xs[i]]
@@ -359,6 +384,7 @@ def batch_get_3d_world_position_with_depth_map(
 
 
 def slow_find_depth(x, y, point_cloud, max_x_dist=20, max_y_dist=20):
+    # Note: currently we don't use max_x_dist and max_y_dist.
     closest_point = None
     dist = 100000000
     # Find the closest lidar point to the point we're trying to get depth for.
@@ -366,17 +392,15 @@ def slow_find_depth(x, y, point_cloud, max_x_dist=20, max_y_dist=20):
         # Ignore if the point is behind.
         if pz <= 0:
             continue
+        # Project the point onto the z=1 plane, and compare its location with
+        # that of our query point.
         x_dist = x - px / pz
         y_dist = y - py / pz
         cur_dist = x_dist**2 + y_dist**2
         if cur_dist < dist:
             closest_point = (px, py, pz)
             dist = cur_dist
-    if closest_point:
-        return closest_point
-    else:
-        return None
-
+    return closest_point
 
 def find_depth(x, y, point_cloud):
     if len(point_cloud) == 0:
@@ -393,25 +417,27 @@ def find_depth(x, y, point_cloud):
     # Select index of the closest point.
     closest_index = np.argmin(dist)
     # Return the closest point.
-    return (x, y, point_cloud[closest_index][0])
+    return tuple(point_cloud[closest_index])
 
 
 def get_3d_world_position_with_point_cloud(
-        x, y, pc, camera_transform, width, height, fov, vehicle_transform):
+        u, v, pc, camera_transform, width, height, fov, vehicle_transform):
     intrinsic_mat = create_intrinsic_matrix(width, height, fov)
-    u = width - 1 - x
-    v = height - 1 - y
+    # Project our 2D pixel location into 3D space, onto the z=1 plane.
     p3d = np.dot(inv(intrinsic_mat), np.array([[u], [v], [1.0]]))
-    depth = find_depth(p3d[0], p3d[1], pc)
+    depth = find_depth(p3d[0], p3d[1], np.array(pc))
+    # depth = slow_find_depth(p3d[0], p3d[1], pc)
+
     if depth:
+        # Normalize our point to have the same depth as our closest point.
         p3d *= np.array([depth[2]])
+        # Convert from camera to unreal coordinates.
         to_world_transform = camera_to_unreal_transform(camera_transform)
         point_cloud = to_world_transform.transform_points(p3d.transpose())
         (x, y, z) = point_cloud.tolist()[0]
         return Location(x, y, z)
     else:
-        None
-
+        return None
 
 def get_camera_intrinsic_and_transform(image_size=(800, 600),
                                        position=(1.25, 0.0, 1.4),
@@ -419,6 +445,7 @@ def get_camera_intrinsic_and_transform(image_size=(800, 600),
                                        rotation_roll=0,
                                        rotation_yaw=0,
                                        fov=90.0):
+    # TODO(ionel): Deprecate method
     intrinsic_mat = create_intrinsic_matrix(image_size[0], image_size[1], fov)
     loc = Location(position[0], position[1], position[2])
     rot = Rotation(rotation_pitch, rotation_yaw, rotation_roll)
@@ -619,8 +646,8 @@ def map_ground_bounding_box_to_2D(vehicle_transform,
         pos2d = np.dot(rgb_intrinsic, transformed_3d_pos[:3])
 
         # Normalize the 2D points.
-        loc_2d = Location(float(image_width - pos2d[0] / pos2d[2]),
-                          float(image_height - pos2d[1] / pos2d[2]),
+        loc_2d = Location(float(pos2d[0] / pos2d[2]),
+                          float(pos2d[1] / pos2d[2]),
                           pos2d[2])
         # Add the points to the image.
         if loc_2d.z > 0: # If the point is in front of the camera.
