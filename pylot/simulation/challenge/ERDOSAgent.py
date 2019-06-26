@@ -176,7 +176,7 @@ class ERDOSAgent(AutonomousAgent):
         (bgr_camera_setup, all_camera_setups) = self.__create_camera_setups()
         self._camera_setups = all_camera_setups
         self._lidar_transform = Transform(
-            Location(1.25, 0.0, 1.40), Rotation(0, 0, 0))
+            Location(1.5, 0.0, 1.40), Rotation(0, 0, 0))
         self._camera_names = {CENTER_CAMERA_NAME}
         if FLAGS.depth_estimation or self.track == Track.CAMERAS:
             self._camera_names.add(LEFT_CAMERA_NAME)
@@ -308,11 +308,24 @@ class ERDOSAgent(AutonomousAgent):
                 self.send_lidar_reading(val[1], erdos_timestamp, watermark)
 
         # Wait until the control is set.
-        while (self._control_timestamp is None or
-               self._control_timestamp < erdos_timestamp):
-            time.sleep(0.01)
+        output_control = None
+        with self._lock:
+            # Ensure that control is not reset by another run_step invocation
+            # from another thread when a new scenario is loaded.
+            while (self._control_timestamp is None or
+                   self._control_timestamp < erdos_timestamp):
+                time.sleep(0.01)
+            # Create output message. We create the VehicleControl while we
+            # held the lock to ensure that control does not get changed.
+            output_control = carla.VehicleControl()
+            output_control.throttle = self._control.throttle
+            output_control.brake = self._control.brake
+            output_control.steer = self._control.steer
+            output_control.reverse = self._control.reverse
+            output_control.hand_brake = self._control.hand_brake
+            output_control.manual_gear_shift = False
 
-        return self._control
+        return output_control
 
     def destroy(self):
         """
@@ -375,19 +388,12 @@ class ERDOSAgent(AutonomousAgent):
         # Unpickle the data sent over the ROS topic.
         msg = pickle.loads(msg.data)
         if not isinstance(msg, WatermarkMessage):
-            with self._lock:
-                print('Received control message {}'.format(msg))
-                self._control_timestamp = msg.timestamp
-                self._control = carla.VehicleControl()
-                self._control.throttle = msg.throttle
-                self._control.brake = msg.brake
-                self._control.steer = msg.steer
-                self._control.reverse = msg.reverse
-                self._control.hand_brake = msg.hand_brake
-                self._control.manual_gear_shift = False
+            print('Received control message {}'.format(msg))
+            self._control_timestamp = msg.timestamp
+            self._control = msg
 
     def __create_camera_setups(self):
-        location = Location(1.25, 0.0, 1.4)
+        location = Location(1.5, 0.0, 1.4)
         rotation = Rotation(0, 0, 0)
         transform = Transform(location, rotation)
         bgr_camera_setup = pylot.simulation.utils.CameraSetup(
@@ -399,7 +405,7 @@ class ERDOSAgent(AutonomousAgent):
             100)
         camera_setups = [bgr_camera_setup]
         if self.track == Track.CAMERAS:
-            left_loc = Location(1.25, -0.3, 1.4)
+            left_loc = Location(1.5, -0.3, 1.4)
             left_transform = Transform(left_loc, rotation)
             left_camera_setup = pylot.simulation.utils.CameraSetup(
                 LEFT_CAMERA_NAME,
@@ -409,7 +415,7 @@ class ERDOSAgent(AutonomousAgent):
                 left_transform,
                 100)
             camera_setups.append(left_camera_setup)
-            right_loc = Location(1.25, 0.3, 1.4)
+            right_loc = Location(1.5, 0.3, 1.4)
             right_transform = Transform(right_loc, rotation)
             right_camera_setup = pylot.simulation.utils.CameraSetup(
                 RIGHT_CAMERA_NAME,

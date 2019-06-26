@@ -318,8 +318,12 @@ class LidarERDOSAgentOperator(Op):
 
     def __is_pedestrian_hitable(self, hero_waypoint, ped_loc):
         ped_loc = carla.Location(ped_loc.x, ped_loc.y, ped_loc.z)
-        ped_waypoint = self._map.get_waypoint(ped_loc)
-
+        ped_waypoint = self._map.get_waypoint(ped_loc,
+                                              project_to_road=False,
+                                              lane_type=carla.LaneType.Driving)
+        if not ped_waypoint:
+            # The pedestrian is not on a drivable lane.
+            return False
         if hero_waypoint.road_id == ped_waypoint.road_id:
             # Same lane if the ids match.
             return hero_waypoint.lane_id == ped_waypoint.lane_id
@@ -337,11 +341,20 @@ class LidarERDOSAgentOperator(Op):
         obs_loc = carla.Location(obs_vehicle_loc.x,
                                  obs_vehicle_loc.y,
                                  obs_vehicle_loc.z)
-        obs_waypoint = self._map.get_waypoint(obs_loc)
+        obs_waypoint = self._map.get_waypoint(obs_loc,
+                                              project_to_road=False,
+                                              lane_type=carla.LaneType.Driving)
+        if not obs_waypoint:
+            # The car is not on a drivable lane.
+            return False
 
         self._logger.info('Hero waypoint {}, obstacle vec waypoint {}'.format(
-            (hero_waypoint, hero_waypoint.road_id, hero_waypoint.lane_id),
-            (obs_waypoint, obs_waypoint.road_id, obs_waypoint.lane_id)))
+            (str(hero_waypoint.transform),
+             hero_waypoint.road_id,
+             hero_waypoint.lane_id),
+            (str(obs_waypoint.transform),
+             obs_waypoint.road_id,
+             obs_waypoint.lane_id)))
 
         if hero_waypoint.road_id == obs_waypoint.road_id:
             # Same lane if the ids match.
