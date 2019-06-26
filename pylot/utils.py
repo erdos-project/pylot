@@ -88,12 +88,20 @@ def is_ground_traffic_lights_stream(stream):
     return stream.name == 'traffic_lights'
 
 
-def create_ground_traffic_signs_stream():
-    return DataStream(name='traffic_signs')
+def create_ground_speed_limit_signs_stream():
+    return DataStream(name='speed_limit_signs')
 
 
-def is_ground_traffic_signs_stream(stream):
-    return stream.name == 'traffic_signs'
+def is_ground_speed_limit_signs_stream(stream):
+    return stream.name == 'speed_limit_signs'
+
+
+def create_ground_stop_signs_stream():
+    return DataStream(name='stop_signs')
+
+
+def is_ground_stop_signs_stream(stream):
+    return stream.name == 'stop_signs'
 
 
 # ERDOS streams

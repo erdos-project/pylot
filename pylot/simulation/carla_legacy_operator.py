@@ -85,7 +85,8 @@ class CarlaLegacyOperator(Op):
             pylot.utils.create_ground_traffic_lights_stream(),
             pylot.utils.create_ground_vehicles_stream(),
             pylot.utils.create_ground_pedestrians_stream(),
-            pylot.utils.create_ground_traffic_signs_stream()
+            pylot.utils.create_ground_speed_limit_signs_stream(),
+            pylot.utils.create_ground_stop_signs_stream()
         ] + camera_streams + lidar_streams
 
     def __add_camera(self, camera_setup):
@@ -262,10 +263,15 @@ class CarlaLegacyOperator(Op):
             traffic_lights, timestamp)
         self.get_output_stream('traffic_lights').send(traffic_lights_msg)
         self.get_output_stream('traffic_lights').send(watermark)
-        traffic_sings_msg = pylot.simulation.messages.GroundSpeedSignsMessage(
+        speed_limits_msg = pylot.simulation.messages.GroundSpeedSignsMessage(
             speed_limit_signs, timestamp)
-        self.get_output_stream('traffic_signs').send(traffic_sings_msg)
-        self.get_output_stream('traffic_signs').send(watermark)
+        self.get_output_stream('speed_limit_signs').send(speed_limits_msg)
+        self.get_output_stream('speed_limit_signs').send(watermark)
+        # We do not have any stop signs.
+        stop_signs_msg = pylot.simulation.messages.GroundStopSignsMessage(
+            [], timestamp)
+        self.get_output_stream('stop_signs').send(stop_signs_msg)
+        self.get_output_stream('stop_signs').send(watermark)
 
     def __send_sensor_data(self, sensor_data, timestamp, watermark):
         for name, measurement in sensor_data.items():

@@ -114,8 +114,9 @@ class GroundPedestriansMessage(Message):
         self.pedestrians = pedestrians
 
     def __str__(self):
-        return 'GroundPedestriansMessage(timestmap: {}, pedestrians: {})'.format(
-            self.timestamp, self.pedestrians)
+        return 'GroundPedestriansMessage(timestmap: {}, '\
+            'pedestrians: {})'.format(
+                self.timestamp, self.pedestrians)
 
 
 class GroundTrafficLightsMessage(Message):
@@ -130,8 +131,9 @@ class GroundTrafficLightsMessage(Message):
         self.traffic_lights = traffic_lights
 
     def __str__(self):
-        return 'GroundTrafficLightsMessage(timestamp: {}, traffic lights: {})'.format(
-            self.timestamp, self.traffic_lights)
+        return 'GroundTrafficLightsMessage(timestamp: {}, '\
+            'traffic lights: {})'.format(
+                self.timestamp, self.traffic_lights)
 
 
 class GroundSpeedSignsMessage(Message):
@@ -146,5 +148,23 @@ class GroundSpeedSignsMessage(Message):
         self.speed_signs = speed_signs
 
     def __str__(self):
-        return 'GroundSpeedSignsMessage(timestamp: {}, speed signs: {})'.format(
-            self.timestamp, self.speed_signs)
+        return 'GroundSpeedSignsMessage(timestamp: {}, '\
+            'speed signs: {})'.format(
+                self.timestamp, self.speed_signs)
+
+
+class GroundStopSignsMessage(Message):
+    """ Message class to be used to send ground info about stop signs.
+
+    Attributes:
+        stop_signs: A list of stop marking transforms.
+    """
+    def __init__(self, stop_signs, timestamp):
+        super(GroundStopSignsMessage, self).__init__(
+            None, timestamp, 'default')
+        self.stop_signs = stop_signs
+
+    def __str__(self):
+        return 'GroundStopSignsMessage(timestamp: {}, '\
+            'stop signs: {})'.format(
+                self.timestamp, self.stop_signs)

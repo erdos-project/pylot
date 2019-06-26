@@ -153,9 +153,8 @@ def convert_speed_limit_actors(speed_limit_actors):
 
 
 def convert_traffic_stop_actors(traffic_stop_actors):
+    stop_signs = []
     for ts_actor in traffic_stop_actors:
-        loc = ts_actor.get_location()
-        pos = pylot.simulation.utils.Location(loc.x, loc.y, loc.z)
         transform = to_erdos_transform(ts_actor.get_transform())
-        # TODO(ionel): Implement!
-    return []
+        stop_signs.append(transform)
+    return stop_signs

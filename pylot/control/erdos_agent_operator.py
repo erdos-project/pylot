@@ -124,10 +124,6 @@ class ERDOSAgentOperator(Op):
         self._logger.info("Received traffic light update at {}".format(msg.timestamp))
         self._traffic_lights.append(msg)
 
-    def on_traffic_signs_update(self, msg):
-        # TODO(ionel): Implement!
-        pass
-
     def on_obstacles_update(self, msg):
         self._logger.info("Received obstacle update at {}".format(msg.timestamp))
         self._obstacles.append(msg)

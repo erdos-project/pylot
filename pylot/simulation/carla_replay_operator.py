@@ -43,7 +43,8 @@ class CarlaReplayOperator(Op):
             pylot.utils.create_ground_traffic_lights_stream(),
             pylot.utils.create_ground_vehicles_stream(),
             pylot.utils.create_ground_pedestrians_stream(),
-            pylot.utils.create_ground_traffic_signs_stream()]
+            pylot.utils.create_ground_speed_limit_signs_stream(),
+            pylot.utils.create_ground_stop_signs_stream()]
         return ground_agent_streams + [pylot.utils.create_vehicle_id_stream()]
 
     def on_world_tick(self, msg):
@@ -82,7 +83,6 @@ class CarlaReplayOperator(Op):
          traffic_lights,
          speed_limits,
          traffic_stops) = get_ground_data(actor_list)
-        # TODO(ionel): Send traffic stops data as well.
 
         vehicles_msg = pylot.simulation.messages.GroundVehiclesMessage(
             vehicles, timestamp)
@@ -96,10 +96,15 @@ class CarlaReplayOperator(Op):
             traffic_lights, timestamp)
         self.get_output_stream('traffic_lights').send(traffic_lights_msg)
         self.get_output_stream('traffic_lights').send(watermark_msg)
-        traffic_signs_msg = pylot.simulation.messages.GroundSpeedSignsMessage(
+        speed_limit_signs_msg = pylot.simulation.messages.GroundSpeedSignsMessage(
             speed_limits, timestamp)
-        self.get_output_stream('traffic_signs').send(traffic_signs_msg)
-        self.get_output_stream('traffic_signs').send(watermark_msg)
+        self.get_output_stream('speed_limit_signs').send(speed_limit_signs_msg)
+        self.get_output_stream('speed_limit_signs').send(watermark_msg)
+        stop_signs_msg = pylot.simulation.messages.GroundStopSignsMessage(
+            traffic_stops, timestamp)
+        self.get_output_stream('stop_signs').send(stop_signs_msg)
+        self.get_output_stream('stop_signs').send(watermark_msg)
+
 
     def execute(self):
         # Replayer time factor is only available in > 0.9.5.

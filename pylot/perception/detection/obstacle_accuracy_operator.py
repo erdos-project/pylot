@@ -24,7 +24,7 @@ class ObstacleAccuracyOperator(Op):
         self._pedestrians = []
         self._vehicles = []
         self._traffic_lights = []
-        self._traffic_signs = []
+        self._speed_limit_signs = []
         self._depth_imgs = []
         self._bgr_imgs = []
         (camera_name, _, img_size, pos) = camera_setup
@@ -54,8 +54,8 @@ class ObstacleAccuracyOperator(Op):
             ObstacleAccuracyOperator.on_vehicles_update)
         input_streams.filter(pylot.utils.is_ground_traffic_lights_stream).add_callback(
             ObstacleAccuracyOperator.on_traffic_lights_update)
-        input_streams.filter(pylot.utils.is_ground_traffic_signs_stream).add_callback(
-            ObstacleAccuracyOperator.on_traffic_signs_update)
+        input_streams.filter(pylot.utils.is_ground_speed_limit_signs_stream).add_callback(
+            ObstacleAccuracyOperator.on_speed_limit_signs_update)
         input_streams.filter(pylot.utils.is_obstacles_stream).add_callback(
             ObstacleAccuracyOperator.on_obstacles)
         # Register a watermark callback.
@@ -166,8 +166,8 @@ class ObstacleAccuracyOperator(Op):
     def on_traffic_lights_update(self, msg):
         self._traffic_lights.append(msg)
 
-    def on_traffic_signs_update(self, msg):
-        self._traffic_signs.append(msg)
+    def on_speed_limit_signs_update(self, msg):
+        self._speed_limit_signs.append(msg)
 
     def on_depth_camera_update(self, msg):
         self._depth_imgs.append(msg)
@@ -216,7 +216,7 @@ class ObstacleAccuracyOperator(Op):
             self._pedestrians[0].timestamp,
             self._vehicles[0].timestamp,
             self._traffic_lights[0].timestamp,
-            self._traffic_signs[0].timestamp,
+            self._speed_limit_signs[0].timestamp,
             self._depth_imgs[0].timestamp,
             self._bgr_imgs[0].timestamp))
 
@@ -251,9 +251,9 @@ class ObstacleAccuracyOperator(Op):
         #                                 depth_array)
 
         # Get bboxes for the traffic signs.
-        traffic_signs = self._traffic_signs[0].speed_signs
-        self._traffic_signs = self._traffic_signs[1:]
-        # self.__get_traffic_sign_bboxes(traffic_signs, vehicle_transform,
+        speed_limit_signs = self._speed_limit_signs[0].speed_signs
+        self._speed_limit_signs = self._speed_limit_signs[1:]
+        # self.__get_speed_limit_sign_bboxes(speed_limit_signs, vehicle_transform,
         #                                depth_array)
 
         if self._flags.visualize_ground_obstacles:
@@ -280,15 +280,16 @@ class ObstacleAccuracyOperator(Op):
                     tl_bboxes.append((x - 2, x + 2, y - 2, y + 2))
         return tl_bboxes
 
-    def __get_traffic_sign_bboxes(self, traffic_signs, vehicle_transform,
-                                  depth_array):
+    def __get_speed_limit_sign_bboxes(self, speed_limit_signs, vehicle_transform,
+                                      depth_array):
         ts_bboxes = []
-        for traffic_sign in traffic_signs:
-            pos = map_ground_3D_transform_to_2D(traffic_sign.location,
-                                                vehicle_transform,
-                                                self._rgb_transform,
-                                                self._rgb_intrinsic,
-                                                self._rgb_img_size)
+        for speed_limit_sign in speed_limit_signs:
+            pos = map_ground_3D_transform_to_2D(
+                speed_limit_sign.transform.location,
+                vehicle_transform,
+                self._rgb_transform,
+                self._rgb_intrinsic,
+                self._rgb_img_size)
             if pos is not None:
                 x = int(pos[0])
                 y = int(pos[1])

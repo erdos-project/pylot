@@ -31,7 +31,7 @@ class GroundAgentOperator(Op):
         self._pedestrian_msgs = deque()
         self._vehicle_msgs = deque()
         self._traffic_light_msgs = deque()
-        self._traffic_sign_msgs = deque()
+        self._speed_limit_sign_msgs = deque()
         self._waypoint_msgs = deque()
 
     @staticmethod
@@ -48,8 +48,8 @@ class GroundAgentOperator(Op):
             pylot.utils.is_ground_traffic_lights_stream).add_callback(
                 GroundAgentOperator.on_traffic_lights_update)
         input_streams.filter(
-            pylot.utils.is_ground_traffic_signs_stream).add_callback(
-                GroundAgentOperator.on_traffic_signs_update)
+            pylot.utils.is_ground_speed_limit_signs_stream).add_callback(
+                GroundAgentOperator.on_speed_limit_signs_update)
         input_streams.filter(pylot.utils.is_waypoints_stream).add_callback(
             GroundAgentOperator.on_waypoints_update)
         input_streams.add_completion_callback(
@@ -78,8 +78,8 @@ class GroundAgentOperator(Op):
         traffic_lights_msg = self._traffic_light_msgs.popleft()
         traffic_lights = traffic_lights_msg.traffic_lights
         # Get ground traffic signs info.
-        traffic_signs_msg = self._traffic_sign_msgs.popleft()
-        traffic_signs = traffic_signs_msg.speed_signs
+        speed_limit_signs_msg = self._speed_limit_sign_msgs.popleft()
+        speed_limit_signs = speed_limit_signs_msg.speed_signs
         # TODO(ionel): Use traffic signs info as well.
 
         speed_factor, state = self.stop_for_agents(vehicle_transform,
@@ -108,8 +108,8 @@ class GroundAgentOperator(Op):
     def on_traffic_lights_update(self, msg):
         self._traffic_light_msgs.append(msg)
 
-    def on_traffic_signs_update(self, msg):
-        self._traffic_sign_msgs.append(msg)
+    def on_speed_limit_signs_update(self, msg):
+        self._speed_limit_sign_msgs.append(msg)
 
     def stop_for_agents(self,
                         vehicle_transform,
