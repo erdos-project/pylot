@@ -723,24 +723,37 @@ def map_ground_3D_transform_to_2D(location,
         return (loc_2d.x, loc_2d.y, loc_2d.z)
     return None
 
-def match_bboxes_with_traffic_lights(bboxes, traffic_lights):
+
+def match_bboxes_with_traffic_lights(
+        vehicle_transform, bboxes, traffic_lights):
     # Match bounding boxes with traffic lights. In order to match,
     # the bounding box must be within 20 m of the base of the traffic light
     # in the (x,y) plane, and must be between 5 and 7 meters above the base
-    # of the traffic light. If there are multiple possibilities, take the closest.
+    # of the traffic light. If there are multiple possibilities, take the
+    # closest.
     result = []
     for bbox in bboxes:
-        best_tl_idx = 0
+        best_tl = None
         best_dist = 1000000
-        for idx in range(len(traffic_lights)):
-            tl = traffic_lights[idx]
-            dist = (bbox[0].x - tl[0].x)**2 + (bbox[0].y - tl[0].y)**2
+        for tl in traffic_lights:
+            dist = ((bbox[0].x - tl.location.x)**2 +
+                    (bbox[0].y - tl.location.y)**2)
             # Check whether the traffic light is the closest so far to the
-            # bounding box, and that the traffic light is between 5 and 7
+            # bounding box, and that the traffic light is between 2.3 and 7
             # meters above the base of the traffic light.
-            if dist < best_dist and bbox[0].z - tl[0].z > 5 and bbox[0].z - tl[0].z < 7:
-                best_tl_idx = idx
+            if (dist < best_dist and
+                bbox[0].z - tl.location.z > 2.3 and bbox[0].z - tl.location.z < 7):
                 best_dist = dist
-        if best_dist < 20 ** 2:
-            result.append((bbox[1], traffic_lights[best_tl_idx][1]))
+                best_tl = tl
+        if not best_tl:
+            continue
+        # Check that the traffic light is facing the ego vehicle.
+        yaw_diff = (best_tl.transform.rotation.yaw -
+                    vehicle_transform.rotation.yaw)
+        if yaw_diff < 0:
+            yaw_diff += 360
+        elif yaw_diff >= 360:
+            yaw_diff -= 360
+        if best_dist < 20 ** 2 and yaw_diff < 120:
+            result.append((bbox[1], best_tl.state))
     return result

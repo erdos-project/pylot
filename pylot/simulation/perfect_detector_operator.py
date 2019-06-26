@@ -51,6 +51,8 @@ class PerfectDetectorOp(Op):
         self._segmented_imgs = deque()
         self._traffic_lights = deque()
         self._vehicles = deque()
+        self._speed_limit_signs = deque()
+        self._stop_signs = deque()
         self._bgr_intrinsic = bgr_camera_setup.get_intrinsic()
         self._bgr_transform = bgr_camera_setup.get_unreal_transform()
         self._bgr_img_size = (bgr_camera_setup.width, bgr_camera_setup.height)
@@ -89,6 +91,14 @@ class PerfectDetectorOp(Op):
         input_streams.filter(
             pylot.utils.is_ground_traffic_lights_stream).add_callback(
                 PerfectDetectorOp.on_traffic_light_update)
+        # Register a callback on speed limits data stream.
+        input_streams.filter(
+            pylot.utils.is_ground_speed_limit_signs_stream).add_callback(
+                PerfectDetectorOp.on_speed_limit_signs_update)
+        # Register a callback on stop signs data stream.
+        input_streams.filter(
+            pylot.utils.is_ground_stop_signs_stream).add_callback(
+                PerfectDetectorOp.on_stop_signs_update)
         # Stream on which to output bounding boxes.
         return [pylot.utils.create_obstacles_stream(output_stream_name)]
 
@@ -108,7 +118,8 @@ class PerfectDetectorOp(Op):
                     msg.timestamp,
                     [self._depth_imgs, self._bgr_imgs, self._segmented_imgs,
                      self._can_bus_msgs, self._pedestrians, self._vehicles,
-                     self._traffic_lights]):
+                     self._traffic_lights, self._speed_limit_signs,
+                     self._stop_signs]):
                 return
             depth_msg = self._depth_imgs.popleft()
             bgr_msg = self._bgr_imgs.popleft()
@@ -117,6 +128,8 @@ class PerfectDetectorOp(Op):
             pedestrians_msg = self._pedestrians.popleft()
             vehicles_msg = self._vehicles.popleft()
             traffic_light_msg = self._traffic_lights.popleft()
+            speed_limit_signs_msg = self._speed_limit_signs.popleft()
+            stop_signs_msg = self._stop_signs.popleft()
 
         self._logger.info('Timestamps {} {} {} {} {} {}'.format(
             depth_msg.timestamp, bgr_msg.timestamp, segmented_msg.timestamp,
@@ -181,6 +194,14 @@ class PerfectDetectorOp(Op):
         with self._lock:
             self._traffic_lights.append(msg)
 
+    def on_speed_limit_signs_update(self, msg):
+        with self._lock:
+            self._speed_limit_signs.append(msg)
+
+    def on_stop_signs_update(self, msg):
+        with self._lock:
+            self._stop_signs.append(msg)
+
     def on_pedestrians_update(self, msg):
         with self._lock:
             self._pedestrians.append(msg)
@@ -238,10 +259,10 @@ class PerfectDetectorOp(Op):
                              vehicle_transform,
                              depth_msg,
                              segmented_frame):
-        # Get 3d world positions for all traffic signs (some of which are traffic lights).
+        # Get 3d world positions for all traffic signs (some of which are
+        # traffic lights).
         traffic_signs_frame = get_traffic_sign_pixels(segmented_frame)
         bboxes = get_bounding_boxes_from_segmented(traffic_signs_frame)
-        sign_bboxes = []
 
         # Get the positions of the bounding box centers.
         x_mids = [(bbox[0] + bbox[1]) / 2 for bbox in bboxes]
@@ -249,13 +270,11 @@ class PerfectDetectorOp(Op):
         pos_3d = batch_get_3d_world_position_with_depth_map(
             x_mids, y_mids, depth_msg.frame, depth_msg.width, depth_msg.height,
             depth_msg.fov, depth_msg.transform * vehicle_transform)
-        sign_bboxes = zip(pos_3d, bboxes)
-        light_bboxes = []
-        for tl in traffic_lights:
-            light_bboxes.append((tl.location, tl.state))
+        pos_and_bboxes = zip(pos_3d, bboxes)
 
         # Map traffic lights to bounding boxes based on 3d world position.
-        tl_bboxes = match_bboxes_with_traffic_lights(sign_bboxes, light_bboxes)
+        tl_bboxes = match_bboxes_with_traffic_lights(
+            vehicle_transform, pos_and_bboxes, traffic_lights)
         det_objs = []
         for bbox, color in tl_bboxes:
             if color == 0:  # Red
