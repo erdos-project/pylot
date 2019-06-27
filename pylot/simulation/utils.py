@@ -754,6 +754,6 @@ def match_bboxes_with_traffic_lights(
             yaw_diff += 360
         elif yaw_diff >= 360:
             yaw_diff -= 360
-        if best_dist < 20 ** 2 and yaw_diff < 120:
+        if best_dist < 20 ** 2 and yaw_diff < 100:
             result.append((bbox[1], best_tl.state))
     return result

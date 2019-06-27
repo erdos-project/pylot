@@ -58,6 +58,14 @@ class PerfectDetectorOp(Op):
         self._bgr_img_size = (bgr_camera_setup.width, bgr_camera_setup.height)
         self._notification_cnt = 0
         self._lock = threading.Lock()
+        if '0.8' in self._flags.carla_version:
+            self._green_light = 0
+            self._yellow_light = 1
+            self._red_light = 2
+        elif '0.9' in self._flags.carla_version:
+            self._green_light = 2
+            self._yellow_light = 1
+            self._red_light = 0
 
     @staticmethod
     def setup_streams(input_streams, output_stream_name):
@@ -276,14 +284,15 @@ class PerfectDetectorOp(Op):
         tl_bboxes = match_bboxes_with_traffic_lights(
             vehicle_transform, pos_and_bboxes, traffic_lights)
         det_objs = []
+
         for bbox, color in tl_bboxes:
-            if color == 0:  # Red
-                det_objs.append(
-                    DetectedObject(bbox, 1.0, 'red traffic light'))
-            if color == 1:  # Yellow
-                det_objs.append(
-                    DetectedObject(bbox, 1.0, 'yellow traffic light'))
-            if color == 2:  # Green
+            if color == self._green_light:  # Green
                 det_objs.append(
                     DetectedObject(bbox, 1.0, 'green traffic light'))
+            if color == self._yellow_light:  # Yellow
+                det_objs.append(
+                    DetectedObject(bbox, 1.0, 'yellow traffic light'))
+            if color == self._red_light:  # Red
+                det_objs.append(
+                    DetectedObject(bbox, 1.0, 'red traffic light'))
         return det_objs
