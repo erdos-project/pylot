@@ -1,6 +1,5 @@
 from collections import deque
 import math
-import numpy as np
 from pid_controller.pid import PID
 import threading
 import time
@@ -14,6 +13,7 @@ from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 # Pylot imports
 from pylot.control.messages import ControlMessage
 import pylot.control.utils
+from pylot.map.hd_map import HDMap
 import pylot.simulation.utils
 from pylot.simulation.utils import get_3d_world_position_with_point_cloud
 import pylot.utils
@@ -151,7 +151,7 @@ class LidarERDOSAgentOperator(Op):
             self._point_clouds.append(msg)
 
     def on_opendrive_map(self, msg):
-        self._map = carla.Map('challenge', msg.data)
+        self._map = HDMap(carla.Map('challenge', msg.data))
 
     def execute(self):
         self.spin()
@@ -216,32 +216,27 @@ class LidarERDOSAgentOperator(Op):
         speed_factor_p = 1
         speed_factor_v = 1
 
-        vec_loc = carla.Location(vehicle_transform.location.x,
-                                 vehicle_transform.location.y,
-                                 vehicle_transform.location.z)
-        vec_waypoint = self._map.get_waypoint(vec_loc,
-                                              project_to_road=True,
-                                              lane_type=carla.LaneType.Driving)
-
-        for obs_vehicle_pos in vehicles:
-            if self.__is_vehicle_on_same_lane(vec_waypoint, obs_vehicle_pos):
+        for obs_vehicle_loc in vehicles:
+            if self._map.are_on_same_lane(vehicle_transform.location,
+                                          obs_vehicle_loc):
                 new_speed_factor_v = pylot.control.utils.stop_vehicle(
-                    vehicle_transform, obs_vehicle_pos, wp_vector,
+                    vehicle_transform, obs_vehicle_loc, wp_vector,
                     speed_factor_v, self._flags)
                 speed_factor_v = min(speed_factor_v, new_speed_factor_v)
 
-        for obs_ped_pos in pedestrians:
-            if self.__is_pedestrian_hitable(vec_waypoint, obs_ped_pos):
+        for obs_ped_loc in pedestrians:
+            if self._map.are_on_same_lane(vehicle_transform.location,
+                                          obs_ped_loc):
                 new_speed_factor_p = pylot.control.utils.stop_pedestrian(
                     vehicle_transform,
-                    obs_ped_pos,
+                    obs_ped_loc,
                     wp_vector,
                     speed_factor_p,
                     self._flags)
                 speed_factor_p = min(speed_factor_p, new_speed_factor_p)
 
         for tl in traffic_lights:
-            if (self.__is_traffic_light_active(vec_waypoint, tl[0]) and
+            if (self.__is_traffic_light_active(vehicle_transform, tl[0]) and
                 pylot.control.utils.is_traffic_light_visible(
                     vehicle_transform, tl[0], self._flags)):
                 tl_state = tl[1]
@@ -316,51 +311,6 @@ class LidarERDOSAgentOperator(Op):
             current_speed, target_speed, wp_angle_speed, speed_factor)
         return ControlMessage(steer, throttle, brake, False, False, timestamp)
 
-    def __is_pedestrian_hitable(self, hero_waypoint, ped_loc):
-        ped_loc = carla.Location(ped_loc.x, ped_loc.y, ped_loc.z)
-        ped_waypoint = self._map.get_waypoint(ped_loc,
-                                              project_to_road=False,
-                                              lane_type=carla.LaneType.Driving)
-        if not ped_waypoint:
-            # The pedestrian is not on a drivable lane.
-            return False
-        if hero_waypoint.road_id == ped_waypoint.road_id:
-            # Same lane if the ids match.
-            return hero_waypoint.lane_id == ped_waypoint.lane_id
-        else:
-            # Obstacle is in a different road section, but on a drivable lane.
-            if ped_waypoint.lane_type == carla.LaneType.Driving:
-                return True
-        return False
-
-    def __is_traffic_light_active(self, hero_waypoint, tl_loc):
+    def __is_traffic_light_active(self, vehicle_transform, tl_pos):
         # TODO(ionel): Implement.
         return True
-
-    def __is_vehicle_on_same_lane(self, hero_waypoint, obs_vehicle_loc):
-        obs_loc = carla.Location(obs_vehicle_loc.x,
-                                 obs_vehicle_loc.y,
-                                 obs_vehicle_loc.z)
-        obs_waypoint = self._map.get_waypoint(obs_loc,
-                                              project_to_road=False,
-                                              lane_type=carla.LaneType.Driving)
-        if not obs_waypoint:
-            # The car is not on a drivable lane.
-            return False
-
-        self._logger.info('Hero waypoint {}, obstacle vec waypoint {}'.format(
-            (str(hero_waypoint.transform),
-             hero_waypoint.road_id,
-             hero_waypoint.lane_id),
-            (str(obs_waypoint.transform),
-             obs_waypoint.road_id,
-             obs_waypoint.lane_id)))
-
-        if hero_waypoint.road_id == obs_waypoint.road_id:
-            # Same lane if the ids match.
-            return hero_waypoint.lane_id == obs_waypoint.lane_id
-        else:
-            # Obstacle is in a different road section, but on a drivable lane.
-            if obs_waypoint.lane_type == carla.LaneType.Driving:
-                return True
-        return False
