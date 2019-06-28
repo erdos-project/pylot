@@ -205,9 +205,7 @@ class ERDOSAgentOperator(Op):
 
         for tl in traffic_lights:
             if (pylot.control.utils.is_traffic_light_active(
-                    vehicle_transform, tl[0]) and
-                pylot.control.utils.is_traffic_light_visible(
-                    vehicle_transform, tl[0], self._flags)):
+                    vehicle_transform, tl[0])):
                 tl_state = tl[1]
                 new_speed_factor_tl = pylot.control.utils.stop_traffic_light(
                     vehicle_transform,

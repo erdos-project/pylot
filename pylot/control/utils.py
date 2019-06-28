@@ -68,15 +68,6 @@ def is_pedestrian_on_near_hit_zone(p_dist, p_angle, flags):
             p_dist < flags.pedestrian_distance_emergency_thres)
 
 
-def is_traffic_light_visible(vehicle_transform, tl_pos, flags):
-    _, tl_dist = get_world_vec_dist(
-        vehicle_transform.location.x,
-        vehicle_transform.location.y,
-        tl_pos.x,
-        tl_pos.y)
-    return tl_dist > flags.traffic_light_min_dist_thres
-
-
 def stop_pedestrian(vehicle_transform,
                     pedestrian_pos,
                     wp_vector,

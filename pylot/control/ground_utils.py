@@ -1,6 +1,8 @@
 import math
 import numpy as np
 
+from pylot.simulation.utils import get_world_vec_dist
+
 
 def is_pedestrian_hitable(pos, city_map):
     return city_map.is_point_on_lane([pos.x, pos.y, 38])
@@ -66,6 +68,15 @@ def is_traffic_light_active(vehicle_transform, tl_pos, city_map):
                 [closest_lane_point[0], closest_lane_point[1], 38])) < 1)
     else:
         return None
+
+
+def is_traffic_light_visible(vehicle_transform, tl_pos, flags):
+    _, tl_dist = get_world_vec_dist(
+        vehicle_transform.location.x,
+        vehicle_transform.location.y,
+        tl_pos.x,
+        tl_pos.y)
+    return tl_dist > flags.traffic_light_min_dist_thres
 
 
 def is_vehicle_on_same_lane(vehicle_transform, obs_vehicle_pos, city_map):

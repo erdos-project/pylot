@@ -151,7 +151,7 @@ class GroundAgentOperator(Op):
             for tl in traffic_lights:
                 if (pylot.control.ground_utils.is_traffic_light_active(
                         vehicle_transform, tl.location, self._map) and
-                    pylot.control.utils.is_traffic_light_visible(
+                    pylot.control.ground_utils.is_traffic_light_visible(
                         vehicle_transform, tl.location, self._flags)):
                     new_speed_factor_tl = pylot.control.utils.stop_traffic_light(
                         vehicle_transform,

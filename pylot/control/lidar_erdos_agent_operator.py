@@ -40,6 +40,7 @@ class LidarERDOSAgentOperator(Op):
         self._traffic_lights = deque()
         self._obstacles = deque()
         self._point_clouds = deque()
+        self._vehicle_labels = {'car', 'bicycle', 'motorcycle', 'bus', 'truck'}
         self._lock = threading.Lock()
 
     @staticmethod
@@ -193,11 +194,7 @@ class LidarERDOSAgentOperator(Op):
                     x, y, point_cloud, vehicle_transform)
                 if pos:
                     pedestrians.append(pos)
-            elif (detected_obj.label == 'car' or
-                  detected_obj.label == 'bicycle' or
-                  detected_obj.label == 'motorcycle' or
-                  detected_obj.label == 'bus' or
-                  detected_obj.label == 'truck'):
+            elif (detected_obj.label is self._vehicle_labels):
                 pos = self.__transform_to_3d(
                     x, y, point_cloud, vehicle_transform)
                 if pos:
@@ -236,9 +233,8 @@ class LidarERDOSAgentOperator(Op):
                 speed_factor_p = min(speed_factor_p, new_speed_factor_p)
 
         for tl in traffic_lights:
-            if (self.__is_traffic_light_active(vehicle_transform, tl[0]) and
-                pylot.control.utils.is_traffic_light_visible(
-                    vehicle_transform, tl[0], self._flags)):
+            if self._map.must_obbey_traffic_light(vehicle_transform.location,
+                                                  tl[0]):
                 tl_state = tl[1]
                 new_speed_factor_tl = pylot.control.utils.stop_traffic_light(
                     vehicle_transform,
@@ -310,7 +306,3 @@ class LidarERDOSAgentOperator(Op):
         throttle, brake = self.__get_throttle_brake(
             current_speed, target_speed, wp_angle_speed, speed_factor)
         return ControlMessage(steer, throttle, brake, False, False, timestamp)
-
-    def __is_traffic_light_active(self, vehicle_transform, tl_pos):
-        # TODO(ionel): Implement.
-        return True
