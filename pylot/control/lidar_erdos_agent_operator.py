@@ -101,9 +101,12 @@ class LidarERDOSAgentOperator(Op):
         (pedestrians, vehicles) = self.__transform_detector_output(
             obstacles, point_cloud, vehicle_transform)
 
-        self._logger.info('Current location {}'.format(vehicle_transform))
-        self._logger.info('Pedestrians {}'.format(pedestrians))
-        self._logger.info('Vehicles {}'.format(vehicles))
+        self._logger.info('{} Current location {}'.format(
+            msg.timestamp, vehicle_transform))
+        self._logger.info('{} Pedestrians {}'.format(
+            msg.timestamp, pedestrians))
+        self._logger.info('{} Vehicles {}'.format(
+            msg.timestamp, vehicles))
 
         speed_factor, _ = self.__stop_for_agents(
             vehicle_transform,
@@ -111,9 +114,11 @@ class LidarERDOSAgentOperator(Op):
             wp_vector,
             vehicles,
             pedestrians,
-            traffic_lights)
+            traffic_lights,
+            msg.timestamp)
 
-        self._logger.info('Current speed factor {}'.format(speed_factor))
+        self._logger.info('{} Current speed factor {}'.format(
+            msg.timestamp, speed_factor))
 
         control_msg = self.get_control_message(
             wp_angle, wp_angle_speed, speed_factor,
@@ -194,7 +199,7 @@ class LidarERDOSAgentOperator(Op):
                     x, y, point_cloud, vehicle_transform)
                 if pos:
                     pedestrians.append(pos)
-            elif (detected_obj.label is self._vehicle_labels):
+            elif (detected_obj.label in self._vehicle_labels):
                 pos = self.__transform_to_3d(
                     x, y, point_cloud, vehicle_transform)
                 if pos:
@@ -207,7 +212,8 @@ class LidarERDOSAgentOperator(Op):
                           wp_vector,
                           vehicles,
                           pedestrians,
-                          traffic_lights):
+                          traffic_lights,
+                          timestamp):
         speed_factor = 1
         speed_factor_tl = 1
         speed_factor_p = 1
@@ -216,21 +222,31 @@ class LidarERDOSAgentOperator(Op):
         for obs_vehicle_loc in vehicles:
             if self._map.are_on_same_lane(vehicle_transform.location,
                                           obs_vehicle_loc):
+                self._logger.info('Ego {} and vehicle {} are on the same lane'.format(
+                    vehicle_transform.location, obs_vehicle_loc))
                 new_speed_factor_v = pylot.control.utils.stop_vehicle(
                     vehicle_transform, obs_vehicle_loc, wp_vector,
                     speed_factor_v, self._flags)
-                speed_factor_v = min(speed_factor_v, new_speed_factor_v)
+                if new_speed_factor_v < speed_factor_v:
+                    speed_factor_v = new_speed_factor_v
+                    self._logger.info('Vehicle {} reduced speed factor to {}'.format(
+                        obs_vehicle_loc, speed_factor_v))
 
         for obs_ped_loc in pedestrians:
             if self._map.are_on_same_lane(vehicle_transform.location,
                                           obs_ped_loc):
+                self._logger.info('Ego {} and pedestrian {} are on the same lane'.format(
+                    vehicle_transform.location, obs_ped_loc))
                 new_speed_factor_p = pylot.control.utils.stop_pedestrian(
                     vehicle_transform,
                     obs_ped_loc,
                     wp_vector,
                     speed_factor_p,
                     self._flags)
-                speed_factor_p = min(speed_factor_p, new_speed_factor_p)
+                if new_speed_factor_p < speed_factor_p:
+                    speed_factor_p = new_speed_factor_p
+                    self._logger.info('Pedestrian {} reduced speed factor to {}'.format(
+                        obs_ped_loc, speed_factor_p))
 
         for tl in traffic_lights:
             if self._map.must_obbey_traffic_light(vehicle_transform.location,
@@ -252,7 +268,8 @@ class LidarERDOSAgentOperator(Op):
             'stop_vehicle': speed_factor_v,
             'stop_traffic_lights': speed_factor_tl
         }
-        self._logger.info('Agent speed factors {}'.format(state))
+        self._logger.info('{}: Agent speed factors {}'.format(
+            timestamp, state))
         return speed_factor, state
 
     def __get_steer(self, wp_angle):

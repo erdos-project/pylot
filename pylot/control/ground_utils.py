@@ -1,7 +1,7 @@
 import math
 import numpy as np
 
-from pylot.simulation.utils import get_world_vec_dist
+from pylot.control.utils import get_world_vec_dist
 
 
 def is_pedestrian_hitable(pos, city_map):
