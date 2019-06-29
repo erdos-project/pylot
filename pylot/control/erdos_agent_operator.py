@@ -143,10 +143,7 @@ class ERDOSAgentOperator(Op):
             pos = get_3d_world_position_with_depth_map(
                 x, y, depth_msg.frame, depth_msg.width, depth_msg.height,
                 depth_msg.fov, vehicle_transform * depth_msg.transform)
-            state = 0
-            if tl.label is not 'Green':
-                state = 1
-            traffic_lights.append((pos, state))
+            traffic_lights.append((pos, tl.label))
         return traffic_lights
 
     def __transform_detector_output(

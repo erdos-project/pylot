@@ -1,6 +1,7 @@
-import PIL.Image as Image
 import cv2
+from enum import Enum
 import numpy as np
+import PIL.Image as Image
 try:
     import queue as queue
 except ImportError:
@@ -95,6 +96,13 @@ coco_bbox_color_list = np.array(
             0.50, 0.5, 0
         ]
     ).astype(np.float32)
+
+
+class TrafficLightColor(Enum):
+    RED = 1
+    YELLOW = 2
+    GREEN = 3
+    OFF = 4
 
 
 class DetectedObject(object):

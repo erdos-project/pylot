@@ -6,11 +6,14 @@ from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging
 
 import pylot.utils
-from pylot.perception.detection.utils import DetectedObject, get_bounding_boxes_from_segmented, visualize_ground_bboxes
+from pylot.perception.detection.utils import DetectedObject,\
+    TrafficLightColor, get_bounding_boxes_from_segmented,\
+    visualize_ground_bboxes
 from pylot.perception.messages import DetectorMessage
 from pylot.perception.segmentation.utils import get_traffic_sign_pixels
-from pylot.simulation.utils import get_2d_bbox_from_3d_box, map_ground_3D_transform_to_2D, \
-                                   batch_get_3d_world_position_with_depth_map, match_bboxes_with_traffic_lights
+from pylot.simulation.utils import get_2d_bbox_from_3d_box,\
+    batch_get_3d_world_position_with_depth_map,\
+    match_bboxes_with_traffic_lights
 
 
 class PerfectDetectorOp(Op):
@@ -58,14 +61,6 @@ class PerfectDetectorOp(Op):
         self._bgr_img_size = (bgr_camera_setup.width, bgr_camera_setup.height)
         self._notification_cnt = 0
         self._lock = threading.Lock()
-        if '0.8' in self._flags.carla_version:
-            self._green_light = 0
-            self._yellow_light = 1
-            self._red_light = 2
-        elif '0.9' in self._flags.carla_version:
-            self._green_light = 2
-            self._yellow_light = 1
-            self._red_light = 0
 
     @staticmethod
     def setup_streams(input_streams, output_stream_name):
@@ -286,13 +281,16 @@ class PerfectDetectorOp(Op):
         det_objs = []
 
         for bbox, color in tl_bboxes:
-            if color == self._green_light:  # Green
+            if color == TrafficLightColor.GREEN:
                 det_objs.append(
                     DetectedObject(bbox, 1.0, 'green traffic light'))
-            if color == self._yellow_light:  # Yellow
+            elif color == TrafficLightColor.YELLOW:
                 det_objs.append(
                     DetectedObject(bbox, 1.0, 'yellow traffic light'))
-            if color == self._red_light:  # Red
+            elif color == TrafficLightColor.RED:
                 det_objs.append(
                     DetectedObject(bbox, 1.0, 'red traffic light'))
+            else:
+                det_objs.append(
+                    DetectedObject(bbox, 1.0, 'off traffic light'))
         return det_objs

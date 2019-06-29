@@ -183,10 +183,7 @@ class LidarERDOSAgentOperator(Op):
             y = (tl.corners[2] + tl.corners[3]) / 2
             pos = self.__transform_to_3d(x, y, point_cloud, vehicle_transform)
             if pos:
-                state = 0
-                if tl.label is not 'Green':
-                    state = 1
-                traffic_lights.append((pos, state))
+                traffic_lights.append((pos, tl.label))
         return traffic_lights
 
     def __transform_detector_output(

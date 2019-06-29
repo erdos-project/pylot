@@ -6,7 +6,7 @@ from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
 from pylot.perception.detection.utils import DetectedObject,\
-    annotate_image_with_bboxes, save_image, visualize_image
+    TrafficLightColor, annotate_image_with_bboxes, save_image, visualize_image
 from pylot.perception.messages import DetectorMessage
 from pylot.utils import bgr_to_rgb, rgb_to_bgr, create_traffic_lights_stream,\
     is_camera_stream
@@ -52,16 +52,16 @@ class TrafficLightDetOperator(Op):
         self._num_detections = self._detection_graph.get_tensor_by_name(
             'num_detections:0')
         self._labels = {
-            1: 'Green',
-            2: 'Red',
-            3: 'Yellow',
-            4: 'Off'
+            1: TrafficLightColor.GREEN,
+            2: TrafficLightColor.RED,
+            3: TrafficLightColor.YELLOW,
+            4: TrafficLightColor.OFF
         }
         # The bounding box colors to use in the visualizer.
-        self._bbox_colors = {'Green': [0, 128, 0],
-                             'Red': [255, 0, 0],
-                             'Yellow': [255, 255, 0],
-                             'Off': [0, 0, 0]}
+        self._bbox_colors = {TrafficLightColor.GREEN: [0, 128, 0],
+                             TrafficLightColor.RED: [255, 0, 0],
+                             TrafficLightColor.YELLOW: [255, 255, 0],
+                             TrafficLightColor.OFF: [0, 0, 0]}
 
     @staticmethod
     def setup_streams(input_streams,

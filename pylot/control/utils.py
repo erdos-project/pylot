@@ -1,6 +1,8 @@
 import math
 import numpy as np
 
+from pylot.perception.detection.utils import TrafficLightColor
+
 
 def get_world_vec_dist(x_dst, y_dst, x_src, y_src):
     vec = np.array([x_dst, y_dst] - np.array([x_src, y_src]))
@@ -133,7 +135,8 @@ def stop_traffic_light(vehicle_transform,
                        speed_factor_tl,
                        flags):
     speed_factor_tl_temp = 1
-    if tl_state != 0:  # Not green
+    if (tl_state == TrafficLightColor.YELLOW or
+        tl_state == TrafficLightColor.RED):
         tl_vector, tl_dist = get_world_vec_dist(
             tl_pos.x, tl_pos.y, vehicle_transform.location.x, vehicle_transform.location.y)
         tl_angle = get_angle(tl_vector, wp_vector)

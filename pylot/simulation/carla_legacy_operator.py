@@ -11,6 +11,7 @@ from erdos.op import Op
 from erdos.timestamp import Timestamp
 from erdos.utils import frequency, setup_csv_logging, setup_logging, time_epoch_ms
 
+from pylot.perception.detection.utils import TrafficLightColor
 from pylot.perception.messages import SegmentedFrameMessage
 import pylot.utils
 import pylot.simulation.messages
@@ -235,8 +236,16 @@ class CarlaLegacyOperator(Op):
                     carla_loc=agent.traffic_light.transform.location)
                 transform = pylot.simulation.utils.to_erdos_transform(
                     agent.traffic_light.transform)
+                if agent.traffic_light.state == 2:
+                    erdos_tl_state = TrafficLightColor.RED
+                elif agent.traffic_light.state == 1:
+                    erdos_tl_state = TrafficLightColor.YELLOW
+                elif agent.traffic_light.state == 0:
+                    erdos_tl_state = TrafficLightColor.GREEN
+                else:
+                    erdos_tl_state = TrafficLightColor.OFF
                 traffic_light = pylot.simulation.utils.TrafficLight(
-                    pos, transform, agent.traffic_light.state)
+                    pos, transform, erdos_tl_state)
                 traffic_lights.append(traffic_light)
             elif agent.HasField('speed_limit_sign'):
                 pos = pylot.simulation.utils.Location(
