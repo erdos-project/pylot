@@ -107,6 +107,14 @@ class LidarERDOSAgentOperator(Op):
         (pedestrians, vehicles) = self.__transform_detector_output(
             obstacles, point_cloud, vehicle_transform)
 
+        # if self._map.is_on_opposite_lane(vehicle_transform):
+        #     # Ignore obstacles
+        #     self._logger.info('Ego-vehicle {} on opposite lange'.format(
+        #         vehicle_transform))
+        #     pedestrians = []
+        #     vehicles = []
+        #     traffic_lights = []
+
         self._logger.info('{} Current speed {} and location {}'.format(
             msg.timestamp, vehicle_speed, vehicle_transform))
         self._logger.info('{} Pedestrians {}'.format(
@@ -205,14 +213,14 @@ class LidarERDOSAgentOperator(Op):
         # In this way, we can stop even if we detect the traffic light
         # very late.
         if intersection_dist < 30:
-            target_speed = min(target_speed, 7)
+            target_speed = min(target_speed, 5)
 
         # We assume that we are at a stop sign.
         if (intersection_dist < 10 and
             game_time - self._last_traffic_light_game_time > 4000):
             if vehicle_speed < 0.09:
                 # We've already stopped at the intersection.
-                target_speed = min(target_speed, 15)
+                target_speed = min(target_speed, 12)
             else:
                 # Stop at the intersection.
                 target_speed = min(target_speed, 0)

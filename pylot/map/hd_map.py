@@ -72,6 +72,25 @@ class HDMap(object):
                 return True
         return False
 
+    def is_on_opposite_lane(self, transform):
+        loc = carla.Location(transform.location.x,
+                             transform.location.y,
+                             transform.location.z)
+        waypoint = self._map.get_waypoint(loc,
+                                          project_to_road=False,
+                                          lane_type=carla.LaneType.Driving)
+        if not waypoint:
+            return True
+        if waypoint.is_intersection:
+            return False
+
+        # XXX(ionel): Check logic.
+        if (abs(waypoint.transform.rotation.yaw -
+                transform.rotation.yaw) > 140):
+            return True
+        else:
+            return False
+
     def is_at_stop(self, location):
         """ Returns True if the location is at a stop sign.
 

@@ -19,8 +19,8 @@ def get_distance(loc1, loc2):
 
 def get_target_speed(vehicle_loc, waypoint):
     if get_distance(waypoint.location, vehicle_loc) > 0.08:
-        target_speed = 15
+        target_speed = 12
     else:
-        # We are reaching a waypoint reduce the speed to 10.
-        target_speed = 10
+        # We are reaching a waypoint reduce the speed to 6.
+        target_speed = 6
     return target_speed
