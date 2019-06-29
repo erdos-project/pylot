@@ -5,9 +5,11 @@ import time
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from pylot.perception.detection.utils import DetectedObject, load_coco_labels, load_coco_bbox_colors, visualize_bboxes
+from pylot.perception.detection.utils import DetectedObject,\
+    annotate_image_with_bboxes, save_image, visualize_image
 from pylot.perception.messages import DetectorMessage
-from pylot.utils import bgr_to_rgb, rgb_to_bgr, create_traffic_lights_stream, is_camera_stream
+from pylot.utils import bgr_to_rgb, rgb_to_bgr, create_traffic_lights_stream,\
+    is_camera_stream
 
 
 class TrafficLightDetOperator(Op):
@@ -100,9 +102,19 @@ class TrafficLightDetOperator(Op):
 
         self._logger.info('Detected traffic lights {}'.format(traffic_lights))
 
-        if self._flags.visualize_traffic_light_output:
-            visualize_bboxes(self.name, msg.timestamp, rgb_to_bgr(image_np),
-                             traffic_lights, self._bbox_colors)
+        if (self._flags.visualize_traffic_light_output or
+            self._flags.log_traffic_light_detector_output):
+            annotate_image_with_bboxes(msg.timestamp,
+                                       rgb_to_bgr(image_np),
+                                       traffic_lights,
+                                       self._bbox_colors)
+            if self._flags.visualize_traffic_light_output:
+                visualize_image(self.name, rgb_to_bgr(image_np))
+            if self._flags.log_traffic_light_detector_output:
+                save_image(image_np,
+                           msg.timestamp,
+                           self._flags.data_path,
+                           'tl-detector-{}'.format(self.name))
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000

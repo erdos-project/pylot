@@ -15,8 +15,6 @@ LEFT_CAMERA_NAME = 'left_rgb_camera'
 RIGHT_CAMERA_NAME = 'right_rgb_camera'
 
 # Flags that control what data is recorded.
-flags.DEFINE_string('data_path', 'data/',
-                    'Path where to store Carla camera images')
 flags.DEFINE_integer('log_every_nth_frame', 1,
                      'Control how often the script logs frames')
 

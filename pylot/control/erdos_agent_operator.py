@@ -142,7 +142,7 @@ class ERDOSAgentOperator(Op):
             y = (tl.corners[2] + tl.corners[3]) / 2
             pos = get_3d_world_position_with_depth_map(
                 x, y, depth_msg.frame, depth_msg.width, depth_msg.height,
-                depth_msg.fov, depth_msg.transform * vehicle_transform)
+                depth_msg.fov, vehicle_transform * depth_msg.transform)
             state = 0
             if tl.label is not 'Green':
                 state = 1
@@ -159,7 +159,7 @@ class ERDOSAgentOperator(Op):
             if detected_obj.label == 'person':
                 pos = get_3d_world_position_with_depth_map(
                     x, y, depth_msg.frame, depth_msg.width, depth_msg.height,
-                    depth_msg.fov, depth_msg.transform * vehicle_transform)
+                    depth_msg.fov, vehicle_transform * depth_msg.transform)
                 pedestrians.append(pos)
             elif (detected_obj.label == 'car' or
                   detected_obj.label == 'bicycle' or
@@ -168,7 +168,7 @@ class ERDOSAgentOperator(Op):
                   detected_obj.label == 'truck'):
                 pos = get_3d_world_position_with_depth_map(
                     x, y, depth_msg.frame, depth_msg.width, depth_msg.height,
-                    depth_msg.fov, depth_msg.transform * vehicle_transform)
+                    depth_msg.fov, vehicle_transform * depth_msg.transform)
                 vehicles.append(pos)
         return (pedestrians, vehicles)
 

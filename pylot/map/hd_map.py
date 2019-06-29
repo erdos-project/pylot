@@ -2,10 +2,15 @@ import math
 
 import carla
 
+from erdos.utils import setup_logging
+
+from pylot.simulation.utils import to_erdos_transform
+
 
 class HDMap(object):
-    def __init__(self, carla_map):
+    def __init__(self, carla_map, log_file_name=None):
         self._map = carla_map
+        self._logger = setup_logging('hd_map', log_file_name)
 
     def is_intersection(self, location):
         """ Returns True if the location is in an intersection.
@@ -47,9 +52,19 @@ class HDMap(object):
         if not waypoint2:
             # Second location is not on a drivable lane.
             return False
+        w_t1 = to_erdos_transform(waypoint1.transform)
+        w_t2 = to_erdos_transform(waypoint2.transform)
+        self._logger.info('same_lane location1 {} to waypoint1 {}'.format(
+            location1, w_t1.location))
+        self._logger.info('same_lane location2 {} to waypoint2 {}'.format(
+            location2, w_t2.location))
         if waypoint1.road_id == waypoint2.road_id:
             return waypoint1.lane_id == waypoint2.lane_id
         else:
+            # Return False if we're in intersection and the other
+            # vehicle isn't.
+            if waypoint1.is_intersection and not waypoint2.is_intersection:
+                return False
             if waypoint2.lane_type == carla.LaneType.Driving:
                 # This may return True when the lane is different, but in
                 # with a different road_id.

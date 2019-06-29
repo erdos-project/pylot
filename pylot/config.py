@@ -216,6 +216,11 @@ flags.DEFINE_float('segmentation_drn_gpu_memory_fraction', 0.2,
                    'GPU memory fraction allocated to DRN segmentation')
 
 # Recording operators
+flags.DEFINE_string('data_path', 'data/', 'Path where to logged data')
+flags.DEFINE_bool('log_detector_output', False,
+                  'Enable recording of bbox annotated detector images')
+flags.DEFINE_bool('log_traffic_light_detector_output', False,
+                  'Enable recording of bbox annotated tl detector images')
 flags.DEFINE_bool('record_depth_camera', False, 'True to record depth camera')
 flags.DEFINE_bool('record_lidar', False, 'True to record lidar')
 flags.DEFINE_bool('record_rgb_camera', False, 'True to record RGB camera')

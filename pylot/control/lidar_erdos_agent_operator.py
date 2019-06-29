@@ -28,6 +28,7 @@ class LidarERDOSAgentOperator(Op):
                  csv_file_name=None):
         super(LidarERDOSAgentOperator, self).__init__(name)
         self._flags = flags
+        self._log_file_name = log_file_name
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
         self._bgr_camera_setup = bgr_camera_setup
@@ -157,7 +158,8 @@ class LidarERDOSAgentOperator(Op):
             self._point_clouds.append(msg)
 
     def on_opendrive_map(self, msg):
-        self._map = HDMap(carla.Map('challenge', msg.data))
+        self._map = HDMap(carla.Map('challenge', msg.data),
+                          self._log_file_name)
 
     def execute(self):
         self.spin()
@@ -165,7 +167,7 @@ class LidarERDOSAgentOperator(Op):
     def __transform_to_3d(self, x, y, point_cloud, vehicle_transform):
         pos = get_3d_world_position_with_point_cloud(
             x, y, point_cloud,
-            self._bgr_camera_setup.transform * vehicle_transform,
+            vehicle_transform * self._bgr_camera_setup.transform,
             self._bgr_camera_setup.width,
             self._bgr_camera_setup.height,
             self._bgr_camera_setup.fov)
@@ -251,6 +253,8 @@ class LidarERDOSAgentOperator(Op):
         for tl in traffic_lights:
             if self._map.must_obbey_traffic_light(vehicle_transform.location,
                                                   tl[0]):
+                self._logger.info('Ego is obbeying traffic light {}'.format(
+                    vehicle_transform.location, tl[0]))
                 tl_state = tl[1]
                 new_speed_factor_tl = pylot.control.utils.stop_traffic_light(
                     vehicle_transform,
@@ -260,7 +264,10 @@ class LidarERDOSAgentOperator(Op):
                     wp_angle,
                     speed_factor_tl,
                     self._flags)
-                speed_factor_tl = min(speed_factor_tl, new_speed_factor_tl)
+                if new_speed_factor_tl < speed_factor_tl:
+                    speed_factor_tl = new_speed_factor_tl
+                    self._logger.info('Traffic light {} reduced speed factor to {}'.format(
+                        tl[0], speed_factor_tl))
 
         speed_factor = min(speed_factor_tl, speed_factor_p, speed_factor_v)
         state = {

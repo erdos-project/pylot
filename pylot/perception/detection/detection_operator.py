@@ -5,9 +5,11 @@ import time
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from pylot.perception.detection.utils import DetectedObject, load_coco_labels, load_coco_bbox_colors, visualize_bboxes
+from pylot.perception.detection.utils import DetectedObject,\
+    load_coco_labels, load_coco_bbox_colors, annotate_image_with_bboxes,\
+    save_image, visualize_image
 from pylot.perception.messages import DetectorMessage
-from pylot.utils import create_obstacles_stream, is_camera_stream
+from pylot.utils import bgr_to_rgb, create_obstacles_stream, is_camera_stream
 
 
 class DetectionOperator(Op):
@@ -103,9 +105,17 @@ class DetectionOperator(Op):
             boxes, scores, labels, msg.height, msg.width)
         self._logger.info('Detected objects: {}'.format(detected_objects))
 
-        if self._flags.visualize_detector_output:
-            visualize_bboxes(self.name, msg.timestamp, image_np,
-                             detected_objects, self._bbox_colors)
+        if (self._flags.visualize_detector_output or
+            self._flags.log_detector_output):
+            annotate_image_with_bboxes(
+                msg.timestamp, image_np, detected_objects, self._bbox_colors)
+            if self._flags.visualize_detector_output:
+                visualize_image(self.name, image_np)
+            if self._flags.log_detector_output:
+                save_image(bgr_to_rgb(image_np),
+                           msg.timestamp,
+                           self._flags.data_path,
+                           'detector-{}'.format(self.name))
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000

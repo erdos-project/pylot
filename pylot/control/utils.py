@@ -102,18 +102,21 @@ def stop_vehicle(vehicle_transform,
         vehicle_transform.location.y)
     v_angle = get_angle(v_vector, wp_vector)
 
-    if ((-0.5 * flags.vehicle_angle_thres / flags.coast_factor <
-         v_angle < flags.vehicle_angle_thres / flags.coast_factor and
-         v_dist < flags.vehicle_distance_thres * flags.coast_factor) or
-        (-0.5 * flags.vehicle_angle_thres / flags.coast_factor <
-         v_angle < flags.vehicle_angle_thres and
-         v_dist < flags.vehicle_distance_thres)):
+    min_angle = -0.5 * flags.vehicle_angle_thres / flags.coast_factor
+    max_angle = flags.vehicle_angle_thres / flags.coast_factor
+    max_dist = flags.vehicle_distance_thres * flags.coast_factor
+    medium_max_angle = flags.vehicle_angle_thres
+    medium_dist = flags.vehicle_distance_thres
+    if ((min_angle < v_angle < max_angle and v_dist < max_dist) or
+        (min_angle < v_angle < medium_max_angle and v_dist < medium_dist)):
         speed_factor_v_temp = v_dist / (
             flags.coast_factor * flags.vehicle_distance_thres)
 
-    if (-0.5 * flags.vehicle_angle_thres * flags.coast_factor <
-        v_angle < flags.vehicle_angle_thres * flags.coast_factor and
-        v_dist < flags.vehicle_distance_thres / flags.coast_factor):
+    min_nearby_angle = -0.5 * flags.vehicle_angle_thres * flags.coast_factor
+    max_nearby_angle = flags.vehicle_angle_thres * flags.coast_factor
+    nearby_dist = flags.vehicle_distance_thres / flags.coast_factor
+    if (min_nearby_angle < v_angle < max_nearby_angle and
+        v_dist < nearby_dist):
         speed_factor_v_temp = 0
 
     if speed_factor_v_temp < speed_factor_v:

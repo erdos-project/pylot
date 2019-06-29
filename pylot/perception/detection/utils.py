@@ -1,3 +1,4 @@
+import PIL.Image as Image
 import cv2
 import numpy as np
 try:
@@ -371,6 +372,29 @@ def visualize_ground_bboxes(op_name, timestamp, image_np, pedestrian_bboxes,
         cv2.rectangle(image_np, (xmin, ymin), (xmax, ymax), color, 2)
     cv2.imshow(op_name, image_np)
     cv2.waitKey(1)
+
+
+def annotate_image_with_bboxes(
+        timestamp, image_np, detected_objs, bbox_color_map):
+#    txt_font = cv2.FONT_HERSHEY_SIMPLEX
+    add_timestamp(timestamp, image_np)
+    for detected_obj in detected_objs:
+        detected_obj.visualize_on_img(image_np, bbox_color_map)
+    return image_np
+
+
+def visualize_image(op_name, image_np):
+    cv2.imshow(op_name, image_np)
+    cv2.waitKey(1)
+
+
+def save_image(image_np, timestamp, data_path, file_base):
+    file_name = '{}{}-{}.png'.format(
+        data_path,
+        file_base,
+        timestamp.coordinates[0])
+    rgb_img = Image.fromarray(image_np)
+    rgb_img.save(file_name)
 
 
 def visualize_bboxes(op_name, timestamp, image_np, detected_objs, bbox_color_map):
