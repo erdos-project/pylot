@@ -121,6 +121,13 @@ class HDMap(object):
             ego_location: Location of the ego vehicle in world coordinates.
             tl_location: Location of the traffic light in world coordinates.
         """
+        loc = carla.Location(ego_location.x, ego_location.y, ego_location.z)
+        waypoint = self._map.get_waypoint(loc,
+                                          project_to_road=False,
+                                          lane_type=carla.LaneType.Any)
+        if waypoint and waypoint.is_intersection:
+            # Do not obbey traffic light if ego is already in the intersection.
+            return False
         # TODO(ionel): Implement.
         return True
 
