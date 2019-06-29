@@ -43,6 +43,7 @@ class LidarERDOSAgentOperator(Op):
         self._point_clouds = deque()
         self._vehicle_labels = {'car', 'bicycle', 'motorcycle', 'bus', 'truck'}
         self._lock = threading.Lock()
+        self._last_traffic_light_game_time = -100000
 
     @staticmethod
     def setup_streams(input_streams):
@@ -99,11 +100,14 @@ class LidarERDOSAgentOperator(Op):
 
         traffic_lights = self.__transform_tl_output(
             tl_output, point_cloud, vehicle_transform)
+        game_time = msg.timestamp.coordinates[0]
+        if len(traffic_lights) > 0:
+            self._last_traffic_light_game_time = game_time
         (pedestrians, vehicles) = self.__transform_detector_output(
             obstacles, point_cloud, vehicle_transform)
 
-        self._logger.info('{} Current location {}'.format(
-            msg.timestamp, vehicle_transform))
+        self._logger.info('{} Current speed {} and location {}'.format(
+            msg.timestamp, vehicle_speed, vehicle_transform))
         self._logger.info('{} Pedestrians {}'.format(
             msg.timestamp, pedestrians))
         self._logger.info('{} Vehicles {}'.format(
@@ -117,6 +121,16 @@ class LidarERDOSAgentOperator(Op):
             pedestrians,
             traffic_lights,
             msg.timestamp)
+
+        new_target_speed = self.reduce_speed_when_approaching_intersection(
+            vehicle_transform,
+            vehicle_speed,
+            target_speed,
+            game_time)
+        if new_target_speed != target_speed:
+            self._logger.info('Proximity to intersection, reducing speed from {} to {}'.format(
+                target_speed, new_target_speed))
+            target_speed = new_target_speed
 
         self._logger.info('{} Current speed factor {}'.format(
             msg.timestamp, speed_factor))
@@ -163,6 +177,38 @@ class LidarERDOSAgentOperator(Op):
 
     def execute(self):
         self.spin()
+
+    def reduce_speed_when_approaching_intersection(
+            self,
+            vehicle_transform,
+            vehicle_speed,
+            target_speed,
+            game_time):
+        intersection_dist = self._map.distance_to_intersection(
+            vehicle_transform.location,
+            max_distance_to_check=30)
+        if not intersection_dist or intersection_dist < 4:
+            # We are not close to an intersection or we're already
+            # too close.
+            return target_speed
+
+        # Reduce the speed because we're getting close to an intersection.
+        # In this way, we can stop even if we detect the traffic light
+        # very late.
+        if intersection_dist < 30:
+            target_speed = min(target_speed, 7)
+
+        # We assume that we are at a stop sign.
+        if (intersection_dist < 10 and
+            game_time - self._last_traffic_light_game_time > 4000):
+            if vehicle_speed < 0.09:
+                # We've already stopped at the intersection.
+                target_speed = min(target_speed, 15)
+            else:
+                # Stop at the intersection.
+                target_speed = min(target_speed, 0)
+
+        return target_speed
 
     def __transform_to_3d(self, x, y, point_cloud, vehicle_transform):
         pos = get_3d_world_position_with_point_cloud(

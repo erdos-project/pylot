@@ -62,7 +62,7 @@ class HDMap(object):
             return waypoint1.lane_id == waypoint2.lane_id
         else:
             # Return False if we're in intersection and the other
-            # vehicle isn't.
+            # obstacle isn't.
             if waypoint1.is_intersection and not waypoint2.is_intersection:
                 return False
             if waypoint2.lane_type == carla.LaneType.Driving:
@@ -78,13 +78,33 @@ class HDMap(object):
         Args:
             location: Location in world coordinates.
         """
+        # TODO(ionel): This method doesn't work yet because the opendrive do
+        # not contained waypoints annotated as stops.
         loc = carla.Location(location.x, location.y, location.z)
         waypoint = self._map.get_waypoint(loc,
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Stop)
-        # TODO(ionel): This method doesn't work yet because the opendrive do
-        # not contained waypoints annotated as stops.
         return not waypoint
+
+    def distance_to_intersection(self, location, max_distance_to_check=30):
+        loc = carla.Location(location.x, location.y, location.z)
+        waypoint = self._map.get_waypoint(loc,
+                                          project_to_road=False,
+                                          lane_type=carla.LaneType.Any)
+        if not waypoint:
+            return None
+        # We're already in an intersection.
+        if waypoint.is_intersection:
+            return 0
+        for i in range(1, max_distance_to_check + 1):
+            waypoints = waypoint.next(1)
+            if not waypoints or len(waypoints) == 0:
+                return None
+            for w in waypoints:
+                if w.is_intersection:
+                    return i
+            waypoint = waypoints[0]
+        return None
 
     def is_on_bidirectional_lane(self, location):
         loc = carla.Location(location.x, location.y, location.z)
