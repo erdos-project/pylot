@@ -45,6 +45,9 @@ class LidarERDOSAgentOperator(Op):
         self._lock = threading.Lock()
         self._last_traffic_light_game_time = -100000
         self._last_moving_time = 0
+        # Num of control commands to override to ensure the agent doesn't get
+        # stuck.
+        self._num_control_override = 0
 
     @staticmethod
     def setup_streams(input_streams):
@@ -150,11 +153,18 @@ class LidarERDOSAgentOperator(Op):
 
         if control_msg.throttle > 0.001:
             self._last_moving_time = game_time
-        # Overide control message if we haven't been moving for a while.
+            self._num_control_override = 0
+
+        if self._num_control_override > 0:
+            self._num_control_override -= 1
+            control_msg.throttle = 0.75
+
         # Might be stuck because of a faulty detector.
+        # Override control message if we haven't been moving for a while.
         if game_time - self._last_moving_time > 30000:
+            self._num_control_override = 6
             control_msg = ControlMessage(
-                0, 0.5, 0, False, False, msg.timestamp)
+                0, 0.75, 0, False, False, msg.timestamp)
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
