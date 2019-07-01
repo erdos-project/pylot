@@ -211,6 +211,8 @@ class LidarERDOSAgentOperator(Op):
             vehicle_speed,
             target_speed,
             game_time):
+        if not self._map:
+            return target_speed
         intersection_dist = self._map.distance_to_intersection(
             vehicle_transform.location,
             max_distance_to_check=30)
@@ -292,8 +294,8 @@ class LidarERDOSAgentOperator(Op):
         speed_factor_v = 1
 
         for obs_vehicle_loc in vehicles:
-            if self._map.are_on_same_lane(vehicle_transform.location,
-                                          obs_vehicle_loc):
+            if not self._map or self._map.are_on_same_lane(vehicle_transform.location,
+                                                           obs_vehicle_loc):
                 self._logger.info('Ego {} and vehicle {} are on the same lane'.format(
                     vehicle_transform.location, obs_vehicle_loc))
                 new_speed_factor_v = pylot.control.utils.stop_vehicle(
@@ -305,8 +307,8 @@ class LidarERDOSAgentOperator(Op):
                         obs_vehicle_loc, speed_factor_v))
 
         for obs_ped_loc in pedestrians:
-            if self._map.are_on_same_lane(vehicle_transform.location,
-                                          obs_ped_loc):
+            if not self._map or self._map.are_on_same_lane(vehicle_transform.location,
+                                                           obs_ped_loc):
                 self._logger.info('Ego {} and pedestrian {} are on the same lane'.format(
                     vehicle_transform.location, obs_ped_loc))
                 new_speed_factor_p = pylot.control.utils.stop_pedestrian(
@@ -321,8 +323,8 @@ class LidarERDOSAgentOperator(Op):
                         obs_ped_loc, speed_factor_p))
 
         for tl in traffic_lights:
-            if self._map.must_obbey_traffic_light(vehicle_transform.location,
-                                                  tl[0]):
+            if not self._map or self._map.must_obbey_traffic_light(vehicle_transform.location,
+                                                                   tl[0]):
                 self._logger.info('Ego is obbeying traffic light {}'.format(
                     vehicle_transform.location, tl[0]))
                 tl_state = tl[1]

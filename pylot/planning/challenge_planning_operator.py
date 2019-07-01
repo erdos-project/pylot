@@ -25,8 +25,12 @@ class ChallengePlanningOperator(Op):
         self._map = None
         self._waypoints = None
         self._vehicle_transform = None
-        self._wp_num_steer = 9  # use 9th waypoint for steering
-        self._wp_num_speed = 4  # use 4th waypoint for speed
+        if self._flags.track == 3:
+            self._wp_num_steer = 9  # use 9th waypoint for steering
+            self._wp_num_speed = 4  # use 4th waypoint for speed
+        else:
+            self._wp_num_steer = 1
+            self._wp_num_speed = 1
         # Cost functions. Output between 0 and 1.
         self._cost_functions = [
             pylot.planning.cost_functions.cost_speed,
