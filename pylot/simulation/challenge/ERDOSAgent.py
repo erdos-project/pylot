@@ -201,7 +201,7 @@ class ERDOSAgent(AutonomousAgent):
 
         # The publishers must be re-created every time the Agent object
         # is constructed.
-        input_streams = self.__create_input_streams()
+        self._input_streams = self.__create_input_streams()
 
         global ROS_NODE_INITIALIZED
         # We only initialize the data-flow once. On the first run.
@@ -209,7 +209,7 @@ class ERDOSAgent(AutonomousAgent):
         # support several init_node calls from the same process or from
         # a process started with Python multiprocess.
         if not ROS_NODE_INITIALIZED:
-            self.__initialize_data_flow(input_streams, bgr_camera_setup)
+            self.__initialize_data_flow(self._input_streams, bgr_camera_setup)
             ROS_NODE_INITIALIZED = True
 
         # Initialize the driver script as a ROS node so that we can receive
@@ -223,7 +223,7 @@ class ERDOSAgent(AutonomousAgent):
             callback=self.__on_control_msg,
             queue_size=None)
         # Setup all the input streams.
-        for input_stream in input_streams:
+        for input_stream in self._input_streams:
             input_stream.setup()
 
     def sensors(self):
@@ -287,6 +287,11 @@ class ERDOSAgent(AutonomousAgent):
         game_time = int(timestamp * 1000)
         erdos_timestamp = Timestamp(coordinates=[game_time])
         watermark = WatermarkMessage(erdos_timestamp)
+
+        if self.track != Track.ALL_SENSORS_HDMAP_WAYPOINTS:
+            if not self._sent_open_drive_data:
+                self._sent_open_drive_data = True
+                self._open_drive_stream.send(self._top_watermark)
 
         global PREVIOUS_GAME_TIME
         if game_time <= PREVIOUS_GAME_TIME:
@@ -465,12 +470,12 @@ class ERDOSAgent(AutonomousAgent):
                          [self._global_trajectory_stream,
                           self._can_bus_stream])
 
-        if self.track == Track.ALL_SENSORS_HDMAP_WAYPOINTS:
-            # Stream on which we send the opendrive map.
-            self._open_drive_stream = ROSOutputDataStream(
-                DataStream(name='open_drive_stream',
-                           uid='open_drive_stream'))
-            input_streams.append(self._open_drive_stream)
+#        if self.track == Track.ALL_SENSORS_HDMAP_WAYPOINTS:
+        # Stream on which we send the opendrive map.
+        self._open_drive_stream = ROSOutputDataStream(
+            DataStream(name='open_drive_stream',
+                       uid='open_drive_stream'))
+        input_streams.append(self._open_drive_stream)
 
         if (self.track == Track.ALL_SENSORS or
             self.track == Track.ALL_SENSORS_HDMAP_WAYPOINTS):
