@@ -48,11 +48,9 @@ RUN chmod +x /workspace/scenario_runner/srunner/challenge/run_evaluator.sh
 ########################################################################################################################
 ########################################################################################################################
 
-SHELL ["/bin/bash", "-c"]
+COPY .tmp/srunner/challenge/ros.bashrc /root/.bashrc
 
-# Add command at the beginning of the bash file to ensure that it executes even
-# when executing in non-interactive mode.
-RUN sed -i '1isource /opt/ros/kinetic/setup.bash' /root/.bashrc
+SHELL ["/bin/bash", "-c"]
 
 RUN apt-get -y update && apt-get -y install git sudo
 # Uninstall old pillow and setuptools versions
@@ -77,11 +75,18 @@ RUN apt-get update && apt-get install -y wget
 RUN apt-get -y install cuda-toolkit-9.0
 RUN cd /workspace/pylot/ && ./install.sh challenge
 
+RUN /bin/bash -c 'source /opt/ros/kinetic/setup.bash'
+
 # Export PYTHONPATH
 ENV PYTHONPATH "/opt/ros/kinetic/lib/python2.7/dist-packages:/workspace/CARLA/PythonAPI/carla/dist/carla-0.9.5-py2.7-linux-x86_64.egg":"${ROOT_SCENARIO_RUNNER}":"${CARLA_ROOT}/PythonAPI/carla":"/workspace/pylot/dependencies/:${PYTHONPATH}"
 
 ENV TEAM_AGENT /workspace/pylot/pylot/simulation/challenge/ERDOSAgent.py
 ENV TEAM_CONFIG /workspace/pylot/pylot/simulation/challenge/challenge.conf
+
+COPY ./ros_entrypoint.sh /workspace/
+RUN chmod 777 /workspace/ros_entrypoint.sh
+
+ENTRYPOINT ["/workspace/ros_entrypoint.sh"]
 
 ########################################################################################################################
 ########################################################################################################################
