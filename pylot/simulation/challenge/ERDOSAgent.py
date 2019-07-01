@@ -37,7 +37,7 @@ RIGHT_CAMERA_NAME = 'front_right_camera'
 ROS_NODE_INITIALIZED = False
 # Variable use to denote top watermark. It is increased by one before each run.
 TOP_TIME = sys.maxint - 10000
-PREVIOUS_GAME_TIME = -1000
+GAME_TIME = 0
 
 flags.DEFINE_integer('track', 3, 'Track to execute')
 
@@ -284,26 +284,15 @@ class ERDOSAgent(AutonomousAgent):
         with self._lock:
             self._control = None
             self._control_timestamp = None
-        game_time = int(timestamp * 1000)
-        erdos_timestamp = Timestamp(coordinates=[game_time])
+        global GAME_TIME
+        GAME_TIME += 1
+        erdos_timestamp = Timestamp(coordinates=[GAME_TIME])
         watermark = WatermarkMessage(erdos_timestamp)
 
         if self.track != Track.ALL_SENSORS_HDMAP_WAYPOINTS:
             if not self._sent_open_drive_data:
                 self._sent_open_drive_data = True
                 self._open_drive_stream.send(self._top_watermark)
-
-        global PREVIOUS_GAME_TIME
-        if game_time <= PREVIOUS_GAME_TIME:
-            output_control = carla.VehicleControl()
-            output_control.throttle = 0
-            output_control.brake = 0.75
-            output_control.steer = 0
-            output_control.reverse = False
-            output_control.hand_brake = False
-            output_control.manual_gear_shift = False
-            return output_control
-        PREVIOUS_GAME_TIME = game_time
 
         self.send_waypoints(erdos_timestamp)
 
