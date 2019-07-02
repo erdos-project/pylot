@@ -77,21 +77,14 @@ class LidarERDOSAgentOperator(Op):
         # close the watermark loop with the carla operator.
         return [pylot.utils.create_control_stream()]
 
-    def on_notification(self, msg):
+    def compute_command(self,
+                        can_bus_msg,
+                        waypoint_msg,
+                        pc_msg,
+                        tl_output,
+                        obstacles,
+                        timestamp):
         start_time = time.time()
-        with self._lock:
-            can_bus_msg = self._can_bus_msgs.popleft()
-            waypoint_msg = self._waypoint_msgs.popleft()
-            pc_msg = self._point_clouds.popleft()
-            tl_output = self._traffic_lights.popleft()
-            obstacles = self._obstacles.popleft()
-
-        self._logger.info("Timestamps {} {} {} {} {}".format(
-            can_bus_msg.timestamp, waypoint_msg.timestamp, pc_msg.timestamp,
-            tl_output.timestamp, obstacles.timestamp))
-        assert (can_bus_msg.timestamp == waypoint_msg.timestamp ==
-                pc_msg.timestamp == tl_output.timestamp == obstacles.timestamp)
-
         vehicle_transform = can_bus_msg.data.transform
         vehicle_speed = can_bus_msg.data.forward_speed
         wp_angle = waypoint_msg.wp_angle
@@ -104,7 +97,7 @@ class LidarERDOSAgentOperator(Op):
 
         traffic_lights = self.__transform_tl_output(
             tl_output, point_cloud, vehicle_transform)
-        game_time = msg.timestamp.coordinates[0]
+        game_time = timestamp.coordinates[0]
         if len(traffic_lights) > 0:
             self._last_traffic_light_game_time = game_time
         (pedestrians, vehicles) = self.__transform_detector_output(
@@ -119,11 +112,11 @@ class LidarERDOSAgentOperator(Op):
         #     traffic_lights = []
 
         self._logger.info('{} Current speed {} and location {}'.format(
-            msg.timestamp, vehicle_speed, vehicle_transform))
+            timestamp, vehicle_speed, vehicle_transform))
         self._logger.info('{} Pedestrians {}'.format(
-            msg.timestamp, pedestrians))
+            timestamp, pedestrians))
         self._logger.info('{} Vehicles {}'.format(
-            msg.timestamp, vehicles))
+            timestamp, vehicles))
 
         speed_factor, _ = self.__stop_for_agents(
             vehicle_transform,
@@ -132,7 +125,7 @@ class LidarERDOSAgentOperator(Op):
             vehicles,
             pedestrians,
             traffic_lights,
-            msg.timestamp)
+            timestamp)
 
         new_target_speed = self.reduce_speed_when_approaching_intersection(
             vehicle_transform,
@@ -145,11 +138,11 @@ class LidarERDOSAgentOperator(Op):
             target_speed = new_target_speed
 
         self._logger.info('{} Current speed factor {}'.format(
-            msg.timestamp, speed_factor))
+            timestamp, speed_factor))
 
         control_msg = self.get_control_message(
             wp_angle, wp_angle_speed, speed_factor,
-            vehicle_speed, target_speed, msg.timestamp)
+            vehicle_speed, target_speed, timestamp)
 
         if control_msg.throttle > 0.001:
             self._last_moving_time = game_time
@@ -164,14 +157,50 @@ class LidarERDOSAgentOperator(Op):
         if game_time - self._last_moving_time > 30000:
             self._num_control_override = 6
             control_msg = ControlMessage(
-                0, 0.75, 0, False, False, msg.timestamp)
+                0, 0.75, 0, False, False, timestamp)
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(
-            time_epoch_ms(), self.name, msg.timestamp, runtime))
+            time_epoch_ms(), self.name, timestamp, runtime))
 
         self.get_output_stream('control_stream').send(control_msg)
+
+    def synchronize_msg_buffers(self, timestamp, buffers):
+        for buffer in buffers:
+            while (len(buffer) > 0 and buffer[0].timestamp < timestamp):
+                buffer.popleft()
+            if len(buffer) == 0:
+                return False
+            assert buffer[0].timestamp == timestamp
+        return True
+
+    def on_notification(self, msg):
+        with self._lock:
+            if not self.synchronize_msg_buffers(
+                    msg.timestamp,
+                    [self._can_bus_msgs, self._waypoint_msgs,
+                     self._point_clouds, self._traffic_lights,
+                     self._obstacles]):
+                return
+            can_bus_msg = self._can_bus_msgs.popleft()
+            waypoint_msg = self._waypoint_msgs.popleft()
+            pc_msg = self._point_clouds.popleft()
+            tl_output = self._traffic_lights.popleft()
+            obstacles = self._obstacles.popleft()
+
+        self._logger.info("Timestamps {} {} {} {} {}".format(
+            can_bus_msg.timestamp, waypoint_msg.timestamp, pc_msg.timestamp,
+            tl_output.timestamp, obstacles.timestamp))
+        assert (can_bus_msg.timestamp == waypoint_msg.timestamp ==
+                pc_msg.timestamp == tl_output.timestamp == obstacles.timestamp)
+
+        self.compute_command(can_bus_msg,
+                             waypoint_msg,
+                             pc_msg,
+                             tl_output,
+                             obstacles,
+                             msg.timestamp)
 
     def on_waypoints_update(self, msg):
         self._logger.info("Waypoints update at {}".format(msg.timestamp))

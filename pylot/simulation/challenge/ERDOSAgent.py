@@ -225,6 +225,7 @@ class ERDOSAgent(AutonomousAgent):
         # Setup all the input streams.
         for input_stream in self._input_streams:
             input_stream.setup()
+        time.sleep(5)
 
     def sensors(self):
         """
@@ -286,6 +287,7 @@ class ERDOSAgent(AutonomousAgent):
             self._control_timestamp = None
         global GAME_TIME
         GAME_TIME += 1
+        print("Current game time {}".format(GAME_TIME))
         erdos_timestamp = Timestamp(coordinates=[GAME_TIME])
         watermark = WatermarkMessage(erdos_timestamp)
 
