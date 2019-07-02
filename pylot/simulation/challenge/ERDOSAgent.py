@@ -294,7 +294,7 @@ class ERDOSAgent(AutonomousAgent):
         if self.track != Track.ALL_SENSORS_HDMAP_WAYPOINTS:
             if not self._sent_open_drive_data:
                 self._sent_open_drive_data = True
-                self._open_drive_stream.send(self._top_watermark)
+                #self._open_drive_stream.send(self._top_watermark)
 
         self.send_waypoints(erdos_timestamp)
 
@@ -305,7 +305,7 @@ class ERDOSAgent(AutonomousAgent):
                 self._camera_streams[key].send(
                     pylot.simulation.messages.FrameMessage(
                         bgra_to_bgr(val[1]), erdos_timestamp))
-                self._camera_streams[key].send(watermark)
+                #self._camera_streams[key].send(watermark)
             elif key == 'can_bus':
                 self.send_can_bus_reading(val[1], erdos_timestamp, watermark)
             elif key == 'GPS':
@@ -355,7 +355,7 @@ class ERDOSAgent(AutonomousAgent):
             data = [(to_erdos_transform(transform), road_option)
                     for (transform, road_option) in self._waypoints]
             self._global_trajectory_stream.send(Message(data, timestamp))
-            self._global_trajectory_stream.send(self._top_watermark)
+            #self._global_trajectory_stream.send(self._top_watermark)
         assert self._waypoints == self._global_plan_world_coord,\
             'Global plan has been updated.'
 
@@ -370,7 +370,7 @@ class ERDOSAgent(AutonomousAgent):
         can_bus = pylot.simulation.utils.CanBus(
             vehicle_transform, forward_speed)
         self._can_bus_stream.send(Message(can_bus, timestamp))
-        self._can_bus_stream.send(watermark_msg)
+        #self._can_bus_stream.send(watermark_msg)
 
     def send_lidar_reading(self, data, timestamp, watermark_msg):
         msg = pylot.simulation.messages.PointCloudMessage(
@@ -378,7 +378,7 @@ class ERDOSAgent(AutonomousAgent):
             transform=self._lidar_transform,
             timestamp=timestamp)
         self._point_cloud_stream.send(msg)
-        self._point_cloud_stream.send(watermark_msg)
+        #self._point_cloud_stream.send(watermark_msg)
 
     def send_hd_map_reading(self, data, timestamp):
         # Sending once opendrive data
@@ -387,7 +387,7 @@ class ERDOSAgent(AutonomousAgent):
             self._sent_open_drive_data = True
             self._open_drive_stream.send(
                 Message(self._open_drive_data, timestamp))
-            self._open_drive_stream.send(self._top_watermark)
+            #self._open_drive_stream.send(self._top_watermark)
             assert self._open_drive_data == data['opendrive'],\
                 'Opendrive data changed.'
         # TODO(ionel): Send point cloud data.

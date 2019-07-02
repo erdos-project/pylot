@@ -70,8 +70,8 @@ class LidarERDOSAgentOperator(Op):
             pylot.utils.is_open_drive_stream).add_callback(
                 LidarERDOSAgentOperator.on_opendrive_map)
 
-        input_streams.add_completion_callback(
-            LidarERDOSAgentOperator.on_notification)
+        # input_streams.add_completion_callback(
+        #     LidarERDOSAgentOperator.on_notification)
 
         # Set no watermark on the output stream so that we do not
         # close the watermark loop with the carla operator.
@@ -175,19 +175,18 @@ class LidarERDOSAgentOperator(Op):
             assert buffer[0].timestamp == timestamp
         return True
 
-    def on_notification(self, msg):
-        with self._lock:
-            if not self.synchronize_msg_buffers(
-                    msg.timestamp,
-                    [self._can_bus_msgs, self._waypoint_msgs,
-                     self._point_clouds, self._traffic_lights,
-                     self._obstacles]):
+    def run_if_you_can(self):
+        streams = [self._can_bus_msgs, self._waypoint_msgs,
+                   self._point_clouds, self._traffic_lights,
+                   self._obstacles]
+        for stream in streams:
+            if len(stream) == 0:
                 return
-            can_bus_msg = self._can_bus_msgs.popleft()
-            waypoint_msg = self._waypoint_msgs.popleft()
-            pc_msg = self._point_clouds.popleft()
-            tl_output = self._traffic_lights.popleft()
-            obstacles = self._obstacles.popleft()
+        can_bus_msg = self._can_bus_msgs.popleft()
+        waypoint_msg = self._waypoint_msgs.popleft()
+        pc_msg = self._point_clouds.popleft()
+        tl_output = self._traffic_lights.popleft()
+        obstacles = self._obstacles.popleft()
 
         self._logger.info("Timestamps {} {} {} {} {}".format(
             can_bus_msg.timestamp, waypoint_msg.timestamp, pc_msg.timestamp,
@@ -200,32 +199,37 @@ class LidarERDOSAgentOperator(Op):
                              pc_msg,
                              tl_output,
                              obstacles,
-                             msg.timestamp)
+                             pc_msg.timestamp)
 
     def on_waypoints_update(self, msg):
         self._logger.info("Waypoints update at {}".format(msg.timestamp))
         with self._lock:
             self._waypoint_msgs.append(msg)
+            self.run_if_you_can()
 
     def on_can_bus_update(self, msg):
         self._logger.info("Can bus update at {}".format(msg.timestamp))
         with self._lock:
             self._can_bus_msgs.append(msg)
+            self.run_if_you_can()
 
     def on_traffic_lights_update(self, msg):
         self._logger.info("Traffic light update at {}".format(msg.timestamp))
         with self._lock:
             self._traffic_lights.append(msg)
+            self.run_if_you_can()
 
     def on_obstacles_update(self, msg):
         self._logger.info("Obstacle update at {}".format(msg.timestamp))
         with self._lock:
             self._obstacles.append(msg)
+            self.run_if_you_can()
 
     def on_lidar_update(self, msg):
         self._logger.info("Lidar update at {}".format(msg.timestamp))
         with self._lock:
             self._point_clouds.append(msg)
+            self.run_if_you_can()
 
     def on_opendrive_map(self, msg):
         self._map = HDMap(carla.Map('challenge', msg.data),
