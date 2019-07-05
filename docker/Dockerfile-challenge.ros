@@ -1,0 +1,94 @@
+ARG CARLA_VERSION=0.9.5
+ARG CARLA_BUILD=''
+
+ARG ROS_VERSION=kinetic-ros-base-xenial
+
+FROM carlasim/carla:$CARLA_VERSION$CARLA_BUILD as carla
+FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+FROM ros:$ROS_VERSION
+
+ARG CARLA_VERSION
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ros-kinetic-tf \
+        ros-kinetic-ackermann-msgs \
+        ros-kinetic-derived-object-msgs \
+        ros-kinetic-pcl-conversions \
+        ros-kinetic-pcl-ros \
+        ros-kinetic-cv-bridge \
+        libjpeg8 \
+        libpng16-16 \
+        libtiff5 \
+        python-setuptools \
+        python-wheel \
+        python-pip && \
+        rm -rf /var/lib/apt/lists/*
+
+RUN pip2 install py_trees==0.8.3 shapely six
+
+COPY --from=carla /home/carla/PythonAPI /workspace/CARLA/PythonAPI
+COPY --from=carla /home/carla/HDMaps /workspace/CARLA/HDMaps
+
+ENV CARLA_ROOT /workspace/CARLA
+
+ENV ROOT_SCENARIO_RUNNER /workspace/scenario_runner
+
+#assuming ROS kinetic using Python 2.7
+ENV PYTHONPATH "${ROOT_SCENARIO_RUNNER}":"${CARLA_ROOT}/PythonAPI/carla/dist/carla-0.9.5-py2.7-linux-x86_64.egg":"${CARLA_ROOT}/PythonAPI/carla":${PYTHONPATH}
+
+RUN mkdir -p /workspace/results
+
+COPY .tmp /workspace/scenario_runner
+COPY team_code /workspace/team_code
+RUN chmod +x /workspace/scenario_runner/srunner/challenge/run_evaluator.sh
+
+RUN /bin/bash -c 'source /opt/ros/kinetic/setup.bash'
+
+WORKDIR /workspace
+
+########################################################################################################################
+########################################################################################################################
+############                                BEGINNING OF USER COMMANDS                                      ############
+########################################################################################################################
+########################################################################################################################
+
+COPY .tmp/srunner/challenge/ros.bashrc /root/.bashrc
+
+SHELL ["/bin/bash", "-c"]
+
+RUN apt-get -y update && apt-get -y install git sudo
+# Uninstall old pillow and setuptools versions
+RUN pip uninstall --yes setuptools idna
+# Installed new versions
+RUN pip2 install pillow setuptools pytest==4.6.3
+
+RUN cd /workspace && git clone https://github.com/erdos-project/erdos.git
+# Install all the requirements.
+RUN cd /workspace/erdos/ && ./install.sh
+
+# Install Tensorflow
+RUN pip2 install tensorflow-gpu==1.12
+
+# Get the Pylot directory.
+RUN cd /workspace && git clone https://github.com/erdos-project/pylot.git
+# Install all the Python dependencies.
+RUN  cd /workspace/pylot/ && pip2 install -e ./
+# Get the Pylot models and code dependencies.
+RUN apt-get update && apt-get install -y wget
+# Install toolkit for Centernet
+#RUN apt-get -y install cuda-toolkit-9.0
+RUN cd /workspace/pylot/ && ./install.sh challenge
+
+# Export PYTHONPATH
+ENV PYTHONPATH "/workspace/CARLA/PythonAPI/carla/dist/carla-0.9.5-py2.7-linux-x86_64.egg":"${ROOT_SCENARIO_RUNNER}":"${CARLA_ROOT}/PythonAPI/carla":"/workspace/pylot/dependencies/:${PYTHONPATH}"
+
+ENV TEAM_AGENT /workspace/pylot/pylot/simulation/challenge/ERDOSAgent.py
+ENV TEAM_CONFIG /workspace/pylot/pylot/simulation/challenge/challenge.conf
+
+########################################################################################################################
+########################################################################################################################
+############                                   END OF USER COMMANDS                                         ############
+########################################################################################################################
+########################################################################################################################
+
+CMD ["/bin/bash"]
