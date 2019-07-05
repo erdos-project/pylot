@@ -1,5 +1,6 @@
 from collections import deque
 import math
+import threading
 import time
 from pid_controller.pid import PID
 
@@ -33,6 +34,7 @@ class GroundAgentOperator(Op):
         self._traffic_light_msgs = deque()
         self._speed_limit_sign_msgs = deque()
         self._waypoint_msgs = deque()
+        self._lock = threading.Lock()
 
     @staticmethod
     def setup_streams(input_streams):
@@ -94,22 +96,28 @@ class GroundAgentOperator(Op):
         self.get_output_stream('control_stream').send(control_msg)
 
     def on_waypoints_update(self, msg):
-        self._waypoint_msgs.append(msg)
+        with self._lock:
+            self._waypoint_msgs.append(msg)
 
     def on_can_bus_update(self, msg):
-        self._can_bus_msgs.append(msg)
+        with self._lock:
+            self._can_bus_msgs.append(msg)
 
     def on_pedestrians_update(self, msg):
-        self._pedestrian_msgs.append(msg)
+        with self._lock:
+            self._pedestrian_msgs.append(msg)
 
     def on_vehicles_update(self, msg):
-        self._vehicle_msgs.append(msg)
+        with self._lock:
+            self._vehicle_msgs.append(msg)
 
     def on_traffic_lights_update(self, msg):
-        self._traffic_light_msgs.append(msg)
+        with self._lock:
+            self._traffic_light_msgs.append(msg)
 
     def on_speed_limit_signs_update(self, msg):
-        self._speed_limit_sign_msgs.append(msg)
+        with self._lock:
+            self._speed_limit_sign_msgs.append(msg)
 
     def stop_for_agents(self,
                         vehicle_transform,

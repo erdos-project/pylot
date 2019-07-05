@@ -130,8 +130,9 @@ flags.DEFINE_integer('carla_timeout', 10,
                      'Timeout limit for Carla operator')
 flags.DEFINE_bool('carla_synchronous_mode', True,
                   'Run Carla in synchronous mode.')
-flags.DEFINE_float('carla_step_frequency', 10,
-                   'Frequency of Carla data readings.')
+flags.DEFINE_float('carla_step_frequency', -1,
+                   'Target frequency of sending control commands. -1 if '
+                   'commands should be applied as soon ASAP.')
 flags.DEFINE_integer('carla_num_vehicles', 20, 'Carla num vehicles.')
 flags.DEFINE_integer('carla_num_pedestrians', 40, 'Carla num pedestrians.')
 flags.DEFINE_bool('carla_high_quality', False,
@@ -153,6 +154,8 @@ flags.DEFINE_float('carla_replay_duration', 0.0,
                    'The duration of the replay run')
 flags.DEFINE_integer('carla_replay_id', 0,
                      'The actor id to follow during the replay')
+flags.DEFINE_bool('carla_auto_pilot', False,
+                  'Use auto pilot to drive the ego vehicle')
 
 # Estimate depth using two cameras.
 flags.DEFINE_bool('depth_estimation', False,

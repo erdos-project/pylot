@@ -113,7 +113,7 @@ def main(argv):
     (carla_op,
      camera_ops,
      lidar_ops) = pylot.operator_creator.create_driver_ops(
-         graph, camera_setups, lidar_setups)
+         graph, camera_setups, lidar_setups, auto_pilot=FLAGS.carla_auto_pilot)
 
     # Add visual operators.
     pylot.operator_creator.add_visualization_operators(

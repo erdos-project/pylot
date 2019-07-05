@@ -81,7 +81,7 @@ def create_lidar_setups():
     return []
 
 
-def add_driver_operators(graph):
+def add_driver_operators(graph, auto_pilot):
     camera_setups = create_camera_setups()
     bgr_camera_setup = camera_setups[0]
     if FLAGS.depth_estimation:
@@ -92,7 +92,7 @@ def add_driver_operators(graph):
     (carla_op,
      camera_ops,
      lidar_ops) = pylot.operator_creator.create_driver_ops(
-         graph, camera_setups, lidar_setups)
+         graph, camera_setups, lidar_setups, auto_pilot)
     return (bgr_camera_setup, carla_op, camera_ops, lidar_ops)
 
 
@@ -253,7 +253,8 @@ def main(argv):
     (bgr_camera_setup,
      carla_op,
      camera_ops,
-     lidar_ops) = add_driver_operators(graph)
+     lidar_ops) = add_driver_operators(
+         graph, auto_pilot=FLAGS.carla_auto_pilot)
 
     # Add debugging operators (e.g., visualizers) to the data-flow graph.
     add_debugging_component(graph, carla_op, camera_ops, lidar_ops)

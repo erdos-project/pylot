@@ -41,7 +41,7 @@ from pylot.planning.waypointer_operator import WaypointerOperator
 FLAGS = flags.FLAGS
 
 
-def create_carla_legacy_op(graph, camera_setups, lidar_setups):
+def create_carla_legacy_op(graph, camera_setups, lidar_setups, auto_pilot):
     # Import operator that works with Carla 0.8.4
     from pylot.simulation.carla_legacy_operator import CarlaLegacyOperator
     carla_op = graph.add(
@@ -49,6 +49,7 @@ def create_carla_legacy_op(graph, camera_setups, lidar_setups):
         name='carla',
         init_args={
             'flags': FLAGS,
+            'auto_pilot': auto_pilot,
             'camera_setups': camera_setups,
             'lidar_setups': lidar_setups,
             'log_file_name': FLAGS.log_file_name,
@@ -61,12 +62,13 @@ def create_carla_legacy_op(graph, camera_setups, lidar_setups):
     return carla_op
 
 
-def create_carla_op(graph):
+def create_carla_op(graph, auto_pilot):
     from pylot.simulation.carla_operator import CarlaOperator
     carla_op = graph.add(
         CarlaOperator,
         name='carla',
         init_args={
+            'auto_pilot': auto_pilot,
             'flags': FLAGS,
             'log_file_name': FLAGS.log_file_name,
             'csv_file_name': FLAGS.csv_log_file_name
@@ -102,18 +104,18 @@ def create_camera_driver_op(graph, camera_setup):
     return camera_op
 
 
-def create_driver_ops(graph, camera_setups, lidar_setups):
+def create_driver_ops(graph, camera_setups, lidar_setups, auto_pilot=False):
     camera_ops = []
     lidar_ops = []
     if '0.8' in FLAGS.carla_version:
         carla_op = create_carla_legacy_op(
-            graph, camera_setups, lidar_setups)
+            graph, camera_setups, lidar_setups, auto_pilot)
         # The legacy carla op implements the camera drivers.
         camera_ops = [carla_op]
         lidar_ops = [carla_op]
     elif '0.9' in FLAGS.carla_version:
         if FLAGS.carla_replay_file == '':
-            carla_op = create_carla_op(graph)
+            carla_op = create_carla_op(graph, auto_pilot)
         else:
             carla_op = create_carla_replay_op(graph)
         camera_ops = [create_camera_driver_op(graph, cs)

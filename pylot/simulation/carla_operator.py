@@ -6,11 +6,12 @@ import carla
 # ERDOS specific imports.
 from erdos.op import Op
 from erdos.timestamp import Timestamp
-from erdos.utils import frequency, setup_logging, setup_csv_logging
+from erdos.utils import setup_logging, setup_csv_logging
 from erdos.message import Message, WatermarkMessage
 
 import pylot.utils
-from pylot.simulation.carla_utils import get_ground_data, get_weathers, get_world, reset_world
+from pylot.simulation.carla_utils import get_ground_data, get_weathers,\
+    get_world, reset_world
 import pylot.simulation.messages
 from pylot.simulation.utils import to_erdos_transform
 import pylot.simulation.utils
@@ -29,11 +30,17 @@ class CarlaOperator(Op):
         _vehicles: A list of identifiers of the vehicles inside the simulation.
     """
 
-    def __init__(self, name, flags, log_file_name=None, csv_file_name=None):
+    def __init__(self,
+                 name,
+                 auto_pilot,
+                 flags,
+                 log_file_name=None,
+                 csv_file_name=None):
         """ Initializes the CarlaOperator with the given name.
 
         Args:
             name: The unique name of the operator.
+            auto_pilot: True to enable auto_pilot for ego vehicle.
             flags: A handle to the global flags instance to retrieve the
                 configuration.
             log_file_name: The file to log the required information to.
@@ -43,7 +50,7 @@ class CarlaOperator(Op):
         self._flags = flags
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
-
+        self._auto_pilot = auto_pilot
         # Connect to CARLA and retrieve the world running.
         self._client, self._world = get_world(self._flags.carla_host,
                                               self._flags.carla_port,
@@ -72,10 +79,10 @@ class CarlaOperator(Op):
         # the downstream operators.
         self._driving_vehicle = self._spawn_driving_vehicle()
 
-        self._tick_at = time.time() + 1.0 / self._flags.carla_step_frequency
         # Tick once to ensure that the actors are spawned before the data-flow
         # starts.
-        self._world.tick()
+        self._tick_at = time.time()
+        self._tick_simulator()
 
     @staticmethod
     def setup_streams(input_streams):
@@ -97,22 +104,30 @@ class CarlaOperator(Op):
         Args:
             msg: A control.messages.ControlMessage message.
         """
-        # Transform the message to a carla control cmd.
-        vec_control = carla.VehicleControl(
-            throttle=msg.throttle,
-            steer=msg.steer,
-            brake=msg.brake,
-            hand_brake=msg.hand_brake,
-            reverse=msg.reverse)
-        self._driving_vehicle.apply_control(vec_control)
+        # If auto pilot is enabled for the ego vehicle we do not apply the
+        # control, but we still want to tick in this method to ensure that
+        # all operators finished work before the world ticks.
+        if not self._auto_pilot:
+            # Transform the message to a carla control cmd.
+            vec_control = carla.VehicleControl(
+                throttle=msg.throttle,
+                steer=msg.steer,
+                brake=msg.brake,
+                hand_brake=msg.hand_brake,
+                reverse=msg.reverse)
+            self._driving_vehicle.apply_control(vec_control)
         # Tick the world after the operator received a control command.
         # This usually indicates that all the operators have completed
         # processing the previous timestamp. However, this is not always
         # true (e.g., logging operators that are not part of the main loop).
-        self._wait_until_next_tick()
-        self._world.tick()
+        self._tick_simulator()
 
-    def _wait_until_next_tick(self):
+    def _tick_simulator(self):
+        if (not self._flags.carla_synchronous_mode or
+            self._flags.carla_step_frequency == -1):
+            # Run as fast as possible.
+            self._world.tick()
+            return
         time_until_tick = self._tick_at - time.time()
         if time_until_tick > 0:
             time.sleep(time_until_tick)
@@ -121,6 +136,7 @@ class CarlaOperator(Op):
                 'Cannot tick Carla at frequency {}'.format(
                     self._flags.carla_step_frequency))
         self._tick_at += 1.0 / self._flags.carla_step_frequency
+        self._world.tick()
 
     def _set_synchronous_mode(self, value):
         """ Sets the synchronous mode to the desired value.
@@ -200,11 +216,15 @@ class CarlaOperator(Op):
 
         driving_vehicle = None
         while not driving_vehicle:
-            start_pose = random.choice(self._world.get_map().get_spawn_points())
-            driving_vehicle = self._world.try_spawn_actor(v_blueprint, start_pose)
+            start_pose = random.choice(
+                self._world.get_map().get_spawn_points())
+            driving_vehicle = self._world.try_spawn_actor(v_blueprint,
+                                                          start_pose)
+            if driving_vehicle and self._auto_pilot:
+                driving_vehicle.set_autopilot(self._auto_pilot)
         return driving_vehicle
 
-    def on_world_tick(self, msg):
+    def publish_world_data(self, msg):
         """ Callback function that gets called when the world is ticked.
         This function sends a WatermarkMessage to the downstream operators as
         a signal that they need to release data to the rest of the pipeline.
@@ -220,12 +240,6 @@ class CarlaOperator(Op):
         self.__publish_hero_vehicle_data(timestamp, watermark_msg)
         self.__publish_ground_actors_data(timestamp, watermark_msg)
 
-#    @frequency(10)
-    def tick_at_frequency(self):
-        """ This function ticks the world at the desired frequency. """
-        self._wait_until_next_tick()
-        self._world.tick()
-
     def execute(self):
         # Register a callback function and a function that ticks the world.
         # TODO(ionel): We do not currently have a top message.
@@ -235,8 +249,8 @@ class CarlaOperator(Op):
         self.get_output_stream('vehicle_id_stream').send(
             WatermarkMessage(timestamp))
 
-        self._world.on_tick(self.on_world_tick)
-        self.tick_at_frequency()
+        self._world.on_tick(self.publish_world_data)
+        self._tick_simulator()
         self.spin()
 
     def __publish_hero_vehicle_data(self, timestamp, watermark_msg):

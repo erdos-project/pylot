@@ -29,6 +29,7 @@ class CarlaLegacyOperator(Op):
     def __init__(self,
                  name,
                  flags,
+                 auto_pilot,
                  camera_setups=[],
                  lidar_setups=[],
                  log_file_name=None,
@@ -37,6 +38,7 @@ class CarlaLegacyOperator(Op):
         self._flags = flags
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+        self._auto_pilot = auto_pilot
         if self._flags.carla_high_quality:
             quality = 'Epic'
         else:
@@ -76,7 +78,7 @@ class CarlaLegacyOperator(Op):
 
     @staticmethod
     def setup_streams(input_streams, camera_setups, lidar_setups):
-        input_streams.add_callback(CarlaLegacyOperator.update_control)
+        input_streams.add_callback(CarlaLegacyOperator.on_control_msg)
         camera_streams = [pylot.utils.create_camera_stream(cs)
                           for cs in camera_setups]
         lidar_streams = [pylot.utils.create_lidar_stream(ls)
@@ -143,7 +145,7 @@ class CarlaLegacyOperator(Op):
 
         self._settings.add_sensor(lidar)
 
-    def read_carla_data(self):
+    def publish_world_data(self):
         read_start_time = time.time()
         measurements, sensor_data = self.client.read_data()
         measure_time = time.time()
@@ -165,10 +167,10 @@ class CarlaLegacyOperator(Op):
         self.__send_ground_agent_data(agents, timestamp, watermark)
         # Send sensor data on data stream.
         self.__send_sensor_data(sensor_data, timestamp, watermark)
-        # Send control command to the simulator.
-        self.client.send_control(**self.control)
+        # Get Autopilot control data.
+        if self._auto_pilot:
+            self.control = measurements.player_measurements.autopilot_control
         end_time = time.time()
-
         measurement_runtime = (measure_time - read_start_time) * 1000
         total_runtime = (end_time - read_start_time) * 1000
         self._logger.info('Carla measurement time {}; total time {}'.format(
@@ -309,33 +311,39 @@ class CarlaLegacyOperator(Op):
                 data_stream.send(Message(measurement, timestamp))
             data_stream.send(watermark)
 
-    def read_data_at_frequency(self):
-        """ Reads data from Carla at a given frequency."""
-        period = 1.0 / self._flags.carla_step_frequency
-        trigger_at = time.time() + period
-        while True:
-            time_until_trigger = trigger_at - time.time()
-            if time_until_trigger > 0:
-                time.sleep(time_until_trigger)
-            else:
-                self._logger.error(
-                    'Cannot read Carla data at frequency {}'.format(
-                        self._flags.carla_step_frequency))
-            self.read_carla_data()
-            trigger_at += period
+    def _tick_simulator(self):
+        if (not self._flags.carla_synchronous_mode or
+            self._flags.carla_step_frequency == -1):
+            # Run as fast as possible.
+            self.publish_world_data()
+            return
+        time_until_tick = self._tick_at - time.time()
+        if time_until_tick > 0:
+            time.sleep(time_until_tick)
+        else:
+            self._logger.error(
+                'Cannot tick Carla at frequency {}'.format(
+                    self._flags.carla_step_frequency))
+        self._tick_at += 1.0 / self._flags.carla_step_frequency
+        self.publish_world_data()
 
-    def update_control(self, msg):
+    def on_control_msg(self, msg):
         """ Invoked when a ControlMessage is received.
 
         Args:
             msg: A control.messages.ControlMessage message.
         """
-        # Update the control dict state.
-        self.control['steer'] = msg.steer
-        self.control['throttle'] = msg.throttle
-        self.control['brake'] = msg.brake
-        self.control['hand_brake'] = msg.hand_brake
-        self.control['reverse'] = msg.reverse
+        if not self._auto_pilot:
+            # Update the control dict state.
+            self.control['steer'] = msg.steer
+            self.control['throttle'] = msg.throttle
+            self.control['brake'] = msg.brake
+            self.control['hand_brake'] = msg.hand_brake
+            self.control['reverse'] = msg.reverse
+            self.client.send_control(**self.control)
+        else:
+            self.client.send_control(self.control)
+        self._tick_simulator()
 
     def execute(self):
         # Connect to the simulator.
@@ -352,6 +360,6 @@ class CarlaLegacyOperator(Op):
                 0, max(0, number_of_player_starts - 1))
 
         self.client.start_episode(player_start)
-
-        self.read_data_at_frequency()
+        self._tick_at = time.time()
+        self._tick_simulator()
         self.spin()
