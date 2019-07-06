@@ -197,8 +197,6 @@ flags.DEFINE_string('eval_detection_metric', 'mAP',
                     'Metric to evaluate detection on: mAP | timely-mAP')
 flags.DEFINE_bool('detection_eval_use_accuracy_model', False,
                   'Enable to use a model for detection accuracy decay over time')
-flags.DEFINE_integer('eval_ground_truth_ignore_first', 5000,
-                     'Number of ms to ignore frames for (car is not moving initially)')
 flags.DEFINE_integer('eval_ground_truth_max_latency', 2000,
                      'Max latency to evaluate in ground truth experiments')
 flags.DEFINE_string('eval_segmentation_metric', 'mIoU',

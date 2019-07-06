@@ -96,7 +96,7 @@ def add_driver_operators(graph, auto_pilot):
     return (bgr_camera_setup, carla_op, camera_ops, lidar_ops)
 
 
-def add_ground_eval_ops(graph, bgr_camera_setup, carla_op, camera_ops):
+def add_ground_eval_ops(graph, perfect_det_ops, camera_ops):
     if FLAGS.eval_ground_truth_segmentation:
         eval_ground_seg_op = pylot.operator_creator.create_segmentation_ground_eval_op(
             graph, SEGMENTED_CAMERA_NAME)
@@ -106,8 +106,8 @@ def add_ground_eval_ops(graph, bgr_camera_setup, carla_op, camera_ops):
     # object detection across timestamps.
     if FLAGS.eval_ground_truth_object_detection:
         eval_ground_det_op = pylot.operator_creator.create_eval_ground_truth_detector_op(
-            graph, bgr_camera_setup, DEPTH_CAMERA_NAME)
-        graph.connect([carla_op] + camera_ops, [eval_ground_det_op])
+            graph)
+        graph.connect(perfect_det_ops, [eval_ground_det_op])
 
 
 def add_detection_component(graph, bgr_camera_setup, camera_ops, carla_op):
@@ -117,9 +117,12 @@ def add_detection_component(graph, bgr_camera_setup, camera_ops, carla_op):
         graph.connect(camera_ops, obj_detector_ops)
 
         if FLAGS.evaluate_obj_detection:
+            perfect_det_op = pylot.operator_creator.create_perfect_detector_op(
+                graph, bgr_camera_setup, 'perfect_detector')
+            graph.connect([carla_op] + camera_ops, [perfect_det_op])
             obstacle_accuracy_op = pylot.operator_creator.create_obstacle_accuracy_op(
-                graph, bgr_camera_setup, DEPTH_CAMERA_NAME)
-            graph.connect(obj_detector_ops + [carla_op] + camera_ops,
+                graph, 'perfect_detector')
+            graph.connect(obj_detector_ops + [perfect_det_op],
                           [obstacle_accuracy_op])
 
         if FLAGS.obj_tracking:
@@ -233,10 +236,14 @@ def add_debugging_component(graph, carla_op, camera_ops, lidar_ops):
                       [depth_estimation_op])
 
 
-def add_perfect_perception_component(
-        graph, bgr_camera_setup, camera_ops, carla_op):
+def add_perfect_perception_component(graph,
+                                     bgr_camera_setup,
+                                     ground_obstacles_stream_name,
+                                     carla_op,
+                                     camera_ops):
     obj_det_ops = [pylot.operator_creator.create_perfect_detector_op(
-        graph, bgr_camera_setup)]
+        graph, bgr_camera_setup, ground_obstacles_stream_name)]
+    graph.connect([carla_op] + camera_ops, obj_det_ops)
     # TODO(ionel): Populate the other types of detectors.
     traffic_light_det_ops = []
     lane_det_ops = []
@@ -259,15 +266,17 @@ def main(argv):
     # Add debugging operators (e.g., visualizers) to the data-flow graph.
     add_debugging_component(graph, carla_op, camera_ops, lidar_ops)
 
-    add_ground_eval_ops(graph, bgr_camera_setup, carla_op, camera_ops)
-
     if FLAGS.use_perfect_perception:
         # Add operators that use ground information.
         (obj_det_ops,
          traffic_light_det_ops,
          lane_det_ops,
          segmentation_ops) = add_perfect_perception_component(
-             graph, bgr_camera_setup, camera_ops, carla_op)
+             graph,
+             bgr_camera_setup,
+             'perfect_detector_output',
+             carla_op,
+             camera_ops)
     else:
         # Add detectors.
         (obj_det_ops,
@@ -277,6 +286,8 @@ def main(argv):
 
         # Add segmentation operators.
         segmentation_ops = add_segmentation_component(graph, camera_ops)
+
+    add_ground_eval_ops(graph, obj_det_ops, camera_ops)
 
     # Add the behaviour planning agent operator.
     agent_op = add_agent_op(graph,

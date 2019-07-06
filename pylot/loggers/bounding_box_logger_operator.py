@@ -9,6 +9,7 @@ class BoundingBoxLoggerOp(Op):
     def __init__(self, name, flags):
         super(BoundingBoxLoggerOp, self).__init__(name)
         self._flags = flags
+        self._msg_cnt = 0
 
     @staticmethod
     def setup_streams(input_streams):
@@ -17,6 +18,9 @@ class BoundingBoxLoggerOp(Op):
         return []
 
     def on_detected_objs_msg(self, msg):
+        self._msg_cnt += 1
+        if self._msg_cnt % self._flags.log_every_nth_frame != 0:
+            return
         bboxes = []
         for detected_obj in msg.detected_objects:
             (xmin, xmax, ymin, ymax) = detected_obj.corners

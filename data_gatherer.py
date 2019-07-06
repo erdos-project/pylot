@@ -128,9 +128,10 @@ def main(argv):
     graph.connect(lidar_ops, lidar_log_ops)
 
     # Add operator that converts from 3D bounding boxes to 2D bouding boxes.
+    ground_obstacles_stream_name = 'perfect_detector'
     detector_ops = [
         pylot.operator_creator.create_perfect_detector_op(
-            graph, camera_setups[0])]
+            graph, camera_setups[0], ground_obstacles_stream_name)]
     # Connect the detector to the cameras.
     graph.connect([carla_op] + camera_ops, detector_ops)
 

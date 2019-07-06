@@ -59,7 +59,6 @@ class PerfectDetectorOp(Op):
         self._bgr_intrinsic = bgr_camera_setup.get_intrinsic()
         self._bgr_transform = bgr_camera_setup.get_unreal_transform()
         self._bgr_img_size = (bgr_camera_setup.width, bgr_camera_setup.height)
-        self._notification_cnt = 0
         self._lock = threading.Lock()
 
     @staticmethod
@@ -144,9 +143,7 @@ class PerfectDetectorOp(Op):
                 segmented_msg.timestamp == can_bus_msg.timestamp ==
                 pedestrians_msg.timestamp == vehicles_msg.timestamp ==
                 traffic_light_msg.timestamp)
-        self._notification_cnt += 1
-        if self._notification_cnt % self._flags.log_every_nth_frame != 0:
-            return
+
         depth_array = depth_msg.frame
         vehicle_transform = can_bus_msg.data.transform
 
@@ -163,7 +160,7 @@ class PerfectDetectorOp(Op):
             depth_msg,
             segmented_msg.frame)
         # Send the detected obstacles.
-        output_msg = DetectorMessage(det_ped + det_vec + det_traffic_signs + \
+        output_msg = DetectorMessage(det_ped + det_vec + det_traffic_signs +
                                      det_traffic_lights,
                                      0, msg.timestamp)
 

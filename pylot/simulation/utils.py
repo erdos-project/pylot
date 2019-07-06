@@ -482,21 +482,6 @@ def get_3d_world_position_with_point_cloud(
         return None
 
 
-def get_camera_intrinsic_and_transform(image_size=(800, 600),
-                                       position=(1.5, 0.0, 1.4),
-                                       rotation_pitch=0,
-                                       rotation_roll=0,
-                                       rotation_yaw=0,
-                                       fov=90.0):
-    # TODO(ionel): Deprecate method
-    intrinsic_mat = create_intrinsic_matrix(image_size[0], image_size[1], fov)
-    loc = Location(position[0], position[1], position[2])
-    rot = Rotation(rotation_pitch, rotation_yaw, rotation_roll)
-    camera_transform = Transform(loc, rot)
-    camera_unreal_transform = camera_to_unreal_transform(camera_transform)
-    return (intrinsic_mat, camera_unreal_transform, image_size)
-
-
 def get_bounding_box_from_corners(corners):
     """
     Gets the bounding box of the pedestrian given the corners of the plane.

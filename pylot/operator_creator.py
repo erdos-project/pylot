@@ -343,9 +343,8 @@ def create_record_carla_op(graph):
     return record_carla_op
 
 
-def create_perfect_detector_op(graph, bgr_camera_setup):
+def create_perfect_detector_op(graph, bgr_camera_setup, output_stream_name):
     from pylot.simulation.perfect_detector_operator import PerfectDetectorOp
-    output_stream_name = bgr_camera_setup.name + '_detected'
     perfect_det_op = graph.add(
         PerfectDetectorOp,
         name='perfect_detector',
@@ -419,15 +418,11 @@ def create_detector_ops(graph):
     return detector_ops
 
 
-def create_eval_ground_truth_detector_op(graph,
-                                         rgb_camera_setup,
-                                         depth_camera_name):
+def create_eval_ground_truth_detector_op(graph):
     ground_truth_op = graph.add(
         DetectionEvalGroundOperator,
         name='eval_ground_detection',
-        setup_args={'depth_camera_name': depth_camera_name},
         init_args={
-            'rgb_camera_setup': rgb_camera_setup,
             'flags': FLAGS,
             'log_file_name': FLAGS.log_file_name,
             'csv_file_name': FLAGS.csv_log_file_name
@@ -436,15 +431,12 @@ def create_eval_ground_truth_detector_op(graph,
     return ground_truth_op
 
 
-def create_obstacle_accuracy_op(graph,
-                                camera_setup,
-                                depth_camera_name):
+def create_obstacle_accuracy_op(graph, ground_obstacles_stream_name):
     obstacle_accuracy_op = graph.add(
         ObstacleAccuracyOperator,
         name='obstacle_accuracy',
-        setup_args={'depth_camera_name': depth_camera_name},
-        init_args={'camera_setup': camera_setup,
-                   'flags': FLAGS,
+        setup_args={'ground_obstacles_stream': ground_obstacles_stream_name},
+        init_args={'flags': FLAGS,
                    'log_file_name': FLAGS.log_file_name,
                    'csv_file_name': FLAGS.csv_log_file_name})
     return obstacle_accuracy_op
