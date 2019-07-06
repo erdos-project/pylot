@@ -208,34 +208,28 @@ class CarlaLegacyOperator(Op):
         speed_limit_signs = []
         for agent in measurements.non_player_agents:
             if agent.HasField('vehicle'):
-                pos = pylot.simulation.utils.Location(
-                    carla_loc=agent.vehicle.transform.location)
                 transform = pylot.simulation.utils.to_erdos_transform(
                     agent.vehicle.transform)
                 bb = pylot.simulation.utils.BoundingBox(
                     agent.vehicle.bounding_box)
                 forward_speed = agent.vehicle.forward_speed
                 vehicle = pylot.simulation.utils.Vehicle(
-                    pos, transform, bb, forward_speed)
+                    transform, bb, forward_speed)
                 vehicles.append(vehicle)
             elif agent.HasField('pedestrian'):
                 if not self.agent_id_map.get(agent.id):
                     self.pedestrian_count += 1
                     self.agent_id_map[agent.id] = self.pedestrian_count
                 pedestrian_index = self.agent_id_map[agent.id]
-                pos = pylot.simulation.utils.Location(
-                    carla_loc=agent.pedestrian.transform.location)
                 transform = pylot.simulation.utils.to_erdos_transform(
                     agent.pedestrian.transform)
                 bb = pylot.simulation.utils.BoundingBox(
                     agent.pedestrian.bounding_box)
                 forward_speed = agent.pedestrian.forward_speed
                 pedestrian = pylot.simulation.utils.Pedestrian(
-                    pedestrian_index, pos, transform, bb, forward_speed)
+                    pedestrian_index, transform, bb, forward_speed)
                 pedestrians.append(pedestrian)
             elif agent.HasField('traffic_light'):
-                pos = pylot.simulation.utils.Location(
-                    carla_loc=agent.traffic_light.transform.location)
                 transform = pylot.simulation.utils.to_erdos_transform(
                     agent.traffic_light.transform)
                 if agent.traffic_light.state == 2:
@@ -247,15 +241,13 @@ class CarlaLegacyOperator(Op):
                 else:
                     erdos_tl_state = TrafficLightColor.OFF
                 traffic_light = pylot.simulation.utils.TrafficLight(
-                    pos, transform, erdos_tl_state)
+                    transform, erdos_tl_state)
                 traffic_lights.append(traffic_light)
             elif agent.HasField('speed_limit_sign'):
-                pos = pylot.simulation.utils.Location(
-                    carla_loc=agent.speed_limit_sign.transform.location)
                 transform = pylot.simulation.utils.to_erdos_transform(
                     agent.speed_limit_sign.transform)
                 speed_sign = pylot.simulation.utils.SpeedLimitSign(
-                    pos, transform, agent.speed_limit_sign.speed_limit)
+                    transform, agent.speed_limit_sign.speed_limit)
                 speed_limit_signs.append(speed_sign)
 
         return vehicles, pedestrians, traffic_lights, speed_limit_signs

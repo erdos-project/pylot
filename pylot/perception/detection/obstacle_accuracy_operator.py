@@ -266,7 +266,7 @@ class ObstacleAccuracyOperator(Op):
                                    depth_array):
         tl_bboxes = []
         for tl in traffic_lights:
-            pos = map_ground_3D_transform_to_2D(tl.location,
+            pos = map_ground_3D_transform_to_2D(tl.transform.location,
                                                 vehicle_transform,
                                                 self._rgb_transform,
                                                 self._rgb_intrinsic,

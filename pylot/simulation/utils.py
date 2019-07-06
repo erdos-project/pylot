@@ -5,16 +5,13 @@ import numpy as np
 from numpy.linalg import inv
 from numpy.matlib import repmat
 
-Acceleration = namedtuple('Acceleration', 'x, y, z')
 Orientation = namedtuple('Orientation', 'x, y, z')
 Rotation = namedtuple('Rotation', 'pitch, yaw, roll')
-Position = namedtuple('Position', 'location, orientation')
-Vehicle = namedtuple('Vehicle',
-                     'location, transform, bounding_box, forward_speed')
+Vehicle = namedtuple('Vehicle', 'transform, bounding_box, forward_speed')
 Pedestrian = namedtuple('Pedestrian',
-                        'id, location, transform, bounding_box, forward_speed')
-TrafficLight = namedtuple('TrafficLight', 'location, transform, state')
-SpeedLimitSign = namedtuple('SpeedLimitSign', 'location, transform, limit')
+                        'id, transform, bounding_box, forward_speed')
+TrafficLight = namedtuple('TrafficLight', 'transform, state')
+SpeedLimitSign = namedtuple('SpeedLimitSign', 'transform, limit')
 LocationGeo = namedtuple('LocationGeo', 'latitude, longitude, altitude')
 Extent = namedtuple('Extent', 'x, y, z')
 Scale = namedtuple('Scale', 'x y z')
@@ -736,13 +733,14 @@ def match_bboxes_with_traffic_lights(
         best_tl = None
         best_dist = 1000000
         for tl in traffic_lights:
-            dist = ((bbox[0].x - tl.location.x)**2 +
-                    (bbox[0].y - tl.location.y)**2)
+            dist = ((bbox[0].x - tl.transform.location.x)**2 +
+                    (bbox[0].y - tl.transform.location.y)**2)
             # Check whether the traffic light is the closest so far to the
             # bounding box, and that the traffic light is between 2.3 and 7
             # meters above the base of the traffic light.
             if (dist < best_dist and
-                bbox[0].z - tl.location.z > 2.3 and bbox[0].z - tl.location.z < 7):
+                bbox[0].z - tl.transform.location.z > 2.3 and
+                bbox[0].z - tl.transform.location.z < 7):
                 best_dist = dist
                 best_tl = tl
         if not best_tl:
