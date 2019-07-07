@@ -1,5 +1,5 @@
 absl-py
 mock
-sphinx
-sphinx-click
-sphinx_rtd_theme
+sphinx==1.8.5
+sphinx-rtd-theme==0.4.3
+sphinx-click==2.2.0
