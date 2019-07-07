@@ -9,7 +9,7 @@ from carla.settings import CarlaSettings
 from erdos.message import Message, WatermarkMessage
 from erdos.op import Op
 from erdos.timestamp import Timestamp
-from erdos.utils import frequency, setup_csv_logging, setup_logging, time_epoch_ms
+from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
 from pylot.perception.detection.utils import TrafficLightColor
 from pylot.perception.messages import SegmentedFrameMessage
@@ -208,7 +208,7 @@ class CarlaLegacyOperator(Op):
         speed_limit_signs = []
         for agent in measurements.non_player_agents:
             if agent.HasField('vehicle'):
-                transform = pylot.simulation.utils.to_erdos_transform(
+                transform = pylot.simulation.utils.to_pylot_transform(
                     agent.vehicle.transform)
                 bb = pylot.simulation.utils.BoundingBox(
                     agent.vehicle.bounding_box)
@@ -221,7 +221,7 @@ class CarlaLegacyOperator(Op):
                     self.pedestrian_count += 1
                     self.agent_id_map[agent.id] = self.pedestrian_count
                 pedestrian_index = self.agent_id_map[agent.id]
-                transform = pylot.simulation.utils.to_erdos_transform(
+                transform = pylot.simulation.utils.to_pylot_transform(
                     agent.pedestrian.transform)
                 bb = pylot.simulation.utils.BoundingBox(
                     agent.pedestrian.bounding_box)
@@ -230,7 +230,7 @@ class CarlaLegacyOperator(Op):
                     pedestrian_index, transform, bb, forward_speed)
                 pedestrians.append(pedestrian)
             elif agent.HasField('traffic_light'):
-                transform = pylot.simulation.utils.to_erdos_transform(
+                transform = pylot.simulation.utils.to_pylot_transform(
                     agent.traffic_light.transform)
                 if agent.traffic_light.state == 2:
                     erdos_tl_state = TrafficLightColor.RED
@@ -244,7 +244,7 @@ class CarlaLegacyOperator(Op):
                     transform, erdos_tl_state)
                 traffic_lights.append(traffic_light)
             elif agent.HasField('speed_limit_sign'):
-                transform = pylot.simulation.utils.to_erdos_transform(
+                transform = pylot.simulation.utils.to_pylot_transform(
                     agent.speed_limit_sign.transform)
                 speed_sign = pylot.simulation.utils.SpeedLimitSign(
                     transform, agent.speed_limit_sign.speed_limit)

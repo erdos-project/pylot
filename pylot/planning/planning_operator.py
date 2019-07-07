@@ -13,7 +13,7 @@ from pylot.control.utils import get_angle, get_world_vec_dist
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.utils import get_target_speed
 from pylot.simulation.carla_utils import get_world
-from pylot.simulation.utils import to_erdos_transform
+from pylot.simulation.utils import to_pylot_transform
 
 
 class PlanningOperator(Op):
@@ -65,7 +65,7 @@ class PlanningOperator(Op):
         else:
             # Get the next 9 waypoints
             next_waypoints = route[:min(len(route), 9)]
-            next_waypoints = [to_erdos_transform(waypoint[0].transform) for waypoint in next_waypoints]
+            next_waypoints = [to_pylot_transform(waypoint[0].transform) for waypoint in next_waypoints]
 
         # If possible, skip the first two waypoints because they're too close.
         index = min(len(next_waypoints) - 1, 3)

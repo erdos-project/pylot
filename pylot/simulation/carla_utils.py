@@ -1,7 +1,7 @@
 import carla
 
 from pylot.perception.detection.utils import TrafficLightColor
-from pylot.simulation.utils import to_erdos_transform
+from pylot.simulation.utils import to_pylot_transform
 import pylot.simulation.utils
 
 
@@ -70,6 +70,7 @@ def reset_world(world):
 
 
 def to_carla_transform(transform):
+    """ Converts an Pylot transform object to a Carla transform object."""
     return carla.Transform(
         carla.Location(transform.location.x,
                        transform.location.y,
@@ -79,7 +80,8 @@ def to_carla_transform(transform):
                        roll=transform.rotation.roll))
 
 
-def get_ground_data(actor_list):
+def extract_data_in_pylot_format(actor_list):
+    """ Extracts actor information in ERDOS format from an actor list."""
     vec_actors = actor_list.filter('vehicle.*')
     vehicles = convert_vehicle_actors(vec_actors)
 
@@ -99,10 +101,11 @@ def get_ground_data(actor_list):
 
 
 def convert_vehicle_actors(vec_actors):
+    """ Converts a Carla vehicle actor into a Pylot Vehicle object."""
     vehicles = []
     # TODO(ionel): Handle hero vehicle!
     for vec_actor in vec_actors:
-        transform = to_erdos_transform(vec_actor.get_transform())
+        transform = to_pylot_transform(vec_actor.get_transform())
         bounding_box = pylot.simulation.utils.BoundingBox(
             vec_actor.bounding_box)
         speed = pylot.simulation.utils.get_speed(vec_actor.get_velocity())
@@ -113,9 +116,10 @@ def convert_vehicle_actors(vec_actors):
 
 
 def convert_pedestrian_actors(pedestrian_actors):
+    """ Converts a Carla pedestrian actor into a Pylot pedestrian object."""
     pedestrians = []
     for ped_actor in pedestrian_actors:
-        transform = to_erdos_transform(ped_actor.get_transform())
+        transform = to_pylot_transform(ped_actor.get_transform())
         speed = pylot.simulation.utils.get_speed(ped_actor.get_velocity())
         # TODO(ionel): Pedestrians do not have a bounding box in 0.9.5.
         pedestrian = pylot.simulation.utils.Pedestrian(
@@ -125,9 +129,10 @@ def convert_pedestrian_actors(pedestrian_actors):
 
 
 def convert_traffic_light_actors(tl_actors):
+    """ Converts a Carla traffic light actor into a Pylot tl object."""
     traffic_lights = []
     for tl_actor in tl_actors:
-        transform = to_erdos_transform(tl_actor.get_transform())
+        transform = to_pylot_transform(tl_actor.get_transform())
         tl_state = tl_actor.get_state()
         erdos_tl_state = None
         if tl_state == 0:
@@ -145,9 +150,10 @@ def convert_traffic_light_actors(tl_actors):
 
 
 def convert_speed_limit_actors(speed_limit_actors):
+    """ Converts a Carla speed limit actor into a Pylot speed limit object."""
     speed_limits = []
     for ts_actor in speed_limit_actors:
-        transform = to_erdos_transform(ts_actor.get_transform())
+        transform = to_pylot_transform(ts_actor.get_transform())
         speed_limit = int(ts_actor.type_id.split('.')[-1])
         speed_sign = pylot.simulation.utils.SpeedLimitSign(
             transform, speed_limit)
@@ -156,8 +162,9 @@ def convert_speed_limit_actors(speed_limit_actors):
 
 
 def convert_traffic_stop_actors(traffic_stop_actors):
+    """ Converts a Carla traffic stop actor into a Pylot stop sign object."""
     stop_signs = []
     for ts_actor in traffic_stop_actors:
-        transform = to_erdos_transform(ts_actor.get_transform())
+        transform = to_pylot_transform(ts_actor.get_transform())
         stop_signs.append(transform)
     return stop_signs

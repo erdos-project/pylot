@@ -10,10 +10,10 @@ from erdos.utils import setup_logging, setup_csv_logging
 from erdos.message import Message, WatermarkMessage
 
 import pylot.utils
-from pylot.simulation.carla_utils import get_ground_data, get_weathers,\
-    get_world, reset_world
+from pylot.simulation.carla_utils import extract_data_in_pylot_format,\
+    get_weathers, get_world, reset_world
 import pylot.simulation.messages
-from pylot.simulation.utils import to_erdos_transform
+from pylot.simulation.utils import to_pylot_transform
 import pylot.simulation.utils
 
 
@@ -254,7 +254,7 @@ class CarlaOperator(Op):
         self.spin()
 
     def __publish_hero_vehicle_data(self, timestamp, watermark_msg):
-        vec_transform = to_erdos_transform(
+        vec_transform = to_pylot_transform(
             self._driving_vehicle.get_transform())
         forward_speed = pylot.simulation.utils.get_speed(
             self._driving_vehicle.get_velocity())
@@ -277,7 +277,7 @@ class CarlaOperator(Op):
          pedestrians,
          traffic_lights,
          speed_limits,
-         traffic_stops) = get_ground_data(actor_list)
+         traffic_stops) = extract_data_in_pylot_format(actor_list)
 
         vehicles_msg = pylot.simulation.messages.GroundVehiclesMessage(
             vehicles, timestamp)

@@ -4,7 +4,7 @@ import carla
 
 from erdos.utils import setup_logging
 
-from pylot.simulation.utils import to_erdos_transform
+from pylot.simulation.utils import to_pylot_transform
 
 
 class HDMap(object):
@@ -52,8 +52,8 @@ class HDMap(object):
         if not waypoint2:
             # Second location is not on a drivable lane.
             return False
-        w_t1 = to_erdos_transform(waypoint1.transform)
-        w_t2 = to_erdos_transform(waypoint2.transform)
+        w_t1 = to_pylot_transform(waypoint1.transform)
+        w_t2 = to_pylot_transform(waypoint2.transform)
         self._logger.info('same_lane location1 {} to waypoint1 {}'.format(
             location1, w_t1.location))
         self._logger.info('same_lane location2 {} to waypoint2 {}'.format(

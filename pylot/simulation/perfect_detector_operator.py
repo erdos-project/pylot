@@ -226,6 +226,13 @@ class PerfectDetectorOp(Op):
         self.spin()
 
     def __get_pedestrians(self, pedestrians, vehicle_transform, depth_array):
+        """ Transforms pedestrians into detected objects.
+        Args:
+            pedestrians: List of Pedestrian objects.
+            vehicle_transform: Ego-vehicle transform.
+            depth_array: Depth frame taken at the time when pedestrians were
+                         collected.
+        """
         det_objs = []
         for pedestrian in pedestrians:
             bbox = get_2d_bbox_from_3d_box(
@@ -237,6 +244,13 @@ class PerfectDetectorOp(Op):
         return det_objs
 
     def __get_vehicles(self, vehicles, vehicle_transform, depth_array):
+        """ Transforms vehicles into detected objects.
+        Args:
+            vehicles: List of Vehicle objects.
+            vehicle_transform: Ego-vehicle transform.
+            depth_array: Depth frame taken at the time when pedestrians were
+                         collected.
+        """
         det_objs = []
         for vehicle in vehicles:
             bbox = get_2d_bbox_from_3d_box(
@@ -248,6 +262,7 @@ class PerfectDetectorOp(Op):
         return det_objs
 
     def __get_traffic_signs(self, segmented_frame):
+        """ Extracts traffic signs bounding boxes out of a segmented frame."""
         traffic_signs_frame = get_traffic_sign_pixels(segmented_frame)
         bboxes = get_bounding_boxes_from_segmented(traffic_signs_frame)
         det_objs = [DetectedObject(bbox, 1.0, 'traffic sign')

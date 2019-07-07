@@ -9,7 +9,7 @@ from erdos.timestamp import Timestamp
 from pylot.perception.messages import SegmentedFrameMessage
 import pylot.utils
 from pylot.simulation.carla_utils import get_world, to_carla_transform
-from pylot.simulation.utils import depth_to_array, labels_to_array, to_bgra_array, to_erdos_transform
+from pylot.simulation.utils import depth_to_array, labels_to_array, to_bgra_array
 
 
 class CameraDriverOperator(Op):

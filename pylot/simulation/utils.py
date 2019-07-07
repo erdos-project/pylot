@@ -220,7 +220,8 @@ class Transform(object):
             return "Trastorm({})".format(str(self.matrix))
 
 
-def to_erdos_transform(transform):
+def to_pylot_transform(transform):
+    """ Converts a Carla transform into a Pylot transform."""
     orientation = None
     # get_forward_vector() is only available in carla 0.9.5.
     get_fwd_vector = getattr(transform, "get_forward_vector", None)
@@ -538,6 +539,18 @@ def get_2d_bbox_from_3d_box(
         depth_array, vehicle_transform, obj_transform,
         bounding_box, rgb_transform, rgb_intrinsic, rgb_img_size,
         middle_depth_threshold, neighbor_threshold):
+    """ Transforms a 3D bounding box into a 2 bounding box projected on
+    camera coordinates.
+
+    Args:
+        depth_array: Depth frame.
+        vehicle_transform: Ego vehicle transform.
+        obj_transform: The transform in world coordiantes of the object whose
+             bounding box the method is transforming.
+        rgb_transform: The transform of the camera sensor.
+        rgb_intrinsic: The intrinsic of the camera.
+        rgb_img_size: The size of the camera frame.
+    """
     corners = map_ground_bounding_box_to_2D(
         vehicle_transform, obj_transform,
         bounding_box, rgb_transform, rgb_intrinsic,

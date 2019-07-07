@@ -5,8 +5,6 @@ import threading
 import pylot.utils
 from pylot.simulation.carla_utils import get_world, to_carla_transform
 from pylot.simulation.messages import PointCloudMessage
-from pylot.simulation.utils import to_erdos_transform
-
 
 # ERDOS specific imports.
 from erdos.op import Op

@@ -6,7 +6,7 @@ import carla
 import pylot.utils
 import pylot.simulation.messages
 import pylot.simulation.utils
-from pylot.simulation.utils import to_bgra_array, to_erdos_transform
+from pylot.simulation.utils import to_bgra_array, to_pylot_transform
 from pylot.simulation.carla_utils import get_world
 
 
@@ -82,7 +82,7 @@ def get_spawnpoint(world, index):
 def main():
     world = setup_world()
     transform = get_spawnpoint(world, 0)
-    print('Spawning at {}'.format(to_erdos_transform(transform)))
+    print('Spawning at {}'.format(to_pylot_transform(transform)))
     try:
         camera = add_camera(world, transform, on_camera_msg)
 

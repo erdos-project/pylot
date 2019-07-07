@@ -218,6 +218,9 @@ def calculate_iou(ground_truth, prediction):
 
 
 def get_bounding_boxes_from_segmented(frame, min_width=2, min_height=6):
+    """ Extracts bounding box from frame.
+    Assumes that the pixels we are interested in are set to True.
+    """
     bboxes = []
     # Labels the connected segmented pixels.
     map_labeled = measure.label(frame, connectivity=1)
@@ -300,8 +303,8 @@ def get_precision_recall(true_positives, false_positives, false_negatives):
 
 
 def get_precision_recall_at_iou(ground_truths, predictions, iou_threshold):
-    true_pos, false_pos, false_neg = get_prediction_results(ground_truths,
-            predictions, iou_threshold)
+    true_pos, false_pos, false_neg = get_prediction_results(
+        ground_truths, predictions, iou_threshold)
     return get_precision_recall(true_pos, false_pos, false_neg)
 
 
@@ -311,7 +314,8 @@ def get_pedestrian_mAP(ground_bboxes, detected_objs):
     confidence_bbox = []
     for detected_obj in detected_objs:
         if detected_obj.label == 'person':
-            confidence_bbox.append((detected_obj.confidence, detected_obj.corners))
+            confidence_bbox.append(
+                (detected_obj.confidence, detected_obj.corners))
     # Sort bboxes descending by score.
     confidence_bbox.sort()
     confidence_bbox.reverse()
@@ -321,7 +325,8 @@ def get_pedestrian_mAP(ground_bboxes, detected_objs):
     prec_rec = []
     while (len(detected_bboxes) > 0):
         # Get precision recall with 0.5 IoU threshold .
-        precision, recall = get_precision_recall_at_iou(ground_bboxes, detected_bboxes, 0.5)
+        precision, recall = get_precision_recall_at_iou(
+            ground_bboxes, detected_bboxes, 0.5)
         prec_rec.append((precision, recall))
         detected_bboxes.pop()
     # Append (0, 0) to also cover the area from first recall point to 0 recall.
@@ -352,8 +357,13 @@ def visualize_no_colors_bboxes(op_name, timestamp, image_np, bboxes):
     cv2.waitKey(1)
 
 
-def visualize_ground_bboxes(op_name, timestamp, image_np, pedestrian_bboxes,
-                            vehicles_bboxes, traffic_sign_bboxes=[], traffic_light_bboxes=[]):
+def visualize_ground_bboxes(op_name,
+                            timestamp,
+                            image_np,
+                            pedestrian_bboxes,
+                            vehicles_bboxes,
+                            traffic_sign_bboxes=[],
+                            traffic_light_bboxes=[]):
     add_timestamp(timestamp, image_np)
     for corners in pedestrian_bboxes:
         (xmin, xmax, ymin, ymax) = corners
@@ -384,6 +394,7 @@ def visualize_ground_bboxes(op_name, timestamp, image_np, pedestrian_bboxes,
 
 def annotate_image_with_bboxes(
         timestamp, image_np, detected_objs, bbox_color_map):
+    """ Adds bounding boxes to an image."""
 #    txt_font = cv2.FONT_HERSHEY_SIMPLEX
     add_timestamp(timestamp, image_np)
     for detected_obj in detected_objs:
@@ -397,6 +408,7 @@ def visualize_image(op_name, image_np):
 
 
 def save_image(image_np, timestamp, data_path, file_base):
+    """ Write image to disk."""
     file_name = '{}{}-{}.png'.format(
         data_path,
         file_base,
@@ -405,7 +417,8 @@ def save_image(image_np, timestamp, data_path, file_base):
     rgb_img.save(file_name)
 
 
-def visualize_bboxes(op_name, timestamp, image_np, detected_objs, bbox_color_map):
+def visualize_bboxes(
+        op_name, timestamp, image_np, detected_objs, bbox_color_map):
 #    txt_font = cv2.FONT_HERSHEY_SIMPLEX
     add_timestamp(timestamp, image_np)
     for detected_obj in detected_objs:

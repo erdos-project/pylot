@@ -23,7 +23,7 @@ import pylot.operator_creator
 from pylot.planning.challenge_planning_operator import ChallengePlanningOperator
 from pylot.utils import bgra_to_bgr
 import pylot.simulation.messages
-from pylot.simulation.utils import to_erdos_transform, Location, Rotation, Transform
+from pylot.simulation.utils import to_pylot_transform, Location, Rotation, Transform
 import pylot.simulation.utils
 
 
@@ -352,7 +352,7 @@ class ERDOSAgent(AutonomousAgent):
         # Send once the global waypoints.
         if self._waypoints is None:
             self._waypoints = self._global_plan_world_coord
-            data = [(to_erdos_transform(transform), road_option)
+            data = [(to_pylot_transform(transform), road_option)
                     for (transform, road_option) in self._waypoints]
             self._global_trajectory_stream.send(Message(data, timestamp))
             #self._global_trajectory_stream.send(self._top_watermark)
@@ -362,7 +362,7 @@ class ERDOSAgent(AutonomousAgent):
     def send_can_bus_reading(self, data, timestamp, watermark_msg):
         # The can bus dict contains other fields as well, but we don't
         # curently use them.
-        vehicle_transform = to_erdos_transform(data['transform'])
+        vehicle_transform = to_pylot_transform(data['transform'])
         # TODO(ionel): Scenario runner computes speed differently from
         # the way we do it in the CARLA operator. This affects
         # agent stopping constants. Check!
