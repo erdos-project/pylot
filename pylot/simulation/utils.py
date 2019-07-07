@@ -267,8 +267,10 @@ def labels_to_array(image):
 
 def get_speed(velocity_vector):
     """ Compute the speed of the vehicle in km/h.
+
     Args:
         vehicle: A velocity vector.
+
     Returns:
         The speed of the given vehicle as a float in km/h.
     """
@@ -379,6 +381,7 @@ def get_3d_world_position_with_depth_map(
             height: frame height
             fov: camera field of view
             camera_transform: Camera transform relative to the world.
+
        Returns:
             3D world location.
     """
@@ -404,6 +407,7 @@ def batch_get_3d_world_position_with_depth_map(
             height: frame height
             fov: camera field of view
             camera_transform: Camera transform relative to the world.
+
        Returns:
             List of 3D world locations.
     """
@@ -545,8 +549,8 @@ def get_2d_bbox_from_3d_box(
     Args:
         depth_array: Depth frame.
         vehicle_transform: Ego vehicle transform.
-        obj_transform: The transform in world coordiantes of the object whose
-             bounding box the method is transforming.
+        obj_transform: The transform in world coordiantes of the object
+            whose bounding box the method is transforming.
         rgb_transform: The transform of the camera sensor.
         rgb_intrinsic: The intrinsic of the camera.
         rgb_img_size: The size of the camera frame.
