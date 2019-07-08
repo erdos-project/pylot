@@ -9,7 +9,11 @@ from pylot.simulation.planner.waypointer import Waypointer
 import pylot.utils
 
 
-class WaypointerOperator(Op):
+class LegacyPlanningOperator(Op):
+    """ Planning operator for Carla 0.8.4.
+
+    IMPORTANT: Do not use with newer Carla versions.
+    """
     def __init__(self,
                  name,
                  city_name,
@@ -18,19 +22,19 @@ class WaypointerOperator(Op):
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-        super(WaypointerOperator, self).__init__(name)
+        super(LegacyPlanningOperator, self).__init__(name)
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
         self._goal_location = goal_location
         self._goal_orientation = goal_orientation
         self._waypointer = Waypointer(city_name)
-        self._wp_num_steer = 0.9  # Select WP - Reverse Order: 1 - closest, 0 - furthest
-        self._wp_num_speed = 0.4  # Select WP - Reverse Order: 1 - closest, 0 - furthest
+        self._wp_num_steer = 0.9
+        self._wp_num_speed = 0.4
 
     @staticmethod
     def setup_streams(input_streams):
         input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
-            WaypointerOperator.on_can_bus_update)
+            LegacyPlanningOperator.on_can_bus_update)
         return [pylot.utils.create_waypoints_stream()]
 
     def on_can_bus_update(self, msg):

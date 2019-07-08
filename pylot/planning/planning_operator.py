@@ -1,100 +1,261 @@
-import time
+from collections import deque
 
 import carla
-# Import Planner from Carla codebase
-from agents.navigation.global_route_planner import GlobalRoutePlanner
-from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging
 
-import pylot.utils
-from pylot.control.utils import get_angle, get_world_vec_dist
+from pylot.map.hd_map import HDMap
+import pylot.planning.cost_functions
 from pylot.planning.messages import WaypointsMessage
-from pylot.planning.utils import get_target_speed
-from pylot.simulation.carla_utils import get_world
-from pylot.simulation.utils import to_pylot_transform
+from pylot.planning.utils import get_distance, get_target_speed,\
+    get_waypoint_vector_and_angle, BehaviorPlannerState
+from pylot.simulation.carla_utils import get_map, to_carla_location
+import pylot.utils
+
+WAYPOINT_COMPLETION_THRESHOLD = 0.9
 
 
 class PlanningOperator(Op):
+    """ Planning operator for Carla 0.9.x.
 
+    IMPORTANT: Do not use with older Carla versions.
+    The operator either receives all the waypoints from the scenario runner
+    agent (on the global trajectory stream), or computes waypoints using the
+    HD Map.
+    """
     def __init__(self,
                  name,
-                 goal_location,
                  flags,
+                 goal_location=None,
                  log_file_name=None,
                  csv_file_name=None):
         super(PlanningOperator, self).__init__(name)
-        self._flags = flags
+        self._log_file_name = log_file_name
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+        self._flags = flags
+        # Initialize the state of the behaviour planner.
+        # XXX(ionel): The behaviour planner is not ready yet.
+        self.__initialize_behaviour_planner()
+        # We do not know yet the vehicle's location.
+        self._vehicle_transform = None
+        # Deque of waypoints the vehicle must follow. The waypoints are either
+        # received on the global trajectory stream when running using the
+        # scenario runner, or computed using the Carla global planner when
+        # running in stand-alone mode. The waypoints are Pylot transforms.
+        self._waypoints = deque()
+        # The operator picks the wp_num_steer-th waypoint to compute the angle
+        # it has to steer by when taking a turn.
+        self._wp_num_steer = 9  # use 9th waypoint for steering
+        # The operator picks the wp_num_speed-th waypoint to compute the angle
+        # it has to steer by when driving straight.
+        self._wp_num_speed = 4  # use 4th waypoint for speed
+        # We're not running in challenge mode if no track flag is present.
+        # Thus, we can directly get the map from the simulator.
+        if not hasattr(self._flags, 'track'):
+            self._map = HDMap(get_map(), log_file_name)
+            self._logger.info('Planner running in stand-alone mode')
+            assert goal_location, 'Planner has not received a goal location'
+            # Transform goal location to carla.Location
+            self._goal_location = carla.Location(*goal_location)
+            # Do not recompute waypoints upon each run.
+            self._recompute_waypoints = True
+        else:
+            # Recompute waypoints upon each run.
+            self._recompute_waypoints = False
+            # TODO(ionel): HACK! In Carla challenge track 1 and 2 the waypoints
+            # are coarse grained (30 meters apart). We pick the first waypoint
+            # to compute the angles. However, we should instead implement
+            # trajectory planning.
+            if self._flags.track == 1 or self._flags == 2:
+                self._wp_num_steer = 1
+                self._wp_num_speed = 1
 
-        # Transform goal location to carla.Location
-        self._goal_location = carla.Location(*goal_location)
-
-        _, self._world = get_world(self._flags.carla_host,
-                                   self._flags.carla_port,
-                                   self._flags.carla_timeout)
-        if self._world is None:
-            raise ValueError("There was an issue connecting to the simulator.")
-        self._map = self._world.get_map()
-        # Setup global planner.
-        self._hop_resolution = 2.0
-        dao = GlobalRoutePlannerDAO(self._map, self._hop_resolution)
-        self._grp = GlobalRoutePlanner(dao)
-        self._grp.setup()
+    def __initialize_behaviour_planner(self):
+        # State the planner is in.
+        self._state = BehaviorPlannerState.READY
+        # Cost functions. Output between 0 and 1.
+        self._cost_functions = [
+            pylot.planning.cost_functions.cost_speed,
+            pylot.planning.cost_functions.cost_lane_change,
+            pylot.planning.cost_functions.cost_inefficiency]
+        reach_speed_weight = 10 ** 5
+        reach_goal_weight = 10 ** 6
+        efficiency_weight = 10 ** 4
+        # How important a cost function is.
+        self._function_weights = [reach_speed_weight,
+                                  reach_goal_weight,
+                                  efficiency_weight]
 
     @staticmethod
     def setup_streams(input_streams):
         input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
             PlanningOperator.on_can_bus_update)
+        input_streams.filter(pylot.utils.is_open_drive_stream).add_callback(
+            PlanningOperator.on_opendrive_map)
+        input_streams.filter(pylot.utils.is_global_trajectory_stream)\
+                     .add_callback(PlanningOperator.on_global_trajectory)
+        # input_streams.filter(pylot.utils.is_predictions_stream).add_callback(
+        #     PlanningOperator.on_predictions)
         return [pylot.utils.create_waypoints_stream()]
+
+    def on_opendrive_map(self, msg):
+        self._logger.info('Planner running in scenario runner mode')
+        self._map = HDMap(carla.Map('map', msg.data),
+                          self._log_file_name)
+
+    def on_global_trajectory(self, msg):
+        self._logger.info('Global trajectory contains {} waypoints'.format(
+            len(msg.data)))
+        if len(msg.data) > 0:
+            # The last waypoint is the goal location.
+            self._goal_location = to_carla_location(
+                msg.data[-1][0].location)
+        else:
+            # Trajectory does not contain any waypoints. We assume we have
+            # arrived at destionation.
+            self._goal_location = to_carla_location(
+                self._vehicle_transform.location)
+        assert self._goal_location, 'Planner does not have a goal'
+        self._waypoints = deque()
+        for waypoint_option in msg.data:
+            self._waypoints.append(waypoint_option[0])
 
     def on_can_bus_update(self, msg):
         self._vehicle_transform = msg.data.transform
-        route = self.__update_waypoints(
-            carla.Location(self._vehicle_transform.location.x,
-                           self._vehicle_transform.location.y,
-                           self._vehicle_transform.location.z),
-            self._goal_location)
+        (next_waypoint_steer,
+         next_waypoint_speed) = self.__update_waypoints()
 
-        if not route or len(route) == 0:
-            # If route is empty (e.g., reached destination), set waypoint to
-            # current vehicle location.
-            next_waypoints = [self._vehicle_transform]
-        else:
-            # Get the next 9 waypoints
-            next_waypoints = route[:min(len(route), 9)]
-            next_waypoints = [to_pylot_transform(waypoint[0].transform) for waypoint in next_waypoints]
-
-        # If possible, skip the first two waypoints because they're too close.
-        index = min(len(next_waypoints) - 1, 3)
-
-        wp_vector, wp_mag = get_world_vec_dist(next_waypoints[index].location.x,
-                                               next_waypoints[index].location.y,
-                                               self._vehicle_transform.location.x,
-                                               self._vehicle_transform.location.y)
-
-        if wp_mag > 0:
-            wp_angle = get_angle(
-                wp_vector, [self._vehicle_transform.orientation.x, self._vehicle_transform.orientation.y])
-        else:
-            wp_angle = 0
+        # Get vectors and angles to corresponding speed and steer waypoints.
+        wp_steer_vector, wp_steer_angle = get_waypoint_vector_and_angle(
+            next_waypoint_steer, self._vehicle_transform)
+        wp_speed_vector, wp_speed_angle = get_waypoint_vector_and_angle(
+            next_waypoint_speed, self._vehicle_transform)
 
         target_speed = get_target_speed(
-            self._vehicle_transform.location, next_waypoints[index])
-        output_msg = WaypointsMessage(msg.timestamp,
-                                      waypoints=next_waypoints,
-                                      target_speed=target_speed,
-                                      wp_angle=wp_angle,
-                                      wp_vector=wp_vector,
-                                      wp_angle_speed=wp_angle)
+            self._vehicle_transform.location, next_waypoint_steer)
+
+        output_msg = WaypointsMessage(
+            msg.timestamp,
+            waypoints=[next_waypoint_steer],
+            target_speed=target_speed,
+            wp_angle=wp_steer_angle,
+            wp_vector=wp_steer_vector,
+            wp_angle_speed=wp_speed_angle)
         self.get_output_stream('waypoints').send(output_msg)
 
-    def __update_waypoints(self, source_loc, destination_loc):
-        start_waypoint = self._map.get_waypoint(source_loc)
-        end_waypoint = self._map.get_waypoint(destination_loc)
-        route = self._grp.trace_route(
-            start_waypoint.transform.location,
-            end_waypoint.transform.location)
-        return route
+    def __update_waypoints(self):
+        """ Updates the waypoints.
+
+        Depending on setup, the method either recomputes the waypoints
+        between the ego vehicle and the goal location, or just garbage collects
+        waypoints that have already been achieved.
+
+        Returns:
+            (wp_steer, wp_speed): The waypoints to be used to compute steer and
+            speed angles.
+        """
+        if self._recompute_waypoints:
+            ego_location = to_carla_location(self._vehicle_transform.location)
+            self._waypoints = self._map.compute_waypoints(ego_location,
+                                                          self._goal_location)
+        self.__remove_completed_waypoints()
+        if not self._waypoints or len(self._waypoints) == 0:
+            # If waypoints are empty (e.g., reached destination), set waypoint
+            # to current vehicle location.
+            self._waypoints = deque([self._vehicle_transform])
+
+        return (
+            self._waypoints[min(len(self._waypoints) - 1, self._wp_num_steer)],
+            self._waypoints[min(len(self._waypoints) - 1, self._wp_num_speed)])
+
+    def __remove_completed_waypoints(self):
+        """ Removes waypoints that the ego vehicle has already completed.
+
+        The method first finds the closest waypoint, removes all waypoints
+        that are before the closest waypoint, and finally removes the
+        closest waypoint if the ego vehicle is very close to it
+        (i.e., close to completion)."""
+        min_dist = 10000000
+        min_index = 0
+        index = 0
+        for waypoint in self._waypoints:
+            # XXX(ionel): We only check the first 10 waypoints.
+            if index > 10:
+                break
+            dist = get_distance(waypoint.location,
+                                self._vehicle_transform.location)
+            if dist < min_dist:
+                min_dist = dist
+                min_index = index
+
+        # Remove waypoints that are before the closest waypoint. The ego
+        # vehicle already completed them.
+        while min_index > 0:
+            self._waypoints.popleft()
+            min_index -= 1
+
+        # The closest waypoint is almost complete, remove it.
+        if min_dist < WAYPOINT_COMPLETION_THRESHOLD:
+            self._waypoints.popleft()
+
+    def best_transition(self, vehicle_transform, predictions):
+        """ Computes most likely state transition from current state."""
+        # Get possible next state machine states.
+        possible_next_states = self.__successor_states()
+        best_next_state = None
+        min_state_cost = 10000000
+        for state in possible_next_states:
+            # Generate trajectory for next state.
+            vehicle_info, trajectory_for_state = self.__generate_trajectory(
+                state, vehicle_transform, predictions)
+            state_cost = 0
+            # Compute the cost of the trajectory.
+            for i in range(len(self._cost_functions)):
+                cost_func = self._cost_functions[i](
+                    vehicle_info, predictions, trajectory_for_state)
+                state_cost += self._function_weights[i] * cost_func
+            # Check if it's the best trajectory.
+            if best_next_state is None or state_cost < min_state_cost:
+                best_next_state = state
+                min_state_cost = state_cost
+        return best_next_state
+
+    def __generate_trajectory(
+            self, next_state, vehicle_transform, predictions):
+        # TODO(ionel): Implement.
+        pass
+
+    def __successor_states(self):
+        """ Returns possible state transitions from current state."""
+        if self._state == BehaviorPlannerState.READY:
+            return [BehaviorPlannerState.READY, BehaviorPlannerState.KEEP_LANE]
+        elif self._state == BehaviorPlannerState.KEEP_LANE:
+            # 1) keep_lane -> prepare_lane_change_left
+            # 2) keep_lane -> prepare_lane_change_right
+            return [BehaviorPlannerState.KEEP_LANE,
+                    BehaviorPlannerState.PREPARE_LANE_CHANGE_LEFT,
+                    BehaviorPlannerState.PREPARE_LANE_CHANGE_RIGHT]
+        elif self._state == BehaviorPlannerState.PREPARE_LANE_CHANGE_LEFT:
+            # 1) prepare_lane_change_left -> keep_lane
+            # 2) prepare_lane_change_left -> lange_change_left
+            return [BehaviorPlannerState.KEEP_LANE,
+                    BehaviorPlannerState.PREPARE_LANE_CHANGE_LEFT,
+                    BehaviorPlannerState.LANE_CHANGE_LEFT]
+        elif self._state == BehaviorPlannerState.LANE_CHANGE_LEFT:
+            # 1) lange_change_left -> keep_lane
+            return [BehaviorPlannerState.KEEP_LANE,
+                    BehaviorPlannerState.LANE_CHANGE_LEFT]
+        elif self._state == BehaviorPlannerState.PREPARE_LANE_CHANGE_RIGHT:
+            # 1) prepare_lane_change_right -> keep_lane
+            # 2) prepare_lane_change_right -> lange_change_right
+            return [BehaviorPlannerState.KEEP_LANE,
+                    BehaviorPlannerState.PREPARE_LANE_CHANGE_RIGHT,
+                    BehaviorPlannerState.LANE_CHANGE_RIGHT]
+        elif self._state == BehaviorPlannerState.LANE_CHANGE_RIGHT:
+            # 1) lane_change_right -> keep_lane
+            return [BehaviorPlannerState.KEEP_LANE,
+                    BehaviorPlannerState.LANE_CHANGE_RIGHT]
+        else:
+            raise ValueError('Unexpected vehicle state {}'.format(self._state))

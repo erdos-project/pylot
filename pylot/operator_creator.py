@@ -36,7 +36,7 @@ from pylot.perception.segmentation.segmentation_eval_operator import Segmentatio
 from pylot.perception.segmentation.segmentation_eval_ground_operator import SegmentationEvalGroundOperator
 from pylot.perception.tracking.object_tracker_operator import ObjectTrackerOp
 # Import planning operators.
-from pylot.planning.waypointer_operator import WaypointerOperator
+from pylot.planning.legacy_planning_operator import LegacyPlanningOperator
 
 FLAGS = flags.FLAGS
 
@@ -259,20 +259,20 @@ def create_ground_agent_op(graph):
     return agent_op
 
 
-def create_waypointer_op(graph, goal_location, goal_orientation):
-    waypointer_op = graph.add(
-        WaypointerOperator,
-        name='waypointer',
-        # TODO(ionel): Do not hardcode Town name!
+def create_legacy_planning_op(
+        graph, city_name, goal_location, goal_orientation):
+    planning_op = graph.add(
+        LegacyPlanningOperator,
+        name='legacy_planning',
         init_args={
-            'city_name': 'Town01',
+            'city_name': city_name,
             'goal_location': goal_location,
             'goal_orientation': goal_orientation,
             'flags': FLAGS,
             'log_file_name': FLAGS.log_file_name,
             'csv_file_name': FLAGS.csv_log_file_name
         })
-    return waypointer_op
+    return planning_op
 
 
 def create_lidar_visualizer_op(graph):

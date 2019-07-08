@@ -1,6 +1,10 @@
+from collections import deque
 import math
 
 import carla
+# Import Planner from Carla codebase
+from agents.navigation.global_route_planner import GlobalRoutePlanner
+from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 
 from erdos.utils import setup_logging
 
@@ -10,6 +14,14 @@ from pylot.simulation.utils import to_pylot_transform
 class HDMap(object):
     def __init__(self, carla_map, log_file_name=None):
         self._map = carla_map
+        # Setup global planner.
+        self._grp = GlobalRoutePlanner(
+            GlobalRoutePlannerDAO(
+                self._map,
+                1.0  # Distance between waypoints
+            ))
+        self._grp.setup()
+
         self._logger = setup_logging('hd_map', log_file_name)
 
     def is_intersection(self, location):
@@ -193,3 +205,30 @@ class HDMap(object):
     def __get_distance(self, location1, location2):
         return math.sqrt((location1.x - location2.x) ** 2 +
                          (location1.y - location2.y) ** 2)
+
+    def compute_waypoints(self, source_loc, destination_loc):
+        """ Computes waypoints between two locations.
+
+        Assumes that the ego vehicle has the same orientation as
+        the lane on whch it is on.
+
+        Args:
+            source_loc: Source world location.
+            destination_loc: Destination world location.
+        """
+        start_waypoint = self._map.get_waypoint(
+            source_loc,
+            project_to_road=True,
+            lane_type=carla.LaneType.Driving)
+        end_waypoint = self._map.get_waypoint(
+            destination_loc,
+            project_to_road=True,
+            lane_type=carla.LaneType.Driving)
+        assert start_waypoint and end_waypoint, 'Map could not find waypoints'
+        route = self._grp.trace_route(
+            start_waypoint.transform.location,
+            end_waypoint.transform.location)
+        # TODO(ionel): The planner returns several options in intersections.
+        # We always take the first one, but this is not correct.
+        return deque([to_pylot_transform(waypoint[0].transform)
+                      for waypoint in route])

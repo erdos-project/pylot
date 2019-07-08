@@ -149,15 +149,17 @@ def main(argv):
     goal_orientation = (1.0, 0.0, 0.22)
 
     if '0.8' in FLAGS.carla_version:
-        waypointer_op = pylot.operator_creator.create_waypointer_op(
-            graph, goal_location, goal_orientation)
-        graph.connect([carla_op], [waypointer_op])
-        graph.connect([waypointer_op], [agent_op])
+        # Make sure to change Town if you desire to run in another town.
+        # TODO(ionel): Do not hardcode Town name!
+        planning_op = pylot.operator_creator.create_legacy_planning_op(
+            graph, 'Town01', goal_location, goal_orientation)
     elif '0.9' in FLAGS.carla_version:
         planning_op = pylot.operator_creator.create_planning_op(
             graph, goal_location)
-        graph.connect([carla_op], [planning_op])
-        graph.connect([planning_op], [agent_op])
+    else:
+        raise ValueError('Unexpected Carla version')
+    graph.connect([carla_op], [planning_op])
+    graph.connect([planning_op], [agent_op])
 
     graph.execute(FLAGS.framework)
 

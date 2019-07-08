@@ -20,7 +20,7 @@ from erdos.timestamp import Timestamp
 import pylot.config
 from pylot.control.lidar_erdos_agent_operator import LidarERDOSAgentOperator
 import pylot.operator_creator
-from pylot.planning.challenge_planning_operator import ChallengePlanningOperator
+from pylot.planning.planning_operator import PlanningOperator
 from pylot.utils import bgra_to_bgr
 import pylot.simulation.messages
 from pylot.simulation.utils import to_pylot_transform, Location, Rotation, Transform
@@ -53,18 +53,6 @@ def add_visualization_operators(graph, rgb_camera_name):
         segmented_video_op = pylot.operator_creator.create_segmented_video_op(graph)
         visualization_ops.append(segmented_video_op)
     return visualization_ops
-
-
-def create_planning_op(graph):
-    planning_op = graph.add(
-        ChallengePlanningOperator,
-        name='planning',
-        init_args={
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name,
-            'csv_file_name': FLAGS.csv_log_file_name
-        })
-    return planning_op
 
 
 def create_agent_op(graph, bgr_camera_setup):
@@ -149,7 +137,8 @@ class ERDOSAgent(AutonomousAgent):
         perception_ops = (segmentation_ops + obj_det_ops + tracker_ops +
                           traffic_light_det_ops + lane_det_ops)
 
-        planning_ops = [create_planning_op(self.graph)]
+        planning_ops = [
+            pylot.operator_creator.create_planning_op(self.graph, None)]
 
         agent_op = create_agent_op(self.graph, bgr_camera_setup)
 

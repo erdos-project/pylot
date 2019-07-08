@@ -198,22 +198,22 @@ def add_planning_component(graph,
                            goal_location,
                            goal_orientation,
                            carla_op,
-                           agent_op):
+                           agent_op,
+                           city_name='Town01'):
     if '0.8' in FLAGS.carla_version:
-        waypointer_op = pylot.operator_creator.create_waypointer_op(
-            graph, goal_location, goal_orientation)
-        graph.connect([carla_op], [waypointer_op])
-        graph.connect([waypointer_op], [agent_op])
+        planning_op = pylot.operator_creator.create_legacy_planning_op(
+            graph, city_name, goal_location, goal_orientation)
     elif '0.9' in FLAGS.carla_version:
         planning_op = pylot.operator_creator.create_planning_op(
             graph, goal_location)
-        graph.connect([carla_op], [planning_op])
-        graph.connect([planning_op], [agent_op])
-
         if FLAGS.visualize_waypoints:
             waypoint_viz_op = pylot.operator_creator.create_waypoint_visualizer_op(
                 graph)
             graph.connect([planning_op], [waypoint_viz_op])
+    else:
+        raise ValueError('Unexpected Carla version')
+    graph.connect([carla_op], [planning_op])
+    graph.connect([planning_op], [agent_op])
 
 
 def add_debugging_component(graph, carla_op, camera_ops, lidar_ops):
@@ -300,11 +300,15 @@ def main(argv):
     # Add planning operators.
     goal_location = (234.269989014, 59.3300170898, 39.4306259155)
     goal_orientation = (1.0, 0.0, 0.22)
+    # city_name only matters when the 0.8 legacy planning operator is used.
+    # Make sure to change if you desire to run in another city.
+    # TODO(ionel): Do not hardcode Town name!
     add_planning_component(graph,
                            goal_location,
                            goal_orientation,
                            carla_op,
-                           agent_op)
+                           agent_op,
+                           city_name='Town01')
 
     graph.execute(FLAGS.framework)
 

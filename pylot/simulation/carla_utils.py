@@ -29,6 +29,13 @@ def get_world(host="localhost", port=2000, timeout=10):
     return (client, world)
 
 
+def get_map(host="localhost", port=2000, timeout=10):
+    _, world = get_world(host, port, timeout)
+    if world is None:
+        raise ValueError("There was an issue connecting to the simulator.")
+    return world.get_map()
+
+
 def get_weathers():
     """ Gets the list of weathers that the simulation supports.
 
@@ -67,6 +74,11 @@ def reset_world(world):
             pass
         else:
             actor.destroy()
+
+
+def to_carla_location(location):
+    return carla.Location(
+        location.x, location.y, location.z)
 
 
 def to_carla_transform(transform):
