@@ -54,7 +54,10 @@ class PlanningOperator(Op):
         # We're not running in challenge mode if no track flag is present.
         # Thus, we can directly get the map from the simulator.
         if not hasattr(self._flags, 'track'):
-            self._map = HDMap(get_map(), log_file_name)
+            self._map = HDMap(get_map(self._flags.carla_host,
+                                      self._flags.carla_port,
+                                      self._flags.carla_timeout),
+                              log_file_name)
             self._logger.info('Planner running in stand-alone mode')
             assert goal_location, 'Planner has not received a goal location'
             # Transform goal location to carla.Location
