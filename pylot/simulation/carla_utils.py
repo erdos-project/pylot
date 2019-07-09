@@ -92,6 +92,26 @@ def to_carla_transform(transform):
                        roll=transform.rotation.roll))
 
 
+def render_bounding_boxes_in_world(
+        world, actor_list, time_between_frames_ms=100):
+    """ Render the 3D ground bboxes on the images.
+
+    Args:
+        world: Connection to the simulator world.
+        actor_list: List of actors in the world.
+        time_between_frames_ms: The life time of the rendered bboxes.
+    """
+    vehicles = actor_list.filter('vehicle.*')
+    for vehicle in vehicles:
+        transform = vehicle.get_transform()
+        bounding_box = vehicle.bounding_box
+        bounding_box.location += transform.location
+        world.debug.draw_box(bounding_box,
+                             transform.rotation,
+                             life_time=time_between_frames_ms / 1000.0,
+                             persistent_lines=True)
+
+
 def extract_data_in_pylot_format(actor_list):
     """ Extracts actor information in ERDOS format from an actor list."""
     vec_actors = actor_list.filter('vehicle.*')
