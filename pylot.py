@@ -177,7 +177,8 @@ def add_agent_op(graph,
                  traffic_light_det_ops,
                  obj_detector_ops,
                  segmentation_ops,
-                 lane_detection_ops):
+                 lane_detection_ops,
+                 bgr_camera_setup):
     agent_op = None
     if FLAGS.ground_agent_operator:
         agent_op = pylot.operator_creator.create_ground_agent_op(graph)
@@ -185,8 +186,8 @@ def add_agent_op(graph,
         graph.connect([agent_op], [carla_op])
     else:
         # TODO(ionel): The ERDOS agent doesn't use obj tracker and fusion.
-        agent_op = pylot.operator_creator.create_erdos_agent_op(
-            graph, DEPTH_CAMERA_NAME)
+        agent_op = pylot.operator_creator.create_pylot_agent_op(
+            graph, bgr_camera_setup)
         input_ops = [carla_op] + traffic_light_det_ops + obj_detector_ops +\
                     segmentation_ops + lane_detection_ops
         graph.connect(input_ops, [agent_op])
@@ -295,7 +296,8 @@ def main(argv):
                             traffic_light_det_ops,
                             obj_det_ops,
                             segmentation_ops,
-                            lane_det_ops)
+                            lane_det_ops,
+                            bgr_camera_setup)
 
     # Add planning operators.
     goal_location = (234.269989014, 59.3300170898, 39.4306259155)

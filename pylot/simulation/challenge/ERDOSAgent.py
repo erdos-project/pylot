@@ -18,7 +18,7 @@ from erdos.ros.ros_output_data_stream import ROSOutputDataStream
 from erdos.timestamp import Timestamp
 
 import pylot.config
-from pylot.control.lidar_erdos_agent_operator import LidarERDOSAgentOperator
+from pylot.control.pylot_agent_operator import PylotAgentOperator
 import pylot.operator_creator
 from pylot.planning.planning_operator import PlanningOperator
 from pylot.utils import bgra_to_bgr
@@ -57,8 +57,8 @@ def add_visualization_operators(graph, rgb_camera_name):
 
 def create_agent_op(graph, bgr_camera_setup):
     agent_op = graph.add(
-        LidarERDOSAgentOperator,
-        name='lidar_erdos_agent',
+        PylotAgentOperator,
+        name='pylot_agent',
         init_args={
             'flags': FLAGS,
             'bgr_camera_setup': bgr_camera_setup,
@@ -207,7 +207,7 @@ class ERDOSAgent(AutonomousAgent):
 
         # Subscribe to the control stream.
         self._subscriber = rospy.Subscriber(
-            'default/lidar_erdos_agent/control_stream',
+            'default/pylot_agent/control_stream',
             String,
             callback=self.__on_control_msg,
             queue_size=None)

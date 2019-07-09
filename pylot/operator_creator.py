@@ -2,7 +2,7 @@ from absl import flags
 
 
 # import Control operators.
-from pylot.control.erdos_agent_operator import ERDOSAgentOperator
+from pylot.control.pylot_agent_operator import PylotAgentOperator
 from pylot.control.ground_agent_operator import GroundAgentOperator
 # Import debug operators.
 from pylot.debug.camera_replay_operator import CameraReplayOperator
@@ -232,16 +232,16 @@ def create_camera_replay_ops(graph):
     return camera_ops
 
 
-def create_erdos_agent_op(graph, depth_camera_name):
+def create_pylot_agent_op(graph, bgr_camera_setup):
     agent_op = graph.add(
-        ERDOSAgentOperator,
-        name='erdos_agent',
+        PylotAgentOperator,
+        name='pylot_agent',
         init_args={
             'flags': FLAGS,
+            'bgr_camera_setup': bgr_camera_setup,
             'log_file_name': FLAGS.log_file_name,
             'csv_file_name': FLAGS.csv_log_file_name
-        },
-        setup_args={'depth_camera_name': depth_camera_name})
+        })
     return agent_op
 
 

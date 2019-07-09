@@ -183,8 +183,8 @@ You can run all the components, together with one of the two policies by
 executing:
 
 ```console
-# Runs all components and the ERDOS policy
-python pylot.py --flagfile=configs=configs/erdos_agent_e2e.conf
+# Runs all components and the Pylot policy
+python pylot.py --flagfile=configs=configs/pylot_agent_e2e.conf
 # Runs all components and the ground policy
 python pylot.py --flagfile=configs=configs/ground_agent_e2e.conf
 ```
