@@ -527,22 +527,22 @@ def get_bounding_box_sampling_points(ends):
     # around it are visible from the camera.
     middle_point = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2,
                     b[2].flatten().item(0))
-    sampling_points = [
-        middle_point,
-        (middle_point[0] + 2, middle_point[1], middle_point[2]),
-        (middle_point[0] + 1, middle_point[1] + 1, middle_point[2]),
-        (middle_point[0] + 1, middle_point[1] - 1, middle_point[2]),
-        (middle_point[0] - 2, middle_point[1], middle_point[2]),
-        (middle_point[0] - 1, middle_point[1] + 1, middle_point[2]),
-        (middle_point[0] - 1, middle_point[1] - 1, middle_point[2])
-    ]
+    sampling_points = []
+    for dx in range(0, 3):
+        for dy in range(0, 3):
+            sampling_points.append((middle_point[0] + dx,
+                                    middle_point[1] + dy,
+                                    middle_point[2]))
     return (middle_point, sampling_points)
 
 
 def get_2d_bbox_from_3d_box(
         depth_array, vehicle_transform, obj_transform,
         bounding_box, rgb_transform, rgb_intrinsic, rgb_img_size,
-        middle_depth_threshold, neighbor_threshold):
+        middle_depth_threshold, neighbor_threshold,
+        width_percentage_threshold=0.015,
+        height_percentage_threshold=0.01,
+        box_area_percentage_threshold=0.0002):
     """ Transforms a 3D bounding box into a 2 bounding box projected on
     camera coordinates.
 
@@ -551,14 +551,23 @@ def get_2d_bbox_from_3d_box(
         vehicle_transform: Ego vehicle transform.
         obj_transform: The transform in world coordiantes of the object
             whose bounding box the method is transforming.
+        bounding_box: 3D bounding box to transform.
         rgb_transform: The transform of the camera sensor.
         rgb_intrinsic: The intrinsic of the camera.
         rgb_img_size: The size of the camera frame.
+        middle_depth_threshold: Max depth difference between estimation and
+            depth frame for the bounding box middle point.
+        neighbor_threshold: Max depth difference between estimations and
+            depth frame for points sampled around the middle point.
     """
     corners = map_ground_bounding_box_to_2D(
         vehicle_transform, obj_transform,
         bounding_box, rgb_transform, rgb_intrinsic,
         rgb_img_size)
+    width_size_threshold = rgb_img_size[0] * width_percentage_threshold
+    height_size_threshold = rgb_img_size[1] * height_percentage_threshold
+    box_area_threshold = (rgb_img_size[0] * rgb_img_size[1] *
+                          box_area_percentage_threshold)
     if len(corners) == 8:
         ends = get_bounding_box_from_corners(corners)
         if ends:
@@ -572,17 +581,17 @@ def get_2d_bbox_from_3d_box(
                                 middle_point[2],
                                 depth_array,
                                 middle_depth_threshold)):
-                (xmin, xmax, ymin, ymax) = select_max_bbox(ends, rgb_img_size[0],
-                                                           rgb_img_size[1])
+                (xmin, xmax, ymin, ymax) = select_max_bbox(
+                    ends, rgb_img_size[0], rgb_img_size[1])
                 width = xmax - xmin
                 height = ymax - ymin
                 # Filter out the small bounding boxes (they're far away).
                 # We use thresholds that are proportional to the image size.
                 # XXX(ionel): Reduce thresholds to 0.01, 0.01, and 0.0002 if
                 # you want to include objects that are far away.
-                if (width > rgb_img_size[0] * 0.01 and
-                    height > rgb_img_size[1] * 0.02 and
-                    width * height > rgb_img_size[0] * rgb_img_size[1] * 0.0004):
+                if (width > width_size_threshold and
+                    height > height_size_threshold and
+                    width * height > box_area_threshold):
                     return (xmin, xmax, ymin, ymax)
             else:
                 # The mid point doesn't have the same depth. It can happen
@@ -597,23 +606,21 @@ def get_2d_bbox_from_3d_box(
                 ]
                 same_depth_points = [
                     have_same_depth(x, y, z, depth_array, neighbor_threshold)
-                            for (x, y, z) in points_inside_image
+                    for (x, y, z) in points_inside_image
                 ]
                 if len(same_depth_points) > 0 and \
-                        same_depth_points.count(True) >= 0.4 * len(same_depth_points):
-                    (xmin, xmax, ymin, ymax) = select_max_bbox(ends, rgb_img_size[0],
-                                                               rgb_img_size[1])
+                   same_depth_points.count(True) >= 0.4 * len(same_depth_points):
+                    (xmin, xmax, ymin, ymax) = select_max_bbox(
+                        ends, rgb_img_size[0], rgb_img_size[1])
                     width = xmax - xmin
                     height = ymax - ymin
                     width = xmax - xmin
                     height = ymax - ymin
                     # Filter out the small bounding boxes (they're far away).
-                    # We use thresholds that are proportional to the image size.
-                    # XXX(ionel): Reduce thresholds to 0.01, 0.01, and 0.0002 if
-                    # you want to include objects that are far away.
-                    if (width > rgb_img_size[0] * 0.01 and
-                        height > rgb_img_size[1] * 0.02 and
-                        width * height > rgb_img_size[0] * rgb_img_size[1] * 0.0004):
+                    # Thresholds are proportional to the image size.
+                    if (width > width_size_threshold and
+                        height > height_size_threshold and
+                        width * height > box_area_threshold):
                         return (xmin, xmax, ymin, ymax)
 
 
@@ -727,7 +734,7 @@ def match_bboxes_with_traffic_lights(
         vehicle_transform, bboxes, traffic_lights):
     # Match bounding boxes with traffic lights. In order to match,
     # the bounding box must be within 20 m of the base of the traffic light
-    # in the (x,y) plane, and must be between 5 and 7 meters above the base
+    # in the (x,y) plane, and must be between 2.3 and 7 meters above the base
     # of the traffic light. If there are multiple possibilities, take the
     # closest.
     result = []
@@ -754,6 +761,7 @@ def match_bboxes_with_traffic_lights(
             yaw_diff += 360
         elif yaw_diff >= 360:
             yaw_diff -= 360
-        if best_dist < 20 ** 2 and yaw_diff < 100:
+        # Only include traffic lights whose color is visible
+        if best_dist < 20 ** 2 and yaw_diff > 30 and yaw_diff < 150:
             result.append((bbox[1], best_tl.state))
     return result

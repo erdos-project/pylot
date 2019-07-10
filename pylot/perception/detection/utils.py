@@ -217,7 +217,7 @@ def calculate_iou(ground_truth, prediction):
     return float(inter_area) / (gt_area + pred_area - inter_area)
 
 
-def get_bounding_boxes_from_segmented(frame, min_width=2, min_height=6):
+def get_bounding_boxes_from_segmented(frame, min_width=2, min_height=3):
     """ Extracts bounding box from frame.
     Assumes that the pixels we are interested in are set to True.
     """
