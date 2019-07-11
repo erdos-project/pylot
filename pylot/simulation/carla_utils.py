@@ -198,5 +198,11 @@ def convert_traffic_stop_actors(traffic_stop_actors):
     stop_signs = []
     for ts_actor in traffic_stop_actors:
         transform = to_pylot_transform(ts_actor.get_transform())
-        stop_signs.append(transform)
+        world_trigger_volume = ts_actor.get_transform().transform(
+            ts_actor.trigger_volume.location)
+        bbox = pylot.simulation.utils.BoundingBox(
+            carla.BoundingBox(world_trigger_volume,
+                              ts_actor.trigger_volume.extent))
+        stop_sign = pylot.simulation.utils.StopSign(transform, bbox)
+        stop_signs.append(stop_sign)
     return stop_signs

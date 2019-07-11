@@ -12,6 +12,7 @@ Pedestrian = namedtuple('Pedestrian',
                         'id, transform, bounding_box, forward_speed')
 TrafficLight = namedtuple('TrafficLight', 'transform, state')
 SpeedLimitSign = namedtuple('SpeedLimitSign', 'transform, limit')
+StopSign = namedtuple('StopSign', 'transform, bounding_box')
 LocationGeo = namedtuple('LocationGeo', 'latitude, longitude, altitude')
 Extent = namedtuple('Extent', 'x, y, z')
 Scale = namedtuple('Scale', 'x y z')
