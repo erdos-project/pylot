@@ -5,6 +5,10 @@ import numpy as np
 from numpy.linalg import inv
 from numpy.matlib import repmat
 
+from pylot.perception.detection.utils import DetectedObject,\
+    DetectedSpeedLimit, TrafficLightColor, get_bounding_boxes_from_segmented
+from pylot.perception.segmentation.utils import get_traffic_sign_pixels
+
 Orientation = namedtuple('Orientation', 'x, y, z')
 Rotation = namedtuple('Rotation', 'pitch, yaw, roll')
 Vehicle = namedtuple('Vehicle', 'transform, bounding_box, forward_speed')
@@ -731,26 +735,72 @@ def map_ground_3D_transform_to_2D(location,
     return None
 
 
+def get_traffic_light_det_objs(
+        traffic_lights, vehicle_transform, camera_transform, depth_frame,
+        frame_width, frame_height, fov, segmented_frame):
+    """ Get the traffic lights that are withing the camera frame.
+
+    Args:
+        traffic_lights: List of traffic lights in the world.
+        vehicle_transform: Ego-vehicle transform in world coordinates.
+        camera_transform: Camera transform in world coordinates.
+        fov: Camera field of view.
+        segmented_frame: Segmented frame.
+    """
+    # Get 3d world positions for all traffic signs (some of which are
+    # traffic lights).
+    traffic_signs_frame = get_traffic_sign_pixels(segmented_frame)
+    bboxes = get_bounding_boxes_from_segmented(traffic_signs_frame)
+
+    # Get the positions of the bounding box centers.
+    x_mids = [(bbox[0] + bbox[1]) / 2 for bbox in bboxes]
+    y_mids = [(bbox[2] + bbox[3]) / 2 for bbox in bboxes]
+    pos_3d = batch_get_3d_world_position_with_depth_map(
+        x_mids, y_mids, depth_frame, frame_width, frame_height, fov,
+        camera_transform)
+    pos_and_bboxes = zip(pos_3d, bboxes)
+
+    # Map traffic lights to bounding boxes based on 3d world position.
+    tl_bboxes = match_bboxes_with_traffic_lights(
+        vehicle_transform, pos_and_bboxes, traffic_lights)
+    det_objs = []
+
+    for bbox, color in tl_bboxes:
+        if color == TrafficLightColor.GREEN:
+            det_objs.append(
+                DetectedObject(bbox, 1.0, 'green traffic light'))
+        elif color == TrafficLightColor.YELLOW:
+            det_objs.append(
+                DetectedObject(bbox, 1.0, 'yellow traffic light'))
+        elif color == TrafficLightColor.RED:
+            det_objs.append(
+                DetectedObject(bbox, 1.0, 'red traffic light'))
+        else:
+            det_objs.append(
+                DetectedObject(bbox, 1.0, 'off traffic light'))
+    return det_objs
+
+
 def match_bboxes_with_traffic_lights(
-        vehicle_transform, bboxes, traffic_lights):
+        vehicle_transform, pos_bboxes, traffic_lights):
     # Match bounding boxes with traffic lights. In order to match,
     # the bounding box must be within 20 m of the base of the traffic light
     # in the (x,y) plane, and must be between 2.3 and 7 meters above the base
     # of the traffic light. If there are multiple possibilities, take the
     # closest.
     result = []
-    for bbox in bboxes:
+    for pos, bbox in pos_bboxes:
         best_tl = None
         best_dist = 1000000
         for tl in traffic_lights:
-            dist = ((bbox[0].x - tl.transform.location.x)**2 +
-                    (bbox[0].y - tl.transform.location.y)**2)
+            dist = ((pos.x - tl.transform.location.x)**2 +
+                    (pos.y - tl.transform.location.y)**2)
             # Check whether the traffic light is the closest so far to the
             # bounding box, and that the traffic light is between 2.3 and 7
             # meters above the base of the traffic light.
             if (dist < best_dist and
-                bbox[0].z - tl.transform.location.z > 2.3 and
-                bbox[0].z - tl.transform.location.z < 7):
+                pos.z - tl.transform.location.z > 2.3 and
+                pos.z - tl.transform.location.z < 7):
                 best_dist = dist
                 best_tl = tl
         if not best_tl:
@@ -764,5 +814,69 @@ def match_bboxes_with_traffic_lights(
             yaw_diff -= 360
         # Only include traffic lights whose color is visible
         if best_dist < 20 ** 2 and yaw_diff > 30 and yaw_diff < 150:
-            result.append((bbox[1], best_tl.state))
+            result.append((bbox, best_tl.state))
     return result
+
+
+def get_speed_limit_det_objs(
+        speed_signs, vehicle_transform, camera_transform, depth_frame,
+        frame_width, frame_height, fov, segmented_frame):
+    """ Get the speed limit signs that are withing the camera frame.
+
+    Args:
+        speed_signs: List of speed limit signs in the world.
+        vehicle_transform: Ego-vehicle transform in world coordinates.
+        camera_transform: Camera transform in world coordinates.
+        fov: Camera field of view.
+        segmented_frame: Segmented frame.
+    """
+    # Compute the bounding boxes.
+    traffic_signs_frame = get_traffic_sign_pixels(segmented_frame)
+    bboxes = get_bounding_boxes_from_segmented(
+        traffic_signs_frame, min_width=5, min_height=5)
+
+    # Get the positions of the bounding box centers.
+    x_mids = [(bbox[0] + bbox[1]) / 2 for bbox in bboxes]
+    y_mids = [(bbox[2] + bbox[3]) / 2 for bbox in bboxes]
+    pos_3d = batch_get_3d_world_position_with_depth_map(
+        x_mids, y_mids, depth_frame, frame_width, frame_height,
+        fov, camera_transform)
+    pos_and_bboxes = zip(pos_3d, bboxes)
+    ts_bboxes = match_bboxes_with_speed_signs(
+        vehicle_transform, pos_and_bboxes, speed_signs)
+
+    det_objs = [DetectedSpeedLimit(bbox, limit, 1.0, 'speed limit')
+                for (bbox, limit) in ts_bboxes]
+    return det_objs
+
+
+def match_bboxes_with_speed_signs(
+        vehicle_transform, pos_bboxes, speed_signs):
+    result = []
+    for pos, bbox in pos_bboxes:
+        best_ts = None
+        best_dist = 1000000
+        for ts in speed_signs:
+            dist = ((pos.x - ts.transform.location.x)**2 +
+                    (pos.y - ts.transform.location.y)**2)
+            if (dist < best_dist):
+                best_dist = dist
+                best_ts = ts
+        if not best_ts:
+            continue
+        # Check that the sign is facing the ego vehicle.
+        yaw_diff = (best_ts.transform.rotation.yaw -
+                    vehicle_transform.rotation.yaw)
+        if yaw_diff < 0:
+            yaw_diff += 360
+        elif yaw_diff >= 360:
+            yaw_diff -= 360
+        if best_dist < 10 ** 2 and yaw_diff > 30 and yaw_diff < 150:
+            result.append((bbox, best_ts.limit))
+    return result
+
+
+def get_traffic_stop_det_objs(
+        traffic_stops, vehicle_transform, camera_transform):
+    # TODO(ionel): Implement.
+    return []

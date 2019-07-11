@@ -8,15 +8,11 @@ import PIL.Image as Image
 import time
 
 from pylot.map.hd_map import HDMap
-from pylot.perception.detection.utils import DetectedObject,\
-    TrafficLightColor, annotate_image_with_bboxes,\
-    get_bounding_boxes_from_segmented, visualize_ground_bboxes
-from pylot.perception.segmentation.utils import get_traffic_sign_pixels
+from pylot.perception.detection.utils import visualize_ground_bboxes
 from pylot.simulation.carla_utils import convert_speed_limit_actors,\
     convert_traffic_stop_actors, convert_traffic_light_actors,\
     get_world, to_carla_location, to_carla_transform
-from pylot.simulation.utils import batch_get_3d_world_position_with_depth_map,\
-    depth_to_array, labels_to_array, match_bboxes_with_traffic_lights,\
+from pylot.simulation.utils import depth_to_array, labels_to_array,\
     to_bgra_array, to_pylot_transform
 from pylot.utils import bgra_to_bgr, bgr_to_rgb
 import pylot.simulation.utils
@@ -113,62 +109,40 @@ def reset_frames():
     CARLA_IMAGE = None
 
 
-def log_bounding_boxes(carla_image, depth_frame, segmented_frame):
+def log_bounding_boxes(
+        carla_image, depth_frame, segmented_frame,
+        traffic_lights, speed_signs, stop_signs):
     game_time = int(carla_image.timestamp * 1000)
     print("Processing game time {}".format(game_time))
-    # Save the camera frame.
     frame = bgra_to_bgr(to_bgra_array(carla_image))
     # Copy the frame to ensure its on the heap.
     frame = copy.deepcopy(frame)
-
-    # Compute the bounding boxes.
     transform = to_pylot_transform(carla_image.transform)
-    traffic_signs_frame = get_traffic_sign_pixels(SEGMENTED_FRAME)
-    bboxes = get_bounding_boxes_from_segmented(traffic_signs_frame)
 
-    # Get the positions of the bounding box centers.
-    x_mids = [(bbox[0] + bbox[1]) / 2 for bbox in bboxes]
-    y_mids = [(bbox[2] + bbox[3]) / 2 for bbox in bboxes]
-    pos_3d = batch_get_3d_world_position_with_depth_map(
-        x_mids, y_mids, DEPTH_FRAME, FLAGS.frame_width, FLAGS.frame_height,
-        90, transform)
-    pos_and_bboxes = zip(pos_3d, bboxes)
+    speed_limit_det_objs = pylot.simulation.utils.get_speed_limit_det_objs(
+        speed_signs, transform, transform, depth_frame, FLAGS.frame_width,
+        FLAGS.frame_height, 90, segmented_frame)
+    traffic_stop_det_objs = pylot.simulation.utils.get_traffic_stop_det_objs(
+        stop_signs, transform, transform)
+    traffic_light_det_objs = pylot.simulation.utils.get_traffic_light_det_objs(
+        traffic_lights, transform, transform, depth_frame, FLAGS.frame_width,
+        FLAGS.frame_height, 90, segmented_frame)
 
-    global TRAFFIC_LIGHTS
-    # Map traffic lights to bounding boxes based on 3d world position.
-    tl_bboxes = match_bboxes_with_traffic_lights(
-        transform, pos_and_bboxes, TRAFFIC_LIGHTS)
-    det_objs = []
-    for bbox, color in tl_bboxes:
-        if color == TrafficLightColor.GREEN:
-            det_objs.append(DetectedObject(bbox, 1.0, 'green traffic light'))
-        elif color == TrafficLightColor.YELLOW:
-            det_objs.append(DetectedObject(bbox, 1.0, 'yellow traffic light'))
-        elif color == TrafficLightColor.RED:
-            det_objs.append(DetectedObject(bbox, 1.0, 'red traffic light'))
-        else:
-            det_objs.append(DetectedObject(bbox, 1.0, 'off traffic light'))
+    det_objs = (speed_limit_det_objs +
+                traffic_stop_det_objs +
+                traffic_light_det_objs)
 
     if FLAGS.visualize_bboxes:
-        tl_bboxes = [(det_obj.corners, det_obj.label)
-                     for det_obj in det_objs]
-        visualize_ground_bboxes(
-            'bboxes', game_time, frame, [], [], [], tl_bboxes)
+        visualize_ground_bboxes('bboxes', game_time, frame, det_objs)
 
-    # color_map = {'red traffic light': [0, 0, 255],
-    #              'yellow traffic light': [0, 255, 255],
-    #              'green traffic light': [0, 255, 0]}
-    # annotate_image_with_bboxes(game_time, frame, det_objs, color_map)
-
+    # Log the frame.
     frame = bgr_to_rgb(frame)
-    file_name = '{}traffic-light-{}.png'.format(FLAGS.data_path, game_time)
+    file_name = '{}signs-{}.png'.format(FLAGS.data_path, game_time)
     rgb_img = Image.fromarray(np.uint8(frame))
     rgb_img.save(file_name)
 
-    bboxes = []
-    for det_obj in det_objs:
-        (xmin, xmax, ymin, ymax) = det_obj.corners
-        bboxes.append((det_obj.label, ((xmin, ymin), (xmax, ymax))))
+    # Log the bounding boxes.
+    bboxes = [det_obj.get_bbox_label() for det_obj in det_objs]
     file_name = '{}bboxes-{}.json'.format(FLAGS.data_path, game_time)
     with open(file_name, 'w') as outfile:
         json.dump(bboxes, outfile)
@@ -193,6 +167,8 @@ def main(argv):
     global SPEED_SIGNS
     SPEED_SIGNS = convert_speed_limit_actors(speed_limit_actors)
 
+    transforms_of_interest = []
+    # Add transforms that are close to traffic lights.
     for w in wps:
         w_loc = w.transform.location
         intersection_dist = hd_map.distance_to_intersection(w_loc)
@@ -200,19 +176,58 @@ def main(argv):
             camera_transform = to_pylot_transform(w.transform)
             camera_transform.location.z += 2.0
             transform = to_carla_transform(camera_transform)
-            camera = add_camera(world, transform, on_camera_msg)
-            depth_camera = add_depth_camera(world, transform, on_depth_msg)
-            segmented_camera = add_segmented_camera(
-                world, transform, on_segmented_msg)
-            wait_for_data(world)
-            global CARLA_IMAGE
-            global DEPTH_FRAME
-            global SEGMENTED_FRAME
-            log_bounding_boxes(CARLA_IMAGE, DEPTH_FRAME, SEGMENTED_FRAME)
-            reset_frames()
-            segmented_camera.destroy()
-            depth_camera.destroy()
-            camera.destroy()
+            transforms_of_interest.append(transform)
+
+    # Add transforms that are close to speed limit signs.
+    for speed_sign in SPEED_SIGNS:
+        for offset in range(3, 25):
+            offset_loc = pylot.simulation.utils.Location(x=0, y=offset, z=2.0)
+            transform = to_carla_transform(speed_sign.transform)
+            location = transform.transform(to_carla_location(offset_loc))
+            w = world_map.get_waypoint(
+                location,
+                project_to_road=True,
+                lane_type=carla.LaneType.Driving)
+            camera_transform = to_pylot_transform(w.transform)
+            camera_transform.location.z += 2.0
+            transform = to_carla_transform(camera_transform)
+            transforms_of_interest.append(transform)
+
+    # Add transforms that are close to stop signs.
+    for stop_sign in TRAFFIC_STOPS:
+        for offset in range(5, 15, 3):
+            offset_loc = pylot.simulation.utils.Location(x=offset, y=0, z=2.0)
+            transform = to_carla_transform(stop_sign.transform)
+            location = transform.transform(to_carla_location(offset_loc))
+            w = world_map.get_waypoint(
+                location,
+                project_to_road=True,
+                lane_type=carla.LaneType.Driving)
+            camera_transform = to_pylot_transform(w.transform)
+            camera_transform.location.z += 2.0
+            transform = to_carla_transform(camera_transform)
+            transforms_of_interest.append(transform)
+
+    for transform in transforms_of_interest:
+        camera = add_camera(world, transform, on_camera_msg)
+        depth_camera = add_depth_camera(world, transform, on_depth_msg)
+        segmented_camera = add_segmented_camera(
+            world, transform, on_segmented_msg)
+        wait_for_data(world)
+        global CARLA_IMAGE
+        global DEPTH_FRAME
+        global SEGMENTED_FRAME
+        log_bounding_boxes(
+            CARLA_IMAGE,
+            DEPTH_FRAME,
+            SEGMENTED_FRAME,
+            TRAFFIC_LIGHTS,
+            SPEED_SIGNS,
+            TRAFFIC_STOPS)
+        reset_frames()
+        segmented_camera.destroy()
+        depth_camera.destroy()
+        camera.destroy()
 
 
 if __name__ == '__main__':

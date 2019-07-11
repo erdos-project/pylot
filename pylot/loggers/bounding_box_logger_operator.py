@@ -21,10 +21,7 @@ class BoundingBoxLoggerOp(Op):
         self._msg_cnt += 1
         if self._msg_cnt % self._flags.log_every_nth_frame != 0:
             return
-        bboxes = []
-        for detected_obj in msg.detected_objects:
-            (xmin, xmax, ymin, ymax) = detected_obj.corners
-            bboxes.append((detected_obj.label, ((xmin, ymin), (xmax, ymax))))
+        bboxes = [det_obj.get_bbox_label() for det_obj in msg.detected_objects]
         timestamp = msg.timestamp.coordinates[0]
         # Write the bounding boxes.
         file_name = '{}bboxes-{}.json'.format(self._flags.data_path, timestamp)

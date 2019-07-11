@@ -7,13 +7,9 @@ from erdos.utils import setup_csv_logging, setup_logging
 
 import pylot.utils
 from pylot.perception.detection.utils import DetectedObject,\
-    TrafficLightColor, get_bounding_boxes_from_segmented,\
     visualize_ground_bboxes
 from pylot.perception.messages import DetectorMessage
-from pylot.perception.segmentation.utils import get_traffic_sign_pixels
-from pylot.simulation.utils import get_2d_bbox_from_3d_box,\
-    batch_get_3d_world_position_with_depth_map,\
-    match_bboxes_with_traffic_lights
+from pylot.simulation.utils import get_2d_bbox_from_3d_box
 
 
 class PerfectDetectorOp(Op):
@@ -153,16 +149,30 @@ class PerfectDetectorOp(Op):
         det_vec = self.__get_vehicles(
             vehicles_msg.vehicles, vehicle_transform, depth_array)
 
-        det_traffic_signs = self.__get_traffic_signs(segmented_msg.frame)
-        det_traffic_lights = self.__get_traffic_lights(
+        det_traffic_lights = pylot.simulation.utils.get_traffic_light_det_objs(
             traffic_light_msg.traffic_lights,
             vehicle_transform,
-            depth_msg,
-            segmented_msg.frame)
+            vehicle_transform * depth_msg.transform,
+            depth_msg.frame, depth_msg.width, depth_msg.height,
+            depth_msg.fov, segmented_msg.frame)
+
+        det_speed_limits = pylot.simulation.utils.get_speed_limit_det_objs(
+            speed_limit_signs_msg.speed_signs,
+            vehicle_transform,
+            vehicle_transform * depth_msg.transform,
+            depth_msg.frame, depth_msg.width, depth_msg.height,
+            depth_msg.fov, segmented_msg.frame)
+
+        det_stop_signs = pylot.simulation.utils.get_traffic_stop_det_objs(
+            stop_signs_msg.stop_signs,
+            vehicle_transform,
+            vehicle_transform * depth_msg.transform)
+
+        det_objs = (det_ped + det_vec + det_traffic_lights +
+                    det_speed_limits + det_stop_signs)
+
         # Send the detected obstacles.
-        output_msg = DetectorMessage(det_ped + det_vec + det_traffic_signs +
-                                     det_traffic_lights,
-                                     0, msg.timestamp)
+        output_msg = DetectorMessage(det_objs, 0, msg.timestamp)
 
         self.get_output_stream(self._output_stream_name).send(output_msg)
         # Send watermark on the output stream because operators do not
@@ -172,19 +182,10 @@ class PerfectDetectorOp(Op):
             .send(WatermarkMessage(msg.timestamp))
 
         if self._flags.visualize_ground_obstacles:
-            ped_bboxes = [det_obj.corners for det_obj in det_ped]
-            vec_bboxes = [det_obj.corners for det_obj in det_vec]
-            traffic_sign_bboxes = [det_obj.corners
-                                   for det_obj in det_traffic_signs]
-            traffic_light_bboxes = [(det_obj.corners, det_obj.label)
-                                    for det_obj in det_traffic_lights]
             visualize_ground_bboxes(self.name,
                                     bgr_msg.timestamp,
                                     bgr_msg.frame,
-                                    ped_bboxes,
-                                    vec_bboxes,
-                                    traffic_sign_bboxes,
-                                    traffic_light_bboxes)
+                                    det_objs)
 
     def on_can_bus_update(self, msg):
         with self._lock:
@@ -259,50 +260,4 @@ class PerfectDetectorOp(Op):
                 self._bgr_img_size, 3.0, 3.0)
             if bbox is not None:
                 det_objs.append(DetectedObject(bbox, 1.0, 'vehicle'))
-        return det_objs
-
-    def __get_traffic_signs(self, segmented_frame):
-        """ Extracts traffic signs bounding boxes out of a segmented frame."""
-        traffic_signs_frame = get_traffic_sign_pixels(segmented_frame)
-        bboxes = get_bounding_boxes_from_segmented(traffic_signs_frame)
-        det_objs = [DetectedObject(bbox, 1.0, 'traffic sign')
-                    for bbox in bboxes]
-        return det_objs
-
-    def __get_traffic_lights(self,
-                             traffic_lights,
-                             vehicle_transform,
-                             depth_msg,
-                             segmented_frame):
-        # Get 3d world positions for all traffic signs (some of which are
-        # traffic lights).
-        traffic_signs_frame = get_traffic_sign_pixels(segmented_frame)
-        bboxes = get_bounding_boxes_from_segmented(traffic_signs_frame)
-
-        # Get the positions of the bounding box centers.
-        x_mids = [(bbox[0] + bbox[1]) / 2 for bbox in bboxes]
-        y_mids = [(bbox[2] + bbox[3]) / 2 for bbox in bboxes]
-        pos_3d = batch_get_3d_world_position_with_depth_map(
-            x_mids, y_mids, depth_msg.frame, depth_msg.width, depth_msg.height,
-            depth_msg.fov, vehicle_transform * depth_msg.transform)
-        pos_and_bboxes = zip(pos_3d, bboxes)
-
-        # Map traffic lights to bounding boxes based on 3d world position.
-        tl_bboxes = match_bboxes_with_traffic_lights(
-            vehicle_transform, pos_and_bboxes, traffic_lights)
-        det_objs = []
-
-        for bbox, color in tl_bboxes:
-            if color == TrafficLightColor.GREEN:
-                det_objs.append(
-                    DetectedObject(bbox, 1.0, 'green traffic light'))
-            elif color == TrafficLightColor.YELLOW:
-                det_objs.append(
-                    DetectedObject(bbox, 1.0, 'yellow traffic light'))
-            elif color == TrafficLightColor.RED:
-                det_objs.append(
-                    DetectedObject(bbox, 1.0, 'red traffic light'))
-            else:
-                det_objs.append(
-                    DetectedObject(bbox, 1.0, 'off traffic light'))
         return det_objs
