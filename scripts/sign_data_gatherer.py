@@ -123,7 +123,6 @@ def is_traffic_light(frame, bbox, tl_color):
     black_mask = cv2.inRange(roi, low_black_thres, high_black_thres)
     mask_cnt = cv2.countNonZero(black_mask)
     fraction_masked = float(mask_cnt) / cnt
-    print('Black {}'.format(fraction_masked))
     if fraction_masked < 0.2:
         return False
 
@@ -159,7 +158,6 @@ def is_traffic_light(frame, bbox, tl_color):
     mask_cnt = cv2.countNonZero(mask)
     cnt = roi.shape[0] * roi.shape[1]
     fraction_masked = float(mask_cnt) / cnt
-    #print("Color {}".format(fraction_masked))
     if fraction_masked > 0.03:
         return True
     return False
@@ -171,9 +169,9 @@ def get_traffic_light_det_objs(frame, segmented_frame, color):
         traffic_signs_frame, min_width=4, min_height=6)
 
     bboxes = []
-    for bbox in seg_bboxes:
-        if is_traffic_light(frame, bbox, color):
-            bboxes.append(bbox)
+    # for bbox in seg_bboxes:
+    #     if is_traffic_light(frame, bbox, color):
+    #         bboxes.append(bbox)
 
     if color == carla.TrafficLightState.Yellow:
         label = 'yellow'
@@ -282,17 +280,26 @@ def log_obstacles(world,
 
 def log_traffic_lights(world):
     world_map = world.get_map()
-    hd_map = HDMap(world_map, None)
-    wps = world_map.generate_waypoints(1.0)
+    (traffic_lights, traffic_stops, speed_signs) = get_actors(world)
     tl_colors = [carla.TrafficLightState.Yellow,
                  carla.TrafficLightState.Green,
                  carla.TrafficLightState.Red]
     transforms_of_interest = []
-    # Add transforms that are close to traffic lights.
-    for w in wps:
-        w_loc = w.transform.location
-        intersection_dist = hd_map.distance_to_intersection(w_loc)
-        if intersection_dist:
+    for tl in traffic_lights:
+        for offset in range(10, 40, 5):
+            # Traffic lights have different coordinate systems, hence
+            # we need to offset y, instead of x.
+            offset_loc = pylot.simulation.utils.Location(x=0, y=offset, z=0)
+            offset_rot = pylot.simulation.utils.Rotation(
+                pitch=0, yaw=0, roll=0)
+            offset_trans = pylot.simulation.utils.Transform(
+                offset_loc, offset_rot)
+            transform = tl.transform * offset_trans
+            location = to_carla_location(transform.location)
+            w = world_map.get_waypoint(
+                location,
+                project_to_road=True,
+                lane_type=carla.LaneType.Driving)
             camera_transform = to_pylot_transform(w.transform)
             camera_transform.location.z += 2.0
             transform = to_carla_transform(camera_transform)
@@ -317,10 +324,16 @@ def log_speed_limits(world):
     transforms_of_interest = []
     # Add transforms that are close to speed limit signs.
     for speed_sign in speed_signs:
-        for offset in range(5, 25):
-            offset_loc = pylot.simulation.utils.Location(x=0, y=offset, z=2.0)
-            transform = to_carla_transform(speed_sign.transform)
-            location = transform.transform(to_carla_location(offset_loc))
+        for offset in range(10, 25, 5):
+            # Speed signs have different coordinate systems, hence
+            # we need to offset y, instead of x.
+            offset_loc = pylot.simulation.utils.Location(x=0, y=offset, z=0)
+            offset_rot = pylot.simulation.utils.Rotation(
+                pitch=0, yaw=0, roll=0)
+            offset_trans = pylot.simulation.utils.Transform(
+                offset_loc, offset_rot)
+            transform = speed_sign.transform * offset_trans
+            location = to_carla_location(transform.location)
             w = world_map.get_waypoint(
                 location,
                 project_to_road=True,
@@ -348,10 +361,14 @@ def log_stop_signs(world):
     transforms_of_interest = []
     # Add transforms that are close to stop signs.
     for stop_sign in traffic_stops:
-        for offset in range(5, 15, 3):
-            offset_loc = pylot.simulation.utils.Location(x=offset, y=0, z=2.0)
-            transform = to_carla_transform(stop_sign.transform)
-            location = transform.transform(to_carla_location(offset_loc))
+        for offset in range(10, 25, 5):
+            offset_loc = pylot.simulation.utils.Location(x=-offset, y=0, z=0)
+            offset_rot = pylot.simulation.utils.Rotation(
+                pitch=0, yaw=0, roll=0)
+            offset_trans = pylot.simulation.utils.Transform(
+                offset_loc, offset_rot)
+            transform = stop_sign.transform * offset_trans
+            location = to_carla_location(transform.location)
             w = world_map.get_waypoint(
                 location,
                 project_to_road=True,

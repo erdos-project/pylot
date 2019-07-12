@@ -195,6 +195,7 @@ class Transform(object):
             self.matrix[2, 2] = scale.z * (cp * cr)
         else:
             self.matrix = matrix
+            self.location = Location(matrix[0, 3], matrix[1, 3], matrix[2, 3])
 
     def transform_points(self, points):
         """
