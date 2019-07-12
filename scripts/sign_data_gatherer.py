@@ -1,14 +1,17 @@
 from absl import app
 from absl import flags
-import copy
 import carla
+import copy
+import cv2
 import json
 import numpy as np
 import PIL.Image as Image
 import time
 
 from pylot.map.hd_map import HDMap
-from pylot.perception.detection.utils import visualize_ground_bboxes
+from pylot.perception.detection.utils import DetectedObject,\
+    get_bounding_boxes_from_segmented, visualize_ground_bboxes
+from pylot.perception.segmentation.utils import get_traffic_sign_pixels
 from pylot.simulation.carla_utils import convert_speed_limit_actors,\
     convert_traffic_stop_actors, convert_traffic_light_actors,\
     get_world, to_carla_location, to_carla_transform
@@ -17,17 +20,15 @@ from pylot.simulation.utils import depth_to_array, labels_to_array,\
 from pylot.utils import bgra_to_bgr, bgr_to_rgb
 import pylot.simulation.utils
 
+
 FLAGS = flags.FLAGS
 CARLA_IMAGE = None
 DEPTH_FRAME = None
 SEGMENTED_FRAME = None
-TRAFFIC_LIGHTS = []
-TRAFFIC_STOPS = []
-SPEED_SIGNS = []
 
 flags.DEFINE_string('data_path', 'data/', 'Path where data will be saved')
-flags.DEFINE_integer('frame_width', 800, 'Camera frame width')
-flags.DEFINE_integer('frame_height', 600, 'Camera frame height')
+flags.DEFINE_integer('frame_width', 1920, 'Camera frame width')
+flags.DEFINE_integer('frame_height', 1080, 'Camera frame height')
 flags.DEFINE_bool('visualize_bboxes', False,
                   'True to enable bbox visualizer')
 
@@ -109,9 +110,92 @@ def reset_frames():
     CARLA_IMAGE = None
 
 
+def is_traffic_light(frame, bbox, tl_color):
+    (xmin, xmax, ymin, ymax) = bbox
+    roi = frame[ymin:ymax + 1, xmin:xmax + 1]
+    roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+    cnt = roi.shape[0] * roi.shape[1]
+
+    # It's not a traffic light if it doesn't contain
+    # a significant amount of black.
+    low_black_thres = np.array([0, 0, 0])
+    high_black_thres = np.array([180, 255, 50])
+    black_mask = cv2.inRange(roi, low_black_thres, high_black_thres)
+    mask_cnt = cv2.countNonZero(black_mask)
+    fraction_masked = float(mask_cnt) / cnt
+    print('Black {}'.format(fraction_masked))
+    if fraction_masked < 0.2:
+        return False
+
+    # HSV thresholds.
+    low_thresholds = []
+    high_thresholds = []
+    if tl_color == carla.TrafficLightState.Yellow:
+        low_thresholds.append(np.array([20, 100, 100]))
+        high_thresholds.append(np.array([30, 255, 255]))
+    elif tl_color == carla.TrafficLightState.Green:
+        low_thresholds.append(np.array([40, 40, 40]))
+        high_thresholds.append(np.array([70, 255, 255]))
+    elif tl_color == carla.TrafficLightState.Red:
+        low_thresholds.append(np.array([0, 70, 50]))
+        low_thresholds.append(np.array([170, 70, 50]))
+        high_thresholds.append(np.array([10, 255, 255]))
+        high_thresholds.append(np.array([180, 255, 255]))
+    elif tl_color == carla.TrafficLightState.Off:
+        return False
+    else:
+        raise ValueError('Unknown traffic light color')
+
+    mask = None
+    for index in range(len(low_thresholds)):
+        low_thres = low_thresholds[index]
+        high_thres = high_thresholds[index]
+        cur_mask = cv2.inRange(roi, low_thres, high_thres)
+        if mask is None:
+            mask = cur_mask
+        else:
+            mask = cv2.bitwise_or(mask, cur_mask)
+
+    mask_cnt = cv2.countNonZero(mask)
+    cnt = roi.shape[0] * roi.shape[1]
+    fraction_masked = float(mask_cnt) / cnt
+    #print("Color {}".format(fraction_masked))
+    if fraction_masked > 0.03:
+        return True
+    return False
+
+
+def get_traffic_light_det_objs(frame, segmented_frame, color):
+    traffic_signs_frame = get_traffic_sign_pixels(segmented_frame)
+    seg_bboxes = get_bounding_boxes_from_segmented(
+        traffic_signs_frame, min_width=4, min_height=6)
+
+    bboxes = []
+    for bbox in seg_bboxes:
+        if is_traffic_light(frame, bbox, color):
+            bboxes.append(bbox)
+
+    if color == carla.TrafficLightState.Yellow:
+        label = 'yellow'
+    elif color == carla.TrafficLightState.Green:
+        label = 'green'
+    elif color == carla.TrafficLightState.Red:
+        label = 'red'
+    elif color == carla.TrafficLightState.Off:
+        label = 'off'
+    else:
+        raise ValueError('Unknown traffic light color')
+
+    label += ' traffic light'
+    det_objs = []
+    for bbox in bboxes:
+        det_objs.append(DetectedObject(bbox, 1.0, label))
+    return det_objs
+
+
 def log_bounding_boxes(
         carla_image, depth_frame, segmented_frame,
-        traffic_lights, speed_signs, stop_signs):
+        traffic_lights, tl_color, speed_signs, stop_signs):
     game_time = int(carla_image.timestamp * 1000)
     print("Processing game time {}".format(game_time))
     frame = bgra_to_bgr(to_bgra_array(carla_image))
@@ -124,9 +208,8 @@ def log_bounding_boxes(
         FLAGS.frame_height, 90, segmented_frame)
     traffic_stop_det_objs = pylot.simulation.utils.get_traffic_stop_det_objs(
         stop_signs, transform, transform)
-    traffic_light_det_objs = pylot.simulation.utils.get_traffic_light_det_objs(
-        traffic_lights, transform, transform, depth_frame, FLAGS.frame_width,
-        FLAGS.frame_height, 90, segmented_frame)
+    traffic_light_det_objs = get_traffic_light_det_objs(
+        frame, segmented_frame, tl_color)
 
     det_objs = (speed_limit_det_objs +
                 traffic_stop_det_objs +
@@ -148,66 +231,32 @@ def log_bounding_boxes(
         json.dump(bboxes, outfile)
 
 
-def main(argv):
-    world = setup_world()
-    world_map = world.get_map()
-    wps = world_map.generate_waypoints(1.0)
-    hd_map = HDMap(world_map, None)
-    world.tick()
-    # Sleep a bit to ensure the simulator actually ticks.
-    time.sleep(3)
+def change_traffic_light_colors(world, color):
     actor_list = world.get_actors()
     tl_actors = actor_list.filter('traffic.traffic_light*')
-    global TRAFFIC_LIGHTS
-    TRAFFIC_LIGHTS = convert_traffic_light_actors(tl_actors)
+    for tl in tl_actors:
+        tl.set_state(color)
+        tl.freeze(True)
+    world.tick()
+
+
+def get_actors(world):
+    actor_list = world.get_actors()
+    tl_actors = actor_list.filter('traffic.traffic_light*')
+    traffic_lights = convert_traffic_light_actors(tl_actors)
     traffic_stop_actors = actor_list.filter('traffic.stop')
-    global TRAFFIC_STOPS
-    TRAFFIC_STOPS = convert_traffic_stop_actors(traffic_stop_actors)
+    traffic_stops = convert_traffic_stop_actors(traffic_stop_actors)
     speed_limit_actors = actor_list.filter('traffic.speed_limit*')
-    global SPEED_SIGNS
-    SPEED_SIGNS = convert_speed_limit_actors(speed_limit_actors)
+    speed_signs = convert_speed_limit_actors(speed_limit_actors)
+    return (traffic_lights, traffic_stops, speed_signs)
 
-    transforms_of_interest = []
-    # Add transforms that are close to traffic lights.
-    for w in wps:
-        w_loc = w.transform.location
-        intersection_dist = hd_map.distance_to_intersection(w_loc)
-        if intersection_dist:
-            camera_transform = to_pylot_transform(w.transform)
-            camera_transform.location.z += 2.0
-            transform = to_carla_transform(camera_transform)
-            transforms_of_interest.append(transform)
 
-    # Add transforms that are close to speed limit signs.
-    for speed_sign in SPEED_SIGNS:
-        for offset in range(3, 25):
-            offset_loc = pylot.simulation.utils.Location(x=0, y=offset, z=2.0)
-            transform = to_carla_transform(speed_sign.transform)
-            location = transform.transform(to_carla_location(offset_loc))
-            w = world_map.get_waypoint(
-                location,
-                project_to_road=True,
-                lane_type=carla.LaneType.Driving)
-            camera_transform = to_pylot_transform(w.transform)
-            camera_transform.location.z += 2.0
-            transform = to_carla_transform(camera_transform)
-            transforms_of_interest.append(transform)
-
-    # Add transforms that are close to stop signs.
-    for stop_sign in TRAFFIC_STOPS:
-        for offset in range(5, 15, 3):
-            offset_loc = pylot.simulation.utils.Location(x=offset, y=0, z=2.0)
-            transform = to_carla_transform(stop_sign.transform)
-            location = transform.transform(to_carla_location(offset_loc))
-            w = world_map.get_waypoint(
-                location,
-                project_to_road=True,
-                lane_type=carla.LaneType.Driving)
-            camera_transform = to_pylot_transform(w.transform)
-            camera_transform.location.z += 2.0
-            transform = to_carla_transform(camera_transform)
-            transforms_of_interest.append(transform)
-
+def log_obstacles(world,
+                  transforms_of_interest,
+                  traffic_lights,
+                  tl_color,
+                  speed_signs,
+                  traffic_stops):
     for transform in transforms_of_interest:
         camera = add_camera(world, transform, on_camera_msg)
         depth_camera = add_depth_camera(world, transform, on_depth_msg)
@@ -221,13 +270,117 @@ def main(argv):
             CARLA_IMAGE,
             DEPTH_FRAME,
             SEGMENTED_FRAME,
-            TRAFFIC_LIGHTS,
-            SPEED_SIGNS,
-            TRAFFIC_STOPS)
+            traffic_lights,
+            tl_color,
+            speed_signs,
+            traffic_stops)
         reset_frames()
         segmented_camera.destroy()
         depth_camera.destroy()
         camera.destroy()
+
+
+def log_traffic_lights(world):
+    world_map = world.get_map()
+    hd_map = HDMap(world_map, None)
+    wps = world_map.generate_waypoints(1.0)
+    tl_colors = [carla.TrafficLightState.Yellow,
+                 carla.TrafficLightState.Green,
+                 carla.TrafficLightState.Red]
+    transforms_of_interest = []
+    # Add transforms that are close to traffic lights.
+    for w in wps:
+        w_loc = w.transform.location
+        intersection_dist = hd_map.distance_to_intersection(w_loc)
+        if intersection_dist:
+            camera_transform = to_pylot_transform(w.transform)
+            camera_transform.location.z += 2.0
+            transform = to_carla_transform(camera_transform)
+            transforms_of_interest.append(transform)
+
+    for tl_color in tl_colors:
+        change_traffic_light_colors(world, tl_color)
+        world.tick()
+        time.sleep(3)
+        (traffic_lights, traffic_stops, speed_signs) = get_actors(world)
+        log_obstacles(world,
+                      transforms_of_interest,
+                      traffic_lights,
+                      tl_color,
+                      speed_signs,
+                      traffic_stops)
+
+
+def log_speed_limits(world):
+    world_map = world.get_map()
+    (traffic_lights, traffic_stops, speed_signs) = get_actors(world)
+    transforms_of_interest = []
+    # Add transforms that are close to speed limit signs.
+    for speed_sign in speed_signs:
+        for offset in range(5, 25):
+            offset_loc = pylot.simulation.utils.Location(x=0, y=offset, z=2.0)
+            transform = to_carla_transform(speed_sign.transform)
+            location = transform.transform(to_carla_location(offset_loc))
+            w = world_map.get_waypoint(
+                location,
+                project_to_road=True,
+                lane_type=carla.LaneType.Driving)
+            camera_transform = to_pylot_transform(w.transform)
+            camera_transform.location.z += 2.0
+            transform = to_carla_transform(camera_transform)
+            transforms_of_interest.append(transform)
+    # Ensure all traffic lights are red.
+    change_traffic_light_colors(world, carla.TrafficLightState.Red)
+    world.tick()
+    time.sleep(3)
+    (traffic_lights, traffic_stops, speed_signs) = get_actors(world)
+    log_obstacles(world,
+                  transforms_of_interest,
+                  traffic_lights,
+                  carla.TrafficLightState.Red,
+                  speed_signs,
+                  traffic_stops)
+
+
+def log_stop_signs(world):
+    world_map = world.get_map()
+    (traffic_lights, traffic_stops, speed_signs) = get_actors(world)
+    transforms_of_interest = []
+    # Add transforms that are close to stop signs.
+    for stop_sign in traffic_stops:
+        for offset in range(5, 15, 3):
+            offset_loc = pylot.simulation.utils.Location(x=offset, y=0, z=2.0)
+            transform = to_carla_transform(stop_sign.transform)
+            location = transform.transform(to_carla_location(offset_loc))
+            w = world_map.get_waypoint(
+                location,
+                project_to_road=True,
+                lane_type=carla.LaneType.Driving)
+            camera_transform = to_pylot_transform(w.transform)
+            camera_transform.location.z += 2.0
+            transform = to_carla_transform(camera_transform)
+            transforms_of_interest.append(transform)
+    # Ensure all traffic lights are red.
+    change_traffic_light_colors(world, carla.TrafficLightState.Red)
+    world.tick()
+    time.sleep(3)
+    (traffic_lights, traffic_stops, speed_signs) = get_actors(world)
+    log_obstacles(world,
+                  transforms_of_interest,
+                  traffic_lights,
+                  carla.TrafficLightState.Red,
+                  speed_signs,
+                  traffic_stops)
+
+
+def main(argv):
+    world = setup_world()
+    world.tick()
+    # Sleep a bit to ensure the simulator actually ticks.
+    time.sleep(3)
+    log_traffic_lights(world)
+    log_speed_limits(world)
+    log_stop_signs(world)
 
 
 if __name__ == '__main__':
