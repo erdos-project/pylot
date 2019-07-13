@@ -206,3 +206,10 @@ def convert_traffic_stop_actors(traffic_stop_actors):
         stop_sign = pylot.simulation.utils.StopSign(transform, bbox)
         stop_signs.append(stop_sign)
     return stop_signs
+
+
+def draw_trigger_volume(world, actor):
+    transform = actor.get_transform()
+    tv = transform.transform(actor.trigger_volume.location)
+    bbox = carla.BoundingBox(tv, actor.trigger_volume.extent)
+    world.debug.draw_box(bbox, transform.rotation, life_time=1000)

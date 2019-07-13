@@ -877,7 +877,93 @@ def match_bboxes_with_speed_signs(
     return result
 
 
+def location_3d_to_view(location, extrinsic_matrix, intrinsic_matrix):
+    # Get the location of the object in the world.
+    world_points = [[location.x], [location.y], [location.z], [1]]
+
+    # Convert the points to the sensor coordinates.
+    transformed_points = np.dot(
+        np.linalg.inv(extrinsic_matrix), world_points)
+
+    # Convert the points to an unreal space.
+    unreal_points = np.concatenate([
+        transformed_points[1, :], -transformed_points[2, :],
+        transformed_points[0, :]
+    ])
+
+    # Convert to screen points.
+    screen_points = np.transpose(
+        np.dot(intrinsic_matrix, unreal_points))
+
+    # Normalize the points
+    x = screen_points[:, 0] / screen_points[:, 2]
+    y = screen_points[:, 1] / screen_points[:, 2]
+    z = screen_points[:, 2]
+    return Location(float(x), float(y), float(z))
+
+
+def get_stop_markings_bbox(
+        bbox3d,
+        depth_frame,
+        camera_transform,
+        camera_intrinsic,
+        frame_width,
+        frame_height):
+    # Offset trigger_volume by -0.85 so that the top plane is on the ground.
+    ext = np.array([
+        [bbox3d.extent.x, bbox3d.extent.y, bbox3d.extent.z - 0.85],
+        [bbox3d.extent.x, -bbox3d.extent.y, bbox3d.extent.z - 0.85],
+        [-bbox3d.extent.x, bbox3d.extent.y, bbox3d.extent.z - 0.85],
+        [-bbox3d.extent.x, -bbox3d.extent.y, bbox3d.extent.z - 0.85],
+    ])
+    bbox = bbox3d.transform.transform_points(ext)
+    coords = []
+    for loc3d in bbox:
+        loc = Location(loc3d[0, 0], loc3d[0, 1], loc3d[0, 2])
+        loc_view = location_3d_to_view(
+            loc,
+            camera_transform.matrix,
+            camera_intrinsic)
+        if (loc_view.z >= 0 and loc_view.x >= 0 and loc_view.y >= 0 and
+            loc_view.x < frame_width and loc_view.y < frame_height):
+            coords.append(loc_view)
+    if len(coords) == 4:
+        xmin = min(coords[0].x, coords[1].x, coords[2].x, coords[3].x)
+        xmax = max(coords[0].x, coords[1].x, coords[2].x, coords[3].x)
+        ymin = min(coords[0].y, coords[1].y, coords[2].y, coords[3].y)
+        ymax = max(coords[0].y, coords[1].y, coords[2].y, coords[3].y)
+        # Check if the bbox is not obstructed and if it's sufficiently
+        # big for the text to be readable.
+        if (ymax - ymin > 15 and
+            have_same_depth(int(coords[0].x),
+                            int(coords[0].y),
+                            coords[0].z,
+                            depth_frame,
+                            0.4)):
+            return (int(xmin), int(xmax), int(ymin), int(ymax))
+    return None
+
+
 def get_traffic_stop_det_objs(
-        traffic_stops, vehicle_transform, camera_transform):
-    # TODO(ionel): Implement.
-    return []
+        traffic_stops,
+        camera_transform,
+        depth_frame,
+        frame_width,
+        frame_height,
+        fov):
+    """ Get traffic stop lane markings that are withing the camera frame.
+
+    Args:
+        traffic_stops: List of traffic stop actors in the world.
+        camera_transform: Camera transform in world coordinates.
+        fov: Camera field of view.
+    """
+    det_objs = []
+    bgr_intrinsic = create_intrinsic_matrix(frame_width, frame_height, fov)
+    for transform, bbox in traffic_stops:
+        bbox2d = get_stop_markings_bbox(
+            bbox, depth_frame, camera_transform, bgr_intrinsic,
+            frame_width, frame_height)
+        if bbox2d:
+            det_objs.append(DetectedObject(bbox2d, 1.0, 'stop marking'))
+    return det_objs

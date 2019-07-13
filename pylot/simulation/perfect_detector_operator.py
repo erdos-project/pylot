@@ -165,8 +165,8 @@ class PerfectDetectorOp(Op):
 
         det_stop_signs = pylot.simulation.utils.get_traffic_stop_det_objs(
             stop_signs_msg.stop_signs,
-            vehicle_transform,
-            vehicle_transform * depth_msg.transform)
+            vehicle_transform * depth_msg.transform,
+            depth_msg.frame, depth_msg.width, depth_msg.height, depth_msg.fov)
 
         det_objs = (det_ped + det_vec + det_traffic_lights +
                     det_speed_limits + det_stop_signs)

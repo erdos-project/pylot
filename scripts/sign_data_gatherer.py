@@ -10,7 +10,8 @@ import time
 
 from pylot.map.hd_map import HDMap
 from pylot.perception.detection.utils import DetectedObject,\
-    get_bounding_boxes_from_segmented, visualize_ground_bboxes
+    annotate_image_with_bboxes, get_bounding_boxes_from_segmented,\
+    visualize_ground_bboxes
 from pylot.perception.segmentation.utils import get_traffic_sign_pixels
 from pylot.simulation.carla_utils import convert_speed_limit_actors,\
     convert_traffic_stop_actors, convert_traffic_light_actors,\
@@ -31,6 +32,8 @@ flags.DEFINE_integer('frame_width', 1920, 'Camera frame width')
 flags.DEFINE_integer('frame_height', 1080, 'Camera frame height')
 flags.DEFINE_bool('visualize_bboxes', False,
                   'True to enable bbox visualizer')
+flags.DEFINE_bool('log_bbox_images', False,
+                  'True to enable logging of bbox annodated images')
 
 
 def on_camera_msg(image):
@@ -205,7 +208,8 @@ def log_bounding_boxes(
         speed_signs, transform, transform, depth_frame, FLAGS.frame_width,
         FLAGS.frame_height, 90, segmented_frame)
     traffic_stop_det_objs = pylot.simulation.utils.get_traffic_stop_det_objs(
-        stop_signs, transform, transform)
+        stop_signs, transform, depth_frame, FLAGS.frame_width,
+        FLAGS.frame_height, 90)
     traffic_light_det_objs = get_traffic_light_det_objs(
         frame, segmented_frame, tl_color)
 
@@ -217,10 +221,18 @@ def log_bounding_boxes(
         visualize_ground_bboxes('bboxes', game_time, frame, det_objs)
 
     # Log the frame.
-    frame = bgr_to_rgb(frame)
+    rgb_frame = bgr_to_rgb(frame)
     file_name = '{}signs-{}.png'.format(FLAGS.data_path, game_time)
-    rgb_img = Image.fromarray(np.uint8(frame))
+    rgb_img = Image.fromarray(np.uint8(rgb_frame))
     rgb_img.save(file_name)
+
+    if FLAGS.log_bbox_images:
+        annotate_image_with_bboxes(game_time, frame, det_objs)
+        rgb_frame = bgr_to_rgb(frame)
+        file_name = '{}annotated-signs-{}.png'.format(
+            FLAGS.data_path, game_time)
+        rgb_img = Image.fromarray(np.uint8(rgb_frame))
+        rgb_img.save(file_name)
 
     # Log the bounding boxes.
     bboxes = [det_obj.get_bbox_label() for det_obj in det_objs]

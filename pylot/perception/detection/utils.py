@@ -15,7 +15,7 @@ ADJACENT_POS = [(0, 1), (0, -1), (1, 0), (-1, 0)]
 GROUND_COLOR_MAP = {
     'pedestrian': [0, 128, 0],
     'vehicle': [128, 0, 0],
-    'stop sign': [128, 128, 0],
+    'stop marking': [128, 128, 0],
     'speed limit': [255, 255, 0],
     'red traffic light': [0, 0, 255],
     'yellow traffic light': [0, 255, 255],
@@ -405,7 +405,7 @@ def visualize_ground_bboxes(op_name, timestamp, image_np, det_objs):
 
 
 def annotate_image_with_bboxes(
-        timestamp, image_np, detected_objs, bbox_color_map):
+        timestamp, image_np, detected_objs, bbox_color_map=GROUND_COLOR_MAP):
     """ Adds bounding boxes to an image."""
 #    txt_font = cv2.FONT_HERSHEY_SIMPLEX
     add_timestamp(timestamp, image_np)
