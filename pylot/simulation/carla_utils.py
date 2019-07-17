@@ -1,7 +1,7 @@
 import carla
 
 from pylot.perception.detection.utils import TrafficLightColor
-from pylot.simulation.utils import to_pylot_transform
+from pylot.simulation.utils import to_pylot_transform, to_pylot_location
 import pylot.simulation.utils
 
 
@@ -176,7 +176,8 @@ def convert_traffic_light_actors(tl_actors):
         else:
             erdos_tl_state = TrafficLightColor.OFF
         traffic_light = pylot.simulation.utils.TrafficLight(
-            transform, erdos_tl_state)
+            transform, erdos_tl_state,
+            to_pylot_location(tl_actor.trigger_volume.location))
         traffic_lights.append(traffic_light)
     return traffic_lights
 

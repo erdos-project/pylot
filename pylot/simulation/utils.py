@@ -14,7 +14,7 @@ Rotation = namedtuple('Rotation', 'pitch, yaw, roll')
 Vehicle = namedtuple('Vehicle', 'transform, bounding_box, forward_speed')
 Pedestrian = namedtuple('Pedestrian',
                         'id, transform, bounding_box, forward_speed')
-TrafficLight = namedtuple('TrafficLight', 'transform, state')
+TrafficLight = namedtuple('TrafficLight', 'transform, state, trigger_volume')
 SpeedLimitSign = namedtuple('SpeedLimitSign', 'transform, limit')
 StopSign = namedtuple('StopSign', 'transform, bounding_box')
 LocationGeo = namedtuple('LocationGeo', 'latitude, longitude, altitude')
@@ -241,6 +241,11 @@ def to_pylot_transform(transform):
                  transform.rotation.yaw,
                  transform.rotation.roll),
         orientation)
+
+
+def to_pylot_location(location):
+    """ Converts a Carla location into a Pylot location. """
+    return Location(carla_loc=location)
 
 
 def depth_to_array(image):
