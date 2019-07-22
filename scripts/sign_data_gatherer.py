@@ -7,16 +7,12 @@ import json
 import numpy as np
 import PIL.Image as Image
 import time
-import math
 
-from pylot.map.hd_map import HDMap
 from pylot.perception.detection.utils import DetectedObject,\
-    annotate_image_with_bboxes, get_bounding_boxes_from_segmented,\
-    visualize_ground_bboxes
-from pylot.perception.segmentation.utils import get_traffic_sign_pixels
+    annotate_image_with_bboxes, visualize_ground_bboxes
 from pylot.simulation.carla_utils import convert_speed_limit_actors,\
-    convert_traffic_stop_actors, convert_traffic_light_actors,\
-    get_world, to_carla_location, to_carla_transform
+    convert_traffic_stop_actors, get_world, to_carla_location,\
+    to_carla_transform
 from pylot.simulation.utils import depth_to_array, labels_to_array,\
     to_bgra_array, to_pylot_transform, location_3d_to_view,\
     create_intrinsic_matrix
@@ -36,6 +32,7 @@ flags.DEFINE_bool('visualize_bboxes', False,
                   'True to enable bbox visualizer')
 flags.DEFINE_bool('log_bbox_images', False,
                   'True to enable logging of bbox annodated images')
+
 
 def on_camera_msg(image):
     global CARLA_IMAGE
@@ -112,59 +109,6 @@ def reset_frames():
     DEPTH_FRAME = None
     SEGMENTED_FRAME = None
     CARLA_IMAGE = None
-
-
-def is_traffic_light(frame, bbox, tl_color):
-    (xmin, xmax, ymin, ymax) = bbox
-    roi = frame[ymin:ymax + 1, xmin:xmax + 1]
-    roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-    cnt = roi.shape[0] * roi.shape[1]
-
-    # It's not a traffic light if it doesn't contain
-    # a significant amount of black.
-    low_black_thres = np.array([0, 0, 0])
-    high_black_thres = np.array([180, 255, 50])
-    black_mask = cv2.inRange(roi, low_black_thres, high_black_thres)
-    mask_cnt = cv2.countNonZero(black_mask)
-    fraction_masked = float(mask_cnt) / cnt
-    if fraction_masked < 0.2:
-        return False
-
-    # HSV thresholds.
-    low_thresholds = []
-    high_thresholds = []
-    if tl_color == carla.TrafficLightState.Yellow:
-        low_thresholds.append(np.array([20, 100, 100]))
-        high_thresholds.append(np.array([30, 255, 255]))
-    elif tl_color == carla.TrafficLightState.Green:
-        low_thresholds.append(np.array([40, 40, 40]))
-        high_thresholds.append(np.array([70, 255, 255]))
-    elif tl_color == carla.TrafficLightState.Red:
-        low_thresholds.append(np.array([0, 70, 50]))
-        low_thresholds.append(np.array([170, 70, 50]))
-        high_thresholds.append(np.array([10, 255, 255]))
-        high_thresholds.append(np.array([180, 255, 255]))
-    elif tl_color == carla.TrafficLightState.Off:
-        return False
-    else:
-        raise ValueError('Unknown traffic light color')
-
-    mask = None
-    for index in range(len(low_thresholds)):
-        low_thres = low_thresholds[index]
-        high_thres = high_thresholds[index]
-        cur_mask = cv2.inRange(roi, low_thres, high_thres)
-        if mask is None:
-            mask = cur_mask
-        else:
-            mask = cv2.bitwise_or(mask, cur_mask)
-
-    mask_cnt = cv2.countNonZero(mask)
-    cnt = roi.shape[0] * roi.shape[1]
-    fraction_masked = float(mask_cnt) / cnt
-    if fraction_masked > 0.03:
-        return True
-    return False
 
 
 def get_traffic_light_det_objs(traffic_lights, camera_transform, width, height,

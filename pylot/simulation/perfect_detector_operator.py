@@ -7,7 +7,8 @@ from erdos.utils import setup_csv_logging, setup_logging
 
 import pylot.utils
 from pylot.perception.detection.utils import DetectedObject,\
-    visualize_ground_bboxes
+    annotate_image_with_bboxes, save_image, visualize_ground_bboxes,\
+    visualize_image
 from pylot.perception.messages import DetectorMessage
 from pylot.simulation.utils import get_2d_bbox_from_3d_box
 
@@ -181,11 +182,17 @@ class PerfectDetectorOp(Op):
         self.get_output_stream(self._output_stream_name)\
             .send(WatermarkMessage(msg.timestamp))
 
-        if self._flags.visualize_ground_obstacles:
-            visualize_ground_bboxes(self.name,
-                                    bgr_msg.timestamp,
-                                    bgr_msg.frame,
-                                    det_objs)
+        if (self._flags.visualize_ground_obstacles or
+            self._flags.log_detector_output):
+            annotate_image_with_bboxes(
+                bgr_msg.timestamp, bgr_msg.frame, det_objs)
+            if self._flags.visualize_ground_obstacles:
+                visualize_image(self.name, bgr_msg.timestamp)
+            if self._flags.log_detector_output:
+                save_image(pylot.utils.bgr_to_rgb(bgr_msg.frame),
+                           bgr_msg.timestamp,
+                           self._flags.data_path,
+                           'perfect-detector-{}'.format(self.name))
 
     def on_can_bus_update(self, msg):
         with self._lock:

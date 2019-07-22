@@ -42,6 +42,8 @@ class PylotAgentOperator(Op):
                                           self._flags.carla_timeout),
                                   log_file_name)
                 self._logger.info('Agent running using map')
+        elif hasattr(self._flags, 'track'):
+            from pylot.map.hd_map import HDMap
         self._pid = PID(p=self._flags.pid_p,
                         i=self._flags.pid_i,
                         d=self._flags.pid_d)
