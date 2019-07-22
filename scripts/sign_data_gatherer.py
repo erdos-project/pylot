@@ -2,20 +2,19 @@ from absl import app
 from absl import flags
 import carla
 import copy
-import cv2
 import json
 import numpy as np
 import PIL.Image as Image
 import time
 
-from pylot.perception.detection.utils import DetectedObject,\
-    annotate_image_with_bboxes, visualize_ground_bboxes
+from pylot.perception.detection.utils import annotate_image_with_bboxes,\
+    visualize_ground_bboxes
 from pylot.simulation.carla_utils import convert_speed_limit_actors,\
+    convert_to_pylot_traffic_light, convert_traffic_light_actors,\
     convert_traffic_stop_actors, get_world, to_carla_location,\
     to_carla_transform
 from pylot.simulation.utils import depth_to_array, labels_to_array,\
-    to_bgra_array, to_pylot_transform, location_3d_to_view,\
-    create_intrinsic_matrix
+    to_bgra_array, to_pylot_transform
 from pylot.utils import bgra_to_bgr, bgr_to_rgb
 import pylot.simulation.utils
 
@@ -111,16 +110,13 @@ def reset_frames():
     CARLA_IMAGE = None
 
 
-def get_traffic_light_det_objs(traffic_lights, camera_transform, width, height,
-                               color):
-    if len(traffic_lights) == 0:
-        return []
-
-    # Get the location of the bounding boxes for these lights.
-    bounding_boxes = get_bounding_boxes(
-        traffic_lights, traffic_lights[0].get_world().get_map().name)
-
-    # Get the label to assign.
+def get_traffic_light_objs(traffic_lights, camera_transform, depth_frame,
+                           width, height, color, town_name):
+    det_objs = pylot.simulation.utils.get_traffic_light_det_objs(
+        traffic_lights, camera_transform, depth_frame,
+        width, height, town_name)
+    # Overwrite traffic light color because we control it without refreshing
+    # the agents.
     if color == carla.TrafficLightState.Yellow:
         label = 'yellow'
     elif color == carla.TrafficLightState.Green:
@@ -133,30 +129,8 @@ def get_traffic_light_det_objs(traffic_lights, camera_transform, width, height,
         raise ValueError('Unknown traffic light color')
     label += ' traffic light'
 
-    # Convert the bounding boxes to a camera view.
-    extrinsic_matrix = camera_transform.matrix
-    intrinsic_matrix = create_intrinsic_matrix(width, height)
-    det_objs = []
-    for box in bounding_boxes:
-        bounding_box = []
-        for location in box:
-            bounding_box.append(
-                location_3d_to_view(location, extrinsic_matrix,
-                                    intrinsic_matrix))
-
-        # Check if they are in front and visible.
-        z_values = [loc.z > 0 for loc in bounding_box]
-        if not any(z_values):
-            continue
-
-        # They are in the front, now find if they are visible in the view.
-        x_min, y_min = int(bounding_box[0].x), int(bounding_box[0].y)
-        x_max, y_max = int(bounding_box[2].x), int(bounding_box[2].y)
-        x_bounds = x_min > 0 and x_min < width and x_max > 0 and x_max < width
-        y_bounds = y_min > 0 and y_min < height and y_max > 0 and y_max < height
-        if x_bounds and y_bounds:
-            det_objs.append(
-                DetectedObject((x_min, x_max, y_min, y_max), 1.0, label))
+    for det_obj in det_objs:
+        det_obj.label = label
     return det_objs
 
 
@@ -169,6 +143,8 @@ def log_bounding_boxes(
     # Copy the frame to ensure its on the heap.
     frame = copy.deepcopy(frame)
     transform = to_pylot_transform(carla_image.transform)
+    _, world = get_world()
+    town_name = world.get_map().name
 
     speed_limit_det_objs = pylot.simulation.utils.get_speed_limit_det_objs(
         speed_signs, transform, transform, depth_frame, FLAGS.frame_width,
@@ -176,9 +152,9 @@ def log_bounding_boxes(
     traffic_stop_det_objs = pylot.simulation.utils.get_traffic_stop_det_objs(
         stop_signs, transform, depth_frame, FLAGS.frame_width,
         FLAGS.frame_height, 90)
-    traffic_light_det_objs = get_traffic_light_det_objs(
-        traffic_lights, transform, FLAGS.frame_width, FLAGS.frame_height,
-        tl_color)
+    traffic_light_det_objs = get_traffic_light_objs(
+        traffic_lights, transform, depth_frame,
+        FLAGS.frame_width, FLAGS.frame_height, tl_color, town_name)
 
     det_objs = (speed_limit_det_objs +
                 traffic_stop_det_objs +
@@ -220,11 +196,12 @@ def change_traffic_light_colors(world, color):
 def get_actors(world):
     actor_list = world.get_actors()
     tl_actors = actor_list.filter('traffic.traffic_light*')
+    traffic_lights = convert_traffic_light_actors(tl_actors)
     traffic_stop_actors = actor_list.filter('traffic.stop')
     traffic_stops = convert_traffic_stop_actors(traffic_stop_actors)
     speed_limit_actors = actor_list.filter('traffic.speed_limit*')
     speed_signs = convert_speed_limit_actors(speed_limit_actors)
-    return (tl_actors, traffic_stops, speed_signs)
+    return (tl_actors, traffic_lights, traffic_stops, speed_signs)
 
 
 def log_obstacles(world,
@@ -256,141 +233,6 @@ def log_obstacles(world,
         camera.destroy()
 
 
-def transform_bounding_boxes(light, points):
-    """ Transforms the bounding box specified in the points relative to the
-    light.
-
-    Args:
-        light: carla.libcarla.TrafficLight object representing the light.
-        points: An array of length 4 representing the 4 points of the
-            rectangle.
-    """
-
-    def rotate(yaw, location):
-        """ Rotate a given 3D vector around the Z-axis. """
-        rotation_matrix = np.identity(3)
-        rotation_matrix[0, 0] = np.cos(yaw)
-        rotation_matrix[0, 1] = -np.sin(yaw)
-        rotation_matrix[1, 0] = np.sin(yaw)
-        rotation_matrix[1, 1] = np.cos(yaw)
-        location_vector = np.array([[location.x], [location.y], [location.z]])
-        transformed = np.dot(rotation_matrix, location_vector)
-        return carla.Location(x=transformed[0, 0],
-                              y=transformed[1, 0],
-                              z=transformed[2, 0])
-
-    transformed_points = [
-        rotate(np.radians(light.get_transform().rotation.yaw), point)
-        for point in points
-    ]
-    base_relative_points = [
-        light.get_location() + point for point in transformed_points
-    ]
-    return base_relative_points
-
-
-def get_bounding_boxes(traffic_lights, town_name):
-    bounding_boxes = []
-    # Carla has differing placemnts for different towns.
-    if town_name == 'Town01' or town_name == 'Town02':
-        points = [
-            carla.Location(x=-0.5, y=0.2, z=2),
-            carla.Location(x=0.1, y=0.2, z=2),
-            carla.Location(x=0.1, y=0.2, z=3),
-            carla.Location(x=-0.5, y=0.2, z=3)
-        ]
-        for light in traffic_lights:
-            bounding_boxes.append(transform_bounding_boxes(light, points))
-    elif town_name == 'Town03':
-        for light in traffic_lights:
-            if light.trigger_volume.extent.x > 2 or light.id in [
-                    17, 18, 19, 22, 23, 24, 26, 28, 33
-            ]:
-                points = [
-                    carla.Location(x=-5.2, y=0.2, z=5.5),
-                    carla.Location(x=-4.8, y=0.2, z=5.5),
-                    carla.Location(x=-4.8, y=0.2, z=6.5),
-                    carla.Location(x=-5.2, y=0.2, z=6.5)
-                ]
-                bounding_boxes.append(transform_bounding_boxes(light, points))
-                right_points = [
-                    point + carla.Location(x=-3.0) for point in points
-                ]
-                bounding_boxes.append(
-                    transform_bounding_boxes(light, right_points))
-                if light.id not in [2, 3, 4]:
-                    left_points = [
-                        point + carla.Location(x=-6.5) for point in points
-                    ]
-                    bounding_boxes.append(
-                        transform_bounding_boxes(light, left_points))
-
-            else:
-                points = [
-                    carla.Location(x=-0.5, y=0.2, z=2),
-                    carla.Location(x=0.1, y=0.2, z=2),
-                    carla.Location(x=0.1, y=0.2, z=3),
-                    carla.Location(x=-0.5, y=0.2, z=3)
-                ]
-                bounding_boxes.append(transform_bounding_boxes(light, points))
-    elif town_name == 'Town04':
-        points = [
-            carla.Location(x=-5.2, y=0.2, z=5.5),
-            carla.Location(x=-4.8, y=0.2, z=5.5),
-            carla.Location(x=-4.8, y=0.2, z=6.5),
-            carla.Location(x=-5.2, y=0.2, z=6.5)
-        ]
-        middle_points = [  # Light in the middle of the pole.
-            carla.Location(x=-0.5, y=0.2, z=2.5),
-            carla.Location(x=0.1, y=0.2, z=2.5),
-            carla.Location(x=0.1, y=0.2, z=3.5),
-            carla.Location(x=-0.5, y=0.2, z=3.5)
-        ]
-        right_points = [point + carla.Location(x=-3.0) for point in points]
-        left_points = [point + carla.Location(x=-5.5) for point in points]
-        for light in traffic_lights:
-            bounding_boxes.append(transform_bounding_boxes(light, points))
-            if light.trigger_volume.extent.x > 5:
-                # This is a traffic light with 4 signs, we need to come up with
-                # more bounding boxes.
-                bounding_boxes.append(
-                    transform_bounding_boxes(light, middle_points))
-                bounding_boxes.append(
-                    transform_bounding_boxes(light, right_points))
-                bounding_boxes.append(
-                    transform_bounding_boxes(light, left_points))
-    elif town_name == 'Town05':
-        points = [
-            carla.Location(x=-5.2, y=0.2, z=5.5),
-            carla.Location(x=-4.8, y=0.2, z=5.5),
-            carla.Location(x=-4.8, y=0.2, z=6.5),
-            carla.Location(x=-5.2, y=0.2, z=6.5)
-        ]
-        middle_points = [  # Light in the middle of the pole.
-            carla.Location(x=-0.5, y=0.2, z=2.5),
-            carla.Location(x=0.1, y=0.2, z=2.5),
-            carla.Location(x=0.1, y=0.2, z=3.5),
-            carla.Location(x=-0.5, y=0.2, z=3.5)
-        ]
-        right_points = [point + carla.Location(x=-3.0) for point in points]
-        left_points = [point + carla.Location(x=-5.5) for point in points]
-        for light in traffic_lights:
-            bounding_boxes.append(transform_bounding_boxes(light, points))
-            if light.id not in [2, 3]:
-                # This is a traffic light with 4 signs, we need to come up with
-                # more bounding boxes.
-                bounding_boxes.append(
-                    transform_bounding_boxes(light, middle_points))
-                bounding_boxes.append(
-                    transform_bounding_boxes(light, right_points))
-                bounding_boxes.append(
-                    transform_bounding_boxes(light, left_points))
-    else:
-        raise IllegalArgumentException(
-            'Could not find a town named {}'.format(town_name))
-    return bounding_boxes
-
-
 def check_lights_opposite(light_a, light_b):
     """ Checks if the two given lights are opposite to each other or not. """
     def get_forward_vector(light):
@@ -403,7 +245,7 @@ def check_lights_opposite(light_a, light_b):
 
 def log_traffic_lights(world):
     world_map = world.get_map()
-    (traffic_lights, traffic_stops, speed_signs) = get_actors(world)
+    (traffic_lights, _, traffic_stops, speed_signs) = get_actors(world)
     tl_colors = [
         carla.TrafficLightState.Yellow, carla.TrafficLightState.Green,
         carla.TrafficLightState.Red
@@ -415,7 +257,7 @@ def log_traffic_lights(world):
         group_lights = []
         for n_light in light.get_group_traffic_lights():
             if not check_lights_opposite(light, n_light):
-                group_lights.append(n_light)
+                group_lights.append(convert_to_pylot_traffic_light(n_light))
 
         transforms_of_interest = []
         for offset in range(10, 40, 5):
@@ -479,7 +321,7 @@ def log_traffic_lights(world):
 
 def log_speed_limits(world):
     world_map = world.get_map()
-    (traffic_lights, traffic_stops, speed_signs) = get_actors(world)
+    (_, traffic_lights, traffic_stops, speed_signs) = get_actors(world)
     transforms_of_interest = []
     # Add transforms that are close to speed limit signs.
     for speed_sign in speed_signs:
@@ -505,7 +347,7 @@ def log_speed_limits(world):
     change_traffic_light_colors(world, carla.TrafficLightState.Red)
     world.tick()
     time.sleep(3)
-    (traffic_lights, traffic_stops, speed_signs) = get_actors(world)
+    (_, traffic_lights, traffic_stops, speed_signs) = get_actors(world)
     log_obstacles(world,
                   transforms_of_interest,
                   traffic_lights,
@@ -516,7 +358,7 @@ def log_speed_limits(world):
 
 def log_stop_signs(world):
     world_map = world.get_map()
-    (traffic_lights, traffic_stops, speed_signs) = get_actors(world)
+    (_, traffic_lights, traffic_stops, speed_signs) = get_actors(world)
     transforms_of_interest = []
     # Add transforms that are close to stop signs.
     for stop_sign in traffic_stops:
@@ -540,7 +382,7 @@ def log_stop_signs(world):
     change_traffic_light_colors(world, carla.TrafficLightState.Red)
     world.tick()
     time.sleep(3)
-    (traffic_lights, traffic_stops, speed_signs) = get_actors(world)
+    (_, traffic_lights, traffic_stops, speed_signs) = get_actors(world)
     log_obstacles(world,
                   transforms_of_interest,
                   traffic_lights,

@@ -1,8 +1,10 @@
+import numpy as np
 import carla
 
 from pylot.perception.detection.utils import TrafficLightColor
 from pylot.simulation.utils import to_pylot_transform, to_pylot_location
 import pylot.simulation.utils
+from pylot.simulation.utils import Location
 
 
 def get_world(host="localhost", port=2000, timeout=10):
@@ -160,25 +162,32 @@ def convert_pedestrian_actors(pedestrian_actors):
     return pedestrians
 
 
+def convert_to_pylot_traffic_light(tl_actor):
+    transform = to_pylot_transform(tl_actor.get_transform())
+    tl_state = tl_actor.get_state()
+    erdos_tl_state = None
+    if tl_state == carla.TrafficLightState.Red:
+        erdos_tl_state = TrafficLightColor.RED
+    elif tl_state == carla.TrafficLightState.Yellow:
+        erdos_tl_state = TrafficLightColor.YELLOW
+    elif tl_state == carla.TrafficLightState.Green:
+        erdos_tl_state = TrafficLightColor.GREEN
+    else:
+        erdos_tl_state = TrafficLightColor.OFF
+    extent = pylot.simulation.utils.Extent(
+        tl_actor.trigger_volume.extent.x,
+        tl_actor.trigger_volume.extent.y,
+        tl_actor.trigger_volume.extent.z)
+    traffic_light = pylot.simulation.utils.TrafficLight(
+        tl_actor.id, transform, erdos_tl_state, extent)
+    return traffic_light
+
+
 def convert_traffic_light_actors(tl_actors):
     """ Converts a Carla traffic light actor into a Pylot tl object."""
     traffic_lights = []
     for tl_actor in tl_actors:
-        transform = to_pylot_transform(tl_actor.get_transform())
-        tl_state = tl_actor.get_state()
-        erdos_tl_state = None
-        if tl_state == 0:
-            erdos_tl_state = TrafficLightColor.RED
-        elif tl_state == 1:
-            erdos_tl_state = TrafficLightColor.YELLOW
-        elif tl_state == 2:
-            erdos_tl_state = TrafficLightColor.GREEN
-        else:
-            erdos_tl_state = TrafficLightColor.OFF
-        traffic_light = pylot.simulation.utils.TrafficLight(
-            transform, erdos_tl_state,
-            to_pylot_location(tl_actor.trigger_volume.location))
-        traffic_lights.append(traffic_light)
+        traffic_lights.append(convert_to_pylot_traffic_light(tl_actor))
     return traffic_lights
 
 

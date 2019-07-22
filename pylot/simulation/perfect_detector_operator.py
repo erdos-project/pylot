@@ -11,6 +11,7 @@ from pylot.perception.detection.utils import DetectedObject,\
     visualize_image
 from pylot.perception.messages import DetectorMessage
 from pylot.simulation.utils import get_2d_bbox_from_3d_box
+from pylot.simulation.carla_utils import get_world
 
 
 class PerfectDetectorOp(Op):
@@ -43,6 +44,12 @@ class PerfectDetectorOp(Op):
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
         self._flags = flags
         self._output_stream_name = output_stream_name
+        _, world = get_world(self._flags.carla_host,
+                             self._flags.carla_port,
+                             self._flags.carla_timeout)
+        if world is None:
+            raise ValueError("There was an issue connecting to the simulator.")
+        self._town_name = world.get_map().name
         # Queues of incoming data.
         self._bgr_imgs = deque()
         self._can_bus_msgs = deque()
@@ -150,12 +157,22 @@ class PerfectDetectorOp(Op):
         det_vec = self.__get_vehicles(
             vehicles_msg.vehicles, vehicle_transform, depth_array)
 
-        det_traffic_lights = pylot.simulation.utils.get_traffic_light_det_objs(
-            traffic_light_msg.traffic_lights,
-            vehicle_transform,
-            vehicle_transform * depth_msg.transform,
-            depth_msg.frame, depth_msg.width, depth_msg.height,
-            depth_msg.fov, segmented_msg.frame)
+        if '0.8' in self._flags.carla_version:
+            det_traffic_lights = pylot.simulation.utils.get_traffic_light_det_objs_legacy(
+                traffic_light_msg.traffic_lights,
+                vehicle_transform,
+                vehicle_transform * depth_msg.transform,
+                depth_msg.frame, depth_msg.width, depth_msg.height,
+                depth_msg.fov, segmented_msg.frame)
+        elif '0.9' in self._flags.carla_version:
+            det_traffic_lights = pylot.simulation.utils.get_traffic_light_det_objs(
+                traffic_light_msg.traffic_lights,
+                vehicle_transform * depth_msg.transform,
+                depth_msg.frame,
+                depth_msg.width,
+                depth_msg.height,
+                self._town_name,
+                depth_msg.fov)
 
         det_speed_limits = pylot.simulation.utils.get_speed_limit_det_objs(
             speed_limit_signs_msg.speed_signs,

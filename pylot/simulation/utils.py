@@ -14,7 +14,8 @@ Rotation = namedtuple('Rotation', 'pitch, yaw, roll')
 Vehicle = namedtuple('Vehicle', 'transform, bounding_box, forward_speed')
 Pedestrian = namedtuple('Pedestrian',
                         'id, transform, bounding_box, forward_speed')
-TrafficLight = namedtuple('TrafficLight', 'transform, state, trigger_volume')
+TrafficLight = namedtuple('TrafficLight',
+                          'id, transform, state, trigger_volume_extent')
 SpeedLimitSign = namedtuple('SpeedLimitSign', 'transform, limit')
 StopSign = namedtuple('StopSign', 'transform, bounding_box')
 LocationGeo = namedtuple('LocationGeo', 'latitude, longitude, altitude')
@@ -137,16 +138,20 @@ class BoundingBox(object):
 
 
 class Location(object):
-    def __init__(self, x=None, y=None, z=None, carla_loc=None):
-        if carla_loc:
+    def __init__(self, x=0, y=0, z=0, carla_loc=None):
+        if carla_loc is not None:
             self.x = carla_loc.x
             self.y = carla_loc.y
             self.z = carla_loc.z
         else:
-            assert x is not None and y is not None and z is not None
             self.x = x
             self.y = y
             self.z = z
+
+    def __add__(self, other):
+        return Location(x=self.x + other.x,
+                        y=self.y + other.y,
+                        z=self.z + other.z)
 
     def __repr__(self):
         return self.__str__()
@@ -741,10 +746,243 @@ def map_ground_3D_transform_to_2D(location,
     return None
 
 
+def transform_traffic_light_bboxes(light, points):
+    """ Transforms the bounding box specified in the points relative to the
+    light.
+
+    Args:
+        light: TrafficLight object representing the light.
+        points: An array of length 4 representing the 4 points of the
+            rectangle.
+    """
+
+    def rotate(yaw, location):
+        """ Rotate a given 3D vector around the Z-axis. """
+        rotation_matrix = np.identity(3)
+        rotation_matrix[0, 0] = np.cos(yaw)
+        rotation_matrix[0, 1] = -np.sin(yaw)
+        rotation_matrix[1, 0] = np.sin(yaw)
+        rotation_matrix[1, 1] = np.cos(yaw)
+        location_vector = np.array([[location.x], [location.y], [location.z]])
+        transformed = np.dot(rotation_matrix, location_vector)
+        return Location(x=transformed[0, 0],
+                        y=transformed[1, 0],
+                        z=transformed[2, 0])
+
+    transformed_points = [
+        rotate(np.radians(light.transform.rotation.yaw), point)
+        for point in points
+    ]
+    base_relative_points = [
+        light.transform.location + point for point in transformed_points
+    ]
+    return base_relative_points
+
+
+def is_traffic_light_visible(camera_transform, tl):
+    # We dot product the forward vectors (i.e., orientation).
+    # Note: we have to rotate the traffic light forward vector
+    # so that it's pointing out from the traffic light in the
+    # opposite direction in which the ligth is beamed.
+    prod = np.dot([tl.transform.orientation.y,
+                   -tl.transform.orientation.x,
+                   tl.transform.orientation.z],
+                  [camera_transform.orientation.x,
+                   camera_transform.orientation.y,
+                   camera_transform.orientation.z])
+    return prod > -0.80
+
+
+def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
+    bbox_state = []
+    # Filter out the traffic lights that are not facing the vehicle.
+    tls = []
+    for tl in traffic_lights:
+        if is_traffic_light_visible(camera_transform, tl):
+            tls.append(tl)
+    traffic_lights = tls
+    # Carla has differing placemnts for different towns.
+    if town_name == 'Town01' or town_name == 'Town02':
+        points = [
+            Location(x=-0.5, y=0.2, z=2),
+            Location(x=0.1, y=0.2, z=2),
+            Location(x=0.1, y=0.2, z=3),
+            Location(x=-0.5, y=0.2, z=3)
+        ]
+        for light in traffic_lights:
+            bbox_state.append(
+                (transform_traffic_light_bboxes(light, points), light.state))
+    elif town_name == 'Town03':
+        for light in traffic_lights:
+            if light.trigger_volume_extent.x > 2 or light.id in [
+                    17, 18, 19, 22, 23, 24, 26, 28, 33
+            ]:
+                points = [
+                    Location(x=-5.2, y=0.2, z=5.5),
+                    Location(x=-4.8, y=0.2, z=5.5),
+                    Location(x=-4.8, y=0.2, z=6.5),
+                    Location(x=-5.2, y=0.2, z=6.5)
+                ]
+                bbox_state.append(
+                    (transform_traffic_light_bboxes(light, points), light.state))
+                right_points = [
+                    point + Location(x=-3.0) for point in points
+                ]
+                bbox_state.append(
+                    (transform_traffic_light_bboxes(light, right_points),
+                     light.state))
+                if light.id not in [2, 3, 4]:
+                    left_points = [
+                        point + Location(x=-6.5) for point in points
+                    ]
+                    bbox_state.append(
+                        (transform_traffic_light_bboxes(light, left_points),
+                         light.state))
+
+            else:
+                points = [
+                    Location(x=-0.5, y=0.2, z=2),
+                    Location(x=0.1, y=0.2, z=2),
+                    Location(x=0.1, y=0.2, z=3),
+                    Location(x=-0.5, y=0.2, z=3)
+                ]
+                bbox_state.append(
+                    (transform_traffic_light_bboxes(light, points),
+                     light.state))
+    elif town_name == 'Town04':
+        points = [
+            Location(x=-5.2, y=0.2, z=5.5),
+            Location(x=-4.8, y=0.2, z=5.5),
+            Location(x=-4.8, y=0.2, z=6.5),
+            Location(x=-5.2, y=0.2, z=6.5)
+        ]
+        middle_points = [  # Light in the middle of the pole.
+            Location(x=-0.5, y=0.2, z=2.5),
+            Location(x=0.1, y=0.2, z=2.5),
+            Location(x=0.1, y=0.2, z=3.5),
+            Location(x=-0.5, y=0.2, z=3.5)
+        ]
+        right_points = [point + Location(x=-3.0) for point in points]
+        left_points = [point + Location(x=-5.5) for point in points]
+        for light in traffic_lights:
+            bbox_state.append(
+                (transform_traffic_light_bboxes(light, points),
+                 light.state))
+            if light.trigger_volume_extent.x > 5:
+                # This is a traffic light with 4 signs, we need to come up with
+                # more bounding boxes.
+                bbox_state.append(
+                    (transform_traffic_light_bboxes(light, middle_points),
+                     light.state))
+                bbox_state.append(
+                    (transform_traffic_light_bboxes(light, right_points),
+                     light.state))
+                bbox_state.append(
+                    (transform_traffic_light_bboxes(light, left_points),
+                     light.state))
+    elif town_name == 'Town05':
+        points = [
+            Location(x=-5.2, y=0.2, z=5.5),
+            Location(x=-4.8, y=0.2, z=5.5),
+            Location(x=-4.8, y=0.2, z=6.5),
+            Location(x=-5.2, y=0.2, z=6.5)
+        ]
+        middle_points = [  # Light in the middle of the pole.
+            Location(x=-0.5, y=0.2, z=2.5),
+            Location(x=0.1, y=0.2, z=2.5),
+            Location(x=0.1, y=0.2, z=3.5),
+            Location(x=-0.5, y=0.2, z=3.5)
+        ]
+        right_points = [point + Location(x=-3.0) for point in points]
+        left_points = [point + Location(x=-5.5) for point in points]
+        for light in traffic_lights:
+            bbox_state.append(
+                (transform_traffic_light_bboxes(light, points),
+                 light.state))
+            if light.id not in [2, 3]:
+                # This is a traffic light with 4 signs, we need to come up with
+                # more bounding boxes.
+                bbox_state.append(
+                    (transform_traffic_light_bboxes(light, middle_points),
+                     light.state))
+                bbox_state.append(
+                    (transform_traffic_light_bboxes(light, right_points),
+                     light.state))
+                bbox_state.append(
+                    (transform_traffic_light_bboxes(light, left_points),
+                     light.state))
+    else:
+        raise ValueError('Could not find a town named {}'.format(town_name))
+    return bbox_state
+
+
 def get_traffic_light_det_objs(
+        traffic_lights,
+        camera_transform,
+        depth_array,
+        frame_width,
+        frame_height,
+        town_name,
+        fov=90):
+    """ Get the traffic lights that are within the camera frame.
+    Note: This method should be used with Carla 0.9.*
+    """
+    # Get the location of the bounding boxes for these lights.
+    bbox_state = get_traffic_lights_bbox_state(
+        camera_transform, traffic_lights, town_name)
+
+    # Convert the bounding boxes to a camera view.
+    extrinsic_matrix = camera_transform.matrix
+    intrinsic_matrix = create_intrinsic_matrix(frame_width, frame_height, fov)
+    det_objs = []
+    for box, color in bbox_state:
+        bounding_box = []
+        for location in box:
+            bounding_box.append(
+                location_3d_to_view(location, extrinsic_matrix,
+                                    intrinsic_matrix))
+
+        # Check if they are in front and visible.
+        z_values = [loc.z > 0 for loc in bounding_box]
+        if not any(z_values):
+            continue
+
+        # They are in the front, now find if they are visible in the view.
+        x_min = x_max = int(bounding_box[0].x)
+        y_min = y_max = int(bounding_box[0].y)
+        for i in range(1, 4):
+            x_min = min(x_min, int(bounding_box[i].x))
+            x_max = max(x_max, int(bounding_box[i].x))
+            y_min = min(y_min, int(bounding_box[i].y))
+            y_max = max(y_max, int(bounding_box[i].y))
+        x_bounds = (x_min >= 0 and x_min < frame_width and
+                    x_max >= 0 and x_max < frame_width)
+        y_bounds = (y_min >= 0 and y_min < frame_height
+                    and y_max >= 0 and y_max < frame_height)
+        if (x_bounds and y_bounds and x_max - x_min >= 3 and y_max - y_min > 6):
+            middle_x = (x_min + x_max) / 2
+            middle_y = (y_min + y_max) / 2
+            if abs(depth_array[middle_y][middle_x] * 1000 - bounding_box[0].z) > 2:
+                continue
+            label = ''
+            if color == TrafficLightColor.GREEN:
+                label = 'green traffic light'
+            elif color == TrafficLightColor.YELLOW:
+                label = 'yellow traffic light'
+            elif color == TrafficLightColor.RED:
+                label = 'red traffic light'
+            else:
+                label = 'off traffic light'
+            det_objs.append(
+                DetectedObject((x_min, x_max, y_min, y_max), 1.0, label))
+    return det_objs
+
+
+def get_traffic_light_det_objs_legacy(
         traffic_lights, vehicle_transform, camera_transform, depth_frame,
         frame_width, frame_height, fov, segmented_frame):
     """ Get the traffic lights that are withing the camera frame.
+    Note: this method works with Carla 0.8.4.
 
     Args:
         traffic_lights: List of traffic lights in the world.
@@ -811,15 +1049,9 @@ def match_bboxes_with_traffic_lights(
                 best_tl = tl
         if not best_tl:
             continue
-        # Check that the traffic light is facing the ego vehicle.
-        yaw_diff = (best_tl.transform.rotation.yaw -
-                    vehicle_transform.rotation.yaw)
-        if yaw_diff < 0:
-            yaw_diff += 360
-        elif yaw_diff >= 360:
-            yaw_diff -= 360
         # Only include traffic lights whose color is visible
-        if best_dist < 20 ** 2 and yaw_diff > 30 and yaw_diff < 150:
+        if (best_dist < 20 ** 2 and
+            is_traffic_light_visible(vehicle_transform, best_tl)):
             result.append((bbox, best_tl.state))
     return result
 
@@ -839,7 +1071,7 @@ def get_speed_limit_det_objs(
     # Compute the bounding boxes.
     traffic_signs_frame = get_traffic_sign_pixels(segmented_frame)
     bboxes = get_bounding_boxes_from_segmented(
-        traffic_signs_frame, min_width=5, min_height=5)
+        traffic_signs_frame, min_width=8, min_height=9)
 
     # Get the positions of the bounding box centers.
     x_mids = [(bbox[0] + bbox[1]) / 2 for bbox in bboxes]
@@ -877,7 +1109,7 @@ def match_bboxes_with_speed_signs(
             yaw_diff += 360
         elif yaw_diff >= 360:
             yaw_diff -= 360
-        if best_dist < 10 ** 2 and yaw_diff > 30 and yaw_diff < 150:
+        if best_dist < 5 ** 2 and yaw_diff > 30 and yaw_diff < 150:
             result.append((bbox, best_ts.limit))
     return result
 
