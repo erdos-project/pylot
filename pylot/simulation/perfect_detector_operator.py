@@ -209,7 +209,7 @@ class PerfectDetectorOp(Op):
                 save_image(pylot.utils.bgr_to_rgb(bgr_msg.frame),
                            bgr_msg.timestamp,
                            self._flags.data_path,
-                           'perfect-detector-{}'.format(self.name))
+                           'perfect-detector')
 
     def on_can_bus_update(self, msg):
         with self._lock:

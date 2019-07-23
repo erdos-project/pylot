@@ -808,7 +808,7 @@ def transform_traffic_light_bboxes(light, points):
     return base_relative_points
 
 
-def is_traffic_light_visible(camera_transform, tl):
+def is_traffic_light_visible(camera_transform, tl, town_name=None):
     # We dot product the forward vectors (i.e., orientation).
     # Note: we have to rotate the traffic light forward vector
     # so that it's pointing out from the traffic light in the
@@ -819,7 +819,12 @@ def is_traffic_light_visible(camera_transform, tl):
                   [camera_transform.orientation.x,
                    camera_transform.orientation.y,
                    camera_transform.orientation.z])
-    return prod > -0.80
+    if town_name is None:
+        return prod > -0.80
+    else:
+        if town_name == 'Town01' or town_name == 'Town02':
+            return prod > 0.3
+        return prod > -0.80
 
 
 def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
@@ -827,7 +832,7 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
     # Filter out the traffic lights that are not facing the vehicle.
     tls = []
     for tl in traffic_lights:
-        if is_traffic_light_visible(camera_transform, tl):
+        if is_traffic_light_visible(camera_transform, tl, town_name):
             tls.append(tl)
     traffic_lights = tls
     # Carla has differing placemnts for different towns.
