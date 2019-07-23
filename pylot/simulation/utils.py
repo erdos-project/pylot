@@ -171,36 +171,60 @@ class Transform(object):
     # are non-commutative!
 
     def __init__(self, pos=None, rotation=None, orientation=None, scale=None,
-                 matrix=None):
-        self.orientation = orientation
+                 matrix=None, orientation_matrix=None):
         self.rotation = rotation
         self.location = pos
         self.scale = scale
         if scale is None:
             scale = Scale()
         if matrix is None:
-            self.matrix = np.matrix(np.identity(4))
-            cy = math.cos(np.radians(rotation.yaw))
-            sy = math.sin(np.radians(rotation.yaw))
-            cr = math.cos(np.radians(rotation.roll))
-            sr = math.sin(np.radians(rotation.roll))
-            cp = math.cos(np.radians(rotation.pitch))
-            sp = math.sin(np.radians(rotation.pitch))
-            self.matrix[0, 3] = pos.x
-            self.matrix[1, 3] = pos.y
-            self.matrix[2, 3] = pos.z
-            self.matrix[0, 0] = scale.x * (cp * cy)
-            self.matrix[0, 1] = scale.y * (cy * sp * sr - sy * cr)
-            self.matrix[0, 2] = -scale.z * (cy * sp * cr + sy * sr)
-            self.matrix[1, 0] = scale.x * (sy * cp)
-            self.matrix[1, 1] = scale.y * (sy * sp * sr + cy * cr)
-            self.matrix[1, 2] = scale.z * (cy * sr - sy * sp * cr)
-            self.matrix[2, 0] = scale.x * (sp)
-            self.matrix[2, 1] = -scale.y * (cp * sr)
-            self.matrix[2, 2] = scale.z * (cp * cr)
+            self.matrix = self._create_matrix(pos, rotation, scale)
         else:
             self.matrix = matrix
             self.location = Location(matrix[0, 3], matrix[1, 3], matrix[2, 3])
+
+        if orientation is not None:
+            self.orientation_matrix = self._create_matrix(
+                orientation, rotation, Scale())
+            self.orientation = orientation
+        elif orientation_matrix is not None:
+            self.orientation_matrix = orientation_matrix
+            self.orientation = Orientation(orientation_matrix[0, 3],
+                                           orientation_matrix[1, 3],
+                                           orientation_matrix[2, 3])
+        else:
+            # No orientation provided. We multiply the defautl world
+            # orientation by the transform matrix to compute the orientation.
+            self.orientation_matrix = np.dot(
+                self._create_matrix(Location(1.0, 0, 0),
+                                    Rotation(0, 0, 0),
+                                    Scale()),
+                self.matrix)
+            self.orientation = Orientation(self.orientation_matrix[0, 3],
+                                           self.orientation_matrix[1, 3],
+                                           self.orientation_matrix[2, 3])
+
+    def _create_matrix(self, pos, rotation, scale):
+        matrix = np.matrix(np.identity(4))
+        cy = math.cos(np.radians(rotation.yaw))
+        sy = math.sin(np.radians(rotation.yaw))
+        cr = math.cos(np.radians(rotation.roll))
+        sr = math.sin(np.radians(rotation.roll))
+        cp = math.cos(np.radians(rotation.pitch))
+        sp = math.sin(np.radians(rotation.pitch))
+        matrix[0, 3] = pos.x
+        matrix[1, 3] = pos.y
+        matrix[2, 3] = pos.z
+        matrix[0, 0] = scale.x * (cp * cy)
+        matrix[0, 1] = scale.y * (cy * sp * sr - sy * cr)
+        matrix[0, 2] = -scale.z * (cy * sp * cr + sy * sr)
+        matrix[1, 0] = scale.x * (sy * cp)
+        matrix[1, 1] = scale.y * (sy * sp * sr + cy * cr)
+        matrix[1, 2] = scale.z * (cy * sr - sy * sp * cr)
+        matrix[2, 0] = scale.x * (sp)
+        matrix[2, 1] = -scale.y * (cp * sr)
+        matrix[2, 2] = scale.z * (cp * cr)
+        return matrix
 
     def transform_points(self, points):
         """
@@ -218,10 +242,15 @@ class Transform(object):
         return points[0:3].transpose()
 
     def inverse_transform(self):
-        return Transform(matrix=inv(self.matrix))
+        return Transform(matrix=inv(self.matrix),
+                         orientation_matrix=inv(self.orientation_matrix))
 
     def __mul__(self, other):
-        return Transform(matrix=np.dot(self.matrix, other.matrix))
+        new_matrix = np.dot(self.matrix, other.matrix)
+        new_orientation_matrix = np.dot(self.orientation_matrix,
+                                        other.orientation_matrix)
+        return Transform(matrix=new_matrix,
+                         orientation_matrix=new_orientation_matrix)
 
     def __str__(self):
         if self.location:
