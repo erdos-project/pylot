@@ -86,7 +86,7 @@ flags.DEFINE_bool('stop_for_pedestrians', True,
 flags.DEFINE_bool('stop_for_vehicles', True,
                   'True to enable vehicle stopping')
 flags.DEFINE_bool('use_perfect_perception', False,
-                  'True to enable the anget to use perfect ground detection')
+                  'True to enable the agent to use perfect ground detection')
 # Traffic light stopping parameters.
 flags.DEFINE_integer('traffic_light_min_dist_thres', 9,
                      'Min distance threshold traffic light')

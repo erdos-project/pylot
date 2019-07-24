@@ -64,6 +64,7 @@ class PerfectDetectorOp(Op):
         self._bgr_transform = bgr_camera_setup.get_unreal_transform()
         self._bgr_img_size = (bgr_camera_setup.width, bgr_camera_setup.height)
         self._lock = threading.Lock()
+        self._frame_cnt = 0
 
     @staticmethod
     def setup_streams(input_streams, output_stream_name):
@@ -148,6 +149,16 @@ class PerfectDetectorOp(Op):
                 pedestrians_msg.timestamp == vehicles_msg.timestamp ==
                 traffic_light_msg.timestamp)
 
+        self._frame_cnt += 1
+        if (hasattr(self._flags, 'log_every_nth_frame') and
+            self._frame_cnt % self._flags.log_every_nth_frame != 0):
+            # There's no point to run the pefrect detector if collecting
+            # data, and only logging every nth frame.
+            output_msg = DetectorMessage([], 0, msg.timestamp)
+            self.get_output_stream(self._output_stream_name).send(output_msg)
+            self.get_output_stream(self._output_stream_name)\
+                .send(WatermarkMessage(msg.timestamp))
+            return
         depth_array = depth_msg.frame
         vehicle_transform = can_bus_msg.data.transform
 
@@ -204,7 +215,7 @@ class PerfectDetectorOp(Op):
             annotate_image_with_bboxes(
                 bgr_msg.timestamp, bgr_msg.frame, det_objs)
             if self._flags.visualize_ground_obstacles:
-                visualize_image(self.name, bgr_msg.timestamp)
+                visualize_image(self.name, bgr_msg.frame)
             if self._flags.log_detector_output:
                 save_image(pylot.utils.bgr_to_rgb(bgr_msg.frame),
                            bgr_msg.timestamp,

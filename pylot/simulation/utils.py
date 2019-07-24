@@ -996,7 +996,9 @@ def get_traffic_light_det_objs(
         if (x_bounds and y_bounds and x_max - x_min >= 3 and y_max - y_min > 6):
             middle_x = (x_min + x_max) / 2
             middle_y = (y_min + y_max) / 2
-            if abs(depth_array[middle_y][middle_x] * 1000 - bounding_box[0].z) > 2:
+            depth = depth_array[middle_y][middle_x] * 1000
+            # Ignore tl if it is occluded or far away.
+            if abs(depth - bounding_box[0].z) > 2 or depth > 150:
                 continue
             label = ''
             if color == TrafficLightColor.GREEN:
