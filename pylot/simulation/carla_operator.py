@@ -149,6 +149,47 @@ class CarlaOperator(Op):
         settings.synchronous_mode = value
         self._world.apply_settings(settings)
 
+    def _spawn_pedestrians(self, num_pedestrians):
+        p_blueprints = self._world.get_blueprint_library().filter(
+            'walker.pedestrian.*')
+        # XXX(ionel): The code bellow only works with Carla 0.9.6.
+        # unique_locs = set([])
+        # spawn_points = []
+        # for i in range(num_pedestrians):
+        #     attempt = 0
+        #     while attempt < 10:
+        #         spawn_point = carla.Transform()
+        #         loc = self._world.get_random_location_from_navigation()
+        #         if loc is not None:
+        #             if loc not in unique_locs:
+        #                 spawn_point.location = loc
+        #                 spawn_points.append(spawn_point)
+        #                 unique_locs.add(loc)
+        #                 break
+        #         attempt += 1
+        #     if attempt == 10:
+        #         self._logger.error(
+        #             'Could not find unique pedestrian spawn point')
+        # XXX(ionel): The pedestrians are spawned on the street.
+        spawn_points = self._world.get_map()\
+                                  .get_spawn_points()[:num_pedestrians]
+        batch = []
+        for spawn_point in spawn_points:
+            p_blueprint = random.choice(p_blueprints)
+            if p_blueprint.has_attribute('is_invincible'):
+                p_blueprint.set_attribute('is_invincible', 'false')
+            batch.append(carla.command.SpawnActor(p_blueprint, spawn_point))
+        # Apply the batch and retrieve the identifiers.
+        ped_ids = []
+        for response in self._client.apply_batch_sync(batch, True):
+            if response.error:
+                self._logger.info(
+                    'Received an error while spawning a pedestrian: {}'.format(
+                        response.error))
+            else:
+                ped_ids.append(response.actor_id)
+        return ped_ids
+
     def _spawn_vehicles(self, num_vehicles):
         """ Spawns the required number of vehicles at random locations inside
         the world.
