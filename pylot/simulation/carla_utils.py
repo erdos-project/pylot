@@ -119,7 +119,7 @@ def extract_data_in_pylot_format(actor_list):
     vec_actors = actor_list.filter('vehicle.*')
     vehicles = convert_vehicle_actors(vec_actors)
 
-    pedestrian_actors = actor_list.filter('*walker*')
+    pedestrian_actors = actor_list.filter('walker.pedestrian.*')
     pedestrians = convert_pedestrian_actors(pedestrian_actors)
 
     tl_actors = actor_list.filter('traffic.traffic_light*')
@@ -154,10 +154,11 @@ def convert_pedestrian_actors(pedestrian_actors):
     pedestrians = []
     for ped_actor in pedestrian_actors:
         transform = to_pylot_transform(ped_actor.get_transform())
+        bounding_box = pylot.simulation.utils.BoundingBox(
+            ped_actor.bounding_box)
         speed = pylot.simulation.utils.get_speed(ped_actor.get_velocity())
-        # TODO(ionel): Pedestrians do not have a bounding box in 0.9.5.
         pedestrian = pylot.simulation.utils.Pedestrian(
-            ped_actor.id, transform, None, speed)
+            ped_actor.id, transform, bounding_box, speed)
         pedestrians.append(pedestrian)
     return pedestrians
 

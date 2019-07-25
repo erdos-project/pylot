@@ -79,10 +79,18 @@ class CarlaOperator(Op):
         # the downstream operators.
         self._driving_vehicle = self._spawn_driving_vehicle()
 
+        if self._flags.carla_version == '0.9.6':
+            (self._pedestrians, ped_control_ids) = self._spawn_pedestrians(
+                self._flags.carla_num_pedestrians)
+
         # Tick once to ensure that the actors are spawned before the data-flow
         # starts.
         self._tick_at = time.time()
         self._tick_simulator()
+
+        # Start pedestrians
+        if self._flags.carla_version == '0.9.6':
+            self._start_pedestrians(ped_control_ids)
 
     @staticmethod
     def setup_streams(input_streams):
@@ -152,27 +160,27 @@ class CarlaOperator(Op):
     def _spawn_pedestrians(self, num_pedestrians):
         p_blueprints = self._world.get_blueprint_library().filter(
             'walker.pedestrian.*')
-        # XXX(ionel): The code bellow only works with Carla 0.9.6.
-        # unique_locs = set([])
-        # spawn_points = []
-        # for i in range(num_pedestrians):
-        #     attempt = 0
-        #     while attempt < 10:
-        #         spawn_point = carla.Transform()
-        #         loc = self._world.get_random_location_from_navigation()
-        #         if loc is not None:
-        #             if loc not in unique_locs:
-        #                 spawn_point.location = loc
-        #                 spawn_points.append(spawn_point)
-        #                 unique_locs.add(loc)
-        #                 break
-        #         attempt += 1
-        #     if attempt == 10:
-        #         self._logger.error(
-        #             'Could not find unique pedestrian spawn point')
-        # XXX(ionel): The pedestrians are spawned on the street.
-        spawn_points = self._world.get_map()\
-                                  .get_spawn_points()[:num_pedestrians]
+        unique_locs = set([])
+        spawn_points = []
+        # Get unique spawn points.
+        for i in range(num_pedestrians):
+            attempt = 0
+            while attempt < 10:
+                spawn_point = carla.Transform()
+                loc = self._world.get_random_location_from_navigation()
+                if loc is not None:
+                    # Transform to tuple so that location is comparable.
+                    p_loc = (loc.x, loc.y, loc.z)
+                    if p_loc not in unique_locs:
+                        spawn_point.location = loc
+                        spawn_points.append(spawn_point)
+                        unique_locs.add(p_loc)
+                        break
+                attempt += 1
+            if attempt == 10:
+                self._logger.error(
+                    'Could not find unique pedestrian spawn point')
+        # Spawn the pedestrians.
         batch = []
         for spawn_point in spawn_points:
             p_blueprint = random.choice(p_blueprints)
@@ -188,7 +196,32 @@ class CarlaOperator(Op):
                         response.error))
             else:
                 ped_ids.append(response.actor_id)
-        return ped_ids
+        # Spawn the pedestrian controllers
+        ped_controller_bp = self._world.get_blueprint_library().find(
+            'controller.ai.walker')
+        batch = []
+        for ped_id in ped_ids:
+            batch.append(carla.command.SpawnActor(ped_controller_bp,
+                                                  carla.Transform(),
+                                                  ped_id))
+        ped_control_ids = []
+        for response in self._client.apply_batch_sync(batch, True):
+            if response.error:
+                self._logger.info(
+                    'Error while spawning a pedestrian controller: {}'.format(
+                        response.error))
+            else:
+                ped_control_ids.append(response.actor_id)
+
+        return (ped_ids, ped_control_ids)
+
+    def _start_pedestrians(self, ped_control_ids):
+        ped_actors = self._world.get_actors(ped_control_ids)
+        for i, ped_control_id in enumerate(ped_control_ids):
+            # Start pedestrian.
+            ped_actors[i].start()
+            ped_actors[i].go_to_location(
+                self._world.get_random_location_from_navigation())
 
     def _spawn_vehicles(self, num_vehicles):
         """ Spawns the required number of vehicles at random locations inside
