@@ -58,12 +58,16 @@ class CarlaOperator(Op):
         if self._client is None or self._world is None:
             raise ValueError('There was an issue connecting to the simulator.')
 
-        # TODO (Sukrit) :: ERDOS provides no way to retrieve handles to the
-        # class objects to do garbage collection. Hence, objects from
-        # previous runs of the simulation may persist. We need to clean them
-        # up right now. In future, move this logic to a seperate destroy
-        # function.
-        reset_world(self._world)
+        if self._flags.carla_version == '0.9.6':
+            self._world = self._client.load_world(
+                'Town{:02d}'.format(self._flags.carla_town))
+        else:
+            # TODO (Sukrit) :: ERDOS provides no way to retrieve handles to the
+            # class objects to do garbage collection. Hence, objects from
+            # previous runs of the simulation may persist. We need to clean
+            # them up right now. In future, move this logic to a seperate
+            # destroy function.
+            reset_world(self._world)
 
         # Set the weather.
         weather, name = get_weathers()[self._flags.carla_weather - 1]
@@ -80,6 +84,7 @@ class CarlaOperator(Op):
         self._driving_vehicle = self._spawn_driving_vehicle()
 
         if self._flags.carla_version == '0.9.6':
+            # Pedestrians are do not move in versions older than 0.9.6.
             (self._pedestrians, ped_control_ids) = self._spawn_pedestrians(
                 self._flags.carla_num_pedestrians)
 
@@ -155,6 +160,7 @@ class CarlaOperator(Op):
         self._logger.debug('Setting the synchronous mode to {}'.format(value))
         settings = self._world.get_settings()
         settings.synchronous_mode = value
+        settings.fixed_delta_seconds = 1.0 / self._flags.carla_fps
         self._world.apply_settings(settings)
 
     def _spawn_pedestrians(self, num_pedestrians):

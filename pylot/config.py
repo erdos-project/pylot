@@ -130,6 +130,8 @@ flags.DEFINE_integer('carla_timeout', 10,
                      'Timeout limit for Carla operator')
 flags.DEFINE_bool('carla_synchronous_mode', True,
                   'Run Carla in synchronous mode.')
+flags.DEFINE_integer('carla_town', 1, 'Sets which Carla town to use.')
+flags.DEFINE_integer('carla_fps', 10, 'Carla FPS; do not set bellow 10.')
 flags.DEFINE_float('carla_step_frequency', -1,
                    'Target frequency of sending control commands. -1 if '
                    'commands should be applied as soon ASAP.')
