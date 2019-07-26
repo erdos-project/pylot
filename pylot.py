@@ -302,15 +302,12 @@ def main(argv):
     # Add planning operators.
     goal_location = (234.269989014, 59.3300170898, 39.4306259155)
     goal_orientation = (1.0, 0.0, 0.22)
-    # city_name only matters when the 0.8 legacy planning operator is used.
-    # Make sure to change if you desire to run in another city.
-    # TODO(ionel): Do not hardcode Town name!
     add_planning_component(graph,
                            goal_location,
                            goal_orientation,
                            carla_op,
                            agent_op,
-                           city_name='Town01')
+                           city_name='Town{:02d}'.format(FLAGS.carla_town))
 
     graph.execute(FLAGS.framework)
 
