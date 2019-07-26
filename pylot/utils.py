@@ -137,6 +137,11 @@ def create_traffic_lights_stream(name):
 def is_traffic_lights_stream(stream):
     return stream.get_label('traffic_lights') == 'true'
 
+def create_depth_est_stream(name):
+    return DataStream(name=name, labels={'depth_est': 'true'})
+
+def is_depth_est_stream(stream):
+    return stream.get_label('depth_est') == 'true'
 
 def create_fusion_stream(name):
     return DataStream(name=name, labels={'fusion_output': 'true'})
