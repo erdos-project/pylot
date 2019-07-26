@@ -60,7 +60,7 @@ def create_camera_setups():
         FLAGS.carla_camera_image_width,
         FLAGS.carla_camera_image_height,
         transform)
-    return (bgr_camera_setup, depth_camera_setup, segmented_camera_setup)
+    return [bgr_camera_setup, depth_camera_setup, segmented_camera_setup]
 
 
 def create_lidar_setups():

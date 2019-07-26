@@ -166,6 +166,8 @@ flags.DEFINE_bool('visualize_depth_camera', False,
                   'True to enable depth camera video operator')
 flags.DEFINE_bool('visualize_lidar', False,
                   'True to enable CARLA Lidar visualizer operator')
+flags.DEFINE_bool('visualize_depth_est', False,
+                  'True to enable depth estimation visualizer operator')
 flags.DEFINE_bool('visualize_rgb_camera', False,
                   'True to enable RGB camera video operator')
 flags.DEFINE_bool('visualize_segmentation', False,
