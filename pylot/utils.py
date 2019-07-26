@@ -1,4 +1,7 @@
 import cv2
+import math
+import numpy as np
+
 from erdos.data_stream import DataStream
 
 
@@ -211,3 +214,57 @@ def bgr_to_rgb(image_np):
 
 def rgb_to_bgr(image_np):
     return image_np[:, :, ::-1]
+
+
+def compute_magnitude_angle(target_loc, cur_loc, orientation):
+    """
+    Computes relative angle and distance between a target and a current
+    location.
+
+    Args:
+        target_loc: Location of the target.
+        cur_loc: Location of the reference object.
+        orientation: Orientation of the reference object
+
+    Returns:
+        Tuple of distance to the target and the angle
+    """
+    target_vector = np.array([target_loc.x - cur_loc.x,
+                              target_loc.y - cur_loc.y])
+    norm_target = np.linalg.norm(target_vector)
+
+    forward_vector = np.array([math.cos(math.radians(orientation)),
+                               math.sin(math.radians(orientation))])
+    d_angle = math.degrees(
+        math.acos(np.dot(forward_vector, target_vector) / norm_target))
+
+    return (norm_target, d_angle)
+
+
+def is_within_distance_ahead(
+        cur_loc, dst_loc, orientation, max_distance):
+    """
+    Check if a location is within a distance in a given orientation.
+
+    Args:
+        cur_loc: The current location.
+        dst_loc: The location to compute distance for.
+        orientation: Orientation of the reference object.
+        max_distance: Maximum allowed distance.
+    Returns:
+        True if other location is within max_distance.
+    """
+    target_vector = np.array([dst_loc.x - cur_loc.x,
+                              dst_loc.y - cur_loc.y])
+    norm_dst = np.linalg.norm(target_vector)
+    # Return if the vector is too small.
+    if norm_dst < 0.001:
+        return True
+    if norm_dst > max_distance:
+        return False
+    forward_vector = np.array(
+        [math.cos(math.radians(orientation)),
+         math.sin(math.radians(orientation))])
+    d_angle = math.degrees(math.acos(
+        np.dot(forward_vector, target_vector) / norm_dst))
+    return d_angle < 90.0
