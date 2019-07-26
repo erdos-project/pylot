@@ -58,12 +58,16 @@ class CarlaOperator(Op):
         if self._client is None or self._world is None:
             raise ValueError('There was an issue connecting to the simulator.')
 
-        # TODO (Sukrit) :: ERDOS provides no way to retrieve handles to the
-        # class objects to do garbage collection. Hence, objects from
-        # previous runs of the simulation may persist. We need to clean them
-        # up right now. In future, move this logic to a seperate destroy
-        # function.
-        reset_world(self._world)
+        if self._flags.carla_version == '0.9.6':
+            self._world = self._client.load_world(
+                'Town{:02d}'.format(self._flags.carla_town))
+        else:
+            # TODO (Sukrit) :: ERDOS provides no way to retrieve handles to the
+            # class objects to do garbage collection. Hence, objects from
+            # previous runs of the simulation may persist. We need to clean
+            # them up right now. In future, move this logic to a seperate
+            # destroy function.
+            reset_world(self._world)
 
         # Set the weather.
         weather, name = get_weathers()[self._flags.carla_weather - 1]
@@ -79,10 +83,19 @@ class CarlaOperator(Op):
         # the downstream operators.
         self._driving_vehicle = self._spawn_driving_vehicle()
 
+        if self._flags.carla_version == '0.9.6':
+            # Pedestrians are do not move in versions older than 0.9.6.
+            (self._pedestrians, ped_control_ids) = self._spawn_pedestrians(
+                self._flags.carla_num_pedestrians)
+
         # Tick once to ensure that the actors are spawned before the data-flow
         # starts.
         self._tick_at = time.time()
         self._tick_simulator()
+
+        # Start pedestrians
+        if self._flags.carla_version == '0.9.6':
+            self._start_pedestrians(ped_control_ids)
 
     @staticmethod
     def setup_streams(input_streams):
@@ -147,7 +160,74 @@ class CarlaOperator(Op):
         self._logger.debug('Setting the synchronous mode to {}'.format(value))
         settings = self._world.get_settings()
         settings.synchronous_mode = value
+        settings.fixed_delta_seconds = 1.0 / self._flags.carla_fps
         self._world.apply_settings(settings)
+
+    def _spawn_pedestrians(self, num_pedestrians):
+        p_blueprints = self._world.get_blueprint_library().filter(
+            'walker.pedestrian.*')
+        unique_locs = set([])
+        spawn_points = []
+        # Get unique spawn points.
+        for i in range(num_pedestrians):
+            attempt = 0
+            while attempt < 10:
+                spawn_point = carla.Transform()
+                loc = self._world.get_random_location_from_navigation()
+                if loc is not None:
+                    # Transform to tuple so that location is comparable.
+                    p_loc = (loc.x, loc.y, loc.z)
+                    if p_loc not in unique_locs:
+                        spawn_point.location = loc
+                        spawn_points.append(spawn_point)
+                        unique_locs.add(p_loc)
+                        break
+                attempt += 1
+            if attempt == 10:
+                self._logger.error(
+                    'Could not find unique pedestrian spawn point')
+        # Spawn the pedestrians.
+        batch = []
+        for spawn_point in spawn_points:
+            p_blueprint = random.choice(p_blueprints)
+            if p_blueprint.has_attribute('is_invincible'):
+                p_blueprint.set_attribute('is_invincible', 'false')
+            batch.append(carla.command.SpawnActor(p_blueprint, spawn_point))
+        # Apply the batch and retrieve the identifiers.
+        ped_ids = []
+        for response in self._client.apply_batch_sync(batch, True):
+            if response.error:
+                self._logger.info(
+                    'Received an error while spawning a pedestrian: {}'.format(
+                        response.error))
+            else:
+                ped_ids.append(response.actor_id)
+        # Spawn the pedestrian controllers
+        ped_controller_bp = self._world.get_blueprint_library().find(
+            'controller.ai.walker')
+        batch = []
+        for ped_id in ped_ids:
+            batch.append(carla.command.SpawnActor(ped_controller_bp,
+                                                  carla.Transform(),
+                                                  ped_id))
+        ped_control_ids = []
+        for response in self._client.apply_batch_sync(batch, True):
+            if response.error:
+                self._logger.info(
+                    'Error while spawning a pedestrian controller: {}'.format(
+                        response.error))
+            else:
+                ped_control_ids.append(response.actor_id)
+
+        return (ped_ids, ped_control_ids)
+
+    def _start_pedestrians(self, ped_control_ids):
+        ped_actors = self._world.get_actors(ped_control_ids)
+        for i, ped_control_id in enumerate(ped_control_ids):
+            # Start pedestrian.
+            ped_actors[i].start()
+            ped_actors[i].go_to_location(
+                self._world.get_random_location_from_navigation())
 
     def _spawn_vehicles(self, num_vehicles):
         """ Spawns the required number of vehicles at random locations inside
@@ -248,6 +328,13 @@ class CarlaOperator(Op):
         self.get_output_stream('vehicle_id_stream').send(vehicle_id_msg)
         self.get_output_stream('vehicle_id_stream').send(
             WatermarkMessage(timestamp))
+
+        # XXX(ionel): Hack to fix a race condition. Driver operators
+        # register a carla listen callback only after they've received
+        # the vehicle id value. We miss frames if we tick before
+        # they register a listener. Thus, we sleep here a bit to
+        # give them sufficient time to register a callback.
+        time.sleep(5)
 
         self._world.on_tick(self.publish_world_data)
         self._tick_simulator()

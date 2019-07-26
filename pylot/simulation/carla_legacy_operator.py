@@ -241,7 +241,7 @@ class CarlaLegacyOperator(Op):
                 else:
                     erdos_tl_state = TrafficLightColor.OFF
                 traffic_light = pylot.simulation.utils.TrafficLight(
-                    transform, erdos_tl_state)
+                    agent.id, transform, erdos_tl_state, None)
                 traffic_lights.append(traffic_light)
             elif agent.HasField('speed_limit_sign'):
                 transform = pylot.simulation.utils.to_pylot_transform(

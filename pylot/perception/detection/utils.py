@@ -12,6 +12,16 @@ from pylot.utils import add_timestamp
 
 ADJACENT_POS = [(0, 1), (0, -1), (1, 0), (-1, 0)]
 
+GROUND_COLOR_MAP = {
+    'pedestrian': [0, 128, 0],
+    'vehicle': [128, 0, 0],
+    'stop marking': [128, 128, 0],
+    'speed limit': [255, 255, 0],
+    'red traffic light': [0, 0, 255],
+    'yellow traffic light': [0, 255, 255],
+    'green traffic light': [0, 255, 0],
+}
+
 coco_bbox_color_list = np.array(
         [
             1.000, 1.000, 1.000,
@@ -118,12 +128,13 @@ class DetectedObject(object):
         self.confidence = confidence
         self.label = label
 
-    def visualize_on_img(self, image_np, bbox_color_map):
+    def visualize_on_img(self, image_np, bbox_color_map, text=None):
         """ Annotate the image with the bounding box of the obstacle."""
         txt_font = cv2.FONT_HERSHEY_SIMPLEX
         (xmin, xmax, ymin, ymax) = self.corners
-        label_confidence_txt = '{}{:.1f}'.format(self.label, self.confidence)
-        txt_size = cv2.getTextSize(label_confidence_txt, txt_font, 0.5, 2)[0]
+        if text is None:
+            text = '{}{:.1f}'.format(self.label, self.confidence)
+        txt_size = cv2.getTextSize(text, txt_font, 0.5, 2)[0]
         color = bbox_color_map[self.label]
         # Show bounding box.
         cv2.rectangle(image_np, (xmin, ymin), (xmax, ymax), color, 2)
@@ -131,9 +142,13 @@ class DetectedObject(object):
         cv2.rectangle(image_np,
                       (xmin, ymin - txt_size[1] - 2),
                       (xmin + txt_size[0], ymin - 2), color, -1)
-        cv2.putText(image_np, label_confidence_txt, (xmin, ymin - 2),
+        cv2.putText(image_np, text, (xmin, ymin - 2),
                     txt_font, 0.5, (0, 0, 0), thickness=1,
                     lineType=cv2.LINE_AA)
+
+    def get_bbox_label(self, ):
+        (xmin, xmax, ymin, ymax) = self.corners
+        return (self.label, ((xmin, ymin), (xmax, ymax)))
 
     def __repr__(self):
         return self.__str__()
@@ -141,6 +156,30 @@ class DetectedObject(object):
     def __str__(self):
         return 'DetectedObject(label: {}, confidence: {}, bbox: {})'.format(
             self.label, self.confidence, self.corners)
+
+
+class DetectedSpeedLimit(DetectedObject):
+    def __init__(self, corners, limit, confidence, label):
+        super(DetectedSpeedLimit, self).__init__(corners, confidence, label)
+        self.limit = limit
+
+    def visualize_on_img(self, image_np, bbox_color_map):
+        text = '{} {} {:.1f}'.format(self.limit, self.label, self.confidence)
+        super(DetectedSpeedLimit, self).visualize_on_img(
+            image_np, bbox_color_map, text)
+
+    def get_bbox_label(self, ):
+        (xmin, xmax, ymin, ymax) = self.corners
+        return (self.label + ' ' + str(self.limit),
+                ((xmin, ymin), (xmax, ymax)))
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return 'DetectedSpeedLimit(label: {}, limit: {}, '\
+            'confidence: {}, bbox: {})'.format(
+                self.label, self.limit, self.confidence, self.corners)
 
 
 def compute_miou(bboxes1, bboxes2):
@@ -217,7 +256,7 @@ def calculate_iou(ground_truth, prediction):
     return float(inter_area) / (gt_area + pred_area - inter_area)
 
 
-def get_bounding_boxes_from_segmented(frame, min_width=2, min_height=6):
+def get_bounding_boxes_from_segmented(frame, min_width=2, min_height=3):
     """ Extracts bounding box from frame.
     Assumes that the pixels we are interested in are set to True.
     """
@@ -357,43 +396,16 @@ def visualize_no_colors_bboxes(op_name, timestamp, image_np, bboxes):
     cv2.waitKey(1)
 
 
-def visualize_ground_bboxes(op_name,
-                            timestamp,
-                            image_np,
-                            pedestrian_bboxes,
-                            vehicles_bboxes,
-                            traffic_sign_bboxes=[],
-                            traffic_light_bboxes=[]):
+def visualize_ground_bboxes(op_name, timestamp, image_np, det_objs):
     add_timestamp(timestamp, image_np)
-    for corners in pedestrian_bboxes:
-        (xmin, xmax, ymin, ymax) = corners
-        color = [0, 128, 0]
-        cv2.rectangle(image_np, (xmin, ymin), (xmax, ymax), color, 2)
-    for corners in vehicles_bboxes:
-        (xmin, xmax, ymin, ymax) = corners
-        color = [128, 0, 0]
-        cv2.rectangle(image_np, (xmin, ymin), (xmax, ymax), color, 2)
-    for corners in traffic_sign_bboxes:
-        (xmin, xmax, ymin, ymax) = corners
-        color = [255, 255, 0]
-        cv2.rectangle(image_np, (xmin, ymin), (xmax, ymax), color, 2)
-    for (corners, color) in traffic_light_bboxes:
-        (xmin, xmax, ymin, ymax) = corners
-        if color == 'red traffic light':
-            color = [0, 0, 255]
-        elif color == 'yellow traffic light':
-            color = [0, 255, 255]
-        elif color == 'green traffic light':
-            color = [0, 255, 0]
-        else:
-            raise ValueError('Not a valid traffic light color.')
-        cv2.rectangle(image_np, (xmin, ymin), (xmax, ymax), color, 2)
+    for det_obj in det_objs:
+        det_obj.visualize_on_img(image_np, GROUND_COLOR_MAP)
     cv2.imshow(op_name, image_np)
     cv2.waitKey(1)
 
 
 def annotate_image_with_bboxes(
-        timestamp, image_np, detected_objs, bbox_color_map):
+        timestamp, image_np, detected_objs, bbox_color_map=GROUND_COLOR_MAP):
     """ Adds bounding boxes to an image."""
 #    txt_font = cv2.FONT_HERSHEY_SIMPLEX
     add_timestamp(timestamp, image_np)

@@ -46,7 +46,7 @@ class CameraLoggerOp(Op):
         # Write the image.
         assert msg.encoding == 'BGR', 'Expects BGR frames'
         rgb_array = pylot.utils.bgr_to_rgb(msg.frame)
-        file_name = '{}carla-{}.png'.format(
+        file_name = '{}carla-center-{}.png'.format(
             self._flags.data_path, msg.timestamp.coordinates[0])
         rgb_img = Image.fromarray(np.uint8(rgb_array))
         rgb_img.save(file_name)

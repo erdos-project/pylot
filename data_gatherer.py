@@ -1,11 +1,15 @@
 from absl import app
 from absl import flags
 
-import pylot.config
-import pylot.simulation.utils
-import pylot.operator_creator
-
 import erdos.graph
+from erdos.op import Op
+from erdos.timestamp import Timestamp
+
+import pylot.config
+from pylot.control.messages import ControlMessage
+import pylot.operator_creator
+import pylot.simulation.utils
+import pylot.utils
 
 FLAGS = flags.FLAGS
 CENTER_CAMERA_NAME = 'front_rgb_camera'
@@ -24,6 +28,25 @@ flags.DEFINE_bool('camera_left_right', False,
 flags.DEFINE_float('offset_left_right', 0.05,
                    'How much we offset the left and right cameras '
                    'from the center.')
+flags.DEFINE_bool('log_bounding_boxes', True,
+                  'True to enable bounding box logging')
+
+
+class SynchronizerOp(Op):
+    def __init__(self, name):
+        super(SynchronizerOp, self).__init__(name)
+
+    @staticmethod
+    def setup_streams(input_streams):
+        input_streams.add_completion_callback(SynchronizerOp.on_watermark)
+        # Set no watermark on the output stream so that we do not
+        # close the watermark loop with the carla operator.
+        return [pylot.utils.create_control_stream()]
+
+    def on_watermark(self, msg):
+        control_msg = ControlMessage(
+            0, 0, 0, False, False, msg.timestamp)
+        self.get_output_stream('control_stream').send(control_msg)
 
 
 def create_camera_setups():
@@ -102,6 +125,28 @@ def create_lidar_setups():
     return lidar_setups
 
 
+def add_perfect_detection_component(
+        graph, camera_setups, carla_op, camera_ops):
+    if FLAGS.carla_auto_pilot and not FLAGS.log_bounding_boxes:
+        return [], []
+    # Add operator that converts from 3D bounding boxes to 2D bouding boxes.
+    ground_obstacles_stream_name = 'perfect_detector'
+    detector_ops = [
+        pylot.operator_creator.create_perfect_detector_op(
+            graph, camera_setups[0], ground_obstacles_stream_name)]
+    # Connect the detector to the cameras.
+    graph.connect([carla_op] + camera_ops, detector_ops)
+
+    if FLAGS.log_bounding_boxes:
+        # Add operator that logs bboxes to json.
+        bbox_logger_ops = [
+            pylot.operator_creator.create_bounding_box_logger_op(graph)]
+        graph.connect(detector_ops, bbox_logger_ops)
+    else:
+        bbox_logger_ops = []
+    return detector_ops, bbox_logger_ops
+
+
 def main(argv):
     # Define graph
     graph = erdos.graph.get_current_graph()
@@ -127,39 +172,40 @@ def main(argv):
     graph.connect(camera_ops, camera_log_ops)
     graph.connect(lidar_ops, lidar_log_ops)
 
-    # Add operator that converts from 3D bounding boxes to 2D bouding boxes.
-    ground_obstacles_stream_name = 'perfect_detector'
-    detector_ops = [
-        pylot.operator_creator.create_perfect_detector_op(
-            graph, camera_setups[0], ground_obstacles_stream_name)]
-    # Connect the detector to the cameras.
-    graph.connect([carla_op] + camera_ops, detector_ops)
+    detector_ops, bbox_logger_ops = add_perfect_detection_component(
+        graph, camera_setups, carla_op, camera_ops)
 
-    # Add operator that logs bboxes to json.
-    bbox_logger_ops = [
-        pylot.operator_creator.create_bounding_box_logger_op(graph)]
-    graph.connect(detector_ops, bbox_logger_ops)
-
-    # Add agent that uses ground data to drive around.
-    agent_op = pylot.operator_creator.create_ground_agent_op(graph)
-    graph.connect([carla_op], [agent_op])
-    graph.connect([agent_op], [carla_op])
-
-    goal_location = (234.269989014, 59.3300170898, 39.4306259155)
-    goal_orientation = (1.0, 0.0, 0.22)
-
-    if '0.8' in FLAGS.carla_version:
-        # Make sure to change Town if you desire to run in another town.
-        # TODO(ionel): Do not hardcode Town name!
-        planning_op = pylot.operator_creator.create_legacy_planning_op(
-            graph, 'Town01', goal_location, goal_orientation)
-    elif '0.9' in FLAGS.carla_version:
-        planning_op = pylot.operator_creator.create_planning_op(
-            graph, goal_location)
+    if FLAGS.carla_auto_pilot:
+        # We do not need planning and agent ops if we're running in
+        # auto pilot mode. Instead, we insert a synchronizing operator
+        # that only sends back a command when all the operators in their
+        # data-flow have finished processing a message.
+        sync_op = graph.add(SynchronizerOp, name='sync_op')
+        graph.connect(
+            camera_ops + lidar_ops + camera_log_ops + lidar_log_ops +
+            detector_ops + bbox_logger_ops,
+            [sync_op])
+        graph.connect([sync_op], [carla_op])
     else:
-        raise ValueError('Unexpected Carla version')
-    graph.connect([carla_op], [planning_op])
-    graph.connect([planning_op], [agent_op])
+        # Add agent that uses ground data to drive around.
+        agent_op = pylot.operator_creator.create_ground_agent_op(graph)
+        graph.connect([carla_op], [agent_op])
+        graph.connect([agent_op], [carla_op])
+
+        goal_location = (234.269989014, 59.3300170898, 39.4306259155)
+        goal_orientation = (1.0, 0.0, 0.22)
+
+        if '0.8' in FLAGS.carla_version:
+            planning_op = pylot.operator_creator.create_legacy_planning_op(
+                graph, 'Town{:02d}'.format(FLAGS.carla_town),
+                goal_location, goal_orientation)
+        elif '0.9' in FLAGS.carla_version:
+            planning_op = pylot.operator_creator.create_planning_op(
+                graph, goal_location)
+        else:
+            raise ValueError('Unexpected Carla version')
+        graph.connect([carla_op], [planning_op])
+        graph.connect([planning_op], [agent_op])
 
     graph.execute(FLAGS.framework)
 

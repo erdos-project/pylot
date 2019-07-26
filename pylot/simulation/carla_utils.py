@@ -1,8 +1,10 @@
+import numpy as np
 import carla
 
 from pylot.perception.detection.utils import TrafficLightColor
-from pylot.simulation.utils import to_pylot_transform
+from pylot.simulation.utils import to_pylot_transform, to_pylot_location
 import pylot.simulation.utils
+from pylot.simulation.utils import Location
 
 
 def get_world(host="localhost", port=2000, timeout=10):
@@ -117,7 +119,7 @@ def extract_data_in_pylot_format(actor_list):
     vec_actors = actor_list.filter('vehicle.*')
     vehicles = convert_vehicle_actors(vec_actors)
 
-    pedestrian_actors = actor_list.filter('*walker*')
+    pedestrian_actors = actor_list.filter('walker.pedestrian.*')
     pedestrians = convert_pedestrian_actors(pedestrian_actors)
 
     tl_actors = actor_list.filter('traffic.traffic_light*')
@@ -152,32 +154,41 @@ def convert_pedestrian_actors(pedestrian_actors):
     pedestrians = []
     for ped_actor in pedestrian_actors:
         transform = to_pylot_transform(ped_actor.get_transform())
+        bounding_box = pylot.simulation.utils.BoundingBox(
+            ped_actor.bounding_box)
         speed = pylot.simulation.utils.get_speed(ped_actor.get_velocity())
-        # TODO(ionel): Pedestrians do not have a bounding box in 0.9.5.
         pedestrian = pylot.simulation.utils.Pedestrian(
-            ped_actor.id, transform, None, speed)
+            ped_actor.id, transform, bounding_box, speed)
         pedestrians.append(pedestrian)
     return pedestrians
+
+
+def convert_to_pylot_traffic_light(tl_actor):
+    transform = to_pylot_transform(tl_actor.get_transform())
+    tl_state = tl_actor.get_state()
+    erdos_tl_state = None
+    if tl_state == carla.TrafficLightState.Red:
+        erdos_tl_state = TrafficLightColor.RED
+    elif tl_state == carla.TrafficLightState.Yellow:
+        erdos_tl_state = TrafficLightColor.YELLOW
+    elif tl_state == carla.TrafficLightState.Green:
+        erdos_tl_state = TrafficLightColor.GREEN
+    else:
+        erdos_tl_state = TrafficLightColor.OFF
+    extent = pylot.simulation.utils.Extent(
+        tl_actor.trigger_volume.extent.x,
+        tl_actor.trigger_volume.extent.y,
+        tl_actor.trigger_volume.extent.z)
+    traffic_light = pylot.simulation.utils.TrafficLight(
+        tl_actor.id, transform, erdos_tl_state, extent)
+    return traffic_light
 
 
 def convert_traffic_light_actors(tl_actors):
     """ Converts a Carla traffic light actor into a Pylot tl object."""
     traffic_lights = []
     for tl_actor in tl_actors:
-        transform = to_pylot_transform(tl_actor.get_transform())
-        tl_state = tl_actor.get_state()
-        erdos_tl_state = None
-        if tl_state == 0:
-            erdos_tl_state = TrafficLightColor.RED
-        elif tl_state == 1:
-            erdos_tl_state = TrafficLightColor.YELLOW
-        elif tl_state == 2:
-            erdos_tl_state = TrafficLightColor.GREEN
-        else:
-            erdos_tl_state = TrafficLightColor.OFF
-        traffic_light = pylot.simulation.utils.TrafficLight(
-            transform, erdos_tl_state)
-        traffic_lights.append(traffic_light)
+        traffic_lights.append(convert_to_pylot_traffic_light(tl_actor))
     return traffic_lights
 
 
@@ -198,5 +209,18 @@ def convert_traffic_stop_actors(traffic_stop_actors):
     stop_signs = []
     for ts_actor in traffic_stop_actors:
         transform = to_pylot_transform(ts_actor.get_transform())
-        stop_signs.append(transform)
+        world_trigger_volume = ts_actor.get_transform().transform(
+            ts_actor.trigger_volume.location)
+        bbox = pylot.simulation.utils.BoundingBox(
+            carla.BoundingBox(world_trigger_volume,
+                              ts_actor.trigger_volume.extent))
+        stop_sign = pylot.simulation.utils.StopSign(transform, bbox)
+        stop_signs.append(stop_sign)
     return stop_signs
+
+
+def draw_trigger_volume(world, actor):
+    transform = actor.get_transform()
+    tv = transform.transform(actor.trigger_volume.location)
+    bbox = carla.BoundingBox(tv, actor.trigger_volume.extent)
+    world.debug.draw_box(bbox, transform.rotation, life_time=1000)

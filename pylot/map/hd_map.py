@@ -9,6 +9,8 @@ from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 from erdos.utils import setup_logging
 
 from pylot.simulation.utils import to_pylot_transform
+from pylot.simulation.carla_utils import to_carla_location
+from pylot.utils import compute_magnitude_angle, is_within_distance_ahead
 
 
 class HDMap(object):
@@ -30,7 +32,7 @@ class HDMap(object):
         Args:
             location: Location in world coordinates.
         """
-        loc = carla.Location(location.x, location.y, location.z)
+        loc = to_carla_location(location)
         waypoint = self._map.get_waypoint(loc,
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Any)
@@ -50,14 +52,14 @@ class HDMap(object):
             location1: Location in world coordinates.
             location1: Location in world coordinates.
         """
-        loc1 = carla.Location(location1.x, location1.y, location1.z)
+        loc1 = to_carla_location(location1)
         waypoint1 = self._map.get_waypoint(loc1,
                                            project_to_road=False,
                                            lane_type=carla.LaneType.Driving)
         if not waypoint1:
             # First location is not on a drivable lane.
             return False
-        loc2 = carla.Location(location2.x, location2.y, location2.z)
+        loc2 = to_carla_location(location2)
         waypoint2 = self._map.get_waypoint(loc2,
                                            project_to_road=False,
                                            lane_type=carla.LaneType.Driving)
@@ -85,9 +87,7 @@ class HDMap(object):
         return False
 
     def is_on_opposite_lane(self, transform):
-        loc = carla.Location(transform.location.x,
-                             transform.location.y,
-                             transform.location.z)
+        loc = to_carla_location(transform.location)
         waypoint = self._map.get_waypoint(loc,
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Driving)
@@ -111,14 +111,14 @@ class HDMap(object):
         """
         # TODO(ionel): This method doesn't work yet because the opendrive do
         # not contained waypoints annotated as stops.
-        loc = carla.Location(location.x, location.y, location.z)
+        loc = to_carla_location(location)
         waypoint = self._map.get_waypoint(loc,
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Stop)
         return not waypoint
 
     def distance_to_intersection(self, location, max_distance_to_check=30):
-        loc = carla.Location(location.x, location.y, location.z)
+        loc = to_carla_location(location)
         waypoint = self._map.get_waypoint(loc,
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Any)
@@ -138,7 +138,7 @@ class HDMap(object):
         return None
 
     def is_on_bidirectional_lane(self, location):
-        loc = carla.Location(location.x, location.y, location.z)
+        loc = to_carla_location(location)
         waypoint = self._map.get_waypoint(
             loc,
             project_to_road=False,
@@ -152,22 +152,75 @@ class HDMap(object):
             ego_location: Location of the ego vehicle in world coordinates.
             tl_location: Location of the traffic light in world coordinates.
         """
-        loc = carla.Location(ego_location.x, ego_location.y, ego_location.z)
+        loc = to_carla_location(ego_location)
         waypoint = self._map.get_waypoint(loc,
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Any)
         if waypoint and waypoint.is_intersection:
             # Do not obbey traffic light if ego is already in the intersection.
             return False
+
         # TODO(ionel): Implement.
         return True
+
+    def _must_obbey_european_traffic_light(self, ego_transform, tl_locations):
+        ego_loc = to_carla_location(ego_transform.location)
+        ego_waypoint = self._map.get_waypoint(ego_loc,
+                                              project_to_road=False,
+                                              lane_type=carla.LaneType.Any)
+        # We're not on a road, or we're already in the intersection. Carry on.
+        if ego_waypoint is None or ego_waypoint.is_intersection:
+            return (False, None)
+        # Iterate through traffic lights.
+        for tl_loc in tl_locations:
+            tl_waypoint = self._map.get_waypoint(
+                to_carla_location(tl_loc))
+            if (tl_waypoint.road_id != ego_waypoint.road_id or
+                tl_waypoint.lane_id != ego_waypoint.lane_id):
+                continue
+            if is_within_distance_ahead(
+                    ego_loc,
+                    tl_loc,
+                    ego_transform.rotation.yaw,
+                    self._flags.traffic_light_max_dist_thres):
+                return (True, tl_loc)
+        return (False,  None)
+
+    def _must_obbey_american_traffic_light(self, ego_transform, tl_locations):
+        ego_loc = to_carla_location(ego_transform.location)
+        ego_waypoint = self._map.get_waypoint(ego_loc,
+                                              project_to_road=False,
+                                              lane_type=carla.LaneType.Any)
+        # We're not on a road, or we're already in the intersection. Carry on.
+        if ego_waypoint is None or ego_waypoint.is_intersection:
+            return (False, None)
+
+        min_angle = 25.0
+        selected_tl_loc = None
+        for tl_loc in tl_locations:
+            if is_within_distance_ahead(
+                    ego_loc,
+                    tl_loc,
+                    ego_transform.rotation.yaw,
+                    self._flags.traffic_light_max_dist_thres):
+                magnitude, angle = compute_magnitude_angle(
+                    tl_loc,
+                    ego_transform.location,
+                    ego_transform.rotation.yaw)
+                if magnitude < 60.0 and angle < min(25.0, min_angle):
+                    min_angle = angle
+                    selected_tl_loc = tl_loc
+        if selected_tl_loc is not None:
+            return (True, selected_tl_loc)
+        else:
+            return (False, None)
 
     def get_freenet_coordinates(self, location):
         """ Returns s, d for a given Cartesian world location. """
         # TODO(ionel): This method assumes that the location has the
         # same orientation as the lanes (i.e., it will always return a
         # positive d).
-        loc = carla.Location(location.x, location.y, location.z)
+        loc = to_carla_location(location)
         waypoint = self._map.get_waypoint(loc,
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Any)

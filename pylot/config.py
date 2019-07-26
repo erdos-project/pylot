@@ -86,7 +86,7 @@ flags.DEFINE_bool('stop_for_pedestrians', True,
 flags.DEFINE_bool('stop_for_vehicles', True,
                   'True to enable vehicle stopping')
 flags.DEFINE_bool('use_perfect_perception', False,
-                  'True to enable the anget to use perfect ground detection')
+                  'True to enable the agent to use perfect ground detection')
 # Traffic light stopping parameters.
 flags.DEFINE_integer('traffic_light_min_dist_thres', 9,
                      'Min distance threshold traffic light')
@@ -130,6 +130,8 @@ flags.DEFINE_integer('carla_timeout', 10,
                      'Timeout limit for Carla operator')
 flags.DEFINE_bool('carla_synchronous_mode', True,
                   'Run Carla in synchronous mode.')
+flags.DEFINE_integer('carla_town', 1, 'Sets which Carla town to use.')
+flags.DEFINE_integer('carla_fps', 10, 'Carla FPS; do not set bellow 10.')
 flags.DEFINE_float('carla_step_frequency', -1,
                    'Target frequency of sending control commands. -1 if '
                    'commands should be applied as soon ASAP.')

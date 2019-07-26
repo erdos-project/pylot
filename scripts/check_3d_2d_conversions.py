@@ -8,6 +8,7 @@ import time
 import carla
 
 import pylot.utils
+from pylot.simulation.carla_utils import get_world
 import pylot.simulation.messages
 import pylot.simulation.utils
 from pylot.simulation.utils import depth_to_array, to_bgra_array,\
@@ -57,30 +58,6 @@ print ("Our Location:", sensor_transform.location.x,
 vehicle_transform = pylot.simulation.utils.Transform(
     pylot.simulation.utils.Location(0, 0, 0),
     pylot.simulation.utils.Rotation(pitch=0, yaw=0, roll=0))
-
-
-def get_world(host="localhost", port=2000):
-    """ Get a handle to the world running inside the simulation.
-
-    Args:
-        host: The host where the simulator is running.
-        port: The port to connect to at the given host.
-
-    Returns:
-        A tuple of `(client, world)` where the `client` is a connection to the
-        simulator and `world` is a handle to the world running inside the
-        simulation at the host:port.
-    """
-    client, world = None, None
-    try:
-        client = carla.Client(host, port)
-        client.set_timeout(10.0)
-        world = client.get_world()
-    except RuntimeError as r:
-        client, world = None, None
-        print("Received an error while connecting to the "
-              "simulator: {}".format(r))
-    return (client, world)
 
 
 def on_lidar_msg(carla_pc):
@@ -142,7 +119,7 @@ def on_depth_msg(carla_image):
 #    pptk.viewer(depth_point_cloud)
 
 
-def add_lidar(transform, callback):
+def add_lidar(world, transform, callback):
     lidar_blueprint = world.get_blueprint_library().find(
        'sensor.lidar.ray_cast')
     lidar_blueprint.set_attribute('channels', '32')
@@ -157,7 +134,7 @@ def add_lidar(transform, callback):
     return lidar
 
 
-def add_depth_camera(transform, callback):
+def add_depth_camera(world, transform, callback):
     depth_blueprint = world.get_blueprint_library().find(
         'sensor.camera.depth')
     depth_blueprint.set_attribute('image_size_x', '800')
@@ -168,7 +145,7 @@ def add_depth_camera(transform, callback):
     return depth_camera
 
 
-def add_camera(transform, callback):
+def add_camera(world, transform, callback):
     camera_blueprint = world.get_blueprint_library().find(
         'sensor.camera.rgb')
     camera_blueprint.set_attribute('image_size_x', '800')
@@ -179,7 +156,7 @@ def add_camera(transform, callback):
     return camera
 
 
-def add_vehicle(transform):
+def add_vehicle(world, transform):
     # Location of the vehicle in world coordinates.
     v_blueprint = world.get_blueprint_library().find('vehicle.audi.a2')
     vehicle = world.spawn_actor(v_blueprint, transform)
@@ -194,10 +171,10 @@ world.apply_settings(settings)
 
 
 print("Adding sensors")
-target_vehicle = add_vehicle(target_vehicle_transform)
-lidar = add_lidar(sensor_transform, on_lidar_msg)
-depth_camera = add_depth_camera(sensor_transform, on_depth_msg)
-camera = add_camera(sensor_transform, on_camera_msg)
+target_vehicle = add_vehicle(world, target_vehicle_transform)
+lidar = add_lidar(world, sensor_transform, on_lidar_msg)
+depth_camera = add_depth_camera(world, sensor_transform, on_depth_msg)
+camera = add_camera(world, sensor_transform, on_camera_msg)
 
 # Move the spectactor view to the camera position.
 world.get_spectator().set_transform(sensor_transform)
