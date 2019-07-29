@@ -30,6 +30,7 @@ class DepthEstOperator(Op):
     def __init__(self,
                  name,
                  output_stream_name,
+                 transform,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
@@ -40,6 +41,7 @@ class DepthEstOperator(Op):
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
         self._output_stream_name = output_stream_name
+        self._transform = transform
         self._lock = threading.Lock()
         #load AnyNet
         model = anynet.anynet.AnyNet()
@@ -114,12 +116,8 @@ class DepthEstOperator(Op):
         if self._flags.visualize_depth_est:
             plt.imshow(output, cmap = 'viridis')
             plt.show()
-        
-        location = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
-        rotation = pylot.simulation.utils.Rotation(0, 0, 0)
-        transform = pylot.simulation.utils.Transform(location, rotation)
     
-        output_msg = DepthFrameMessage(depth, transform, 90, msg.timestamp)
+        output_msg = DepthFrameMessage(depth, self._transform, 90, msg.timestamp)
         self.get_output_stream(self._output_stream_name).send(output_msg)
         
     def execute(self):

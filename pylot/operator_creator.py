@@ -374,12 +374,14 @@ def create_detector_op_helper(graph, name, model_path, gpu_memory_fraction):
     return obj_detector_op
 
 
-def create_depth_estimation_op(graph, left_camera_name, right_camera_name):
+def create_depth_estimation_op(graph, center_transform, 
+                               left_camera_name, right_camera_name):
     depth_estimation_op = graph.add(
         DepthEstOperator,
         name='depth_estimation',
         init_args={
             'output_stream_name': 'depth_estimation',
+            'transform': center_transform,
             'flags': FLAGS,
             'log_file_name': FLAGS.log_file_name
         },
