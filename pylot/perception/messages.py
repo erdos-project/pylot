@@ -59,35 +59,6 @@ class SegmentedFrameMessage(Message):
             'height: {})'.format(self.timestamp, self.width, self.height)
 
 
-class DepthFrameMessage(Message):
-    """ This class represents a message to be used to send depth frames
-
-    Attributes:
-        frame: The depth frame.
-        runtime: The runtime of the operator that produced the depth frame.
-        width: the width of the frame.
-        height: the height of the frame.
-    """
-
-    def __init__(self, frame, runtime, timestamp):
-        """ Constructs the DepthFrameMessage with the given data and timestamp.
-
-        Args:
-            frame: The depth frame.
-            runtime: The runtime of the operator that produced the depth frame.
-            timestamp: The timestamp of the message.
-        """
-        super(DepthFrameMessage, self).__init__(None, timestamp, 'default')
-        self.frame = frame
-        self.width = frame.shape[1]
-        self.height = frame.shape[0]
-        self.runtime = runtime
-
-    def __str__(self):
-        return 'DepthFrameMessage(timestamp {}, width: {}, '\
-            'height: {})'.format(self.timestamp, self.width, self.height)
-
-    
 class ObjPosition(object):
 
     def __init__(self,

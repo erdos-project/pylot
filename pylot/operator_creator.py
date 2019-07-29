@@ -24,7 +24,10 @@ except ImportError:
 from pylot.perception.detection.lane_detection_operator import LaneDetectionOperator
 from pylot.perception.detection.obstacle_accuracy_operator import ObstacleAccuracyOperator
 from pylot.perception.detection.traffic_light_det_operator import TrafficLightDetOperator
-from pylot.perception.depth_estimation.depth_est_operator import DepthEstOperator
+try:
+    from pylot.perception.depth_estimation.depth_est_operator import DepthEstOperator
+except ImportError:
+    print("Error importing AnyNet depth estimation.")
 from pylot.perception.fusion.fusion_operator import FusionOperator
 from pylot.perception.fusion.fusion_verification_operator import FusionVerificationOperator
 from pylot.perception.segmentation.segmentation_drn_operator import SegmentationDRNOperator
