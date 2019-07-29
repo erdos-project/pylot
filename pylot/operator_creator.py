@@ -7,7 +7,6 @@ from pylot.control.ground_agent_operator import GroundAgentOperator
 # Import debug operators.
 from pylot.debug.camera_replay_operator import CameraReplayOperator
 from pylot.debug.depth_camera_visualizer import DepthCameraVisualizer
-from pylot.debug.depth_estimation_operator import DepthEstimationOp
 from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
 from pylot.debug.segmented_video_operator import SegmentedVideoOperator
 from pylot.debug.video_operator import VideoOperator
@@ -25,6 +24,10 @@ except ImportError:
 from pylot.perception.detection.lane_detection_operator import LaneDetectionOperator
 from pylot.perception.detection.obstacle_accuracy_operator import ObstacleAccuracyOperator
 from pylot.perception.detection.traffic_light_det_operator import TrafficLightDetOperator
+try:
+    from pylot.perception.depth_estimation.depth_est_operator import DepthEstOperator
+except ImportError:
+    print("Error importing AnyNet depth estimation.")
 from pylot.perception.fusion.fusion_operator import FusionOperator
 from pylot.perception.fusion.fusion_verification_operator import FusionVerificationOperator
 from pylot.perception.segmentation.segmentation_drn_operator import SegmentationDRNOperator
@@ -371,15 +374,19 @@ def create_detector_op_helper(graph, name, model_path, gpu_memory_fraction):
     return obj_detector_op
 
 
-def create_depth_estimation_op(graph, left_camera_name, right_camera_name):
+def create_depth_estimation_op(graph, center_transform, 
+                               left_camera_name, right_camera_name):
     depth_estimation_op = graph.add(
-        DepthEstimationOp,
+        DepthEstOperator,
         name='depth_estimation',
         init_args={
+            'output_stream_name': 'depth_estimation',
+            'transform': center_transform,
             'flags': FLAGS,
             'log_file_name': FLAGS.log_file_name
         },
         setup_args={
+            'output_stream_name': 'depth_estimation',
             'left_camera_name': left_camera_name,
             'right_camera_name': right_camera_name})
     return depth_estimation_op

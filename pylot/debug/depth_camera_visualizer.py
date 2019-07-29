@@ -19,6 +19,7 @@ class DepthCameraVisualizer(Op):
             input_streams = input_streams.filter_name(filter_name)
         else:
             input_streams = input_streams.filter(is_depth_camera_stream)
+    
         input_streams.add_callback(DepthCameraVisualizer.display_frame)
         return []
 

@@ -90,11 +90,11 @@ class DepthEstimationOp(Op):
 
     def on_left_camera_msg(self, msg):
         with self._lock:
-            self._right_camera_msgs.append(msg)
+            self._left_camera_msgs.append(msg)
 
     def on_right_camera_msg(self, msg):
         with self._lock:
-            self._left_camera_msgs.append(msg)
+            self._right_camera_msgs.append(msg)
 
     def on_can_bus_msg(self, msg):
         with self._lock:

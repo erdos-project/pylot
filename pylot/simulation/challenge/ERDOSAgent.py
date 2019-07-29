@@ -105,13 +105,13 @@ def create_segmentation_ops(graph):
     return segmentation_ops
 
 
-def add_depth_estimation_op(graph, scenario_input_op):
+def add_depth_estimation_op(graph, scenario_input_op, center_transform):
     if FLAGS.depth_estimation:
         left_ops = add_visualization_operators(graph, LEFT_CAMERA_NAME)
         right_ops = add_visualization_operators(graph, RIGHT_CAMERA_NAME)
         graph.connect([scenario_input_op], left_ops + right_ops)
         depth_estimation_op = pylot.operator_creator.create_depth_estimation_op(
-            graph, LEFT_CAMERA_NAME, RIGHT_CAMERA_NAME)
+            graph, center_transform, LEFT_CAMERA_NAME, RIGHT_CAMERA_NAME)
         graph.connect([scenario_input_op], [depth_estimation_op])
 
 
@@ -125,7 +125,8 @@ class ERDOSAgent(AutonomousAgent):
         visualization_ops = add_visualization_operators(
             self.graph, CENTER_CAMERA_NAME)
 
-        add_depth_estimation_op(self.graph, scenario_input_op)
+        add_depth_estimation_op(
+            self.graph, scenario_input_op, bgr_camera_setup.transform)
 
         segmentation_ops = create_segmentation_ops(self.graph)
 
