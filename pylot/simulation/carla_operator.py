@@ -11,7 +11,7 @@ from erdos.message import Message, WatermarkMessage
 
 import pylot.utils
 from pylot.simulation.carla_utils import extract_data_in_pylot_format,\
-    get_weathers, get_world, reset_world
+    get_weathers, get_world, reset_world, set_synchronous_mode
 import pylot.simulation.messages
 from pylot.simulation.utils import to_pylot_transform
 import pylot.simulation.utils
@@ -74,7 +74,8 @@ class CarlaOperator(Op):
         self._logger.info('Setting the weather to {}'.format(name))
         self._world.set_weather(weather)
         # Turn on the synchronous mode so we can control the simulation.
-        self._set_synchronous_mode(self._flags.carla_synchronous_mode)
+        if self._flags.carla_synchronous_mode:
+            set_synchronous_mode(self._world, self._flags.carla_fps)
 
         # Spawn the required number of vehicles.
         self._vehicles = self._spawn_vehicles(self._flags.carla_num_vehicles)
@@ -150,18 +151,6 @@ class CarlaOperator(Op):
                     self._flags.carla_step_frequency))
         self._tick_at += 1.0 / self._flags.carla_step_frequency
         self._world.tick()
-
-    def _set_synchronous_mode(self, value):
-        """ Sets the synchronous mode to the desired value.
-
-        Args:
-            value: The boolean value to turn synchronous mode on/off.
-        """
-        self._logger.debug('Setting the synchronous mode to {}'.format(value))
-        settings = self._world.get_settings()
-        settings.synchronous_mode = value
-        settings.fixed_delta_seconds = 1.0 / self._flags.carla_fps
-        self._world.apply_settings(settings)
 
     def _spawn_pedestrians(self, num_pedestrians):
         p_blueprints = self._world.get_blueprint_library().filter(
@@ -335,7 +324,8 @@ class CarlaOperator(Op):
         # they register a listener. Thus, we sleep here a bit to
         # give them sufficient time to register a callback.
         time.sleep(5)
-
+        self._tick_simulator()
+        time.sleep(5)
         self._world.on_tick(self.publish_world_data)
         self._tick_simulator()
         self.spin()

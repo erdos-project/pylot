@@ -3,7 +3,8 @@ import numpy as np
 import threading
 
 import pylot.utils
-from pylot.simulation.carla_utils import get_world, to_carla_transform
+from pylot.simulation.carla_utils import get_world, to_carla_transform,\
+    set_synchronous_mode
 from pylot.simulation.messages import PointCloudMessage
 
 # ERDOS specific imports.
@@ -42,13 +43,6 @@ class LidarDriverOperator(Op):
         self._flags = flags
         self._logger = setup_logging(self.name, log_file_name)
         self._lidar_setup = lidar_setup
-
-        _, self._world = get_world(self._flags.carla_host,
-                                   self._flags.carla_port,
-                                   self._flags.carla_timeout)
-        if self._world is None:
-            raise ValueError("There was an issue connecting to the simulator.")
-
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None
         # Handle to the Lidar Carla actor.
@@ -112,13 +106,23 @@ class LidarDriverOperator(Op):
             "The LidarDriverOperator received the vehicle id: {}".format(
                 vehicle_id))
 
-        self._vehicle = self._world.get_actors().find(vehicle_id)
+        # Connect to the world. We connect here instead of in the constructor
+        # to ensure we're connected to the latest world.
+        _, world = get_world(self._flags.carla_host,
+                             self._flags.carla_port,
+                             self._flags.carla_timeout)
+        if world is None:
+            raise ValueError("There was an issue connecting to the simulator.")
+        if self._flags.carla_synchronous_mode:
+            set_synchronous_mode(world, self._flags.carla_fps)
+
+        self._vehicle = world.get_actors().find(vehicle_id)
         if self._vehicle is None:
             raise ValueError("There was an issue finding the vehicle.")
 
         # Install the Lidar.
-        lidar_blueprint = self._world.get_blueprint_library().find(
-                self._lidar_setup.lidar_type)
+        lidar_blueprint = world.get_blueprint_library().find(
+            self._lidar_setup.lidar_type)
 
         lidar_blueprint.set_attribute('channels',
                                       str(self._lidar_setup.channels))
@@ -140,8 +144,8 @@ class LidarDriverOperator(Op):
 
         self._logger.info("Spawning a lidar: {}".format(self._lidar_setup))
 
-        self._lidar = self._world.spawn_actor(lidar_blueprint,
-                                              transform,
-                                              attach_to=self._vehicle)
+        self._lidar = world.spawn_actor(lidar_blueprint,
+                                        transform,
+                                        attach_to=self._vehicle)
         # Register the callback on the Lidar.
         self._lidar.listen(self.process_point_clouds)

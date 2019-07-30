@@ -8,12 +8,14 @@ from erdos.timestamp import Timestamp
 
 from pylot.perception.messages import SegmentedFrameMessage
 import pylot.utils
-from pylot.simulation.carla_utils import get_world, to_carla_transform
-from pylot.simulation.utils import depth_to_array, labels_to_array, to_bgra_array
+from pylot.simulation.carla_utils import get_world, to_carla_transform,\
+    set_synchronous_mode
+from pylot.simulation.utils import depth_to_array, labels_to_array,\
+    to_bgra_array
 
 
 class CameraDriverOperator(Op):
-    """ CameraDriverOperator publishes images onto the desired stream from a camera.
+    """ Publishes images onto the desired stream from a camera.
 
     This operator attaches a vehicle at the required position with respect to
     the vehicle, registers callback functions to retrieve the images and
@@ -45,13 +47,6 @@ class CameraDriverOperator(Op):
         self._flags = flags
         self._logger = setup_logging(self.name, log_file_name)
         self._camera_setup = camera_setup
-
-        _, self._world = get_world(self._flags.carla_host,
-                                   self._flags.carla_port,
-                                   self._flags.carla_timeout)
-        if self._world is None:
-            raise ValueError("There was an issue connecting to the simulator.")
-
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None
         # The camera sensor actor object we obtain from Carla.
@@ -121,13 +116,23 @@ class CameraDriverOperator(Op):
             "The CameraDriverOperator received the vehicle id: {}".format(
                 vehicle_id))
 
-        self._vehicle = self._world.get_actors().find(vehicle_id)
+        # Connect to the world. We connect here instead of in the constructor
+        # to ensure we're connected to the latest world.
+        _, world = get_world(self._flags.carla_host,
+                             self._flags.carla_port,
+                             self._flags.carla_timeout)
+        if world is None:
+            raise ValueError("There was an issue connecting to the simulator.")
+        if self._flags.carla_synchronous_mode:
+            set_synchronous_mode(world, self._flags.carla_fps)
+
+        self._vehicle = world.get_actors().find(vehicle_id)
         if self._vehicle is None:
             raise ValueError("There was an issue finding the vehicle.")
 
         # Install the camera.
-        camera_blueprint = self._world.get_blueprint_library().find(
-                self._camera_setup.camera_type)
+        camera_blueprint = world.get_blueprint_library().find(
+            self._camera_setup.camera_type)
 
         camera_blueprint.set_attribute('image_size_x',
                                        str(self._camera_setup.width))
@@ -138,9 +143,9 @@ class CameraDriverOperator(Op):
 
         self._logger.info("Spawning a camera: {}".format(self._camera_setup))
 
-        self._camera = self._world.spawn_actor(camera_blueprint,
-                                               transform,
-                                               attach_to=self._vehicle)
+        self._camera = world.spawn_actor(camera_blueprint,
+                                         transform,
+                                         attach_to=self._vehicle)
 
         # Register the callback on the camera.
         self._camera.listen(self.process_images)

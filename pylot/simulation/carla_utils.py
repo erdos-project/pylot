@@ -63,6 +63,13 @@ def get_weathers():
     return weathers
 
 
+def set_synchronous_mode(world, fps):
+    settings = world.get_settings()
+    settings.synchronous_mode = True
+    settings.fixed_delta_seconds = 1.0 / fps
+    world.apply_settings(settings)
+
+
 def reset_world(world):
     """ Resets the simulation to the original state. Removes all the vehicles,
     sensors and other actors from the environment.
