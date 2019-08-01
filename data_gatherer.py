@@ -146,6 +146,16 @@ def add_perfect_detection_component(
         bbox_logger_ops = []
     return detector_ops, bbox_logger_ops
 
+def add_perfect_tracking_component(
+        graph, carla_op):
+    if not FLAGS.perfect_tracking:
+        return []
+    ground_tracking_stream_name = 'perfect_tracker'
+    tracking_op = [
+        pylot.operator_creator.create_perfect_tracking_op(
+            graph, ground_tracking_stream_name)]
+    graph.connect([carla_op], tracking_op)
+    return tracking_op
 
 def main(argv):
     # Define graph
@@ -174,6 +184,10 @@ def main(argv):
 
     detector_ops, bbox_logger_ops = add_perfect_detection_component(
         graph, camera_setups, carla_op, camera_ops)
+
+    tracking_ops = add_perfect_tracking_component(graph, carla_op)
+    trajectory_log_ops = [pylot.operator_creator.create_trajectory_logger_op(graph)]
+    graph.connect(tracking_ops, trajectory_log_ops)
 
     if FLAGS.carla_auto_pilot:
         # We do not need planning and agent ops if we're running in

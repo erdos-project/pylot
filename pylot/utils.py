@@ -106,6 +106,12 @@ def create_ground_stop_signs_stream():
 def is_ground_stop_signs_stream(stream):
     return stream.name == 'stop_signs'
 
+def create_ground_tracking_stream(name):
+    return DataStream(name=name,
+                      labels={'tracking': 'true'})
+
+def is_ground_tracking_stream(stream):
+    return stream.get_label('tracking') == 'true'
 
 # ERDOS streams
 def create_segmented_camera_stream(name):

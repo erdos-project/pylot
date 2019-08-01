@@ -11,7 +11,7 @@ from pylot.perception.segmentation.utils import get_traffic_sign_pixels
 
 Orientation = namedtuple('Orientation', 'x, y, z')
 Rotation = namedtuple('Rotation', 'pitch, yaw, roll')
-Vehicle = namedtuple('Vehicle', 'transform, bounding_box, forward_speed')
+Vehicle = namedtuple('Vehicle', 'id, transform, bounding_box, forward_speed')
 Pedestrian = namedtuple('Pedestrian',
                         'id, transform, bounding_box, forward_speed')
 TrafficLight = namedtuple('TrafficLight',
@@ -117,6 +117,9 @@ class BoundingBox(object):
         if hasattr(bb, 'location'):
             # Path for Carla 0.9.x.
             loc = Location(bb.location.x, bb.location.y, bb.location.z)
+            # In Carla 0.9.x, the bounding box transform is relative
+            # to the object transform (and so carla.BoundingBox doesn't
+            # have a rotation).
             rot = Rotation(0, 0, 0)
         else:
             # Path for Carla 0.8.4.
@@ -229,7 +232,7 @@ class Transform(object):
     def transform_points(self, points):
         """
         Given a 4x4 transformation matrix, transform an array of 3D points.
-        Expected point foramt: [[X0,Y0,Z0],..[Xn,Yn,Zn]]
+        Expected point format: [[X0,Y0,Z0],..[Xn,Yn,Zn]]
         """
         # Needed format: [[X0,..Xn],[Z0,..Zn],[Z0,..Zn]]. So let's transpose
         # the point matrix.
@@ -257,7 +260,7 @@ class Transform(object):
             return "Transform(location: {}, rotation: {})".format(
                 self.location, self.rotation)
         else:
-            return "Trastorm({})".format(str(self.matrix))
+            return "Transform({})".format(str(self.matrix))
 
 
 def to_pylot_transform(transform):
@@ -416,7 +419,7 @@ def lidar_to_camera_transform(transform):
 
 def get_3d_world_position_with_depth_map(
         x, y, depth_frame, width, height, fov, camera_transform):
-    """ Gets the 3D world position from pixel coordiantes using a depth frame.
+    """ Gets the 3D world position from pixel coordinates using a depth frame.
 
         Args:
             x: Pixel x coordinate.
@@ -442,7 +445,7 @@ def get_3d_world_position_with_depth_map(
 
 def batch_get_3d_world_position_with_depth_map(
         xs, ys, depth_frame, width, height, fov, camera_transform):
-    """ Gets the 3D world positions from pixel coordiantes using a depth frame.
+    """ Gets the 3D world positions from pixel coordinates using a depth frame.
 
         Args:
             xs: List of pixel x coordinate.

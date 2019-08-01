@@ -152,7 +152,7 @@ class PerfectDetectorOp(Op):
         self._frame_cnt += 1
         if (hasattr(self._flags, 'log_every_nth_frame') and
             self._frame_cnt % self._flags.log_every_nth_frame != 0):
-            # There's no point to run the pefrect detector if collecting
+            # There's no point to run the perfect detector if collecting
             # data, and only logging every nth frame.
             output_msg = DetectorMessage([], 0, msg.timestamp)
             self.get_output_stream(self._output_stream_name).send(output_msg)
