@@ -323,7 +323,7 @@ class CarlaOperator(Op):
         # the vehicle id value. We miss frames if we tick before
         # they register a listener. Thus, we sleep here a bit to
         # give them sufficient time to register a callback.
-        time.sleep(5)
+        time.sleep(10)
         self._tick_simulator()
         time.sleep(5)
         self._world.on_tick(self.publish_world_data)

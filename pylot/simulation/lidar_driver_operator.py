@@ -1,6 +1,7 @@
 import copy
 import numpy as np
 import threading
+import time
 
 import pylot.utils
 from pylot.simulation.carla_utils import get_world, to_carla_transform,\
@@ -116,7 +117,12 @@ class LidarDriverOperator(Op):
         if self._flags.carla_synchronous_mode:
             set_synchronous_mode(world, self._flags.carla_fps)
 
-        self._vehicle = world.get_actors().find(vehicle_id)
+        num_tries = 0
+        while self._vehicle is None and num_tries < 30:
+            self._vehicle = world.get_actors().find(vehicle_id)
+            self._logger.info("Could not find vehicle. Try {}".format(num_tries))
+            time.sleep(1)
+            num_tries += 1
         if self._vehicle is None:
             raise ValueError("There was an issue finding the vehicle.")
 
