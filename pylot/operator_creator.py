@@ -360,6 +360,21 @@ def create_perfect_detector_op(graph, bgr_camera_setup, output_stream_name):
     return perfect_det_op
 
 
+def create_perfect_lane_detector_op(graph, output_stream_name):
+    from pylot.simulation import perfect_lane_detector_operator
+    perfect_lane_detector_op = graph.add(
+        perfect_lane_detector_operator.PerfectLaneDetectionOperator,
+        name='perfect_lane_detection_op',
+        init_args={
+            'output_stream_name': output_stream_name,
+            'flags': FLAGS,
+            'log_file_name': FLAGS.log_file_name,
+            'csv_file_name': FLAGS.csv_log_file_name
+        },
+        setup_args={'output_stream_name': output_stream_name})
+    return perfect_lane_detector_op
+
+
 def create_detector_op_helper(graph, name, model_path, gpu_memory_fraction):
     obj_detector_op = graph.add(
         DetectionOperator,
@@ -374,7 +389,7 @@ def create_detector_op_helper(graph, name, model_path, gpu_memory_fraction):
     return obj_detector_op
 
 
-def create_depth_estimation_op(graph, center_transform, 
+def create_depth_estimation_op(graph, center_transform,
                                left_camera_name, right_camera_name):
     depth_estimation_op = graph.add(
         DepthEstOperator,
