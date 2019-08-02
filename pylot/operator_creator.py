@@ -14,6 +14,7 @@ from pylot.debug.video_operator import VideoOperator
 from pylot.loggers.bounding_box_logger_operator import BoundingBoxLoggerOp
 from pylot.loggers.camera_logger_operator import CameraLoggerOp
 from pylot.loggers.lidar_logger_operator import LidarLoggerOp
+from pylot.loggers.trajectory_logger_operator import TrajectoryLoggerOp
 # Import perception operators.
 from pylot.perception.detection.detection_operator import DetectionOperator
 from pylot.perception.detection.detection_eval_ground_operator import DetectionEvalGroundOperator
@@ -173,6 +174,12 @@ def create_lidar_logger_op(graph):
                    'csv_file_name': FLAGS.csv_log_file_name})
     return lidar_logger_op
 
+def create_trajectory_logger_op(graph):
+    trajectory_logger_op = graph.add(
+        TrajectoryLoggerOp,
+        name='trajectory_logger_op',
+        init_args={'flags': FLAGS})
+    return trajectory_logger_op
 
 def create_planning_op(graph, goal_location):
     from pylot.planning.planning_operator import PlanningOperator
@@ -373,6 +380,18 @@ def create_detector_op_helper(graph, name, model_path, gpu_memory_fraction):
         _resources = {"GPU": gpu_memory_fraction})
     return obj_detector_op
 
+def create_perfect_tracking_op(graph, output_stream_name):
+    from pylot.simulation.perfect_tracker_operator import PerfectTrackerOp
+    perfect_tracker_op = graph.add(
+        PerfectTrackerOp,
+        name='perfect_tracker',
+        init_args={'output_stream_name': output_stream_name,
+            'flags': FLAGS,
+            'log_file_name': FLAGS.log_file_name,
+            'csv_file_name': FLAGS.csv_log_file_name
+        },
+        setup_args={'output_stream_name': output_stream_name})
+    return perfect_tracker_op
 
 def create_depth_estimation_op(graph, center_transform, 
                                left_camera_name, right_camera_name):

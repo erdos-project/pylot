@@ -25,7 +25,7 @@ flags.DEFINE_string('segmentation_drn_model_path',
                     'dependencies/models/drn_d_22_cityscapes.pth',
                     'Path to the model')
 flags.DEFINE_bool('segmentation_dla', False,
-                  'True to enable DLA segmantation operator')
+                  'True to enable DLA segmentation operator')
 flags.DEFINE_string('segmentation_dla_model_path',
                     'dependencies/dla/DLASeg.pth',
                     'Path to the model')
@@ -210,6 +210,12 @@ flags.DEFINE_string('eval_segmentation_metric', 'mIoU',
 flags.DEFINE_bool('segmentation_eval_use_accuracy_model', False,
                   'Enable to use a model for segmentation accuracy decay over time')
 
+# Perfect tracking flags.
+flags.DEFINE_bool('perfect_tracking', False,
+                  'True to enable perfect object tracker.')
+flags.DEFINE_integer('perfect_tracking_num_steps', None,
+                     'Number of past steps returned by the perfect object tracker.')
+
 # GPU memory fractions.
 flags.DEFINE_float('obj_detection_gpu_memory_fraction', 0.3,
                    'GPU memory fraction allocated to each obj detector operator')
@@ -278,6 +284,12 @@ flags.register_multi_flags_validator(
     tracker_flag_validator,
     message='--obj_detection must be set if --obj_tracking is set')
 
+flags.register_multi_flags_validator(
+    ['perfect_tracking', 'perfect_tracking_num_steps'],
+    lambda flags_dict: (not flags_dict['perfect_tracking_num_steps'] or
+                        (flags_dict['perfect_tracking'] and
+                         flags_dict['perfect_tracking_num_steps'])),
+    message='perfect_tracking must be enabled when perfect_tracking_num_steps is set')
 
 def detector_accuracy_validator(flags_dict):
     if flags_dict['evaluate_obj_detection']:
@@ -287,4 +299,4 @@ def detector_accuracy_validator(flags_dict):
 flags.register_multi_flags_validator(
     ['obj_detection', 'evaluate_obj_detection'],
     detector_accuracy_validator,
-    message='--obj_detection mustg be set if --evaluate_obj_detection is set')
+    message='--obj_detection must be set if --evaluate_obj_detection is set')

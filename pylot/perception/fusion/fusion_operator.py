@@ -5,7 +5,7 @@ import time
 from erdos.op import Op
 from erdos.utils import frequency, setup_csv_logging, setup_logging, time_epoch_ms
 
-from pylot.perception.messages import ObjPositionsMessage
+from pylot.perception.messages import ObjPositionsSpeedsMessage
 import pylot.utils
 
 
@@ -114,7 +114,7 @@ class FusionOperator(Op):
         self._csv_logger.info('{},{},{}'.format(
             time_epoch_ms(), self.name, runtime))
 
-        output_msg = ObjPositionsMessage(object_positions, timestamp)
+        output_msg = ObjPositionsSpeedsMessage(object_positions, timestamp)
         self.get_output_stream(self._output_stream_name).send(output_msg)
 
     def update_pos(self, msg):

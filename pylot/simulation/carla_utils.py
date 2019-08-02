@@ -151,7 +151,7 @@ def convert_vehicle_actors(vec_actors):
             vec_actor.bounding_box)
         speed = pylot.simulation.utils.get_speed(vec_actor.get_velocity())
         vehicle = pylot.simulation.utils.Vehicle(
-            transform, bounding_box, speed)
+            vec_actor.id, transform, bounding_box, speed)
         vehicles.append(vehicle)
     return vehicles
 
