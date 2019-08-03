@@ -95,7 +95,7 @@ class PerfectTrackerOp(Op):
         inv_can_bus_transform = can_bus_msg.data.transform.inverse_transform()
 
         vehicle_trajectories = []
-        # Only consider objects which still exist at the most recent timestamp.
+        # Only consider vehicles which still exist at the most recent timestamp.
         for vehicle in vehicles_msg.vehicles:
             self._vehicles[vehicle.id].append(vehicle)
             cur_vehicle_trajectory = []
@@ -112,9 +112,25 @@ class PerfectTrackerOp(Op):
                                                       vehicle.id,
                                                       cur_vehicle_trajectory))
 
-        # TODO(alvin): add pedestrian tracking
+        pedestrian_trajectories = []
+        # Only consider pedestrians which still exist at the most recent timestamp.
+        for ped in pedestrians_msg.pedestrians:
+            self._pedestrians[ped.id].append(ped)
+            cur_ped_trajectory = []
+            # Iterate through past frames for this pedestrian.
+            for past_ped_loc in self._pedestrians[ped.id]:
+                # Get the location of the center of the pedestrian's bounding box,
+                # in relation to the CanBus measurement.
+                new_transform = inv_can_bus_transform * \
+                                past_ped_loc.transform * \
+                                past_ped_loc.bounding_box.transform
+                cur_ped_trajectory.append(new_transform.location)
+            pedestrian_trajectories.append(ObjTrajectory('pedestrian',
+                                                         ped.id,
+                                                         cur_ped_trajectory))
 
-        output_msg = ObjTrajectoriesMessage(vehicle_trajectories, msg.timestamp)
+        output_msg = ObjTrajectoriesMessage(vehicle_trajectories + pedestrian_trajectories,
+                                            msg.timestamp)
 
         self.get_output_stream(self._output_stream_name).send(output_msg)
         self.get_output_stream(self._output_stream_name)\
