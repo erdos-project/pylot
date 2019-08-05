@@ -1,14 +1,10 @@
 from collections import deque
-import cv2
-from torch.autograd import Variable
 import time
 import os
 import torch
 import torch.nn as nn
 import torch.nn.parallel
-import torch.optim as optim
 import torch.utils.data
-import torch.nn.functional as F
 import numpy as np
 import torch.backends.cudnn as cudnn
 import threading
@@ -20,13 +16,12 @@ from anynet import preprocess
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-import pylot.simulation.utils
 from pylot.simulation.messages import DepthFrameMessage
-from pylot.utils import add_timestamp, create_depth_est_stream, is_camera_stream, rgb_to_bgr, bgra_to_bgr
+from pylot.utils import create_depth_est_stream, is_camera_stream, rgb_to_bgr
 
 
 class DepthEstOperator(Op):
-    """ Subscribes to mid and right camera streams, and estimates depth using AnyNet."""
+    """ Estimates depth using left and right cameras, and AnyNet."""
     def __init__(self,
                  name,
                  output_stream_name,
@@ -43,14 +38,16 @@ class DepthEstOperator(Op):
         self._output_stream_name = output_stream_name
         self._transform = transform
         self._lock = threading.Lock()
-        #load AnyNet
+        # Load AnyNet
         model = anynet.anynet.AnyNet()
         model = nn.DataParallel(model).cuda()
-        
+
         path_to_anynet = self._flags.depth_est_model_path
-        pretrained = path_to_anynet + 'results/pretrained_anynet/checkpoint.tar'
-        resume = path_to_anynet + 'results/finetune_anynet/checkpoint.tar'
-        
+        pretrained = os.path.join(path_to_anynet,
+                                  'results/pretrained_anynet/checkpoint.tar')
+        resume = os.path.join(path_to_anynet,
+                              'results/finetune_anynet/checkpoint.tar')
+
         if os.path.isfile(pretrained):
             checkpoint = torch.load(pretrained)
             model.load_state_dict(checkpoint['state_dict'])
@@ -58,7 +55,7 @@ class DepthEstOperator(Op):
         if os.path.isfile(resume):
             checkpoint = torch.load(resume)
             model.load_state_dict(checkpoint['state_dict'])
-            
+
         self._model = model
 
     @staticmethod
@@ -74,31 +71,33 @@ class DepthEstOperator(Op):
 
     def on_left_camera_msg(self, msg):
         with self._lock:
-            img = rgb_to_bgr(msg.frame).astype(np.uint8) # used as bgr_to_rgb, need RGB frames
-            img = img[200:500] # crop
-            processed = preprocess.get_transform(augment=False)  
+            # used as bgr_to_rgb, need RGB frames
+            img = rgb_to_bgr(msg.frame).astype(np.uint8)
+            img = preprocess.crop(img)
+            processed = preprocess.get_transform(augment=False)
             img = processed(img)
             self._left_imgs.append(img)
             if self._right_imgs:
                 self.eval_depth(msg)
-        
+
     def on_right_camera_msg(self, msg):
         with self._lock:
-            img = rgb_to_bgr(msg.frame).astype(np.uint8) # used as bgr_to_rgb, need RGB frames
-            img = img[200:500] # crop
-            processed = preprocess.get_transform(augment=False)  
+            # used as bgr_to_rgb, need RGB frames
+            img = rgb_to_bgr(msg.frame).astype(np.uint8)
+            img = preprocess.crop(img)
+            processed = preprocess.get_transform(augment=False)
             img = processed(img)
             self._right_imgs.append(img)
             if self._left_imgs:
                 self.eval_depth(msg)
-            
+
     def eval_depth(self, msg):
         start_time = time.time()
 
         imgL = self._left_imgs.popleft()
         imgR = self._right_imgs.popleft()
 
-        cudnn.benchmark = False    
+        cudnn.benchmark = False
         self._model.eval()
         imgL = imgL.float().cuda().unsqueeze(0)
         imgR = imgR.float().cuda().unsqueeze(0)
@@ -114,12 +113,13 @@ class DepthEstOperator(Op):
             time_epoch_ms(), self.name, msg.timestamp, runtime))
 
         if self._flags.visualize_depth_est:
-            plt.imshow(output, cmap = 'viridis')
+            plt.imshow(output, cmap='viridis')
             plt.show()
-    
-        output_msg = DepthFrameMessage(depth, self._transform, 90, msg.timestamp)
+
+        output_msg = DepthFrameMessage(
+            depth, self._transform, 90, msg.timestamp)
         self.get_output_stream(self._output_stream_name).send(output_msg)
-        
+
     def execute(self):
         """Operator execute entry method."""
         # Ensures that the operator runs continuously.
