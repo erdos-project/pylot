@@ -28,11 +28,8 @@ class PerfectLaneDetectionOperator(Op):
         self._flags = flags
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+        self._world_map = None
         self._output_stream_name = output_stream_name
-
-        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
-                             self._flags.carla_timeout)
-        self._world_map = world.get_map()
         self._waypoint_precision = 0.05
 
     @staticmethod
@@ -88,3 +85,10 @@ class PerfectLaneDetectionOperator(Op):
         ]
         output_msg = DetectedLaneMessage(detected_lanes, can_bus_msg.timestamp)
         self.get_output_stream(self._output_stream_name).send(output_msg)
+
+    def execute(self):
+        """ Retrieve the world instance from the simulator. """
+        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
+                             self._flags.carla_timeout)
+        self._world_map = world.get_map()
+        self.spin()
