@@ -18,6 +18,7 @@ TrafficLight = namedtuple('TrafficLight',
                           'id, transform, state, trigger_volume_extent')
 SpeedLimitSign = namedtuple('SpeedLimitSign', 'transform, limit')
 StopSign = namedtuple('StopSign', 'transform, bounding_box')
+DetectedLane = namedtuple('DetectedLane', 'left_marking, right_marking')
 LocationGeo = namedtuple('LocationGeo', 'latitude, longitude, altitude')
 Extent = namedtuple('Extent', 'x, y, z')
 Scale = namedtuple('Scale', 'x y z')

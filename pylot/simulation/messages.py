@@ -168,3 +168,19 @@ class GroundStopSignsMessage(Message):
         return 'GroundStopSignsMessage(timestamp: {}, '\
             'stop signs: {})'.format(
                 self.timestamp, self.stop_signs)
+
+
+class DetectedLaneMessage(Message):
+    """ Message class to be used to send group info about the lane.
+
+    Attributes:
+        detected_lanes: A list of detected lanes locations.
+    """
+
+    def __init__(self, detected_lanes, timestamp):
+        super(DetectedLaneMessage, self).__init__(None, timestamp, 'default')
+        self.detected_lanes = detected_lanes
+
+    def __str__(self):
+        return 'DetectedLaneMessage(timestamp: {}, '\
+                'detected_lanes: {})'.format(self.timestamp, self.detected_lanes)
