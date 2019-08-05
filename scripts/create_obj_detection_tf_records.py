@@ -30,7 +30,7 @@ LABEL_DICT =  {
 
 def create_tf_example(idx):
 
-    filename = FLAGS.input_path+'/carla-center-' + str(idx) + '.png' # Filename of the image. 
+    filename = FLAGS.input_path + '/carla-center-' + str(idx) + '.png' # Filename of the image.
     filename = filename.encode()
 
     with tf.gfile.GFile(filename, 'rb') as fid:
@@ -88,13 +88,14 @@ def main(_):
     eval_writer = tf.python_io.TFRecordWriter(FLAGS.output_path + "/eval_set.record")
 
     # Looks for files of the form bboxes-*.json
-    idxs = [f[7:-5] for f in os.listdir(FLAGS.input_path) if f.endswith('.json')]    
+    idxs = [f[7:-5] for f in os.listdir(FLAGS.input_path) \
+                if f.startswith('bboxes-') and f.endswith('.json')]
     random.shuffle(idxs)
     print ('Total of {} records.'.format(len(idxs))) 
     count = 0
     for i in range(len(idxs)):
         idx = idxs[i]
-        if i < len(idxs)/5:
+        if i < len(idxs) / 5:
             eval_writer.write(create_tf_example(idx).SerializeToString()) 
         else:
             train_writer.write(create_tf_example(idx).SerializeToString())
