@@ -6,15 +6,9 @@ import erdos.graph
 import pylot.config
 import pylot.operator_creator
 import pylot.simulation.utils
-
+import pylot.utils
 
 FLAGS = flags.FLAGS
-CENTER_CAMERA_NAME = 'front_rgb_camera'
-LEFT_CAMERA_NAME = 'front_left_rgb_camera'
-RIGHT_CAMERA_NAME = 'front_right_rgb_camera'
-DEPTH_CAMERA_NAME = 'front_depth_camera'
-SEGMENTED_CAMERA_NAME = 'front_semantic_camera'
-
 
 def create_left_right_camera_setups():
     rotation = pylot.simulation.utils.Rotation(0, 0, 0)
@@ -24,43 +18,54 @@ def create_left_right_camera_setups():
     right_transform = pylot.simulation.utils.Transform(right_loc, rotation)
 
     left_camera_setup = pylot.simulation.utils.CameraSetup(
-        LEFT_CAMERA_NAME,
+        pylot.utils.LEFT_CAMERA_NAME,
         'sensor.camera.rgb',
         FLAGS.carla_camera_image_width,
         FLAGS.carla_camera_image_height,
         left_transform)
     right_camera_setup = pylot.simulation.utils.CameraSetup(
-        RIGHT_CAMERA_NAME,
+        pylot.utils.RIGHT_CAMERA_NAME,
         'sensor.camera.rgb',
         FLAGS.carla_camera_image_width,
         FLAGS.carla_camera_image_height,
         right_transform)
     return [left_camera_setup, right_camera_setup]
 
+def create_top_down_segmentation_setups():
+    location = pylot.simulation.utils.Location(1.5, 0.0, 1.4 + FLAGS.top_down_lateral_view)
+    rotation = pylot.simulation.utils.Rotation(-90, 0, 0)
+    transform = pylot.simulation.utils.Transform(location, rotation)
+    top_down_segmented_camera_setup = pylot.simulation.utils.CameraSetup(
+        pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME,
+        'sensor.camera.semantic_segmentation',
+        FLAGS.carla_camera_image_width,
+        FLAGS.carla_camera_image_height,
+        transform)
+    return [top_down_segmented_camera_setup]
 
 def create_camera_setups():
     location = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
     rotation = pylot.simulation.utils.Rotation(0, 0, 0)
     transform = pylot.simulation.utils.Transform(location, rotation)
     bgr_camera_setup = pylot.simulation.utils.CameraSetup(
-        CENTER_CAMERA_NAME,
+        pylot.utils.CENTER_CAMERA_NAME,
         'sensor.camera.rgb',
         FLAGS.carla_camera_image_width,
         FLAGS.carla_camera_image_height,
         transform)
     depth_camera_setup = pylot.simulation.utils.CameraSetup(
-        DEPTH_CAMERA_NAME,
+        pylot.utils.DEPTH_CAMERA_NAME,
         'sensor.camera.depth',
         FLAGS.carla_camera_image_width,
         FLAGS.carla_camera_image_height,
         transform)
-    segmented_camera_setup = pylot.simulation.utils.CameraSetup(
-        SEGMENTED_CAMERA_NAME,
+    front_segmented_camera_setup = pylot.simulation.utils.CameraSetup(
+        pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
         'sensor.camera.semantic_segmentation',
         FLAGS.carla_camera_image_width,
         FLAGS.carla_camera_image_height,
         transform)
-    return [bgr_camera_setup, depth_camera_setup, segmented_camera_setup]
+    return [bgr_camera_setup, depth_camera_setup, front_segmented_camera_setup]
 
 
 def create_lidar_setups():
@@ -86,6 +91,8 @@ def add_driver_operators(graph, auto_pilot):
     bgr_camera_setup = camera_setups[0]
     if FLAGS.depth_estimation:
         camera_setups = camera_setups + create_left_right_camera_setups()
+    if FLAGS.top_down_segmentation:
+        camera_setups = camera_setups + create_top_down_segmentation_setups()
 
     lidar_setups = create_lidar_setups()
 
@@ -99,7 +106,7 @@ def add_driver_operators(graph, auto_pilot):
 def add_ground_eval_ops(graph, perfect_det_ops, camera_ops):
     if FLAGS.eval_ground_truth_segmentation:
         eval_ground_seg_op = pylot.operator_creator.create_segmentation_ground_eval_op(
-            graph, SEGMENTED_CAMERA_NAME)
+            graph, pylot.utils.FRONT_SEGMENTED_CAMERA_NAME)
         graph.connect(camera_ops, [eval_ground_seg_op])
 
     # This operator evaluates the temporal decay of the ground truth of
@@ -175,7 +182,7 @@ def add_segmentation_component(graph, camera_ops):
 
     if FLAGS.evaluate_segmentation:
         eval_segmentation_op = pylot.operator_creator.create_segmentation_eval_op(
-            graph, SEGMENTED_CAMERA_NAME, 'segmented_stream')
+            graph, pylot.utils.FRONT_SEGMENTED_CAMERA_NAME, 'segmented_stream')
         graph.connect(camera_ops + segmentation_ops, [eval_segmentation_op])
 
     return segmentation_ops
@@ -229,19 +236,25 @@ def add_planning_component(graph,
 def add_debugging_component(graph, carla_op, camera_ops, lidar_ops):
     # Add visual operators.
     pylot.operator_creator.add_visualization_operators(
-        graph, camera_ops, lidar_ops, CENTER_CAMERA_NAME, DEPTH_CAMERA_NAME)
+        graph,
+        camera_ops,
+        lidar_ops,
+        pylot.utils.CENTER_CAMERA_NAME,
+        pylot.utils.DEPTH_CAMERA_NAME,
+        pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
+        pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME)
 
     # Add recording operators.
     pylot.operator_creator.add_recording_operators(graph,
                                                    camera_ops,
                                                    carla_op,
                                                    lidar_ops,
-                                                   CENTER_CAMERA_NAME,
-                                                   DEPTH_CAMERA_NAME)
+                                                   pylot.utils.CENTER_CAMERA_NAME,
+                                                   pylot.utils.DEPTH_CAMERA_NAME)
     # Add operator that estimates depth.
     if FLAGS.depth_estimation:
         depth_estimation_op = pylot.operator_creator.create_depth_estimation_op(
-            graph, LEFT_CAMERA_NAME, RIGHT_CAMERA_NAME)
+            graph, pylot.utils.LEFT_CAMERA_NAME, pylot.utils.RIGHT_CAMERA_NAME)
         graph.connect(camera_ops + lidar_ops + [carla_op],
                       [depth_estimation_op])
 

@@ -12,11 +12,6 @@ import pylot.simulation.utils
 import pylot.utils
 
 FLAGS = flags.FLAGS
-CENTER_CAMERA_NAME = 'front_rgb_camera'
-DEPTH_CAMERA_NAME = 'front_depth_camera'
-SEGMENTED_CAMERA_NAME = 'front_semantic_camera'
-LEFT_CAMERA_NAME = 'left_rgb_camera'
-RIGHT_CAMERA_NAME = 'right_rgb_camera'
 
 # Flags that control what data is recorded.
 flags.DEFINE_integer('log_every_nth_frame', 1,
@@ -50,29 +45,50 @@ class SynchronizerOp(Op):
 
 
 def create_camera_setups():
+    camera_setups = []
+
     # Note: main assumes that the first camera setup returned by this method is
     # always the rgb_camera_setup.
     location = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
     rotation = pylot.simulation.utils.Rotation(0, 0, 0)
     transform = pylot.simulation.utils.Transform(location, rotation)
     rgb_camera_setup = pylot.simulation.utils.CameraSetup(
-        CENTER_CAMERA_NAME,
+        pylot.utils.CENTER_CAMERA_NAME,
         'sensor.camera.rgb',
         FLAGS.carla_camera_image_width,
         FLAGS.carla_camera_image_height,
         transform)
+    camera_setups.append(rgb_camera_setup)
     depth_camera_setup = pylot.simulation.utils.CameraSetup(
-        DEPTH_CAMERA_NAME,
+        pylot.utils.DEPTH_CAMERA_NAME,
         'sensor.camera.depth',
         FLAGS.carla_camera_image_width,
         FLAGS.carla_camera_image_height,
         transform)
+    camera_setups.append(depth_camera_setup)
     segmented_camera_setup = pylot.simulation.utils.CameraSetup(
-        SEGMENTED_CAMERA_NAME,
+        pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
         'sensor.camera.semantic_segmentation',
         FLAGS.carla_camera_image_width,
         FLAGS.carla_camera_image_height,
         transform)
+    camera_setups.append(segmented_camera_setup)
+
+    if FLAGS.top_down_segmentation:
+        # TODO (alvin): Allow flexibility for how much of the area around the
+        # car is shown, by adjusting the height of the camera.
+        top_down_location = pylot.simulation.utils.Location(1.5, 0.0, 1.4 + FLAGS.top_down_lateral_view)
+        top_down_rotation = pylot.simulation.utils.Rotation(-90, 0, 0)
+        top_down_transform = pylot.simulation.utils.Transform(
+            top_down_location, top_down_rotation)
+        top_down_segmented_camera_setup = pylot.simulation.utils.CameraSetup(
+            pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME,
+            'sensor.camera.semantic_segmentation',
+            FLAGS.carla_camera_image_width,
+            FLAGS.carla_camera_image_height,
+            top_down_transform)
+        camera_setups.append(top_down_segmented_camera_setup)
+    
     if FLAGS.camera_left_right:
         location_left = pylot.simulation.utils.Location(
             1.5, -1 * FLAGS.offset_left_right, 1.4)
@@ -81,11 +97,12 @@ def create_camera_setups():
             location_left, rotation_left)
 
         left_camera_setup = pylot.simulation.utils.CameraSetup(
-            LEFT_CAMERA_NAME,
+            pylot.utils.LEFT_CAMERA_NAME,
             'sensor.camera.rgb',
             FLAGS.carla_camera_image_width,
             FLAGS.carla_camera_image_height,
             transform_left)
+        camera_setups.append(left_camera_setup)
 
         location_right = pylot.simulation.utils.Location(
             1.5, FLAGS.offset_left_right, 1.4)
@@ -94,16 +111,14 @@ def create_camera_setups():
             location_right, rotation_right)
 
         right_camera_setup = pylot.simulation.utils.CameraSetup(
-            RIGHT_CAMERA_NAME,
+            pylot.utils.RIGHT_CAMERA_NAME,
             'sensor.camera.rgb',
             FLAGS.carla_camera_image_width,
             FLAGS.carla_camera_image_height,
             transform_right)
-        return [rgb_camera_setup, depth_camera_setup, segmented_camera_setup,
-                left_camera_setup, right_camera_setup]
-    else:
-        return [rgb_camera_setup, depth_camera_setup, segmented_camera_setup]
+        camera_setups.append(right_camera_setup)
 
+    return camera_setups
 
 def create_lidar_setups():
     lidar_setups = []
@@ -172,7 +187,13 @@ def main(argv):
 
     # Add visual operators.
     pylot.operator_creator.add_visualization_operators(
-        graph, camera_ops, lidar_ops, CENTER_CAMERA_NAME, DEPTH_CAMERA_NAME)
+        graph,
+        camera_ops,
+        lidar_ops,
+        pylot.utils.CENTER_CAMERA_NAME,
+        pylot.utils.DEPTH_CAMERA_NAME,
+        pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
+        pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME)
 
     # Add an operator that logs BGR frames and segmented frames.
     camera_log_ops = [pylot.operator_creator.create_camera_logger_op(graph)]

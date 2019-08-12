@@ -4,6 +4,12 @@ import numpy as np
 
 from erdos.data_stream import DataStream
 
+CENTER_CAMERA_NAME = 'front_rgb_camera'
+LEFT_CAMERA_NAME = 'front_left_rgb_camera'
+RIGHT_CAMERA_NAME = 'front_right_rgb_camera'
+DEPTH_CAMERA_NAME = 'front_depth_camera'
+FRONT_SEGMENTED_CAMERA_NAME = 'front_semantic_camera'
+TOP_DOWN_SEGMENTED_CAMERA_NAME = 'top_down_semantic_camera'
 
 # Sensor streams
 def is_camera_stream(stream):
@@ -14,19 +20,19 @@ def is_camera_stream(stream):
 def is_center_camera_stream(stream):
     return (stream.get_label('sensor_type') == 'camera' and
             stream.get_label('camera_type') == 'sensor.camera.rgb' and
-            stream.name == 'front_rgb_camera')
+            stream.name == CENTER_CAMERA_NAME)
 
 
 def is_left_camera_stream(stream):
     return (stream.get_label('sensor_type') == 'camera' and
             stream.get_label('camera_type') == 'sensor.camera.rgb' and
-            stream.name == 'left_rgb_camera')
+            stream.name == LEFT_CAMERA_NAME)
 
 
 def is_right_camera_stream(stream):
     return (stream.get_label('sensor_type') == 'camera' and
             stream.get_label('camera_type') == 'sensor.camera.rgb' and
-            stream.name == 'right_rgb_camera')
+            stream.name == RIGHT_CAMERA_NAME)
 
 
 def is_depth_camera_stream(stream):
@@ -122,6 +128,11 @@ def create_segmented_camera_stream(name):
 def is_segmented_camera_stream(stream):
     return stream.get_label('segmented') == 'true'
 
+def is_front_segmented_camera_stream(stream):
+    return stream.name == FRONT_SEGMENTED_CAMERA_NAME
+
+def is_top_down_segmented_camera_stream(stream):
+    return stream.name == TOP_DOWN_SEGMENTED_CAMERA_NAME
 
 def is_non_ground_segmented_camera_stream(stream):
     return (stream.get_label('segmented') == 'true' and

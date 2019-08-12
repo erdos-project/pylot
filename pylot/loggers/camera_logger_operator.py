@@ -17,6 +17,7 @@ class CameraLoggerOp(Op):
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
         self._bgr_frame_cnt = 0
         self._segmented_frame_cnt = 0
+        self._top_down_segmented_frame_cnt = 0
         self._depth_frame_cnt = 0
 
         self._left_bgr_frame_cnt = 0
@@ -32,8 +33,11 @@ class CameraLoggerOp(Op):
         CameraLoggerOp.on_bgr_frame_right)
 
         input_streams.filter(
-            pylot.utils.is_segmented_camera_stream).add_callback(
-                CameraLoggerOp.on_segmented_frame)
+            pylot.utils.is_front_segmented_camera_stream).add_callback(
+                CameraLoggerOp.on_front_segmented_frame)
+        input_streams.filter(
+            pylot.utils.is_top_down_segmented_camera_stream).add_callback(
+                CameraLoggerOp.on_top_down_segmented_frame)
         input_streams.filter(
             pylot.utils.is_depth_camera_stream).add_callback(
                 CameraLoggerOp.on_depth_frame)
@@ -75,7 +79,7 @@ class CameraLoggerOp(Op):
         rgb_img = Image.fromarray(np.uint8(rgb_array))
         rgb_img.save(file_name)
 
-    def on_segmented_frame(self, msg):
+    def on_front_segmented_frame(self, msg):
         self._segmented_frame_cnt += 1
         if self._segmented_frame_cnt % self._flags.log_every_nth_frame != 0:
             return
@@ -83,6 +87,17 @@ class CameraLoggerOp(Op):
         # Write the segmented image.
         img = Image.fromarray(np.uint8(frame))
         file_name = '{}carla-segmented-{}.png'.format(
+            self._flags.data_path, msg.timestamp.coordinates[0])
+        img.save(file_name)
+
+    def on_top_down_segmented_frame(self, msg):
+        self._top_down_segmented_frame_cnt += 1
+        if self._top_down_segmented_frame_cnt % self._flags.log_every_nth_frame != 0:
+            return
+        frame = transform_to_cityscapes_palette(msg.frame)
+        # Write the segmented image.
+        img = Image.fromarray(np.uint8(frame))
+        file_name = '{}carla-top-down-segmented-{}.png'.format(
             self._flags.data_path, msg.timestamp.coordinates[0])
         img.save(file_name)
 

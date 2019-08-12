@@ -17,6 +17,8 @@ flags.DEFINE_bool('ground_agent_operator', True,
 
 # Sensors to enable.
 flags.DEFINE_bool('lidar', False, 'True to enable the lidar sensor')
+flags.DEFINE_bool('top_down_segmentation', False,
+                  'True for enable the top down segmentation camera')
 
 # Modules to enable.
 flags.DEFINE_bool('segmentation_drn', False,
@@ -189,6 +191,8 @@ flags.DEFINE_bool('visualize_traffic_light_output', False,
 flags.DEFINE_bool('visualize_lane_detection', False,
                   'True to visualize lane detection')
 flags.DEFINE_bool('visualize_waypoints', False, 'True to visualize waypoints')
+flags.DEFINE_bool('visualize_top_down_segmentation', False,
+                  'True to visualize top-down segmentation')
 
 # Accuracy evaluation flags.
 flags.DEFINE_bool('evaluate_obj_detection', False,
@@ -243,6 +247,9 @@ flags.DEFINE_bool(
 
 # Other flags
 flags.DEFINE_integer('num_cameras', 5, 'Number of cameras.')
+flags.DEFINE_integer('top_down_lateral_view', 20,
+                     'Distance in meters to the left and right of the '
+                     'ego-vehicle that the top-down camera shows.')
 
 # Flag validators.
 flags.register_validator('framework',
