@@ -32,6 +32,7 @@ def create_left_right_camera_setups():
     return [left_camera_setup, right_camera_setup]
 
 def create_top_down_segmentation_setups():
+    # Height calculation relies on the fact that the camera's FOV is 90.
     location = pylot.simulation.utils.Location(1.5, 0.0, 1.4 + FLAGS.top_down_lateral_view)
     rotation = pylot.simulation.utils.Rotation(-90, 0, 0)
     transform = pylot.simulation.utils.Transform(location, rotation)
@@ -40,7 +41,8 @@ def create_top_down_segmentation_setups():
         'sensor.camera.semantic_segmentation',
         FLAGS.carla_camera_image_width,
         FLAGS.carla_camera_image_height,
-        transform)
+        transform,
+        fov=90)
     return [top_down_segmented_camera_setup]
 
 def create_camera_setups():

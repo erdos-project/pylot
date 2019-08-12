@@ -75,8 +75,7 @@ def create_camera_setups():
     camera_setups.append(segmented_camera_setup)
 
     if FLAGS.top_down_segmentation:
-        # TODO (alvin): Allow flexibility for how much of the area around the
-        # car is shown, by adjusting the height of the camera.
+        # Height calculation relies on the fact that the camera's FOV is 90.
         top_down_location = pylot.simulation.utils.Location(1.5, 0.0, 1.4 + FLAGS.top_down_lateral_view)
         top_down_rotation = pylot.simulation.utils.Rotation(-90, 0, 0)
         top_down_transform = pylot.simulation.utils.Transform(
@@ -86,7 +85,8 @@ def create_camera_setups():
             'sensor.camera.semantic_segmentation',
             FLAGS.carla_camera_image_width,
             FLAGS.carla_camera_image_height,
-            top_down_transform)
+            top_down_transform,
+            fov=90)
         camera_setups.append(top_down_segmented_camera_setup)
     
     if FLAGS.camera_left_right:
