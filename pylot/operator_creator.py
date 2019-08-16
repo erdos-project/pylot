@@ -9,6 +9,7 @@ from pylot.debug.camera_replay_operator import CameraReplayOperator
 from pylot.debug.depth_camera_visualizer import DepthCameraVisualizer
 from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
 from pylot.debug.segmented_video_operator import SegmentedVideoOperator
+from pylot.debug.segmented_top_down_video_operator import SegmentedTopDownVideoOperator
 from pylot.debug.video_operator import VideoOperator
 # Import logging operators.
 from pylot.loggers.bounding_box_logger_operator import BoundingBoxLoggerOp
@@ -323,14 +324,23 @@ def create_depth_camera_visualizer_op(graph, name, filter_name):
     return depth_visualizer_op
 
 
-def create_segmented_video_op(graph):
+def create_segmented_video_op(graph, front_stream_name):
     segmented_video_op = graph.add(
         SegmentedVideoOperator,
-        name='segmented_video',
+        name='front_segmented_video',
         init_args={'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name})
+                   'log_file_name': FLAGS.log_file_name},
+        setup_args={'front_stream_name': front_stream_name})
     return segmented_video_op
 
+def create_top_down_segmented_video_op(graph, top_down_stream_name):
+    top_down_segmented_video_op = graph.add(
+        SegmentedTopDownVideoOperator,
+        name='top_down_segmented_video',
+        init_args={'flags': FLAGS,
+                   'log_file_name': FLAGS.log_file_name},
+        setup_args={'top_down_stream_name': top_down_stream_name})
+    return top_down_segmented_video_op
 
 def create_record_op(graph, name, filename, filter_name):
     record_op = graph.add(
@@ -604,7 +614,9 @@ def add_visualization_operators(graph,
                                 camera_ops,
                                 lidar_ops,
                                 rgb_camera_name,
-                                depth_camera_name):
+                                depth_camera_name,
+                                front_segmented_camera_name,
+                                top_down_segmented_camera_name):
     if FLAGS.visualize_rgb_camera:
         camera_video_op = create_camera_video_op(graph,
                                                  'rgb_camera',
@@ -622,11 +634,23 @@ def add_visualization_operators(graph,
         lidar_visualizer_op = create_lidar_visualizer_op(graph)
         graph.connect(lidar_ops, [lidar_visualizer_op])
 
+    # Due to cv2 multithreading issues, the viewers for front-facing
+    # and top-down segmentation have to be placed into two
+    # separate operators.
+
     if FLAGS.visualize_segmentation:
         # Segmented camera. The stream comes from CARLA.
-        segmented_video_op = create_segmented_video_op(graph)
+        segmented_video_op = create_segmented_video_op(
+            graph,
+            front_segmented_camera_name)
         graph.connect(camera_ops, [segmented_video_op])
 
+    if FLAGS.visualize_top_down_segmentation:
+        # Top down segmented camera. The stream comes from CARLA.
+        top_down_segmented_video_op = create_top_down_segmented_video_op(
+            graph,
+            top_down_segmented_camera_name)
+        graph.connect(camera_ops, [top_down_segmented_video_op])
 
 def add_recording_operators(graph,
                             camera_ops,
