@@ -186,6 +186,8 @@ def create_waypoints_stream():
 def is_waypoints_stream(stream):
     return stream.name == 'waypoints'
 
+def is_tracking_stream(stream):
+    return stream.get_label('tracking') == 'true'
 
 def create_detected_lane_stream(name):
     return DataStream(name=name,
