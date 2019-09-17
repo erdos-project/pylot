@@ -43,7 +43,7 @@ def create_top_down_segmentation_setups():
         FLAGS.carla_camera_image_height,
         transform,
         fov=90)
-    return [top_down_segmented_camera_setup]
+    return top_down_segmented_camera_setup
 
 def create_camera_setups():
     location = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
@@ -91,11 +91,12 @@ def create_lidar_setups():
 def add_driver_operators(graph, auto_pilot):
     camera_setups = create_camera_setups()
     bgr_camera_setup = camera_setups[0]
+    top_down_segmentation_setup = None
     if FLAGS.depth_estimation:
         camera_setups = camera_setups + create_left_right_camera_setups()
     if FLAGS.top_down_segmentation or FLAGS.visualize_top_down_tracker_output:
         top_down_segmentation_setup = create_top_down_segmentation_setups()
-        camera_setups = camera_setups + top_down_segmentation_setup
+        camera_setups = camera_setups + [top_down_segmentation_setup]
 
     lidar_setups = create_lidar_setups()
 
@@ -103,8 +104,7 @@ def add_driver_operators(graph, auto_pilot):
      camera_ops,
      lidar_ops) = pylot.operator_creator.create_driver_ops(
          graph, camera_setups, lidar_setups, auto_pilot)
-    return (bgr_camera_setup, top_down_segmentation_setup[0], carla_op, camera_ops, lidar_ops)
-
+    return (bgr_camera_setup, top_down_segmentation_setup, carla_op, camera_ops, lidar_ops)
 
 def add_ground_eval_ops(graph, perfect_det_ops, camera_ops):
     if FLAGS.eval_ground_truth_segmentation:
