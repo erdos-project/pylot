@@ -10,6 +10,7 @@ from pylot.debug.depth_camera_visualizer import DepthCameraVisualizer
 from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
 from pylot.debug.segmented_video_operator import SegmentedVideoOperator
 from pylot.debug.segmented_top_down_video_operator import SegmentedTopDownVideoOperator
+from pylot.debug.track_visualize_operator import TrackVisualizerOperator
 from pylot.debug.video_operator import VideoOperator
 # Import logging operators.
 from pylot.loggers.bounding_box_logger_operator import BoundingBoxLoggerOp
@@ -195,7 +196,6 @@ def create_planning_op(graph, goal_location):
         })
     return planning_op
 
-
 def create_control_op(graph):
     from pylot.control.pid_control_operator import PIDControlOperator
     control_op = graph.add(
@@ -224,7 +224,6 @@ def create_waypoint_visualizer_op(graph):
             'log_file_name': FLAGS.log_file_name
         })
     return waypoint_viz_op
-
 
 def create_camera_replay_ops(graph):
     camera_ops = []
@@ -341,6 +340,16 @@ def create_top_down_segmented_video_op(graph, top_down_stream_name):
                    'log_file_name': FLAGS.log_file_name},
         setup_args={'top_down_stream_name': top_down_stream_name})
     return top_down_segmented_video_op
+
+def create_top_down_tracking_video_op(graph, top_down_camera_setup, top_down_stream_name):
+    top_down_tracking_video_op = graph.add(
+        TrackVisualizerOperator,
+        name='top_down_tracking_video',
+        init_args={'flags': FLAGS,
+                   'top_down_camera_setup': top_down_camera_setup,
+                   'log_file_name': FLAGS.log_file_name},
+        setup_args={'top_down_stream_name': top_down_stream_name})
+    return top_down_tracking_video_op
 
 def create_record_op(graph, name, filename, filter_name):
     record_op = graph.add(
@@ -611,8 +620,10 @@ def create_fusion_ops(graph):
 
 
 def add_visualization_operators(graph,
+                                top_down_camera_setup,
                                 camera_ops,
                                 lidar_ops,
+                                perfect_tracker_ops,
                                 rgb_camera_name,
                                 depth_camera_name,
                                 front_segmented_camera_name,
@@ -651,6 +662,13 @@ def add_visualization_operators(graph,
             graph,
             top_down_segmented_camera_name)
         graph.connect(camera_ops, [top_down_segmented_video_op])
+
+    if FLAGS.visualize_top_down_tracker_output:
+        top_down_tracker_video_op = create_top_down_tracking_video_op(
+            graph,
+            top_down_camera_setup,
+            top_down_segmented_camera_name)
+        graph.connect(camera_ops + perfect_tracker_ops, [top_down_tracker_video_op])
 
 def add_recording_operators(graph,
                             camera_ops,
