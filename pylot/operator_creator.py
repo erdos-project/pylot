@@ -196,7 +196,6 @@ def create_planning_op(graph, goal_location):
         })
     return planning_op
 
-
 def create_control_op(graph):
     from pylot.control.pid_control_operator import PIDControlOperator
     control_op = graph.add(
@@ -342,11 +341,12 @@ def create_top_down_segmented_video_op(graph, top_down_stream_name):
         setup_args={'top_down_stream_name': top_down_stream_name})
     return top_down_segmented_video_op
 
-def create_top_down_tracking_video_op(graph, top_down_stream_name):
+def create_top_down_tracking_video_op(graph, top_down_camera_setup, top_down_stream_name):
     top_down_tracking_video_op = graph.add(
         TrackVisualizerOperator,
         name='top_down_tracking_video',
         init_args={'flags': FLAGS,
+                   'top_down_camera_setup': top_down_camera_setup,
                    'log_file_name': FLAGS.log_file_name},
         setup_args={'top_down_stream_name': top_down_stream_name})
     return top_down_tracking_video_op
@@ -620,6 +620,7 @@ def create_fusion_ops(graph):
 
 
 def add_visualization_operators(graph,
+                                top_down_camera_setup,
                                 camera_ops,
                                 lidar_ops,
                                 perfect_tracker_ops,
@@ -665,6 +666,7 @@ def add_visualization_operators(graph,
     if FLAGS.visualize_top_down_tracker_output:
         top_down_tracker_video_op = create_top_down_tracking_video_op(
             graph,
+            top_down_camera_setup,
             top_down_segmented_camera_name)
         graph.connect(camera_ops + perfect_tracker_ops, [top_down_tracker_video_op])
 

@@ -23,7 +23,7 @@ class TrackVisualizerOperator(Op):
         on the top-down segmented image.
     """
 
-    def __init__(self, name, flags, log_file_name=None):
+    def __init__(self, name, flags, top_down_camera_setup, log_file_name=None):
         """ Initializes the TrackVisualizerOperator with the given
         parameters.
 
@@ -44,6 +44,9 @@ class TrackVisualizerOperator(Op):
         self._top_down_segmentation_msgs = deque()
         self._lock = threading.Lock()
         self._frame_cnt = 0
+
+        # Get top-down camera.
+        self._top_down_camera_setup = top_down_camera_setup
 
     @staticmethod
     def setup_streams(input_streams, top_down_stream_name):
@@ -92,24 +95,17 @@ class TrackVisualizerOperator(Op):
 
         self._frame_cnt += 1
 
-        # Top down camera transform, used to perform the coordinate change
-        # for the top-down camera.
-        top_down_location = pylot.simulation.utils.Location(1.5, 0.0, 1.4 + FLAGS.top_down_lateral_view)
-        top_down_rotation = pylot.simulation.utils.Rotation(-90, 0, 0)
-        top_down_transform = pylot.simulation.utils.Transform(
-            top_down_location, top_down_rotation)
-
         display_img = np.uint8(transform_to_cityscapes_palette(segmentation_msg.frame))
         for obj in tracking_msg.obj_trajectories:
             # Intrinsic matrix of the top down segmentation camera.
             intrinsic_matrix = pylot.simulation.utils.create_intrinsic_matrix(
-                                   FLAGS.carla_camera_image_width,
-                                   FLAGS.carla_camera_image_height,
-                                   fov=90)
+                                   self._top_down_camera_setup.width,
+                                   self._top_down_camera_setup.height,
+                                   fov=self._top_down_camera_setup.fov)
             # Convert to screen points.
             screen_points = pylot.simulation.utils.locations_3d_to_view(
                                 obj.trajectory,
-                                top_down_transform.matrix,
+                                self._top_down_camera_setup.transform.matrix,
                                 intrinsic_matrix)
                                                                             
             # Draw trajectory points on segmented image.

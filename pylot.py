@@ -94,7 +94,8 @@ def add_driver_operators(graph, auto_pilot):
     if FLAGS.depth_estimation:
         camera_setups = camera_setups + create_left_right_camera_setups()
     if FLAGS.top_down_segmentation or FLAGS.visualize_top_down_tracker_output:
-        camera_setups = camera_setups + create_top_down_segmentation_setups()
+        top_down_segmentation_setup = create_top_down_segmentation_setups()
+        camera_setups = camera_setups + top_down_segmentation_setup
 
     lidar_setups = create_lidar_setups()
 
@@ -102,7 +103,7 @@ def add_driver_operators(graph, auto_pilot):
      camera_ops,
      lidar_ops) = pylot.operator_creator.create_driver_ops(
          graph, camera_setups, lidar_setups, auto_pilot)
-    return (bgr_camera_setup, carla_op, camera_ops, lidar_ops)
+    return (bgr_camera_setup, top_down_segmentation_setup[0], carla_op, camera_ops, lidar_ops)
 
 
 def add_ground_eval_ops(graph, perfect_det_ops, camera_ops):
@@ -234,11 +235,11 @@ def add_planning_component(graph,
     graph.connect([carla_op], [planning_op])
     graph.connect([planning_op], [agent_op])
 
-
-def add_debugging_component(graph, carla_op, camera_ops, lidar_ops, perfect_tracker_ops):
+def add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops, lidar_ops, perfect_tracker_ops):
     # Add visual operators.
     pylot.operator_creator.add_visualization_operators(
         graph,
+        top_down_camera_setup,
         camera_ops,
         lidar_ops,
         perfect_tracker_ops,
@@ -289,6 +290,7 @@ def main(argv):
 
     # Add camera and lidar driver operators to the data-flow graph.
     (bgr_camera_setup,
+     top_down_camera_setup,
      carla_op,
      camera_ops,
      lidar_ops) = add_driver_operators(
@@ -320,7 +322,7 @@ def main(argv):
     add_ground_eval_ops(graph, obj_det_ops, camera_ops)
 
     # Add debugging operators (e.g., visualizers) to the data-flow graph.
-    add_debugging_component(graph, carla_op, camera_ops, lidar_ops, perfect_tracker_ops)
+    add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops, lidar_ops, perfect_tracker_ops)
 
 
     # Add the behaviour planning agent operator.
