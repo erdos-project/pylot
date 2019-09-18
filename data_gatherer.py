@@ -185,16 +185,6 @@ def main(argv):
      lidar_ops) = pylot.operator_creator.create_driver_ops(
          graph, camera_setups, lidar_setups, auto_pilot=FLAGS.carla_auto_pilot)
 
-    # Add visual operators.
-    pylot.operator_creator.add_visualization_operators(
-        graph,
-        camera_ops,
-        lidar_ops,
-        pylot.utils.CENTER_CAMERA_NAME,
-        pylot.utils.DEPTH_CAMERA_NAME,
-        pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
-        pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME)
-
     # Add an operator that logs BGR frames and segmented frames.
     camera_log_ops = [pylot.operator_creator.create_camera_logger_op(graph)]
     lidar_log_ops = [pylot.operator_creator.create_lidar_logger_op(graph)]
@@ -209,6 +199,25 @@ def main(argv):
     tracking_ops = add_perfect_tracking_component(graph, carla_op)
     trajectory_log_ops = [pylot.operator_creator.create_trajectory_logger_op(graph)]
     graph.connect(tracking_ops, trajectory_log_ops)
+
+    # Get top-down camera setup if it exists.
+    top_down_camera_setup = None
+    for cs in camera_setups:
+        if cs.name == pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME:
+            top_down_camera_setup = cs
+            break
+
+    # Add visual operators.
+    pylot.operator_creator.add_visualization_operators(
+        graph,
+        camera_ops,
+        lidar_ops,
+        tracking_ops,
+        pylot.utils.CENTER_CAMERA_NAME,
+        pylot.utils.DEPTH_CAMERA_NAME,
+        pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
+        pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME,
+        top_down_camera_setup)
 
     if FLAGS.carla_auto_pilot:
         # We do not need planning and agent ops if we're running in

@@ -239,14 +239,14 @@ def add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops, 
     # Add visual operators.
     pylot.operator_creator.add_visualization_operators(
         graph,
-        top_down_camera_setup,
         camera_ops,
         lidar_ops,
         perfect_tracker_ops,
         pylot.utils.CENTER_CAMERA_NAME,
         pylot.utils.DEPTH_CAMERA_NAME,
         pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
-        pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME)
+        pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME,
+        top_down_camera_setup)
 
     # Add recording operators.
     pylot.operator_creator.add_recording_operators(graph,
