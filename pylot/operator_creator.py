@@ -620,14 +620,14 @@ def create_fusion_ops(graph):
 
 
 def add_visualization_operators(graph,
-                                top_down_camera_setup,
                                 camera_ops,
                                 lidar_ops,
                                 perfect_tracker_ops,
                                 rgb_camera_name,
                                 depth_camera_name,
                                 front_segmented_camera_name,
-                                top_down_segmented_camera_name):
+                                top_down_segmented_camera_name,
+                                top_down_camera_setup):
     if FLAGS.visualize_rgb_camera:
         camera_video_op = create_camera_video_op(graph,
                                                  'rgb_camera',
