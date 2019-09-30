@@ -160,6 +160,8 @@ def main(argv):
             camera_ops + chauffeur_log_ops,
             [sync_op])
         graph.connect([sync_op], [carla_op])
+        graph.connect([carla_op], chauffeur_log_ops)
+
     else:
         raise ValueError("Must be in auto pilot mode.")
 
