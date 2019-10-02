@@ -39,9 +39,11 @@ class ChauffeurLoggerOp(Op):
         super(ChauffeurLoggerOp, self).__init__(name)
         self._logger = setup_logging(self.name, log_file_name)
         self._flags = flags
+        self._buffer_length = 10
 
         self._ground_vehicle_id = None
         self._waypoints = None
+        self._global_transforms = deque(maxlen=self._buffer_length)  # holds history of global transforms at each timestep
 
         # Queues of incoming data.
         self._track_count = 0
@@ -72,7 +74,13 @@ class ChauffeurLoggerOp(Op):
             self._top_down_camera_setup.height,
             fov=self._top_down_camera_setup.fov)
 
+        rotation = pylot.simulation.utils.Rotation(0, 0, 0)
+        current_transform = None
         for obj in msg.obj_trajectories:
+            if obj.obj_id == -1:
+                current_transform = obj.trajectory
+                continue
+
             # Convert to screen points.
             screen_points = pylot.simulation.utils.locations_3d_to_view(
                 obj.trajectory,
@@ -94,15 +102,42 @@ class ChauffeurLoggerOp(Op):
                                (int(point.x), int(point.y)),
                                r, (100, 100, 100), -1)
 
-        # Draw future poses
+        # Make sure transforms deque is full
+        while len(self._global_transforms) != self._buffer_length:
+            self._global_transforms.append(current_transform)
+        previous_transform = self._global_transforms.popleft()
+        self._global_transforms.append(current_transform)
+
+        # Transform to previous and back to current frame
+        new_transform = current_transform * previous_transform.inverse_transform()
+        self._waypoints = [
+            (new_transform * pylot.simulation.utils.Transform(pos=wp, rotation=rotation)).location
+            for wp in self._waypoints
+        ]
+
+        # Center first point at 0, 0
+        center_transform = pylot.simulation.utils.Transform(
+            pos=self._waypoints[0],
+            rotation=rotation
+        ).inverse_transform()
+        self._waypoints = [
+            (center_transform * pylot.simulation.utils.Transform(pos=wp, rotation=rotation)).location
+            for wp in self._waypoints
+        ]
+
+        # Convert to screen points
         screen_waypoints = pylot.simulation.utils.locations_3d_to_view(
                 self._waypoints,
                 self._top_down_camera_setup.transform.matrix,
                 intrinsic_matrix)
+
+        # Draw screen points
         for point in screen_waypoints:
             cv2.circle(future_poses,
                        (int(point.x), int(point.y)),
                        10, (100, 100, 100), -1)
+
+        # Save screen points
         future_poses_img = Image.fromarray(future_poses)
         future_poses_img = future_poses_img.convert('RGB')
         future_poses_img.save('{}{}-{}.png'.format(self._flags.data_path, "future_poses",
