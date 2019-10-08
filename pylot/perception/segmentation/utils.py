@@ -1,6 +1,23 @@
 import numpy as np
 import tensorflow as tf
 
+# Semantic Labels
+LABEL_2_PIXEL = {
+    "unlabeled": (0, 0, 0),
+    "building": (70, 70, 70),
+    "fence": (190, 153, 153),
+    "other": (250, 170, 160),
+    "pedestrian": (220, 20, 60),
+    "pole": (153, 153, 153),
+    "road_line": (157, 234, 50),
+    "road": (128, 64, 128),
+    "sidewalk": (244, 35, 232),
+    "vegetation": (107, 142, 35),
+    "car": (0, 0, 255),
+    "wall": (102, 102, 156),
+    "traffic_sign": (220, 220, 0),
+}
+
 # Cityscapes palette.
 CITYSCAPES_CLASSES = {
     0: [0, 0, 0],         # None

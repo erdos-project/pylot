@@ -12,12 +12,10 @@ from erdos.op import Op
 from erdos.utils import setup_logging
 
 # Pylot specific imports.
-from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
+from pylot.perception.segmentation.utils import transform_to_cityscapes_palette, LABEL_2_PIXEL
 import pylot.utils
 import pylot.simulation.carla_utils
 import PIL.Image as Image
-
-FLAGS = flags.FLAGS
 
 
 class ChauffeurLoggerOp(Op):
@@ -93,8 +91,8 @@ class ChauffeurLoggerOp(Op):
 
             # Draw trajectory points on segmented image.
             for point in screen_points:
-                if (0 <= point.x <= FLAGS.carla_camera_image_width) and \
-                        (0 <= point.y <= FLAGS.carla_camera_image_height):
+                if (0 <= point.x <= self._flags.carla_camera_image_width) and \
+                        (0 <= point.y <= self._flags.carla_camera_image_height):
                     r = 3
                     if obj.obj_id == self._ground_vehicle_id:
                         r = 10
@@ -159,7 +157,7 @@ class ChauffeurLoggerOp(Op):
         top_down = np.uint8(transform_to_cityscapes_palette(msg.frame))
 
         # Save the segmented channels
-        for k, v in pylot.utils.LABEL_2_PIXEL.items():
+        for k, v in LABEL_2_PIXEL.items():
             mask = np.all(top_down == v, axis=-1)
             tmp = np.zeros(top_down.shape[:2])
             tmp[mask] = 1

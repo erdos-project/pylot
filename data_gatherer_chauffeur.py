@@ -25,6 +25,7 @@ flags.DEFINE_float('offset_left_right', 0.05,
                    'from the center.')
 flags.DEFINE_bool('log_bounding_boxes', True,
                   'True to enable bounding box logging')
+flags.DEFINE_bool('chauffeur', False, 'True to log data in ChauffeurNet style.')
 
 
 class SynchronizerOp(Op):
@@ -89,7 +90,7 @@ def create_camera_setups():
             fov=90)
         camera_setups.append(top_down_segmented_camera_setup)
 
-    return camera_setups
+    return camera_setups, top_down_segmented_camera_setup
 
 
 def create_lidar_setups():
@@ -128,7 +129,7 @@ def main(argv):
     # Define graph
     graph = erdos.graph.get_current_graph()
 
-    camera_setups = create_camera_setups()
+    camera_setups, chauffeur_camera_setup = create_camera_setups()
     lidar_setups = create_lidar_setups()
 
     # Add operator that interacts with the Carla simulator.
@@ -137,14 +138,7 @@ def main(argv):
      _) = pylot.operator_creator.create_driver_ops(
         graph, camera_setups, lidar_setups, auto_pilot=FLAGS.carla_auto_pilot)
 
-    # Get top-down camera setup if it exists.
-    top_down_camera_setup = None
-    for cs in camera_setups:
-        if cs.name == pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME:
-            top_down_camera_setup = cs
-            break
-
-    chauffeur_log_ops = [pylot.operator_creator.create_chauffeur_logger_op(graph, top_down_camera_setup,
+    chauffeur_log_ops = [pylot.operator_creator.create_chauffeur_logger_op(graph, chauffeur_camera_setup,
                                                                            pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME)]
     graph.connect(camera_ops, chauffeur_log_ops)
 

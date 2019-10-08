@@ -253,7 +253,6 @@ flags.DEFINE_integer('num_cameras', 5, 'Number of cameras.')
 flags.DEFINE_integer('top_down_lateral_view', 20,
                      'Distance in meters to the left and right of the '
                      'ego-vehicle that the top-down camera shows.')
-flags.DEFINE_bool('chauffeur', False, 'True to log data in ChauffeurNet style.')
 
 # Flag validators.
 flags.register_validator('framework',
