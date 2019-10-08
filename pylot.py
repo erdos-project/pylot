@@ -235,6 +235,7 @@ def add_planning_component(graph,
     graph.connect([carla_op], [planning_op])
     graph.connect([planning_op], [agent_op])
 
+
 def add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops, lidar_ops, perfect_tracker_ops):
     # Add visual operators.
     pylot.operator_creator.add_visualization_operators(

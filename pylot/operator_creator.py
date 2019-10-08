@@ -15,6 +15,7 @@ from pylot.debug.video_operator import VideoOperator
 # Import logging operators.
 from pylot.loggers.bounding_box_logger_operator import BoundingBoxLoggerOp
 from pylot.loggers.camera_logger_operator import CameraLoggerOp
+from pylot.loggers.chauffeur_logger_operator import ChauffeurLoggerOp
 from pylot.loggers.lidar_logger_operator import LidarLoggerOp
 from pylot.loggers.trajectory_logger_operator import TrajectoryLoggerOp
 # Import perception operators.
@@ -145,6 +146,18 @@ def create_camera_logger_op(graph):
     return camera_logger_op
 
 
+def create_chauffeur_logger_op(graph, top_down_camera_setup, top_down_stream_name):
+    chauffeur_logger_op = graph.add(
+        ChauffeurLoggerOp,
+        name='chauffeur_logger_op',
+        init_args={'flags': FLAGS,
+                   'top_down_camera_setup': top_down_camera_setup,
+                   'log_file_name': FLAGS.log_file_name},
+        setup_args={'top_down_stream_name': top_down_stream_name})
+
+    return chauffeur_logger_op
+
+
 def create_bounding_box_logger_op(graph):
     bbox_logger_op = graph.add(
         BoundingBoxLoggerOp,
@@ -176,12 +189,14 @@ def create_lidar_logger_op(graph):
                    'csv_file_name': FLAGS.csv_log_file_name})
     return lidar_logger_op
 
+
 def create_trajectory_logger_op(graph):
     trajectory_logger_op = graph.add(
         TrajectoryLoggerOp,
         name='trajectory_logger_op',
         init_args={'flags': FLAGS})
     return trajectory_logger_op
+
 
 def create_planning_op(graph, goal_location):
     from pylot.planning.planning_operator import PlanningOperator
@@ -224,6 +239,7 @@ def create_waypoint_visualizer_op(graph):
             'log_file_name': FLAGS.log_file_name
         })
     return waypoint_viz_op
+
 
 def create_camera_replay_ops(graph):
     camera_ops = []
@@ -332,6 +348,7 @@ def create_segmented_video_op(graph, front_stream_name):
         setup_args={'front_stream_name': front_stream_name})
     return segmented_video_op
 
+
 def create_top_down_segmented_video_op(graph, top_down_stream_name):
     top_down_segmented_video_op = graph.add(
         SegmentedTopDownVideoOperator,
@@ -340,6 +357,7 @@ def create_top_down_segmented_video_op(graph, top_down_stream_name):
                    'log_file_name': FLAGS.log_file_name},
         setup_args={'top_down_stream_name': top_down_stream_name})
     return top_down_segmented_video_op
+
 
 def create_top_down_tracking_video_op(graph, top_down_camera_setup, top_down_stream_name):
     top_down_tracking_video_op = graph.add(
@@ -350,6 +368,7 @@ def create_top_down_tracking_video_op(graph, top_down_camera_setup, top_down_str
                    'log_file_name': FLAGS.log_file_name},
         setup_args={'top_down_stream_name': top_down_stream_name})
     return top_down_tracking_video_op
+
 
 def create_record_op(graph, name, filename, filter_name):
     record_op = graph.add(
@@ -414,6 +433,7 @@ def create_detector_op_helper(graph, name, model_path, gpu_memory_fraction):
         _resources = {"GPU": gpu_memory_fraction})
     return obj_detector_op
 
+
 def create_perfect_tracking_op(graph, output_stream_name):
     from pylot.simulation.perfect_tracker_operator import PerfectTrackerOp
     perfect_tracker_op = graph.add(
@@ -426,6 +446,7 @@ def create_perfect_tracking_op(graph, output_stream_name):
         },
         setup_args={'output_stream_name': output_stream_name})
     return perfect_tracker_op
+
 
 def create_depth_estimation_op(graph, center_transform,
                                left_camera_name, right_camera_name):
