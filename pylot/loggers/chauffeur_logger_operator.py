@@ -74,6 +74,7 @@ class ChauffeurLoggerOp(Op):
 
         rotation = pylot.simulation.utils.Rotation(0, 0, 0)
         current_transform = None
+        current_speed = None
         for obj in msg.obj_trajectories:
             if obj.obj_id == -1:
                 current_transform = obj.trajectory
@@ -88,6 +89,12 @@ class ChauffeurLoggerOp(Op):
             # Keep track of ground vehicle waypoints
             if obj.obj_id == self._ground_vehicle_id:
                 self._waypoints = obj.trajectory
+                start = np.array([self._waypoints[0].x, self._waypoints[0].y, self._waypoints[0].z])
+                if len(self._waypoints) == 1:
+                    end = start
+                else:
+                    end = np.array([self._waypoints[1].x, self._waypoints[1].y, self._waypoints[1].z])
+                current_speed = np.linalg.norm(start - end) / 0.1
 
             # Draw trajectory points on segmented image.
             for point in screen_points:
@@ -135,7 +142,7 @@ class ChauffeurLoggerOp(Op):
                        (int(point.x), int(point.y)),
                        10, (100, 100, 100), -1)
 
-        # Save screen points
+        # Log future screen points
         future_poses_img = Image.fromarray(future_poses)
         future_poses_img = future_poses_img.convert('RGB')
         future_poses_img.save('{}{}-{}.png'.format(self._flags.data_path, "future_poses",
@@ -148,10 +155,22 @@ class ChauffeurLoggerOp(Op):
         with open(file_name, 'w') as outfile:
             json.dump(waypoints, outfile)
 
-        # Save the past poses
+        # Log past screen points
         past_poses_img = Image.fromarray(past_poses)
         past_poses_img = past_poses_img.convert('RGB')
         past_poses_img.save('{}{}-{}.png'.format(self._flags.data_path, "past_poses", msg.timestamp.coordinates[0]))
+
+        # Log orientation
+        file_name = '{}orientation-{}.json'.format(self._flags.data_path,
+                                                 msg.timestamp.coordinates[0])
+        with open(file_name, 'w') as outfile:
+            json.dump(str(current_transform.rotation.yaw), outfile)
+
+        # Log speed
+        file_name = '{}speed-{}.json'.format(self._flags.data_path,
+                                                   msg.timestamp.coordinates[0])
+        with open(file_name, 'w') as outfile:
+            json.dump(str(current_speed), outfile)
 
     def on_top_down_segmentation_update(self, msg):
         top_down = np.uint8(transform_to_cityscapes_palette(msg.frame))
