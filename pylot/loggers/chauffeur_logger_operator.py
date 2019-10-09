@@ -1,10 +1,9 @@
-from absl import flags
 from collections import deque
 
-import cv2
+import PIL.Image as Image
 import numpy as np
-import threading
-import carla
+
+import cv2
 import json
 
 # ERDOS specific imports.
@@ -15,7 +14,6 @@ from erdos.utils import setup_logging
 from pylot.perception.segmentation.utils import transform_to_cityscapes_palette, LABEL_2_PIXEL
 import pylot.utils
 import pylot.simulation.carla_utils
-import PIL.Image as Image
 
 
 class ChauffeurLoggerOp(Op):
