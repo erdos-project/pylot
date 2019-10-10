@@ -195,7 +195,8 @@ class CarlaLegacyOperator(Op):
             player_measurements.transform.orientation.z)
         vehicle_transform = pylot.simulation.utils.Transform(
             location, rotation, orientation=orientation)
-        forward_speed = player_measurements.forward_speed * 3.6
+        # Forward speed is in m/s
+        forward_speed = player_measurements.forward_speed
         can_bus = pylot.simulation.utils.CanBus(
             vehicle_transform, forward_speed)
         self.get_output_stream('can_bus').send(Message(can_bus, timestamp))

@@ -103,6 +103,7 @@ class LidarSetup(object):
 class CanBus(object):
     def __init__(self, transform, forward_speed):
         self.transform = transform
+        # Forward speed in m/s.
         self.forward_speed = forward_speed
 
     def __repr__(self):
@@ -315,16 +316,16 @@ def labels_to_array(image):
 
 
 def get_speed(velocity_vector):
-    """ Compute the speed of the vehicle in km/h.
+    """ Compute the speed of the vehicle in m/s.
 
     Args:
         vehicle: A velocity vector.
 
     Returns:
-        The speed of the given vehicle as a float in km/h.
+        The speed of the given vehicle as a float in m/s.
     """
-    speed = 3.6 * math.sqrt(velocity_vector.x**2 + velocity_vector.y**2 +
-                            velocity_vector.z**2)
+    speed = math.sqrt(velocity_vector.x**2 + velocity_vector.y**2 +
+                      velocity_vector.z**2)
     return speed
 
 

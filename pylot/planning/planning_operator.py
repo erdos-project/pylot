@@ -8,7 +8,7 @@ from erdos.utils import setup_csv_logging, setup_logging
 from pylot.map.hd_map import HDMap
 import pylot.planning.cost_functions
 from pylot.planning.messages import WaypointsMessage
-from pylot.planning.utils import get_distance, get_target_speed,\
+from pylot.planning.utils import get_distance,\
     get_waypoint_vector_and_angle, BehaviorPlannerState
 from pylot.simulation.carla_utils import get_map, to_carla_location
 import pylot.utils
@@ -136,8 +136,7 @@ class PlanningOperator(Op):
         wp_speed_vector, wp_speed_angle = get_waypoint_vector_and_angle(
             next_waypoint_speed, self._vehicle_transform)
 
-        target_speed = get_target_speed(
-            self._vehicle_transform.location, next_waypoint_steer)
+        target_speed = self._get_target_speed(next_waypoint_steer)
 
         output_msg = WaypointsMessage(
             msg.timestamp,
@@ -147,6 +146,16 @@ class PlanningOperator(Op):
             wp_vector=wp_steer_vector,
             wp_angle_speed=wp_speed_angle)
         self.get_output_stream('waypoints').send(output_msg)
+
+    def __get_target_speed(self, waypoint):
+        if get_distance(waypoint.location,
+                        self._vehicle_transform.location) > 0.08:
+            target_speed = self._flags.target_speed
+        else:
+            # We are reaching a waypoint; reduce the speed to half.
+            # TODO: Check if this is still necessary.
+            target_speed = self._flags.target_speed / 2
+        return target_speed
 
     def __update_waypoints(self):
         """ Updates the waypoints.

@@ -353,9 +353,6 @@ class ERDOSAgent(AutonomousAgent):
         # The can bus dict contains other fields as well, but we don't
         # curently use them.
         vehicle_transform = to_pylot_transform(data['transform'])
-        # TODO(ionel): Scenario runner computes speed differently from
-        # the way we do it in the CARLA operator. This affects
-        # agent stopping constants. Check!
         forward_speed = data['speed']
         can_bus = pylot.simulation.utils.CanBus(
             vehicle_transform, forward_speed)

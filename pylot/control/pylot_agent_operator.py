@@ -18,6 +18,8 @@ from pylot.simulation.utils import get_3d_world_position_with_point_cloud,\
     get_3d_world_position_with_depth_map
 import pylot.utils
 
+INTERSECTION_SPEED_M_PER_SEC = 5
+
 
 class PylotAgentOperator(Op):
     def __init__(self,
@@ -105,6 +107,7 @@ class PylotAgentOperator(Op):
                         timestamp):
         start_time = time.time()
         vehicle_transform = can_bus_msg.data.transform
+        # Vehicle sped in m/s
         vehicle_speed = can_bus_msg.data.forward_speed
         wp_angle = waypoint_msg.wp_angle
         wp_vector = waypoint_msg.wp_vector
@@ -265,6 +268,7 @@ class PylotAgentOperator(Op):
             self.run_if_you_can()
 
     def on_opendrive_map(self, msg):
+        from pylot.map.hd_map import HDMap
         self._map = HDMap(carla.Map('challenge', msg.data),
                           self._log_file_name)
 
@@ -306,14 +310,14 @@ class PylotAgentOperator(Op):
         # In this way, we can stop even if we detect the traffic light
         # very late.
         if intersection_dist < 30:
-            target_speed = min(target_speed, 5)
+            target_speed = min(target_speed, INTERSECTION_SPEED_M_PER_SEC)
 
         # We assume that we are at a stop sign.
         if (intersection_dist < 10 and
             game_time - self._last_traffic_light_game_time > 4000):
             if vehicle_speed < 0.09:
                 # We've already stopped at the intersection.
-                target_speed = min(target_speed, 12)
+                target_speed = min(target_speed, self._flags.target_speed)
             else:
                 # Stop at the intersection.
                 target_speed = min(target_speed, 0)

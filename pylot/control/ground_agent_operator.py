@@ -194,9 +194,9 @@ class GroundAgentOperator(Op):
         if math.fabs(wp_angle_speed) < 0.1:
             target_speed_adjusted = self._flags.target_speed * speed_factor
         elif math.fabs(wp_angle_speed) < 0.5:
-            target_speed_adjusted = 20 * speed_factor
+            target_speed_adjusted = 12 * speed_factor
         else:
-            target_speed_adjusted = 15 * speed_factor
+            target_speed_adjusted = 6 * speed_factor
 
         self._pid.target = target_speed_adjusted
         pid_gain = self._pid(feedback=current_speed)
