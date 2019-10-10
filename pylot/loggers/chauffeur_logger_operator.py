@@ -40,6 +40,8 @@ class ChauffeurLoggerOp(Op):
         self._ground_vehicle_id = None
         self._waypoints = None
         self._global_transforms = deque(maxlen=self._buffer_length)  # holds history of global transforms at each timestep
+        self._current_transform = None
+        self._previous_transform = None
 
         # Queues of incoming data.
         self._track_count = 0
@@ -57,6 +59,8 @@ class ChauffeurLoggerOp(Op):
             ChauffeurLoggerOp.on_top_down_segmentation_update)
         input_streams.filter(pylot.utils.is_ground_vehicle_id_stream).add_callback(
             ChauffeurLoggerOp.on_ground_vehicle_id_update)
+        input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
+            ChauffeurLoggerOp.on_can_bus_update)
         return []
 
     def on_tracking_update(self, msg):
@@ -71,13 +75,7 @@ class ChauffeurLoggerOp(Op):
             fov=self._top_down_camera_setup.fov)
 
         rotation = pylot.simulation.utils.Rotation(0, 0, 0)
-        current_transform = None
-        current_speed = None
         for obj in msg.obj_trajectories:
-            if obj.obj_id == -1:
-                current_transform = obj.trajectory
-                continue
-
             # Convert to screen points.
             screen_points = pylot.simulation.utils.locations_3d_to_view(
                 obj.trajectory,
@@ -87,12 +85,6 @@ class ChauffeurLoggerOp(Op):
             # Keep track of ground vehicle waypoints
             if obj.obj_id == self._ground_vehicle_id:
                 self._waypoints = obj.trajectory
-                start = np.array([self._waypoints[0].x, self._waypoints[0].y, self._waypoints[0].z])
-                if len(self._waypoints) == 1:
-                    end = start
-                else:
-                    end = np.array([self._waypoints[1].x, self._waypoints[1].y, self._waypoints[1].z])
-                current_speed = np.linalg.norm(start - end) / 0.1
 
             # Draw trajectory points on segmented image.
             for point in screen_points:
@@ -105,14 +97,8 @@ class ChauffeurLoggerOp(Op):
                                (int(point.x), int(point.y)),
                                r, (100, 100, 100), -1)
 
-        # Make sure transforms deque is full
-        while len(self._global_transforms) != self._buffer_length:
-            self._global_transforms.append(current_transform)
-        previous_transform = self._global_transforms.popleft()
-        self._global_transforms.append(current_transform)
-
         # Transform to previous and back to current frame
-        new_transform = current_transform * previous_transform.inverse_transform()
+        new_transform = self._current_transform * self._previous_transform.inverse_transform()
         self._waypoints = [
             (new_transform * pylot.simulation.utils.Transform(pos=wp, rotation=rotation)).location
             for wp in self._waypoints
@@ -158,18 +144,6 @@ class ChauffeurLoggerOp(Op):
         past_poses_img = past_poses_img.convert('RGB')
         past_poses_img.save('{}{}-{}.png'.format(self._flags.data_path, "past_poses", msg.timestamp.coordinates[0]))
 
-        # Log orientation
-        file_name = '{}orientation-{}.json'.format(self._flags.data_path,
-                                                 msg.timestamp.coordinates[0])
-        with open(file_name, 'w') as outfile:
-            json.dump(str(current_transform.rotation.yaw), outfile)
-
-        # Log speed
-        file_name = '{}speed-{}.json'.format(self._flags.data_path,
-                                                   msg.timestamp.coordinates[0])
-        with open(file_name, 'w') as outfile:
-            json.dump(str(current_speed), outfile)
-
     def on_top_down_segmentation_update(self, msg):
         top_down = np.uint8(transform_to_cityscapes_palette(msg.frame))
 
@@ -188,3 +162,23 @@ class ChauffeurLoggerOp(Op):
 
     def on_ground_vehicle_id_update(self, msg):
         self._ground_vehicle_id = msg.data
+
+    def on_can_bus_update(self, msg):
+        # Make sure transforms deque is full
+        self._current_transform = msg.data.transform
+        while len(self._global_transforms) != self._buffer_length:
+            self._global_transforms.append(msg.data.transform)
+        self._previous_transform = self._global_transforms.popleft()
+        self._global_transforms.append(msg.data.transform)
+
+        # Log heading
+        file_name = '{}heading-{}.json'.format(self._flags.data_path,
+                                                   msg.timestamp.coordinates[0])
+        with open(file_name, 'w') as outfile:
+            json.dump(str(self._current_transform.rotation.yaw), outfile)
+
+        # Log speed
+        file_name = '{}speed-{}.json'.format(self._flags.data_path,
+                                                   msg.timestamp.coordinates[0])
+        with open(file_name, 'w') as outfile:
+            json.dump(str(msg.data.forward_speed), outfile)

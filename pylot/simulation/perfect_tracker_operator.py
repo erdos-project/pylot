@@ -112,11 +112,6 @@ class PerfectTrackerOp(Op):
                                                       vehicle.id,
                                                       cur_vehicle_trajectory))
 
-        # Hack to also send the absolute position of vehicle
-        vehicle_trajectories.append(ObjTrajectory('vehicle',
-                                                  -1,
-                                                  can_bus_msg.data.transform))
-
         pedestrian_trajectories = []
         # Only consider pedestrians which still exist at the most recent timestamp.
         for ped in pedestrians_msg.pedestrians:
