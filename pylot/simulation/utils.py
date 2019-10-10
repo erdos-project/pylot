@@ -236,12 +236,27 @@ class Transform(object):
         Given a 4x4 transformation matrix, transform an array of 3D points.
         Expected point format: [[X0,Y0,Z0],..[Xn,Yn,Zn]]
         """
-        # Needed format: [[X0,..Xn],[Z0,..Zn],[Z0,..Zn]]. So let's transpose
+        # Needed format: [[X0,..Xn],[Y0,..Yn],[Z0,..Zn]]. So let's transpose
         # the point matrix.
         points = points.transpose()
-        # Add 0s row: [[X0..,Xn],[Y0..,Yn],[Z0..,Zn],[0,..0]]
+        # Add 1s row: [[X0..,Xn],[Y0..,Yn],[Z0..,Zn],[1,..1]]
         points = np.append(points, np.ones((1, points.shape[1])), axis=0)
         # Point transformation
+        points = np.dot(self.matrix, points)
+        # Return all but last row
+        return points[0:3].transpose()
+
+    def transform_locations(self, locs):
+        """
+        Using the transformation matrix, transform a list of locations.
+        """
+        print (np.shape(locs), len(locs))
+        points = np.zeros((4, len(locs)))
+        for idx in range(len(locs)):
+            points[0][idx] = locs[idx].x
+            points[1][idx] = locs[idx].y
+            points[2][idx] = locs[idx].z
+            points[3][idx] = 1
         points = np.dot(self.matrix, points)
         # Return all but last row
         return points[0:3].transpose()
@@ -975,11 +990,12 @@ def get_traffic_light_det_objs(
     intrinsic_matrix = create_intrinsic_matrix(frame_width, frame_height, fov)
     det_objs = []
     for box, color in bbox_state:
-        bounding_box = []
-        for location in box:
-            bounding_box.append(
-                location_3d_to_view(location, extrinsic_matrix,
-                                    intrinsic_matrix))
+        # bounding_box = []
+        # for location in box:
+        #     bounding_box.append(
+        #         location_3d_to_view(location, extrinsic_matrix,
+        #                             intrinsic_matrix))
+        bounding_box = locations_3d_to_view(box, extrinsic_matrix, intrinsic_matrix)
 
         # Check if they are in front and visible.
         z_values = [loc.z > 0 for loc in bounding_box]
@@ -1155,9 +1171,13 @@ def match_bboxes_with_speed_signs(
     return result
 
 
-def location_3d_to_view(location, extrinsic_matrix, intrinsic_matrix):
-    # Get the location of the object in the world.
-    world_points = [[location.x], [location.y], [location.z], [1]]
+def locations_3d_to_view(locations, extrinsic_matrix, intrinsic_matrix):
+    world_points = np.ones((4, len(locations)))
+
+    for i in range(len(locations)):
+        world_points[0][i] = locations[i].x
+        world_points[1][i] = locations[i].y
+        world_points[2][i] = locations[i].z
 
     # Convert the points to the sensor coordinates.
     transformed_points = np.dot(
@@ -1170,15 +1190,17 @@ def location_3d_to_view(location, extrinsic_matrix, intrinsic_matrix):
     ])
 
     # Convert to screen points.
-    screen_points = np.transpose(
-        np.dot(intrinsic_matrix, unreal_points))
+    screen_points = np.dot(intrinsic_matrix, unreal_points)
 
-    # Normalize the points
-    x = screen_points[:, 0] / screen_points[:, 2]
-    y = screen_points[:, 1] / screen_points[:, 2]
-    z = screen_points[:, 2]
-    return Location(float(x), float(y), float(z))
+    screen_points[0] /= screen_points[2]
+    screen_points[1] /= screen_points[2]
 
+    screen_locations = []
+    for i in range(len(locations)):
+        screen_locations.append(Location(float(screen_points[0,i]),
+                                         float(screen_points[1,i]),
+                                         float(screen_points[2,i])))
+    return screen_locations
 
 def get_stop_markings_bbox(
         bbox3d,
@@ -1198,10 +1220,10 @@ def get_stop_markings_bbox(
     coords = []
     for loc3d in bbox:
         loc = Location(loc3d[0, 0], loc3d[0, 1], loc3d[0, 2])
-        loc_view = location_3d_to_view(
-            loc,
+        loc_view = locations_3d_to_view(
+            [loc],
             camera_transform.matrix,
-            camera_intrinsic)
+            camera_intrinsic)[0]
         if (loc_view.z >= 0 and loc_view.x >= 0 and loc_view.y >= 0 and
             loc_view.x < frame_width and loc_view.y < frame_height):
             coords.append(loc_view)

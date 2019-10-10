@@ -116,6 +116,7 @@ flags.DEFINE_float('pedestrian_angle_emergency_thres', 0.5,
 flags.DEFINE_float('pid_p', 0.25, 'PID p parameter')
 flags.DEFINE_float('pid_i', 0.20, 'PID i parameter')
 flags.DEFINE_float('pid_d', 0.0, 'PID d parameter')
+
 # Steering control parameters
 flags.DEFINE_float('default_throttle', 0.0, 'Default throttle')
 flags.DEFINE_float('throttle_max', 0.75, 'Max throttle')
@@ -194,6 +195,8 @@ flags.DEFINE_bool('visualize_lane_detection', False,
 flags.DEFINE_bool('visualize_waypoints', False, 'True to visualize waypoints')
 flags.DEFINE_bool('visualize_top_down_segmentation', False,
                   'True to visualize top-down segmentation')
+flags.DEFINE_bool('visualize_top_down_tracker_output', False,
+                  'True to enable visualization of top-down tracker output')
 
 # Accuracy evaluation flags.
 flags.DEFINE_bool('evaluate_obj_detection', False,
@@ -219,7 +222,7 @@ flags.DEFINE_bool('segmentation_eval_use_accuracy_model', False,
 flags.DEFINE_bool('perfect_tracking', False,
                   'True to enable perfect object tracker.')
 flags.DEFINE_integer('perfect_tracking_num_steps', None,
-                     'Number of past steps returned by the perfect object tracker.')
+                     'Limit on number of past steps returned by the perfect object tracker.')
 
 # GPU memory fractions.
 flags.DEFINE_float('obj_detection_gpu_memory_fraction', 0.3,
