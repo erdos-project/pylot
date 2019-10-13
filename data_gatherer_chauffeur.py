@@ -89,6 +89,14 @@ def create_camera_setups():
             top_down_transform,
             fov=90)
         camera_setups.append(top_down_segmented_camera_setup)
+        top_down_camera_setup = pylot.simulation.utils.CameraSetup(
+            pylot.utils.TOP_DOWN_CAMERA_NAME,
+            'sensor.camera.rgb',
+            FLAGS.carla_camera_image_width,
+            FLAGS.carla_camera_image_height,
+            top_down_transform,
+            fov=90)
+        camera_setups.append(top_down_camera_setup)
 
     return camera_setups, top_down_segmented_camera_setup
 
