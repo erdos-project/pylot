@@ -3,6 +3,7 @@ from collections import deque
 import PIL.Image as Image
 import numpy as np
 
+import carla
 import cv2
 import json
 
@@ -14,6 +15,12 @@ from erdos.utils import setup_logging
 from pylot.perception.segmentation.utils import transform_to_cityscapes_palette, LABEL_2_PIXEL
 import pylot.utils
 import pylot.simulation.carla_utils
+
+TL_STATE_TO_PIXEL_COLOR = {
+    carla.TrafficLightState.Red: [255, 1, 1],
+    carla.TrafficLightState.Yellow: [2, 255, 2],
+    carla.TrafficLightState.Green: [3, 3, 255],
+}
 
 
 class ChauffeurLoggerOp(Op):
@@ -50,6 +57,13 @@ class ChauffeurLoggerOp(Op):
         # Get top-down camera.
         self._top_down_camera_setup = top_down_camera_setup
 
+        # Get world to access traffic lights.
+        _, self._world = pylot.simulation.carla_utils.get_world(self._flags.carla_host,
+                                                                self._flags.carla_port,
+                                                                self._flags.carla_timeout)
+        if self._world is None:
+            raise ValueError('There was an issue connecting to the simulator.')
+
     @staticmethod
     def setup_streams(input_streams, top_down_stream_name):
         input_streams.filter(pylot.utils.is_tracking_stream).add_callback(
@@ -61,6 +75,10 @@ class ChauffeurLoggerOp(Op):
             ChauffeurLoggerOp.on_ground_vehicle_id_update)
         input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
             ChauffeurLoggerOp.on_can_bus_update)
+        input_streams.filter(pylot.utils.is_ground_traffic_lights_stream).add_callback(
+            ChauffeurLoggerOp.on_traffic_lights_update)
+        input_streams.filter(pylot.utils.is_top_down_camera_stream).add_callback(
+            ChauffeurLoggerOp.on_top_down_camera_update)
         return []
 
     def on_tracking_update(self, msg):
@@ -182,3 +200,54 @@ class ChauffeurLoggerOp(Op):
                                                    msg.timestamp.coordinates[0])
         with open(file_name, 'w') as outfile:
             json.dump(str(msg.data.forward_speed), outfile)
+
+    def on_traffic_lights_update(self, msg):
+        tl_actors = self._world.get_actors().filter('traffic.traffic_light*')
+        for tl_actor in tl_actors:
+            self._draw_trigger_volume(self._world, tl_actor)
+
+    def on_top_down_camera_update(self, msg):
+        img = np.uint8(msg.frame)
+        # used for debugging rgb frame colors
+        # np.save('{}{}-{}'.format(self._flags.data_path, "cam", msg.timestamp.coordinates[0]), img)
+        tl_mask = self._get_traffic_light_channel_from_top_down_rgb(img)
+        tl_img = Image.fromarray(tl_mask)
+        tl_img = tl_img.convert('RGB')
+        tl_img.save('{}{}-{}.png'.format(self._flags.data_path, "traffic_lights", msg.timestamp.coordinates[0]))
+
+    def _draw_trigger_volume(self, world, tl_actor):
+        transform = tl_actor.get_transform()
+        tv = transform.transform(tl_actor.trigger_volume.location)
+        bbox = carla.BoundingBox(tv, tl_actor.trigger_volume.extent)
+        tl_state = tl_actor.get_state()
+        if tl_state in TL_STATE_TO_PIXEL_COLOR:
+            r, g, b = TL_STATE_TO_PIXEL_COLOR[tl_state]
+            bbox_color = carla.Color(r, g, b)
+        else:
+            bbox_color = carla.Color(0, 0, 0)
+        world.debug.draw_box(bbox, transform.rotation, color=bbox_color, life_time=1000)
+
+    def _get_traffic_light_channel_from_top_down_rgb(self, img, tl_bbox_colors=[[200, 0, 0], [13, 0, 196], [5, 200, 0]]):
+        """
+        Returns a mask of the traffic light extent bounding boxes seen from a top-down view.
+        The bounding boxes in the mask are colored differently depending on the state of each traffic light.
+
+        Input:
+        img: top-down rgb frame with traffic light extent bounding boxes drawn.
+        tl_bbox_colors: the colors of the traffic light extent bounding boxes.*
+
+        *Note: Not sure why the colors do not match up with the original colors the boxes are drawn with.
+               The default colors are estimates learned by examining the output of the top down camera.
+        """
+        if tl_bbox_colors is None:
+            tl_bbox_colors = TL_STATE_TO_PIXEL_COLOR.values()
+        h, w = img.shape[:2]
+        tl_mask = np.zeros((h+2, w+2), np.uint8)
+        vals = [33, 66, 99] # grayscale values for different traffic light states
+        for i, bbox_color in enumerate(tl_bbox_colors):
+            tl_mask_for_bbox_color = np.zeros((h+2, w+2), np.uint8)
+            mask = np.all(abs(img - bbox_color) < 20, axis=2).astype(np.uint8) # using a tolerance of 20 to locate correct boxes
+            cv2.floodFill(mask, tl_mask_for_bbox_color, (0, 0), 1) # flood fill from (0, 0) corner
+            tl_mask_for_bbox_color = 1 - tl_mask_for_bbox_color # invert image so mask highlights lights
+            tl_mask += tl_mask_for_bbox_color * vals[i]
+        return tl_mask[1:-1, 1:-1] # remove extra rows and cols added for floodFill
