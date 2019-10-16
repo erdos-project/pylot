@@ -13,6 +13,7 @@ from erdos.utils import setup_logging
 
 # Pylot specific imports.
 from pylot.perception.segmentation.utils import transform_to_cityscapes_palette, LABEL_2_PIXEL
+from pylot.planning.utils import get_distance
 import pylot.utils
 import pylot.simulation.carla_utils
 
@@ -204,7 +205,11 @@ class ChauffeurLoggerOp(Op):
     def on_traffic_lights_update(self, msg):
         tl_actors = self._world.get_actors().filter('traffic.traffic_light*')
         for tl_actor in tl_actors:
-            self._draw_trigger_volume(self._world, tl_actor)
+            x = self._current_transform.location
+            y = tl_actor.get_transform().location
+            dist = get_distance(x, y)
+            if dist <= 40:
+                self._draw_trigger_volume(self._world, tl_actor)
 
     def on_top_down_camera_update(self, msg):
         img = np.uint8(msg.frame)
@@ -225,7 +230,7 @@ class ChauffeurLoggerOp(Op):
             bbox_color = carla.Color(r, g, b)
         else:
             bbox_color = carla.Color(0, 0, 0)
-        world.debug.draw_box(bbox, transform.rotation, color=bbox_color, life_time=1000)
+        world.debug.draw_box(bbox, transform.rotation, color=bbox_color, life_time=0.2)
 
     def _get_traffic_light_channel_from_top_down_rgb(self, img, tl_bbox_colors=[[200, 0, 0], [13, 0, 196], [5, 200, 0]]):
         """
