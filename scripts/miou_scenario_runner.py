@@ -1,5 +1,6 @@
 from __future__ import print_function
 from time import sleep
+import csv
 import sys
 import argparse
 import functools
@@ -13,10 +14,11 @@ from pylot.simulation.carla_utils import get_world
 from pylot.simulation.utils import labels_to_array
 from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
 from pylot.perception.segmentation.utils import generate_masks
+from pylot.perception.segmentation.utils import compute_semantic_iou_from_masks
 
 VEHICLE_DESTINATION = carla.Location(x=387.73 - 370, y=327.07, z=0.5)
 SAVED_FRAMES = collections.deque()
-CSV_FILE = None
+CLEANUP_FUNCTION = None
 
 
 def spawn_camera(camera_bp, transform, ego_vehicle, width='1280',
@@ -121,50 +123,79 @@ def save_frame(file_name, frame):
     cv2.imwrite(file_name, frame)
 
 
-def compute_and_log_miou(current_frame, current_timestamp):
+def compute_and_log_miou(current_frame, current_timestamp, csv, deadline=410):
+    """ Computes the mIOU for the given frame relative to the previous frames
+    and logs it to the given csv file.
+
+    Args:
+        current_frame: The frame to compute the mIOU for.
+        current_timestamp: The timestamp associated with the frame.
+        csv: The csv file to write the results to.
+    """
     current_frame_masks = generate_masks(current_frame)
-    if len(SAVED_FRAMES) == 0:
-        SAVED_FRAMES.append((current_timestamp, current_frame_masks))
+    SAVED_FRAMES.append((current_timestamp, current_frame_masks))
+
+    # Remove data older than the deadline that we don't need anymore.
+    while (current_timestamp - SAVED_FRAMES[0][0]) * 1000 > deadline: 
+        SAVED_FRAMES.popleft()
 
     # Go over each of the saved frames, compute the difference in the
     # timestamp, and the mIOU and log both of them.
     for old_timestamp, old_frame_masks in SAVED_FRAMES:
-        (mean_iou,
-         class_iou) = compute_semantic_iou_from_masks(old_frame_masks,
+        (mean_iou, class_iou) = compute_semantic_iou_from_masks(old_frame_masks,
                                                       current_frame_masks)
         time_diff = current_timestamp - old_timestamp
-        CSV_FILE.writerow(
-            [current_timestamp, 'segmentation', 'mIoU', time_diff, mean_iou])
+
+        # Format of the CSV file: (latency_in_ms, class, mean IOU)
+        csv.writerow([time_diff * 1000, "Scene", mean_iou])
+
+        # Insert the results for the pedestrian.
+        pedestrian_key = 4
+        if pedestrian_key in class_iou:
+            csv.writerow(
+                [time_diff * 1000, "Pedestrian", class_iou[pedestrian_key]])
 
 
 def process_segmentation_images(msg,
                                 segmentation_camera,
                                 ego_vehicle,
                                 speed,
+                                csv,
                                 dump=False):
     print("Received a message for the time: {}".format(msg.timestamp))
 
     # If we are in distance to the destination, stop and exit with success.
     if ego_vehicle.get_location().distance(VEHICLE_DESTINATION) <= 5:
         ego_vehicle.set_velocity(carla.Vector3D())
-        set_synchronous_mode(ego_vehicle.get_world(), False)
-        segmentation_camera.destroy()
+        CLEANUP_FUNCTION()
         sys.exit(0)
 
     # Compute the segmentation mIOU.
     frame = labels_to_array(msg)
-    compute_and_log_miou(frame, msg.timestamp)
+    compute_and_log_miou(frame, msg.timestamp, csv)
 
     # Visualize the run.
     if dump:
-        save_frame("segmentation{}.png".format(int(msg.timestamp * 1000)),
-                   frame)
+        save_frame("./_out/seg{}.png".format(int(msg.timestamp * 1000)), frame)
 
     # Move the ego_vehicle according to the given speed.
     ego_vehicle.set_velocity(carla.Vector3D(x=-speed))
 
     # Move the simulator forward.
     ego_vehicle.get_world().tick()
+
+
+def cleanup_function(world, segmentation_camera, csv_file):
+    """ Cleans up the state of the simulator.
+
+    Args:
+        world: The instance of the world to restore the asynchronous mode on.
+        segmentation_camera: The camera to destroy.
+        csv_file: The open results file to close.
+    """
+    set_synchronous_mode(world, False)
+    segmentation_camera.destroy()
+    csv_file.close()
 
 
 def main(args):
@@ -197,8 +228,16 @@ def main(args):
                                        ego_vehicle, *args.res.split('x'))
 
     # Open the CSV file for writing.
-    csvfile = open(args.output, 'w')
-    CSV_FILE = csv.writer(csvfile)
+    csv_file = open(args.output, 'w')
+    csv_writer = csv.writer(csv_file)
+
+    # Create the cleanup function.
+    global CLEANUP_FUNCTION
+    CLEANUP_FUNCTION = functools.partial(
+        cleanup_function,
+        world=world,
+        segmentation_camera=segmentation_camera,
+        csv_file=csv_file)
 
     # Register a callback function with the camera.
     segmentation_camera.listen(
@@ -206,6 +245,7 @@ def main(args):
                           segmentation_camera=segmentation_camera,
                           ego_vehicle=ego_vehicle,
                           speed=args.speed,
+                          csv=csv_writer,
                           dump=args.dump))
 
     try:
@@ -213,9 +253,7 @@ def main(args):
         while True:
             pass
     except KeyboardInterrupt:
-        # Cleanup the state on the simulator.
-        set_synchronous_mode(world, False)
-        segmentation_camera.destroy()
+        CLEANUP_FUNCTION()
         sys.exit(0)
 
 
@@ -226,7 +264,7 @@ if __name__ == "__main__":
                            dest='speed',
                            required=True,
                            type=float,
-                           help="Set the speed of the vehicle.")
+                           help="Set the speed of the vehicle in m/s.")
     argparser.add_argument('-d',
                            '--delta',
                            dest='delta',
@@ -262,4 +300,8 @@ if __name__ == "__main__":
 
     if not args.output.endswith('csv'):
         raise ValueError("The output should be a CSV file.")
+
+    if args.dump and not os.path.exists('./_out'):
+        os.mkdir('./_out')
+
     main(args)
