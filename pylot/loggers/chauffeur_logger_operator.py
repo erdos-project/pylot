@@ -230,7 +230,7 @@ class ChauffeurLoggerOp(Op):
             bbox_color = carla.Color(r, g, b)
         else:
             bbox_color = carla.Color(0, 0, 0)
-        world.debug.draw_box(bbox, transform.rotation, color=bbox_color, life_time=0.2)
+        world.debug.draw_box(bbox, transform.rotation, thickness=5, color=bbox_color, life_time=0.2)
 
     def _get_traffic_light_channel_from_top_down_rgb(self, img, tl_bbox_colors=[[200, 0, 0], [13, 0, 196], [5, 200, 0]]):
         """
