@@ -1,11 +1,22 @@
 from __future__ import print_function
+from time import sleep
 import sys
 import argparse
-from time import sleep
-from functools import partial
+import functools
+import collections
 
+import cv2
 import carla
+import numpy as np
+
 from pylot.simulation.carla_utils import get_world
+from pylot.simulation.utils import labels_to_array
+from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
+from pylot.perception.segmentation.utils import generate_masks
+
+VEHICLE_DESTINATION = carla.Location(x=387.73 - 370, y=327.07, z=0.5)
+SAVED_FRAMES = collections.deque()
+CSV_FILE = None
 
 
 def spawn_camera(camera_bp, transform, ego_vehicle, width='1280',
@@ -69,8 +80,8 @@ def set_synchronous_mode(world, value, delta=None):
         settings.fixed_delta_seconds = delta
     else:
         settings.fixed_delta_seconds = None
-    world.apply_settings(settings)
 
+    world.apply_settings(settings)
     if value:
         world.tick()
 
@@ -98,10 +109,63 @@ def setup_world(host, port, delta):
 
     return world
 
-counter = 0
 
-def process_segmentation_images(msg, ego_vehicle, speed, dump=False):
+def save_frame(file_name, frame):
+    """ Saves the given frame at the given file name.
+
+    Args:
+        file_name: The file name to save the segmented image to.
+        frame: The segmented frame to save.
+    """
+    frame = transform_to_cityscapes_palette(frame)
+    cv2.imwrite(file_name, frame)
+
+
+def compute_and_log_miou(current_frame, current_timestamp):
+    current_frame_masks = generate_masks(current_frame)
+    if len(SAVED_FRAMES) == 0:
+        SAVED_FRAMES.append((current_timestamp, current_frame_masks))
+
+    # Go over each of the saved frames, compute the difference in the
+    # timestamp, and the mIOU and log both of them.
+    for old_timestamp, old_frame_masks in SAVED_FRAMES:
+        (mean_iou,
+         class_iou) = compute_semantic_iou_from_masks(old_frame_masks,
+                                                      current_frame_masks)
+        time_diff = current_timestamp - old_timestamp
+        CSV_FILE.writerow(
+            [current_timestamp, 'segmentation', 'mIoU', time_diff, mean_iou])
+
+
+def process_segmentation_images(msg,
+                                segmentation_camera,
+                                ego_vehicle,
+                                speed,
+                                dump=False):
     print("Received a message for the time: {}".format(msg.timestamp))
+
+    # If we are in distance to the destination, stop and exit with success.
+    if ego_vehicle.get_location().distance(VEHICLE_DESTINATION) <= 5:
+        ego_vehicle.set_velocity(carla.Vector3D())
+        set_synchronous_mode(ego_vehicle.get_world(), False)
+        segmentation_camera.destroy()
+        sys.exit(0)
+
+    # Compute the segmentation mIOU.
+    frame = labels_to_array(msg)
+    compute_and_log_miou(frame, msg.timestamp)
+
+    # Visualize the run.
+    if dump:
+        save_frame("segmentation{}.png".format(int(msg.timestamp * 1000)),
+                   frame)
+
+    # Move the ego_vehicle according to the given speed.
+    ego_vehicle.set_velocity(carla.Vector3D(x=-speed))
+
+    # Move the simulator forward.
+    ego_vehicle.get_world().tick()
+
 
 def main(args):
     """ The main function that orchestrates the setup of the world, connection
@@ -120,7 +184,7 @@ def main(args):
     ego_vehicle = None
     while ego_vehicle is None:
         print("Waiting for the scenario to be ready ...")
-        time.sleep(1)
+        sleep(1)
         ego_vehicle = retrieve_actor(world, 'vehicle.*', 'hero')
         world.tick()
 
@@ -132,17 +196,22 @@ def main(args):
                                        segmentation_camera_transform,
                                        ego_vehicle, *args.res.split('x'))
 
+    # Open the CSV file for writing.
+    csvfile = open(args.output, 'w')
+    CSV_FILE = csv.writer(csvfile)
+
     # Register a callback function with the camera.
     segmentation_camera.listen(
-        partial(process_segmentation_images,
-                ego_vehicle=ego_vehicle,
-                speed=args.speed,
-                dump=args.dump))
+        functools.partial(process_segmentation_images,
+                          segmentation_camera=segmentation_camera,
+                          ego_vehicle=ego_vehicle,
+                          speed=args.speed,
+                          dump=args.dump))
 
     try:
+        # To keep the thread alive so that the images can be processed.
         while True:
-            time.sleep(1)
-            world.tick()
+            pass
     except KeyboardInterrupt:
         # Cleanup the state on the simulator.
         set_synchronous_mode(world, False)
@@ -156,12 +225,18 @@ if __name__ == "__main__":
                            '--speed',
                            dest='speed',
                            required=True,
+                           type=float,
                            help="Set the speed of the vehicle.")
     argparser.add_argument('-d',
                            '--delta',
                            dest='delta',
                            type=float,
+                           required=True,
                            help='The delta at which to run the simulator.')
+    argparser.add_argument('-o',
+                           '--output',
+                           default='results.csv',
+                           help='The CSV file to output the results to.')
     argparser.add_argument('--host',
                            metavar='H',
                            default='127.0.0.1',
@@ -177,4 +252,14 @@ if __name__ == "__main__":
     argparser.add_argument('--dump',
                            action='store_true',
                            help="Dump the images to _out directory")
-    main(argparser.parse_args())
+
+    # Verify arguments.
+    args = argparser.parse_args()
+    if args.delta > 0.1:
+        raise ValueError(
+            "The CARLA simulator does not work well with frame rates lower "
+            "than 10FPS.")
+
+    if not args.output.endswith('csv'):
+        raise ValueError("The output should be a CSV file.")
+    main(args)
