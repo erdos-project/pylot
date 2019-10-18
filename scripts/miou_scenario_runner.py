@@ -123,7 +123,7 @@ def save_frame(file_name, frame):
     cv2.imwrite(file_name, frame)
 
 
-def compute_and_log_miou(current_frame, current_timestamp, csv, deadline=410):
+def compute_and_log_miou(current_frame, current_timestamp, csv, deadline=210):
     """ Computes the mIOU for the given frame relative to the previous frames
     and logs it to the given csv file.
 

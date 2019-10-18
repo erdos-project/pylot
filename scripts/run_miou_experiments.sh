@@ -2,9 +2,10 @@ CARLA_PATH=../../CARLA_0.9.6
 SCENARIO_RUNNER_PATH=../../scenario_runner
 
 speeds=( 10 15 20 25 30 35 40 )
-SAMPLING_RATE=0.02
+SAMPLING_RATE=0.005 # The delta between two subsequent frames.
 
 for speed in ${speeds[@]}; do
+    echo "[x] Running the experiment with the speed $speed and the sampling rate of $SAMPLING_RATE"
     # Start the simulator.
     echo "[x] Starting the Carla Simulator 0.9.6"
     ./$CARLA_PATH/CarlaUE4.sh & 
