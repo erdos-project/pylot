@@ -179,7 +179,6 @@ def process_depth_images(msg,
 
     # Compute the mAP.
     print("We detected a total of {} pedestrians.".format(len(detected_pedestrians)))
-    print("Detected pedestrians are: {}".format(detected_pedestrians))
     compute_and_log_map(detected_pedestrians, msg.timestamp, csv)
 
     # Move the ego_vehicle according to the given speed.
