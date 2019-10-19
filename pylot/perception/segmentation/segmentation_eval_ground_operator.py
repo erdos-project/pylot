@@ -53,7 +53,7 @@ class SegmentationEvalGroundOperator(Op):
             cur_time = time_epoch_ms()
             for timestamp, ground_masks in self._ground_masks:
                 (mean_iou, class_iou) = compute_semantic_iou_from_masks(
-                    ground_masks, frame_masks)
+                    frame_masks, ground_masks)
                 time_diff = msg.timestamp.coordinates[0] - timestamp
                 self._logger.info(
                     'Segmentation ground latency {} ; mean IoU {}'.format(

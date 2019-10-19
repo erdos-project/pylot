@@ -136,14 +136,15 @@ def compute_and_log_miou(current_frame, current_timestamp, csv, deadline=210):
     SAVED_FRAMES.append((current_timestamp, current_frame_masks))
 
     # Remove data older than the deadline that we don't need anymore.
-    while (current_timestamp - SAVED_FRAMES[0][0]) * 1000 > deadline: 
+    while (current_timestamp - SAVED_FRAMES[0][0]) * 1000 > deadline:
         SAVED_FRAMES.popleft()
 
     # Go over each of the saved frames, compute the difference in the
     # timestamp, and the mIOU and log both of them.
     for old_timestamp, old_frame_masks in SAVED_FRAMES:
-        (mean_iou, class_iou) = compute_semantic_iou_from_masks(old_frame_masks,
-                                                      current_frame_masks)
+        (mean_iou,
+         class_iou) = compute_semantic_iou_from_masks(current_frame_masks,
+                                                      old_frame_masks)
         time_diff = current_timestamp - old_timestamp
 
         # Format of the CSV file: (latency_in_ms, class, mean IOU)
