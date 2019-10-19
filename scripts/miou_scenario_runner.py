@@ -157,7 +157,6 @@ def compute_and_log_miou(current_frame, current_timestamp, csv, deadline=210):
 
 
 def process_segmentation_images(msg,
-                                segmentation_camera,
                                 ego_vehicle,
                                 speed,
                                 csv,
@@ -185,16 +184,17 @@ def process_segmentation_images(msg,
     ego_vehicle.get_world().tick()
 
 
-def cleanup_function(world, segmentation_camera, csv_file):
+def cleanup_function(world, cameras, csv_file):
     """ Cleans up the state of the simulator.
 
     Args:
         world: The instance of the world to restore the asynchronous mode on.
-        segmentation_camera: The camera to destroy.
+        cameras: The cameras to destroy.
         csv_file: The open results file to close.
     """
     set_synchronous_mode(world, False)
-    segmentation_camera.destroy()
+    for camera in cameras:
+        camera.destroy()
     csv_file.close()
 
 
@@ -236,13 +236,12 @@ def main(args):
     CLEANUP_FUNCTION = functools.partial(
         cleanup_function,
         world=world,
-        segmentation_camera=segmentation_camera,
+        cameras=[segmentation_camera],
         csv_file=csv_file)
 
     # Register a callback function with the camera.
     segmentation_camera.listen(
         functools.partial(process_segmentation_images,
-                          segmentation_camera=segmentation_camera,
                           ego_vehicle=ego_vehicle,
                           speed=args.speed,
                           csv=csv_writer,
