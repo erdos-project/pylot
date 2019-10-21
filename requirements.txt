@@ -2,7 +2,7 @@ absl-py
 cffi
 gdown
 matplotlib==2.2.4
-open3d-original
+open3d-python==0.4.0.0
 opencv-python
 opencv-contrib-python
 pid_controller
