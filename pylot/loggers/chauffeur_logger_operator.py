@@ -23,6 +23,8 @@ TL_STATE_TO_PIXEL_COLOR = {
     carla.TrafficLightState.Green: [3, 3, 255],
 }
 
+TL_LOGGING_RADIUS = 40 # draw bounding boxes and record them within this num of meters from car
+TL_BBOX_LIFETIME_BUFFER = 0.1
 
 class ChauffeurLoggerOp(Op):
     """
@@ -76,8 +78,6 @@ class ChauffeurLoggerOp(Op):
             ChauffeurLoggerOp.on_ground_vehicle_id_update)
         input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
             ChauffeurLoggerOp.on_can_bus_update)
-        input_streams.filter(pylot.utils.is_ground_traffic_lights_stream).add_callback(
-            ChauffeurLoggerOp.on_traffic_lights_update)
         input_streams.filter(pylot.utils.is_top_down_camera_stream).add_callback(
             ChauffeurLoggerOp.on_top_down_camera_update)
         return []
@@ -202,19 +202,18 @@ class ChauffeurLoggerOp(Op):
         with open(file_name, 'w') as outfile:
             json.dump(str(msg.data.forward_speed), outfile)
 
-    def on_traffic_lights_update(self, msg):
+    def on_top_down_camera_update(self, msg):
+        # Draw traffic light bboxes within TL_LOGGING_RADIUS meters from car
         tl_actors = self._world.get_actors().filter('traffic.traffic_light*')
         for tl_actor in tl_actors:
             x = self._current_transform.location
             y = tl_actor.get_transform().location
             dist = get_distance(x, y)
-            if dist <= 40:
+            if dist <= TL_LOGGING_RADIUS:
                 self._draw_trigger_volume(self._world, tl_actor)
 
-    def on_top_down_camera_update(self, msg):
+        # Record traffic light masks
         img = np.uint8(msg.frame)
-        # used for debugging rgb frame colors
-        # np.save('{}{}-{}'.format(self._flags.data_path, "cam", msg.timestamp.coordinates[0]), img)
         tl_mask = self._get_traffic_light_channel_from_top_down_rgb(img)
         tl_img = Image.fromarray(tl_mask)
         tl_img = tl_img.convert('RGB')
@@ -230,7 +229,8 @@ class ChauffeurLoggerOp(Op):
             bbox_color = carla.Color(r, g, b)
         else:
             bbox_color = carla.Color(0, 0, 0)
-        world.debug.draw_box(bbox, transform.rotation, thickness=5, color=bbox_color, life_time=0.2)
+        bbox_life_time = 1 / self._flags.carla_step_frequency + TL_BBOX_LIFETIME_BUFFER
+        world.debug.draw_box(bbox, transform.rotation, thickness=0.5, color=bbox_color, life_time=bbox_life_time)
 
     def _get_traffic_light_channel_from_top_down_rgb(self, img, tl_bbox_colors=[[200, 0, 0], [13, 0, 196], [5, 200, 0]]):
         """
