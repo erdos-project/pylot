@@ -74,7 +74,7 @@ def create_camera_setups():
         FLAGS.carla_camera_image_height,
         transform)
     camera_setups.append(segmented_camera_setup)
-
+    top_down_segmented_camera_setup=None
     if FLAGS.chauffeur:
         # Height calculation relies on the fact that the camera's FOV is 90.
         top_down_location = pylot.simulation.utils.Location(1.5, 0.0, 1.4 + FLAGS.top_down_lateral_view)
@@ -89,9 +89,15 @@ def create_camera_setups():
             top_down_transform,
             fov=90)
         camera_setups.append(top_down_segmented_camera_setup)
-
+        top_down_camera_setup = pylot.simulation.utils.CameraSetup(
+            pylot.utils.TOP_DOWN_CAMERA_NAME,
+            'sensor.camera.rgb',
+            FLAGS.carla_camera_image_width,
+            FLAGS.carla_camera_image_height,
+            top_down_transform,
+            fov=90)
+        camera_setups.append(top_down_camera_setup)
     return camera_setups, top_down_segmented_camera_setup
-
 
 def create_lidar_setups():
     lidar_setups = []
