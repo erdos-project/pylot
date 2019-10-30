@@ -10,6 +10,7 @@ RIGHT_CAMERA_NAME = 'front_right_rgb_camera'
 DEPTH_CAMERA_NAME = 'front_depth_camera'
 FRONT_SEGMENTED_CAMERA_NAME = 'front_semantic_camera'
 TOP_DOWN_SEGMENTED_CAMERA_NAME = 'top_down_semantic_camera'
+TOP_DOWN_CAMERA_NAME = 'top_down_rgb_camera'
 
 # Sensor streams
 def is_camera_stream(stream):
@@ -33,6 +34,12 @@ def is_right_camera_stream(stream):
     return (stream.get_label('sensor_type') == 'camera' and
             stream.get_label('camera_type') == 'sensor.camera.rgb' and
             stream.name == RIGHT_CAMERA_NAME)
+
+
+def is_top_down_camera_stream(stream):
+    return (stream.get_label('sensor_type') == 'camera' and
+            stream.get_label('camera_type') == 'sensor.camera.rgb' and
+            stream.name == TOP_DOWN_CAMERA_NAME)
 
 
 def is_depth_camera_stream(stream):
