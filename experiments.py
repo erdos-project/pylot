@@ -1,5 +1,6 @@
 from collections import namedtuple
 
+import carla
 from absl import app
 from absl import flags
 
@@ -12,6 +13,7 @@ from pylot.simulation.carla_scenario_operator import CarlaScenarioOperator
 from pylot.simulation.perfect_pedestrian_detector_operator import \
         PerfectPedestrianDetectorOperator
 from pylot.simulation.carla_utils import get_world
+from pylot.simulation.perfect_planning_operator import PerfectPlanningOperator
 
 FLAGS = flags.FLAGS
 
@@ -137,6 +139,19 @@ def add_pedestrian_detector_operator(graph, camera_setup):
     return pedestrian_detector_operator
 
 
+def add_planning_operator(graph, destination):
+    perfect_planning_operator = graph.add(PerfectPlanningOperator,
+                                          name='perfect_planning',
+                                          init_args={
+                                              'goal': destination,
+                                              'flags': FLAGS,
+                                              'log_file_name':
+                                              FLAGS.log_file_name
+                                          })
+    return perfect_planning_operator
+
+
+
 def main(args):
     # Connect an instance to the simulator to make sure that we can turn the
     # synchronous mode off after the script finishes running.
@@ -164,8 +179,10 @@ def main(args):
                       [object_detector_operator])
 
         # Add a perfect planning operator.
-        perfect_planning_operator = add_planning_operator(graph)
-
+        perfect_planning_operator = add_planning_operator(
+            graph, carla.Location(x=17.73, y=327.07, z=0.5))
+        graph.connect([carla_operator], [perfect_planning_operator])
+        graph.connect([perfect_planning_operator], [carla_operator])
 
         graph.execute(FLAGS.framework)
     except KeyboardInterrupt:
