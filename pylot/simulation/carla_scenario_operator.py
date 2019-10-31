@@ -39,6 +39,13 @@ class CarlaScenarioOperator(Op):
             self._ego_vehicle = CarlaScenarioOperator.retrieve_actor(
                 self._world, 'vehicle.*', role_name)
             self._world.tick()
+
+        # Fix the physics of the vehicle to increase the max speed.
+        # physics_control = self._ego_vehicle.get_physics_control()
+        # physics_control.moi = 0.1
+        # physics_control.mass = 100
+        # self._ego_vehicle.apply_physics_control(physics_control)
+
         self._logger.info("The ego vehicle with the identifier {} "
                           "was retrieved from the simulation.".format(
                               self._ego_vehicle.id))
@@ -76,6 +83,12 @@ class CarlaScenarioOperator(Op):
         return None
 
     def on_control_msg(self, msg):
+        vec_control = carla.VehicleControl(throttle=msg.throttle,
+                                           steer=msg.steer,
+                                           brake=msg.brake,
+                                           hand_brake=msg.hand_brake,
+                                           reverse=msg.reverse)
+        self._ego_vehicle.apply_control(vec_control)
         self._world.tick()
 
     def __publish_hero_vehicle_data(self, vehicle, timestamp, watermark_msg):

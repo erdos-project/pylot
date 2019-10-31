@@ -1,6 +1,8 @@
 import threading
 import collections
 
+import carla
+import numpy as np
 from pid_controller.pid import PID
 
 from erdos.op import Op
@@ -9,7 +11,8 @@ from erdos.utils import setup_logging
 import pylot.utils
 from pylot.control.messages import ControlMessage
 from pylot.simulation.utils import to_pylot_transform
-from pylot.simulation.carla_utils import get_world, to_carla_location
+from pylot.simulation.carla_utils import get_world, to_carla_location,\
+        to_carla_transform
 from pylot.planning.utils import get_waypoint_vector_and_angle
 
 
@@ -44,6 +47,15 @@ class PerfectPlanningOperator(Op):
         self._pid = PID(p=self._flags.pid_p,
                         i=self._flags.pid_i,
                         d=self._flags.pid_d)
+
+        # Planning constants.
+        self.PLANNING_BEHAVIOR = 'swerve'
+        self.SPEED = self._flags.target_speed
+        self.DETECTION_DISTANCE = 18
+        self.GOAL_DISTANCE = self.SPEED
+        self.SAMPLING_DISTANCE = self.SPEED / 3
+        self._goal_reached = False
+        self._in_swerve = False
 
     @staticmethod
     def setup_streams(input_streams):
@@ -119,6 +131,10 @@ class PerfectPlanningOperator(Op):
             brake = 0
         return throttle, brake
 
+    def __get_forward_vector(self, waypoint):
+        fwd_vector = waypoint.get_forward_vector()
+        return [fwd_vector.x, fwd_vector.y, fwd_vector.z]
+
     def on_notification(self, msg):
         """ The callback function invoked upon receipt of a WatermarkMessage.
 
@@ -145,20 +161,69 @@ class PerfectPlanningOperator(Op):
 
         self._logger.info("Can Bus Message: {}, Pedestrian Message: {}".format(
             can_bus_msg.timestamp, pedestrian_msg.timestamp))
+        self._logger.info(
+            "The vehicle is travelling at a speed of {} m/s.".format(
+                can_bus_msg.data.forward_speed))
 
         # Figure out the location of the ego vehicle and compute the next
         # waypoint.
         ego_location = to_carla_location(can_bus_msg.data.transform.location)
-        if ego_location.distance(self._goal) <= 5:
+        if self._goal_reached or ego_location.distance(
+                self._goal) <= self.GOAL_DISTANCE:
             self.get_output_stream('control_stream').send(
-                ControlMessage(0.0, 0.0, 1.0, False, False, msg.timestamp))
+                ControlMessage(0.0, 0.0, 1.0, True, False, msg.timestamp))
+            self._goal_reached = True
         else:
-            #wp_speed = self._map.get_waypoint(ego_location).next(4.0)[0]
-            #wp_speed_vector, wp_speed_angle = get_waypoint_vector_and_angle(
-            #    to_pylot_transform(wp_speed.transform),
-            #    can_bus_msg.data.transform)
+            pedestrian_detected = False
+            for pedestrian in pedestrian_msg.pedestrians:
+                pedestrian_loc = to_carla_location(
+                    pedestrian.transform.location)
+                pedestrian_wp = self._map.get_waypoint(pedestrian_loc,
+                                                       project_to_road=False)
+                if pedestrian_wp and ego_location.distance(
+                        pedestrian_loc) <= self.DETECTION_DISTANCE:
+                    pedestrian_detected = True
+                    break
 
-            wp_steer = self._map.get_waypoint(ego_location).next(1.0)[0].next(1.0)[0].next(1.0)[0]
+            if pedestrian_detected and self.PLANNING_BEHAVIOR == 'stop':
+                self.get_output_stream('control_stream').send(
+                    ControlMessage(0.0, 0.0, 1.0, True, False,
+                                   msg.timestamp))
+                return
+
+            # Get the waypoint that is SAMPLING_DISTANCE away.
+            wp_steer = self._map.get_waypoint(ego_location - carla.Location(
+                x=self.SAMPLING_DISTANCE))
+
+
+            if pedestrian_detected:
+                # If a pedestrian was detected, make sure we're driving on the
+                # wrong direction.
+                ego_vehicle_fwd = self.__get_forward_vector(
+                    to_carla_transform(can_bus_msg.data.transform))
+                waypoint_fwd = self.__get_forward_vector(wp_steer.transform)
+
+                if np.dot(ego_vehicle_fwd, waypoint_fwd) > 0:
+                    # We're not driving in the wrong direction, get left
+                    # lane waypoint.
+                    wp_steer = wp_steer.get_left_lane()
+                else:
+                    # We're driving in the right direction, continue driving.
+                    pass
+            else:
+                # The pedestrian was not detected, come back from the swerve.
+                ego_vehicle_fwd = self.__get_forward_vector(
+                    to_carla_transform(can_bus_msg.data.transform))
+                waypoint_fwd = self.__get_forward_vector(wp_steer.transform)
+
+                if np.dot(ego_vehicle_fwd, waypoint_fwd) < 0:
+                    # We're driving in the wrong direction, get the left lane
+                    # waypoint.
+                    wp_steer = wp_steer.get_left_lane()
+                else:
+                    # We're driving in the right direction, continue driving.
+                    pass
+
             self._world.debug.draw_point(wp_steer.transform.location,
                                          size=0.2,
                                          life_time=30000.0)
@@ -169,7 +234,8 @@ class PerfectPlanningOperator(Op):
             current_speed = max(0, can_bus_msg.data.forward_speed)
             steer = self.__get_steer(wp_steer_angle)
             throttle, brake = self.__get_throttle_brake_without_factor(
-                current_speed, 10)
+                current_speed, self.SPEED)
+
             self.get_output_stream('control_stream').send(
                 ControlMessage(steer, throttle, brake, False, False,
                                msg.timestamp))
