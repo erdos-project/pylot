@@ -8,7 +8,7 @@ from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
 from pylot.perception.detection.utils import visualize_no_colors_bboxes
-from pylot.utils import is_camera_stream, is_obstacles_stream
+from pylot.utils import is_camera_stream, is_obstacles_stream, is_deep_sort_logs_stream
 
 
 class ObjectTrackerOp(Op):
@@ -31,6 +31,9 @@ class ObjectTrackerOp(Op):
             elif tracker_type == 'da_siam_rpn':
                 from pylot.perception.tracking.da_siam_rpn_tracker import MultiObjectDaSiamRPNTracker
                 self._tracker = MultiObjectDaSiamRPNTracker(self._flags)
+            elif tracker_type == 'deep_sort':
+                from pylot.perception.tracking.deep_sort_tracker import MultiObjectDeepSORTTracker
+                self._tracker = MultiObjectDeepSORTTracker(self._flags)
             else:
                 self._logger.fatal(
                     'Unexpected tracker type {}'.format(tracker_type))
@@ -40,6 +43,7 @@ class ObjectTrackerOp(Op):
         self._ready_to_update = False
         self._ready_to_update_timestamp = None
         self._to_process = deque()
+        self._logs = deque()
         self._lock = threading.Lock()
 
     @staticmethod
@@ -55,7 +59,12 @@ class ObjectTrackerOp(Op):
             camera_streams = camera_streams.filter_name(camera_stream_name)
         # Register a callback on the camera input stream.
         camera_streams.add_callback(ObjectTrackerOp.on_frame_msg)
+        input_streams.filter(is_deep_sort_logs_stream).add_callback(
+            ObjectTrackerOp.on_log_msg)
         return [DataStream(name=output_stream_name)]
+
+    def on_log_msg(self, msg):
+        self._logs.append(msg)
 
     def on_frame_msg(self, msg):
         """ Invoked when a FrameMessage is received on the camera stream."""
@@ -88,6 +97,11 @@ class ObjectTrackerOp(Op):
             self._logger.info("Removing stale {} {}".format(
                 self._to_process[0][0], msg.timestamp))
             self._to_process.popleft()
+        
+        while len(self._logs) > 0 and self._logs[0][0] < msg.timestamp:
+            self._logger.info("Removing stale {} {}".format(
+                self._logs[0][0], msg.timestamp))
+            self._logs.popleft()
         # bboxes = self.__get_highest_confidence_pedestrian(msg.detected_objects)
         # Track all pedestrians.
         bboxes = self.__get_pedestrians(msg.detected_objects)
@@ -95,9 +109,10 @@ class ObjectTrackerOp(Op):
             if len(self._to_process) > 0:
                 # Found the frame corresponding to the bounding boxes.
                 (timestamp, frame) = self._to_process.popleft()
-                assert timestamp == msg.timestamp
+                (log_timestamp, logs) = self._logs.popleft()
+                assert timestamp == msg.timestamp == log_timestamp
                 # Re-initialize trackers.
-                self.__initialize_trackers(frame, bboxes, msg.timestamp)
+                self.__initialize_trackers(frame, bboxes, msg.timestamp, logs)
                 self._logger.info('Trackers have {} frames to catch-up'.format(
                     len(self._to_process)))
                 for (timestamp, frame) in self._to_process:
@@ -163,11 +178,11 @@ class ObjectTrackerOp(Op):
                 bboxes.append(detected_obj.corners)
         return bboxes
 
-    def __initialize_trackers(self, frame, bboxes, timestamp):
+    def __initialize_trackers(self, frame, bboxes, timestamp, deep_sort_logs=None):
         self._ready_to_update = True
         self._ready_to_update_timestamp = timestamp
         self._logger.info('Restarting trackers at frame {}'.format(timestamp))
-        self._tracker.reinitialize(frame, bboxes)
+        self._tracker.reinitialize(frame, bboxes, deep_sort_logs)
 
     def __track_bboxes_on_frame(self, frame, timestamp, catch_up):
         self._logger.info('Processing frame {}'.format(timestamp))
