@@ -33,7 +33,7 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
 
     def get_detections_and_scores_from_logs(deep_sort_logs):
         detections, scores = [], []
-        logs_list = list(map(lambda x:x.strip(), deep_sort_logs))
+        #logs_list = list(map(lambda x:x.strip(), deep_sort_logs))
         for i in range(len(logs_list)):
             info = list(logs_list[i].split(','))
             info = list(map(float,info))

@@ -59,12 +59,12 @@ class ObjectTrackerOp(Op):
             camera_streams = camera_streams.filter_name(camera_stream_name)
         # Register a callback on the camera input stream.
         camera_streams.add_callback(ObjectTrackerOp.on_frame_msg)
-        input_streams.filter(is_deep_sort_logs_stream).add_callback(
-            ObjectTrackerOp.on_log_msg)
+        #input_streams.filter(is_deep_sort_logs_stream).add_callback(
+        #   ObjectTrackerOp.on_log_msg)
         return [DataStream(name=output_stream_name)]
 
-    def on_log_msg(self, msg):
-        self._logs.append(msg)
+    #def on_log_msg(self, msg):
+    #    self._logs.append(msg)
 
     def on_frame_msg(self, msg):
         """ Invoked when a FrameMessage is received on the camera stream."""
@@ -98,20 +98,21 @@ class ObjectTrackerOp(Op):
                 self._to_process[0][0], msg.timestamp))
             self._to_process.popleft()
         
-        while len(self._logs) > 0 and self._logs[0][0] < msg.timestamp:
-            self._logger.info("Removing stale {} {}".format(
-                self._logs[0][0], msg.timestamp))
-            self._logs.popleft()
+        #while len(self._logs) > 0 and self._logs[0][0] < msg.timestamp:
+        #    self._logger.info("Removing stale {} {}".format(
+        #        self._logs[0][0], msg.timestamp))
+        #    self._logs.popleft()
         # bboxes = self.__get_highest_confidence_pedestrian(msg.detected_objects)
         # Track all pedestrians.
-        bboxes = self.__get_pedestrians(msg.detected_objects)
+        bboxes, ids = self.__get_pedestrians(msg.detected_objects)
         if len(bboxes) > 0:
             if len(self._to_process) > 0:
                 # Found the frame corresponding to the bounding boxes.
                 (timestamp, frame) = self._to_process.popleft()
-                (log_timestamp, logs) = self._logs.popleft()
-                assert timestamp == msg.timestamp == log_timestamp
+                #(log_timestamp, logs) = self._logs.popleft()
+                assert timestamp == msg.timestamp# == log_timestamp
                 # Re-initialize trackers.
+                logs = construct_deep_sort_logs(bboxes, ids)
                 self.__initialize_trackers(frame, bboxes, msg.timestamp, logs)
                 self._logger.info('Trackers have {} frames to catch-up'.format(
                     len(self._to_process)))
@@ -126,6 +127,19 @@ class ObjectTrackerOp(Op):
 
     def execute(self):
         self.spin()
+
+    def create_deep_sort_logs(bboxes, ids):
+        lines = []
+        for i in range(len(bboxes)):
+            bbox = bboxes[i]
+            obj_id = ids[i]
+            (x1, y1), (x2, y2) = bbox
+            bbox_x, bbox_y = x1, y1
+            bbox_w, bbox_h = x2 - x1, y2 - y1
+            log_line = "{},{},{},{},{},{},{},{},{},{}\n".format(
+                0, obj_id, bbox_x, bbox_y, bbox_w, bbox_h, 1.0, -1, -1, -1) # timestamp is 0 here
+            lines.append(log_line)
+        return lines
 
     def checkpoint(self, timestamp):
         """ Invoked by ERDOS when the operator must checkpoint state.
@@ -173,10 +187,12 @@ class ObjectTrackerOp(Op):
 
     def __get_pedestrians(self, detector_objs):
         bboxes = []
+        ids = []
         for detected_obj in detector_objs:
             if detected_obj.label == 'person':
                 bboxes.append(detected_obj.corners)
-        return bboxes
+                ids.append(detected_obj.obj_id)
+        return bboxes, ids
 
     def __initialize_trackers(self, frame, bboxes, timestamp, deep_sort_logs=None):
         self._ready_to_update = True
@@ -196,4 +212,24 @@ class ObjectTrackerOp(Op):
             self._ready_to_update = False
         else:
             if self._flags.visualize_tracker_output and not catch_up:
-                visualize_no_colors_bboxes(self.name, timestamp, frame, bboxes)
+                #visualize_no_colors_bboxes(self.name, timestamp, frame, bboxes)
+                for bbox, bbox_id in zip(bboxes, bbox_ids):
+                    frame = self.visualize_on_img(frame, bbox, bbox_id)
+                cv2.imshow(frame)
+
+    def visualize_on_img(self, image_np, bbox, bbox_id_text):
+        """ Annotate the image with the bounding box of the obstacle."""
+        txt_font = cv2.FONT_HERSHEY_SIMPLEX
+        (xmin, xmax, ymin, ymax) = bbox
+        txt_size = cv2.getTextSize(bbox_id_text, txt_font, 0.5, 2)[0]
+        color = [128, 0, 0]
+        # Show bounding box.
+        cv2.rectangle(image_np, (xmin, ymin), (xmax, ymax), color, 2)
+        # Show text.
+        cv2.rectangle(image_np,
+                      (xmin, ymin - txt_size[1] - 2),
+                      (xmin + txt_size[0], ymin - 2), color, -1)
+        cv2.putText(image_np, bbox_id_text, (xmin, ymin - 2),
+                    txt_font, 0.5, (0, 0, 0), thickness=1,
+                    lineType=cv2.LINE_AA)
+        return image_np
