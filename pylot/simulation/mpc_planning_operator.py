@@ -145,7 +145,7 @@ class MPCPlanningOperator(Op):
 
         # Figure out the location of the ego vehicle and compute the next waypoint.
         ego_location = to_carla_location(can_bus_msg.data.transform.location)
-        if ego_location.distance(self._goal) <= 10:
+        if ego_location.distance(self._goal) <= 25:
             self.get_output_stream('control_stream').send(
                 ControlMessage(0.0, 0.0, 1.0, False, False, msg.timestamp))
         else:
