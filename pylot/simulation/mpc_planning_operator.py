@@ -1,16 +1,21 @@
 import threading
+import carla
 import collections
 import os
 import json
+import time
+import pylot.utils
+
+import numpy as np
 
 from pid_controller.pid import PID
-
 from erdos.op import Op
 from erdos.utils import setup_logging
 
-import pylot.utils
 from pylot.control.messages import ControlMessage
-from pylot.simulation.utils import to_pylot_transform, Planner, retrieve_actor
+from pylot.simulation.utils import to_pylot_transform
+from pylot.simulation.mpc_input import MPCInput, retrieve_actor
+from pylot.simulation.mpc_controller import CubicSpline2D, ModelPredictiveController, global_config
 from pylot.simulation.carla_utils import get_world, to_carla_location
 from pylot.planning.utils import get_waypoint_vector_and_angle
 
@@ -64,9 +69,6 @@ class MPCPlanningOperator(Op):
         Args:
             msg: The message received for the given timestamp.
         """
-        self._logger.info(
-            "Received a CAN Bus update for the timestamp {}".format(
-                msg.timestamp))
         with self._lock:
             self._can_bus_msgs.append(msg)
 
@@ -77,13 +79,11 @@ class MPCPlanningOperator(Op):
         Args:
             msg: The message received for the given timestamp.
         """
-        self._logger.info(
-            "Received a pedestrian update for the timestamp {}".format(
-                msg.timestamp))
         with self._lock:
             self._pedestrians.append(msg)
 
-    def synchronize_msg_buffers(self, timestamp, buffers):
+    @staticmethod
+    def synchronize_msg_buffers(timestamp, buffers):
         """ Synchronizes the given buffers for the given timestamp.
 
        Args:
@@ -131,8 +131,6 @@ class MPCPlanningOperator(Op):
         Args:
             msg: The timestamp for which the WatermarkMessage is retrieved.
         """
-        self._logger.info("Received a watermark for the timestamp {}".format(
-            msg.timestamp))
         with self._lock:
             if not self.synchronize_msg_buffers(
                     msg.timestamp, [self._can_bus_msgs, self._pedestrians]):
@@ -145,54 +143,82 @@ class MPCPlanningOperator(Op):
         # Assert that the timestamp of all the messages are the same.
         assert (can_bus_msg.timestamp == pedestrian_msg.timestamp)
 
-        self._logger.info("Can Bus Message: {}, Pedestrian Message: {}".format(
-            can_bus_msg.timestamp, pedestrian_msg.timestamp))
-
-        ### TEST ###
-        data = {}
-        data["time"] = self.planner.get_time()
-        data["ego_accel"] = self.planner.get_ego_accel()
-        data["ego_speed"] = self.planner.get_ego_speed()
-        data["ego_location"] = self.planner.get_ego_location()
-        data["ego_bbox"] = self.planner.get_ego_bbox()
-        data["speed_limit"] = self.planner.get_speed_limit()
-        data["bounds_and_marks"] = self.planner.get_road_bounds_and_lane_marks()
-        data["dynamic_bboxes"] = self.planner.get_dynamic_bboxes()
-        data["static"] = self.planner.get_static_bboxes()
-        with open(os.path.join("./test/", "{}.json".format(data["time"])), "w") as outfile:
-            outfile.write(json.dumps(data, outfile))
-        ### TEST ###
-
-        # Figure out the location of the ego vehicle and compute the next
-        # waypoint.
+        # Figure out the location of the ego vehicle and compute the next waypoint.
         ego_location = to_carla_location(can_bus_msg.data.transform.location)
-        if ego_location.distance(self._goal) <= 5:
+        if ego_location.distance(self._goal) <= 10:
             self.get_output_stream('control_stream').send(
                 ControlMessage(0.0, 0.0, 1.0, False, False, msg.timestamp))
         else:
-            #wp_speed = self._map.get_waypoint(ego_location).next(4.0)[0]
-            #wp_speed_vector, wp_speed_angle = get_waypoint_vector_and_angle(
-            #    to_pylot_transform(wp_speed.transform),
-            #    can_bus_msg.data.transform)
+            # convert waypoints into spline
+            path = np.array(self.mpc_input.get_ego_path())
+            spline = CubicSpline2D(path[:, 0], path[:, 1])
+            ss = []
+            vels = []
+            xs = []
+            ys = []
+            yaws = []
+            ks = []
+            for s in spline.s[:-1]:
+                x, y = spline.calc_position(s)
+                yaw = spline.calc_yaw(s)
+                k = spline.calc_curvature(s)
+                xs.append(x)
+                ys.append(y)
+                yaws.append(yaw)
+                ks.append(k)
+                ss.append(s)
+                vels.append(self.mpc_input.speed_limit)
 
-            wp_steer = self._map.get_waypoint(ego_location).next(1.0)[0].next(1.0)[0].next(1.0)[0]
-            self._world.debug.draw_point(wp_steer.transform.location,
-                                         size=0.2,
-                                         life_time=30000.0)
-            wp_steer_vector, wp_steer_angle = get_waypoint_vector_and_angle(
-                to_pylot_transform(wp_steer.transform),
-                can_bus_msg.data.transform)
+            config = global_config
+            config["reference"] = {
+                's_list': ss,  # Arc distance [m]
+                'x_list': xs,  # Desired X coordinates [m]
+                'y_list': ys,  # Desired Y coordinates [m]
+                'k_list': ks,  # Curvatures [1/m]
+                'vel_list': vels,  # Desired tangential velocities [m/s]
+                'yaw_list': yaws,  # Yaws [rad]
+            }
+
+            controller = ModelPredictiveController(config=config)  # TODO: don't re-create at each callback
+            controller.step()
+            x = controller.solution.x_list[-1]
+            y = controller.solution.y_list[-1]
+            yaw = controller.solution.yaw_list[-1]
+            vel = controller.solution.vel_list[-1]
+            accel = controller.horizon_accel[0]
+            steer_angle = controller.horizon_steer[0]
 
             current_speed = max(0, can_bus_msg.data.forward_speed)
-            steer = self.__get_steer(wp_steer_angle)
+            steer = self.__get_steer(np.rad2deg(steer_angle))
             throttle, brake = self.__get_throttle_brake_without_factor(
-                current_speed, 10)
+                current_speed, vel)
+
+            # log info
+            self._logger.info("Throttle: {}".format(throttle))
+            self._logger.info("Steer: {}".format(steer))
+            self._logger.info("Acceleration: {}".format(accel))
+            self._logger.info("Steering Angle: {}".format(np.rad2deg(steer_angle)))
+            self._logger.info("Current Speed: {}".format(can_bus_msg.data.forward_speed))
+            self._logger.info("Target Speed: {}".format(vel))
+            self._logger.info("Target Yaw: {}".format(np.rad2deg(yaw)))
+            self._logger.info("Next (x,y): ({}, {})".format(x, y))
+            self._logger.info("Current location (x, y): ({}, {})".format(ego_location.x, ego_location.y))
+
+            # draw next waypoints
+            self._world.debug.draw_point(carla.Location(x=x, y=y, z=0.5),
+                                         size=0.2,
+                                         life_time=30000.0)
             self.get_output_stream('control_stream').send(
                 ControlMessage(steer, throttle, brake, False, False,
                                msg.timestamp))
 
     def execute(self):
-        ego_vehicle = retrieve_actor(self._world, 'vehicle.*', 'hero')
-        self.planner = Planner(ego_vehicle=ego_vehicle)
+        ego_vehicle = None
+        while ego_vehicle is None:
+            self._logger.info("Waiting for hero...")
+            time.sleep(1)
+            ego_vehicle = retrieve_actor(self._world, 'vehicle.*', 'hero')
+
+        self.mpc_input = MPCInput(ego_vehicle=ego_vehicle)
         self.spin()
 
