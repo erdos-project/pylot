@@ -140,7 +140,7 @@ def add_pedestrian_detector_operator(graph, camera_setup):
 
 
 def add_planning_operator(graph, destination):
-    perfect_planning_operator = graph.add(MPCPlanningOperator,
+    mpc_planning_operator = graph.add(MPCPlanningOperator,
                                           name='mpc_planning',
                                           init_args={
                                               'goal': destination,
@@ -148,7 +148,7 @@ def add_planning_operator(graph, destination):
                                               'log_file_name':
                                               FLAGS.log_file_name
                                           })
-    return perfect_planning_operator
+    return mpc_planning_operator
 
 
 
@@ -178,11 +178,11 @@ def main(args):
         graph.connect([carla_operator, depth_camera.instance],
                       [object_detector_operator])
 
-        # Add a perfect planning operator.
-        perfect_planning_operator = add_planning_operator(
+        # Add a mpc planning operator.
+        mpc_planning_operator = add_planning_operator(
             graph, carla.Location(x=17.73, y=327.07, z=0.5))
-        graph.connect([carla_operator], [perfect_planning_operator])
-        graph.connect([perfect_planning_operator], [carla_operator])
+        graph.connect([carla_operator], [mpc_planning_operator])
+        graph.connect([mpc_planning_operator], [carla_operator])
 
         graph.execute(FLAGS.framework)
     except KeyboardInterrupt:
