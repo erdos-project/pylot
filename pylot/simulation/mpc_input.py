@@ -275,7 +275,7 @@ class MPCInput(object):
 
         TODO: this is hacked to for our straight road, need to incorporate idea of global intent
         """
-        goal_location = carla.Location(x=17.73, y=327.6, z=0.5)
+        goal_location = carla.Location(x=17.73, y=326.6, z=0.5)
         ego_location = self.ego_vehicle.get_location()
 
         goal_x = goal_location.x
