@@ -1,6 +1,7 @@
 import numpy as np
 import carla
 
+from collections import defaultdict
 
 def retrieve_actor(world, bp_regex, role_name):
     """ Retrieves the actor from the world with the given blueprint and the
@@ -90,7 +91,7 @@ class MPCInput(object):
     """
     Temporary planner class for scenarios involving one ego_vehicle and one pedestrian.
     """
-    SPEED_LIMIT = 15  # m/s
+    SPEED_LIMIT = 35  # m/s
     WP_PRECISION = 1.0  # meters
 
     def __init__(self, ego_vehicle, waypoint_precision=WP_PRECISION, speed_limit=SPEED_LIMIT):
@@ -280,5 +281,33 @@ class MPCInput(object):
         goal_x = goal_location.x
         goal_y = goal_location.y
         ego_x = ego_location.x
-        return [[x, goal_y] for x in reversed(np.arange(goal_x, ego_x, 1.0))]
+        hack = defaultdict(int)
+        hacks = [
+            (240, 0.1),
+            (241, 0.2),
+            (242, 0.3),
+            (243, 0.4),
+            (244, 0.5),
+            (245, 0.6),
+            (246, 0.7),
+            (247, 0.8),
+            (248, 0.9),
+            (249, 1.0),
+            (250, 1.0),
+            (251, 1.0),
+            (252, 0.9),
+            (253, 0.8),
+            (254, 0.7),
+            (255, 0.6),
+            (256, 0.5),
+            (257, 0.4),
+            (258, 0.3),
+            (259, 0.2),
+            (260, 0.1),
+        ]
+
+        for h in hacks:
+            hack[h[0]] = h[1]
+
+        return [[x, goal_y + 1.25 * hack[int(x)]] for x in reversed(np.arange(goal_x, ego_x, 1.0))]
 

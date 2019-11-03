@@ -171,6 +171,7 @@ class MPCPlanningOperator(Op):
 
             config = global_config
             config["reference"] = {
+                't_list': [],  # Time [s]
                 's_list': ss,  # Arc distance [m]
                 'x_list': xs,  # Desired X coordinates [m]
                 'y_list': ys,  # Desired Y coordinates [m]
@@ -189,7 +190,7 @@ class MPCPlanningOperator(Op):
             steer_angle = controller.horizon_steer[0]
 
             current_speed = max(0, can_bus_msg.data.forward_speed)
-            steer = self.__get_steer(np.rad2deg(steer_angle))
+            steer = self.__get_steer(steer_angle)
             throttle, brake = self.__get_throttle_brake_without_factor(
                 current_speed, vel)
 

@@ -1,9 +1,19 @@
+"""
+Author: Fangyu Wu
+Email: fangyuwu@berkeley.edu
+The code is adapted from
+https://github.com/AtsushiSakai/PythonRobotics/tree/master/
+PathTracking/model_predictive_speed_and_steer_control
+"""
+
 import numpy as np
 import cvxpy
 from cvxpy.expressions import constants
 import matplotlib.pyplot as plt
 import bisect
+import time
 import warnings
+import sys
 
 plt.rcParams['font.family'] = 'FreeSans'
 plt.style.use('dark_background')
@@ -88,19 +98,17 @@ class CubicSpline1D:
 
 
 class CubicSpline2D:
-    def __init__(self, x, y):
-        self.s = self.__calc_s(x, y)
+    def __init__(self, x, y, delta_s=1):
+        self.delta_s = delta_s  # [m]
+        self.s = self._calc_s(x, y)
         self.sx = CubicSpline1D(self.s, x)
         self.sy = CubicSpline1D(self.s, y)
 
-    def __calc_s(self, x, y):
-        dx = np.diff(x)
-        dy = np.diff(y)
-        self.ds = [np.sqrt(idx ** 2 + idy ** 2)
-                   for (idx, idy) in zip(dx, dy)]
-        s = [0]
-        s.extend(np.cumsum(self.ds))
-        return s
+    def calc_x(self, s):
+        return self.sx.calc_der0(s)
+
+    def calc_y(self, s):
+        return self.sy.calc_der0(s)
 
     def calc_position(self, s):
         x = self.sx.calc_der0(s)
@@ -121,18 +129,62 @@ class CubicSpline2D:
         yaw = np.arctan2(dy, dx)
         return yaw
 
+    def _calc_s(self, x, y):
+        dx = np.diff(x)
+        dy = np.diff(y)
+        self.ds = [np.sqrt(idx ** 2 + idy ** 2)
+                   for (idx, idy) in zip(dx, dy)]
+        s = [0]
+        s.extend(np.cumsum(self.ds))
+        return s
 
-class Space:
+
+class Planner:
+    # TODO: Separate planner class into world class and planner class
     def __init__(self, config):
         self.config = config
-        self.accessible = None
-        self.boundary = None
-        self.obstacle = None
+        self.boundaries = config['boundaries']
+        self.static_obstacles = list(config['static_obstacles'])
+        self.dynamic_obstacles = list(config['dynamic_obstacles'])
+
+    def update(self, dynamic_obstacles):
+        self.dynamic_obstacles = dynamic_obstacles
+
+    def calc_vel(self, reference, vehicle, path_index):
+        s_list = reference.s_list
+        vel_list = [vehicle.config['max_vel']]
+        s = vehicle.s
+        t = vehicle.t
+        for obstacle in self.dynamic_obstacles:
+            s_next = obstacle[2] - \
+                vehicle.config['length'] + \
+                vehicle.config['offset']  # Approximately true when k is large
+            t_next = obstacle[1] + 3  # Apply a virtual time buffer
+            vel_next = (s_next - s) / (t_next - t)
+            while s < s_next:
+                path_index = path_index + 1
+                s = s_list[path_index]
+                vel_list.append(vel_next)
+            t = t_next
+        while s != s_list[-1]:
+            path_index = path_index + 1
+            s = s_list[path_index]
+            vel_list.append(vehicle.config['max_vel'])
+        return vel_list
+
+    def render(self, t, color='w'):
+        for obstacle in self.static_obstacles:
+            plt.plot(obstacle[:, 0].flatten(),
+                     obstacle[:, 1].flatten(), color)
+        for obstacle in self.dynamic_obstacles:
+            if obstacle[0] <= t <= obstacle[1]:
+                plt.plot(obstacle[3:4], obstacle[4:5], 'or')
 
 
 class Trajectory:
-    def __init__(self, s_list, x_list, y_list, k_list, vel_list, yaw_list,
-                 accel_list=None, steer_list=None):
+    def __init__(self, t_list, s_list, x_list, y_list, k_list, vel_list,
+                 yaw_list, accel_list=None, steer_list=None):
+        self.t_list = list(t_list)  # Time [s]
         self.s_list = list(s_list)  # Arc distance list [m]
         self.x_list = list(x_list)  # X coordinate list [m]
         self.y_list = list(y_list)  # Y coordinate list [m]
@@ -148,7 +200,11 @@ class Trajectory:
         else:
             self.steer_list = steer_list
 
-    def append(self, s, x, y, k, vel, yaw, accel=None, steer=None):
+    def append_vel(self, vel):
+        self.vel_list.append(vel)
+
+    def append(self, t, s, x, y, k, vel, yaw, accel=None, steer=None):
+        self.t_list.append(t)
         self.s_list.append(s)
         self.x_list.append(x)
         self.y_list.append(y)
@@ -190,7 +246,7 @@ class Vehicle:
         self.accel = None  # Acceleration [m/s2]
         self.steer = None  # Steering [rad]
 
-    def update(self, t, s, x, y, k, yaw, vel, accel, steer):
+    def update(self, t, s, x, y, k, vel, yaw, accel, steer):
         self.t = t
         self.s = s
         self.x = x
@@ -267,13 +323,14 @@ class Vehicle:
 
 class ModelPredictiveController:
     def __init__(self, config):
-        self.space = Space(config['space'])
+        self.planner = Planner(config['planner'])
         self.reference = Trajectory(**config['reference'])
         self.vehicle = Vehicle(config['vehicle'])
         self.path_length = len(self.reference.s_list)
         self.path_index = 0
         self.t = 0.0  # [s]
         initial_condition = {
+            't_list': [self.t],  # Initial time [s]
             's_list': self.reference.s_list[0:1],  # Initial arc distance [m]
             'x_list': self.reference.x_list[0:1],  # Initial X coordinate [m]
             'y_list': self.reference.y_list[0:1],  # Initial Y coordinate [m]
@@ -290,8 +347,8 @@ class ModelPredictiveController:
             self.solution.x_list[-1],
             self.solution.y_list[-1],
             self.solution.k_list[-1],
-            self.solution.yaw_list[-1],
             self.solution.vel_list[-1],
+            self.solution.yaw_list[-1],
             None,
             None,
         )
@@ -332,19 +389,20 @@ class ModelPredictiveController:
         vel = state[2]
         yaw = state[3]
         k = self._compute_curvature(vel, accel, yaw)
-        self.vehicle.update(t, s, x, y, k, yaw, vel, accel, steer)
+        self.vehicle.update(t, s, x, y, k, vel, yaw, accel, steer)
         # Update solution
-        self.solution.append(s, x, y, k, vel, yaw, accel, steer)
+        self.solution.append(t, s, x, y, k, vel, yaw, accel, steer)
 
-    def render(self):
+    def render(self, show_grid=False):
         plt.cla()
+        self.planner.render(self.t, color='w')
         self.reference.render(color='c')
         self.solution.render(color='m')
         self.vehicle.render(color='y')
         plt.axis('equal')
-        plt.grid(True)
+        plt.grid(show_grid)
         plt.title('Time: {:.1f} s Speed: {:.1f} m/s'.
-                  format(self.t, self.vehicle.vel))
+                  format(self.vehicle.t, self.vehicle.vel))
         plt.xlabel('X [m]')
         plt.ylabel('Y [m]')
         plt.pause(0.0001)
@@ -358,9 +416,9 @@ class ModelPredictiveController:
 
     def _update_path_index(self):
         dx = [self.vehicle.x - x for x in self.reference.x_list[
-            self.path_index:self.path_index+self.config['index_horizon']]]
+              self.path_index:self.path_index+self.config['index_horizon']]]
         dy = [self.vehicle.y - y for y in self.reference.y_list[
-            self.path_index:self.path_index+self.config['index_horizon']]]
+              self.path_index:self.path_index+self.config['index_horizon']]]
         dxy = [np.sqrt(x**2 + y**2) for x, y in zip(dx, dy)]
         self.path_index = np.argmin(dxy) + self.path_index
 
@@ -432,8 +490,8 @@ class ModelPredictiveController:
             np.tan(steer) * self.delta_t
         state[2] = np.clip(
             state[2],
-            self.vehicle.config['min_velocity'],
-            self.vehicle.config['max_velocity']
+            self.vehicle.config['min_vel'],
+            self.vehicle.config['max_vel']
         )
         return state
 
@@ -471,13 +529,15 @@ class ModelPredictiveController:
             x[:, self.config['horizon']], self.config['Qf'])
 
         constraints += [x[:, 0] == self.vehicle.get_state()]
-        constraints += [x[2, :] <= self.vehicle.config['max_velocity']]
-        constraints += [x[2, :] >= self.vehicle.config['min_velocity']]
-        constraints += [cvxpy.abs(u[0, :]) <= self.vehicle.config['max_accel']]
-        constraints += [cvxpy.abs(u[1, :]) <= self.vehicle.config['max_steer']]
+        constraints += [x[2, :] <= self.vehicle.config['max_vel']]
+        constraints += [x[2, :] >= self.vehicle.config['min_vel']]
+        constraints += [u[0, :] <= self.vehicle.config['max_accel']]
+        constraints += [u[0, :] >= self.vehicle.config['min_accel']]
+        constraints += [u[1, :] <= self.vehicle.config['max_steer']]
+        constraints += [u[1, :] >= self.vehicle.config['min_steer']]
 
         prob = cvxpy.Problem(cvxpy.Minimize(cost), constraints)
-        prob.solve(solver=cvxpy.ECOS, verbose=False)
+        prob.solve(solver=cvxpy.OSQP, verbose=False, warm_start=True)
 
         if prob.status == cvxpy.OPTIMAL or \
                 prob.status == cvxpy.OPTIMAL_INACCURATE:
@@ -526,43 +586,47 @@ class ModelPredictiveController:
         ddy = accel * np.tan(yaw)
         return (ddy * dx - ddx * dy) / ((dx ** 2 + dy ** 2)**(3 / 2))
 
+
 global_config = {
-        'space': {},
-        'reference': {
-            's_list': [],  # Arc distance [m]
-            'x_list': [],  # Desired X coordinates [m]
-            'y_list': [],  # Desired Y coordinates [m]
-            'k_list': [],  # Curvatures [1/m]
-            'vel_list': [],  # Desired tangential velocities [m/s]
-            'yaw_list': [],  # Yaws [rad]
-        },
-        'vehicle': {
-            'length': 4.5,
-            'width': 2.0,
-            'offset': 1.0,
-            'wheel_length': 0.3,
-            'wheel_width': 0.2,
-            'track': 0.7,
-            'wheelbase': 2.5,
-            'max_steer': np.deg2rad(45.0),
-            'min_steer': np.deg2rad(0.0),
-            'max_steer_speed': np.deg2rad(30.0),
-            'min_steer_speed': np.deg2rad(0.0),
-            'max_velocity': 50.0,
-            'min_velocity': -10.0,
-            'max_accel': 4.0,
-            'min_accel': -6.0
-        },
-        'controller': {
-            'R': np.diag([0.01, 0.01]),  # Input cost
-            'Rd': np.diag([0.01, 1.0]),  # Input difference cost
-            'Q': np.diag([1.0, 1.0, 0.5, 0.5]),  # State cost
-            'Qf': np.diag([1.0, 1.0, 0.5, 0.5]),  # Terminal state cost
-            'goal_threshold': 1.0,  # Threshold for goal test [m]
-            'expiration_time': 100.0,  # Expiration time [s]
-            'max_iteration': 5,  # Max step iterations
-            'convergence_threshold': 0.1,  # Threshold for convergence test
-            'horizon': 5,  # Horizon
-            'index_horizon': 10,  # Index horizon
-        },
-    }
+    'planner': {
+        'boundaries': None,
+        'static_obstacles': [np.asarray([
+            [-8, 50],
+            [-8, 60],
+            [-3, 60],
+            [-3, 50],
+            [-8, 50]
+        ])],
+        # Each dynamic obstacle is formatted as [s, x, y, t_enter, t_exit]
+        'dynamic_obstacles': [],
+    },
+    'vehicle': {
+        'length': 4.5,
+        'width': 2.0,
+        'offset': 1.0,
+        'wheel_length': 0.3,
+        'wheel_width': 0.2,
+        'track': 0.7,
+        'wheelbase': 2.5,
+        'max_steer': np.deg2rad(45.0),
+        'min_steer': np.deg2rad(-45.0),
+        'max_steer_speed': np.deg2rad(30.0),
+        'min_steer_speed': np.deg2rad(-30.0),
+        'max_vel': 35,
+        'min_vel': -10,
+        'max_accel': 4.0,
+        'min_accel': -8.0,
+    },
+    'controller': {
+        'R': np.diag([0.01, 0.01]),  # Input cost
+        'Rd': np.diag([0.01, 1.0]),  # Input difference cost
+        'Q': np.diag([1.0, 1.0, 0.5, 0.5]),  # State cost
+        'Qf': np.diag([1.0, 1.0, 0.5, 0.5]),  # Terminal state cost
+        'goal_threshold': 1.0,  # Threshold for goal test [m]
+        'expiration_time': 100.0,  # Expiration time [s]
+        'max_iteration': 5,  # Max step iterations
+        'convergence_threshold': 0.1,  # Threshold for convergence test
+        'horizon': 5,  # Horizon
+        'index_horizon': 5,  # Index horizon
+    },
+}
