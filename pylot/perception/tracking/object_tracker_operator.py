@@ -35,6 +35,9 @@ class ObjectTrackerOp(Op):
             elif tracker_type == 'deep_sort':
                 from pylot.perception.tracking.deep_sort_tracker import MultiObjectDeepSORTTracker
                 self._tracker = MultiObjectDeepSORTTracker(self._flags, self._logger)
+            elif tracker_type == 'sort':
+                from pylot.perception.tracking.sort_tracker import MultiObjectSORTTracker
+                self._tracker = MultiObjectSORTTracker(self._flags)
             else:
                 self._logger.fatal(
                     'Unexpected tracker type {}'.format(tracker_type))
@@ -98,20 +101,14 @@ class ObjectTrackerOp(Op):
             self._logger.info("Removing stale {} {}".format(
                 self._to_process[0][0], msg.timestamp))
             self._to_process.popleft()
-        
-        #while len(self._logs) > 0 and self._logs[0][0] < msg.timestamp:
-        #    self._logger.info("Removing stale {} {}".format(
-        #        self._logs[0][0], msg.timestamp))
-        #    self._logs.popleft()
-        # bboxes = self.__get_highest_confidence_pedestrian(msg.detected_objects)
+
         # Track all pedestrians.
         bboxes, ids = self.__get_pedestrians(msg.detected_objects) # xmin, ymin, xmax, ymax
         if len(bboxes) > 0:
             if len(self._to_process) > 0:
                 # Found the frame corresponding to the bounding boxes.
                 (timestamp, frame) = self._to_process.popleft()
-                #(log_timestamp, logs) = self._logs.popleft()
-                assert timestamp == msg.timestamp# == log_timestamp
+                assert timestamp == msg.timestamp
                 # Re-initialize trackers.
                 logs = self.create_deep_sort_logs(bboxes, ids)
                 self.__initialize_trackers(frame, bboxes, msg.timestamp, logs)
@@ -217,7 +214,9 @@ class ObjectTrackerOp(Op):
                 #visualize_no_colors_bboxes(self.name, timestamp, frame, bboxes)
                 for bbox_info in bboxes:
                     bbox, bbox_id = bbox_info
-                    frame = self.visualize_on_img(frame, bbox, bbox_id, timestamp)
+                    if len(bbox.shape) > 1:
+                        bbox = list(bbox[0])
+                    frame = self.visualize_on_img(frame, bbox, str(bbox_id), timestamp)
                 visualize_image("tracker", frame)
                 #cv2.imwrite("/home/erdos/workspace/forks/pylot/data/" + str(timestamp) + ".png", frame)
 

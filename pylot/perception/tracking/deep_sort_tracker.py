@@ -2,9 +2,6 @@ import numpy as np
 import torch
 
 from nanonets_object_tracking.deepsort import deepsort_rbc
-#from DaSiamRPN.code.net import SiamRPNvot
-#from DaSiamRPN.code.run_SiamRPN import SiamRPN_init, SiamRPN_track
-
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 
@@ -20,19 +17,16 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
 
 
     def track(self, frame, out_scores=None, detections=None):
-        print("CALLED TRACK, detections? {}".format(detections)) # detections should be in form x, y, w, h
         if detections:
             self.tracker, detections_class = self._deepsort.run_deep_sort(frame, out_scores, detections) # get out_scores and detections?
         if self.tracker:
             bboxes = []
             for track in self.tracker.tracks:
-                print("looking through tracks")
                 if not track.is_confirmed() or track.time_since_update > 1:
                     continue
                 bbox = track.to_tlbr() # returns np array of 4 nums (top left and bottom right corner coords)
                 id_num = str(track.track_id) # what should I do with this?
                 bboxes.append((bbox, id_num))
-            print("with detector?: {} tracked these bboxes: {}".format(detections, bboxes))
             return True, bboxes
         return False, []
 
