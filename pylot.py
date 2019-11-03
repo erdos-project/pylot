@@ -126,8 +126,8 @@ def add_detection_component(graph, bgr_camera_setup, camera_ops, carla_op):
         obj_detector_ops = pylot.operator_creator.create_detector_ops(graph)
         graph.connect(camera_ops, obj_detector_ops)
         
-        deep_sort_logger_op = [pylot.operator_creator.create_deep_sort_logger_op(graph)]
-        graph.connect(obj_detector_ops, deep_sort_logger_op)
+        #deep_sort_logger_op = [pylot.operator_creator.create_deep_sort_logger_op(graph)]
+        #graph.connect(obj_detector_ops, deep_sort_logger_op)
 
         if FLAGS.evaluate_obj_detection:
             perfect_det_op = pylot.operator_creator.create_perfect_detector_op(
@@ -141,7 +141,8 @@ def add_detection_component(graph, bgr_camera_setup, camera_ops, carla_op):
         if FLAGS.obj_tracking:
             tracker_op = pylot.operator_creator.create_object_tracking_op(
                 graph)
-            graph.connect(camera_ops + obj_detector_ops + deep_sort_logger_op, [tracker_op])
+            graph.connect(camera_ops + obj_detector_ops, [tracker_op])
+            #graph.connect(camera_ops + obj_detector_ops + deep_sort_logger_op, [tracker_op])
 
         if FLAGS.fusion:
             (fusion_op,

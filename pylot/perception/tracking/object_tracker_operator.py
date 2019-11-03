@@ -2,12 +2,13 @@ from collections import deque
 import pickle
 import threading
 import time
+import cv2
 
 from erdos.data_stream import DataStream
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from pylot.perception.detection.utils import visualize_no_colors_bboxes
+from pylot.perception.detection.utils import visualize_no_colors_bboxes, visualize_image
 from pylot.utils import is_camera_stream, is_obstacles_stream, is_deep_sort_logs_stream
 
 
@@ -33,7 +34,7 @@ class ObjectTrackerOp(Op):
                 self._tracker = MultiObjectDaSiamRPNTracker(self._flags)
             elif tracker_type == 'deep_sort':
                 from pylot.perception.tracking.deep_sort_tracker import MultiObjectDeepSORTTracker
-                self._tracker = MultiObjectDeepSORTTracker(self._flags)
+                self._tracker = MultiObjectDeepSORTTracker(self._flags, self._logger)
             else:
                 self._logger.fatal(
                     'Unexpected tracker type {}'.format(tracker_type))
@@ -104,7 +105,7 @@ class ObjectTrackerOp(Op):
         #    self._logs.popleft()
         # bboxes = self.__get_highest_confidence_pedestrian(msg.detected_objects)
         # Track all pedestrians.
-        bboxes, ids = self.__get_pedestrians(msg.detected_objects)
+        bboxes, ids = self.__get_pedestrians(msg.detected_objects) # xmin, ymin, xmax, ymax
         if len(bboxes) > 0:
             if len(self._to_process) > 0:
                 # Found the frame corresponding to the bounding boxes.
@@ -112,7 +113,7 @@ class ObjectTrackerOp(Op):
                 #(log_timestamp, logs) = self._logs.popleft()
                 assert timestamp == msg.timestamp# == log_timestamp
                 # Re-initialize trackers.
-                logs = construct_deep_sort_logs(bboxes, ids)
+                logs = self.create_deep_sort_logs(bboxes, ids)
                 self.__initialize_trackers(frame, bboxes, msg.timestamp, logs)
                 self._logger.info('Trackers have {} frames to catch-up'.format(
                     len(self._to_process)))
@@ -128,14 +129,15 @@ class ObjectTrackerOp(Op):
     def execute(self):
         self.spin()
 
-    def create_deep_sort_logs(bboxes, ids):
+    def create_deep_sort_logs(self, bboxes, ids):
         lines = []
         for i in range(len(bboxes)):
             bbox = bboxes[i]
             obj_id = ids[i]
-            (x1, y1), (x2, y2) = bbox
-            bbox_x, bbox_y = x1, y1
-            bbox_w, bbox_h = x2 - x1, y2 - y1
+            x1, x2, y1, y2 = bbox # comes from detected objects self.corners (see detection utils)
+
+            bbox_x, bbox_y = min(x1, x2), min(y1, y2)
+            bbox_w, bbox_h = abs(x2 - x1), abs(y2 - y1)
             log_line = "{},{},{},{},{},{},{},{},{},{}\n".format(
                 0, obj_id, bbox_x, bbox_y, bbox_w, bbox_h, 1.0, -1, -1, -1) # timestamp is 0 here
             lines.append(log_line)
@@ -213,16 +215,20 @@ class ObjectTrackerOp(Op):
         else:
             if self._flags.visualize_tracker_output and not catch_up:
                 #visualize_no_colors_bboxes(self.name, timestamp, frame, bboxes)
-                for bbox, bbox_id in zip(bboxes, bbox_ids):
-                    frame = self.visualize_on_img(frame, bbox, bbox_id)
-                cv2.imshow(frame)
+                for bbox_info in bboxes:
+                    bbox, bbox_id = bbox_info
+                    frame = self.visualize_on_img(frame, bbox, bbox_id, timestamp)
+                visualize_image("tracker", frame)
+                #cv2.imwrite("/home/erdos/workspace/forks/pylot/data/" + str(timestamp) + ".png", frame)
 
-    def visualize_on_img(self, image_np, bbox, bbox_id_text):
+    def visualize_on_img(self, image_np, bbox, bbox_id_text, timestamp):
         """ Annotate the image with the bounding box of the obstacle."""
         txt_font = cv2.FONT_HERSHEY_SIMPLEX
-        (xmin, xmax, ymin, ymax) = bbox
+        (xmin, ymin, xmax, ymax) = bbox
+        xmin, ymin, xmax, ymax = int(xmin), int(ymin), int(xmax), int(ymax)
         txt_size = cv2.getTextSize(bbox_id_text, txt_font, 0.5, 2)[0]
-        color = [128, 0, 0]
+        cv2.putText(image_np, str(timestamp), (20, 18), txt_font, 0.5, (255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
+        color = [0, 0, 0]
         # Show bounding box.
         cv2.rectangle(image_np, (xmin, ymin), (xmax, ymax), color, 2)
         # Show text.
@@ -230,6 +236,6 @@ class ObjectTrackerOp(Op):
                       (xmin, ymin - txt_size[1] - 2),
                       (xmin + txt_size[0], ymin - 2), color, -1)
         cv2.putText(image_np, bbox_id_text, (xmin, ymin - 2),
-                    txt_font, 0.5, (0, 0, 0), thickness=1,
+                    txt_font, 0.5, (255, 255, 255), thickness=1,
                     lineType=cv2.LINE_AA)
         return image_np
