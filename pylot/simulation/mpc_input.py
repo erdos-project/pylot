@@ -91,7 +91,7 @@ class MPCInput(object):
     """
     Temporary planner class for scenarios involving one ego_vehicle and one pedestrian.
     """
-    SPEED_LIMIT = 35  # m/s
+    SPEED_LIMIT = 20  # m/s
     WP_PRECISION = 1.0  # meters
 
     def __init__(self, ego_vehicle, waypoint_precision=WP_PRECISION, speed_limit=SPEED_LIMIT):

@@ -619,9 +619,9 @@ global_config = {
     },
     'controller': {
         'R': np.diag([0.01, 0.01]),  # Input cost
-        'Rd': np.diag([0.01, 1.0]),  # Input difference cost
-        'Q': np.diag([1.0, 1.0, 0.5, 0.5]),  # State cost
-        'Qf': np.diag([1.0, 1.0, 0.5, 0.5]),  # Terminal state cost
+        'Rd': np.diag([0.01, 0.01]),  # Input difference cost
+        'Q': np.diag([1.0, 1.0, 0.01, 0.01]),  # State cost
+        'Qf': np.diag([1.0, 1.0, 0.01, 0.01]),  # Terminal state cost
         'goal_threshold': 1.0,  # Threshold for goal test [m]
         'expiration_time': 100.0,  # Expiration time [s]
         'max_iteration': 5,  # Max step iterations
