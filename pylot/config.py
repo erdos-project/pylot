@@ -2,16 +2,12 @@ from absl import flags
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('framework', 'ros',
-                    'Execution framework to use: ros | ray.')
 flags.DEFINE_bool('replay', False,
                   ('True if run in replay mode, otherwise run '
                    'Carla in server mode using `./CarlaUE4.sh -carla-server`'))
 flags.DEFINE_string('log_file_name', None, 'Name of the log file')
 flags.DEFINE_string('csv_log_file_name', None,
                     'csv file into which to log runtime stats')
-flags.DEFINE_bool('fail_on_message_loss', True,
-                  'True to enable operator failure when messages are lost')
 flags.DEFINE_bool('ground_agent_operator', True,
                   'True to use the ground truth controller')
 
@@ -124,11 +120,12 @@ flags.DEFINE_float('brake_strength', 1,
 flags.DEFINE_integer('coast_factor', 2, 'Factor to control coasting')
 
 # Carla flags.
-flags.DEFINE_string('carla_version', '0.9.6', 'Carla simulator version.')
+flags.DEFINE_string('carla_version', '0.9.6',
+                    'Carla simulator version. Options: 0.9.5 | 0.9.6')
 flags.DEFINE_string('carla_host', 'localhost', 'Carla host.')
 flags.DEFINE_integer('carla_port', 2000, 'Carla port.')
 flags.DEFINE_integer('carla_timeout', 10,
-                     'Timeout limit for Carla operator')
+                     'Timeout for connecting to the Carla simulator.')
 flags.DEFINE_bool('carla_synchronous_mode', True,
                   'Run Carla in synchronous mode.')
 flags.DEFINE_integer('carla_town', 1, 'Sets which Carla town to use.')
@@ -138,8 +135,6 @@ flags.DEFINE_float('carla_step_frequency', -1,
                    'commands should be applied as soon ASAP.')
 flags.DEFINE_integer('carla_num_vehicles', 20, 'Carla num vehicles.')
 flags.DEFINE_integer('carla_num_pedestrians', 40, 'Carla num pedestrians.')
-flags.DEFINE_bool('carla_high_quality', False,
-                  'True to enable high quality Carla simulations.')
 flags.DEFINE_integer('carla_weather', 2,
                      'Carla weather preset; between 1 and 14')
 flags.DEFINE_bool('carla_random_player_start', True,
@@ -245,15 +240,11 @@ flags.DEFINE_bool(
     'True to carla data (e.g., vehicle position, traffic lights)')
 
 # Other flags
-flags.DEFINE_integer('num_cameras', 5, 'Number of cameras.')
 flags.DEFINE_integer('top_down_lateral_view', 20,
                      'Distance in meters to the left and right of the '
                      'ego-vehicle that the top-down camera shows.')
 
 # Flag validators.
-flags.register_validator('framework',
-                         lambda value: value == 'ros' or value == 'ray',
-                         message='--framework must be: ros | ray')
 flags.register_multi_flags_validator(
     ['replay', 'evaluate_obj_detection'],
     lambda flags_dict: not (flags_dict['replay'] and flags_dict['evaluate_obj_detection']),
@@ -270,12 +261,11 @@ flags.register_multi_flags_validator(
 #                          (flags_dict['segmentation_drn'] or flags_dict['segmentation_dla']))),
 #     message='ERDOS agent requires obj detection, segmentation and traffic light detection')
 flags.register_multi_flags_validator(
-    ['obj_detection', 'detector_center_net', 'detector_ssd_mobilenet_v1',
+    ['obj_detection', 'detector_ssd_mobilenet_v1',
      'detector_frcnn_resnet101', 'detector_ssd_resnet50_v1'],
     lambda flags_dict: (not flags_dict['obj_detection'] or
                         (flags_dict['obj_detection'] and
-                         (flags_dict['detector_center_net'] or
-                          flags_dict['detector_ssd_mobilenet_v1'] or
+                         (flags_dict['detector_ssd_mobilenet_v1'] or
                           flags_dict['detector_frcnn_resnet101'] or
                           flags_dict['detector_ssd_resnet50_v1']))),
     message='a detector must be active when --obj_detection is set')

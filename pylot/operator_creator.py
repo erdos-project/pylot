@@ -205,15 +205,11 @@ def create_waypoint_visualizer_op(graph):
 
 
 def create_camera_replay_ops(graph):
-    camera_ops = []
-    for i in range(0, FLAGS.num_cameras, 1):
-        op_name = 'camera{}'.format(i)
-        camera_op = graph.add(
-            CameraReplayOperator,
-            name=op_name,
-            init_args={'log_file_name': FLAGS.log_file_name},
-            setup_args={'op_name': op_name})
-        camera_ops.append(camera_op)
+    camera_ops = [graph.add(
+        CameraReplayOperator,
+        name='camera1',
+        init_args={'log_file_name': FLAGS.log_file_name},
+        setup_args={'op_name': op_name})]
     # replay_rgb_op = ReplayOp('pylot_rgb_camera_data.erdos',
     #                          frequency=10,
     #                          name='replay_rgb_camera')

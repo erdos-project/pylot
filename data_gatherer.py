@@ -244,7 +244,7 @@ def main(argv):
         graph.connect([carla_op], [planning_op])
         graph.connect([planning_op], [agent_op])
 
-    graph.execute(FLAGS.framework)
+    graph.execute("ros")
 
 
 if __name__ == '__main__':

@@ -165,7 +165,7 @@ def main(argv):
     else:
         raise ValueError("Must be in auto pilot mode.")
 
-    graph.execute(FLAGS.framework)
+    graph.execute("ros")
 
 
 if __name__ == '__main__':

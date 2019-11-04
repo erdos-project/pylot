@@ -333,7 +333,7 @@ def main(argv):
     goal_location = (234.269989014, 59.3300170898, 39.4306259155)
     add_planning_component(graph, goal_location, carla_op, agent_op)
 
-    graph.execute(FLAGS.framework)
+    graph.execute("ros")
 
 
 if __name__ == '__main__':

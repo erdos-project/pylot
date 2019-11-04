@@ -151,7 +151,7 @@ class ERDOSAgent(AutonomousAgent):
 
         # Execute graph. Do not block on execute so that the script can
         # input data into the data-flow graph.
-        self.graph.execute(FLAGS.framework, blocking=False)
+        self.graph.execute("ros", blocking=False)
 
     def setup(self, path_to_conf_file):
         flags.FLAGS([__file__, '--flagfile={}'.format(path_to_conf_file)])

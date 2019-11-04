@@ -144,6 +144,7 @@ class CameraDriverOperator(Op):
                                        str(self._camera_setup.width))
         camera_blueprint.set_attribute('image_size_y',
                                        str(self._camera_setup.height))
+        camera_blueprint.set_attribute('fov', str(self._camera_setup.fov))
 
         transform = to_carla_transform(self._camera_setup.get_transform())
 
