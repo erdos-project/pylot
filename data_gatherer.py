@@ -239,15 +239,8 @@ def main(argv):
         goal_location = (234.269989014, 59.3300170898, 39.4306259155)
         goal_orientation = (1.0, 0.0, 0.22)
 
-        if '0.8' in FLAGS.carla_version:
-            planning_op = pylot.operator_creator.create_legacy_planning_op(
-                graph, 'Town{:02d}'.format(FLAGS.carla_town),
-                goal_location, goal_orientation)
-        elif '0.9' in FLAGS.carla_version:
-            planning_op = pylot.operator_creator.create_planning_op(
-                graph, goal_location)
-        else:
-            raise ValueError('Unexpected Carla version')
+        planning_op = pylot.operator_creator.create_planning_op(
+            graph, goal_location)
         graph.connect([carla_op], [planning_op])
         graph.connect([planning_op], [agent_op])
 

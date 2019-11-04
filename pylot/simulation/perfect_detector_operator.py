@@ -168,22 +168,14 @@ class PerfectDetectorOp(Op):
         det_vec = self.__get_vehicles(
             vehicles_msg.vehicles, vehicle_transform, depth_array)
 
-        if '0.8' in self._flags.carla_version:
-            det_traffic_lights = pylot.simulation.utils.get_traffic_light_det_objs_legacy(
-                traffic_light_msg.traffic_lights,
-                vehicle_transform,
-                vehicle_transform * depth_msg.transform,
-                depth_msg.frame, depth_msg.width, depth_msg.height,
-                depth_msg.fov, segmented_msg.frame)
-        elif '0.9' in self._flags.carla_version:
-            det_traffic_lights = pylot.simulation.utils.get_traffic_light_det_objs(
-                traffic_light_msg.traffic_lights,
-                vehicle_transform * depth_msg.transform,
-                depth_msg.frame,
-                depth_msg.width,
-                depth_msg.height,
-                self._town_name,
-                depth_msg.fov)
+        det_traffic_lights = pylot.simulation.utils.get_traffic_light_det_objs(
+            traffic_light_msg.traffic_lights,
+            vehicle_transform * depth_msg.transform,
+            depth_msg.frame,
+            depth_msg.width,
+            depth_msg.height,
+            self._town_name,
+            depth_msg.fov)
 
         det_speed_limits = pylot.simulation.utils.get_speed_limit_det_objs(
             speed_limit_signs_msg.speed_signs,

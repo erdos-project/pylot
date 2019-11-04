@@ -216,27 +216,20 @@ def add_agent_op(graph,
 
 def add_planning_component(graph,
                            goal_location,
-                           goal_orientation,
                            carla_op,
-                           agent_op,
-                           city_name='Town01'):
-    if '0.8' in FLAGS.carla_version:
-        planning_op = pylot.operator_creator.create_legacy_planning_op(
-            graph, city_name, goal_location, goal_orientation)
-    elif '0.9' in FLAGS.carla_version:
-        planning_op = pylot.operator_creator.create_planning_op(
-            graph, goal_location)
-        if FLAGS.visualize_waypoints:
-            waypoint_viz_op = pylot.operator_creator.create_waypoint_visualizer_op(
-                graph)
-            graph.connect([planning_op], [waypoint_viz_op])
-    else:
-        raise ValueError('Unexpected Carla version')
+                           agent_op):
+    planning_op = pylot.operator_creator.create_planning_op(
+        graph, goal_location)
+    if FLAGS.visualize_waypoints:
+        waypoint_viz_op = pylot.operator_creator.create_waypoint_visualizer_op(
+            graph)
+        graph.connect([planning_op], [waypoint_viz_op])
     graph.connect([carla_op], [planning_op])
     graph.connect([planning_op], [agent_op])
 
 
-def add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops, lidar_ops, perfect_tracker_ops):
+def add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
+                            lidar_ops, perfect_tracker_ops):
     # Add visual operators.
     pylot.operator_creator.add_visualization_operators(
         graph,
@@ -323,7 +316,8 @@ def main(argv):
     add_ground_eval_ops(graph, obj_det_ops, camera_ops)
 
     # Add debugging operators (e.g., visualizers) to the data-flow graph.
-    add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops, lidar_ops, perfect_tracker_ops)
+    add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
+                            lidar_ops, perfect_tracker_ops)
 
 
     # Add the behaviour planning agent operator.
@@ -337,13 +331,7 @@ def main(argv):
 
     # Add planning operators.
     goal_location = (234.269989014, 59.3300170898, 39.4306259155)
-    goal_orientation = (1.0, 0.0, 0.22)
-    add_planning_component(graph,
-                           goal_location,
-                           goal_orientation,
-                           carla_op,
-                           agent_op,
-                           city_name='Town{:02d}'.format(FLAGS.carla_town))
+    add_planning_component(graph, goal_location, carla_op, agent_op)
 
     graph.execute(FLAGS.framework)
 

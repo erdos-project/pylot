@@ -38,31 +38,8 @@ except ImportError:
 from pylot.perception.segmentation.segmentation_eval_operator import SegmentationEvalOperator
 from pylot.perception.segmentation.segmentation_eval_ground_operator import SegmentationEvalGroundOperator
 from pylot.perception.tracking.object_tracker_operator import ObjectTrackerOp
-# Import planning operators.
-from pylot.planning.legacy_planning_operator import LegacyPlanningOperator
 
 FLAGS = flags.FLAGS
-
-
-def create_carla_legacy_op(graph, camera_setups, lidar_setups, auto_pilot):
-    # Import operator that works with Carla 0.8.4
-    from pylot.simulation.carla_legacy_operator import CarlaLegacyOperator
-    carla_op = graph.add(
-        CarlaLegacyOperator,
-        name='carla',
-        init_args={
-            'flags': FLAGS,
-            'auto_pilot': auto_pilot,
-            'camera_setups': camera_setups,
-            'lidar_setups': lidar_setups,
-            'log_file_name': FLAGS.log_file_name,
-            'csv_file_name': FLAGS.csv_log_file_name
-        },
-        setup_args={
-            'camera_setups': camera_setups,
-            'lidar_setups': lidar_setups
-        })
-    return carla_op
 
 
 def create_carla_op(graph, auto_pilot):
@@ -110,25 +87,15 @@ def create_camera_driver_op(graph, camera_setup):
 def create_driver_ops(graph, camera_setups, lidar_setups, auto_pilot=False):
     camera_ops = []
     lidar_ops = []
-    if '0.8' in FLAGS.carla_version:
-        carla_op = create_carla_legacy_op(
-            graph, camera_setups, lidar_setups, auto_pilot)
-        # The legacy carla op implements the camera drivers.
-        camera_ops = [carla_op]
-        lidar_ops = [carla_op]
-    elif '0.9' in FLAGS.carla_version:
-        if FLAGS.carla_replay_file == '':
-            carla_op = create_carla_op(graph, auto_pilot)
-        else:
-            carla_op = create_carla_replay_op(graph)
-        camera_ops = [create_camera_driver_op(graph, cs)
-                      for cs in camera_setups]
-        lidar_ops = [create_lidar_driver_op(graph, ls)
-                     for ls in lidar_setups]
-        graph.connect([carla_op], camera_ops + lidar_ops)
+    if FLAGS.carla_replay_file == '':
+        carla_op = create_carla_op(graph, auto_pilot)
     else:
-        raise ValueError(
-            'Unexpected Carla version {}'.format(FLAGS.carla_version))
+        carla_op = create_carla_replay_op(graph)
+    camera_ops = [create_camera_driver_op(graph, cs)
+                      for cs in camera_setups]
+    lidar_ops = [create_lidar_driver_op(graph, ls)
+                     for ls in lidar_setups]
+    graph.connect([carla_op], camera_ops + lidar_ops)
     return (carla_op, camera_ops, lidar_ops)
 
 
@@ -279,22 +246,6 @@ def create_ground_agent_op(graph):
             'csv_file_name': FLAGS.csv_log_file_name
         })
     return agent_op
-
-
-def create_legacy_planning_op(
-        graph, city_name, goal_location, goal_orientation):
-    planning_op = graph.add(
-        LegacyPlanningOperator,
-        name='legacy_planning',
-        init_args={
-            'city_name': city_name,
-            'goal_location': goal_location,
-            'goal_orientation': goal_orientation,
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name,
-            'csv_file_name': FLAGS.csv_log_file_name
-        })
-    return planning_op
 
 
 def create_lidar_visualizer_op(graph):
