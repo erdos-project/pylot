@@ -14,6 +14,8 @@ from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 from pylot.control.messages import ControlMessage
 import pylot.control.utils
 import pylot.simulation.utils
+from pylot.map.hd_map import HDMap
+from pylot.simulation.carla_utils import get_map
 from pylot.simulation.utils import get_3d_world_position_with_point_cloud,\
     get_3d_world_position_with_depth_map
 import pylot.utils
@@ -35,17 +37,12 @@ class PylotAgentOperator(Op):
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
         self._bgr_camera_setup = bgr_camera_setup
         self._map = None
-        if '0.9' in self._flags.carla_version:
-            from pylot.map.hd_map import HDMap
-            from pylot.simulation.carla_utils import get_map
-            if not hasattr(self._flags, 'track'):
-                self._map = HDMap(get_map(self._flags.carla_host,
-                                          self._flags.carla_port,
-                                          self._flags.carla_timeout),
-                                  log_file_name)
-                self._logger.info('Agent running using map')
-        elif hasattr(self._flags, 'track'):
-            from pylot.map.hd_map import HDMap
+        if not hasattr(self._flags, 'track'):
+            self._map = HDMap(get_map(self._flags.carla_host,
+                                      self._flags.carla_port,
+                                      self._flags.carla_timeout),
+                              log_file_name)
+            self._logger.info('Agent running using map')
         self._pid = PID(p=self._flags.pid_p,
                         i=self._flags.pid_i,
                         d=self._flags.pid_d)
@@ -268,7 +265,6 @@ class PylotAgentOperator(Op):
             self.run_if_you_can()
 
     def on_opendrive_map(self, msg):
-        from pylot.map.hd_map import HDMap
         self._map = HDMap(carla.Map('challenge', msg.data),
                           self._log_file_name)
 

@@ -9,7 +9,8 @@ from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
 from pylot.perception.messages import SegmentedFrameMessage
-from pylot.utils import add_timestamp, create_segmented_camera_stream, is_camera_stream, rgb_to_bgr, bgra_to_bgr
+from pylot.utils import add_timestamp, create_segmented_camera_stream,\
+    is_camera_stream, rgb_to_bgr, bgra_to_bgr
 
 
 class SegmentationDRNOperator(Op):
@@ -33,8 +34,7 @@ class SegmentationDRNOperator(Op):
             arch, classes, pretrained_model=None, pretrained=False)
         self._model.load_state_dict(
             torch.load(self._flags.segmentation_drn_model_path))
-        # TODO(ionel): Automatically detect if GPU is available.
-        if self._flags.segmentation_gpu:
+        if torch.cuda.is_available():
             self._model = torch.nn.DataParallel(self._model).cuda()
 
     @staticmethod

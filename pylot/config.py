@@ -27,8 +27,6 @@ flags.DEFINE_bool('segmentation_dla', False,
 flags.DEFINE_string('segmentation_dla_model_path',
                     'dependencies/dla/DLASeg.pth',
                     'Path to the model')
-flags.DEFINE_bool('segmentation_gpu', True,
-                  'True, if segmentation should use a GPU')
 flags.DEFINE_bool('obj_detection', False,
                   'True to enable object detection operator')
 flags.DEFINE_bool('detector_ssd_mobilenet_v1', False,
@@ -83,7 +81,7 @@ flags.DEFINE_bool('stop_for_vehicles', True,
 flags.DEFINE_bool('use_perfect_perception', False,
                   'True to enable the agent to use perfect ground detection')
 # Traffic light stopping parameters.
-flags.DEFINE_integer('traffic_light_min_dist_thres', 9,
+flags.DEFINE_integer('traffic_light_min_dist_thres', 5,
                      'Min distance threshold traffic light')
 flags.DEFINE_integer('traffic_light_max_dist_thres', 20,
                      'Max distance threshold traffic light')

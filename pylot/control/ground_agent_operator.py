@@ -9,7 +9,8 @@ from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
 from pylot.control.messages import ControlMessage
 import pylot.control.utils
-from pylot.simulation.planner.map import CarlaMap
+from pylot.map.hd_map import HDMap
+from pylot.simulation.carla_utils import get_map
 import pylot.utils
 
 
@@ -23,8 +24,11 @@ class GroundAgentOperator(Op):
         super(GroundAgentOperator, self).__init__(name)
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
-        self._map = CarlaMap(city_name)
         self._flags = flags
+        self._map = HDMap(get_map(self._flags.carla_host,
+                                  self._flags.carla_port,
+                                  self._flags.carla_timeout),
+                          log_file_name)
         self._pid = PID(p=flags.pid_p, i=flags.pid_i, d=flags.pid_d)
         self._can_bus_msgs = deque()
         self._pedestrian_msgs = deque()
@@ -131,9 +135,9 @@ class GroundAgentOperator(Op):
 
         if self._flags.stop_for_vehicles:
             for obs_vehicle in vehicles:
-                if self._is_vehicle_on_same_lane(
-                        vehicle_transform,
-                        obs_vehicle.transform):
+                if self._map.are_on_same_lane(
+                        vehicle_transform.location,
+                        obs_vehicle.transform.location):
                     new_speed_factor_v = pylot.control.utils.stop_vehicle(
                         vehicle_transform,
                         obs_vehicle.transform.location,
@@ -144,7 +148,7 @@ class GroundAgentOperator(Op):
 
         if self._flags.stop_for_pedestrians:
             for pedestrian in pedestrians:
-                if self._is_pedestrian_hitable(pedestrian.transform):
+                if self._map.is_on_lane(pedestrian.transform.location):
                     new_speed_factor_p = pylot.control.utils.stop_pedestrian(
                         vehicle_transform,
                         pedestrian.transform.location,
@@ -155,8 +159,8 @@ class GroundAgentOperator(Op):
 
         if self._flags.stop_for_traffic_lights:
             for tl in traffic_lights:
-                if (self._is_traffic_light_active(
-                        vehicle_transform, tl.transform) and
+                if (self._map.must_obbey_traffic_light(
+                        vehicle_transform.location, tl.transform.location) and
                     self._is_traffic_light_visible(
                         vehicle_transform, tl.transform)):
                     new_speed_factor_tl = pylot.control.utils.stop_traffic_light(
@@ -192,11 +196,9 @@ class GroundAgentOperator(Op):
 
         # Don't go to fast around corners
         if math.fabs(wp_angle_speed) < 0.1:
-            target_speed_adjusted = self._flags.target_speed * speed_factor
-        elif math.fabs(wp_angle_speed) < 0.5:
-            target_speed_adjusted = 12 * speed_factor
+            target_speed_adjusted = self._flags.target_speed * speed_factor / 2
         else:
-            target_speed_adjusted = 6 * speed_factor
+            target_speed_adjusted = self._flags.target_speed * speed_factor
 
         self._pid.target = target_speed_adjusted
         pid_gain = self._pid(feedback=current_speed)
@@ -210,89 +212,6 @@ class GroundAgentOperator(Op):
             brake = 0
 
         return ControlMessage(steer, throttle, brake, False, False, timestamp)
-
-    def _is_pedestrian_hitable(self, ped_transform):
-        return self._map.is_point_on_lane(
-            [ped_transform.location.x, ped_transform.location.y, 38])
-
-    def _is_vehicle_on_same_lane(self, ego_transform, obs_vehicle_transform):
-        if self._map.is_point_on_intersection(
-                [obs_vehicle_transform.location.x,
-                 obs_vehicle_transform.location.y,
-                 38]):
-            return True
-        return (math.fabs(
-            self._map.get_lane_orientation_degrees(
-                [ego_transform.location.x,
-                 ego_transform.location.y,
-                 38]) -
-            self._map.get_lane_orientation_degrees(
-                [obs_vehicle_transform.location.x,
-                 obs_vehicle_transform.location.y,
-                 38])) < 1)
-
-    def _is_traffic_light_active(self, vehicle_transform, tl_transform):
-        def search_closest_lane_point(x_agent, y_agent, depth):
-            step_size = 4
-            if depth > 1:
-                return None
-            try:
-                degrees = self._map.get_lane_orientation_degrees(
-                    [x_agent, y_agent, 38])
-            except:
-                return None
-            if not self._map.is_point_on_lane([x_agent, y_agent, 38]):
-                result = search_closest_lane_point(x_agent + step_size,
-                                                   y_agent, depth + 1)
-                if result is not None:
-                    return result
-                result = search_closest_lane_point(
-                    x_agent, y_agent + step_size, depth + 1)
-                if result is not None:
-                    return result
-                result = search_closest_lane_point(
-                    x_agent + step_size, y_agent + step_size, depth + 1)
-                if result is not None:
-                    return result
-                result = search_closest_lane_point(
-                    x_agent + step_size, y_agent - step_size, depth + 1)
-                if result is not None:
-                    return result
-                result = search_closest_lane_point(
-                    x_agent - step_size, y_agent + step_size, depth + 1)
-                if result is not None:
-                    return result
-                result = search_closest_lane_point(x_agent - step_size,
-                                                   y_agent, depth + 1)
-                if result is not None:
-                    return result
-                result = search_closest_lane_point(
-                    x_agent, y_agent - step_size, depth + 1)
-                if result is not None:
-                    return result
-                result = search_closest_lane_point(
-                    x_agent - step_size, y_agent - step_size, depth + 1)
-                if result is not None:
-                    return result
-            else:
-                if degrees < 6:
-                    return [x_agent, y_agent]
-                else:
-                    return None
-
-        closest_lane_point = search_closest_lane_point(
-            tl_transform.location.x, tl_transform.location.y, 0)
-
-        if closest_lane_point is not None:
-            return (math.fabs(
-                self._map.get_lane_orientation_degrees(
-                    [vehicle_transform.location.x,
-                     vehicle_transform.location.y,
-                     38]) -
-                self._map.get_lane_orientation_degrees(
-                    [closest_lane_point[0], closest_lane_point[1], 38])) < 1)
-        else:
-            return None
 
     def _is_traffic_light_visible(self, vehicle_transform, tl_transform):
         _, tl_dist = pylot.control.utils.get_world_vec_dist(
