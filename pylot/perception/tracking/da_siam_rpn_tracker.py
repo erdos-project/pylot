@@ -35,7 +35,7 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
             torch.load(flags.da_siam_rpn_model_path))
         self._siam_net.eval().cuda()
 
-    def reinitialize(self, frame, bboxes):
+    def reinitialize(self, frame, bboxes, confidence_scores):
         # Create a tracker for each bbox.
         self._trackers = []
         for bbox in bboxes:

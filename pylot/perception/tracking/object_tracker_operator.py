@@ -25,6 +25,7 @@ class ObjectTrackerOp(Op):
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
         self._output_stream_name = output_stream_name
+        self._tracker_type = tracker_type
         try:
             if tracker_type == 'cv2':
                 from pylot.perception.tracking.cv2_tracker import MultiObjectCV2Tracker
@@ -103,15 +104,14 @@ class ObjectTrackerOp(Op):
             self._to_process.popleft()
 
         # Track all pedestrians.
-        bboxes, ids = self.__get_pedestrians(msg.detected_objects) # xmin, ymin, xmax, ymax
+        bboxes, ids, confidence_scores = self.__get_pedestrians(msg.detected_objects) # xmin, ymin, xmax, ymax
         if len(bboxes) > 0:
             if len(self._to_process) > 0:
                 # Found the frame corresponding to the bounding boxes.
                 (timestamp, frame) = self._to_process.popleft()
                 assert timestamp == msg.timestamp
                 # Re-initialize trackers.
-                logs = self.create_deep_sort_logs(bboxes, ids)
-                self.__initialize_trackers(frame, bboxes, msg.timestamp, logs)
+                self.__initialize_trackers(frame, bboxes, msg.timestamp, confidence_scores)
                 self._logger.info('Trackers have {} frames to catch-up'.format(
                     len(self._to_process)))
                 for (timestamp, frame) in self._to_process:
@@ -125,20 +125,6 @@ class ObjectTrackerOp(Op):
 
     def execute(self):
         self.spin()
-
-    def create_deep_sort_logs(self, bboxes, ids):
-        lines = []
-        for i in range(len(bboxes)):
-            bbox = bboxes[i]
-            obj_id = ids[i]
-            x1, x2, y1, y2 = bbox # comes from detected objects self.corners (see detection utils)
-
-            bbox_x, bbox_y = min(x1, x2), min(y1, y2)
-            bbox_w, bbox_h = abs(x2 - x1), abs(y2 - y1)
-            log_line = "{},{},{},{},{},{},{},{},{},{}\n".format(
-                0, obj_id, bbox_x, bbox_y, bbox_w, bbox_h, 1.0, -1, -1, -1) # timestamp is 0 here
-            lines.append(log_line)
-        return lines
 
     def checkpoint(self, timestamp):
         """ Invoked by ERDOS when the operator must checkpoint state.
@@ -187,17 +173,19 @@ class ObjectTrackerOp(Op):
     def __get_pedestrians(self, detector_objs):
         bboxes = []
         ids = []
+        confidence_scores = []
         for detected_obj in detector_objs:
             if detected_obj.label == 'person':
                 bboxes.append(detected_obj.corners)
                 ids.append(detected_obj.obj_id)
-        return bboxes, ids
+                confidence_scores.append(detected_obj.confidence)
+        return bboxes, ids, confidence_scores
 
-    def __initialize_trackers(self, frame, bboxes, timestamp, deep_sort_logs=None):
+    def __initialize_trackers(self, frame, bboxes, timestamp, confidence_scores):
         self._ready_to_update = True
         self._ready_to_update_timestamp = timestamp
         self._logger.info('Restarting trackers at frame {}'.format(timestamp))
-        self._tracker.reinitialize(frame, bboxes, deep_sort_logs)
+        self._tracker.reinitialize(frame, bboxes, confidence_scores)
 
     def __track_bboxes_on_frame(self, frame, timestamp, catch_up):
         self._logger.info('Processing frame {}'.format(timestamp))
@@ -211,16 +199,16 @@ class ObjectTrackerOp(Op):
             self._ready_to_update = False
         else:
             if self._flags.visualize_tracker_output and not catch_up:
-                #visualize_no_colors_bboxes(self.name, timestamp, frame, bboxes)
-                for bbox_info in bboxes:
-                    bbox, bbox_id = bbox_info
-                    if len(bbox.shape) > 1:
-                        bbox = list(bbox[0])
-                    frame = self.visualize_on_img(frame, bbox, str(bbox_id), timestamp)
-                visualize_image("tracker", frame)
-                #cv2.imwrite("/home/erdos/workspace/forks/pylot/data/" + str(timestamp) + ".png", frame)
+                if self._tracker_type in ["sort", "deep_sort"]:
+                    for bbox_info in bboxes:
+                        bbox, bbox_id = bbox_info
+                        frame = self.draw_tracker_bbox_on_img(frame, bbox, str(bbox_id), timestamp)
+                    visualize_image(self.name, frame)
+                    #cv2.imwrite("/home/erdos/workspace/forks/pylot/data/" + str(timestamp) + ".png", frame)
+                else:
+                    visualize_no_colors_bboxes(self.name, timestamp, frame, bboxes)
 
-    def visualize_on_img(self, image_np, bbox, bbox_id_text, timestamp):
+    def draw_tracker_bbox_on_img(self, image_np, bbox, bbox_id_text, timestamp):
         """ Annotate the image with the bounding box of the obstacle."""
         txt_font = cv2.FONT_HERSHEY_SIMPLEX
         (xmin, ymin, xmax, ymax) = bbox

@@ -38,18 +38,15 @@ class deepsort_rbc():
 		#loading this encoder is slow, should be done only once.
 		#self.encoder = generate_detections.create_box_encoder("deep_sort/resources/networks/mars-small128.ckpt-68577")		
 		if wt_path is not None:
-                        print("SETUP SIAMESE NET")
 			self.encoder = SiameseNetwork()
-                        print("LOADING PARAMS")
-                        self.encoder.load_state_dict(torch.load(wt_path))
-                        print("LOADED PARAMS")
-                        #self.encoder = torch.load(wt_path)			
+			self.encoder.load_state_dict(torch.load(wt_path))
+			#self.encoder = torch.load(wt_path)
 		else:
-			self.encoder = torch.load('ckpts/model640.pt')
+			self.encoder = torch.load('ckpts/model680.pt')
 			
 		self.encoder = self.encoder.cuda()
 		self.encoder = self.encoder.eval()
-		print("Deep sort model loaded")
+		print("Deep sort model loaded successfully!")
 
 		self.metric = nn_matching.NearestNeighborDistanceMetric("cosine",.5 , 100)
 		self.tracker= Tracker(self.metric)
@@ -83,10 +80,7 @@ class deepsort_rbc():
 			torchvision.transforms.ToTensor()])
 
 		crops = []
-		print("processing_detections")
 		for d in detections:
-			print(d)
-                        print(type(d))
 			for i in range(len(d)):
 				if d[i] <0:
 					d[i] = 0	

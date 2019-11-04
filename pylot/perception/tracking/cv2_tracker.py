@@ -7,7 +7,7 @@ class MultiObjectCV2Tracker(MultiObjectTracker):
     def __init__(self, flags):
         self._tracker = cv2.MultiTracker_create()
 
-    def reinitialize(self, frame, bboxes):
+    def reinitialize(self, frame, bboxes, confidence_scores):
         self._tracker = cv2.MultiTracker_create()
         for (xmin, xmax, ymin, ymax) in bboxes:
             bbox = (xmin, ymin, xmax - xmin, ymax - ymin)
