@@ -52,6 +52,10 @@ class MPCPlanningOperator(Op):
                         i=self._flags.pid_i,
                         d=self._flags.pid_d)
 
+        # MPC
+        self.mpc_input = None
+        self.mpc = None
+
     @staticmethod
     def setup_streams(input_streams):
         input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
@@ -102,18 +106,36 @@ class MPCPlanningOperator(Op):
             assert buffer[0].timestamp == timestamp
         return True
 
-    def __get_steer(self, wp_angle):
-        steer = self._flags.steer_gain * wp_angle
+    def __rad2steer(self, rad):
+        """
+        Converts radians to steer input.
+
+        :return: float [-1.0, 1.0]
+        """
+        steer = self._flags.steer_gain * rad
         if steer > 0:
             steer = min(steer, 1)
         else:
             steer = max(steer, -1)
         return steer
 
+    def __steer2rad(self, steer):
+        """
+        Converts radians to steer input. Assumes max steering angle is -45, 45 degrees
+
+        :return: float [-1.0, 1.0]
+        """
+        rad = steer / self._flags.steer_gain
+        if rad > 0:
+            rad = min(rad, np.pi/2)
+        else:
+            rad = max(rad, -np.pi/2)
+        return rad
+
     def __get_throttle_brake_without_factor(self, current_speed, target_speed):
         self._pid.target = target_speed
         pid_gain = self._pid(feedback=current_speed)
-        throttle = min(max(self._flags.default_throttle - 1.3 * pid_gain, 0),
+        throttle = min(max(self._flags.default_throttle - 1.7 * pid_gain, 0),
                        self._flags.throttle_max)
         if pid_gain > 0.5:
             brake = min(0.35 * pid_gain * self._flags.brake_strength, 1)
@@ -149,77 +171,79 @@ class MPCPlanningOperator(Op):
             self.get_output_stream('control_stream').send(
                 ControlMessage(0.0, 0.0, 1.0, False, False, msg.timestamp))
         else:
-            # convert waypoints into spline
-            path = np.array(self.mpc_input.get_ego_path())
-            spline = CubicSpline2D(path[:, 0], path[:, 1])
-            ss = []
-            vels = []
-            xs = []
-            ys = []
-            yaws = []
-            ks = []
-            for s in spline.s[:-1]:
-                x, y = spline.calc_position(s)
-                yaw = spline.calc_yaw(s)
-                k = spline.calc_curvature(s)
-                xs.append(x)
-                ys.append(y)
-                yaws.append(yaw)
-                ks.append(k)
-                ss.append(s)
-                vels.append(self.mpc_input.speed_limit)
+            # step the controller
+            self.mpc.step()
 
-            config = global_config
-            config["reference"] = {
-                't_list': [],  # Time [s]
-                's_list': ss,  # Arc distance [m]
-                'x_list': xs,  # Desired X coordinates [m]
-                'y_list': ys,  # Desired Y coordinates [m]
-                'k_list': ks,  # Curvatures [1/m]
-                'vel_list': vels,  # Desired tangential velocities [m/s]
-                'yaw_list': yaws,  # Yaws [rad]
-            }
+            # update vehicle info
+            self.mpc.vehicle.x = ego_location.x
+            self.mpc.vehicle.y = ego_location.y
 
-            controller = ModelPredictiveController(config=config)  # TODO: don't re-create at each callback
-            controller.step()
-            x = controller.solution.x_list[-1]
-            y = controller.solution.y_list[-1]
-            yaw = controller.solution.yaw_list[-1]
-            vel = controller.solution.vel_list[-1]
-            accel = controller.horizon_accel[0]
-            steer_angle = controller.horizon_steer[0]
-
-            current_speed = max(0, can_bus_msg.data.forward_speed)
-            steer = self.__get_steer(steer_angle)
+            target_x = self.mpc.solution.x_list[-1]
+            target_y = self.mpc.solution.y_list[-1]
+            target_speed = self.mpc.solution.vel_list[-1]
+            target_steer_rad = self.mpc.horizon_steer[0]  # in rad
+            steer = self.__rad2steer(target_steer_rad)  # [-1.0, 1.0]
             throttle, brake = self.__get_throttle_brake_without_factor(
-                current_speed, vel)
-
-            # log info
-            self._logger.info("Throttle: {}".format(throttle))
-            self._logger.info("Steer: {}".format(steer))
-            self._logger.info("Acceleration: {}".format(accel))
-            self._logger.info("Steering Angle: {}".format(np.rad2deg(steer_angle)))
-            self._logger.info("Current Speed: {}".format(can_bus_msg.data.forward_speed))
-            self._logger.info("Target Speed: {}".format(vel))
-            self._logger.info("Target Yaw: {}".format(np.rad2deg(yaw)))
-            self._logger.info("Next (x,y): ({}, {})".format(x, y))
-            self._logger.info("Current location (x, y): ({}, {})".format(ego_location.x, ego_location.y))
+                self.mpc_input.get_ego_speed(), target_speed)
 
             # draw next waypoints
-            self._world.debug.draw_point(carla.Location(x=x, y=y, z=0.5),
+            self._world.debug.draw_point(carla.Location(x=target_x, y=target_y, z=0.5),
                                          size=0.2,
                                          life_time=30000.0)
+
+            # send controls
             self.get_output_stream('control_stream').send(
                 ControlMessage(steer, throttle, brake, False, False,
                                msg.timestamp))
 
     def execute(self):
+        # wait for ego vehicle to spawn
         ego_vehicle = None
         while ego_vehicle is None:
             self._logger.info("Waiting for hero...")
             time.sleep(1)
             ego_vehicle = retrieve_actor(self._world, 'vehicle.*', 'hero')
 
+        # intialize mpc input module
         self.mpc_input = MPCInput(ego_vehicle=ego_vehicle)
+
+        # convert target waypoints into spline
+        path = np.array(self.mpc_input.get_ego_path())
+        spline = CubicSpline2D(path[:, 0], path[:, 1])
+        ss = []
+        vels = []
+        xs = []
+        ys = []
+        yaws = []
+        ks = []
+        for s in spline.s[:-1]:
+            x, y = spline.calc_position(s)
+            yaw = np.abs(spline.calc_yaw(s))
+            k = spline.calc_curvature(s)
+            xs.append(x)
+            ys.append(y)
+            yaws.append(yaw)
+            ks.append(k)
+            ss.append(s)
+            vels.append(self.mpc_input.speed_limit)
+
+        config = global_config
+        config["reference"] = {
+            't_list': [],  # Time [s]
+            's_list': ss,  # Arc distance [m]
+            'x_list': xs,  # Desired X coordinates [m]
+            'y_list': ys,  # Desired Y coordinates [m]
+            'k_list': ks,  # Curvatures [1/m]
+            'vel_list': vels,  # Desired tangential velocities [m/s]
+            'yaw_list': yaws,  # Yaws [rad]
+        }
+        # draw intended trajectory
+        for p in path:
+            self._world.debug.draw_point(carla.Location(x=p[0], y=p[1], z=0.5),
+                                         size=0.2,
+                                         life_time=30000.0, color=carla.Color(0, 0, 255))
+
+        # initialize mpc controller
+        self.mpc = ModelPredictiveController(config=config)
         self.spin()
 

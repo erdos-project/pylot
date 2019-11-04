@@ -608,10 +608,10 @@ global_config = {
         'wheel_width': 0.2,
         'track': 0.7,
         'wheelbase': 2.5,
-        'max_steer': np.deg2rad(45.0),
-        'min_steer': np.deg2rad(-45.0),
-        'max_steer_speed': np.deg2rad(30.0),
-        'min_steer_speed': np.deg2rad(-30.0),
+        'max_steer': np.deg2rad(50.0),
+        'min_steer': np.deg2rad(-50.0),
+        'max_steer_speed': np.deg2rad(50.0),
+        'min_steer_speed': np.deg2rad(-50.0),
         'max_vel': 35,
         'min_vel': -10,
         'max_accel': 4.0,
@@ -619,7 +619,7 @@ global_config = {
     },
     'controller': {
         'R': np.diag([0.01, 0.01]),  # Input cost
-        'Rd': np.diag([0.01, 0.01]),  # Input difference cost
+        'Rd': np.diag([0.01, 1.0]),  # Input difference cost
         'Q': np.diag([1.0, 1.0, 0.01, 0.01]),  # State cost
         'Qf': np.diag([1.0, 1.0, 0.01, 0.01]),  # Terminal state cost
         'goal_threshold': 1.0,  # Threshold for goal test [m]

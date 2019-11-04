@@ -247,6 +247,15 @@ class MPCInput(object):
         transform = self.ego_vehicle.get_transform()
         return transform.rotation.yaw
 
+    def get_ego_steer(self):
+        """
+        Return the last steer of the ego vehicle.
+
+        :return: float [-1.0, 1.0]
+        """
+        control = self.ego_vehicle.get_control()
+        return control.steer
+
     def get_ego_speed(self):
         """
         Return the speed in m/s of the ego vehicle.
@@ -275,7 +284,7 @@ class MPCInput(object):
 
         TODO: this is hacked to for our straight road, need to incorporate idea of global intent
         """
-        goal_location = carla.Location(x=17.73, y=326.6, z=0.5)
+        goal_location = carla.Location(x=17.73, y=327.2, z=0.5)
         ego_location = self.ego_vehicle.get_location()
 
         goal_x = goal_location.x
@@ -309,5 +318,5 @@ class MPCInput(object):
         for h in hacks:
             hack[h[0]] = h[1]
 
-        return [[x, goal_y + 1.25 * hack[int(x)]] for x in reversed(np.arange(goal_x, ego_x, 1.0))]
+        return [[x, goal_y + 2 * hack[int(x)]] for x in reversed(np.arange(goal_x, ego_x, 1.0))]
 
