@@ -74,26 +74,14 @@ pip install --user opencv-python
 ###### Download the DRN segmentation code ######
 git clone https://github.com/ICGog/drn.git
 
-###### Download CenterNet ######
-git clone https://github.com/ICGog/CenterNet.git
-
 ###### Download the Carla simulator ######
 if [ "$1" != 'challenge' ]; then
-    mkdir CARLA_0.8.4
-    cd CARLA_0.8.4
-    gdown https://drive.google.com/uc?id=18OaDbQ2K9Dcs25d-nIxpw3GPRHhG1r_2
-    tar xvf CARLA_0.8.4.tar.gz
-    rm CARLA_0.8.4.tar.gz
-    if [ "$1" == 'docker' ]; then
-        rm -r CarlaUE4
-    fi
-
     cd ../
-    mkdir CARLA_0.9.5
-    cd CARLA_0.9.5
-    wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.5.tar.gz
-    tar xvf CARLA_0.9.5.tar.gz
-    rm CARLA_0.9.5.tar.gz
+    mkdir CARLA_0.9.6
+    cd CARLA_0.9.6
+    wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.6.tar.gz
+    tar xvf CARLA_0.9.6.tar.gz
+    rm CARLA_0.9.6.tar.gz
     if [ "$1" == 'docker' ]; then
         rm -r CarlaUE4; rm -r HDMaps
     fi

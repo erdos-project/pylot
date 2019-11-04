@@ -21,10 +21,6 @@ from pylot.loggers.trajectory_logger_operator import TrajectoryLoggerOp
 # Import perception operators.
 from pylot.perception.detection.detection_operator import DetectionOperator
 from pylot.perception.detection.detection_eval_ground_operator import DetectionEvalGroundOperator
-try:
-    from pylot.perception.detection.detection_center_net_operator import DetectionCenterNetOperator
-except ImportError:
-    print("Error importing CenterNet detector.")
 from pylot.perception.detection.lane_detection_operator import LaneDetectionOperator
 from pylot.perception.detection.obstacle_accuracy_operator import ObstacleAccuracyOperator
 from pylot.perception.detection.traffic_light_det_operator import TrafficLightDetOperator
@@ -486,16 +482,6 @@ def create_detector_ops(graph):
             'detector_ssd_resnet50_v1',
             FLAGS.detector_ssd_resnet50_v1_model_path,
             FLAGS.obj_detection_gpu_memory_fraction))
-    if FLAGS.detector_center_net:
-        obj_det_op = graph.add(
-            DetectionCenterNetOperator,
-            name='detector_center_net',
-            setup_args={'output_stream_name': 'obj_stream'},
-            init_args={'output_stream_name': 'obj_stream',
-                       'flags': FLAGS,
-                       'log_file_name': FLAGS.log_file_name,
-                       'csv_file_name': FLAGS.csv_log_file_name})
-        detector_ops.append(obj_det_op)
     return detector_ops
 
 

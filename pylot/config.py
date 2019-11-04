@@ -53,11 +53,6 @@ flags.DEFINE_string(
     'detector_ssd_resnet50_v1_model_path',
     'dependencies/models/ssd_resnet50_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03/frozen_inference_graph.pb',
     'Path to the model')
-flags.DEFINE_bool('detector_center_net', False,
-                  'True to enable CenterNet detector')
-flags.DEFINE_string('detector_center_net_model_path',
-                    'dependencies/CenterNet/models/ctdet_coco_dla_2x.pth',
-                    'Path to the model')
 flags.DEFINE_float('detector_min_score_threshold', 0.5,
                    'Min score threshold for bounding box')
 flags.DEFINE_string('path_coco_labels', 'dependencies/models/coco.names',
@@ -129,7 +124,7 @@ flags.DEFINE_float('brake_strength', 1,
 flags.DEFINE_integer('coast_factor', 2, 'Factor to control coasting')
 
 # Carla flags.
-flags.DEFINE_string('carla_version', '0.8.4', 'Carla simulator version.')
+flags.DEFINE_string('carla_version', '0.9.6', 'Carla simulator version.')
 flags.DEFINE_string('carla_host', 'localhost', 'Carla host.')
 flags.DEFINE_integer('carla_port', 2000, 'Carla port.')
 flags.DEFINE_integer('carla_timeout', 10,

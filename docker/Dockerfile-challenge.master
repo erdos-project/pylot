@@ -28,13 +28,13 @@ RUN pip install setuptools psutil py_trees==0.8.3 shapely six
 WORKDIR /workspace
 COPY PythonAPI /workspace/CARLA/PythonAPI
 COPY HDMaps /workspace/CARLA/HDMaps
-ENV CARLA_ROOT /workspace/CARLA
+ENV CARLA_HOME /workspace/CARLA
 
 # adding CARLA egg to default python environment
 RUN pip install --user py_trees==0.8.3 psutil shapely six
 
 ENV ROOT_SCENARIO_RUNNER "/workspace/scenario_runner"
-#ENV PYTHONPATH "/workspace/CARLA/PythonAPI/carla/dist/carla-0.9.5-py3.5-linux-x86_64.egg":"${ROOT_SCENARIO_RUNNER}":"${CARLA_ROOT}/PythonAPI/carla":${PYTHONPATH}
+#ENV PYTHONPATH "/workspace/CARLA/PythonAPI/carla/dist/carla-0.9.5-py3.5-linux-x86_64.egg":"${ROOT_SCENARIO_RUNNER}":"${CARLA_HOME}/PythonAPI/carla":${PYTHONPATH}
 
 COPY .tmp /workspace/scenario_runner
 COPY team_code /workspace/team_code
@@ -71,14 +71,12 @@ RUN cd /workspace && git clone https://github.com/erdos-project/pylot.git
 RUN  cd /workspace/pylot/ && pip install -e ./
 # Get the Pylot models and code dependencies.
 RUN apt-get update && apt-get install -y wget
-# Install toolkit for Centernet
-RUN apt-get -y install cuda-toolkit-9.0
 RUN cd /workspace/pylot/ && ./install.sh challenge
 
 RUN /bin/bash -c 'source /opt/ros/kinetic/setup.bash'
 
 # Export PYTHONPATH
-ENV PYTHONPATH "/opt/ros/kinetic/lib/python2.7/dist-packages:/workspace/CARLA/PythonAPI/carla/dist/carla-0.9.5-py2.7-linux-x86_64.egg":"${ROOT_SCENARIO_RUNNER}":"${CARLA_ROOT}/PythonAPI/carla":"/workspace/pylot/dependencies/:${PYTHONPATH}"
+ENV PYTHONPATH "/opt/ros/kinetic/lib/python2.7/dist-packages:/workspace/CARLA/PythonAPI/carla/dist/carla-0.9.5-py2.7-linux-x86_64.egg":"${ROOT_SCENARIO_RUNNER}":"${CARLA_HOME}/PythonAPI/carla":"/workspace/pylot/dependencies/:${PYTHONPATH}"
 
 ENV TEAM_AGENT /workspace/pylot/pylot/simulation/challenge/ERDOSAgent.py
 ENV TEAM_CONFIG /workspace/pylot/pylot/simulation/challenge/challenge.conf

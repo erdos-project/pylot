@@ -1,3 +1,8 @@
 #!/bin/bash
-# Assumes CARLA_ROOT is set.
-SDL_VIDEODRIVER=offscreen ${CARLA_ROOT}/CarlaUE4.sh -opengl -windowed -ResX=800 -ResY=600 -carla-server -benchmark -fps=10 -quality-level=Epic
+
+if [ -z "$CARLA_HOME" ]; then
+    echo "Please set \$CARLA_HOME before running this script"
+    exit 1
+fi
+
+SDL_VIDEODRIVER=offscreen ${CARLA_HOME}/CarlaUE4.sh -opengl -windowed -ResX=800 -ResY=600 -carla-server -benchmark -fps=10 -quality-level=Epic

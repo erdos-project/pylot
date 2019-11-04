@@ -27,15 +27,9 @@ RUN sudo apt-get install -y python-pip
 RUN pip install gdown
 
 # Retrieve CARLA
-RUN cd /home/erdos/workspace/ && /home/erdos/.local/bin/gdown https://drive.google.com/uc?id=18OaDbQ2K9Dcs25d-nIxpw3GPRHhG1r_2
-RUN cd /home/erdos/workspace/ && mkdir -p CARLA_0.8.4 && mv CARLA_0.8.4.tar.gz CARLA_0.8.4/
-RUN cd /home/erdos/workspace/CARLA_0.8.4 && tar xvf CARLA_0.8.4.tar.gz && rm -rf CARLA_0.8.4.tar.gz
+RUN sudo apt-get -y update && sudo apt-get -y install wget
+RUN cd /home/erdos/workspace/ && wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.6.tar.gz
+RUN cd /home/erdos/workspace/ && mkdir -p CARLA_0.9.6 && mv CARLA_0.9.6.tar.gz CARLA_0.9.6/
+RUN cd /home/erdos/workspace/CARLA_0.9.6 && tar xvf CARLA_0.9.6.tar.gz && rm -rf CARLA_0.9.6.tar.gz
 ENV SDL_VIDEODRIVER offscreen
-#ENV CARLA_ROOT /home/erdos/workspace/CARLA_0.8.4/
-
-RUN sudo apt-get -y install wget
-RUN cd /home/erdos/workspace/ && wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.5.tar.gz
-RUN cd /home/erdos/workspace/ && mkdir -p CARLA_0.9.5 && mv CARLA_0.9.5.tar.gz CARLA_0.9.5/
-RUN cd /home/erdos/workspace/CARLA_0.9.5 && tar xvf CARLA_0.9.5.tar.gz && rm -rf CARLA_0.9.5.tar.gz
-ENV SDL_VIDEODRIVER offscreen
-ENV CARLA_ROOT /home/erdos/workspace/CARLA_0.9.5/
+ENV CARLA_HOME /home/erdos/workspace/CARLA_0.9.6
