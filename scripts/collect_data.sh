@@ -17,7 +17,7 @@ for pn in ${start_player_nums[@]}; do
         ${CARLA_HOME}/CarlaUE4.sh /Game/Carla/Maps/Town0${town} -windowed -ResX=1920 -ResY=1080 -carla-server -benchmark -fps=10 &
         mkdir $1/town0${town}_start${pn}/
         sleep 10
-        python data_gatherer.py --flagfile=configs/data_gatherer_autopilot.conf --carla_start_player_num=${pn} --data_path=$1/town0${town}_start${pn}/ --carla_town=${town} & sleep 4800; kill -9 $!
+        python data_gatherer.py --flagfile=configs/data_gatherer_autopilot.conf --carla_spawn_point_index=${pn} --data_path=$1/town0${town}_start${pn}/ --carla_town=${town} & sleep 4800; kill -9 $!
         # Collect data for an hour.
         # Kill data gathering script and Carla.
         killall python data_gatherer.py

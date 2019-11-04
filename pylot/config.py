@@ -137,10 +137,9 @@ flags.DEFINE_integer('carla_num_vehicles', 20, 'Carla num vehicles.')
 flags.DEFINE_integer('carla_num_pedestrians', 40, 'Carla num pedestrians.')
 flags.DEFINE_integer('carla_weather', 2,
                      'Carla weather preset; between 1 and 14')
-flags.DEFINE_bool('carla_random_player_start', True,
-                  'True to randomly assign a car to the player')
-flags.DEFINE_integer('carla_start_player_num', 0,
-                     'Number of the assigned start player')
+flags.DEFINE_integer(
+    'carla_spawn_point_index', -1,
+    'Index of spawn point where to place ego vehicle. -1 to randomly assing.')
 flags.DEFINE_integer('carla_camera_image_width', 800,
                      'Carla camera image width')
 flags.DEFINE_integer('carla_camera_image_height', 600,

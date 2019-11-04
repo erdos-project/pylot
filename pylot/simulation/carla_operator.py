@@ -284,13 +284,23 @@ class CarlaOperator(Op):
             'vehicle.lincoln.mkz2017')[0]
 
         driving_vehicle = None
+
         while not driving_vehicle:
-            start_pose = random.choice(
-                self._world.get_map().get_spawn_points())
+            if self._flags.carla_spawn_point_index == -1:
+                # Pick a random spawn point.
+                start_pose = random.choice(
+                    self._world.get_map().get_spawn_points())
+            else:
+                spawn_points = self._world.get_map().get_spawn_points()
+                assert self._flags.carla_spawn_point_index < len(spawn_points), \
+                    'Spawn point index is too big. ' \
+                    'Town does not have sufficient spawn points.'
+                start_pose = spawn_points[self._flags.carla_spawn_point_index]
+
             driving_vehicle = self._world.try_spawn_actor(v_blueprint,
                                                           start_pose)
-            if driving_vehicle and self._auto_pilot:
-                driving_vehicle.set_autopilot(self._auto_pilot)
+        if self._auto_pilot:
+            driving_vehicle.set_autopilot(self._auto_pilot)
         return driving_vehicle
 
     def publish_world_data(self, msg):
