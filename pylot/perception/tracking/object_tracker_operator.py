@@ -28,9 +28,6 @@ class ObjectTrackerOp(Op):
             if tracker_type == 'cv2':
                 from pylot.perception.tracking.cv2_tracker import MultiObjectCV2Tracker
                 self._tracker = MultiObjectCV2Tracker(self._flags)
-            elif tracker_type == 'crv':
-                from pylot.perception.tracking.crv_tracker import MultiObjectCRVTracker
-                self._tracker = MultiObjectCRVTracker(self._flags)
             elif tracker_type == 'da_siam_rpn':
                 from pylot.perception.tracking.da_siam_rpn_tracker import MultiObjectDaSiamRPNTracker
                 self._tracker = MultiObjectDaSiamRPNTracker(self._flags)

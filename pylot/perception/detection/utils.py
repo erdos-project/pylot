@@ -391,7 +391,10 @@ def visualize_no_colors_bboxes(op_name, timestamp, image_np, bboxes):
         (xmin, xmax, ymin, ymax) = corners
         color = [128, 0, 0]
         # Show bounding box.
-        cv2.rectangle(image_np, (xmin, ymin), (xmax, ymax), color, 2)
+        cv2.rectangle(image_np,
+                      (int(xmin), int(ymin)), (int(xmax), int(ymax)),
+                      color,
+                      2)
     cv2.imshow(op_name, image_np)
     cv2.waitKey(1)
 

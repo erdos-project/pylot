@@ -65,7 +65,7 @@ flags.DEFINE_string('path_coco_labels', 'dependencies/models/coco.names',
 flags.DEFINE_bool('obj_tracking', False,
                   'True to enable object tracking operator')
 flags.DEFINE_string('tracker_type', 'cv2',
-                    'Tracker type: cv2 | crv | da_siam_rpn')
+                    'Tracker type: cv2 | da_siam_rpn')
 flags.DEFINE_string('da_siam_rpn_model_path',
                     'dependencies/models/SiamRPNVOT.model',
                     'Path to the model')
