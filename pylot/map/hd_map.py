@@ -93,8 +93,6 @@ class HDMap(object):
         if not waypoint2:
             # Second location is not on a drivable lane.
             return False
-        w_t1 = to_pylot_transform(waypoint1.transform)
-        w_t2 = to_pylot_transform(waypoint2.transform)
         if waypoint1.road_id == waypoint2.road_id:
             return waypoint1.lane_id == waypoint2.lane_id
         else:

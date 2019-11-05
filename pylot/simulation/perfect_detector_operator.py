@@ -7,8 +7,7 @@ from erdos.utils import setup_csv_logging, setup_logging
 
 import pylot.utils
 from pylot.perception.detection.utils import DetectedObject,\
-    annotate_image_with_bboxes, save_image, visualize_ground_bboxes,\
-    visualize_image
+    annotate_image_with_bboxes, save_image, visualize_image
 from pylot.perception.messages import DetectorMessage
 from pylot.simulation.utils import get_2d_bbox_from_3d_box
 from pylot.simulation.carla_utils import get_world

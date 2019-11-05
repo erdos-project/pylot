@@ -6,7 +6,7 @@ from numpy.linalg import inv
 from numpy.matlib import repmat
 
 from pylot.perception.detection.utils import DetectedObject,\
-    DetectedSpeedLimit, TrafficLightColor, get_bounding_boxes_from_segmented
+    DetectedSpeedLimit, get_bounding_boxes_from_segmented
 from pylot.perception.segmentation.utils import get_traffic_sign_pixels
 
 Orientation = namedtuple('Orientation', 'x, y, z')
@@ -1107,9 +1107,9 @@ def locations_3d_to_view(locations, extrinsic_matrix, intrinsic_matrix):
 
     screen_locations = []
     for i in range(len(locations)):
-        screen_locations.append(Location(float(screen_points[0,i]),
-                                         float(screen_points[1,i]),
-                                         float(screen_points[2,i])))
+        screen_locations.append(Location(float(screen_points[0, i]),
+                                         float(screen_points[1, i]),
+                                         float(screen_points[2, i])))
     return screen_locations
 
 

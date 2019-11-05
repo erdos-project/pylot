@@ -153,6 +153,11 @@ class CarlaOperator(Op):
         self._world.tick()
 
     def _spawn_pedestrians(self, num_pedestrians):
+        """ Spawns pedestrians at random locations inside the world.
+
+        Args:
+            num_pedestrians: The number of pedestrians to spawn.
+        """
         p_blueprints = self._world.get_blueprint_library().filter(
             'walker.pedestrian.*')
         unique_locs = set([])
@@ -219,8 +224,7 @@ class CarlaOperator(Op):
                 self._world.get_random_location_from_navigation())
 
     def _spawn_vehicles(self, num_vehicles):
-        """ Spawns the required number of vehicles at random locations inside
-        the world.
+        """ Spawns vehicles at random locations inside the world.
 
         Args:
             num_vehicles: The number of vehicles to spawn.
@@ -272,10 +276,10 @@ class CarlaOperator(Op):
         return vehicle_ids
 
     def _spawn_driving_vehicle(self):
-        """ Spawns the vehicle that the rest of the pipeline drives.
+        """ Spawns the ego vehicle.
 
         Returns:
-            A handle to the vehicle being driven around.
+            A handle to the ego vehicle.
         """
         self._logger.debug('Spawning the vehicle to be driven around.')
 

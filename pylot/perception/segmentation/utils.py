@@ -39,11 +39,6 @@ CITYSCAPES_CLASSES = {
 # outputs to ground truth.
 
 
-def is_segmented_road_pixel(segmented_frame, x, y):
-    """ Checks if a pixel is a road pixel in a Carla segmented frame."""
-    return segmented_frame[x][y] == 7
-
-
 def get_traffic_sign_pixels(segmented_frame):
     """ Returns a frame with the traffic sign pixels set to True."""
     # Shape is height, width

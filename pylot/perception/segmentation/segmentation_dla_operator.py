@@ -10,7 +10,7 @@ from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 from pylot.perception.messages import SegmentedFrameMessage
 from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
 from pylot.utils import add_timestamp, create_segmented_camera_stream,\
-    is_camera_stream, rgb_to_bgr, bgra_to_bgr
+    is_camera_stream, rgb_to_bgr
 
 
 class SegmentationDLAOperator(Op):

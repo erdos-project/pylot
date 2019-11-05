@@ -6,6 +6,8 @@ from pylot.utils import is_ground_tracking_stream
 
 
 class TrajectoryLoggerOp(Op):
+    """ Log actor trajectories."""
+
     def __init__(self, name, flags):
         super(TrajectoryLoggerOp, self).__init__(name)
         self._flags = flags
@@ -24,7 +26,7 @@ class TrajectoryLoggerOp(Op):
         trajectories = [str(trajectory) for trajectory in msg.obj_trajectories]
         timestamp = msg.timestamp.coordinates[0]
         # Write the trajectories.
-        file_name = '{}trajectories-{}.json'.format(self._flags.data_path, timestamp)
+        file_name = '{}trajectories-{}.json'.format(
+            self._flags.data_path, timestamp)
         with open(file_name, 'w') as outfile:
             json.dump(trajectories, outfile)
-

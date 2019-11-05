@@ -371,12 +371,12 @@ def create_perfect_tracking_op(graph, output_stream_name):
 def create_depth_estimation_op(graph, center_transform,
                                left_camera_name, right_camera_name):
     try:
-        from pylot.perception.depth_estimation.depth_est_operator import DepthEstOperator
+        from pylot.perception.depth_estimation.depth_estimation_operator import DepthEstimationOperator
     except ImportError:
         raise Exception("Error importing AnyNet depth estimation.")
 
     depth_estimation_op = graph.add(
-        DepthEstOperator,
+        DepthEstimationOperator,
         name='depth_estimation',
         init_args={
             'output_stream_name': 'depth_estimation',

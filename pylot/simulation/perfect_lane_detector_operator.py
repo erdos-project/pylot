@@ -47,8 +47,7 @@ class PerfectLaneDetectionOperator(Op):
         return transform.location + shift * transform.get_forward_vector()
 
     def on_position_update(self, can_bus_msg):
-        """ Callback to be invoked on the receipt of a new update to the 
-        position of the vehicle.
+        """ Invoked on the receipt of an update to the position of the vehicle.
 
         Uses the position of the vehicle to get future waypoints and draw
         lane markings using those waypoints.

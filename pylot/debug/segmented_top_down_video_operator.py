@@ -30,7 +30,6 @@ class SegmentedTopDownVideoOperator(Op):
         open_cv_image = rgb_to_bgr(np.array(img))
         cv2.imshow(self.name, open_cv_image)
         cv2.waitKey(1)
-        
+
     def execute(self):
         self.spin()
-

@@ -68,7 +68,11 @@ flags.DEFINE_string(
     'Path to the traffic light model protobuf')
 flags.DEFINE_float('traffic_light_det_min_score_threshold', 0.3,
                    'Min score threshold for bounding box')
-flags.DEFINE_string('depth_est_model_path', 'dependencies/anynet/',
+
+# Estimate depth using two cameras.
+flags.DEFINE_bool('depth_estimation', False,
+                  'True to depth estimation using cameras')
+flags.DEFINE_string('depth_estimation_model_path', 'dependencies/anynet/',
                     'Path to AnyNet depth estimation model')
 
 # Agent flags.
@@ -152,16 +156,12 @@ flags.DEFINE_integer('carla_replay_id', 0,
 flags.DEFINE_bool('carla_auto_pilot', False,
                   'Use auto pilot to drive the ego vehicle')
 
-# Estimate depth using two cameras.
-flags.DEFINE_bool('depth_estimation', False,
-                  'True to depth estimation using cameras')
-
 # Visualizing operators
 flags.DEFINE_bool('visualize_depth_camera', False,
                   'True to enable depth camera video operator')
 flags.DEFINE_bool('visualize_lidar', False,
                   'True to enable CARLA Lidar visualizer operator')
-flags.DEFINE_bool('visualize_depth_est', False,
+flags.DEFINE_bool('visualize_depth_estimation', False,
                   'True to enable depth estimation visualization')
 flags.DEFINE_bool('visualize_rgb_camera', False,
                   'True to enable RGB camera video operator')

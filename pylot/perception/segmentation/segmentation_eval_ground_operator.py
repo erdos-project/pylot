@@ -4,7 +4,8 @@ import time
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from pylot.perception.segmentation.utils import tf_compute_semantic_iou, generate_masks, compute_semantic_iou_from_masks
+from pylot.perception.segmentation.utils import generate_masks,\
+    compute_semantic_iou_from_masks
 from pylot.utils import is_segmented_camera_stream
 
 

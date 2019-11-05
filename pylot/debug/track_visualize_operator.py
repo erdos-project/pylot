@@ -14,8 +14,7 @@ import pylot.simulation.carla_utils
 
 
 class TrackVisualizerOperator(Op):
-    """ 
-        TrackVisualizerOperator visualizes the past locations of agents
+    """ TrackVisualizerOperator visualizes the past locations of agents
         on the top-down segmented image.
     """
 
@@ -48,9 +47,10 @@ class TrackVisualizerOperator(Op):
     def setup_streams(input_streams, top_down_stream_name):
         input_streams.filter(pylot.utils.is_tracking_stream).add_callback(
             TrackVisualizerOperator.on_tracking_update)
-        input_streams.filter(pylot.utils.is_segmented_camera_stream).filter_name(
-            top_down_stream_name).add_callback(
-            TrackVisualizerOperator.on_top_down_segmentation_update)
+        input_streams.filter(
+            pylot.utils.is_segmented_camera_stream).filter_name(
+                top_down_stream_name).add_callback(
+                    TrackVisualizerOperator.on_top_down_segmentation_update)
         # Register a completion watermark callback. The callback is invoked
         # after all the messages with a given timestamp have been received.
         input_streams.add_completion_callback(
@@ -65,7 +65,7 @@ class TrackVisualizerOperator(Op):
                 return False
             assert buffer[0].timestamp == timestamp
         return True
-    
+
     def on_tracking_update(self, msg):
         with self._lock:
             self._tracking_msgs.append(msg)
@@ -104,7 +104,7 @@ class TrackVisualizerOperator(Op):
                                 obj.trajectory,
                                 self._top_down_camera_setup.transform.matrix,
                                 intrinsic_matrix)
-                                                                            
+
             # Draw trajectory points on segmented image.
             for point in screen_points:
                 if (0 <= point.x <= self._flags.carla_camera_image_width) and \

@@ -10,11 +10,12 @@ from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
 from pylot.perception.messages import SegmentedFrameMessage
 from pylot.utils import add_timestamp, create_segmented_camera_stream,\
-    is_camera_stream, rgb_to_bgr, bgra_to_bgr
+    is_camera_stream, rgb_to_bgr
 
 
 class SegmentationDRNOperator(Op):
     """ Subscribes to a camera stream, and segments frames using DRN."""
+
     def __init__(self,
                  name,
                  output_stream_name,

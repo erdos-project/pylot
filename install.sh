@@ -23,7 +23,7 @@ then
 elif [ $os_version == '18.04' ]
 then
     sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu bionic main" > /etc/apt/sources.list.d/ros-latest.list'
-    sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key 421C365BD9FF1F717815A3895523BAEEB01FA116
+    sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
     sudo apt-get -y update
     sudo apt-get install -y --allow-unauthenticated ros-melodic-ros-base
     echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
@@ -76,7 +76,6 @@ git clone https://github.com/ICGog/drn.git
 
 ###### Download the Carla simulator ######
 if [ "$1" != 'challenge' ]; then
-    cd ../
     mkdir CARLA_0.9.6
     cd CARLA_0.9.6
     wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.6.tar.gz

@@ -10,6 +10,8 @@ from erdos.utils import setup_csv_logging, setup_logging
 
 
 class CameraLoggerOp(Op):
+    """ Logs frames for different types of cameras."""
+
     def __init__(self, name, flags, log_file_name=None, csv_file_name=None):
         super(CameraLoggerOp, self).__init__(name)
         self._flags = flags
@@ -19,19 +21,17 @@ class CameraLoggerOp(Op):
         self._segmented_frame_cnt = 0
         self._top_down_segmented_frame_cnt = 0
         self._depth_frame_cnt = 0
-
         self._left_bgr_frame_cnt = 0
         self._right_bgr_frame_cnt = 0
 
     @staticmethod
     def setup_streams(input_streams):
         input_streams.filter(pylot.utils.is_center_camera_stream).add_callback(
-        CameraLoggerOp.on_bgr_frame)
+            CameraLoggerOp.on_bgr_frame)
         input_streams.filter(pylot.utils.is_left_camera_stream).add_callback(
-        CameraLoggerOp.on_bgr_frame_left)
+            CameraLoggerOp.on_bgr_frame_left)
         input_streams.filter(pylot.utils.is_right_camera_stream).add_callback(
-        CameraLoggerOp.on_bgr_frame_right)
-
+            CameraLoggerOp.on_bgr_frame_right)
         input_streams.filter(
             pylot.utils.is_front_segmented_camera_stream).add_callback(
                 CameraLoggerOp.on_front_segmented_frame)

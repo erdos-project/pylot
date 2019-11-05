@@ -3,7 +3,8 @@ import numpy as np
 import time
 
 from erdos.op import Op
-from erdos.utils import frequency, setup_csv_logging, setup_logging, time_epoch_ms
+from erdos.utils import frequency, setup_csv_logging, setup_logging, \
+    time_epoch_ms
 
 from pylot.perception.messages import ObjPositionsSpeedsMessage
 import pylot.utils
