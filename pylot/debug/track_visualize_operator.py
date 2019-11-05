@@ -1,10 +1,7 @@
-from absl import flags
 from collections import deque
 import cv2
 import numpy as np
 import threading
-
-import carla
 
 # ERDOS specific imports.
 from erdos.op import Op
@@ -15,7 +12,6 @@ from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
 import pylot.utils
 import pylot.simulation.carla_utils
 
-FLAGS = flags.FLAGS
 
 class TrackVisualizerOperator(Op):
     """ 
@@ -58,7 +54,7 @@ class TrackVisualizerOperator(Op):
         # Register a completion watermark callback. The callback is invoked
         # after all the messages with a given timestamp have been received.
         input_streams.add_completion_callback(
-           TrackVisualizerOperator.on_notification) 
+           TrackVisualizerOperator.on_notification)
         return []
 
     def synchronize_msg_buffers(self, timestamp, buffers):
@@ -95,7 +91,8 @@ class TrackVisualizerOperator(Op):
 
         self._frame_cnt += 1
 
-        display_img = np.uint8(transform_to_cityscapes_palette(segmentation_msg.frame))
+        display_img = np.uint8(transform_to_cityscapes_palette(
+            segmentation_msg.frame))
         for obj in tracking_msg.obj_trajectories:
             # Intrinsic matrix of the top down segmentation camera.
             intrinsic_matrix = pylot.simulation.utils.create_intrinsic_matrix(
@@ -110,8 +107,8 @@ class TrackVisualizerOperator(Op):
                                                                             
             # Draw trajectory points on segmented image.
             for point in screen_points:
-                if (0 <= point.x <= FLAGS.carla_camera_image_width) and \
-                   (0 <= point.y <= FLAGS.carla_camera_image_height):
+                if (0 <= point.x <= self._flags.carla_camera_image_width) and \
+                   (0 <= point.y <= self._flags.carla_camera_image_height):
                     cv2.circle(display_img,
                                (int(point.x), int(point.y)),
                                3, self._colors[obj.obj_class], -1)

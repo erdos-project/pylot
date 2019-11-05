@@ -3,13 +3,13 @@ from absl import flags
 
 import erdos.graph
 from erdos.op import Op
-from erdos.timestamp import Timestamp
 
 import pylot.config
 from pylot.control.messages import ControlMessage
 import pylot.operator_creator
 import pylot.simulation.utils
 import pylot.utils
+
 
 FLAGS = flags.FLAGS
 
@@ -18,13 +18,28 @@ flags.DEFINE_integer('log_every_nth_frame', 1,
                      'Control how often the script logs frames')
 
 # Flags for logging data from left and right cameras.
-flags.DEFINE_bool('camera_left_right', False,
+flags.DEFINE_bool('log_left_right_cameras', False,
                   'Control whether we log left and right cameras.')
-flags.DEFINE_float('offset_left_right', 0.05,
+flags.DEFINE_float('offset_left_right_cameras', 0.05,
                    'How much we offset the left and right cameras '
                    'from the center.')
-flags.DEFINE_bool('log_bounding_boxes', True,
+flags.DEFINE_bool('log_bounding_boxes', False,
                   'True to enable bounding box logging')
+flags.DEFINE_bool('log_cameras', False, 'True to enable camera logging')
+flags.DEFINE_bool('log_lidar', False, 'True to enable lidar logging')
+flags.DEFINE_bool('log_trajectories', False,
+                  'True to enable trajectory logging')
+flags.DEFINE_bool('log_chauffeur', False,
+                  'True to log data in ChauffeurNet style.')
+
+
+CENTER_CAMERA_LOCATION_X = 1.5
+CENTER_CAMERA_LOCATION_Y = 0.0
+CENTER_CAMERA_LOCATION_Z = 1.4
+CENTER_CAMERA_LOCATION = pylot.simulation.utils.Location(
+    CENTER_CAMERA_LOCATION_X,
+    CENTER_CAMERA_LOCATION_Y,
+    CENTER_CAMERA_LOCATION_Z)
 
 
 class SynchronizerOp(Op):
@@ -44,14 +59,87 @@ class SynchronizerOp(Op):
         self.get_output_stream('control_stream').send(control_msg)
 
 
+def _add_depth_estimation_camera_setups(camera_setups):
+    location_left = pylot.simulation.utils.Location(
+        CENTER_CAMERA_LOCATION_X,
+        CENTER_CAMERA_LOCATION_Y - FLAGS.offset_left_right_cameras,
+        CENTER_CAMERA_LOCATION_Z)
+    rotation_left = pylot.simulation.utils.Rotation(0, 0, 0)
+    transform_left = pylot.simulation.utils.Transform(
+        location_left, rotation_left)
+
+    left_camera_setup = pylot.simulation.utils.CameraSetup(
+        pylot.utils.LEFT_CAMERA_NAME,
+        'sensor.camera.rgb',
+        FLAGS.carla_camera_image_width,
+        FLAGS.carla_camera_image_height,
+        transform_left)
+    camera_setups.append(left_camera_setup)
+
+    location_right = pylot.simulation.utils.Location(
+        CENTER_CAMERA_LOCATION_X,
+        CENTER_CAMERA_LOCATION_Y + FLAGS.offset_left_right_cameras,
+        CENTER_CAMERA_LOCATION_Z)
+    rotation_right = pylot.simulation.utils.Rotation(0, 0, 0)
+    transform_right = pylot.simulation.utils.Transform(
+        location_right, rotation_right)
+
+    right_camera_setup = pylot.simulation.utils.CameraSetup(
+        pylot.utils.RIGHT_CAMERA_NAME,
+        'sensor.camera.rgb',
+        FLAGS.carla_camera_image_width,
+        FLAGS.carla_camera_image_height,
+        transform_right)
+    camera_setups.append(right_camera_setup)
+
+
+def _add_top_down_segmented_camera_setup(camera_setups):
+    # Height calculation relies on the fact that the camera's FOV is 90.
+    top_down_location = pylot.simulation.utils.Location(
+        CENTER_CAMERA_LOCATION_X,
+        CENTER_CAMERA_LOCATION_Y,
+        CENTER_CAMERA_LOCATION_Z + FLAGS.top_down_lateral_view)
+    top_down_rotation = pylot.simulation.utils.Rotation(-90, 0, 0)
+    top_down_transform = pylot.simulation.utils.Transform(
+        top_down_location, top_down_rotation)
+    top_down_segmented_camera_setup = pylot.simulation.utils.CameraSetup(
+        pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME,
+        'sensor.camera.semantic_segmentation',
+        FLAGS.carla_camera_image_width,
+        FLAGS.carla_camera_image_height,
+        top_down_transform,
+        fov=90)
+    camera_setups.append(top_down_segmented_camera_setup)
+    return top_down_segmented_camera_setup
+
+
+def _add_top_down_rgb_camera_setup(camera_setups):
+    # Height calculation relies on the fact that the camera's FOV is 90.
+    top_down_location = pylot.simulation.utils.Location(
+        CENTER_CAMERA_LOCATION_X,
+        CENTER_CAMERA_LOCATION_Y,
+        CENTER_CAMERA_LOCATION_Z + FLAGS.top_down_lateral_view)
+    top_down_rotation = pylot.simulation.utils.Rotation(-90, 0, 0)
+    top_down_transform = pylot.simulation.utils.Transform(
+        top_down_location, top_down_rotation)
+    top_down_camera_setup = pylot.simulation.utils.CameraSetup(
+        pylot.utils.TOP_DOWN_CAMERA_NAME,
+        'sensor.camera.rgb',
+        FLAGS.carla_camera_image_width,
+        FLAGS.carla_camera_image_height,
+        top_down_transform,
+        fov=90)
+    camera_setups.append(top_down_camera_setup)
+
+
 def create_camera_setups():
     camera_setups = []
 
     # Note: main assumes that the first camera setup returned by this method is
     # always the rgb_camera_setup.
-    location = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
     rotation = pylot.simulation.utils.Rotation(0, 0, 0)
-    transform = pylot.simulation.utils.Transform(location, rotation)
+    transform = pylot.simulation.utils.Transform(
+        CENTER_CAMERA_LOCATION, rotation)
     rgb_camera_setup = pylot.simulation.utils.CameraSetup(
         pylot.utils.CENTER_CAMERA_NAME,
         'sensor.camera.rgb',
@@ -74,58 +162,25 @@ def create_camera_setups():
         transform)
     camera_setups.append(segmented_camera_setup)
 
-    if FLAGS.top_down_segmentation:
-        # Height calculation relies on the fact that the camera's FOV is 90.
-        top_down_location = pylot.simulation.utils.Location(1.5, 0.0, 1.4 + FLAGS.top_down_lateral_view)
-        top_down_rotation = pylot.simulation.utils.Rotation(-90, 0, 0)
-        top_down_transform = pylot.simulation.utils.Transform(
-            top_down_location, top_down_rotation)
-        top_down_segmented_camera_setup = pylot.simulation.utils.CameraSetup(
-            pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME,
-            'sensor.camera.semantic_segmentation',
-            FLAGS.carla_camera_image_width,
-            FLAGS.carla_camera_image_height,
-            top_down_transform,
-            fov=90)
-        camera_setups.append(top_down_segmented_camera_setup)
-    
-    if FLAGS.camera_left_right:
-        location_left = pylot.simulation.utils.Location(
-            1.5, -1 * FLAGS.offset_left_right, 1.4)
-        rotation_left = pylot.simulation.utils.Rotation(0, 0, 0)
-        transform_left = pylot.simulation.utils.Transform(
-            location_left, rotation_left)
+    if FLAGS.log_left_right_cameras:
+        _add_depth_estimation_camera_setups(camera_setups)
 
-        left_camera_setup = pylot.simulation.utils.CameraSetup(
-            pylot.utils.LEFT_CAMERA_NAME,
-            'sensor.camera.rgb',
-            FLAGS.carla_camera_image_width,
-            FLAGS.carla_camera_image_height,
-            transform_left)
-        camera_setups.append(left_camera_setup)
+    top_down_segmented_camera_setup = None
+    if FLAGS.top_down_segmentation or FLAGS.log_chauffeur:
+        top_down_segmented_camera_setup = _add_top_down_segmented_camera_setup(
+            camera_setups)
+        if FLAGS.log_chauffeur:
+            _add_top_down_rgb_camera_setup(camera_setups)
 
-        location_right = pylot.simulation.utils.Location(
-            1.5, FLAGS.offset_left_right, 1.4)
-        rotation_right = pylot.simulation.utils.Rotation(0, 0, 0)
-        transform_right = pylot.simulation.utils.Transform(
-            location_right, rotation_right)
+    return camera_setups, top_down_segmented_camera_setup
 
-        right_camera_setup = pylot.simulation.utils.CameraSetup(
-            pylot.utils.RIGHT_CAMERA_NAME,
-            'sensor.camera.rgb',
-            FLAGS.carla_camera_image_width,
-            FLAGS.carla_camera_image_height,
-            transform_right)
-        camera_setups.append(right_camera_setup)
-
-    return camera_setups
 
 def create_lidar_setups():
     lidar_setups = []
-    if FLAGS.lidar:
-        location = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
+    if FLAGS.log_lidar:
         rotation = pylot.simulation.utils.Rotation(0, 0, 0)
-        lidar_transform = pylot.simulation.utils.Transform(location, rotation)
+        lidar_transform = pylot.simulation.utils.Transform(
+            CENTER_CAMERA_LOCATION, rotation)
         lidar_setup = pylot.simulation.utils.LidarSetup(
             name='front_center_lidar',
             lidar_type='sensor.lidar.ray_cast',
@@ -142,41 +197,40 @@ def create_lidar_setups():
 
 def add_perfect_detection_component(
         graph, camera_setups, carla_op, camera_ops):
-    if FLAGS.carla_auto_pilot and not FLAGS.log_bounding_boxes:
-        return [], []
-    # Add operator that converts from 3D bounding boxes to 2D bouding boxes.
-    ground_obstacles_stream_name = 'perfect_detector'
-    detector_ops = [
-        pylot.operator_creator.create_perfect_detector_op(
-            graph, camera_setups[0], ground_obstacles_stream_name)]
-    # Connect the detector to the cameras.
-    graph.connect([carla_op] + camera_ops, detector_ops)
-
+    detector_ops = []
+    bbox_logger_ops = []
     if FLAGS.log_bounding_boxes:
+        # Add operator that converts from 3D bboxes to 2D bboxes.
+        ground_obstacles_stream_name = 'perfect_detector'
+        detector_ops = [
+            pylot.operator_creator.create_perfect_detector_op(
+                graph, camera_setups[0], ground_obstacles_stream_name)]
+        # Connect the detector to the cameras.
+        graph.connect([carla_op] + camera_ops, detector_ops)
         # Add operator that logs bboxes to json.
         bbox_logger_ops = [
             pylot.operator_creator.create_bounding_box_logger_op(graph)]
         graph.connect(detector_ops, bbox_logger_ops)
-    else:
-        bbox_logger_ops = []
     return detector_ops, bbox_logger_ops
 
-def add_perfect_tracking_component(
-        graph, carla_op):
-    if not FLAGS.perfect_tracking:
-        return []
-    ground_tracking_stream_name = 'perfect_tracker'
-    tracking_op = [
-        pylot.operator_creator.create_perfect_tracking_op(
-            graph, ground_tracking_stream_name)]
-    graph.connect([carla_op], tracking_op)
-    return tracking_op
+
+def add_perfect_tracking_component(graph, carla_op):
+    if FLAGS.log_trajectories or FLAGS.log_chauffeur:
+        ground_tracking_stream_name = 'perfect_tracker'
+        tracking_op = [
+            pylot.operator_creator.create_perfect_tracking_op(
+                graph, ground_tracking_stream_name)]
+        graph.connect([carla_op], tracking_op)
+        return tracking_op
+    else:
+        []
+
 
 def main(argv):
-    # Define graph
+    # Get default data-flow graph.
     graph = erdos.graph.get_current_graph()
 
-    camera_setups = create_camera_setups()
+    camera_setups, top_down_segmented_camera_setup = create_camera_setups()
     lidar_setups = create_lidar_setups()
 
     # Add operator that interacts with the Carla simulator.
@@ -186,26 +240,33 @@ def main(argv):
          graph, camera_setups, lidar_setups, auto_pilot=FLAGS.carla_auto_pilot)
 
     # Add an operator that logs BGR frames and segmented frames.
-    camera_log_ops = [pylot.operator_creator.create_camera_logger_op(graph)]
-    lidar_log_ops = [pylot.operator_creator.create_lidar_logger_op(graph)]
+    camera_log_ops = []
+    if FLAGS.log_cameras:
+        camera_log_ops = [
+            pylot.operator_creator.create_camera_logger_op(graph)]
+    lidar_log_ops = []
+    if FLAGS.log_lidar:
+        lidar_log_ops = [pylot.operator_creator.create_lidar_logger_op(graph)]
+
+    chauffeur_log_ops = []
+    if FLAGS.log_chauffeur:
+        chauffeur_log_ops = [pylot.operator_creator.create_chauffeur_logger_op(
+            graph, top_down_segmented_camera_setup,
+            pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME)]
 
     # Connect the camera logging ops with the camera ops.
-    graph.connect(camera_ops, camera_log_ops)
+    graph.connect(camera_ops, camera_log_ops + chauffeur_log_ops)
     graph.connect(lidar_ops, lidar_log_ops)
 
     detector_ops, bbox_logger_ops = add_perfect_detection_component(
         graph, camera_setups, carla_op, camera_ops)
 
     tracking_ops = add_perfect_tracking_component(graph, carla_op)
-    trajectory_log_ops = [pylot.operator_creator.create_trajectory_logger_op(graph)]
-    graph.connect(tracking_ops, trajectory_log_ops)
-
-    # Get top-down camera setup if it exists.
-    top_down_camera_setup = None
-    for cs in camera_setups:
-        if cs.name == pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME:
-            top_down_camera_setup = cs
-            break
+    trajectory_log_ops = []
+    if FLAGS.log_trajectories:
+        trajectory_log_ops = [
+            pylot.operator_creator.create_trajectory_logger_op(graph)]
+    graph.connect(tracking_ops, trajectory_log_ops + chauffeur_log_ops)
 
     # Add visual operators.
     pylot.operator_creator.add_visualization_operators(
@@ -217,7 +278,7 @@ def main(argv):
         pylot.utils.DEPTH_CAMERA_NAME,
         pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
         pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME,
-        top_down_camera_setup)
+        top_down_segmented_camera_setup)
 
     if FLAGS.carla_auto_pilot:
         # We do not need planning and agent ops if we're running in
@@ -227,22 +288,12 @@ def main(argv):
         sync_op = graph.add(SynchronizerOp, name='sync_op')
         graph.connect(
             camera_ops + lidar_ops + camera_log_ops + lidar_log_ops +
-            detector_ops + bbox_logger_ops,
+            detector_ops + bbox_logger_ops + chauffeur_log_ops,
             [sync_op])
         graph.connect([sync_op], [carla_op])
+        graph.connect([carla_op], chauffeur_log_ops)
     else:
-        # Add agent that uses ground data to drive around.
-        agent_op = pylot.operator_creator.create_ground_agent_op(graph)
-        graph.connect([carla_op], [agent_op])
-        graph.connect([agent_op], [carla_op])
-
-        goal_location = (234.269989014, 59.3300170898, 39.4306259155)
-        goal_orientation = (1.0, 0.0, 0.22)
-
-        planning_op = pylot.operator_creator.create_planning_op(
-            graph, goal_location)
-        graph.connect([carla_op], [planning_op])
-        graph.connect([planning_op], [agent_op])
+        raise ValueError("Must be in auto pilot mode. Pass --carla_auto_pilot")
 
     graph.execute("ros")
 

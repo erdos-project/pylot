@@ -278,7 +278,8 @@ def create_top_down_segmented_video_op(graph, top_down_stream_name):
     return top_down_segmented_video_op
 
 
-def create_top_down_tracking_video_op(graph, top_down_camera_setup, top_down_stream_name):
+def create_top_down_tracking_video_op(
+        graph, top_down_camera_setup, top_down_stream_name):
     top_down_tracking_video_op = graph.add(
         TrackVisualizerOperator,
         name='top_down_tracking_video',
@@ -607,7 +608,8 @@ def add_visualization_operators(graph,
             graph,
             top_down_camera_setup,
             top_down_segmented_camera_name)
-        graph.connect(camera_ops + perfect_tracker_ops, [top_down_tracker_video_op])
+        graph.connect(camera_ops + perfect_tracker_ops,
+                      [top_down_tracker_video_op])
 
 
 def add_recording_operators(graph,
