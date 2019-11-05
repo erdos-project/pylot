@@ -5,7 +5,6 @@ from absl import flags
 from pylot.control.pylot_agent_operator import PylotAgentOperator
 from pylot.control.ground_agent_operator import GroundAgentOperator
 # Import debug operators.
-from pylot.debug.camera_replay_operator import CameraReplayOperator
 from pylot.debug.depth_camera_visualizer import DepthCameraVisualizer
 from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
 from pylot.debug.segmented_video_operator import SegmentedVideoOperator
@@ -194,19 +193,6 @@ def create_waypoint_visualizer_op(graph):
             'log_file_name': FLAGS.log_file_name
         })
     return waypoint_viz_op
-
-
-def create_camera_replay_ops(graph):
-    camera_ops = [graph.add(
-        CameraReplayOperator,
-        name='camera1',
-        init_args={'log_file_name': FLAGS.log_file_name},
-        setup_args={'op_name': op_name})]
-    # replay_rgb_op = ReplayOp('pylot_rgb_camera_data.erdos',
-    #                          frequency=10,
-    #                          name='replay_rgb_camera')
-    # camera_streams = replay_rgb_op([])
-    return camera_ops
 
 
 def create_pylot_agent_op(graph, bgr_camera_setup):
