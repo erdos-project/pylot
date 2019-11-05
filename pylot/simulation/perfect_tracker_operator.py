@@ -9,6 +9,7 @@ from erdos.utils import setup_csv_logging, setup_logging
 import pylot.utils
 from pylot.perception.messages import ObjTrajectory, ObjTrajectoriesMessage
 
+
 class PerfectTrackerOp(Op):
     """Operator that gives past trajectories of other agents in
        the environment, i.e. their past (x,y,z) locations from an

@@ -13,6 +13,7 @@ def get_world(host="localhost", port=2000, timeout=10):
     Args:
         host: The host where the simulator is running.
         port: The port to connect to at the given host.
+        timeout: The timeout of the connection.
 
     Returns:
         A tuple of `(client, world)` where the `client` is a connection to the
@@ -32,6 +33,17 @@ def get_world(host="localhost", port=2000, timeout=10):
 
 
 def get_map(host="localhost", port=2000, timeout=10):
+    """ Get a handle to the Carla map.
+
+    Args:
+        host: The host where the simulator is running.
+        port: The port to connect to at the given host.
+        timeout: The timeout of the connection.
+
+    Returns:
+        A map of the Carla city.
+
+    """
     _, world = get_world(host, port, timeout)
     if world is None:
         raise ValueError("There was an issue connecting to the simulator.")
@@ -86,12 +98,27 @@ def reset_world(world):
 
 
 def to_carla_location(location):
+    """ Converts a Pylot location to Carla location.
+
+    Args:
+        location: Location to convert.
+
+    Returns:
+        Carla location object.
+    """
     return carla.Location(
         location.x, location.y, location.z)
 
 
 def to_carla_transform(transform):
-    """ Converts an Pylot transform object to a Carla transform object."""
+    """ Converts an Pylot transform object to a Carla transform object.
+
+    Args:
+        transform: Transform to convert.
+
+    Returns:
+        Carla transform object.
+    """
     return carla.Transform(
         carla.Location(transform.location.x,
                        transform.location.y,
@@ -227,6 +254,7 @@ def convert_traffic_stop_actors(traffic_stop_actors):
 
 
 def draw_trigger_volume(world, actor):
+    """ Draws the trigger volume of an actor."""
     transform = actor.get_transform()
     tv = transform.transform(actor.trigger_volume.location)
     bbox = carla.BoundingBox(tv, actor.trigger_volume.extent)

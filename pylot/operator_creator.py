@@ -24,17 +24,9 @@ from pylot.perception.detection.detection_eval_ground_operator import DetectionE
 from pylot.perception.detection.lane_detection_operator import LaneDetectionOperator
 from pylot.perception.detection.obstacle_accuracy_operator import ObstacleAccuracyOperator
 from pylot.perception.detection.traffic_light_det_operator import TrafficLightDetOperator
-try:
-    from pylot.perception.depth_estimation.depth_est_operator import DepthEstOperator
-except ImportError:
-    print("Error importing AnyNet depth estimation.")
 from pylot.perception.fusion.fusion_operator import FusionOperator
 from pylot.perception.fusion.fusion_verification_operator import FusionVerificationOperator
 from pylot.perception.segmentation.segmentation_drn_operator import SegmentationDRNOperator
-try:
-    from pylot.perception.segmentation.segmentation_dla_operator import SegmentationDLAOperator
-except ImportError:
-    print("Error importing DLA segmentation.")
 from pylot.perception.segmentation.segmentation_eval_operator import SegmentationEvalOperator
 from pylot.perception.segmentation.segmentation_eval_ground_operator import SegmentationEvalGroundOperator
 from pylot.perception.tracking.object_tracker_operator import ObjectTrackerOp
@@ -234,9 +226,7 @@ def create_ground_agent_op(graph):
     agent_op = graph.add(
         GroundAgentOperator,
         name='ground_agent',
-        # TODO(ionel): Do not hardcode city name!
         init_args={
-            'city_name': 'Town01',
             'flags': FLAGS,
             'log_file_name': FLAGS.log_file_name,
             'csv_file_name': FLAGS.csv_log_file_name
@@ -393,6 +383,11 @@ def create_perfect_tracking_op(graph, output_stream_name):
 
 def create_depth_estimation_op(graph, center_transform,
                                left_camera_name, right_camera_name):
+    try:
+        from pylot.perception.depth_estimation.depth_est_operator import DepthEstOperator
+    except ImportError:
+        raise Exception("Error importing AnyNet depth estimation.")
+
     depth_estimation_op = graph.add(
         DepthEstOperator,
         name='depth_estimation',
@@ -510,6 +505,10 @@ def create_segmentation_drn_op(graph):
 
 
 def create_segmentation_dla_op(graph):
+    try:
+        from pylot.perception.segmentation.segmentation_dla_operator import SegmentationDLAOperator
+    except ImportError:
+        raise Exception("Error importing DLA segmentation.")
     segmentation_op = graph.add(
         SegmentationDLAOperator,
         name='segmentation_dla',
@@ -623,6 +622,7 @@ def add_visualization_operators(graph,
             top_down_camera_setup,
             top_down_segmented_camera_name)
         graph.connect(camera_ops + perfect_tracker_ops, [top_down_tracker_video_op])
+
 
 def add_recording_operators(graph,
                             camera_ops,

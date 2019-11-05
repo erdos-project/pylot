@@ -17,7 +17,6 @@ import pylot.utils
 class GroundAgentOperator(Op):
     def __init__(self,
                  name,
-                 city_name,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):

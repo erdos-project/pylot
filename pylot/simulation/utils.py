@@ -989,12 +989,7 @@ def get_traffic_light_det_objs(
     extrinsic_matrix = camera_transform.matrix
     intrinsic_matrix = create_intrinsic_matrix(frame_width, frame_height, fov)
     det_objs = []
-    for box, color in bbox_state:
-        # bounding_box = []
-        # for location in box:
-        #     bounding_box.append(
-        #         location_3d_to_view(location, extrinsic_matrix,
-        #                             intrinsic_matrix))
+    for box, tl_color in bbox_state:
         bounding_box = locations_3d_to_view(box, extrinsic_matrix, intrinsic_matrix)
 
         # Check if they are in front and visible.
@@ -1021,17 +1016,9 @@ def get_traffic_light_det_objs(
             # Ignore tl if it is occluded or far away.
             if abs(depth - bounding_box[0].z) > 2 or depth > 150:
                 continue
-            label = ''
-            if color == TrafficLightColor.GREEN:
-                label = 'green traffic light'
-            elif color == TrafficLightColor.YELLOW:
-                label = 'yellow traffic light'
-            elif color == TrafficLightColor.RED:
-                label = 'red traffic light'
-            else:
-                label = 'off traffic light'
             det_objs.append(
-                DetectedObject((x_min, x_max, y_min, y_max), 1.0, label))
+                DetectedObject(
+                    (x_min, x_max, y_min, y_max), 1.0, tl_color.get_label()))
     return det_objs
 
 
@@ -1059,7 +1046,7 @@ def get_speed_limit_det_objs(
         x_mids, y_mids, depth_frame, frame_width, frame_height,
         fov, camera_transform)
     pos_and_bboxes = zip(pos_3d, bboxes)
-    ts_bboxes = match_bboxes_with_speed_signs(
+    ts_bboxes = _match_bboxes_with_speed_signs(
         vehicle_transform, pos_and_bboxes, speed_signs)
 
     det_objs = [DetectedSpeedLimit(bbox, limit, 1.0, 'speed limit')
@@ -1067,8 +1054,7 @@ def get_speed_limit_det_objs(
     return det_objs
 
 
-def match_bboxes_with_speed_signs(
-        vehicle_transform, pos_bboxes, speed_signs):
+def _match_bboxes_with_speed_signs(vehicle_transform, pos_bboxes, speed_signs):
     result = []
     for pos, bbox in pos_bboxes:
         best_ts = None
@@ -1094,6 +1080,7 @@ def match_bboxes_with_speed_signs(
 
 
 def locations_3d_to_view(locations, extrinsic_matrix, intrinsic_matrix):
+    """ Transforms 3D locations to 2D camera view."""
     world_points = np.ones((4, len(locations)))
 
     for i in range(len(locations)):
@@ -1107,7 +1094,8 @@ def locations_3d_to_view(locations, extrinsic_matrix, intrinsic_matrix):
 
     # Convert the points to an unreal space.
     unreal_points = np.concatenate([
-        transformed_points[1, :], -transformed_points[2, :],
+        transformed_points[1, :],
+        -transformed_points[2, :],
         transformed_points[0, :]
     ])
 
@@ -1124,13 +1112,15 @@ def locations_3d_to_view(locations, extrinsic_matrix, intrinsic_matrix):
                                          float(screen_points[2,i])))
     return screen_locations
 
-def get_stop_markings_bbox(
+
+def _get_stop_markings_bbox(
         bbox3d,
         depth_frame,
         camera_transform,
         camera_intrinsic,
         frame_width,
         frame_height):
+    """ Gets a 2D stop marking bouding box from a 3D bounding box."""
     # Offset trigger_volume by -0.85 so that the top plane is on the ground.
     ext = np.array([
         [bbox3d.extent.x, bbox3d.extent.y, bbox3d.extent.z - 0.85],
@@ -1179,11 +1169,14 @@ def get_traffic_stop_det_objs(
         traffic_stops: List of traffic stop actors in the world.
         camera_transform: Camera transform in world coordinates.
         fov: Camera field of view.
+
+    Returns:
+        List of DetectedObjects.
     """
     det_objs = []
     bgr_intrinsic = create_intrinsic_matrix(frame_width, frame_height, fov)
     for transform, bbox in traffic_stops:
-        bbox2d = get_stop_markings_bbox(
+        bbox2d = _get_stop_markings_bbox(
             bbox, depth_frame, camera_transform, bgr_intrinsic,
             frame_width, frame_height)
         if bbox2d:

@@ -10,7 +10,6 @@ from skimage import measure
 
 from pylot.utils import add_timestamp
 
-ADJACENT_POS = [(0, 1), (0, -1), (1, 0), (-1, 0)]
 
 GROUND_COLOR_MAP = {
     'pedestrian': [0, 128, 0],
@@ -113,6 +112,16 @@ class TrafficLightColor(Enum):
     YELLOW = 2
     GREEN = 3
     OFF = 4
+
+    def get_label(self):
+        if self.value == 1:
+            return 'red traffic light'
+        elif self.value == 2:
+            return 'yellow traffic light'
+        elif self.value == 3:
+            return 'green traffic light'
+        else:
+            return 'off traffic light'
 
 
 class DetectedObject(object):
