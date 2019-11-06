@@ -1,11 +1,10 @@
 from collections import deque
 import math
 import threading
-import time
 from pid_controller.pid import PID
 
 from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
+from erdos.utils import setup_csv_logging, setup_logging
 
 from pylot.control.messages import ControlMessage
 import pylot.control.utils
@@ -85,7 +84,7 @@ class GroundAgentOperator(Op):
         speed_limit_signs = speed_limit_signs_msg.speed_signs
         # TODO(ionel): Use traffic signs info as well.
 
-        speed_factor, state = self.stop_for_agents(vehicle_transform,
+        speed_factor, state = self.stop_for_agents(vehicle_transform.location,
                                                    wp_angle,
                                                    wp_vector,
                                                    vehicles,
@@ -121,7 +120,7 @@ class GroundAgentOperator(Op):
             self._speed_limit_sign_msgs.append(msg)
 
     def stop_for_agents(self,
-                        vehicle_transform,
+                        ego_vehicle_location,
                         wp_angle,
                         wp_vector,
                         vehicles,
@@ -134,11 +133,12 @@ class GroundAgentOperator(Op):
 
         if self._flags.stop_for_vehicles:
             for obs_vehicle in vehicles:
+                # Only brake for vehicles that are in ego vehicle's lane.
                 if self._map.are_on_same_lane(
-                        vehicle_transform.location,
+                        ego_vehicle_location,
                         obs_vehicle.transform.location):
                     new_speed_factor_v = pylot.control.utils.stop_vehicle(
-                        vehicle_transform,
+                        ego_vehicle_location,
                         obs_vehicle.transform.location,
                         wp_vector,
                         speed_factor_v,
@@ -147,9 +147,10 @@ class GroundAgentOperator(Op):
 
         if self._flags.stop_for_pedestrians:
             for pedestrian in pedestrians:
+                # Only brake for pedestrians that are on the road.
                 if self._map.is_on_lane(pedestrian.transform.location):
                     new_speed_factor_p = pylot.control.utils.stop_pedestrian(
-                        vehicle_transform,
+                        ego_vehicle_location,
                         pedestrian.transform.location,
                         wp_vector,
                         speed_factor_p,
@@ -159,11 +160,11 @@ class GroundAgentOperator(Op):
         if self._flags.stop_for_traffic_lights:
             for tl in traffic_lights:
                 if (self._map.must_obbey_traffic_light(
-                        vehicle_transform.location, tl.transform.location) and
+                        ego_vehicle_location, tl.transform.location) and
                     self._is_traffic_light_visible(
-                        vehicle_transform, tl.transform)):
+                        ego_vehicle_location, tl.transform.location)):
                     new_speed_factor_tl = pylot.control.utils.stop_traffic_light(
-                        vehicle_transform,
+                        ego_vehicle_location,
                         tl.transform.location,
                         tl.state,
                         wp_vector,
@@ -212,10 +213,10 @@ class GroundAgentOperator(Op):
 
         return ControlMessage(steer, throttle, brake, False, False, timestamp)
 
-    def _is_traffic_light_visible(self, vehicle_transform, tl_transform):
+    def _is_traffic_light_visible(self, ego_vehicle_location, tl_location):
         _, tl_dist = pylot.control.utils.get_world_vec_dist(
-            vehicle_transform.location.x,
-            vehicle_transform.location.y,
-            tl_transform.location.x,
-            tl_transform.location.y)
+            ego_vehicle_location.x,
+            ego_vehicle_location.y,
+            tl_location.x,
+            tl_location.y)
         return tl_dist > self._flags.traffic_light_min_dist_thres

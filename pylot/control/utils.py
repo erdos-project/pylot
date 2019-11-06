@@ -23,48 +23,69 @@ def get_angle(vec_dst, vec_src):
     return angle
 
 
-def is_pedestrian_on_hit_zone(p_dist, p_angle, flags):
+def _is_pedestrian_on_hit_zone(p_dist, p_angle, flags):
     return (math.fabs(p_angle) < flags.pedestrian_angle_hit_thres and
             p_dist < flags.pedestrian_distance_hit_thres)
 
 
-def is_pedestrian_on_near_hit_zone(p_dist, p_angle, flags):
+def _is_pedestrian_on_near_hit_zone(p_dist, p_angle, flags):
     return (math.fabs(p_angle) < flags.pedestrian_angle_emergency_thres and
             p_dist < flags.pedestrian_distance_emergency_thres)
 
 
-def stop_pedestrian(vehicle_transform,
-                    pedestrian_pos,
+def stop_pedestrian(ego_vehicle_location,
+                    pedestrian_location,
                     wp_vector,
                     speed_factor_p,
                     flags):
+    """ Computes a stopping factor for ego vehicle given a pedestrian pos.
+
+    Args:
+        ego_vehicle_location: Location of the ego vehicle in world coordinates.
+        pedestrian_location: Location of the pedestrian in world coordinates.
+        flags: A absl flags object.
+
+    Returns:
+        A stopping factor between 0 and 1 (i.e., no braking).
+    """
     speed_factor_p_temp = 1
     p_vector, p_dist = get_world_vec_dist(
-        pedestrian_pos.x,
-        pedestrian_pos.y,
-        vehicle_transform.location.x,
-        vehicle_transform.location.y)
+        pedestrian_location.x,
+        pedestrian_location.y,
+        ego_vehicle_location.x,
+        ego_vehicle_location.y)
     p_angle = get_angle(p_vector, wp_vector)
-    if is_pedestrian_on_hit_zone(p_dist, p_angle, flags):
-        speed_factor_p_temp = p_dist / (flags.coast_factor * flags.pedestrian_distance_hit_thres)
-    if is_pedestrian_on_near_hit_zone(p_dist, p_angle, flags):
+    if _is_pedestrian_on_hit_zone(p_dist, p_angle, flags):
+        speed_factor_p_temp = p_dist / (flags.coast_factor *
+                                        flags.pedestrian_distance_hit_thres)
+    if _is_pedestrian_on_near_hit_zone(p_dist, p_angle, flags):
         speed_factor_p_temp = 0
     if (speed_factor_p_temp < speed_factor_p):
         speed_factor_p = speed_factor_p_temp
     return speed_factor_p
 
 
-def stop_vehicle(vehicle_transform,
-                 obs_vehicle_pos,
+def stop_vehicle(ego_vehicle_location,
+                 obs_vehicle_location,
                  wp_vector,
                  speed_factor_v,
                  flags):
+    """ Computes a stopping factor for ego vehicle given a vehicle pos.
+
+    Args:
+        ego_vehicle_location: Location of the ego vehicle in world coordinates.
+        obs_vehicle_location: Location of the vehicle in world coordinates.
+        flags: A absl flags object.
+
+    Returns:
+        A stopping factor between 0 and 1 (i.e., no braking).
+    """
     speed_factor_v_temp = 1
     v_vector, v_dist = get_world_vec_dist(
-        obs_vehicle_pos.x,
-        obs_vehicle_pos.y,
-        vehicle_transform.location.x,
-        vehicle_transform.location.y)
+        obs_vehicle_location.x,
+        obs_vehicle_location.y,
+        ego_vehicle_location.x,
+        ego_vehicle_location.y)
     v_angle = get_angle(v_vector, wp_vector)
 
     min_angle = -0.5 * flags.vehicle_angle_thres / flags.coast_factor
@@ -90,18 +111,29 @@ def stop_vehicle(vehicle_transform,
     return speed_factor_v
 
 
-def stop_traffic_light(vehicle_transform,
-                       tl_pos,
+def stop_traffic_light(ego_vehicle_location,
+                       tl_location,
                        tl_state,
                        wp_vector,
                        wp_angle,
                        speed_factor_tl,
                        flags):
+    """ Computes a stopping factor for ego vehicle given a traffic light.
+
+    Args:
+        ego_vehicle_location: Location of the ego vehicle in world coordinates.
+        tl_location: Location of the traffic light in world coordinates.
+        flags: A absl flags object.
+
+    Returns:
+        A stopping factor between 0 and 1 (i.e., no braking).
+    """
     speed_factor_tl_temp = 1
     if (tl_state == TrafficLightColor.YELLOW or
         tl_state == TrafficLightColor.RED):
         tl_vector, tl_dist = get_world_vec_dist(
-            tl_pos.x, tl_pos.y, vehicle_transform.location.x, vehicle_transform.location.y)
+            tl_location.x, tl_location.y,
+            ego_vehicle_location.x, ego_vehicle_location.y)
         tl_angle = get_angle(tl_vector, wp_vector)
 
         if ((0 < tl_angle < flags.traffic_light_angle_thres / flags.coast_factor and

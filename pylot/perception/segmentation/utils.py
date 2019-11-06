@@ -65,6 +65,8 @@ def compute_semantic_iou(ground_frame, predicted_frame):
     Args:
         ground_frame: Ground segmented frame.
         predicted_frame: The frame for which to compute IoU.
+    Returns:
+        A tuple comprising of mIoU and a list of IoUs.
     """
     iou = {}
     for key, value in CITYSCAPES_CLASSES.items():
@@ -88,46 +90,15 @@ def compute_semantic_iou(ground_frame, predicted_frame):
     return (mean_iou, iou)
 
 
-def tf_compute_semantic_iou(tf_session, ground_frame, predicted_frame):
-    """ Tensorflow-based method to computes IoU for a segmented frame.
+def compute_semantic_iou_from_masks(ground_masks, pred_masks):
+    """ Computes IoU from per class image masks.
 
     Args:
-        tf_session: A Tensorflow session.
-        ground_frame: Ground segmented frame.
-        predicted_frame: The frame for which to compute IoU.
+        ground_masks: A dict of class key to ground frame mask.
+        pred_masks: A dict of class key to predicted frame mask.
+    Returns:
+        A tuple comprising of mIoU and a list of IoUs.
     """
-    iou = {}
-    zeros = tf.zeros((ground_frame.shape[0], ground_frame.shape[1]),
-                     dtype=tf.bool)
-    ones = tf.ones((ground_frame.shape[0], ground_frame.shape[1]),
-                   dtype=tf.bool)
-    ground_tf_frame = tf.constant(ground_frame, dtype=tf.int32)
-    predicted_tf_frame = tf.constant(predicted_frame, dtype=tf.int32)
-    intersections = []
-    unions = []
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
-    ts = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
-    for key, value in CITYSCAPES_CLASSES.items():
-        if key == 0:
-            continue
-        ground_mask = tf.where(ground_tf_frame == key, ones, zeros)
-        predicted_mask = tf.where(predicted_tf_frame == key, ones, zeros)
-        intersection = tf.logical_and(ground_mask, predicted_mask)
-        union = tf.logical_or(ground_mask, predicted_mask)
-        sum_intersection = tf.reduce_sum(tf.cast(intersection, tf.int8))
-        sum_union = tf.reduce_sum(tf.cast(union, tf.int8))
-        intersections.append(sum_intersection)
-        unions.append(sum_union)
-        # [si, su] = ts.run([sum_intersection, sum_union])
-        # if su > 0:
-        #     iou[key] = float(si) / float(su)
-    ts.run(intersections + unions)
-    ts.close()
-    mean_iou = np.mean(iou.values())
-    return (mean_iou, iou)
-
-
-def compute_semantic_iou_from_masks(ground_masks, pred_masks):
     iou = {}
     for i in range(1, len(CITYSCAPES_CLASSES)):
         intersection = np.logical_and(ground_masks[i], pred_masks[i])
@@ -143,6 +114,7 @@ def compute_semantic_iou_from_masks(ground_masks, pred_masks):
 
 
 def generate_masks(frame):
+    """ Returns a mask image for each Cityscapes class."""
     masks = []
     for key, value in CITYSCAPES_CLASSES.items():
         mask = np.zeros((frame.shape[0], frame.shape[1]))

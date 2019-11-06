@@ -245,10 +245,12 @@ def calculate_iou(ground_truth, prediction):
     x1_p, x2_p, y1_p, y2_p = prediction
 
     if x1_p > x2_p or y1_p > y2_p:
-        raise AssertionError("Prediction box is malformed? {}".format(prediction))
+        raise AssertionError(
+            "Prediction box is malformed? {}".format(prediction))
 
     if x1_gt > x2_gt or y1_gt > y2_gt:
-        raise AssertionError("Ground truth box is malformed? {}".format(ground_truth))
+        raise AssertionError(
+            "Ground truth box is malformed? {}".format(ground_truth))
 
     if x2_gt < x1_p or x2_p < x1_gt or y2_gt < y1_p or y2_p < y1_gt:
         return 0.0
@@ -409,6 +411,7 @@ def visualize_no_colors_bboxes(op_name, timestamp, image_np, bboxes):
 
 
 def visualize_ground_bboxes(op_name, timestamp, image_np, det_objs):
+    """ Creates a cv2 window to visualize detected objects."""
     add_timestamp(timestamp, image_np)
     for det_obj in det_objs:
         det_obj.visualize_on_img(image_np, GROUND_COLOR_MAP)
@@ -427,6 +430,7 @@ def annotate_image_with_bboxes(
 
 
 def visualize_image(op_name, image_np):
+    """ Creates a cv2 window to visualize the image."""
     cv2.imshow(op_name, image_np)
     cv2.waitKey(1)
 
@@ -443,7 +447,7 @@ def save_image(image_np, timestamp, data_path, file_base):
 
 def visualize_bboxes(
         op_name, timestamp, image_np, detected_objs, bbox_color_map):
-#    txt_font = cv2.FONT_HERSHEY_SIMPLEX
+    """ Creates a cv2 window to visualize detected objects."""
     add_timestamp(timestamp, image_np)
     for detected_obj in detected_objs:
         detected_obj.visualize_on_img(image_np, bbox_color_map)

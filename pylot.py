@@ -10,10 +10,23 @@ import pylot.utils
 
 FLAGS = flags.FLAGS
 
+CENTER_CAMERA_LOCATION_X = 1.5
+CENTER_CAMERA_LOCATION_Y = 0.0
+CENTER_CAMERA_LOCATION_Z = 1.4
+CENTER_CAMERA_LOCATION = pylot.simulation.utils.Location(
+    CENTER_CAMERA_LOCATION_X,
+    CENTER_CAMERA_LOCATION_Y,
+    CENTER_CAMERA_LOCATION_Z)
+
+
 def create_left_right_camera_setups():
     rotation = pylot.simulation.utils.Rotation(0, 0, 0)
-    left_loc = pylot.simulation.utils.Location(1.5, -0.4, 1.4)
-    right_loc = pylot.simulation.utils.Location(1.5, 0.4, 1.4)
+    left_loc = pylot.simulation.utils.Location(CENTER_CAMERA_LOCATION_X,
+                                               CENTER_CAMERA_LOCATION_Y - 0.4,
+                                               CENTER_CAMERA_LOCATION_Z)
+    right_loc = pylot.simulation.utils.Location(CENTER_CAMERA_LOCATION_X,
+                                                CENTER_CAMERA_LOCATION_Y + 0.4,
+                                                CENTER_CAMERA_LOCATION_Z)
     left_transform = pylot.simulation.utils.Transform(left_loc, rotation)
     right_transform = pylot.simulation.utils.Transform(right_loc, rotation)
 
@@ -31,9 +44,13 @@ def create_left_right_camera_setups():
         right_transform)
     return [left_camera_setup, right_camera_setup]
 
+
 def create_top_down_segmentation_setups():
     # Height calculation relies on the fact that the camera's FOV is 90.
-    location = pylot.simulation.utils.Location(1.5, 0.0, 1.4 + FLAGS.top_down_lateral_view)
+    location = pylot.simulation.utils.Location(
+        CENTER_CAMERA_LOCATION_X,
+        CENTER_CAMERA_LOCATION_Y,
+        CENTER_CAMERA_LOCATION_Z + FLAGS.top_down_lateral_view)
     rotation = pylot.simulation.utils.Rotation(-90, 0, 0)
     transform = pylot.simulation.utils.Transform(location, rotation)
     top_down_segmented_camera_setup = pylot.simulation.utils.CameraSetup(
@@ -45,10 +62,11 @@ def create_top_down_segmentation_setups():
         fov=90)
     return top_down_segmented_camera_setup
 
+
 def create_camera_setups():
-    location = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
     rotation = pylot.simulation.utils.Rotation(0, 0, 0)
-    transform = pylot.simulation.utils.Transform(location, rotation)
+    transform = pylot.simulation.utils.Transform(
+        CENTER_CAMERA_LOCATION, rotation)
     bgr_camera_setup = pylot.simulation.utils.CameraSetup(
         pylot.utils.CENTER_CAMERA_NAME,
         'sensor.camera.rgb',
@@ -72,9 +90,10 @@ def create_camera_setups():
 
 def create_lidar_setups():
     if FLAGS.lidar:
-        location = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
         rotation = pylot.simulation.utils.Rotation(0, 0, 0)
-        lidar_transform = pylot.simulation.utils.Transform(location, rotation)
+        # Place the lidar in the same position as the camera.
+        lidar_transform = pylot.simulation.utils.Transform(
+            CENTER_CAMERA_LOCATION, rotation)
         return [pylot.simulation.utils.LidarSetup(
             name='front_center_lidar',
             lidar_type='sensor.lidar.ray_cast',
@@ -104,7 +123,12 @@ def add_driver_operators(graph, auto_pilot):
      camera_ops,
      lidar_ops) = pylot.operator_creator.create_driver_ops(
          graph, camera_setups, lidar_setups, auto_pilot)
-    return (bgr_camera_setup, top_down_segmentation_setup, carla_op, camera_ops, lidar_ops)
+    return (bgr_camera_setup,
+            top_down_segmentation_setup,
+            carla_op,
+            camera_ops,
+            lidar_ops)
+
 
 def add_ground_eval_ops(graph, perfect_det_ops, camera_ops):
     if FLAGS.eval_ground_truth_segmentation:
@@ -148,8 +172,8 @@ def add_detection_component(graph, bgr_camera_setup, camera_ops, carla_op):
             graph.connect([fusion_op, carla_op], [fusion_verif_op])
 
     # Currently, we keep this separate from the existing trackers, because the
-    # perfect tracker returns ego-vehicle (x,y,z) coordinates, while our existing
-    # trackers use camera coordinates.
+    # perfect tracker returns ego-vehicle (x,y,z) coordinates, while our
+    # existing trackers use camera coordinates.
     perfect_tracker_ops = []
     if FLAGS.perfect_tracking:
         perfect_tracker_ops = [pylot.operator_creator.create_perfect_tracking_op(
@@ -243,12 +267,13 @@ def add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
         top_down_camera_setup)
 
     # Add recording operators.
-    pylot.operator_creator.add_recording_operators(graph,
-                                                   camera_ops,
-                                                   carla_op,
-                                                   lidar_ops,
-                                                   pylot.utils.CENTER_CAMERA_NAME,
-                                                   pylot.utils.DEPTH_CAMERA_NAME)
+    pylot.operator_creator.add_recording_operators(
+        graph,
+        camera_ops,
+        carla_op,
+        lidar_ops,
+        pylot.utils.CENTER_CAMERA_NAME,
+        pylot.utils.DEPTH_CAMERA_NAME)
     # Add operator that estimates depth.
     if FLAGS.depth_estimation:
         depth_estimation_op = pylot.operator_creator.create_depth_estimation_op(
@@ -290,6 +315,7 @@ def main(argv):
      lidar_ops) = add_driver_operators(
          graph, auto_pilot=FLAGS.carla_auto_pilot)
 
+    perfect_tracker_ops = []
     if FLAGS.use_perfect_perception:
         # Add operators that use ground information.
         (obj_det_ops,
@@ -318,7 +344,6 @@ def main(argv):
     # Add debugging operators (e.g., visualizers) to the data-flow graph.
     add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
                             lidar_ops, perfect_tracker_ops)
-
 
     # Add the behaviour planning agent operator.
     agent_op = add_agent_op(graph,
