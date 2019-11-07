@@ -15,7 +15,7 @@ from pylot.debug.video_operator import VideoOperator
 from pylot.loggers.bounding_box_logger_operator import BoundingBoxLoggerOp
 from pylot.loggers.camera_logger_operator import CameraLoggerOp
 from pylot.loggers.chauffeur_logger_operator import ChauffeurLoggerOp
-from pylot.loggers.deep_sort_logger_operator import DeepSortLoggerOp
+from pylot.loggers.multiple_object_tracker_logger_operator import MultipleObjectTrackerLoggerOp
 from pylot.loggers.lidar_logger_operator import LidarLoggerOp
 from pylot.loggers.trajectory_logger_operator import TrajectoryLoggerOp
 # Import perception operators.
@@ -121,12 +121,12 @@ def create_bounding_box_logger_op(graph):
     return bbox_logger_op
 
 
-def create_deep_sort_logger_op(graph):
-    deep_sort_logger_op = graph.add(
-        DeepSortLoggerOp,
-        name='deep_sort_logger',
+def create_multiple_object_tracker_logger_op(graph):
+    multiple_object_tracker_logger_op = graph.add(
+        MultipleObjectTrackerLoggerOp,
+        name='multiple_object_tracker_logger',
         init_args={'flags': FLAGS})
-    return deep_sort_logger_op
+    return multiple_object_tracker_logger_op
 
 
 def create_lidar_driver_op(graph, lidar_setup):

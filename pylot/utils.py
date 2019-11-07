@@ -230,14 +230,6 @@ def is_can_bus_stream(stream):
     return stream.name == 'can_bus'
 
 
-def create_deep_sort_logs_stream():
-    return DataStream(name='deep_sort_logs')
-
-
-def is_deep_sort_logs_stream(stream):
-    return stream.name == 'deep_sort_logs'
-
-
 def add_timestamp(timestamp, image_np):
     txt_font = cv2.FONT_HERSHEY_SIMPLEX
     timestamp_txt = '{}'.format(timestamp)

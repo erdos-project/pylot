@@ -9,7 +9,7 @@ from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
 from pylot.perception.detection.utils import visualize_no_colors_bboxes, visualize_image
-from pylot.utils import is_camera_stream, is_obstacles_stream, is_deep_sort_logs_stream
+from pylot.utils import is_camera_stream, is_obstacles_stream
 
 
 class ObjectTrackerOp(Op):
@@ -48,7 +48,6 @@ class ObjectTrackerOp(Op):
         self._ready_to_update = False
         self._ready_to_update_timestamp = None
         self._to_process = deque()
-        self._logs = deque()
         self._lock = threading.Lock()
 
     @staticmethod
@@ -64,12 +63,7 @@ class ObjectTrackerOp(Op):
             camera_streams = camera_streams.filter_name(camera_stream_name)
         # Register a callback on the camera input stream.
         camera_streams.add_callback(ObjectTrackerOp.on_frame_msg)
-        #input_streams.filter(is_deep_sort_logs_stream).add_callback(
-        #   ObjectTrackerOp.on_log_msg)
         return [DataStream(name=output_stream_name)]
-
-    #def on_log_msg(self, msg):
-    #    self._logs.append(msg)
 
     def on_frame_msg(self, msg):
         """ Invoked when a FrameMessage is received on the camera stream."""

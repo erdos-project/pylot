@@ -8,26 +8,26 @@ from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 class MultiObjectDeepSORTTracker(MultiObjectTracker):
     def __init__(self, flags, logger):
         # Initialize the deepsort object, which has a tracker object within it
-        self._deepsort = deepsort_rbc(wt_path="/home/erdos/workspace/forks/pylot/pylot/perception/tracking/nanonets_object_tracking/ped_feature_extractor")
+        self._deepsort = deepsort_rbc(wt_path=flags.deep_sort_tracker_pedestrian_weights_path)
         self.tracker = None
 
     def reinitialize(self, frame, bboxes, confidence_scores):
-        detections = self.convert_detections_for_deepsort_alg(bboxes)
-        self.track(frame, confidence_scores=confidence_scores, detections=detections)
+        # update tracker with new detections
+        self.track(frame, confidence_scores=confidence_scores, bboxes=bboxes)
 
-    def track(self, frame, confidence_scores=None, detections=None):
-        if detections:
-            #detections = self.convert_detections_for_deepsort_alg(detections)
+    def track(self, frame, confidence_scores=None, bboxes=None):
+        if bboxes:
+            detections = self.convert_detections_for_deepsort_alg(bboxes)
             self.tracker, detections_class = self._deepsort.run_deep_sort(frame, confidence_scores, detections)
         if self.tracker:
-            bboxes = []
+            tracker_bboxes = []
             for track in self.tracker.tracks:
                 if not track.is_confirmed() or track.time_since_update > 1:
                     continue
                 bbox = track.to_tlbr() # converts x, y, w, h bbox to tlbr bbox (top left and bottom right coords)
                 id_num = str(track.track_id)
-                bboxes.append((bbox, id_num))
-            return True, bboxes
+                tracker_bboxes.append((bbox, id_num))
+            return True, tracker_bboxes
         return False, []
 
     def convert_detections_for_deepsort_alg(self, bboxes):

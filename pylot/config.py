@@ -70,6 +70,9 @@ flags.DEFINE_float('traffic_light_det_min_score_threshold', 0.3,
                    'Min score threshold for bounding box')
 flags.DEFINE_string('depth_est_model_path', 'dependencies/anynet/',
                     'Path to AnyNet depth estimation model')
+flags.DEFINE_string('deep_sort_tracker_pedestrian_weights_path',
+                    'dependencies/nanonets_object_tracking/ped_feature_extractor',
+                    'Path to weights for pedestrian feature extractor model')
 
 # Agent flags.
 flags.DEFINE_bool('stop_for_traffic_lights', True,
