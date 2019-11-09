@@ -2,6 +2,7 @@ import numpy as np
 import torch
 
 from nanonets_object_tracking.deepsort import deepsort_rbc
+from pylot.perception.detection.utils import DetectedObject
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 
@@ -20,14 +21,14 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
             detections = self.convert_detections_for_deepsort_alg(bboxes)
             self.tracker, detections_class = self._deepsort.run_deep_sort(frame, confidence_scores, detections)
         if self.tracker:
-            tracker_bboxes = []
+            tracked_objects = []
             for track in self.tracker.tracks:
                 if not track.is_confirmed() or track.time_since_update > 1:
                     continue
                 bbox = track.to_tlbr() # converts x, y, w, h bbox to tlbr bbox (top left and bottom right coords)
-                id_num = str(track.track_id)
-                tracker_bboxes.append((bbox, id_num))
-            return True, tracker_bboxes
+                corners = (bbox[0], bbox[2], bbox[1], bbox[3]) # converts to xmin, xmax, ymin, ymax format
+                tracked_objects.append(DetectedObject(corners, "", 0, track.track_id))
+            return True, tracked_objects
         return False, []
 
     def convert_detections_for_deepsort_alg(self, bboxes):

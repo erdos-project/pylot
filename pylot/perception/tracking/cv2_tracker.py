@@ -1,5 +1,6 @@
 import cv2
 
+from pylot.perception.detection.utils import DetectedObject
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 
@@ -18,7 +19,8 @@ class MultiObjectCV2Tracker(MultiObjectTracker):
         ok, bboxes = self._tracker.update(frame)
         if not ok:
             return False, []
-        corners = []
+        tracked_objects = []
         for (xmin, ymin, w, h) in bboxes:
-            corners.append((xmin, xmin + w, ymin, ymin + h))
-        return True, corners
+            corners = ((xmin, xmin + w, ymin, ymin + h)
+            tracked_objects.append(DetectedObject(corners, "", 0))
+        return True, tracked_objects

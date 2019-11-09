@@ -8,7 +8,7 @@ from erdos.data_stream import DataStream
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from pylot.perception.detection.utils import visualize_no_colors_bboxes, visualize_image
+from pylot.perception.detection.utils import visualize_image
 from pylot.utils import is_camera_stream, is_obstacles_stream
 
 
@@ -184,7 +184,7 @@ class ObjectTrackerOp(Op):
     def __track_bboxes_on_frame(self, frame, timestamp, catch_up):
         self._logger.info('Processing frame {}'.format(timestamp))
         # Sequentually update state for each bounding box.
-        ok, bboxes = self._tracker.track(frame)
+        ok, tracked_objects = self._tracker.track(frame)
         if not ok:
             self._logger.error(
                 'Tracker failed at timestamp {} last ready_to_update at {}'.
@@ -193,30 +193,8 @@ class ObjectTrackerOp(Op):
             self._ready_to_update = False
         else:
             if self._flags.visualize_tracker_output and not catch_up:
-                if self._tracker_type in ["sort", "deep_sort"]:
-                    for bbox_info in bboxes:
-                        bbox, bbox_id = bbox_info
-                        frame = self.draw_tracker_bbox_on_img(frame, bbox, str(bbox_id), timestamp)
-                    visualize_image(self.name, frame)
-                    #cv2.imwrite("/home/erdos/workspace/forks/pylot/data/" + str(timestamp) + ".png", frame)
-                else:
-                    visualize_no_colors_bboxes(self.name, timestamp, frame, bboxes)
+                for tracked_object in tracked_objects:
+                    # tracked objects have no label, draw black bbox for them ([0, 0, 0])
+                    tracked_object.visualize_on_img(frame, {"": [0, 0, 0]})
+                visualize_image(self.name, frame)
 
-    def draw_tracker_bbox_on_img(self, image_np, bbox, bbox_id_text, timestamp):
-        """ Annotate the image with the bounding box of the obstacle."""
-        txt_font = cv2.FONT_HERSHEY_SIMPLEX
-        (xmin, ymin, xmax, ymax) = bbox
-        xmin, ymin, xmax, ymax = int(xmin), int(ymin), int(xmax), int(ymax)
-        txt_size = cv2.getTextSize(bbox_id_text, txt_font, 0.5, 2)[0]
-        cv2.putText(image_np, str(timestamp), (20, 18), txt_font, 0.5, (255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
-        color = [0, 0, 0]
-        # Show bounding box.
-        cv2.rectangle(image_np, (xmin, ymin), (xmax, ymax), color, 2)
-        # Show text.
-        cv2.rectangle(image_np,
-                      (xmin, ymin - txt_size[1] - 2),
-                      (xmin + txt_size[0], ymin - 2), color, -1)
-        cv2.putText(image_np, bbox_id_text, (xmin, ymin - 2),
-                    txt_font, 0.5, (255, 255, 255), thickness=1,
-                    lineType=cv2.LINE_AA)
-        return image_np

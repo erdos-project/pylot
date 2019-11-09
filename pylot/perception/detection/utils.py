@@ -143,7 +143,12 @@ class DetectedObject(object):
         txt_font = cv2.FONT_HERSHEY_SIMPLEX
         (xmin, xmax, ymin, ymax) = self.corners
         if text is None:
-            text = '{}{:.1f}'.format(self.label, self.confidence)
+            if self.obj_id != -1:
+                text = '{}{:.1f}, id:{}'.format(self.label, 
+                                                self.confidence, 
+                                                self.obj_id)
+            else:
+                text = '{}{:.1f}'.format(self.label, self.confidence)
         txt_size = cv2.getTextSize(text, txt_font, 0.5, 2)[0]
         color = bbox_color_map[self.label]
         # Show bounding box.

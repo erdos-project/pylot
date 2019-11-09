@@ -2,6 +2,7 @@ import numpy as np
 import torch
 
 from sort.sort import *
+from pylot.perception.detection.utils import DetectedObject
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 
@@ -15,8 +16,13 @@ class MultiObjectSORTTracker(MultiObjectTracker):
 
     def track(self, frame):
         # each track in tracks has format ([xmin, ymin, xmax, ymax], id)
-        tracks = [(track.predict()[0].tolist(), track.id) for track in self.tracker.trackers]
-        return True, tracks
+        tracked_objects = []
+        for track in self.tracker.trackers:
+            coords = track.predict()[0].tolist()
+            # changing to xmin, xmax, ymin, ymax format
+            coords = (coords[0], coords[2], coords[1], coords[3])
+            tracked_objects.append(DetectedObject(coords, "", 0, track.id))
+        return True, tracked_objects
 
     def convert_detections_for_sort_alg(self, bboxes, confidence_scores):
         # for each bbox, convert from x, y, w, h to xmin, ymin, xmax, ymax (top-left and bottom-right)
