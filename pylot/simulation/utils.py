@@ -1,3 +1,4 @@
+import sys
 from collections import namedtuple
 from itertools import combinations
 import math
@@ -152,6 +153,9 @@ class Location(object):
             self.x = x
             self.y = y
             self.z = z
+
+    def as_numpy_array(self):
+        return np.array([self.x, self.y, self.z])
 
     def __add__(self, other):
         return Location(x=self.x + other.x,
@@ -552,226 +556,278 @@ def get_3d_world_position_with_point_cloud(
         return None
 
 
-def get_bounding_box_from_corners(corners):
-    """
-    Gets the bounding box of the pedestrian given the corners of the plane.
-    """
-    # Figure out the opposite ends of the rectangle. Our 2D mapping doesn't
-    # return perfect rectangular coordinates and also doesn't return them
-    # in clockwise order.
-    max_distance = 0
-    opp_ends = None
-    for (a, b) in combinations(corners, r=2):
-        if abs(a[0] - b[0]) <= 0.8 or abs(a[1] - b[1]) <= 0.8:
-            # The points are too close. They may be lying on the same axis.
-            # Move forward.
-            pass
-        else:
-            # The points possibly lie on different axis. Choose the two
-            # points which are the farthest.
-            distance = (b[0] - a[0])**2 + (b[1] - a[1])**2
-            if distance > max_distance:
-                max_distance = distance
-                if a[0] < b[0] and a[1] < b[1]:
-                    opp_ends = (a, b)
-                else:
-                    opp_ends = (b, a)
+def get_depth(vehicle_transform, obj_transform):
+    """ Retrieves the depth of the object in front of the vehicle.
 
-    # If we were able to find two points far enough to be considered as
-    # possible bounding boxes, return the results.
-    return opp_ends
-
-
-def get_bounding_box_sampling_points(ends):
-    """
-    Get the sampling points given the ends of the rectangle.
-    """
-    a, b = ends
-
-    # Find the middle point of the rectangle, and see if the points
-    # around it are visible from the camera.
-    middle_point = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2,
-                    b[2].flatten().item(0))
-    sampling_points = []
-    for dx in range(0, 3):
-        for dy in range(0, 3):
-            sampling_points.append((middle_point[0] + dx,
-                                    middle_point[1] + dy,
-                                    middle_point[2]))
-    return (middle_point, sampling_points)
-
-
-def get_2d_bbox_from_3d_box(
-        depth_array, vehicle_transform, obj_transform,
-        bounding_box, rgb_transform, rgb_intrinsic, rgb_img_size,
-        middle_depth_threshold, neighbor_threshold,
-        width_percentage_threshold=0.015,
-        height_percentage_threshold=0.01,
-        box_area_percentage_threshold=0.0002):
-    """ Transforms a 3D bounding box into a 2 bounding box projected on
-    camera coordinates.
+    This function aims to provide an estimate of the depth returned by the
+    depth camera sensor of the given object.
 
     Args:
-        depth_array: Depth frame.
-        vehicle_transform: Ego vehicle transform.
-        obj_transform: The transform in world coordiantes of the object
-            whose bounding box the method is transforming.
-        bounding_box: 3D bounding box to transform.
-        rgb_transform: The transform of the camera sensor.
-        rgb_intrinsic: The intrinsic of the camera.
-        rgb_img_size: The size of the camera frame.
-        middle_depth_threshold: Max depth difference between estimation and
-            depth frame for the bounding box middle point.
-        neighbor_threshold: Max depth difference between estimations and
-            depth frame for points sampled around the middle point.
+        vehicle_transform: The transform of the ego vehicle in world
+            coordinates.
+        obj_transform: The transform of the object in the world coordinates.
+
+    Returns:
+        The depth of the object.
     """
-    corners = map_ground_bounding_box_to_2D(
-        vehicle_transform, obj_transform,
-        bounding_box, rgb_transform, rgb_intrinsic,
-        rgb_img_size)
-    width_size_threshold = rgb_img_size[0] * width_percentage_threshold
-    height_size_threshold = rgb_img_size[1] * height_percentage_threshold
-    box_area_threshold = (rgb_img_size[0] * rgb_img_size[1] *
-                          box_area_percentage_threshold)
-    if len(corners) == 8:
-        ends = get_bounding_box_from_corners(corners)
-        if ends:
-            (middle_point, points) = get_bounding_box_sampling_points(ends)
-            # Select bounding box if the middle point in inside the frame
-            # and has the same depth
-            if (inside_image(middle_point[0], middle_point[1],
-                             rgb_img_size[0], rgb_img_size[1]) and
-                have_same_depth(middle_point[0],
-                                middle_point[1],
-                                middle_point[2],
-                                depth_array,
-                                middle_depth_threshold)):
-                (xmin, xmax, ymin, ymax) = select_max_bbox(
-                    ends, rgb_img_size[0], rgb_img_size[1])
-                width = xmax - xmin
-                height = ymax - ymin
-                # Filter out the small bounding boxes (they're far away).
-                # We use thresholds that are proportional to the image size.
-                # XXX(ionel): Reduce thresholds to 0.01, 0.01, and 0.0002 if
-                # you want to include objects that are far away.
-                if (width > width_size_threshold and
-                    height > height_size_threshold and
-                    width * height > box_area_threshold):
-                    return (xmin, xmax, ymin, ymax)
-            else:
-                # The mid point doesn't have the same depth. It can happen
-                # for valid boxes when the mid point is between the legs.
-                # In this case, we check that a fraction of the neighbouring
-                # points have the same depth.
-                # Filter the points inside the image.
-                points_inside_image = [
-                    (x, y, z)
-                    for (x, y, z) in points if inside_image(
-                            x, y, rgb_img_size[0], rgb_img_size[1])
-                ]
-                same_depth_points = [
-                    have_same_depth(x, y, z, depth_array, neighbor_threshold)
-                    for (x, y, z) in points_inside_image
-                ]
-                if len(same_depth_points) > 0 and \
-                   same_depth_points.count(True) >= 0.4 * len(same_depth_points):
-                    (xmin, xmax, ymin, ymax) = select_max_bbox(
-                        ends, rgb_img_size[0], rgb_img_size[1])
-                    width = xmax - xmin
-                    height = ymax - ymin
-                    width = xmax - xmin
-                    height = ymax - ymin
-                    # Filter out the small bounding boxes (they're far away).
-                    # Thresholds are proportional to the image size.
-                    if (width > width_size_threshold and
-                        height > height_size_threshold and
-                        width * height > box_area_threshold):
-                        return (xmin, xmax, ymin, ymax)
+    # Get location of the ego vehicle.
+    ego_vehicle_location = vehicle_transform.location.as_numpy_array()
+
+    # Get forward vector of the ego vehicle.
+    orientation = vehicle_transform.orientation
+    vehicle_forward_vector = np.array(
+        [orientation.x, orientation.y, orientation.z])
+
+    # Get location of the other object.
+    obj_location = obj_transform.location.as_numpy_array()
+
+    # Calculate the vector from the ego vehicle to the object.
+    # Scale it by the forward vector, and calculate the norm.
+    relative_vector = ego_vehicle_location - obj_location
+    return np.linalg.norm(relative_vector * vehicle_forward_vector)
 
 
-def have_same_depth(x, y, z, depth_array, threshold):
-    x, y = int(x), int(y)
-    return abs(depth_array[y][x] * 1000 - z) < threshold
+def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
+    """ Creates the bounding box in the view of the camera image using the
+    coordinates generated with respect to the camera transform.
+
+    Args:
+        bb_coordinates: The coordinates of the bounding box relative to the
+            camera transform.
+        image_width: The width of the image being published by the camera.
+        image_height: The height of the image being published by the camera.
+
+    Returns:
+        None, if the bounding box does not fall into the view of the camera.
+        (x1, x2, y1, y2) otherwise, which depict the bottom left and the top
+        right point of the bounding box.
+    """
+    # Make sure that atleast 2 of the bounding box coordinates are in front.
+    z_vals = [z for _, _, z in bb_coordinates if z >= 0]
+    if len(z_vals) < 2:
+        return None
+
+    # Create the thresholding line segments of the camera view.
+    from shapely.geometry import LineString
+    left = LineString(((0, 0), (0, image_height)))
+    bottom = LineString(((0, image_height), (image_width, image_height)))
+    right = LineString(((image_width, image_height), (image_width, 0)))
+    top = LineString(((image_width, 0), (0, 0)))
+    camera_thresholds = [left, bottom, right, top]
+
+    def threshold(p1, p2):
+        points = []
+
+        # If the points are themselves within the image, add them to the
+        # set of thresholded points.
+        if p1[0] >= 0 and p1[0] < image_width and p1[1] >= 0 and p1[
+                1] < image_height:
+            points.append(p1)
+
+        if p2[0] >= 0 and p2[0] < image_width and p2[1] >= 0 and p2[
+                1] < image_height:
+            points.append(p2)
+
+        # Compute the intersection of the line segment formed by p1 -- p2
+        # with all the thresholds of the camera image.
+        p12 = LineString((p1, p2))
+        for camera_threshold in camera_thresholds:
+            p = p12.intersection(camera_threshold)
+            if not p.is_empty:
+                if p.geom_type == 'Point':
+                    points.append((p.x, p.y))
+                elif p.geom_type == 'LineString':
+                    for coord in p.coords:
+                        points.append((coord[0], coord[1]))
+        return points
+
+    # Go over each of the segments of the bounding box and threshold it to
+    # be inside the image.
+    thresholded_points = []
+
+    points_2D = [(int(x), int(y)) for x, y, _ in bb_coordinates]
+
+    # Bottom plane thresholded.
+    thresholded_points.extend(threshold(points_2D[0], points_2D[1]))
+    thresholded_points.extend(threshold(points_2D[1], points_2D[2]))
+    thresholded_points.extend(threshold(points_2D[2], points_2D[3]))
+    thresholded_points.extend(threshold(points_2D[3], points_2D[0]))
+
+    # Top plane thresholded.
+    thresholded_points.extend(threshold(points_2D[4], points_2D[5]))
+    thresholded_points.extend(threshold(points_2D[5], points_2D[6]))
+    thresholded_points.extend(threshold(points_2D[6], points_2D[7]))
+    thresholded_points.extend(threshold(points_2D[7], points_2D[4]))
+
+    # Remaining segments thresholded.
+    thresholded_points.extend(threshold(points_2D[0], points_2D[4]))
+    thresholded_points.extend(threshold(points_2D[1], points_2D[5]))
+    thresholded_points.extend(threshold(points_2D[2], points_2D[6]))
+    thresholded_points.extend(threshold(points_2D[3], points_2D[7]))
+
+    if len(thresholded_points) == 0:
+        return None
+    else:
+        x = [int(x) for x, _ in thresholded_points]
+        y = [int(y) for _, y in thresholded_points]
+        return min(x), max(x), min(y), max(y)
 
 
-def inside_image(x, y, img_width, img_height):
-    return x >= 0 and y >= 0 and x < img_width and y < img_height
+def get_2d_bbox_from_3d_box(vehicle_transform,
+                            obj_transform,
+                            obj_bounding_box,
+                            rgb_transform,
+                            rgb_intrinsic,
+                            rgb_image_size,
+                            depth_array,
+                            segmented_image,
+                            segmentation_class,
+                            segmentation_threshold=0.20,
+                            depth_threshold=5,
+                            max_depth=125):
+    """ Retrieves the 2D bounding box with respect to the camera view from the
+    given 3D bounding box.
+
+    Args:
+        vehicle_transform: The transform in world coordinates of the ego
+            vehicle.
+        obj_transform: The transform in world coordinates of the object.
+        obj_bounding_box: The bounding box in 3D coordinates of the object.
+        rgb_transform: The transform of the RGB camera respective to the
+            ego vehicle.
+        rgb_image_size: The (width, height) of the images produced by the
+            camera.
+        depth_array: The sensor data returned by the depth camera.
+        segmented_image: The sensor data returned by the semantic segmentation
+            camera.
+        segmentation_class: The segmentation class of the object.
+        segmentation_threshold: The amount of pixels that the given
+            segmentation class should occupy in the bounding box for a positive
+            detection. (default=0.20)
+        depth_threshold: The error to tolerate when comparing the calculated
+            depth to the object and the depth returned by the sensor.
+            (default=5 metres)
+        max_depth: The max depth of the object after which it is no longer
+            classified as a positive detection. (default = 125 metres)
+    """
+    # Calculate the depth of the object from the given transforms.
+    # Return None if the object is farther than the threshold.
+    depth = get_depth(vehicle_transform, obj_transform)
+    if depth > max_depth:
+        return None
+
+    # Convert the bounding box of the object to the camera coordinates.
+    bb_coordinates = map_ground_bounding_box_to_2D(vehicle_transform,
+                                                   obj_transform,
+                                                   obj_bounding_box,
+                                                   rgb_transform,
+                                                   rgb_intrinsic)
+
+    # Threshold the bounding box to be within the camera view.
+    thresholded_coordinates = get_bounding_box_in_camera_view(
+        bb_coordinates, *rgb_image_size)
+    if not thresholded_coordinates:
+        return None
+
+    # Retrieve the bottom left and the top right points of the bounding
+    # box.
+    xmin, xmax, ymin, ymax = thresholded_coordinates
+
+    # Crop the segmented and depth image to the given bounding box.
+    cropped_image = segmented_image[ymin:ymax, xmin:xmax]
+    cropped_depth = depth_array[ymin:ymax, xmin:xmax]
+
+    # If the size of the bounding box is greater than 0, ensure that the
+    # bounding box contains more than a threshold of pixels corresponding
+    # to the required segmentation class.
+    if cropped_image.size > 0:
+        masked_image = np.zeros_like(cropped_image)
+        masked_image[np.where(cropped_image == segmentation_class)] = 1
+        if np.sum(masked_image) >= segmentation_threshold * masked_image.size:
+            # The bounding box contains the required number of pixels that
+            # belong to the required class. Ensure that the depth of the
+            # object is the depth in the image.
+            masked_depth = cropped_depth[np.where(masked_image == 1)]
+            mean_depth = np.mean(masked_depth) * 1000
+            if depth - depth_threshold <= mean_depth <= depth + depth_threshold:
+                return xmin, xmax, ymin, ymax
+    return None
 
 
-def select_max_bbox(ends, img_width, img_height):
-    (xmin, ymin) = tuple(map(int, ends[0][:2]))
-    (xmax, ymax) = tuple(map(int, ends[0][:2]))
-    corner = tuple(map(int, ends[1][:2]))
-    # XXX(ionel): This is not quite correct. We get the
-    # minimum and maximum x and y values, but these may
-    # not be valid points. However, it works because the
-    # bboxes are parallel to x and y axis.
-    xmin = min(xmin, corner[0])
-    ymin = min(ymin, corner[1])
-    xmax = max(xmax, corner[0])
-    ymax = max(ymax, corner[1])
-    # Make sure box vertices are within the image.
-    xmin = max(xmin, 0)
-    ymin = max(ymin, 0)
-    xmax = min(xmax, img_width - 1)
-    ymax = min(ymax, img_height - 1)
-    return (xmin, xmax, ymin, ymax)
+def map_ground_bounding_box_to_2D(vehicle_transform, obj_transform,
+                                  obj_bounding_box, rgb_transform,
+                                  rgb_intrinsic):
+    """ Converts the coordinates of the bounding box for the given object to
+    the coordinates in the view of the camera.
 
+    This method retrieves the extent of the bounding box, transforms them to
+    coordinates relative to the bounding box origin, then converts those to
+    coordinates relative to the object.
 
-def map_ground_bounding_box_to_2D(vehicle_transform,
-                                  obj_transform,
-                                  bounding_box,
-                                  rgb_transform,
-                                  rgb_intrinsic,
-                                  rgb_img_size):
-    (image_width, image_height) = rgb_img_size
+    These coordinates are then considered to be in the world coordinate system,
+    which is mapped into the camera view. A negative z-value signifies that the
+    bounding box is behind the camera plane.
+
+    Note that this function does not cap the coordinates to be within the
+    size of the camera image.
+
+    Args:
+        vehicle_transform: The transform of the ego vehicle.
+        obj_transform: The transform of the object to be shown in the camera.
+        obj_bounding_box: The bounding box of the object in 3D coordinates.
+        rgb_transform: The transform of the camera relative to the ego vehicle.
+        rgb_intrinsic: The intrinsic matrix of the camera.
+
+    Returns:
+        An array of 8 coordinates that bound the given object relative to the
+        camera view. The first four are the bottom plane, and the remaining
+        depict the top plane.
+    """
+
+    # Create the extrinsic matrix of the camera.
     extrinsic_mat = vehicle_transform * rgb_transform
 
-    # 8 bounding box vertices relative to (0,0,0)
-    bbox = np.array([
-        [  bounding_box.extent.x,   bounding_box.extent.y,   bounding_box.extent.z],
-        [  bounding_box.extent.x, - bounding_box.extent.y,   bounding_box.extent.z],
-        [  bounding_box.extent.x,   bounding_box.extent.y, - bounding_box.extent.z],
-        [  bounding_box.extent.x, - bounding_box.extent.y, - bounding_box.extent.z],
-        [- bounding_box.extent.x,   bounding_box.extent.y,   bounding_box.extent.z],
-        [- bounding_box.extent.x, - bounding_box.extent.y,   bounding_box.extent.z],
-        [- bounding_box.extent.x,   bounding_box.extent.y, - bounding_box.extent.z],
-        [- bounding_box.extent.x, - bounding_box.extent.y, - bounding_box.extent.z]
-    ])
+    # 8 bounding box vertices relative to the origin of the bounding box.
+    extent = obj_bounding_box.extent
+    bbox = np.array([[extent.x, extent.y, -extent.z],
+                     [-extent.x, extent.y, -extent.z],
+                     [-extent.x, -extent.y, -extent.z],
+                     [extent.x, -extent.y, -extent.z],
+                     [extent.x, extent.y, extent.z],
+                     [-extent.x, extent.y, extent.z],
+                     [-extent.x, -extent.y, extent.z],
+                     [extent.x, -extent.y, extent.z]])
 
     # Transform the vertices with respect to the bounding box transform.
-    bbox = bounding_box.transform.transform_points(bbox)
+    bbox = obj_bounding_box.transform.transform_points(bbox)
 
-    # The bounding box transform is with respect to the object transform.
-    # Transform the points relative to its transform.
+    # Convert the bounding box relative to the world.
     bbox = obj_transform.transform_points(bbox)
 
     # Object's transform is relative to the world. Thus, the bbox contains
     # the 3D bounding box vertices relative to the world.
-
-    coords = []
+    camera_coordinates = []
     for vertex in bbox:
         pos_vector = np.array([
-            [vertex[0,0]],  # [[X,
-            [vertex[0,1]],  #   Y,
-            [vertex[0,2]],  #   Z,
-            [1.0]           #   1.0]]
+            [vertex[0, 0]],  # [[X,
+            [vertex[0, 1]],  #   Y,
+            [vertex[0, 2]],  #   Z,
+            [1.0]  #   1.0]]
         ])
+
         # Transform the points to camera.
         transformed_3d_pos = np.dot(inv(extrinsic_mat.matrix), pos_vector)
+
         # Transform the points to 2D.
         pos2d = np.dot(rgb_intrinsic, transformed_3d_pos[:3])
 
         # Normalize the 2D points.
         loc_2d = Location(float(pos2d[0] / pos2d[2]),
-                          float(pos2d[1] / pos2d[2]),
-                          pos2d[2])
+                          float(pos2d[1] / pos2d[2]), pos2d[2])
         # Add the points to the image.
-        if loc_2d.z > 0: # If the point is in front of the camera.
-            if (loc_2d.x >= 0 or loc_2d.y >= 0) and (loc_2d.x < image_width or loc_2d.y < image_height):
-                coords.append((loc_2d.x, loc_2d.y, loc_2d.z))
+        camera_coordinates.append((loc_2d.x, loc_2d.y, loc_2d.z))
 
-    return coords
+    return camera_coordinates
 
 
 def map_ground_3D_transform_to_2D(location,

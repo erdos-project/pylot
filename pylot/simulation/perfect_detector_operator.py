@@ -159,13 +159,15 @@ class PerfectDetectorOp(Op):
                 .send(WatermarkMessage(msg.timestamp))
             return
         depth_array = depth_msg.frame
+        segmented_image = segmented_msg.frame
         vehicle_transform = can_bus_msg.data.transform
 
-        det_ped = self.__get_pedestrians(
-            pedestrians_msg.pedestrians, vehicle_transform, depth_array)
+        det_ped = self.__get_pedestrians(pedestrians_msg.pedestrians,
+                                         vehicle_transform, depth_array,
+                                         segmented_image)
 
-        det_vec = self.__get_vehicles(
-            vehicles_msg.vehicles, vehicle_transform, depth_array)
+        det_vec = self.__get_vehicles(vehicles_msg.vehicles, vehicle_transform,
+                                      depth_array, segmented_image)
 
         det_traffic_lights = pylot.simulation.utils.get_traffic_light_det_objs(
             traffic_light_msg.traffic_lights,
@@ -252,38 +254,45 @@ class PerfectDetectorOp(Op):
     def execute(self):
         self.spin()
 
-    def __get_pedestrians(self, pedestrians, vehicle_transform, depth_array):
+    def __get_pedestrians(self, pedestrians, vehicle_transform, depth_array,
+                          segmented_image):
         """ Transforms pedestrians into detected objects.
         Args:
             pedestrians: List of Pedestrian objects.
             vehicle_transform: Ego-vehicle transform.
             depth_array: Depth frame taken at the time when pedestrians were
                          collected.
+            segmented_image: The segmentation frame taken at the time when
+                the pedestrians were collected.
         """
         det_objs = []
         for pedestrian in pedestrians:
             bbox = get_2d_bbox_from_3d_box(
-                depth_array, vehicle_transform, pedestrian.transform,
+                vehicle_transform, pedestrian.transform,
                 pedestrian.bounding_box, self._bgr_transform,
-                self._bgr_intrinsic, self._bgr_img_size, 1.5, 3.0)
+                self._bgr_intrinsic, self._bgr_img_size, depth_array,
+                segmented_image, 4)
             if bbox is not None:
                 det_objs.append(DetectedObject(bbox, 1.0, 'pedestrian'))
         return det_objs
 
-    def __get_vehicles(self, vehicles, vehicle_transform, depth_array):
+    def __get_vehicles(self, vehicles, vehicle_transform, depth_array,
+                       segmented_image):
         """ Transforms vehicles into detected objects.
         Args:
             vehicles: List of Vehicle objects.
             vehicle_transform: Ego-vehicle transform.
-            depth_array: Depth frame taken at the time when pedestrians were
+            depth_array: Depth frame taken at the time when vehicles were
                          collected.
+            segmented_image: The segmentation frame taken at the time when
+                the vehicles were collected.
         """
         det_objs = []
         for vehicle in vehicles:
             bbox = get_2d_bbox_from_3d_box(
-                depth_array, vehicle_transform, vehicle.transform,
-                vehicle.bounding_box, self._bgr_transform, self._bgr_intrinsic,
-                self._bgr_img_size, 3.0, 3.0)
+                vehicle_transform, vehicle.transform, vehicle.bounding_box,
+                self._bgr_transform, self._bgr_intrinsic, self._bgr_img_size,
+                depth_array, segmented_image, 10)
             if bbox is not None:
                 det_objs.append(DetectedObject(bbox, 1.0, 'vehicle'))
         return det_objs
