@@ -273,7 +273,7 @@ class PerfectDetectorOp(Op):
                 self._bgr_intrinsic, self._bgr_img_size, depth_array,
                 segmented_image, 4)
             if bbox is not None:
-                det_objs.append(DetectedObject(bbox, 1.0, 'pedestrian'))
+                det_objs.append(DetectedObject(bbox, 1.0, 'pedestrian', pedestrian.id))
         return det_objs
 
     def __get_vehicles(self, vehicles, vehicle_transform, depth_array,
@@ -294,5 +294,5 @@ class PerfectDetectorOp(Op):
                 self._bgr_transform, self._bgr_intrinsic, self._bgr_img_size,
                 depth_array, segmented_image, 10)
             if bbox is not None:
-                det_objs.append(DetectedObject(bbox, 1.0, 'vehicle'))
+                det_objs.append(DetectedObject(bbox, 1.0, 'vehicle', vehicle.id))
         return det_objs

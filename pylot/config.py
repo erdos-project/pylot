@@ -74,6 +74,9 @@ flags.DEFINE_bool('depth_estimation', False,
                   'True to depth estimation using cameras')
 flags.DEFINE_string('depth_estimation_model_path', 'dependencies/anynet/',
                     'Path to AnyNet depth estimation model')
+flags.DEFINE_string('deep_sort_tracker_pedestrian_weights_path',
+                    'dependencies/nanonets_object_tracking/ped_feature_extractor',
+                    'Path to weights for pedestrian feature extractor model')
 
 # Agent flags.
 flags.DEFINE_bool('stop_for_traffic_lights', True,

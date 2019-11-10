@@ -268,6 +268,10 @@ def main(argv):
             pylot.operator_creator.create_trajectory_logger_op(graph)]
     graph.connect(tracking_ops, trajectory_log_ops + chauffeur_log_ops)
 
+    multiple_object_tracker_logger_op = [
+        pylot.operator_creator.create_multiple_object_tracker_logger_op(graph)]
+    graph.connect(detector_ops, multiple_object_tracker_logger_op)
+
     # Add visual operators.
     pylot.operator_creator.add_visualization_operators(
         graph,
