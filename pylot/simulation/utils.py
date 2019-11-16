@@ -1,6 +1,7 @@
 import sys
 from collections import namedtuple
 from itertools import combinations
+from operator import attrgetter
 import math
 import numpy as np
 from numpy.linalg import inv
@@ -932,7 +933,7 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
     elif town_name == 'Town03':
         for light in traffic_lights:
             if light.trigger_volume_extent.x > 2 or light.id in [
-                    66, 67, 68, 71, 72, 73, 75, 81,  
+                    66, 67, 68, 71, 72, 73, 75, 81,
             ]:
                 points = [
                     # Back Plane
@@ -946,7 +947,7 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
                     Location(x=-4.8, y=0.4, z=5.5),
                     Location(x=-4.8, y=0.4, z=6.5),
                     Location(x=-5.2, y=0.4, z=6.5),
-                    
+
                 ]
                 bbox_state.append(
                     (transform_traffic_light_bboxes(light, points), light.state))
@@ -1055,11 +1056,25 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
         ]
         right_points = [point + Location(x=-3.0) for point in points]
         left_points = [point + Location(x=-5.5) for point in points]
+
+        # Town05 randomizes the identifiers for the traffic light at each
+        # reload of the world. We cannot depend on static identifiers for
+        # figuring out which lights only have a single traffic light.
+        single_light = filter(lambda light: light.trigger_volume.extent.x < 2,
+                              traffic_lights)
+        if len(single_light) != 1:
+            raise ValueError(
+                "Expected a single traffic light with a trigger "
+                "volume less than 2 in Town05. Received {}".format(
+                    len(single_light)))
+        single_light = single_light[0]
+        single_light_ids = map(attrgetter('id'),
+                               single_light.get_group_traffic_lights())
         for light in traffic_lights:
             bbox_state.append(
                 (transform_traffic_light_bboxes(light, points),
                  light.state))
-            if light.id not in [446, 447]:
+            if light.id not in single_light_ids:
                 # This is a traffids light with 4 signs, we need to come up with
                 # more bounding boxes.
                 bbox_state.append(
