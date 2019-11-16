@@ -1043,16 +1043,16 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
         ]
         middle_points = [  # Light in the middle of the pole.
             # Back Plane
-            Location(x=-0.5, y=-0.1, z=2.5),
-            Location(x=+0.1, y=-0.1, z=2.5),
-            Location(x=+0.1, y=-0.1, z=3.5),
-            Location(x=-0.5, y=-0.1, z=3.5),
+            Location(x=-0.4, y=-0.1, z=2.55),
+            Location(x=+0.2, y=-0.1, z=2.55),
+            Location(x=+0.2, y=-0.1, z=3.55),
+            Location(x=-0.4, y=-0.1, z=3.55),
 
             # Front Plane
-            Location(x=-0.5, y=0.5, z=2.5),
-            Location(x=+0.1, y=0.5, z=2.5),
-            Location(x=+0.1, y=0.5, z=3.5),
-            Location(x=-0.5, y=0.5, z=3.5),
+            Location(x=-0.4, y=0.5, z=2.55),
+            Location(x=+0.2, y=0.5, z=2.55),
+            Location(x=+0.2, y=0.5, z=3.55),
+            Location(x=-0.5, y=0.5, z=3.55),
         ]
         right_points = [point + Location(x=-3.0) for point in points]
         left_points = [point + Location(x=-5.5) for point in points]
