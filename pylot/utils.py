@@ -135,11 +135,14 @@ def create_segmented_camera_stream(name):
 def is_segmented_camera_stream(stream):
     return stream.get_label('segmented') == 'true'
 
+
 def is_front_segmented_camera_stream(stream):
     return stream.name == FRONT_SEGMENTED_CAMERA_NAME
 
+
 def is_top_down_segmented_camera_stream(stream):
     return stream.name == TOP_DOWN_SEGMENTED_CAMERA_NAME
+
 
 def is_non_ground_segmented_camera_stream(stream):
     return (stream.get_label('segmented') == 'true' and
@@ -161,11 +164,14 @@ def create_traffic_lights_stream(name):
 def is_traffic_lights_stream(stream):
     return stream.get_label('traffic_lights') == 'true'
 
-def create_depth_est_stream(name):
-    return DataStream(name=name, labels={'depth_est': 'true'})
 
-def is_depth_est_stream(stream):
-    return stream.get_label('depth_est') == 'true'
+def create_depth_estimation_stream(name):
+    return DataStream(name=name, labels={'depth_estiomation': 'true'})
+
+
+def is_depth_estimation_stream(stream):
+    return stream.get_label('depth_estimation') == 'true'
+
 
 def create_fusion_stream(name):
     return DataStream(name=name, labels={'fusion_output': 'true'})
@@ -193,8 +199,10 @@ def create_waypoints_stream():
 def is_waypoints_stream(stream):
     return stream.name == 'waypoints'
 
+
 def is_tracking_stream(stream):
     return stream.get_label('tracking') == 'true'
+
 
 def create_detected_lane_stream(name):
     return DataStream(name=name,

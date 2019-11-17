@@ -28,15 +28,14 @@ Following, start the simulator in the Carla container:
 
 ```console
 nvidia-docker exec -i -t carla_v1 /bin/bash
-SDL_VIDEODRIVER=offscreen /home/erdos/workspace/CARLA_0.9.5/CarlaUE4.sh -windowed -ResX=800 -ResY=600 -carla-server -benchmark -fps=10
+SDL_VIDEODRIVER=offscreen /home/erdos/workspace/CARLA_0.9.6/CarlaUE4.sh -opengl -windowed -ResX=800 -ResY=600 -carla-server -benchmark -fps=10 -quality-level=Epic
 ```
 
 Finally, start Pylot in the container:
 
 ```console
 nvidia-docker exec -i -t pylot_v1 /bin/bash
-cd workspace/pylot/scripts; ./install_centernet.sh
-cd ../
+cd workspace/pylot/
 python pylot.py --flagfile=configs/eval/segmentation_drn.conf --carla_host=carla_v1
 ```
 
@@ -56,22 +55,7 @@ Finally, ssh into the container with X forwarding:
 ssh -p 20022 -X erdos@localhost
 /bin/bash
 cd /home/erdos/workspace/pylot/
-python pylot.py --flagfile=configs/only_ground_agent.conf --visualize_rgb_camera --carla_version=0.9.5 --carla_host=carla_v1
-```
-
-To execute using Carla 0.8.4 execute the following:
-```console
-ssh -p 20022 -X erdos@localhost
-/bin/bash
-export PYTHONPATH=$CARLA_0_8_4
-source /opt/ros/melodic/setup.bash
-cd /home/erdos/workspace/pylot/
-python pylot.py --flagfile=configs/only_ground_agent.conf --visualize_rgb_camera --carla_version=0.8.4 --carla_host=carla_v1
-```
-
-Next, in the Carla container execute:
-```console
-SDL_VIDEODRIVER=offscreen /home/erdos/workspace/CARLA_0.8.4/CarlaUE4.sh -windowed -ResX=800 -ResY=600 -carla-server -benchmark -fps=10
+python pylot.py --flagfile=configs/only_ground_agent.conf --visualize_rgb_camera --carla_host=carla_v1
 ```
 
 ## Build your own Docker images
@@ -93,19 +77,17 @@ following steps:
 ```console
 ./install.sh
 pip install -e ./
-cd scripts
-./install_centernet.sh
 ```
 
 Next, start the simulator:
 ```console
-export CARLA_ROOT=$PYLOT_HOME/dependencies/CARLA_0.8.4/
+export CARLA_HOME=$PYLOT_HOME/dependencies/CARLA_0.9.6/
 ./scripts/run_simulator.sh
 ```
 
 In a different terminal, setup the paths:
 ```console
-export CARLA_ROOT=$PYLOT_HOME/dependencies/CARLA_0.8.4/
+export CARLA_HOME=$PYLOT_HOME/dependencies/CARLA_0.9.6/
 cd $PYLOT_HOME/scripts/
 source ./set_pythonpath.sh
 ```
@@ -113,7 +95,7 @@ source ./set_pythonpath.sh
 Finally, execute Pylot in a different terminal:
 ```console
 cd  $PYLOT_HOME/
-python pylot.py --flagfile=configs/eval/segmentation.conf
+python pylot.py --flagfile=configs/eval/segmentation_drn.conf
 ```
 
 # Pylot components
@@ -125,7 +107,7 @@ isolation or with the entire Pylot application.
 
 ### Obstacle detection
 Pylot supports four object detection models: `ssd_mobilenet_v1`, `ssd_resnet50_v1`,
-`frcnn_resnet101`, and `Centernet`. The following command runs a detector in isolation:
+and `frcnn_resnet101`. The following command runs a detector in isolation:
 
 ```console
 python pylot.py --flagfile=configs=configs/detection.conf
@@ -146,7 +128,7 @@ python pylot.py --flagfile=configs=configs/tracking.conf
 
 ### Traffic light detection
 Pylot has uses a separate component for traffic light detection and classification.
-The following command runst the component in isolation:
+The following command runs the component in isolation:
 
 ```console
 python pylot.py --flagfile=configs=configs/traffic_light.conf
@@ -161,23 +143,15 @@ python pylot.py --flagfile=configs=configs/segmentation.conf
 # Evaluates the segmented frames
 python pylot.py --flagfile=configs=configs/segmentation_mIoU_eval_drn.conf
 ```
-### Sensor fusion
-In order to run Pylot's naive fusion in isolation execute:
-
-```console
-python pylot.py --flagfile=configs=configs/fusion.conf
-```
 
 ### Driving policies
 Pylot supports two driving policies:
- 1. Ground agent policy: uses perfect sensor data and information to drive
- without crashing. This policy is useful to test components in long running
- experiments in which you do not want the car the crash.
+ 1. Ground agent policy: uses perfect sensor data to drive. This policy is
+ useful to test components in long running experiments in which the ego vehicle
+ must avoid accidents.
  2. ERDOS agent policy: uses a mix of data from our components (e.g., detected
  obstacles, traffic lights) and data from Carla (e.g., traffic lanes). This
- policy is currently unreliable (i.e., crashes, runs red traffic lights), but
- we will improve it to be more reliable and we will adapt it to only use data
- from Pylot components.
+ policy is currently unreliable (i.e., crashes, runs red traffic lights).
 
 You can run all the components, together with one of the two policies by
 executing:

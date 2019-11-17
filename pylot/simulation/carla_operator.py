@@ -153,6 +153,11 @@ class CarlaOperator(Op):
         self._world.tick()
 
     def _spawn_pedestrians(self, num_pedestrians):
+        """ Spawns pedestrians at random locations inside the world.
+
+        Args:
+            num_pedestrians: The number of pedestrians to spawn.
+        """
         p_blueprints = self._world.get_blueprint_library().filter(
             'walker.pedestrian.*')
         unique_locs = set([])
@@ -219,8 +224,7 @@ class CarlaOperator(Op):
                 self._world.get_random_location_from_navigation())
 
     def _spawn_vehicles(self, num_vehicles):
-        """ Spawns the required number of vehicles at random locations inside
-        the world.
+        """ Spawns vehicles at random locations inside the world.
 
         Args:
             num_vehicles: The number of vehicles to spawn.
@@ -272,10 +276,10 @@ class CarlaOperator(Op):
         return vehicle_ids
 
     def _spawn_driving_vehicle(self):
-        """ Spawns the vehicle that the rest of the pipeline drives.
+        """ Spawns the ego vehicle.
 
         Returns:
-            A handle to the vehicle being driven around.
+            A handle to the ego vehicle.
         """
         self._logger.debug('Spawning the vehicle to be driven around.')
 
@@ -284,13 +288,23 @@ class CarlaOperator(Op):
             'vehicle.lincoln.mkz2017')[0]
 
         driving_vehicle = None
+
         while not driving_vehicle:
-            start_pose = random.choice(
-                self._world.get_map().get_spawn_points())
+            if self._flags.carla_spawn_point_index == -1:
+                # Pick a random spawn point.
+                start_pose = random.choice(
+                    self._world.get_map().get_spawn_points())
+            else:
+                spawn_points = self._world.get_map().get_spawn_points()
+                assert self._flags.carla_spawn_point_index < len(spawn_points), \
+                    'Spawn point index is too big. ' \
+                    'Town does not have sufficient spawn points.'
+                start_pose = spawn_points[self._flags.carla_spawn_point_index]
+
             driving_vehicle = self._world.try_spawn_actor(v_blueprint,
                                                           start_pose)
-            if driving_vehicle and self._auto_pilot:
-                driving_vehicle.set_autopilot(self._auto_pilot)
+        if self._auto_pilot:
+            driving_vehicle.set_autopilot(self._auto_pilot)
         return driving_vehicle
 
     def publish_world_data(self, msg):

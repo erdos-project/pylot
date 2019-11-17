@@ -17,6 +17,16 @@ import pylot.simulation.utils
 
 
 class CarlaReplayOperator(Op):
+    """ Replays a prior simulation from logs.
+
+    The operator reads data from a log file, and publishes it on the ground
+    streams.
+
+    Attributes:
+        _client: A connection to the simulator.
+        _world: A handle to the world running inside the simulation.
+    """
+
     def __init__(self,
                  name,
                  flags,
@@ -26,14 +36,8 @@ class CarlaReplayOperator(Op):
         self._flags = flags
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
-
-        # Connect to CARLA and retrieve the world running.
-        self._client, self._world = get_world(self._flags.carla_host,
-                                              self._flags.carla_port,
-                                              self._flags.carla_timeout)
-        if self._client is None or self._world is None:
-            raise ValueError('There was an issue connecting to the simulator.')
-
+        self._client = None
+        self._world = None
         # Lock to ensure that the callbacks do not execute simultaneously.
         self._lock = threading.Lock()
 
@@ -106,8 +110,14 @@ class CarlaReplayOperator(Op):
         self.get_output_stream('stop_signs').send(stop_signs_msg)
         self.get_output_stream('stop_signs').send(watermark_msg)
 
-
     def execute(self):
+        # Connect to CARLA and retrieve the world running.
+        self._client, self._world = get_world(self._flags.carla_host,
+                                              self._flags.carla_port,
+                                              self._flags.carla_timeout)
+        if self._client is None or self._world is None:
+            raise ValueError('There was an issue connecting to the simulator.')
+
         # Replayer time factor is only available in > 0.9.5.
         # self._client.set_replayer_time_factor(0.1)
         print(self._client.replay_file(self._flags.carla_replay_file,

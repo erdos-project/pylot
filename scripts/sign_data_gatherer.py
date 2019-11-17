@@ -10,7 +10,7 @@ import time
 from pylot.perception.detection.utils import annotate_image_with_bboxes,\
     visualize_ground_bboxes
 from pylot.simulation.carla_utils import convert_speed_limit_actors,\
-    convert_to_pylot_traffic_light, convert_traffic_light_actors,\
+    convert_traffic_light_actor, convert_traffic_light_actors,\
     convert_traffic_stop_actors, get_world, to_carla_location,\
     to_carla_transform
 from pylot.simulation.utils import depth_to_array, labels_to_array,\
@@ -31,6 +31,7 @@ flags.DEFINE_bool('visualize_bboxes', False,
                   'True to enable bbox visualizer')
 flags.DEFINE_bool('log_bbox_images', False,
                   'True to enable logging of bbox annodated images')
+flags.DEFINE_integer('camera_fov', 45, 'Camera fov')
 
 
 def on_camera_msg(image):
@@ -53,6 +54,7 @@ def add_camera(world, transform, callback):
         'sensor.camera.rgb')
     camera_blueprint.set_attribute('image_size_x', str(FLAGS.frame_width))
     camera_blueprint.set_attribute('image_size_y', str(FLAGS.frame_height))
+    camera_blueprint.set_attribute('fov', str(FLAGS.camera_fov))
     camera = world.spawn_actor(camera_blueprint, transform)
     # Register callback to be invoked when a new frame is received.
     camera.listen(callback)
@@ -64,6 +66,7 @@ def add_depth_camera(world, transform, callback):
         'sensor.camera.depth')
     depth_blueprint.set_attribute('image_size_x', str(FLAGS.frame_width))
     depth_blueprint.set_attribute('image_size_y', str(FLAGS.frame_height))
+    depth_blueprint.set_attribute('fov', str(FLAGS.camera_fov))
     depth_camera = world.spawn_actor(depth_blueprint, transform)
     # Register callback to be invoked when a new frame is received.
     depth_camera.listen(callback)
@@ -75,6 +78,7 @@ def add_segmented_camera(world, transform, callback):
         'sensor.camera.semantic_segmentation')
     segmented_blueprint.set_attribute('image_size_x', str(FLAGS.frame_width))
     segmented_blueprint.set_attribute('image_size_y', str(FLAGS.frame_height))
+    segmented_blueprint.set_attribute('fov', str(FLAGS.camera_fov))
     segmented_camera = world.spawn_actor(segmented_blueprint, transform)
     segmented_camera.listen(callback)
     return segmented_camera
@@ -114,7 +118,7 @@ def get_traffic_light_objs(traffic_lights, camera_transform, depth_frame,
                            width, height, color, town_name):
     det_objs = pylot.simulation.utils.get_traffic_light_det_objs(
         traffic_lights, camera_transform, depth_frame,
-        width, height, town_name)
+        width, height, town_name, FLAGS.camera_fov)
     # Overwrite traffic light color because we control it without refreshing
     # the agents.
     if color == carla.TrafficLightState.Yellow:
@@ -148,10 +152,10 @@ def log_bounding_boxes(
 
     speed_limit_det_objs = pylot.simulation.utils.get_speed_limit_det_objs(
         speed_signs, transform, transform, depth_frame, FLAGS.frame_width,
-        FLAGS.frame_height, 90, segmented_frame)
+        FLAGS.frame_height, FLAGS.camera_fov, segmented_frame)
     traffic_stop_det_objs = pylot.simulation.utils.get_traffic_stop_det_objs(
         stop_signs, transform, depth_frame, FLAGS.frame_width,
-        FLAGS.frame_height, 90)
+        FLAGS.frame_height, FLAGS.camera_fov)
     traffic_light_det_objs = get_traffic_light_objs(
         traffic_lights, transform, depth_frame,
         FLAGS.frame_width, FLAGS.frame_height, tl_color, town_name)
@@ -257,7 +261,7 @@ def log_traffic_lights(world):
         group_lights = []
         for n_light in light.get_group_traffic_lights():
             if not check_lights_opposite(light, n_light):
-                group_lights.append(convert_to_pylot_traffic_light(n_light))
+                group_lights.append(convert_traffic_light_actor(n_light))
 
         transforms_of_interest = []
         for offset in range(10, 40, 5):
@@ -314,7 +318,7 @@ def log_traffic_lights(world):
         for tl_color in tl_colors:
             change_traffic_light_colors(world, tl_color)
             world.tick()
-            time.sleep(3)
+            time.sleep(1)
             log_obstacles(world, transforms_of_interest, group_lights,
                           tl_color, speed_signs, traffic_stops)
 
@@ -346,7 +350,7 @@ def log_speed_limits(world):
     # Ensure all traffic lights are red.
     change_traffic_light_colors(world, carla.TrafficLightState.Red)
     world.tick()
-    time.sleep(3)
+    time.sleep(1)
     (_, traffic_lights, traffic_stops, speed_signs) = get_actors(world)
     log_obstacles(world,
                   transforms_of_interest,
@@ -381,7 +385,7 @@ def log_stop_signs(world):
     # Ensure all traffic lights are red.
     change_traffic_light_colors(world, carla.TrafficLightState.Red)
     world.tick()
-    time.sleep(3)
+    time.sleep(1)
     (_, traffic_lights, traffic_stops, speed_signs) = get_actors(world)
     log_obstacles(world,
                   transforms_of_interest,
@@ -395,7 +399,7 @@ def main(argv):
     world = setup_world()
     world.tick()
     # Sleep a bit to ensure the simulator actually ticks.
-    time.sleep(3)
+    time.sleep(1)
     log_traffic_lights(world)
     log_speed_limits(world)
     log_stop_signs(world)

@@ -7,6 +7,8 @@ from erdos.utils import setup_csv_logging, setup_logging
 
 
 class LidarLoggerOp(Op):
+    """ Logs point cloud messages."""
+
     def __init__(self, name, flags, log_file_name=None, csv_file_name=None):
         super(LidarLoggerOp, self).__init__(name)
         self._flags = flags

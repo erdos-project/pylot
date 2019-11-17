@@ -1,10 +1,8 @@
-import numpy as np
 import carla
 
 from pylot.perception.detection.utils import TrafficLightColor
-from pylot.simulation.utils import to_pylot_transform, to_pylot_location
+from pylot.simulation.utils import to_pylot_transform
 import pylot.simulation.utils
-from pylot.simulation.utils import Location
 
 
 def get_world(host="localhost", port=2000, timeout=10):
@@ -13,6 +11,7 @@ def get_world(host="localhost", port=2000, timeout=10):
     Args:
         host: The host where the simulator is running.
         port: The port to connect to at the given host.
+        timeout: The timeout of the connection.
 
     Returns:
         A tuple of `(client, world)` where the `client` is a connection to the
@@ -32,6 +31,17 @@ def get_world(host="localhost", port=2000, timeout=10):
 
 
 def get_map(host="localhost", port=2000, timeout=10):
+    """ Get a handle to the Carla map.
+
+    Args:
+        host: The host where the simulator is running.
+        port: The port to connect to at the given host.
+        timeout: The timeout of the connection.
+
+    Returns:
+        A map of the Carla city.
+
+    """
     _, world = get_world(host, port, timeout)
     if world is None:
         raise ValueError("There was an issue connecting to the simulator.")
@@ -64,6 +74,12 @@ def get_weathers():
 
 
 def set_synchronous_mode(world, fps):
+    """ Sets Carla to run in synchronous mode.
+
+    Args:
+        world: A handle to the world running inside the simulation.
+        fps: The frames per second rate the simulation should tick at.
+    """
     settings = world.get_settings()
     settings.synchronous_mode = True
     settings.fixed_delta_seconds = 1.0 / fps
@@ -86,12 +102,27 @@ def reset_world(world):
 
 
 def to_carla_location(location):
+    """ Converts a Pylot location to Carla location.
+
+    Args:
+        location: Location to convert.
+
+    Returns:
+        Carla location object.
+    """
     return carla.Location(
         location.x, location.y, location.z)
 
 
 def to_carla_transform(transform):
-    """ Converts an Pylot transform object to a Carla transform object."""
+    """ Converts an Pylot transform object to a Carla transform object.
+
+    Args:
+        transform: Transform to convert.
+
+    Returns:
+        Carla transform object.
+    """
     return carla.Transform(
         carla.Location(transform.location.x,
                        transform.location.y,
@@ -122,7 +153,15 @@ def render_bounding_boxes_in_world(
 
 
 def extract_data_in_pylot_format(actor_list):
-    """ Extracts actor information in ERDOS format from an actor list."""
+    """ Extracts actor information in ERDOS format from an actor list.
+
+    Args:
+        actor_list: A Carla actor list object with all the simulation actors.
+
+    Returns:
+        A tuple that contains objects for all different types of actors.
+    """
+    # Note: the output will include the ego vehicle as well.
     vec_actors = actor_list.filter('vehicle.*')
     vehicles = convert_vehicle_actors(vec_actors)
 
@@ -142,9 +181,15 @@ def extract_data_in_pylot_format(actor_list):
 
 
 def convert_vehicle_actors(vec_actors):
-    """ Converts a Carla vehicle actor into a Pylot Vehicle object."""
+    """ Converts a Carla vehicle object into a Pylot Vehicle object.
+
+    Args:
+        vec_actors: A list of Carla vehicle actors.
+
+    Returns:
+        A list of Pylot Vehicles.
+    """
     vehicles = []
-    # TODO(ionel): Handle hero vehicle!
     for vec_actor in vec_actors:
         transform = to_pylot_transform(vec_actor.get_transform())
         bounding_box = pylot.simulation.utils.BoundingBox(
@@ -157,7 +202,14 @@ def convert_vehicle_actors(vec_actors):
 
 
 def convert_pedestrian_actors(pedestrian_actors):
-    """ Converts a Carla pedestrian actor into a Pylot pedestrian object."""
+    """ Converts a Carla pedestrian actor into a Pylot pedestrian object.
+
+    Args:
+        pedestrian_actors: A list of Carla pedestrian actors.
+
+    Returns:
+        A list of Pylot Pedestrians.
+    """
     pedestrians = []
     for ped_actor in pedestrian_actors:
         transform = to_pylot_transform(ped_actor.get_transform())
@@ -170,7 +222,7 @@ def convert_pedestrian_actors(pedestrian_actors):
     return pedestrians
 
 
-def convert_to_pylot_traffic_light(tl_actor):
+def convert_traffic_light_actor(tl_actor):
     transform = to_pylot_transform(tl_actor.get_transform())
     tl_state = tl_actor.get_state()
     erdos_tl_state = None
@@ -192,15 +244,30 @@ def convert_to_pylot_traffic_light(tl_actor):
 
 
 def convert_traffic_light_actors(tl_actors):
-    """ Converts a Carla traffic light actor into a Pylot tl object."""
+    """ Converts a Carla traffic light actor into a Pylot tl object.
+
+    Args:
+        tl_actors: A list of Carla traffic light actors.
+
+    Returns:
+        A list of Pylot TrafficLights.
+    """
     traffic_lights = []
     for tl_actor in tl_actors:
-        traffic_lights.append(convert_to_pylot_traffic_light(tl_actor))
+        traffic_light = convert_traffic_light_actor(tl_actor)
+        traffic_lights.append(traffic_light)
     return traffic_lights
 
 
 def convert_speed_limit_actors(speed_limit_actors):
-    """ Converts a Carla speed limit actor into a Pylot speed limit object."""
+    """ Converts a Carla speed limit actor into a Pylot speed limit object.
+
+    Args:
+        speed_limit_actors: A list of Carla speed limit actors.
+
+    Returns:
+        A list of Pylot SpeedLimitSigns.
+    """
     speed_limits = []
     for ts_actor in speed_limit_actors:
         transform = to_pylot_transform(ts_actor.get_transform())
@@ -212,7 +279,14 @@ def convert_speed_limit_actors(speed_limit_actors):
 
 
 def convert_traffic_stop_actors(traffic_stop_actors):
-    """ Converts a Carla traffic stop actor into a Pylot stop sign object."""
+    """ Converts a Carla traffic stop actor into a Pylot stop sign object.
+
+    Args:
+        traffic_stop_actors: A list of Carla traffic stop sign actors.
+
+    Returns:
+        A list of Pylot StopSigns.
+    """
     stop_signs = []
     for ts_actor in traffic_stop_actors:
         transform = to_pylot_transform(ts_actor.get_transform())
@@ -227,6 +301,7 @@ def convert_traffic_stop_actors(traffic_stop_actors):
 
 
 def draw_trigger_volume(world, actor):
+    """ Draws the trigger volume of an actor."""
     transform = actor.get_transform()
     tv = transform.transform(actor.trigger_volume.location)
     bbox = carla.BoundingBox(tv, actor.trigger_volume.extent)

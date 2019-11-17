@@ -136,7 +136,7 @@ class PlanningOperator(Op):
         wp_speed_vector, wp_speed_angle = get_waypoint_vector_and_angle(
             next_waypoint_speed, self._vehicle_transform)
 
-        target_speed = self._get_target_speed(next_waypoint_steer)
+        target_speed = self.__get_target_speed(next_waypoint_steer)
 
         output_msg = WaypointsMessage(
             msg.timestamp,

@@ -1,10 +1,7 @@
-from absl import flags
 from collections import deque
 import cv2
 import numpy as np
 import threading
-
-import carla
 
 # ERDOS specific imports.
 from erdos.op import Op
@@ -15,11 +12,9 @@ from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
 import pylot.utils
 import pylot.simulation.carla_utils
 
-FLAGS = flags.FLAGS
 
 class TrackVisualizerOperator(Op):
-    """ 
-        TrackVisualizerOperator visualizes the past locations of agents
+    """ TrackVisualizerOperator visualizes the past locations of agents
         on the top-down segmented image.
     """
 
@@ -52,13 +47,14 @@ class TrackVisualizerOperator(Op):
     def setup_streams(input_streams, top_down_stream_name):
         input_streams.filter(pylot.utils.is_tracking_stream).add_callback(
             TrackVisualizerOperator.on_tracking_update)
-        input_streams.filter(pylot.utils.is_segmented_camera_stream).filter_name(
-            top_down_stream_name).add_callback(
-            TrackVisualizerOperator.on_top_down_segmentation_update)
+        input_streams.filter(
+            pylot.utils.is_segmented_camera_stream).filter_name(
+                top_down_stream_name).add_callback(
+                    TrackVisualizerOperator.on_top_down_segmentation_update)
         # Register a completion watermark callback. The callback is invoked
         # after all the messages with a given timestamp have been received.
         input_streams.add_completion_callback(
-           TrackVisualizerOperator.on_notification) 
+           TrackVisualizerOperator.on_notification)
         return []
 
     def synchronize_msg_buffers(self, timestamp, buffers):
@@ -69,7 +65,7 @@ class TrackVisualizerOperator(Op):
                 return False
             assert buffer[0].timestamp == timestamp
         return True
-    
+
     def on_tracking_update(self, msg):
         with self._lock:
             self._tracking_msgs.append(msg)
@@ -95,7 +91,8 @@ class TrackVisualizerOperator(Op):
 
         self._frame_cnt += 1
 
-        display_img = np.uint8(transform_to_cityscapes_palette(segmentation_msg.frame))
+        display_img = np.uint8(transform_to_cityscapes_palette(
+            segmentation_msg.frame))
         for obj in tracking_msg.obj_trajectories:
             # Intrinsic matrix of the top down segmentation camera.
             intrinsic_matrix = pylot.simulation.utils.create_intrinsic_matrix(
@@ -107,11 +104,11 @@ class TrackVisualizerOperator(Op):
                                 obj.trajectory,
                                 self._top_down_camera_setup.transform.matrix,
                                 intrinsic_matrix)
-                                                                            
+
             # Draw trajectory points on segmented image.
             for point in screen_points:
-                if (0 <= point.x <= FLAGS.carla_camera_image_width) and \
-                   (0 <= point.y <= FLAGS.carla_camera_image_height):
+                if (0 <= point.x <= self._flags.carla_camera_image_width) and \
+                   (0 <= point.y <= self._flags.carla_camera_image_height):
                     cv2.circle(display_img,
                                (int(point.x), int(point.y)),
                                3, self._colors[obj.obj_class], -1)

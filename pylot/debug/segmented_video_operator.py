@@ -8,6 +8,7 @@ from erdos.utils import setup_logging
 from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
 from pylot.utils import rgb_to_bgr, is_segmented_camera_stream
 
+
 class SegmentedVideoOperator(Op):
     """ Subscribes to the ground segmented stream, and visualizes frames."""
     def __init__(self, name, flags, log_file_name=None):

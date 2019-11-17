@@ -28,6 +28,7 @@ class DetectorMessage(Message):
             'detected_objects: {})'.format(
                 self.timestamp, self.runtime, self.detected_objects)
 
+
 class SegmentedFrameMessage(Message):
     """ This class represents a message to be used to send segmented frames
 
@@ -87,6 +88,7 @@ class ObjPositionSpeed(object):
                 self.speed_x, self.speed_y, self.sigma_speed_x,
                 self.sigma_speed_y)
 
+
 class ObjPositionsSpeedsMessage(Message):
     """ This class represents a message to be used to send vehicle position and
         speed info.
@@ -103,12 +105,14 @@ class ObjPositionsSpeedsMessage(Message):
             obj_positions_speeds: A list of 2D object positions.
             timestamp: The timestamp of the message.
         """
-        super(ObjPositionsSpeedsMessage, self).__init__(None, timestamp, 'default')
+        super(ObjPositionsSpeedsMessage, self).__init__(
+            None, timestamp, 'default')
         self.obj_positions_speeds = obj_positions_speeds
 
     def __str__(self):
         return 'ObjPositionsSpeedsMessage(timestamp {}, positions: {})'.format(
             self.timestamp, self.obj_positions_speeds)
+
 
 class ObjTrajectory(object):
 
@@ -129,10 +133,12 @@ class ObjTrajectory(object):
         self.trajectory = trajectory
 
     def __str__(self):
-        trajectory_str = ', '.join([str(loc) for loc in self.trajectory])
+        trajectory_str = ', '.join([str(loc)
+                                    for loc in self.trajectory])
         return '{} {}, Trajectory {}'.format(self.obj_class,
                                              self.obj_id,
                                              self.trajectory)
+
 
 class ObjTrajectoriesMessage(Message):
     """ This class represents a message to be used to send vehicle
@@ -146,10 +152,12 @@ class ObjTrajectoriesMessage(Message):
         Args:
             obj_trajectories: A list of ObjTrajectory instances.
         """
-        super(ObjTrajectoriesMessage, self).__init__(None, timestamp, 'default')
+        super(ObjTrajectoriesMessage, self).__init__(
+            None, timestamp, 'default')
         self.obj_trajectories = obj_trajectories
 
     def __str__(self):
-        trajectories_str = '\n'.join([str(traj) for traj in self.obj_trajectories])
+        trajectories_str = '\n'.join([str(traj)
+                                      for traj in self.obj_trajectories])
         return 'ObjTrajectoriesMessage(timestamp {}, trajectories:\n{})'.format(
             self.timestamp, trajectories_str)

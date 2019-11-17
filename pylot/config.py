@@ -2,16 +2,12 @@ from absl import flags
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('framework', 'ros',
-                    'Execution framework to use: ros | ray.')
 flags.DEFINE_bool('replay', False,
                   ('True if run in replay mode, otherwise run '
                    'Carla in server mode using `./CarlaUE4.sh -carla-server`'))
 flags.DEFINE_string('log_file_name', None, 'Name of the log file')
 flags.DEFINE_string('csv_log_file_name', None,
                     'csv file into which to log runtime stats')
-flags.DEFINE_bool('fail_on_message_loss', True,
-                  'True to enable operator failure when messages are lost')
 flags.DEFINE_bool('ground_agent_operator', True,
                   'True to use the ground truth controller')
 
@@ -31,8 +27,6 @@ flags.DEFINE_bool('segmentation_dla', False,
 flags.DEFINE_string('segmentation_dla_model_path',
                     'dependencies/dla/DLASeg.pth',
                     'Path to the model')
-flags.DEFINE_bool('segmentation_gpu', True,
-                  'True, if segmentation should use a GPU')
 flags.DEFINE_bool('obj_detection', False,
                   'True to enable object detection operator')
 flags.DEFINE_bool('detector_ssd_mobilenet_v1', False,
@@ -53,11 +47,6 @@ flags.DEFINE_string(
     'detector_ssd_resnet50_v1_model_path',
     'dependencies/models/ssd_resnet50_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03/frozen_inference_graph.pb',
     'Path to the model')
-flags.DEFINE_bool('detector_center_net', False,
-                  'True to enable CenterNet detector')
-flags.DEFINE_string('detector_center_net_model_path',
-                    'dependencies/CenterNet/models/ctdet_coco_dla_2x.pth',
-                    'Path to the model')
 flags.DEFINE_float('detector_min_score_threshold', 0.5,
                    'Min score threshold for bounding box')
 flags.DEFINE_string('path_coco_labels', 'dependencies/models/coco.names',
@@ -65,7 +54,7 @@ flags.DEFINE_string('path_coco_labels', 'dependencies/models/coco.names',
 flags.DEFINE_bool('obj_tracking', False,
                   'True to enable object tracking operator')
 flags.DEFINE_string('tracker_type', 'cv2',
-                    'Tracker type: cv2 | crv | da_siam_rpn')
+                    'Tracker type: cv2 | da_siam_rpn')
 flags.DEFINE_string('da_siam_rpn_model_path',
                     'dependencies/models/SiamRPNVOT.model',
                     'Path to the model')
@@ -79,8 +68,15 @@ flags.DEFINE_string(
     'Path to the traffic light model protobuf')
 flags.DEFINE_float('traffic_light_det_min_score_threshold', 0.3,
                    'Min score threshold for bounding box')
-flags.DEFINE_string('depth_est_model_path', 'dependencies/anynet/',
+
+# Estimate depth using two cameras.
+flags.DEFINE_bool('depth_estimation', False,
+                  'True to depth estimation using cameras')
+flags.DEFINE_string('depth_estimation_model_path', 'dependencies/anynet/',
                     'Path to AnyNet depth estimation model')
+flags.DEFINE_string('deep_sort_tracker_pedestrian_weights_path',
+                    'dependencies/nanonets_object_tracking/ped_feature_extractor',
+                    'Path to weights for pedestrian feature extractor model')
 
 # Agent flags.
 flags.DEFINE_bool('stop_for_traffic_lights', True,
@@ -92,7 +88,7 @@ flags.DEFINE_bool('stop_for_vehicles', True,
 flags.DEFINE_bool('use_perfect_perception', False,
                   'True to enable the agent to use perfect ground detection')
 # Traffic light stopping parameters.
-flags.DEFINE_integer('traffic_light_min_dist_thres', 9,
+flags.DEFINE_integer('traffic_light_min_dist_thres', 5,
                      'Min distance threshold traffic light')
 flags.DEFINE_integer('traffic_light_max_dist_thres', 20,
                      'Max distance threshold traffic light')
@@ -130,11 +126,12 @@ flags.DEFINE_float('brake_strength', 1,
 flags.DEFINE_integer('coast_factor', 2, 'Factor to control coasting')
 
 # Carla flags.
-flags.DEFINE_string('carla_version', '0.8.4', 'Carla simulator version.')
+flags.DEFINE_string('carla_version', '0.9.6',
+                    'Carla simulator version. Options: 0.9.5 | 0.9.6')
 flags.DEFINE_string('carla_host', 'localhost', 'Carla host.')
 flags.DEFINE_integer('carla_port', 2000, 'Carla port.')
 flags.DEFINE_integer('carla_timeout', 10,
-                     'Timeout limit for Carla operator')
+                     'Timeout for connecting to the Carla simulator.')
 flags.DEFINE_bool('carla_synchronous_mode', True,
                   'Run Carla in synchronous mode.')
 flags.DEFINE_integer('carla_town', 1, 'Sets which Carla town to use.')
@@ -144,14 +141,11 @@ flags.DEFINE_float('carla_step_frequency', -1,
                    'commands should be applied as soon ASAP.')
 flags.DEFINE_integer('carla_num_vehicles', 20, 'Carla num vehicles.')
 flags.DEFINE_integer('carla_num_pedestrians', 40, 'Carla num pedestrians.')
-flags.DEFINE_bool('carla_high_quality', False,
-                  'True to enable high quality Carla simulations.')
 flags.DEFINE_integer('carla_weather', 2,
                      'Carla weather preset; between 1 and 14')
-flags.DEFINE_bool('carla_random_player_start', True,
-                  'True to randomly assign a car to the player')
-flags.DEFINE_integer('carla_start_player_num', 0,
-                     'Number of the assigned start player')
+flags.DEFINE_integer(
+    'carla_spawn_point_index', -1,
+    'Index of spawn point where to place ego vehicle. -1 to randomly assign.')
 flags.DEFINE_integer('carla_camera_image_width', 800,
                      'Carla camera image width')
 flags.DEFINE_integer('carla_camera_image_height', 600,
@@ -166,16 +160,12 @@ flags.DEFINE_integer('carla_replay_id', 0,
 flags.DEFINE_bool('carla_auto_pilot', False,
                   'Use auto pilot to drive the ego vehicle')
 
-# Estimate depth using two cameras.
-flags.DEFINE_bool('depth_estimation', False,
-                  'True to depth estimation using cameras')
-
 # Visualizing operators
 flags.DEFINE_bool('visualize_depth_camera', False,
                   'True to enable depth camera video operator')
 flags.DEFINE_bool('visualize_lidar', False,
                   'True to enable CARLA Lidar visualizer operator')
-flags.DEFINE_bool('visualize_depth_est', False,
+flags.DEFINE_bool('visualize_depth_estimation', False,
                   'True to enable depth estimation visualization')
 flags.DEFINE_bool('visualize_rgb_camera', False,
                   'True to enable RGB camera video operator')
@@ -251,15 +241,11 @@ flags.DEFINE_bool(
     'True to carla data (e.g., vehicle position, traffic lights)')
 
 # Other flags
-flags.DEFINE_integer('num_cameras', 5, 'Number of cameras.')
 flags.DEFINE_integer('top_down_lateral_view', 20,
                      'Distance in meters to the left and right of the '
                      'ego-vehicle that the top-down camera shows.')
 
 # Flag validators.
-flags.register_validator('framework',
-                         lambda value: value == 'ros' or value == 'ray',
-                         message='--framework must be: ros | ray')
 flags.register_multi_flags_validator(
     ['replay', 'evaluate_obj_detection'],
     lambda flags_dict: not (flags_dict['replay'] and flags_dict['evaluate_obj_detection']),
@@ -276,12 +262,11 @@ flags.register_multi_flags_validator(
 #                          (flags_dict['segmentation_drn'] or flags_dict['segmentation_dla']))),
 #     message='ERDOS agent requires obj detection, segmentation and traffic light detection')
 flags.register_multi_flags_validator(
-    ['obj_detection', 'detector_center_net', 'detector_ssd_mobilenet_v1',
+    ['obj_detection', 'detector_ssd_mobilenet_v1',
      'detector_frcnn_resnet101', 'detector_ssd_resnet50_v1'],
     lambda flags_dict: (not flags_dict['obj_detection'] or
                         (flags_dict['obj_detection'] and
-                         (flags_dict['detector_center_net'] or
-                          flags_dict['detector_ssd_mobilenet_v1'] or
+                         (flags_dict['detector_ssd_mobilenet_v1'] or
                           flags_dict['detector_frcnn_resnet101'] or
                           flags_dict['detector_ssd_resnet50_v1']))),
     message='a detector must be active when --obj_detection is set')

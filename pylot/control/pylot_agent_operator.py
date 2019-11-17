@@ -14,6 +14,8 @@ from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 from pylot.control.messages import ControlMessage
 import pylot.control.utils
 import pylot.simulation.utils
+from pylot.map.hd_map import HDMap
+from pylot.simulation.carla_utils import get_map
 from pylot.simulation.utils import get_3d_world_position_with_point_cloud,\
     get_3d_world_position_with_depth_map
 import pylot.utils
@@ -35,17 +37,12 @@ class PylotAgentOperator(Op):
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
         self._bgr_camera_setup = bgr_camera_setup
         self._map = None
-        if '0.9' in self._flags.carla_version:
-            from pylot.map.hd_map import HDMap
-            from pylot.simulation.carla_utils import get_map
-            if not hasattr(self._flags, 'track'):
-                self._map = HDMap(get_map(self._flags.carla_host,
-                                          self._flags.carla_port,
-                                          self._flags.carla_timeout),
-                                  log_file_name)
-                self._logger.info('Agent running using map')
-        elif hasattr(self._flags, 'track'):
-            from pylot.map.hd_map import HDMap
+        if not hasattr(self._flags, 'track'):
+            self._map = HDMap(get_map(self._flags.carla_host,
+                                      self._flags.carla_port,
+                                      self._flags.carla_timeout),
+                              log_file_name)
+            self._logger.info('Agent running using map')
         self._pid = PID(p=self._flags.pid_p,
                         i=self._flags.pid_i,
                         d=self._flags.pid_d)
@@ -130,14 +127,6 @@ class PylotAgentOperator(Op):
         (pedestrians, vehicles) = self.__transform_detector_output(
             obstacles_msg, vehicle_transform, point_cloud, depth_frame)
 
-        # if self._map.is_on_opposite_lane(vehicle_transform):
-        #     # Ignore obstacles
-        #     self._logger.info('Ego-vehicle {} on opposite lange'.format(
-        #         vehicle_transform))
-        #     pedestrians = []
-        #     vehicles = []
-        #     traffic_lights = []
-
         self._logger.info('{} Current speed {} and location {}'.format(
             timestamp, vehicle_speed, vehicle_transform))
         self._logger.info('{} Pedestrians {}'.format(
@@ -146,26 +135,13 @@ class PylotAgentOperator(Op):
             timestamp, vehicles))
 
         speed_factor, _ = self.__stop_for_agents(
-            vehicle_transform,
+            vehicle_transform.location,
             wp_angle,
             wp_vector,
             vehicles,
             pedestrians,
             traffic_lights,
             timestamp)
-
-        new_target_speed = self.reduce_speed_when_approaching_intersection(
-            vehicle_transform,
-            vehicle_speed,
-            target_speed,
-            game_time)
-        if new_target_speed != target_speed:
-            self._logger.info('Proximity to intersection, reducing speed from {} to {}'.format(
-                target_speed, new_target_speed))
-            target_speed = new_target_speed
-
-        self._logger.info('{} Current speed factor {}'.format(
-            timestamp, speed_factor))
 
         control_msg = self.get_control_message(
             wp_angle, wp_angle_speed, speed_factor,
@@ -268,7 +244,6 @@ class PylotAgentOperator(Op):
             self.run_if_you_can()
 
     def on_opendrive_map(self, msg):
-        from pylot.map.hd_map import HDMap
         self._map = HDMap(carla.Map('challenge', msg.data),
                           self._log_file_name)
 
@@ -290,42 +265,22 @@ class PylotAgentOperator(Op):
     def execute(self):
         self.spin()
 
-    def reduce_speed_when_approaching_intersection(
-            self,
-            vehicle_transform,
-            vehicle_speed,
-            target_speed,
-            game_time):
-        if not self._map:
-            return target_speed
-        intersection_dist = self._map.distance_to_intersection(
-            vehicle_transform.location,
-            max_distance_to_check=30)
-        if not intersection_dist or intersection_dist < 4:
-            # We are not close to an intersection or we're already
-            # too close.
-            return target_speed
-
-        # Reduce the speed because we're getting close to an intersection.
-        # In this way, we can stop even if we detect the traffic light
-        # very late.
-        if intersection_dist < 30:
-            target_speed = min(target_speed, INTERSECTION_SPEED_M_PER_SEC)
-
-        # We assume that we are at a stop sign.
-        if (intersection_dist < 10 and
-            game_time - self._last_traffic_light_game_time > 4000):
-            if vehicle_speed < 0.09:
-                # We've already stopped at the intersection.
-                target_speed = min(target_speed, self._flags.target_speed)
-            else:
-                # Stop at the intersection.
-                target_speed = min(target_speed, 0)
-
-        return target_speed
-
     def __transform_to_3d(
             self, x, y, vehicle_transform, point_cloud, depth_frame):
+        """ Transforms a camera view pixel location to 3d world location.
+
+        Args:
+            x: The x-axis pixel.
+            y: The y-axis pixel.
+            vehicle_transform: The transform of the ego vehicle.
+            point_cloud: A lidar point cloud.
+            depth_frame: A depth frame.
+
+        Note: It is sufficient to pass either a point cloud or a depth frame.
+
+        Returns:
+            The location in 3D world coordinates.
+        """
         pos = None
         if depth_frame:
             pos = get_3d_world_position_with_depth_map(
@@ -346,18 +301,49 @@ class PylotAgentOperator(Op):
 
     def __transform_tl_output(
             self, tls, vehicle_transform, point_cloud, depth_frame):
+        """ Transforms traffic light detected objects (i.e., bounding boxes) to
+        world coordinates.
+
+        Args:
+            tls: A list of detected objects for traffic lights.
+            vehicle_transform: The transform of the ego vehicle.
+            point_cloud: The Lidar point cloud. Must be taken captured at the
+                         same time as the frame on which the traffic lights
+                         were detected.
+            depth_frame: The depth frame captured at the same time as the RGB
+                         frame used in detection.
+
+        Returns:
+            A list of traffic light locations.
+        """
         traffic_lights = []
         for tl in tls.detected_objects:
             x = (tl.corners[0] + tl.corners[1]) / 2
             y = (tl.corners[2] + tl.corners[3]) / 2
-            pos = self.__transform_to_3d(
+            location = self.__transform_to_3d(
                 x, y, vehicle_transform, point_cloud, depth_frame)
-            if pos:
-                traffic_lights.append((pos, tl.label))
+            if location:
+                # The coordinates we're successfully transformed.
+                traffic_lights.append((location, tl.label))
         return traffic_lights
 
     def __transform_detector_output(
             self, obstacles_msg, vehicle_transform, point_cloud, depth_frame):
+        """ Transforms detected objects (i.e., bounding boxes) to world
+        coordinates.
+
+        Args:
+            obstacles_msg: A list of detected objects.
+            vehicle_transform: The transform of the ego vehicle.
+            point_cloud: The Lidar point cloud. Must be taken captured at the
+                         same time as the frame on which the objects were
+                         detected.
+            depth_frame: The depth frame captured at the same time as the RGB
+                         frame used in detection.
+
+        Returns:
+            A list of 3D world locations.
+        """
         vehicles = []
         pedestrians = []
         for detected_obj in obstacles_msg.detected_objects:
@@ -376,7 +362,7 @@ class PylotAgentOperator(Op):
         return (pedestrians, vehicles)
 
     def __stop_for_agents(self,
-                          vehicle_transform,
+                          ego_vehicle_location,
                           wp_angle,
                           wp_vector,
                           vehicles,
@@ -390,44 +376,48 @@ class PylotAgentOperator(Op):
 
         for obs_vehicle_loc in vehicles:
             if (not self._map or
-                self._map.are_on_same_lane(vehicle_transform.location,
+                self._map.are_on_same_lane(ego_vehicle_location,
                                            obs_vehicle_loc)):
-                self._logger.info('Ego {} and vehicle {} are on the same lane'.format(
-                    vehicle_transform.location, obs_vehicle_loc))
+                self._logger.info(
+                    'Ego {} and vehicle {} are on the same lane'.format(
+                        ego_vehicle_location, obs_vehicle_loc))
                 new_speed_factor_v = pylot.control.utils.stop_vehicle(
-                    vehicle_transform, obs_vehicle_loc, wp_vector,
+                    ego_vehicle_location, obs_vehicle_loc, wp_vector,
                     speed_factor_v, self._flags)
                 if new_speed_factor_v < speed_factor_v:
                     speed_factor_v = new_speed_factor_v
-                    self._logger.info('Vehicle {} reduced speed factor to {}'.format(
-                        obs_vehicle_loc, speed_factor_v))
+                    self._logger.info(
+                        'Vehicle {} reduced speed factor to {}'.format(
+                            obs_vehicle_loc, speed_factor_v))
 
         for obs_ped_loc in pedestrians:
             if (not self._map or
-                self._map.are_on_same_lane(vehicle_transform.location,
+                self._map.are_on_same_lane(ego_vehicle_location,
                                            obs_ped_loc)):
-                self._logger.info('Ego {} and pedestrian {} are on the same lane'.format(
-                    vehicle_transform.location, obs_ped_loc))
+                self._logger.info(
+                    'Ego {} and pedestrian {} are on the same lane'.format(
+                        ego_vehicle_location, obs_ped_loc))
                 new_speed_factor_p = pylot.control.utils.stop_pedestrian(
-                    vehicle_transform,
+                    ego_vehicle_location,
                     obs_ped_loc,
                     wp_vector,
                     speed_factor_p,
                     self._flags)
                 if new_speed_factor_p < speed_factor_p:
                     speed_factor_p = new_speed_factor_p
-                    self._logger.info('Pedestrian {} reduced speed factor to {}'.format(
-                        obs_ped_loc, speed_factor_p))
+                    self._logger.info(
+                        'Pedestrian {} reduced speed factor to {}'.format(
+                            obs_ped_loc, speed_factor_p))
 
         for tl in traffic_lights:
             if (not self._map or
-                self._map.must_obbey_traffic_light(vehicle_transform.location,
+                self._map.must_obbey_traffic_light(ego_vehicle_location,
                                                    tl[0])):
                 self._logger.info('Ego is obbeying traffic light {}'.format(
-                    vehicle_transform.location, tl[0]))
+                    ego_vehicle_location, tl[0]))
                 tl_state = tl[1]
                 new_speed_factor_tl = pylot.control.utils.stop_traffic_light(
-                    vehicle_transform,
+                    ego_vehicle_location,
                     tl[0],
                     tl_state,
                     wp_vector,
@@ -436,8 +426,9 @@ class PylotAgentOperator(Op):
                     self._flags)
                 if new_speed_factor_tl < speed_factor_tl:
                     speed_factor_tl = new_speed_factor_tl
-                    self._logger.info('Traffic light {} reduced speed factor to {}'.format(
-                        tl[0], speed_factor_tl))
+                    self._logger.info(
+                        'Traffic light {} reduced speed factor to {}'.format(
+                            tl[0], speed_factor_tl))
 
         speed_factor = min(speed_factor_tl, speed_factor_p, speed_factor_v)
         state = {

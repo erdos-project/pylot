@@ -3,8 +3,10 @@ import heapq
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from pylot.perception.segmentation.utils import compute_semantic_iou, transform_to_cityscapes_palette
-from pylot.utils import is_ground_segmented_camera_stream, is_non_ground_segmented_camera_stream
+from pylot.perception.segmentation.utils import compute_semantic_iou,\
+    transform_to_cityscapes_palette
+from pylot.utils import is_ground_segmented_camera_stream,\
+    is_non_ground_segmented_camera_stream
 
 
 class SegmentationEvalOperator(Op):
@@ -93,7 +95,7 @@ class SegmentationEvalOperator(Op):
                 # Include the decay of segmentation with time if we do not
                 # want to use the accuracy of our models.
                 # TODO(ionel): We must pass model mIoU to this method.
-                ground_frame_time += self.__mean_iou_to_latency(1)
+                segmented_time += self.__mean_iou_to_latency(1)
             segmented_time = self.__compute_closest_frame_time(segmented_time)
             # Round time to nearest frame.
             heapq.heappush(self._segmented_start_end_times,

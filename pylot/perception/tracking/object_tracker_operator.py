@@ -2,12 +2,13 @@ from collections import deque
 import pickle
 import threading
 import time
+import cv2
 
 from erdos.data_stream import DataStream
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
-from pylot.perception.detection.utils import visualize_no_colors_bboxes
+from pylot.perception.detection.utils import visualize_image
 from pylot.utils import is_camera_stream, is_obstacles_stream
 
 
@@ -24,16 +25,20 @@ class ObjectTrackerOp(Op):
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
         self._output_stream_name = output_stream_name
+        self._tracker_type = tracker_type
         try:
             if tracker_type == 'cv2':
                 from pylot.perception.tracking.cv2_tracker import MultiObjectCV2Tracker
                 self._tracker = MultiObjectCV2Tracker(self._flags)
-            elif tracker_type == 'crv':
-                from pylot.perception.tracking.crv_tracker import MultiObjectCRVTracker
-                self._tracker = MultiObjectCRVTracker(self._flags)
             elif tracker_type == 'da_siam_rpn':
                 from pylot.perception.tracking.da_siam_rpn_tracker import MultiObjectDaSiamRPNTracker
                 self._tracker = MultiObjectDaSiamRPNTracker(self._flags)
+            elif tracker_type == 'deep_sort':
+                from pylot.perception.tracking.deep_sort_tracker import MultiObjectDeepSORTTracker
+                self._tracker = MultiObjectDeepSORTTracker(self._flags, self._logger)
+            elif tracker_type == 'sort':
+                from pylot.perception.tracking.sort_tracker import MultiObjectSORTTracker
+                self._tracker = MultiObjectSORTTracker(self._flags)
             else:
                 self._logger.fatal(
                     'Unexpected tracker type {}'.format(tracker_type))
@@ -91,16 +96,16 @@ class ObjectTrackerOp(Op):
             self._logger.info("Removing stale {} {}".format(
                 self._to_process[0][0], msg.timestamp))
             self._to_process.popleft()
-        # bboxes = self.__get_highest_confidence_pedestrian(msg.detected_objects)
+
         # Track all pedestrians.
-        bboxes = self.__get_pedestrians(msg.detected_objects)
+        bboxes, ids, confidence_scores = self.__get_pedestrians(msg.detected_objects) # xmin, ymin, xmax, ymax
         if len(bboxes) > 0:
             if len(self._to_process) > 0:
                 # Found the frame corresponding to the bounding boxes.
                 (timestamp, frame) = self._to_process.popleft()
                 assert timestamp == msg.timestamp
                 # Re-initialize trackers.
-                self.__initialize_trackers(frame, bboxes, msg.timestamp)
+                self.__initialize_trackers(frame, bboxes, msg.timestamp, confidence_scores)
                 self._logger.info('Trackers have {} frames to catch-up'.format(
                     len(self._to_process)))
                 for (timestamp, frame) in self._to_process:
@@ -161,21 +166,25 @@ class ObjectTrackerOp(Op):
 
     def __get_pedestrians(self, detector_objs):
         bboxes = []
+        ids = []
+        confidence_scores = []
         for detected_obj in detector_objs:
             if detected_obj.label == 'person':
                 bboxes.append(detected_obj.corners)
-        return bboxes
+                ids.append(detected_obj.obj_id)
+                confidence_scores.append(detected_obj.confidence)
+        return bboxes, ids, confidence_scores
 
-    def __initialize_trackers(self, frame, bboxes, timestamp):
+    def __initialize_trackers(self, frame, bboxes, timestamp, confidence_scores):
         self._ready_to_update = True
         self._ready_to_update_timestamp = timestamp
         self._logger.info('Restarting trackers at frame {}'.format(timestamp))
-        self._tracker.reinitialize(frame, bboxes)
+        self._tracker.reinitialize(frame, bboxes, confidence_scores)
 
     def __track_bboxes_on_frame(self, frame, timestamp, catch_up):
         self._logger.info('Processing frame {}'.format(timestamp))
         # Sequentually update state for each bounding box.
-        ok, bboxes = self._tracker.track(frame)
+        ok, tracked_objects = self._tracker.track(frame)
         if not ok:
             self._logger.error(
                 'Tracker failed at timestamp {} last ready_to_update at {}'.
@@ -184,4 +193,8 @@ class ObjectTrackerOp(Op):
             self._ready_to_update = False
         else:
             if self._flags.visualize_tracker_output and not catch_up:
-                visualize_no_colors_bboxes(self.name, timestamp, frame, bboxes)
+                for tracked_object in tracked_objects:
+                    # tracked objects have no label, draw black bbox for them ([0, 0, 0])
+                    tracked_object.visualize_on_img(frame, {"": [0, 0, 0]})
+                visualize_image(self.name, frame)
+

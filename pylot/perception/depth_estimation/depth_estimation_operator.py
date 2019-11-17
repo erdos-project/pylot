@@ -17,10 +17,11 @@ from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
 from pylot.simulation.messages import DepthFrameMessage
-from pylot.utils import create_depth_est_stream, is_camera_stream, rgb_to_bgr
+from pylot.utils import create_depth_estimation_stream, is_camera_stream, \
+    rgb_to_bgr
 
 
-class DepthEstOperator(Op):
+class DepthEstimationOperator(Op):
     """ Estimates depth using left and right cameras, and AnyNet."""
     def __init__(self,
                  name,
@@ -29,7 +30,7 @@ class DepthEstOperator(Op):
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-        super(DepthEstOperator, self).__init__(name)
+        super(DepthEstimationOperator, self).__init__(name)
         self._flags = flags
         self._left_imgs = deque()
         self._right_imgs = deque()
@@ -42,7 +43,7 @@ class DepthEstOperator(Op):
         model = anynet.anynet.AnyNet()
         model = nn.DataParallel(model).cuda()
 
-        path_to_anynet = self._flags.depth_est_model_path
+        path_to_anynet = self._flags.depth_estimation_model_path
         pretrained = os.path.join(path_to_anynet,
                                   'results/pretrained_anynet/checkpoint.tar')
         resume = os.path.join(path_to_anynet,
@@ -64,10 +65,10 @@ class DepthEstOperator(Op):
         # Select camera input streams.
         camera_streams = input_streams.filter(is_camera_stream)
         camera_streams.filter_name(left_camera_name).add_callback(
-            DepthEstOperator.on_left_camera_msg)
+            DepthEstimationOperator.on_left_camera_msg)
         camera_streams.filter_name(right_camera_name).add_callback(
-            DepthEstOperator.on_right_camera_msg)
-        return [create_depth_est_stream(output_stream_name)]
+            DepthEstimationOperator.on_right_camera_msg)
+        return [create_depth_estimation_stream(output_stream_name)]
 
     def on_left_camera_msg(self, msg):
         with self._lock:

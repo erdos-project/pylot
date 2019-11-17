@@ -9,7 +9,8 @@ from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
 from pylot.perception.messages import SegmentedFrameMessage
 from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
-from pylot.utils import add_timestamp, create_segmented_camera_stream, is_camera_stream, rgb_to_bgr, bgra_to_bgr
+from pylot.utils import add_timestamp, create_segmented_camera_stream,\
+    is_camera_stream, rgb_to_bgr
 
 
 class SegmentationDLAOperator(Op):
@@ -29,7 +30,7 @@ class SegmentationDLAOperator(Op):
         self._network = dla.DLASeg.DLASeg()
         self._network.load_state_dict(
             torch.load(self._flags.segmentation_dla_model_path))
-        if self._flags.segmentation_gpu:
+        if torch.cuda.is_available():
             self._network = self._network.cuda()
 
     @staticmethod

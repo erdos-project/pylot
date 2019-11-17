@@ -2,7 +2,7 @@ class MultiObjectTracker(object):
     def __init__(self):
         self._trackers = []
 
-    def reinitialize(self, frame, bboxes):
+    def reinitialize(self, frame, bboxes, confidence_scores):
         pass
 
     def track(self, frame):

@@ -23,7 +23,7 @@ then
 elif [ $os_version == '18.04' ]
 then
     sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu bionic main" > /etc/apt/sources.list.d/ros-latest.list'
-    sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key 421C365BD9FF1F717815A3895523BAEEB01FA116
+    sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
     sudo apt-get -y update
     sudo apt-get install -y --allow-unauthenticated ros-melodic-ros-base
     echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
@@ -67,12 +67,9 @@ gdown https://doc-0s-6g-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7
 gdown https://doc-0k-6g-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7deffksulhg5h7mbp1/dpfhmlqtdcbn0rfvqhbd0ofcg5aqphps/1555783200000/04094321888119883640/*/1_bIGtHYdAoTMS-hqOPE1j3KU-ON15cVV?e=download --output SiamRPNOTB.model
 cd ../
 
-###### Get the CRV Tracker model and dependencies ######
-gdown http://drive.google.com/uc?id=0B1sg8Yyw1JCDOUNsYkpQTGdLYVU
-mkdir -p conv_reg_vot/vgg_model
-mv VGG_16_layers_py3.npz conv_reg_vot/vgg_model/
-pip install --user matplotlib
-sudo apt-get -y install python-tk
+###### Get DeepSORT and SORT tracker models
+git clone https://github.com/ICGog/nanonets_object_tracking.git
+git clone https://github.com/abewley/sort.git
 
 ###### Download the DaSiamRPN code ######
 git clone https://github.com/ICGog/DaSiamRPN.git
@@ -81,26 +78,13 @@ pip install --user opencv-python
 ###### Download the DRN segmentation code ######
 git clone https://github.com/ICGog/drn.git
 
-###### Download CenterNet ######
-git clone https://github.com/ICGog/CenterNet.git
-
 ###### Download the Carla simulator ######
 if [ "$1" != 'challenge' ]; then
-    mkdir CARLA_0.8.4
-    cd CARLA_0.8.4
-    gdown https://drive.google.com/uc?id=18OaDbQ2K9Dcs25d-nIxpw3GPRHhG1r_2
-    tar xvf CARLA_0.8.4.tar.gz
-    rm CARLA_0.8.4.tar.gz
-    if [ "$1" == 'docker' ]; then
-        rm -r CarlaUE4
-    fi
-
-    cd ../
-    mkdir CARLA_0.9.5
-    cd CARLA_0.9.5
-    wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.5.tar.gz
-    tar xvf CARLA_0.9.5.tar.gz
-    rm CARLA_0.9.5.tar.gz
+    mkdir CARLA_0.9.6
+    cd CARLA_0.9.6
+    wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.6.tar.gz
+    tar xvf CARLA_0.9.6.tar.gz
+    rm CARLA_0.9.6.tar.gz
     if [ "$1" == 'docker' ]; then
         rm -r CarlaUE4; rm -r HDMaps
     fi

@@ -26,6 +26,21 @@ class HDMap(object):
 
         self._logger = setup_logging('hd_map', log_file_name)
 
+    def get_closest_lane_waypoint(self, location):
+        """ Returns the road closest waypoint to location.
+
+        Args:
+            location: Location in world coordinates.
+
+        Returns:
+            A waypoint or None if no waypoint is found.
+        """
+        loc = to_carla_location(location)
+        waypoint = self._map.get_waypoint(loc,
+                                          project_to_road=True,
+                                          lane_type=carla.LaneType.Any)
+        return waypoint
+
     def is_intersection(self, location):
         """ Returns True if the location is in an intersection.
 
@@ -44,6 +59,18 @@ class HDMap(object):
             # XXX(ionel): is_intersection will be deprecated in the future
             # Carla releases.
             return waypoint.is_intersection
+
+    def is_on_lane(self, location):
+        loc = to_carla_location(location)
+        waypoint = self._map.get_waypoint(loc,
+                                          project_to_road=False,
+                                          lane_type=carla.LaneType.Driving)
+        if not waypoint:
+            # The map didn't return a waypoint because the location not within
+            # mapped location.
+            return False
+        else:
+            return True
 
     def are_on_same_lane(self, location1, location2):
         """ Returns True if the two locations are on the same lane.
@@ -66,12 +93,6 @@ class HDMap(object):
         if not waypoint2:
             # Second location is not on a drivable lane.
             return False
-        w_t1 = to_pylot_transform(waypoint1.transform)
-        w_t2 = to_pylot_transform(waypoint2.transform)
-        self._logger.info('same_lane location1 {} to waypoint1 {}'.format(
-            location1, w_t1.location))
-        self._logger.info('same_lane location2 {} to waypoint2 {}'.format(
-            location2, w_t2.location))
         if waypoint1.road_id == waypoint2.road_id:
             return waypoint1.lane_id == waypoint2.lane_id
         else:
@@ -161,6 +182,15 @@ class HDMap(object):
             return False
 
         # TODO(ionel): Implement.
+
+        # return (math.fabs(
+        #   old_carla_map.get_lane_orientation_degrees(
+        #     [vehicle_transform.location.x,
+        #      vehicle_transform.location.y,
+        #      38]) -
+        #   old_carla_map.get_lane_orientation_degrees(
+        #     [closest_lane_point[0], closest_lane_point[1], 38])) < 1)
+
         return True
 
     def _must_obbey_european_traffic_light(self, ego_transform, tl_locations):

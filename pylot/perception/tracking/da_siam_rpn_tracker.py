@@ -4,6 +4,7 @@ import torch
 from DaSiamRPN.code.net import SiamRPNvot
 from DaSiamRPN.code.run_SiamRPN import SiamRPN_init, SiamRPN_track
 
+from pylot.perception.detection.utils import DetectedObject
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 
@@ -24,7 +25,7 @@ class SingleObjectDaSiamRPNTracker(object):
                 int(target_pos[0] + target_sz[0] / 2.0),
                 int(target_pos[1] - target_sz[1] / 2.0),
                 int(target_pos[1] + target_sz[1] / 2.0))
-        return bbox
+        return DetectedObject(bbox, "", 0)
 
 
 class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
@@ -35,7 +36,7 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
             torch.load(flags.da_siam_rpn_model_path))
         self._siam_net.eval().cuda()
 
-    def reinitialize(self, frame, bboxes):
+    def reinitialize(self, frame, bboxes, confidence_scores):
         # Create a tracker for each bbox.
         self._trackers = []
         for bbox in bboxes:
