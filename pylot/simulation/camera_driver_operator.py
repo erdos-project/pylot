@@ -9,8 +9,7 @@ from erdos.timestamp import Timestamp
 
 from pylot.perception.messages import SegmentedFrameMessage
 import pylot.utils
-from pylot.simulation.carla_utils import get_world, to_carla_transform,\
-    set_synchronous_mode
+from pylot.simulation.carla_utils import get_world, set_synchronous_mode
 from pylot.simulation.utils import depth_to_array, labels_to_array,\
     to_bgra_array
 
@@ -146,7 +145,7 @@ class CameraDriverOperator(Op):
                                        str(self._camera_setup.height))
         camera_blueprint.set_attribute('fov', str(self._camera_setup.fov))
 
-        transform = to_carla_transform(self._camera_setup.get_transform())
+        transform = self._camera_setup.get_transform().as_carla_transform()
 
         self._logger.info("Spawning a camera: {}".format(self._camera_setup))
 

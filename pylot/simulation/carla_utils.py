@@ -90,24 +90,6 @@ def reset_world(world):
         else:
             actor.destroy()
 
-def to_carla_transform(transform):
-    """ Converts an Pylot transform object to a Carla transform object.
-
-    Args:
-        transform: Transform to convert.
-
-    Returns:
-        Carla transform object.
-    """
-    return carla.Transform(
-        carla.Location(transform.location.x,
-                       transform.location.y,
-                       transform.location.z),
-        carla.Rotation(pitch=transform.rotation.pitch,
-                       yaw=transform.rotation.yaw,
-                       roll=transform.rotation.roll))
-
-
 def render_bounding_boxes_in_world(
         world, actor_list, time_between_frames_ms=100):
     """ Render the 3D ground bboxes on the images.

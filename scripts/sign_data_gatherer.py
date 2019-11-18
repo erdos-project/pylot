@@ -11,7 +11,7 @@ from pylot.perception.detection.utils import annotate_image_with_bboxes,\
     visualize_ground_bboxes
 from pylot.simulation.carla_utils import convert_speed_limit_actors,\
     convert_traffic_light_actor, convert_traffic_light_actors,\
-    convert_traffic_stop_actors, get_world, to_carla_transform
+    convert_traffic_stop_actors, get_world
 from pylot.simulation.utils import depth_to_array, labels_to_array,\
     to_bgra_array, to_pylot_transform
 from pylot.utils import bgra_to_bgr, bgr_to_rgb
@@ -289,7 +289,7 @@ def log_traffic_lights(world):
             w_rotation = w.transform.rotation
             camera_transform = to_pylot_transform(w.transform)
             camera_transform.location.z += 2.0
-            transform = to_carla_transform(camera_transform)
+            transform = camera_transform.as_carla_transform()
             transforms_of_interest.append(transform)
 
             # Get the right lanes.
@@ -298,7 +298,7 @@ def log_traffic_lights(world):
                     and w_rotation == wp_right.transform.rotation:
                 camera_transform = to_pylot_transform(wp_right.transform)
                 camera_transform.location.z += 2.0
-                transform = to_carla_transform(camera_transform)
+                transform = camera_transform.as_carla_transform()
                 transforms_of_interest.append(transform)
                 wp_right = wp_right.get_right_lane()
 
@@ -308,7 +308,7 @@ def log_traffic_lights(world):
                     w_rotation == wp_left.transform.rotation:
                 camera_transform = to_pylot_transform(wp_left.transform)
                 camera_transform.location.z += 2.0
-                transform = to_carla_transform(camera_transform)
+                transform = camera_transform.as_carla_transform()
                 transforms_of_interest.append(transform)
                 wp_left = wp_left.get_left_lane()
 
@@ -344,7 +344,7 @@ def log_speed_limits(world):
                 lane_type=carla.LaneType.Driving)
             camera_transform = to_pylot_transform(w.transform)
             camera_transform.location.z += 2.0
-            transform = to_carla_transform(camera_transform)
+            transform = camera_transform.as_carla_transform()
             transforms_of_interest.append(transform)
     # Ensure all traffic lights are red.
     change_traffic_light_colors(world, carla.TrafficLightState.Red)
@@ -379,7 +379,7 @@ def log_stop_signs(world):
                 lane_type=carla.LaneType.Driving)
             camera_transform = to_pylot_transform(w.transform)
             camera_transform.location.z += 2.0
-            transform = to_carla_transform(camera_transform)
+            transform = camera_transform.as_carla_transform()
             transforms_of_interest.append(transform)
     # Ensure all traffic lights are red.
     change_traffic_light_colors(world, carla.TrafficLightState.Red)

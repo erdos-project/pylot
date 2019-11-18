@@ -125,17 +125,17 @@ class ChauffeurLoggerOp(Op):
         # Transform to previous and back to current frame
         new_transform = self._current_transform * self._previous_transform.inverse_transform()
         self._waypoints = [
-            (new_transform * pylot.simulation.utils.Transform(pos=wp, rotation=rotation)).location
+            (new_transform * pylot.simulation.utils.Transform(wp, rotation)).location
             for wp in self._waypoints
         ]
 
         # Center first point at 0, 0
         center_transform = pylot.simulation.utils.Transform(
-            pos=self._waypoints[0],
-            rotation=rotation
+            self._waypoints[0],
+            rotation
         ).inverse_transform()
         self._waypoints = [
-            (center_transform * pylot.simulation.utils.Transform(pos=wp, rotation=rotation)).location
+            (center_transform * pylot.simulation.utils.Transform(wp, rotation)).location
             for wp in self._waypoints
         ]
 

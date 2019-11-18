@@ -230,50 +230,56 @@ class Location(object):
 
 
 class Transform(object):
-    # Transformations are applied in the order: Scale, Rotation, Translation.
-    # Rotations are applied in the order: Roll (X), Pitch (Y), Yaw (Z).
-    # A 90-degree "Roll" rotation maps the positive Z-axis to the positive
-    # Y-axis. A 90-degree "Pitch" rotation maps the positive X-axis to the
-    # positive Z-axis. A 90-degree "Yaw" rotation maps the positive X-axis
-    # to the positive Y-axis.
-    # Warning: in general, the different stages of the transform
-    # are non-commutative!
+    """ The Pylot version of the carla.Transform instance that defines helper
+    functions needed in Pylot, and makes the class serializable.
 
-    def __init__(self, pos=None, rotation=None, orientation=None, scale=None,
-                 matrix=None, orientation_matrix=None):
-        self.rotation = rotation
-        self.location = pos
-        self.scale = scale
-        if scale is None:
-            scale = Scale()
+    Attributes:
+        location: The location of the object represented by the transform.
+        rotation: The rotation of the object represented by the transform.
+        matrix: The transformation matrix used to convert points in the 3D
+            coordinate space with respect to the location and rotation of the
+            given object.
+    """
+
+    # Rotations are applied in the order: Roll (X), Pitch (Y), Yaw (Z).
+    # A 90-degree "Roll" maps the positive Z-axis to the positive Y-axis.
+    # A 90-degree "Pitch" maps the positive X-axis to the positive Z-axis.
+    # A 90-degree "Yaw" maps the positive X-axis to the positive Y-axis.
+
+    def __init__(self, location=None, rotation=None, matrix=None):
+        """ Instantiates a Transform object with either the given location
+        and rotation, or using the given matrix.
+
+        If matrix is provided, the values from there take precedence.
+
+        Args:
+            location: The location of the object represented by the transform.
+            rotation: The rotation of the object represented by the transform.
+            matrix: The transformation matrix used to convert points in the
+                3D coordinate space with respect to the object.
+        """
+        self.location, self.rotation = location, rotation
         if matrix is None:
-            self.matrix = self._create_matrix(pos, rotation, scale)
+            self.matrix = Transform._create_matrix(self.location,
+                                                   self.rotation)
         else:
             self.matrix = matrix
             self.location = Location(matrix[0, 3], matrix[1, 3], matrix[2, 3])
 
-        if orientation is not None:
-            self.orientation_matrix = self._create_matrix(
-                orientation, rotation, Scale())
-            self.orientation = orientation
-        elif orientation_matrix is not None:
-            self.orientation_matrix = orientation_matrix
-            self.orientation = Orientation(orientation_matrix[0, 3],
-                                           orientation_matrix[1, 3],
-                                           orientation_matrix[2, 3])
-        else:
-            # No orientation provided. We multiply the defautl world
-            # orientation by the transform matrix to compute the orientation.
-            self.orientation_matrix = np.dot(
-                self._create_matrix(Location(1.0, 0, 0),
-                                    Rotation(0, 0, 0),
-                                    Scale()),
-                self.matrix)
-            self.orientation = Orientation(self.orientation_matrix[0, 3],
-                                           self.orientation_matrix[1, 3],
-                                           self.orientation_matrix[2, 3])
+    @staticmethod
+    def _create_matrix(location, rotation):
+        """ Creates a transformation matrix to convert points in the 3D world
+        coordinate space with respect to the object.
 
-    def _create_matrix(self, pos, rotation, scale):
+        Use the transform_points function to transpose a given set of points
+        with respect to the object.
+
+        Args:
+            location: The location of the object represented by the transform.
+            rotation: The rotation of the object represented by the transform.
+        Returns:
+            a 4x4 numpy matrix which represents the transformation matrix.
+        """
         matrix = np.matrix(np.identity(4))
         cy = math.cos(np.radians(rotation.yaw))
         sy = math.sin(np.radians(rotation.yaw))
@@ -281,24 +287,31 @@ class Transform(object):
         sr = math.sin(np.radians(rotation.roll))
         cp = math.cos(np.radians(rotation.pitch))
         sp = math.sin(np.radians(rotation.pitch))
-        matrix[0, 3] = pos.x
-        matrix[1, 3] = pos.y
-        matrix[2, 3] = pos.z
-        matrix[0, 0] = scale.x * (cp * cy)
-        matrix[0, 1] = scale.y * (cy * sp * sr - sy * cr)
-        matrix[0, 2] = -scale.z * (cy * sp * cr + sy * sr)
-        matrix[1, 0] = scale.x * (sy * cp)
-        matrix[1, 1] = scale.y * (sy * sp * sr + cy * cr)
-        matrix[1, 2] = scale.z * (cy * sr - sy * sp * cr)
-        matrix[2, 0] = scale.x * (sp)
-        matrix[2, 1] = -scale.y * (cp * sr)
-        matrix[2, 2] = scale.z * (cp * cr)
+        matrix[0, 3] = location.x
+        matrix[1, 3] = location.y
+        matrix[2, 3] = location.z
+        matrix[0, 0] = (cp * cy)
+        matrix[0, 1] = (cy * sp * sr - sy * cr)
+        matrix[0, 2] = -1 * (cy * sp * cr + sy * sr)
+        matrix[1, 0] = (sy * cp)
+        matrix[1, 1] = (sy * sp * sr + cy * cr)
+        matrix[1, 2] = (cy * sr - sy * sp * cr)
+        matrix[2, 0] = (sp)
+        matrix[2, 1] = -1 * (cp * sr)
+        matrix[2, 2] = (cp * cr)
         return matrix
 
     def transform_points(self, points):
-        """
-        Given a 4x4 transformation matrix, transform an array of 3D points.
-        Expected point format: [[X0,Y0,Z0],..[Xn,Yn,Zn]]
+        """ Transforms a given set of points in the 3D world coordinate space
+        with respect to the object represented by the transform.
+
+        Expected point format:
+
+        Args:
+            points: Points in the format [[X0,Y0,Z0],..[Xn,Yn,Zn]]
+
+        Returns:
+            Transformed points in the format [[X0,Y0,Z0],..[Xn,Yn,Zn]]
         """
         # Needed format: [[X0,..Xn],[Y0,..Yn],[Z0,..Zn]]. So let's transpose
         # the point matrix.
@@ -310,31 +323,26 @@ class Transform(object):
         # Return all but last row
         return points[0:3].transpose()
 
-    def transform_locations(self, locs):
-        """
-        Using the transformation matrix, transform a list of locations.
-        """
-        print (np.shape(locs), len(locs))
-        points = np.zeros((4, len(locs)))
-        for idx in range(len(locs)):
-            points[0][idx] = locs[idx].x
-            points[1][idx] = locs[idx].y
-            points[2][idx] = locs[idx].z
-            points[3][idx] = 1
-        points = np.dot(self.matrix, points)
-        # Return all but last row
-        return points[0:3].transpose()
-
     def inverse_transform(self):
-        return Transform(matrix=inv(self.matrix),
-                         orientation_matrix=inv(self.orientation_matrix))
+        """ Returns the inverse of the given transform. """
+        return Transform(matrix=inv(self.matrix))
+
+    def as_carla_transform(self):
+        """ Convert the transform to a carla.Transform instance.
+
+        Returns:
+            A carla.Transform instance representing the current Transform.
+        """
+        return carla.Transform(
+            carla.Location(transform.location.x, transform.location.y,
+                           transform.location.z),
+            carla.Rotation(pitch=transform.rotation.pitch,
+                           yaw=transform.rotation.yaw,
+                           roll=transform.rotation.roll))
 
     def __mul__(self, other):
         new_matrix = np.dot(self.matrix, other.matrix)
-        new_orientation_matrix = np.dot(self.orientation_matrix,
-                                        other.orientation_matrix)
-        return Transform(matrix=new_matrix,
-                         orientation_matrix=new_orientation_matrix)
+        return Transform(matrix=new_matrix)
 
     def __str__(self):
         if self.location:
