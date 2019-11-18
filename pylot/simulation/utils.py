@@ -23,8 +23,6 @@ StopSign = namedtuple('StopSign', 'transform, bounding_box')
 DetectedLane = namedtuple('DetectedLane', 'left_marking, right_marking')
 LocationGeo = namedtuple('LocationGeo', 'latitude, longitude, altitude')
 Extent = namedtuple('Extent', 'x, y, z')
-Scale = namedtuple('Scale', 'x y z')
-Scale.__new__.__defaults__ = (1.0, 1.0, 1.0)
 
 
 class CameraSetup(object):
