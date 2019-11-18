@@ -2,7 +2,6 @@ import re
 import carla
 
 from pylot.perception.detection.utils import TrafficLightColor
-from pylot.simulation.utils import to_pylot_transform
 import pylot.simulation.utils
 
 
@@ -149,7 +148,8 @@ def convert_vehicle_actors(vec_actors):
     """
     vehicles = []
     for vec_actor in vec_actors:
-        transform = to_pylot_transform(vec_actor.get_transform())
+        transform = pylot.simulation.utils.Transform(
+            carla_transform=vec_actor.get_transform())
         bounding_box = pylot.simulation.utils.BoundingBox(
             vec_actor.bounding_box)
         speed = pylot.simulation.utils.get_speed(vec_actor.get_velocity())
@@ -170,7 +170,8 @@ def convert_pedestrian_actors(pedestrian_actors):
     """
     pedestrians = []
     for ped_actor in pedestrian_actors:
-        transform = to_pylot_transform(ped_actor.get_transform())
+        transform = pylot.simulation.utils.Transform(
+            carla_transform=ped_actor.get_transform())
         bounding_box = pylot.simulation.utils.BoundingBox(
             ped_actor.bounding_box)
         speed = pylot.simulation.utils.get_speed(ped_actor.get_velocity())
@@ -181,7 +182,8 @@ def convert_pedestrian_actors(pedestrian_actors):
 
 
 def convert_traffic_light_actor(tl_actor):
-    transform = to_pylot_transform(tl_actor.get_transform())
+    transform = pylot.simulation.utils.Transform(
+        carla_transform=tl_actor.get_transform())
     tl_state = tl_actor.get_state()
     erdos_tl_state = None
     if tl_state == carla.TrafficLightState.Red:
@@ -228,7 +230,8 @@ def convert_speed_limit_actors(speed_limit_actors):
     """
     speed_limits = []
     for ts_actor in speed_limit_actors:
-        transform = to_pylot_transform(ts_actor.get_transform())
+        transform = pylot.simulation.utils.Transform(
+            carla_transform=ts_actor.get_transform())
         speed_limit = int(ts_actor.type_id.split('.')[-1])
         speed_sign = pylot.simulation.utils.SpeedLimitSign(
             transform, speed_limit)
@@ -247,7 +250,8 @@ def convert_traffic_stop_actors(traffic_stop_actors):
     """
     stop_signs = []
     for ts_actor in traffic_stop_actors:
-        transform = to_pylot_transform(ts_actor.get_transform())
+        transform = pylot.simulation.utils.Transform(
+            carla_transform=ts_actor.get_transform())
         world_trigger_volume = ts_actor.get_transform().transform(
             ts_actor.trigger_volume.location)
         bbox = pylot.simulation.utils.BoundingBox(

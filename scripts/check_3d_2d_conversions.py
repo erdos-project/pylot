@@ -16,7 +16,7 @@ from pylot.simulation.utils import depth_to_array, to_bgra_array,\
      get_3d_world_position_with_depth_map,\
      get_3d_world_position_with_point_cloud,\
      lidar_point_cloud_to_camera_coordinates,\
-     to_pylot_transform
+     Transform
 from matplotlib import pyplot as plt
 
 lidar_pc = None
@@ -67,7 +67,7 @@ def on_lidar_msg(carla_pc):
     points = copy.deepcopy(points)
     points = np.reshape(points, (int(points.shape[0] / 3), 3))
 
-    lidar_transform = to_pylot_transform(carla_pc.transform)
+    lidar_transform = Transform(carla_transform=carla_pc.transform)
 
     # Transform lidar points from lidar coordinates to camera coordinates.
     points = lidar_point_cloud_to_camera_coordinates(points)
@@ -92,7 +92,7 @@ def on_depth_msg(carla_image):
     game_time = int(carla_image.timestamp * 1000)
     print("Received depth camera msg {}".format(game_time))
 
-    depth_camera_transform = to_pylot_transform(carla_image.transform)
+    depth_camera_transform = Transform(carla_transform=carla_image.transform)
 
     depth_msg = pylot.simulation.messages.DepthFrameMessage(
         depth_to_array(carla_image),

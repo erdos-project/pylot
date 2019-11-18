@@ -13,7 +13,7 @@ from pylot.simulation.carla_utils import convert_speed_limit_actors,\
     convert_traffic_light_actor, convert_traffic_light_actors,\
     convert_traffic_stop_actors, get_world
 from pylot.simulation.utils import depth_to_array, labels_to_array,\
-    to_bgra_array, to_pylot_transform
+    to_bgra_array, Transform
 from pylot.utils import bgra_to_bgr, bgr_to_rgb
 import pylot.simulation.utils
 
@@ -145,7 +145,7 @@ def log_bounding_boxes(
     frame = bgra_to_bgr(to_bgra_array(carla_image))
     # Copy the frame to ensure its on the heap.
     frame = copy.deepcopy(frame)
-    transform = to_pylot_transform(carla_image.transform)
+    transform = Transform(carla_transform=carla_image.transform)
     _, world = get_world()
     town_name = world.get_map().name
 
@@ -278,8 +278,8 @@ def log_traffic_lights(world):
                 offset_loc, offset_rot)
 
             # Transform the offset relative to the traffic light.
-            transform = to_pylot_transform(
-                light.get_transform()) * offset_trans
+            transform = Transform(
+                carla_transform=light.get_transform()) * offset_trans
             location = transform.location.as_carla_location()
 
             # Get the waypoint nearest to the transform.
@@ -287,7 +287,7 @@ def log_traffic_lights(world):
                                        project_to_road=True,
                                        lane_type=carla.LaneType.Driving)
             w_rotation = w.transform.rotation
-            camera_transform = to_pylot_transform(w.transform)
+            camera_transform = Transform(carla_transform=w.transform)
             camera_transform.location.z += 2.0
             transform = camera_transform.as_carla_transform()
             transforms_of_interest.append(transform)
@@ -296,7 +296,8 @@ def log_traffic_lights(world):
             wp_right = w.get_right_lane()
             while wp_right and wp_right.lane_type == carla.LaneType.Driving \
                     and w_rotation == wp_right.transform.rotation:
-                camera_transform = to_pylot_transform(wp_right.transform)
+                camera_transform = Transform(
+                    carla_transform=wp_right.transform)
                 camera_transform.location.z += 2.0
                 transform = camera_transform.as_carla_transform()
                 transforms_of_interest.append(transform)
@@ -306,7 +307,7 @@ def log_traffic_lights(world):
             wp_left = w.get_left_lane()
             while wp_left and wp_left.lane_type == carla.LaneType.Driving and \
                     w_rotation == wp_left.transform.rotation:
-                camera_transform = to_pylot_transform(wp_left.transform)
+                camera_transform = Transform(carla_transform=wp_left.transform)
                 camera_transform.location.z += 2.0
                 transform = camera_transform.as_carla_transform()
                 transforms_of_interest.append(transform)
@@ -342,7 +343,7 @@ def log_speed_limits(world):
                 location,
                 project_to_road=True,
                 lane_type=carla.LaneType.Driving)
-            camera_transform = to_pylot_transform(w.transform)
+            camera_transform = Transform(carla_transform=w.transform)
             camera_transform.location.z += 2.0
             transform = camera_transform.as_carla_transform()
             transforms_of_interest.append(transform)
@@ -377,7 +378,7 @@ def log_stop_signs(world):
                 location,
                 project_to_road=True,
                 lane_type=carla.LaneType.Driving)
-            camera_transform = to_pylot_transform(w.transform)
+            camera_transform = Transform(carla_transform=w.transform)
             camera_transform.location.z += 2.0
             transform = camera_transform.as_carla_transform()
             transforms_of_interest.append(transform)

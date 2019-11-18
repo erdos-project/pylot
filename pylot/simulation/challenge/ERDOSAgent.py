@@ -23,7 +23,7 @@ import pylot.operator_creator
 from pylot.planning.planning_operator import PlanningOperator
 from pylot.utils import bgra_to_bgr
 import pylot.simulation.messages
-from pylot.simulation.utils import to_pylot_transform, Location, Rotation, Transform
+from pylot.simulation.utils import Location, Rotation, Transform
 import pylot.simulation.utils
 
 
@@ -342,7 +342,7 @@ class ERDOSAgent(AutonomousAgent):
         # Send once the global waypoints.
         if self._waypoints is None:
             self._waypoints = self._global_plan_world_coord
-            data = [(to_pylot_transform(transform), road_option)
+            data = [(Transform(carla_transform=transform), road_option)
                     for (transform, road_option) in self._waypoints]
             self._global_trajectory_stream.send(Message(data, timestamp))
             #self._global_trajectory_stream.send(self._top_watermark)
@@ -352,7 +352,7 @@ class ERDOSAgent(AutonomousAgent):
     def send_can_bus_reading(self, data, timestamp, watermark_msg):
         # The can bus dict contains other fields as well, but we don't
         # curently use them.
-        vehicle_transform = to_pylot_transform(data['transform'])
+        vehicle_transform = Transform(carla_transform=data['transform'])
         forward_speed = data['speed']
         can_bus = pylot.simulation.utils.CanBus(
             vehicle_transform, forward_speed)
@@ -448,7 +448,7 @@ class ERDOSAgent(AutonomousAgent):
                          [self._global_trajectory_stream,
                           self._can_bus_stream])
 
-#        if self.track == Track.ALL_SENSORS_HDMAP_WAYPOINTS:
+        #        if self.track == Track.ALL_SENSORS_HDMAP_WAYPOINTS:
         # Stream on which we send the opendrive map.
         self._open_drive_stream = ROSOutputDataStream(
             DataStream(name='open_drive_stream',

@@ -8,7 +8,7 @@ from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 
 from erdos.utils import setup_logging
 
-from pylot.simulation.utils import to_pylot_transform
+from pylot.simulation.utils import Transform
 from pylot.utils import compute_magnitude_angle, is_within_distance_ahead
 
 
@@ -301,5 +301,7 @@ class HDMap(object):
             end_waypoint.transform.location)
         # TODO(ionel): The planner returns several options in intersections.
         # We always take the first one, but this is not correct.
-        return deque([to_pylot_transform(waypoint[0].transform)
-                      for waypoint in route])
+        return deque([
+            Transform(carla_transform=waypoint[0].transform)
+            for waypoint in route
+        ])

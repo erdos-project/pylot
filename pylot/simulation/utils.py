@@ -370,11 +370,6 @@ class Transform(object):
             return "Transform({})".format(str(self.matrix))
 
 
-def to_pylot_transform(transform):
-    """ Converts a Carla transform into a Pylot transform."""
-    return Transform(carla_transform=transform)
-
-
 def depth_to_array(image):
     """
     Convert an image containing CARLA encoded depth-map to a 2D array

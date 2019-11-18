@@ -13,7 +13,7 @@ import pylot.utils
 from pylot.simulation.carla_utils import extract_data_in_pylot_format,\
     get_weathers, get_world, reset_world, set_synchronous_mode
 import pylot.simulation.messages
-from pylot.simulation.utils import to_pylot_transform
+from pylot.simulation.utils import Transform
 import pylot.simulation.utils
 
 
@@ -346,8 +346,8 @@ class CarlaOperator(Op):
         self.spin()
 
     def __publish_hero_vehicle_data(self, timestamp, watermark_msg):
-        vec_transform = to_pylot_transform(
-            self._driving_vehicle.get_transform())
+        vec_transform = Transform(
+            carla_transform=self._driving_vehicle.get_transform())
         forward_speed = pylot.simulation.utils.get_speed(
             self._driving_vehicle.get_velocity())
         can_bus = pylot.simulation.utils.CanBus(vec_transform, forward_speed)
