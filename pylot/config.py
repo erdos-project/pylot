@@ -140,8 +140,7 @@ flags.DEFINE_float('carla_step_frequency', -1,
                    'commands should be applied as soon ASAP.')
 flags.DEFINE_integer('carla_num_vehicles', 20, 'Carla num vehicles.')
 flags.DEFINE_integer('carla_num_pedestrians', 40, 'Carla num pedestrians.')
-flags.DEFINE_integer('carla_weather', 2,
-                     'Carla weather preset; between 1 and 14')
+flags.DEFINE_string('carla_weather', 'ClearNoon', 'Carla Weather Presets')
 flags.DEFINE_integer(
     'carla_spawn_point_index', -1,
     'Index of spawn point where to place ego vehicle. -1 to randomly assign.')

@@ -1,3 +1,4 @@
+import re
 import carla
 
 from pylot.perception.detection.utils import TrafficLightColor
@@ -52,24 +53,13 @@ def get_weathers():
     """ Gets the list of weathers that the simulation supports.
 
     Returns:
-        A list of all (weather, name) tuples that we can set the simulation to.
+        A dictionary of {name: weather} that we can set the simulation to.
     """
-    weathers = [
-        (carla.WeatherParameters.ClearNoon, "ClearNoon"),
-        (carla.WeatherParameters.CloudyNoon, "CloudyNoon"),
-        (carla.WeatherParameters.WetNoon, "WetNoon"),
-        (carla.WeatherParameters.WetCloudyNoon, "WetCloudyNoon"),
-        (carla.WeatherParameters.MidRainyNoon, "MidRainyNoon"),
-        (carla.WeatherParameters.HardRainNoon, "HardRainNoon"),
-        (carla.WeatherParameters.SoftRainNoon, "SoftRainNoon"),
-        (carla.WeatherParameters.ClearSunset, "ClearSunset"),
-        (carla.WeatherParameters.CloudySunset, "CloudySunset"),
-        (carla.WeatherParameters.WetSunset, "WetSunset"),
-        (carla.WeatherParameters.WetCloudySunset, "WetCloudySunet"),
-        (carla.WeatherParameters.MidRainSunset, "MidRainSunset"),
-        (carla.WeatherParameters.HardRainSunset, "HardRainSunset"),
-        (carla.WeatherParameters.SoftRainSunset, "SoftRainSunset"),
+    names = [
+        name for name in dir(carla.WeatherParameters)
+        if re.match('[A-Z].+', name)
     ]
+    weathers = {x: getattr(carla.WeatherParameters) for x in names}
     return weathers
 
 

@@ -70,8 +70,9 @@ class CarlaOperator(Op):
             reset_world(self._world)
 
         # Set the weather.
-        weather, name = get_weathers()[self._flags.carla_weather - 1]
-        self._logger.info('Setting the weather to {}'.format(name))
+        weather = get_weathers()[self._flags.carla_weather]
+        self._logger.info('Setting the weather to {}'.format(
+            self._flags.carla_weather))
         self._world.set_weather(weather)
         # Turn on the synchronous mode so we can control the simulation.
         if self._flags.carla_synchronous_mode:
