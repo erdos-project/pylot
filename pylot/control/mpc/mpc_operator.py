@@ -166,11 +166,9 @@ class MPCOperator(Op):
         ego_location = to_carla_location(can_bus_msg.data.transform.location)
 
         # step the controller
-        self.mpc.step()
-
-        # update vehicle info
         self.mpc.vehicle.x = ego_location.x
         self.mpc.vehicle.y = ego_location.y
+        self.mpc.step()
 
         target_x = self.mpc.solution.x_list[-1]
         target_y = self.mpc.solution.y_list[-1]
