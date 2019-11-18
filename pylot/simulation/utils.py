@@ -244,25 +244,45 @@ class Transform(object):
     # A 90-degree "Pitch" maps the positive X-axis to the positive Z-axis.
     # A 90-degree "Yaw" maps the positive X-axis to the positive Y-axis.
 
-    def __init__(self, location=None, rotation=None, matrix=None):
+    def __init__(self,
+                 location=None,
+                 rotation=None,
+                 forward_vector=None,
+                 matrix=None,
+                 carla_transform=None):
         """ Instantiates a Transform object with either the given location
         and rotation, or using the given matrix.
 
-        If matrix is provided, the values from there take precedence.
+        First precedence is for carla_transform and then for matrix.
 
         Args:
             location: The location of the object represented by the transform.
             rotation: The rotation of the object represented by the transform.
+            forward_vector: The forward vector of the object represented by
+                the transform.
             matrix: The transformation matrix used to convert points in the
                 3D coordinate space with respect to the object.
+            carla_transform: The carla.Transform to use to initialize the
+                transform instance.
         """
-        self.location, self.rotation = location, rotation
-        if matrix is None:
+        if carla_transform:
+            self.location = Location(carla_loc=carla_transform.location)
+            self.rotation = Rotation(transform.rotation.pitch,
+                                     transform.rotation.yaw,
+                                     transform.rotation.roll)
+            fwd_vector = carla_transform.get_forward_vector()
+            self.forward_vector = Orientation(fwd_vector.x, fwd_vector.y,
+                                              fwd_vector.z)
             self.matrix = Transform._create_matrix(self.location,
                                                    self.rotation)
-        else:
+        elif matrix:
             self.matrix = matrix
             self.location = Location(matrix[0, 3], matrix[1, 3], matrix[2, 3])
+        else:
+            self.location, self.rotation = location, rotation
+            self.forward_vector = forward_vector
+            self.matrix = Transform._create_matrix(self.location,
+                                                   self.rotation)
 
     @staticmethod
     def _create_matrix(location, rotation):
@@ -352,19 +372,7 @@ class Transform(object):
 
 def to_pylot_transform(transform):
     """ Converts a Carla transform into a Pylot transform."""
-    orientation = None
-    # get_forward_vector() is only available in carla 0.9.5.
-    get_fwd_vector = getattr(transform, "get_forward_vector", None)
-    if callable(get_fwd_vector):
-        fwd_vector = transform.get_forward_vector()
-        orientation = Orientation(fwd_vector.x, fwd_vector.y, fwd_vector.z)
-
-    return Transform(
-        Location(carla_loc=transform.location),
-        Rotation(transform.rotation.pitch,
-                 transform.rotation.yaw,
-                 transform.rotation.roll),
-        orientation)
+    return Transform(carla_transform=transform)
 
 
 def to_pylot_location(location):
