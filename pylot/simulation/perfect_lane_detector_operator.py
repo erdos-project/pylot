@@ -4,7 +4,7 @@ from erdos.utils import setup_csv_logging, setup_logging
 from pylot.utils import create_detected_lane_stream, is_can_bus_stream
 from pylot.simulation.utils import DetectedLane, to_pylot_location
 from pylot.simulation.messages import DetectedLaneMessage
-from pylot.simulation.carla_utils import get_world, to_carla_location
+from pylot.simulation.carla_utils import get_world
 
 
 class PerfectLaneDetectionOperator(Op):
@@ -58,7 +58,7 @@ class PerfectLaneDetectionOperator(Op):
         vehicle_location = can_bus_msg.data.transform.location
         lane_waypoints = []
         next_wp = [
-            self._world_map.get_waypoint(to_carla_location(vehicle_location))
+            self._world_map.get_waypoint(vehicle_location.as_carla_location())
         ]
 
         while len(next_wp) == 1:

@@ -145,7 +145,29 @@ class BoundingBox(object):
 
 
 class Location(object):
+    """ The Pylot version of the carla.Location instance that defines helper
+    functions needed in Pylot, and makes the class serializable.
+
+    Attributes:
+        x: The value of the x-axis.
+        y: The value of the y-axis.
+        z: The value of the z-axis.
+    """
+
     def __init__(self, x=0, y=0, z=0, carla_loc=None):
+        """ Initializes the Location instance with either the given x, y, z
+        values or from the carla.Location instance if specified.
+
+        The carla.Location instance, if provided, takes precedence over the
+        x, y, z values provided in the constructor.
+
+        Args:
+            x: The value of the x-axis.
+            y: The value of the y-axis.
+            z: The value of the z-axis.
+            carla_loc: The carla.Location instance to instantiate this
+                Location instance from.
+        """
         if carla_loc is not None:
             self.x = carla_loc.x
             self.y = carla_loc.y
@@ -156,14 +178,46 @@ class Location(object):
             self.z = z
 
     def distance(self, other):
+        """ Calculates the Euclidean distance between the given point and the
+        other point.
+
+        Args:
+            other: The other Location instance to calculate the distance to.
+
+        Returns:
+            The Euclidean distance between the two points.
+        """
         dist = (self.x - other.x)**2 + (self.y - other.y)**2
         dist += (self.z - other.z)**2
-        return dist ** 0.5
+        return dist**0.5
 
     def as_numpy_array(self):
+        """ Retrieves the Location instance as a numpy array.
+
+        Returns:
+            A numpy array of [x, y, z] representing the values along the
+            three coordinate axes in the current Location instance.
+        """
         return np.array([self.x, self.y, self.z])
 
+    def as_carla_location(self):
+        """ Retrieves the current location as an instance of carla.Location.
+
+        Returns:
+            A carla.Location instance representing the current location.
+        """
+        return carla.Location(location.x, location.y, location.z)
+
     def __add__(self, other):
+        """ Adds the current location with the other location.
+
+        Args:
+            other: The other location to add.
+
+        Returns:
+            A Location instance that represents the addition of the current
+            Location and the Location provided in the arguments.
+        """
         return Location(x=self.x + other.x,
                         y=self.y + other.y,
                         z=self.z + other.z)

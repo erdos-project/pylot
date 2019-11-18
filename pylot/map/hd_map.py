@@ -9,7 +9,6 @@ from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 from erdos.utils import setup_logging
 
 from pylot.simulation.utils import to_pylot_transform
-from pylot.simulation.carla_utils import to_carla_location
 from pylot.utils import compute_magnitude_angle, is_within_distance_ahead
 
 
@@ -35,8 +34,7 @@ class HDMap(object):
         Returns:
             A waypoint or None if no waypoint is found.
         """
-        loc = to_carla_location(location)
-        waypoint = self._map.get_waypoint(loc,
+        waypoint = self._map.get_waypoint(location.as_carla_location(),
                                           project_to_road=True,
                                           lane_type=carla.LaneType.Any)
         return waypoint
@@ -47,8 +45,7 @@ class HDMap(object):
         Args:
             location: Location in world coordinates.
         """
-        loc = to_carla_location(location)
-        waypoint = self._map.get_waypoint(loc,
+        waypoint = self._map.get_waypoint(location.as_carla_location(),
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Any)
         if not waypoint:
@@ -61,8 +58,7 @@ class HDMap(object):
             return waypoint.is_intersection
 
     def is_on_lane(self, location):
-        loc = to_carla_location(location)
-        waypoint = self._map.get_waypoint(loc,
+        waypoint = self._map.get_waypoint(location.as_carla_location(),
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Driving)
         if not waypoint:
@@ -79,15 +75,13 @@ class HDMap(object):
             location1: Location in world coordinates.
             location1: Location in world coordinates.
         """
-        loc1 = to_carla_location(location1)
-        waypoint1 = self._map.get_waypoint(loc1,
+        waypoint1 = self._map.get_waypoint(location1.as_carla_location(),
                                            project_to_road=False,
                                            lane_type=carla.LaneType.Driving)
         if not waypoint1:
             # First location is not on a drivable lane.
             return False
-        loc2 = to_carla_location(location2)
-        waypoint2 = self._map.get_waypoint(loc2,
+        waypoint2 = self._map.get_waypoint(location2.as_carla_location(),
                                            project_to_road=False,
                                            lane_type=carla.LaneType.Driving)
         if not waypoint2:
@@ -108,10 +102,10 @@ class HDMap(object):
         return False
 
     def is_on_opposite_lane(self, transform):
-        loc = to_carla_location(transform.location)
-        waypoint = self._map.get_waypoint(loc,
-                                          project_to_road=False,
-                                          lane_type=carla.LaneType.Driving)
+        waypoint = self._map.get_waypoint(
+            transform.location.as_carla_location(),
+            project_to_road=False,
+            lane_type=carla.LaneType.Driving)
         if not waypoint:
             return True
         if waypoint.is_intersection:
@@ -132,15 +126,13 @@ class HDMap(object):
         """
         # TODO(ionel): This method doesn't work yet because the opendrive do
         # not contained waypoints annotated as stops.
-        loc = to_carla_location(location)
-        waypoint = self._map.get_waypoint(loc,
+        waypoint = self._map.get_waypoint(location.as_carla_location(),
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Stop)
         return not waypoint
 
     def distance_to_intersection(self, location, max_distance_to_check=30):
-        loc = to_carla_location(location)
-        waypoint = self._map.get_waypoint(loc,
+        waypoint = self._map.get_waypoint(location.as_carla_location(),
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Any)
         if not waypoint:
@@ -159,9 +151,8 @@ class HDMap(object):
         return None
 
     def is_on_bidirectional_lane(self, location):
-        loc = to_carla_location(location)
         waypoint = self._map.get_waypoint(
-            loc,
+            location.as_carla_location(),
             project_to_road=False,
             lane_type=carla.LaneType.Bidirectional)
         return not waypoint
@@ -173,8 +164,7 @@ class HDMap(object):
             ego_location: Location of the ego vehicle in world coordinates.
             tl_location: Location of the traffic light in world coordinates.
         """
-        loc = to_carla_location(ego_location)
-        waypoint = self._map.get_waypoint(loc,
+        waypoint = self._map.get_waypoint(ego_location.as_carla_location(),
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Any)
         if waypoint and waypoint.is_intersection:
@@ -194,7 +184,7 @@ class HDMap(object):
         return True
 
     def _must_obbey_european_traffic_light(self, ego_transform, tl_locations):
-        ego_loc = to_carla_location(ego_transform.location)
+        ego_loc = ego_transform.location.as_carla_location()
         ego_waypoint = self._map.get_waypoint(ego_loc,
                                               project_to_road=False,
                                               lane_type=carla.LaneType.Any)
@@ -203,8 +193,7 @@ class HDMap(object):
             return (False, None)
         # Iterate through traffic lights.
         for tl_loc in tl_locations:
-            tl_waypoint = self._map.get_waypoint(
-                to_carla_location(tl_loc))
+            tl_waypoint = self._map.get_waypoint(tl_loc.as_carla_location())
             if (tl_waypoint.road_id != ego_waypoint.road_id or
                 tl_waypoint.lane_id != ego_waypoint.lane_id):
                 continue
@@ -217,7 +206,7 @@ class HDMap(object):
         return (False,  None)
 
     def _must_obbey_american_traffic_light(self, ego_transform, tl_locations):
-        ego_loc = to_carla_location(ego_transform.location)
+        ego_loc = ego_transform.location.as_carla_location()
         ego_waypoint = self._map.get_waypoint(ego_loc,
                                               project_to_road=False,
                                               lane_type=carla.LaneType.Any)
@@ -250,8 +239,7 @@ class HDMap(object):
         # TODO(ionel): This method assumes that the location has the
         # same orientation as the lanes (i.e., it will always return a
         # positive d).
-        loc = to_carla_location(location)
-        waypoint = self._map.get_waypoint(loc,
+        waypoint = self._map.get_waypoint(location.as_carla_location(),
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Any)
         current_lane_w = waypoint

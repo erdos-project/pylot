@@ -90,20 +90,6 @@ def reset_world(world):
         else:
             actor.destroy()
 
-
-def to_carla_location(location):
-    """ Converts a Pylot location to Carla location.
-
-    Args:
-        location: Location to convert.
-
-    Returns:
-        Carla location object.
-    """
-    return carla.Location(
-        location.x, location.y, location.z)
-
-
 def to_carla_transform(transform):
     """ Converts an Pylot transform object to a Carla transform object.
 

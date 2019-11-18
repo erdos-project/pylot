@@ -11,8 +11,7 @@ from pylot.perception.detection.utils import annotate_image_with_bboxes,\
     visualize_ground_bboxes
 from pylot.simulation.carla_utils import convert_speed_limit_actors,\
     convert_traffic_light_actor, convert_traffic_light_actors,\
-    convert_traffic_stop_actors, get_world, to_carla_location,\
-    to_carla_transform
+    convert_traffic_stop_actors, get_world, to_carla_transform
 from pylot.simulation.utils import depth_to_array, labels_to_array,\
     to_bgra_array, to_pylot_transform
 from pylot.utils import bgra_to_bgr, bgr_to_rgb
@@ -281,7 +280,7 @@ def log_traffic_lights(world):
             # Transform the offset relative to the traffic light.
             transform = to_pylot_transform(
                 light.get_transform()) * offset_trans
-            location = to_carla_location(transform.location)
+            location = transform.location.as_carla_location()
 
             # Get the waypoint nearest to the transform.
             w = world_map.get_waypoint(location,
@@ -338,7 +337,7 @@ def log_speed_limits(world):
             offset_trans = pylot.simulation.utils.Transform(
                 offset_loc, offset_rot)
             transform = speed_sign.transform * offset_trans
-            location = to_carla_location(transform.location)
+            location = transform.location.as_carla_location()
             w = world_map.get_waypoint(
                 location,
                 project_to_road=True,
@@ -373,7 +372,7 @@ def log_stop_signs(world):
             offset_trans = pylot.simulation.utils.Transform(
                 offset_loc, offset_rot)
             transform = stop_sign.transform * offset_trans
-            location = to_carla_location(transform.location)
+            location = transform.location.as_carla_location()
             w = world_map.get_waypoint(
                 location,
                 project_to_road=True,
