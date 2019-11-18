@@ -152,7 +152,7 @@ class Location(object):
         z: The value of the z-axis.
     """
 
-    def __init__(self, x=0, y=0, z=0, carla_loc=None):
+    def __init__(self, x=0, y=0, z=0, carla_location=None):
         """ Initializes the Location instance with either the given x, y, z
         values or from the carla.Location instance if specified.
 
@@ -163,13 +163,13 @@ class Location(object):
             x: The value of the x-axis.
             y: The value of the y-axis.
             z: The value of the z-axis.
-            carla_loc: The carla.Location instance to instantiate this
+            carla_location: The carla.Location instance to instantiate this
                 Location instance from.
         """
-        if carla_loc is not None:
-            self.x = carla_loc.x
-            self.y = carla_loc.y
-            self.z = carla_loc.z
+        if carla_location is not None:
+            self.x = carla_location.x
+            self.y = carla_location.y
+            self.z = carla_location.z
         else:
             self.x = x
             self.y = y
@@ -266,7 +266,7 @@ class Transform(object):
                 transform instance.
         """
         if carla_transform:
-            self.location = Location(carla_loc=carla_transform.location)
+            self.location = Location(carla_location=carla_transform.location)
             self.rotation = Rotation(transform.rotation.pitch,
                                      transform.rotation.yaw,
                                      transform.rotation.roll)
@@ -373,11 +373,6 @@ class Transform(object):
 def to_pylot_transform(transform):
     """ Converts a Carla transform into a Pylot transform."""
     return Transform(carla_transform=transform)
-
-
-def to_pylot_location(location):
-    """ Converts a Carla location into a Pylot location. """
-    return Location(carla_loc=location)
 
 
 def depth_to_array(image):

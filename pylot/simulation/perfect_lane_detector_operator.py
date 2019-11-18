@@ -2,7 +2,7 @@ from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging
 
 from pylot.utils import create_detected_lane_stream, is_can_bus_stream
-from pylot.simulation.utils import DetectedLane, to_pylot_location
+from pylot.simulation.utils import DetectedLane, Location
 from pylot.simulation.messages import DetectedLaneMessage
 from pylot.simulation.carla_utils import get_world
 
@@ -44,7 +44,8 @@ class PerfectLaneDetectionOperator(Op):
 
     def lateral_shift(self, transform, shift):
         transform.rotation.yaw += 90
-        return transform.location + shift * transform.get_forward_vector()
+        shifted = transform.location + shift * transform.get_forward_vector()
+        return Location(carla_location=shifted)
 
     def on_position_update(self, can_bus_msg):
         """ Invoked on the receipt of an update to the position of the vehicle.
@@ -67,13 +68,11 @@ class PerfectLaneDetectionOperator(Op):
 
         # Get the left and right markings of the lane and send it as a message.
         left_markings = [
-            to_pylot_location(
-                self.lateral_shift(w.transform, -w.lane_width * 0.5))
+            self.lateral_shift(w.transform, -w.lane_width * 0.5)
             for w in lane_waypoints
         ]
         right_markings = [
-            to_pylot_location(
-                self.lateral_shift(w.transform, w.lane_width * 0.5))
+            self.lateral_shift(w.transform, w.lane_width * 0.5)
             for w in lane_waypoints
         ]
 
