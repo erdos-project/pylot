@@ -13,7 +13,7 @@ from pylot.simulation.carla_scenario_operator import CarlaScenarioOperator
 from pylot.simulation.perfect_pedestrian_detector_operator import \
         PerfectPedestrianDetectorOperator
 from pylot.simulation.carla_utils import get_world
-from pylot.simulation.mpc_planning_operator import MPCPlanningOperator
+from pylot.control.mpc.mpc_operator import MPCOperator
 
 FLAGS = flags.FLAGS
 
@@ -139,16 +139,17 @@ def add_pedestrian_detector_operator(graph, camera_setup):
     return pedestrian_detector_operator
 
 
-def add_planning_operator(graph, destination):
-    mpc_planning_operator = graph.add(MPCPlanningOperator,
-                                          name='mpc_planning',
-                                          init_args={
-                                              'goal': destination,
-                                              'flags': FLAGS,
-                                              'log_file_name':
-                                              FLAGS.log_file_name
-                                          })
-    return mpc_planning_operator
+def add_control_operator(graph):
+    mpc_operator = graph.add(
+        MPCOperator,
+        name='mpc',
+        init_args={
+          'flags': FLAGS,
+          'log_file_name':
+          FLAGS.log_file_name
+        }
+     )
+    return mpc_operator
 
 
 
@@ -172,19 +173,12 @@ def main(args):
         graph.connect([carla_operator],
                       [rgb_camera.instance, depth_camera.instance])
 
-        # Add a perfect pedestrian detector operator.
-        object_detector_operator = add_pedestrian_detector_operator(
-            graph, rgb_camera.camera_setup)
-        graph.connect([carla_operator, depth_camera.instance],
-                      [object_detector_operator])
-
         # Add a mpc planning operator.
-        mpc_planning_operator = add_planning_operator(
-            graph, carla.Location(x=17.73, y=327.07, z=0.5))
+        mpc_planning_operator = add_control_operator(graph)
         graph.connect([carla_operator], [mpc_planning_operator])
         graph.connect([mpc_planning_operator], [carla_operator])
 
-        graph.execute(FLAGS.framework)
+        graph.execute("ros")
     except KeyboardInterrupt:
         set_asynchronous_mode(world)
     except Exception as e:

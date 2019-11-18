@@ -1,8 +1,6 @@
 import threading
 import carla
 import collections
-import os
-import json
 import time
 import pylot.utils
 
@@ -13,15 +11,15 @@ from erdos.op import Op
 from erdos.utils import setup_logging
 
 from pylot.control.messages import ControlMessage
-from pylot.simulation.utils import to_pylot_transform
 from pylot.simulation.mpc_input import MPCInput, retrieve_actor
-from pylot.simulation.mpc_controller import CubicSpline2D, ModelPredictiveController, global_config
+from pylot.control.mpc.cubic_spline import CubicSpline2D
+from pylot.control.mpc.mpc import ModelPredictiveController
+from pylot.control.mpc.utils import global_config
 from pylot.simulation.carla_utils import get_world, to_carla_location
-from pylot.planning.utils import get_waypoint_vector_and_angle
 
 
-class MPCPlanningOperator(Op):
-    def __init__(self, name, goal, flags, log_file_name=None):
+class MPCOperator(Op):
+    def __init__(self, name, flags, log_file_name=None):
         """ Initializes the operator with the given information.
 
         Args:
@@ -30,10 +28,9 @@ class MPCPlanningOperator(Op):
             flags: The command line flags passed to the driver.
             log_file_name: The file name to log the intermediate messages to.
         """
-        super(MPCPlanningOperator, self).__init__(name)
+        super(MPCOperator, self).__init__(name)
         self._logger = setup_logging(self.name, log_file_name)
         self._flags = flags
-        self._goal = goal
 
         _, world = get_world(self._flags.carla_host, self._flags.carla_port,
                              self._flags.carla_timeout)
@@ -59,12 +56,12 @@ class MPCPlanningOperator(Op):
     @staticmethod
     def setup_streams(input_streams):
         input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
-            MPCPlanningOperator.on_can_bus_update)
+            MPCOperator.on_can_bus_update)
         input_streams.filter(
             pylot.utils.is_ground_pedestrians_stream).add_callback(
-            MPCPlanningOperator.on_pedestrians_update)
+            MPCOperator.on_pedestrians_update)
         input_streams.add_completion_callback(
-            MPCPlanningOperator.on_notification)
+            MPCOperator.on_notification)
         return [pylot.utils.create_control_stream()]
 
     def on_can_bus_update(self, msg):
@@ -167,34 +164,31 @@ class MPCPlanningOperator(Op):
 
         # Figure out the location of the ego vehicle and compute the next waypoint.
         ego_location = to_carla_location(can_bus_msg.data.transform.location)
-        if ego_location.distance(self._goal) <= 25:
-            self.get_output_stream('control_stream').send(
-                ControlMessage(0.0, 0.0, 1.0, False, False, msg.timestamp))
-        else:
-            # step the controller
-            self.mpc.step()
 
-            # update vehicle info
-            self.mpc.vehicle.x = ego_location.x
-            self.mpc.vehicle.y = ego_location.y
+        # step the controller
+        self.mpc.step()
 
-            target_x = self.mpc.solution.x_list[-1]
-            target_y = self.mpc.solution.y_list[-1]
-            target_speed = self.mpc.solution.vel_list[-1]
-            target_steer_rad = self.mpc.horizon_steer[0]  # in rad
-            steer = self.__rad2steer(target_steer_rad)  # [-1.0, 1.0]
-            throttle, brake = self.__get_throttle_brake_without_factor(
-                self.mpc_input.get_ego_speed(), target_speed)
+        # update vehicle info
+        self.mpc.vehicle.x = ego_location.x
+        self.mpc.vehicle.y = ego_location.y
 
-            # draw next waypoints
-            self._world.debug.draw_point(carla.Location(x=target_x, y=target_y, z=0.5),
-                                         size=0.2,
-                                         life_time=30000.0)
+        target_x = self.mpc.solution.x_list[-1]
+        target_y = self.mpc.solution.y_list[-1]
+        target_speed = self.mpc.solution.vel_list[-1]
+        target_steer_rad = self.mpc.horizon_steer[0]  # in rad
+        steer = self.__rad2steer(target_steer_rad)  # [-1.0, 1.0]
+        throttle, brake = self.__get_throttle_brake_without_factor(
+            self.mpc_input.get_ego_speed(), target_speed)
 
-            # send controls
-            self.get_output_stream('control_stream').send(
-                ControlMessage(steer, throttle, brake, False, False,
-                               msg.timestamp))
+        # draw next waypoints
+        self._world.debug.draw_point(carla.Location(x=target_x, y=target_y, z=0.5),
+                                     size=0.2,
+                                     life_time=30000.0)
+
+        # send controls
+        self.get_output_stream('control_stream').send(
+            ControlMessage(steer, throttle, brake, False, False,
+                           msg.timestamp))
 
     def execute(self):
         # wait for ego vehicle to spawn
