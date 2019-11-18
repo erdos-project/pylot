@@ -14,12 +14,12 @@ from pylot.control.messages import ControlMessage
 from pylot.simulation.mpc_input import MPCInput, retrieve_actor
 from pylot.control.mpc.cubic_spline import CubicSpline2D
 from pylot.control.mpc.mpc import ModelPredictiveController
-from pylot.control.mpc.utils import global_config
+from pylot.control.mpc.utils import zero_to_2_pi
 from pylot.simulation.carla_utils import get_world, to_carla_location
 
 
 class MPCOperator(Op):
-    def __init__(self, name, flags, log_file_name=None):
+    def __init__(self, name, flags, config, log_file_name=None):
         """ Initializes the operator with the given information.
 
         Args:
@@ -50,6 +50,7 @@ class MPCOperator(Op):
                         d=self._flags.pid_d)
 
         # MPC
+        self.config = config
         self.mpc_input = None
         self.mpc = None
 
@@ -132,13 +133,52 @@ class MPCOperator(Op):
     def __get_throttle_brake_without_factor(self, current_speed, target_speed):
         self._pid.target = target_speed
         pid_gain = self._pid(feedback=current_speed)
-        throttle = min(max(self._flags.default_throttle - 1.7 * pid_gain, 0),
+        throttle = min(max(self._flags.default_throttle - 1.3 * pid_gain, 0),
                        self._flags.throttle_max)
         if pid_gain > 0.5:
             brake = min(0.35 * pid_gain * self._flags.brake_strength, 1)
         else:
             brake = 0
         return throttle, brake
+
+    def setup_mpc(self, path):
+        # convert target waypoints into spline
+        spline = CubicSpline2D(path[:, 0], path[:, 1])
+        ss = []
+        vels = []
+        xs = []
+        ys = []
+        yaws = []
+        ks = []
+        for s in spline.s[:-1]:
+            x, y = spline.calc_position(s)
+            yaw = np.abs(spline.calc_yaw(s))
+            k = spline.calc_curvature(s)
+            xs.append(x)
+            ys.append(y)
+            yaws.append(yaw)
+            ks.append(k)
+            ss.append(s)
+            vels.append(self.mpc_input.speed_limit)
+
+        config = self.config
+        config["reference"] = {
+            't_list': [],  # Time [s]
+            's_list': ss,  # Arc distance [m]
+            'x_list': xs,  # Desired X coordinates [m]
+            'y_list': ys,  # Desired Y coordinates [m]
+            'k_list': ks,  # Curvatures [1/m]
+            'vel_list': vels,  # Desired tangential velocities [m/s]
+            'yaw_list': yaws,  # Yaws [rad]
+        }
+        # draw intended trajectory
+        for p in path:
+            self._world.debug.draw_point(carla.Location(x=p[0], y=p[1], z=0.5),
+                                         size=0.2,
+                                         life_time=30000.0, color=carla.Color(0, 0, 255))
+
+        # initialize mpc controller
+        self.mpc = ModelPredictiveController(config=config)
 
     def on_notification(self, msg):
         """ The callback function invoked upon receipt of a WatermarkMessage.
@@ -164,22 +204,33 @@ class MPCOperator(Op):
 
         # Figure out the location of the ego vehicle and compute the next waypoint.
         ego_location = to_carla_location(can_bus_msg.data.transform.location)
+        ego_yaw = np.deg2rad(zero_to_2_pi(can_bus_msg.data.transform.rotation.yaw))
 
         # step the controller
+        path = np.array(self.mpc_input.get_ego_path())  # TODO (edward): plug in a real route / motion planner
+        self.setup_mpc(path)
         self.mpc.vehicle.x = ego_location.x
         self.mpc.vehicle.y = ego_location.y
+        self.mpc.vehicle.yaw = ego_yaw
         self.mpc.step()
 
-        target_x = self.mpc.solution.x_list[-1]
-        target_y = self.mpc.solution.y_list[-1]
-        target_speed = self.mpc.solution.vel_list[-1]
+        # compute pid controls
+        target_speed = self.mpc.solution.vel_list[0]
+        target_yaw = self.mpc.solution.yaw_list[0]
         target_steer_rad = self.mpc.horizon_steer[0]  # in rad
         steer = self.__rad2steer(target_steer_rad)  # [-1.0, 1.0]
         throttle, brake = self.__get_throttle_brake_without_factor(
             self.mpc_input.get_ego_speed(), target_speed)
 
+        # log info
+        self._logger.info("Current vehicle yaw: {}".format(ego_yaw))
+        self._logger.info("Target vehicle yaw: {}".format(np.rad2deg(target_yaw)))
+        self._logger.info("MPC yaw: {}".format(np.deg2rad(self.mpc.vehicle.yaw)))
+        self._logger.info("Target steer: {}".format(np.rad2deg(target_steer_rad)))
+        self._logger.info("Steer: {}".format(steer))
+
         # draw next waypoints
-        self._world.debug.draw_point(carla.Location(x=target_x, y=target_y, z=0.5),
+        self._world.debug.draw_point(carla.Location(x=ego_location.x, y=ego_location.y, z=0.5),
                                      size=0.2,
                                      life_time=30000.0)
 
@@ -196,46 +247,7 @@ class MPCOperator(Op):
             time.sleep(1)
             ego_vehicle = retrieve_actor(self._world, 'vehicle.*', 'hero')
 
-        # intialize mpc input module
+        # intialize mpc modules
         self.mpc_input = MPCInput(ego_vehicle=ego_vehicle)
-
-        # convert target waypoints into spline
-        path = np.array(self.mpc_input.get_ego_path())
-        spline = CubicSpline2D(path[:, 0], path[:, 1])
-        ss = []
-        vels = []
-        xs = []
-        ys = []
-        yaws = []
-        ks = []
-        for s in spline.s[:-1]:
-            x, y = spline.calc_position(s)
-            yaw = np.abs(spline.calc_yaw(s))
-            k = spline.calc_curvature(s)
-            xs.append(x)
-            ys.append(y)
-            yaws.append(yaw)
-            ks.append(k)
-            ss.append(s)
-            vels.append(self.mpc_input.speed_limit)
-
-        config = global_config
-        config["reference"] = {
-            't_list': [],  # Time [s]
-            's_list': ss,  # Arc distance [m]
-            'x_list': xs,  # Desired X coordinates [m]
-            'y_list': ys,  # Desired Y coordinates [m]
-            'k_list': ks,  # Curvatures [1/m]
-            'vel_list': vels,  # Desired tangential velocities [m/s]
-            'yaw_list': yaws,  # Yaws [rad]
-        }
-        # draw intended trajectory
-        for p in path:
-            self._world.debug.draw_point(carla.Location(x=p[0], y=p[1], z=0.5),
-                                         size=0.2,
-                                         life_time=30000.0, color=carla.Color(0, 0, 255))
-
-        # initialize mpc controller
-        self.mpc = ModelPredictiveController(config=config)
         self.spin()
 

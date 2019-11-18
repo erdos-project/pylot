@@ -19,7 +19,7 @@ global_config = {
         'min_accel': -8.0,
     },
     'controller': {
-        'R': np.diag([0.01, 0.01]),  # Input cost
+        'R': np.diag([0.01, 0.10]),  # Input cost
         'Rd': np.diag([0.01, 1.0]),  # Input difference cost
         'Q': np.diag([1.0, 1.0, 0.01, 0.01]),  # State cost
         'Qf': np.diag([1.0, 1.0, 0.01, 0.01]),  # Terminal state cost
@@ -39,3 +39,7 @@ def compute_curvature(vel, accel, yaw):
     dy = vel * np.tan(yaw)
     ddy = accel * np.tan(yaw)
     return (ddy * dx - ddx * dy) / ((dx ** 2 + dy ** 2) ** (3 / 2))
+
+
+def zero_to_2_pi(angle):
+    return (angle + 360) % 360

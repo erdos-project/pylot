@@ -13,6 +13,7 @@ from pylot.simulation.carla_scenario_operator import CarlaScenarioOperator
 from pylot.simulation.perfect_pedestrian_detector_operator import \
         PerfectPedestrianDetectorOperator
 from pylot.simulation.carla_utils import get_world
+from pylot.control.mpc.utils import global_config
 from pylot.control.mpc.mpc_operator import MPCOperator
 
 FLAGS = flags.FLAGS
@@ -145,6 +146,7 @@ def add_control_operator(graph):
         name='mpc',
         init_args={
           'flags': FLAGS,
+          'config': global_config,
           'log_file_name':
           FLAGS.log_file_name
         }
