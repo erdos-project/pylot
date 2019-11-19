@@ -11,7 +11,6 @@ from pylot.perception.detection.utils import DetectedObject,\
     DetectedSpeedLimit, get_bounding_boxes_from_segmented
 from pylot.perception.segmentation.utils import get_traffic_sign_pixels
 
-Orientation = namedtuple('Orientation', 'x, y, z')
 Rotation = namedtuple('Rotation', 'pitch, yaw, roll')
 Vehicle = namedtuple('Vehicle', 'id, transform, bounding_box, forward_speed')
 Pedestrian = namedtuple('Pedestrian',
@@ -291,14 +290,14 @@ class Transform(object):
             self.rotation = Rotation(transform.rotation.pitch,
                                      transform.rotation.yaw,
                                      transform.rotation.roll)
-            fwd_vector = carla_transform.get_forward_vector()
-            self.forward_vector = Orientation(fwd_vector.x, fwd_vector.y,
-                                              fwd_vector.z)
+            fwd_vec = carla_transform.get_forward_vector()
+            self.forward_vector = Vector3D(fwd_vec.x, fwd_vec.y, fwd_vec.z)
             self.matrix = Transform._create_matrix(self.location,
                                                    self.rotation)
         elif matrix:
             self.matrix = matrix
             self.location = Location(matrix[0, 3], matrix[1, 3], matrix[2, 3])
+            self.rotation, self.forward_vector = None, None
         else:
             self.location, self.rotation = location, rotation
             self.forward_vector = forward_vector
