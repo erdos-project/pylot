@@ -160,6 +160,65 @@ class BoundingBox(object):
                              actor_transform.rotation.as_carla_rotation(),
                              life_time=time_between_frames / 1000.0)
 
+    def to_camera_view(self, object_transform, extrinsic_matrix,
+                       intrinsic_matrix):
+        """ Converts the coordinates of the bounding box for the given object
+        to the coordinates in the view of the camera.
+
+        This method retrieves the extent of the bounding box, transforms them
+        to coordinates relative to the bounding box origin, then converts those
+        to coordinates relative to the object.
+
+        These coordinates are then considered to be in the world coordinate
+        system, which is mapped into the camera view. A negative z-value
+        signifies that the bounding box is behind the camera plane.
+
+        Note that this function does not cap the coordinates to be within the
+        size of the camera image.
+
+        Args:
+            object_transform: The transform of the object that the bounding
+                box is associated with.
+            extrinsic_matrix: The extrinsic matrix of the camera.
+            intrinsic_matrix: The intrinsic matrix of the camera.
+
+        Returns:
+            A list of 8 Location instances specifying the 8 corners of the
+            bounding box.
+        """
+        # Retrieve the eight coordinates of the bounding box with respect to
+        # the origin of the bounding box.
+        import numpy as np
+        extent = self.extent
+        bbox = np.array([
+            Location(x=+extent.x, y=+extent.y, z=-extent.z),
+            Location(x=-extent.x, y=+extent.y, z=-extent.z),
+            Location(x=-extent.x, y=-extent.y, z=-extent.z),
+            Location(x=+extent.x, y=-extent.y, z=-extent.z),
+            Location(x=+extent.x, y=+extent.y, z=+extent.z),
+            Location(x=-extent.x, y=+extent.y, z=+extent.z),
+            Location(x=-extent.x, y=-extent.y, z=+extent.z),
+            Location(x=+extent.x, y=-extent.y, z=+extent.z),
+        ])
+
+        # Transform the vertices with respect to the bounding box transform.
+        bbox = self.transform.transform_points(bbox)
+
+        # Convert the bounding box relative to the world.
+        bbox = object_transform.transform_points(bbox)
+
+        # Object's transform is relative to the world. Thus, the bbox contains
+        # the 3D bounding box vertices relative to the world.
+        camera_coordinates = []
+        for vertex in bbox:
+            location_2D = vertex.to_camera_view(extrinsic_matrix,
+                                                intrinsic_matrix)
+
+            # Add the points to the image.
+            camera_coordinates.append(location_2D)
+
+        return camera_coordinates
+
     def __repr__(self):
         return self.__str__()
 
@@ -213,12 +272,37 @@ class Vector3D(object):
         import numpy as np
         return np.linalg.norm(self.as_numpy_array())
 
+    def to_camera_view(self, extrinsic_matrix, intrinsic_matrix):
+        """ Converts the given 3D vector to the view of the camera using
+        the extrinsic and the intrinsic matrix.
+
+        Args:
+            extrinsic_matrix: The extrinsic matrix of the camera.
+            intrinsic_matrix: The intrinsic matrix of the camera.
+
+        Returns:
+            An instance with the coordinates converted to the camera view.
+        """
+        import numpy as np
+        position_vector = np.array([[self.x], [self.y], [self.z], [1.0]])
+
+        # Transform the points to the camera in 3D.
+        transformed_3D_pos = np.dot(inv(extrinsic_matrix), position_vector)
+
+        # Transform the points to 2D.
+        position_2D = np.dot(camera_intrinsic, transformed_3D_pos[:3])
+
+        # Normalize the 2D points.
+        location_2D = type(self)(float(position_2D[0] / position_2D[2]),
+                                 float(position_2D[1] / position_2D[2]),
+                                 position_2D[2])
+        return location_2D
+
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
         return 'Vector3D(x={}, y={}, z={})'.format(self.x, self.y, self.z)
-
 
 class Rotation(object):
     """ The Pylot version of the carla.Rotation instance that defines helper
@@ -881,11 +965,10 @@ def get_2d_bbox_from_3d_box(vehicle_transform,
         return None
 
     # Convert the bounding box of the object to the camera coordinates.
-    bb_coordinates = map_ground_bounding_box_to_2D(vehicle_transform,
-                                                   obj_transform,
-                                                   obj_bounding_box,
-                                                   rgb_transform,
-                                                   rgb_intrinsic)
+    extrinsic_matrix = (vehicle_transform * rgb_transform).matrix
+    bb_coordinates = obj_bounding_box.to_camera_view(obj_transform,
+                                                     extrinsic_matrix,
+                                                     intrinsic_matrix)
 
     # Threshold the bounding box to be within the camera view.
     thresholded_coordinates = get_bounding_box_in_camera_view(
@@ -916,87 +999,6 @@ def get_2d_bbox_from_3d_box(vehicle_transform,
             if depth - depth_threshold <= mean_depth <= depth + depth_threshold:
                 return xmin, xmax, ymin, ymax
     return None
-
-
-def map_ground_bounding_box_to_2D(vehicle_transform, obj_transform,
-                                  obj_bounding_box, rgb_transform,
-                                  rgb_intrinsic):
-    """ Converts the coordinates of the bounding box for the given object to
-    the coordinates in the view of the camera.
-
-    This method retrieves the extent of the bounding box, transforms them to
-    coordinates relative to the bounding box origin, then converts those to
-    coordinates relative to the object.
-
-    These coordinates are then considered to be in the world coordinate system,
-    which is mapped into the camera view. A negative z-value signifies that the
-    bounding box is behind the camera plane.
-
-    Note that this function does not cap the coordinates to be within the
-    size of the camera image.
-
-    Args:
-        vehicle_transform: The transform of the ego vehicle.
-        obj_transform: The transform of the object to be shown in the camera.
-        obj_bounding_box: The bounding box of the object in 3D coordinates.
-        rgb_transform: The transform of the camera relative to the ego vehicle.
-        rgb_intrinsic: The intrinsic matrix of the camera.
-
-    Returns:
-        An array of 8 coordinates that bound the given object relative to the
-        camera view. The first four are the bottom plane, and the remaining
-        depict the top plane.
-    """
-
-    # Create the extrinsic matrix of the camera.
-    extrinsic_mat = vehicle_transform * rgb_transform
-
-    # 8 bounding box vertices relative to the origin of the bounding box.
-    extent = obj_bounding_box.extent
-    bbox = np.array([
-        Location(x=+extent.x, y=+extent.y, z=-extent.z),
-        Location(x=-extent.x, y=+extent.y, z=-extent.z),
-        Location(x=-extent.x, y=-extent.y, z=-extent.z),
-        Location(x=+extent.x, y=-extent.y, z=-extent.z),
-        Location(x=+extent.x, y=+extent.y, z=+extent.z),
-        Location(x=-extent.x, y=+extent.y, z=+extent.z),
-        Location(x=-extent.x, y=-extent.y, z=+extent.z),
-        Location(x=+extent.x, y=-extent.y, z=+extent.z),
-    ])
-
-    # Transform the vertices with respect to the bounding box transform.
-    bbox = obj_bounding_box.transform.transform_points(bbox)
-
-    # Convert the bounding box relative to the world.
-    bbox = obj_transform.transform_points(bbox)
-
-    # Object's transform is relative to the world. Thus, the bbox contains
-    # the 3D bounding box vertices relative to the world.
-    camera_coordinates = []
-    for vertex in bbox:
-        location_2d = map_3D_to_2D(vertex, extrinsic_mat.matrix, rgb_intrinsic)
-
-        # Add the points to the image.
-        camera_coordinates.append(
-            (location_2d.x, location_2d.y, location_2d.z))
-
-    return camera_coordinates
-
-def map_3D_to_2D(location, extrinsic_matrix, camera_intrinsic):
-    position_vector = np.array([[location.x], [location.y], [location.z],
-                                [1.0]])
-
-    # Transform the points to the camera.
-    transformed_3d_pos = np.dot(inv(extrinsic_matrix), position_vector)
-
-    # Transform the points to 2D.
-    position_2d = np.dot(camera_intrinsic, transformed_3d_pos[:3])
-
-    # Normalize the 2D points.
-    location_2d = Location(float(position_2d[0] / position_2d[2]),
-                           float(position_2d[1] / position_2d[2]),
-                           position_2d[2])
-    return location_2d
 
 
 def transform_traffic_light_bboxes(light, points):
