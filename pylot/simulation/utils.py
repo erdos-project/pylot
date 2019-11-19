@@ -142,7 +142,56 @@ class BoundingBox(object):
             self.transform, self.extent)
 
 
-class Location(object):
+class Vector3D(object):
+    """ Represents a 3D vector and provides useful helper functions.
+
+    Attributes:
+        x: The value of the first axis.
+        y: The value of the second axis.
+        z: The value of the third axis.
+    """
+
+    def __init__(self, x, y, z):
+        """ Initializes the Vector3D instance from the given x, y and z values.
+
+        Args:
+            x: The value of the first axis.
+            y: The value of the second axis.
+            z: The value of the third axis.
+        """
+        self.x, self.y, self.z = x, y, z
+
+    def __add__(self, other):
+        """ Adds the two vectors together and returns the result. """
+        return type(self)(x=self.x + other.x,
+                          y=self.y + other.y,
+                          z=self.z + other.z)
+
+    def __sub__(self, other):
+        """ Subtracts the other vector from self and returns the result. """
+        return type(self)(x=self.x - other.x,
+                          y=self.y - other.y,
+                          z=self.z - other.z)
+
+    def as_numpy_array(self):
+        """ Retrieves the given vector as a numpy array. """
+        import numpy as np
+        return np.array([self.x, self.y, self.z])
+
+    def magnitude(self):
+        """ Returns the magnitude of the Vector3D instance. """
+        import numpy as np
+        return np.linalg.norm(self.as_numpy_array())
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return 'Vector3D({}, {}, {})'.format(self.x, self.y, self.z)
+
+
+
+class Location(Vector3D):
     """ The Pylot version of the carla.Location instance that defines helper
     functions needed in Pylot, and makes the class serializable.
 
@@ -167,13 +216,10 @@ class Location(object):
                 Location instance from.
         """
         if carla_location is not None:
-            self.x = carla_location.x
-            self.y = carla_location.y
-            self.z = carla_location.z
+            super(Location, self).__init__(carla_location.x, carla_location.y,
+                                           carla_location.z)
         else:
-            self.x = x
-            self.y = y
-            self.z = z
+            super(Location, self).__init__(x, y, z)
 
     def distance(self, other):
         """ Calculates the Euclidean distance between the given point and the
@@ -185,18 +231,7 @@ class Location(object):
         Returns:
             The Euclidean distance between the two points.
         """
-        dist = (self.x - other.x)**2 + (self.y - other.y)**2
-        dist += (self.z - other.z)**2
-        return dist**0.5
-
-    def as_numpy_array(self):
-        """ Retrieves the Location instance as a numpy array.
-
-        Returns:
-            A numpy array of [x, y, z] representing the values along the
-            three coordinate axes in the current Location instance.
-        """
-        return np.array([self.x, self.y, self.z])
+        return (self - other).magnitude()
 
     def as_carla_location(self):
         """ Retrieves the current location as an instance of carla.Location.
@@ -205,20 +240,6 @@ class Location(object):
             A carla.Location instance representing the current location.
         """
         return carla.Location(location.x, location.y, location.z)
-
-    def __add__(self, other):
-        """ Adds the current location with the other location.
-
-        Args:
-            other: The other location to add.
-
-        Returns:
-            A Location instance that represents the addition of the current
-            Location and the Location provided in the arguments.
-        """
-        return Location(x=self.x + other.x,
-                        y=self.y + other.y,
-                        z=self.z + other.z)
 
     def __repr__(self):
         return self.__str__()
