@@ -89,25 +89,6 @@ def reset_world(world):
         else:
             actor.destroy()
 
-def render_bounding_boxes_in_world(
-        world, actor_list, time_between_frames_ms=100):
-    """ Render the 3D ground bboxes on the images.
-
-    Args:
-        world: Connection to the simulator world.
-        actor_list: List of actors in the world.
-        time_between_frames_ms: The life time of the rendered bboxes.
-    """
-    vehicles = actor_list.filter('vehicle.*')
-    for vehicle in vehicles:
-        transform = vehicle.get_transform()
-        bounding_box = vehicle.bounding_box
-        bounding_box.location += transform.location
-        world.debug.draw_box(bounding_box,
-                             transform.rotation,
-                             life_time=time_between_frames_ms / 1000.0,
-                             persistent_lines=True)
-
 
 def extract_data_in_pylot_format(actor_list):
     """ Extracts actor information in ERDOS format from an actor list.
@@ -194,7 +175,7 @@ def convert_traffic_light_actor(tl_actor):
         erdos_tl_state = TrafficLightColor.GREEN
     else:
         erdos_tl_state = TrafficLightColor.OFF
-    extent = pylot.simulation.utils.Extent(
+    extent = pylot.simulation.utils.Vector3D(
         tl_actor.trigger_volume.extent.x,
         tl_actor.trigger_volume.extent.y,
         tl_actor.trigger_volume.extent.z)

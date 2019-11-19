@@ -11,7 +11,6 @@ from pylot.perception.detection.utils import DetectedObject,\
     DetectedSpeedLimit, get_bounding_boxes_from_segmented
 from pylot.perception.segmentation.utils import get_traffic_sign_pixels
 
-Rotation = namedtuple('Rotation', 'pitch, yaw, roll')
 Vehicle = namedtuple('Vehicle', 'id, transform, bounding_box, forward_speed')
 Pedestrian = namedtuple('Pedestrian',
                         'id, transform, bounding_box, forward_speed')
@@ -21,7 +20,6 @@ SpeedLimitSign = namedtuple('SpeedLimitSign', 'transform, limit')
 StopSign = namedtuple('StopSign', 'transform, bounding_box')
 DetectedLane = namedtuple('DetectedLane', 'left_marking, right_marking')
 LocationGeo = namedtuple('LocationGeo', 'latitude, longitude, altitude')
-Extent = namedtuple('Extent', 'x, y, z')
 
 
 class CameraSetup(object):
@@ -114,24 +112,53 @@ class CanBus(object):
 
 
 class BoundingBox(object):
-    def __init__(self, bb):
-        if hasattr(bb, 'location'):
-            # Path for Carla 0.9.x.
-            loc = Location(bb.location.x, bb.location.y, bb.location.z)
-            # In Carla 0.9.x, the bounding box transform is relative
-            # to the object transform (and so carla.BoundingBox doesn't
-            # have a rotation).
-            rot = Rotation(0, 0, 0)
-        else:
-            # Path for Carla 0.8.4.
-            loc = Location(bb.transform.location.x,
-                           bb.transform.location.y,
-                           bb.transform.location.z)
-            rot = Rotation(bb.transform.rotation.pitch,
-                           bb.transform.rotation.yaw,
-                           bb.transform.rotation.roll)
+    """ The Pylot version of the carla.BoundingBox instance that defines helper
+    functions needed in Pylot, and makes the class serializable.
+
+    Attributes:
+        transform: The transform of the bounding box (rotation is (0, 0, 0))
+        extent: The extent of the bounding box.
+    """
+
+    def __init__(self, carla_bb):
+        """ Initializes the BoundingBox instance from the given
+        carla.BoundingBox instance.
+
+        Args:
+            carla_bb: The carla.BoundingBox instance to initialize from.
+        """
+        loc = Location(carla_location=carla_bb.location)
+        rot = Rotation(0, 0, 0)
         self.transform = Transform(loc, rot)
-        self.extent = Extent(bb.extent.x, bb.extent.y, bb.extent.z)
+        self.extent = Vector3D(carla_bb.extent.x, carla_bb.extent.y,
+                               carla_bb.extent.z)
+
+    def as_carla_bounding_box(self):
+        """ Retrieves the current BoundingBox as an instance of
+        carla.BoundingBox
+
+        Returns:
+            A carla.BoundingBox instance that represents the current bounding
+            box.
+        """
+        bb_loc = self.transform.location.as_carla_location()
+        bb_extent = self.extent.as_carla_vector()
+        return carla.BoundingBox(bb_loc, bb_extent)
+
+    def visualize(self, world, actor_transform, time_between_frames=100):
+        """ Visualize the given bounding box on the world.
+
+        Args:
+            world: The world instance to visualize the bounding box on.
+            actor_transform: The current transform of the actor that the
+                bounding box is of.
+            time_between_frames: Time in ms to show the bounding box for.
+        """
+        bb = self.as_carla_bounding_box()
+        bb.location += actor_transform.location()
+        world.debug.draw_box(bb,
+                             actor_transform.rotation.as_carla_rotation(),
+                             life_time=time_between_frames / 1000.0)
 
     def __repr__(self):
         return self.__str__()
@@ -177,6 +204,10 @@ class Vector3D(object):
         import numpy as np
         return np.array([self.x, self.y, self.z])
 
+    def as_carla_vector(self):
+        """ Retrieves the given vector as an instance of carla.Vector3D. """
+        return carla.Vector3D(self.x, self.y, self.z)
+
     def magnitude(self):
         """ Returns the magnitude of the Vector3D instance. """
         import numpy as np
@@ -186,7 +217,56 @@ class Vector3D(object):
         return self.__str__()
 
     def __str__(self):
-        return 'Vector3D({}, {}, {})'.format(self.x, self.y, self.z)
+        return 'Vector3D(x={}, y={}, z={})'.format(self.x, self.y, self.z)
+
+
+class Rotation(object):
+    """ The Pylot version of the carla.Rotation instance that defines helper
+    functions needed in Pylot, and makes the class serializable.
+
+    Attributes:
+        pitch: Rotation about Y-axis.
+        yaw:   Rotation about Z-axis.
+        roll:  Rotation about X-axis.
+    """
+
+    def __init__(self, pitch=0, yaw=0, roll=0, carla_rotation=None):
+        """ Initializes the Rotation instance with either the given pitch,
+        roll and yaw values or from the carla.Rotation instance, if specified.
+
+        The carla.Rotation instance, if provided, takes precedence over the
+        pitch, roll, yaw values provided in the constructor.
+
+        Args:
+            pitch: Rotation about Y-axis.
+            yaw:   Rotation about Z-axis.
+            roll:  Rotation about X-axis.
+            carla_rotation: The carla.Rotation instance to instantiate this
+                Rotation instance from.
+        """
+        if carla.Rotation is not None:
+            self.pitch = carla_rotation.pitch
+            self.yaw = carla_rotation.yaw
+            self.roll = carla_rotation.roll
+        else:
+            self.pitch = pitch
+            self.yaw = yaw
+            self.roll = roll
+
+    def as_carla_rotation(self):
+        """ Retrieves the current rotation as an instance of carla.Rotation.
+
+        Returns:
+            A carla.Rotation instance representing the current rotation.
+        """
+        return carla.Rotation(self.pitch, self.yaw, self.roll)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return 'Rotation(pitch={}, yaw={}, roll={})'.format(
+            self.pitch, self.yaw, self.roll)
 
 
 
@@ -244,7 +324,7 @@ class Location(Vector3D):
         return self.__str__()
 
     def __str__(self):
-        return 'Location({}, {}, {})'.format(self.x, self.y, self.z)
+        return 'Location(x={}, y={}, z={})'.format(self.x, self.y, self.z)
 
 
 class Transform(object):
