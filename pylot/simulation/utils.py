@@ -304,6 +304,7 @@ class Vector3D(object):
     def __str__(self):
         return 'Vector3D(x={}, y={}, z={})'.format(self.x, self.y, self.z)
 
+
 class Rotation(object):
     """ The Pylot version of the carla.Rotation instance that defines helper
     functions needed in Pylot, and makes the class serializable.
@@ -351,7 +352,6 @@ class Rotation(object):
     def __str__(self):
         return 'Rotation(pitch={}, yaw={}, roll={})'.format(
             self.pitch, self.yaw, self.roll)
-
 
 
 class Location(Vector3D):
