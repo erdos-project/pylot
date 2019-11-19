@@ -14,8 +14,6 @@ from pylot.perception.segmentation.utils import get_traffic_sign_pixels
 Vehicle = namedtuple('Vehicle', 'id, transform, bounding_box, forward_speed')
 Pedestrian = namedtuple('Pedestrian',
                         'id, transform, bounding_box, forward_speed')
-TrafficLight = namedtuple('TrafficLight',
-                          'id, transform, state, trigger_volume_extent')
 SpeedLimitSign = namedtuple('SpeedLimitSign', 'transform, limit')
 StopSign = namedtuple('StopSign', 'transform, bounding_box')
 DetectedLane = namedtuple('DetectedLane', 'left_marking, right_marking')
@@ -1426,3 +1424,48 @@ def get_traffic_stop_det_objs(
         if bbox2d:
             det_objs.append(DetectedObject(bbox2d, 1.0, 'stop marking'))
     return det_objs
+
+
+class TrafficLight(object):
+    """ The Pylot version of a carla TrafficLight that defines helper
+    functions needed in Pylot, and makes the class serializable.
+
+    Args:
+        id: The identifier of the TrafficLight.
+        transform: The transform of the TrafficLight.
+        trigger_volume_extent: The extent of the trigger volume of the light.
+        state: The state of the light. (Green/Yellow/Red/Off)
+    """
+
+    def __init__(self, traffic_light):
+        """ Initializes the TrafficLight instance with the given carla
+        TrafficLight instance.
+
+        Args:
+            traffic_light: The carla.TrafficLight instance to initialize this
+                instance with.
+        """
+        # Retrieve the ID of the TrafficLight.
+        self.id = traffic_light.id
+
+        # Retrieve the Transform of the TrafficLight.
+        self.transform = Transform(
+            carla_transform=traffic_light.get_transform())
+
+        # Retrieve the Trigger Volume of the TrafficLight.
+        self.trigger_volume_extent = Vector3D(
+            traffic_light.trigger_volume.extent.x,
+            traffic_light.trigger_volume.extent.y,
+            traffic_light.trigger_volume.extent.z)
+
+        # Retrieve the State of the TrafficLight (Red/Yellow/Green)
+        from pylot.perception.detection.utils import TrafficLightColor
+        traffic_light_state = traffic_light.get_state()
+        if traffic_light_state == carla.TrafficLightState.Red:
+            self.state = TrafficLightColor.RED
+        elif traffic_light_state == carla.TrafficLightState.Yellow:
+            self.state = TrafficLightColor.YELLOW
+        elif traffic_light_state == carla.TrafficLightState.Green:
+            self.state = TrafficLightColor.GREEN
+        else:
+            self.state = TrafficLightColor.OFF

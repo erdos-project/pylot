@@ -162,28 +162,6 @@ def convert_pedestrian_actors(pedestrian_actors):
     return pedestrians
 
 
-def convert_traffic_light_actor(tl_actor):
-    transform = pylot.simulation.utils.Transform(
-        carla_transform=tl_actor.get_transform())
-    tl_state = tl_actor.get_state()
-    erdos_tl_state = None
-    if tl_state == carla.TrafficLightState.Red:
-        erdos_tl_state = TrafficLightColor.RED
-    elif tl_state == carla.TrafficLightState.Yellow:
-        erdos_tl_state = TrafficLightColor.YELLOW
-    elif tl_state == carla.TrafficLightState.Green:
-        erdos_tl_state = TrafficLightColor.GREEN
-    else:
-        erdos_tl_state = TrafficLightColor.OFF
-    extent = pylot.simulation.utils.Vector3D(
-        tl_actor.trigger_volume.extent.x,
-        tl_actor.trigger_volume.extent.y,
-        tl_actor.trigger_volume.extent.z)
-    traffic_light = pylot.simulation.utils.TrafficLight(
-        tl_actor.id, transform, erdos_tl_state, extent)
-    return traffic_light
-
-
 def convert_traffic_light_actors(tl_actors):
     """ Converts a Carla traffic light actor into a Pylot tl object.
 
@@ -195,7 +173,7 @@ def convert_traffic_light_actors(tl_actors):
     """
     traffic_lights = []
     for tl_actor in tl_actors:
-        traffic_light = convert_traffic_light_actor(tl_actor)
+        traffic_light = pylot.simulation.utils.TrafficLight(tl_actor)
         traffic_lights.append(traffic_light)
     return traffic_lights
 

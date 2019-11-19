@@ -10,10 +10,9 @@ import time
 from pylot.perception.detection.utils import annotate_image_with_bboxes,\
     visualize_ground_bboxes
 from pylot.simulation.carla_utils import convert_speed_limit_actors,\
-    convert_traffic_light_actor, convert_traffic_light_actors,\
-    convert_traffic_stop_actors, get_world
+    convert_traffic_light_actors, convert_traffic_stop_actors, get_world
 from pylot.simulation.utils import depth_to_array, labels_to_array,\
-    to_bgra_array, Transform
+    to_bgra_array, Transform, TrafficLight
 from pylot.utils import bgra_to_bgr, bgr_to_rgb
 import pylot.simulation.utils
 
@@ -260,7 +259,7 @@ def log_traffic_lights(world):
         group_lights = []
         for n_light in light.get_group_traffic_lights():
             if not check_lights_opposite(light, n_light):
-                group_lights.append(convert_traffic_light_actor(n_light))
+                group_lights.append(TrafficLight(n_light))
 
         transforms_of_interest = []
         for offset in range(10, 40, 5):
