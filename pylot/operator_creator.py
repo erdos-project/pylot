@@ -4,6 +4,7 @@ from absl import flags
 # import Control operators.
 from pylot.control.pylot_agent_operator import PylotAgentOperator
 from pylot.control.ground_agent_operator import GroundAgentOperator
+from pylot.control.mpc.mpc_agent_operator import MPCAgentOperator
 # Import debug operators.
 from pylot.debug.depth_camera_visualizer import DepthCameraVisualizer
 from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
@@ -174,6 +175,21 @@ def create_planning_op(graph, goal_location):
         })
     return planning_op
 
+
+def create_waypoint_planning_op(graph, goal_location):
+    from pylot.planning.waypoint_planning_operator import WaypointPlanningOperator
+    planning_op = graph.add(
+        WaypointPlanningOperator,
+        name='planning',
+        init_args={
+            'goal_location': goal_location,
+            'flags': FLAGS,
+            'log_file_name': FLAGS.log_file_name,
+            'csv_file_name': FLAGS.csv_log_file_name
+        })
+    return planning_op
+
+
 def create_control_op(graph):
     from pylot.control.pid_control_operator import PIDControlOperator
     control_op = graph.add(
@@ -216,6 +232,17 @@ def create_pylot_agent_op(graph, bgr_camera_setup):
         })
     return agent_op
 
+
+def create_mpc_agent_op(graph):
+    agent_op = graph.add(
+        MPCAgentOperator,
+        name='mpc_agent',
+        init_args={
+            'flags': FLAGS,
+            'log_file_name': FLAGS.log_file_name,
+            'csv_file_name': FLAGS.csv_log_file_name
+        })
+    return agent_op
 
 def create_ground_agent_op(graph):
     agent_op = graph.add(

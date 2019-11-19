@@ -119,4 +119,5 @@ class CubicSpline2D:
                    for (idx, idy) in zip(dx, dy)]
         s = [0]
         s.extend(np.cumsum(self.ds))
+        s = np.unique(s)
         return s

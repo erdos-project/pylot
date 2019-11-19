@@ -1,22 +1,22 @@
 import numpy as np
 
 global_config = {
-    'vehicle': {
-        'length': 4.5,
-        'width': 2.0,
+    'vehicle': { # configured for lincoln mkz
+        'length': 4.93,
+        'width': 1.86,
         'offset': 1.0,
         'wheel_length': 0.3,
         'wheel_width': 0.2,
         'track': 0.7,
-        'wheelbase': 2.5,
-        'max_steer': np.deg2rad(45.0),
-        'min_steer': np.deg2rad(-45.0),
-        'max_steer_speed': np.deg2rad(30.0),
-        'min_steer_speed': np.deg2rad(-30.0),
-        'max_vel': 35,
-        'min_vel': -10,
-        'max_accel': 4.0,
-        'min_accel': -8.0,
+        'wheelbase': 2.85,
+        'max_steer': np.deg2rad(37.5),
+        'min_steer': np.deg2rad(-37.5),
+        'max_steer_speed': np.deg2rad(22.5),
+        'min_steer_speed': np.deg2rad(-22.5),
+        'max_vel': 20,
+        'min_vel': 0,
+        'max_accel': 3.0,
+        'min_accel': -5.0,
     },
     'controller': {
         'R': np.diag([0.01, 0.10]),  # Input cost
