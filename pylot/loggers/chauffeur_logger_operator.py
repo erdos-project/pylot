@@ -102,10 +102,12 @@ class ChauffeurLoggerOp(Op):
         rotation = pylot.simulation.utils.Rotation(0, 0, 0)
         for obj in msg.obj_trajectories:
             # Convert to screen points.
-            screen_points = pylot.simulation.utils.locations_3d_to_view(
-                obj.trajectory,
-                self._top_down_camera_setup.transform.matrix,
-                intrinsic_matrix)
+            screen_points = [
+                loc.to_camera_view(
+                    pylot.simulation.utils.camera_to_unreal_transform(
+                        self._top_down_camera_setup.transform).matrix,
+                    intrinsic_matrix) for loc in obj.trajectory
+            ]
 
             # Keep track of ground vehicle waypoints
             if obj.obj_id == self._ground_vehicle_id:
@@ -140,10 +142,12 @@ class ChauffeurLoggerOp(Op):
         ]
 
         # Convert to screen points
-        screen_waypoints = pylot.simulation.utils.locations_3d_to_view(
-                self._waypoints,
-                self._top_down_camera_setup.transform.matrix,
-                intrinsic_matrix)
+        screen_waypoints = [
+            wp.to_camera_view(
+                pylot.simulation.utils.camera_to_unreal_transform(
+                    self._top_down_camera_setup.transform).matrix,
+                intrinsic_matrix) for wp in self._waypoints
+        ]
 
         # Draw screen points
         for point in screen_waypoints:
