@@ -6,6 +6,7 @@ import json
 import numpy as np
 import PIL.Image as Image
 import time
+import re
 
 from pylot.perception.detection.utils import annotate_image_with_bboxes,\
     visualize_ground_bboxes
@@ -114,10 +115,10 @@ def reset_frames():
     CARLA_IMAGE = None
 
 
-def get_traffic_light_objs(traffic_lights, camera_transform, depth_frame,
+def get_traffic_light_objs(traffic_lights, camera_transform, depth_frame, segmented_frame,
                            width, height, color, town_name):
     det_objs = pylot.simulation.utils.get_traffic_light_det_objs(
-        traffic_lights, camera_transform, depth_frame,
+        traffic_lights, camera_transform, depth_frame, segmented_frame,
         width, height, town_name, FLAGS.camera_fov)
     # Overwrite traffic light color because we control it without refreshing
     # the agents.
@@ -138,11 +139,12 @@ def get_traffic_light_objs(traffic_lights, camera_transform, depth_frame,
     return det_objs
 
 
-def log_bounding_boxes(
-        carla_image, depth_frame, segmented_frame,
-        traffic_lights, tl_color, speed_signs, stop_signs):
+def log_bounding_boxes(carla_image, depth_frame, segmented_frame,
+                       traffic_lights, tl_color, speed_signs, stop_signs,
+                       weather, town):
     game_time = int(carla_image.timestamp * 1000)
-    print("Processing game time {}".format(game_time))
+    print("Processing game time {} in {} with weather {}".format(
+        game_time, town, weather))
     frame = bgra_to_bgr(to_bgra_array(carla_image))
     # Copy the frame to ensure its on the heap.
     frame = copy.deepcopy(frame)
@@ -150,18 +152,25 @@ def log_bounding_boxes(
     _, world = get_world()
     town_name = world.get_map().name
 
-    speed_limit_det_objs = pylot.simulation.utils.get_speed_limit_det_objs(
-        speed_signs, transform, transform, depth_frame, FLAGS.frame_width,
-        FLAGS.frame_height, FLAGS.camera_fov, segmented_frame)
-    traffic_stop_det_objs = pylot.simulation.utils.get_traffic_stop_det_objs(
-        stop_signs, transform, depth_frame, FLAGS.frame_width,
-        FLAGS.frame_height, FLAGS.camera_fov)
-    traffic_light_det_objs = get_traffic_light_objs(
-        traffic_lights, transform, depth_frame,
-        FLAGS.frame_width, FLAGS.frame_height, tl_color, town_name)
+    speed_limit_det_objs = []
+    if speed_signs:
+        speed_limit_det_objs = pylot.simulation.utils.get_speed_limit_det_objs(
+            speed_signs, transform, transform, depth_frame, FLAGS.frame_width,
+            FLAGS.frame_height, FLAGS.camera_fov, segmented_frame)
 
-    det_objs = (speed_limit_det_objs +
-                traffic_stop_det_objs +
+    traffic_stop_det_objs = []
+    if stop_signs:
+        traffic_stop_det_objs = pylot.simulation.utils.get_traffic_stop_det_objs(
+            stop_signs, transform, depth_frame, FLAGS.frame_width,
+            FLAGS.frame_height, FLAGS.camera_fov)
+
+    traffic_light_det_objs = []
+    if traffic_lights:
+        traffic_light_det_objs = get_traffic_light_objs(
+            traffic_lights, transform, depth_frame, segmented_frame,
+            FLAGS.frame_width, FLAGS.frame_height, tl_color, town_name)
+
+    det_objs = (speed_limit_det_objs + traffic_stop_det_objs +
                 traffic_light_det_objs)
 
     if FLAGS.visualize_bboxes:
@@ -169,21 +178,23 @@ def log_bounding_boxes(
 
     # Log the frame.
     rgb_frame = bgr_to_rgb(frame)
-    file_name = '{}signs-{}.png'.format(FLAGS.data_path, game_time)
+    file_name = '{}signs-{}_{}_{}.png'.format(FLAGS.data_path, game_time,
+                                              weather, town)
     rgb_img = Image.fromarray(np.uint8(rgb_frame))
     rgb_img.save(file_name)
 
     if FLAGS.log_bbox_images:
         annotate_image_with_bboxes(game_time, frame, det_objs)
         rgb_frame = bgr_to_rgb(frame)
-        file_name = '{}annotated-signs-{}.png'.format(
-            FLAGS.data_path, game_time)
+        file_name = '{}annotated-signs-{}_{}_{}.png'.format(
+            FLAGS.data_path, game_time, weather, town)
         rgb_img = Image.fromarray(np.uint8(rgb_frame))
         rgb_img.save(file_name)
 
     # Log the bounding boxes.
     bboxes = [det_obj.get_bbox_label() for det_obj in det_objs]
-    file_name = '{}bboxes-{}.json'.format(FLAGS.data_path, game_time)
+    file_name = '{}bboxes-{}_{}_{}.json'.format(FLAGS.data_path, game_time,
+                                                weather, town)
     with open(file_name, 'w') as outfile:
         json.dump(bboxes, outfile)
 
@@ -208,29 +219,20 @@ def get_actors(world):
     return (tl_actors, traffic_lights, traffic_stops, speed_signs)
 
 
-def log_obstacles(world,
-                  transforms_of_interest,
-                  traffic_lights,
-                  tl_color,
-                  speed_signs,
-                  traffic_stops):
+def log_obstacles(world, transforms_of_interest, traffic_lights, tl_color,
+                  speed_signs, traffic_stops, weather, town):
     for transform in transforms_of_interest:
         camera = add_camera(world, transform, on_camera_msg)
         depth_camera = add_depth_camera(world, transform, on_depth_msg)
-        segmented_camera = add_segmented_camera(
-            world, transform, on_segmented_msg)
+        segmented_camera = add_segmented_camera(world, transform,
+                                                on_segmented_msg)
         wait_for_data(world)
         global CARLA_IMAGE
         global DEPTH_FRAME
         global SEGMENTED_FRAME
-        log_bounding_boxes(
-            CARLA_IMAGE,
-            DEPTH_FRAME,
-            SEGMENTED_FRAME,
-            traffic_lights,
-            tl_color,
-            speed_signs,
-            traffic_stops)
+        log_bounding_boxes(CARLA_IMAGE, DEPTH_FRAME, SEGMENTED_FRAME,
+                           traffic_lights, tl_color, speed_signs,
+                           traffic_stops, weather, town)
         reset_frames()
         segmented_camera.destroy()
         depth_camera.destroy()
@@ -249,21 +251,20 @@ def check_lights_opposite(light_a, light_b):
 
 def log_traffic_lights(world):
     world_map = world.get_map()
-    (traffic_lights, _, traffic_stops, speed_signs) = get_actors(world)
+    (traffic_lights, _, _, _) = get_actors(world)
     tl_colors = [
         carla.TrafficLightState.Yellow, carla.TrafficLightState.Green,
         carla.TrafficLightState.Red
     ]
+    transforms_of_interest = []
     for light in traffic_lights:
         print("Working for traffic light {}".format(light.id))
         # For every traffic light, get the neighbouring lights except the one
         # directly opposite.
-        group_lights = []
-        for n_light in light.get_group_traffic_lights():
-            if not check_lights_opposite(light, n_light):
-                group_lights.append(convert_traffic_light_actor(n_light))
-
-        transforms_of_interest = []
+        # group_lights = []
+        # for n_light in light.get_group_traffic_lights():
+        #     if not check_lights_opposite(light, n_light):
+        #         group_lights.append(convert_traffic_light_actor(n_light))
         for offset in range(10, 40, 5):
             # Traffic lights have different coordinate systems, hence
             # we need to offset y, instead of x and add that to the trigger
@@ -313,14 +314,17 @@ def log_traffic_lights(world):
                 transforms_of_interest.append(transform)
                 wp_left = wp_left.get_left_lane()
 
-        print("The total number of transforms were: {}".format(
-            len(transforms_of_interest)))
+    print("The total number of transforms were: {}".format(
+        len(transforms_of_interest)))
+
+    traffic_lights = [convert_traffic_light_actor(light) for light in traffic_lights]
+    for weather in find_weather_presets():
+        change_weather(world, weather)
         for tl_color in tl_colors:
             change_traffic_light_colors(world, tl_color)
             world.tick()
-            time.sleep(1)
-            log_obstacles(world, transforms_of_interest, group_lights,
-                          tl_color, speed_signs, traffic_stops)
+            log_obstacles(world, transforms_of_interest, traffic_lights,
+                          tl_color, None, None, weather, world_map.name)
 
 
 def log_speed_limits(world):
@@ -352,12 +356,11 @@ def log_speed_limits(world):
     world.tick()
     time.sleep(1)
     (_, traffic_lights, traffic_stops, speed_signs) = get_actors(world)
-    log_obstacles(world,
-                  transforms_of_interest,
-                  traffic_lights,
-                  carla.TrafficLightState.Red,
-                  speed_signs,
-                  traffic_stops)
+    for weather in find_weather_presets():
+        change_weather(world, weather)
+        log_obstacles(world, transforms_of_interest, traffic_lights,
+                      carla.TrafficLightState.Red, speed_signs, traffic_stops,
+                      weather, world_map.name)
 
 
 def log_stop_signs(world):
@@ -387,12 +390,22 @@ def log_stop_signs(world):
     world.tick()
     time.sleep(1)
     (_, traffic_lights, traffic_stops, speed_signs) = get_actors(world)
-    log_obstacles(world,
-                  transforms_of_interest,
-                  traffic_lights,
-                  carla.TrafficLightState.Red,
-                  speed_signs,
-                  traffic_stops)
+    for weather in find_weather_presets():
+        change_weather(world, weather)
+        log_obstacles(world, transforms_of_interest, traffic_lights,
+                      carla.TrafficLightState.Red, speed_signs, traffic_stops,
+                      weather, world_map.name)
+
+
+def change_weather(world, weather):
+    world.set_weather(getattr(carla.WeatherParameters, weather))
+
+
+def find_weather_presets():
+    presets = [
+        x for x in dir(carla.WeatherParameters) if re.match('[A-Z].+', x)
+    ]
+    return presets
 
 
 def main(argv):
@@ -401,8 +414,8 @@ def main(argv):
     # Sleep a bit to ensure the simulator actually ticks.
     time.sleep(1)
     log_traffic_lights(world)
-    log_speed_limits(world)
-    log_stop_signs(world)
+    # log_speed_limits(world)
+    # log_stop_signs(world)
 
 
 if __name__ == '__main__':
