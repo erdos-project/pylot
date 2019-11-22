@@ -6,12 +6,12 @@ if [ -z "$CARLA_HOME" ]; then
     exit 1
 fi
 
-towns=("Town01" "Town02" "Town03" "Town04" "Town05")
+towns=("Town01" "Town02")
 
 # towns=("Town05")
 
 for town in ${towns[@]}; do
-    ${CARLA_HOME}/CarlaUE4.sh &
+    ${CARLA_HOME}/CarlaUE4.sh -opengl &
     sleep 10
     # Change the town using the config file.
     # Do not change Town03 because we start in Town03 and running config.py

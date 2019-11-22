@@ -19,7 +19,6 @@ from pylot.simulation.utils import depth_to_array, labels_to_array,\
 from pylot.utils import bgra_to_bgr, bgr_to_rgb
 import pylot.simulation.utils
 
-
 FLAGS = flags.FLAGS
 CARLA_IMAGE = None
 DEPTH_FRAME = None
@@ -28,8 +27,7 @@ SEGMENTED_FRAME = None
 flags.DEFINE_string('data_path', 'data/', 'Path where data will be saved')
 flags.DEFINE_integer('frame_width', 1920, 'Camera frame width')
 flags.DEFINE_integer('frame_height', 1080, 'Camera frame height')
-flags.DEFINE_bool('visualize_bboxes', False,
-                  'True to enable bbox visualizer')
+flags.DEFINE_bool('visualize_bboxes', False, 'True to enable bbox visualizer')
 flags.DEFINE_bool('log_bbox_images', False,
                   'True to enable logging of bbox annodated images')
 flags.DEFINE_integer('camera_fov', 45, 'Camera fov')
@@ -51,8 +49,7 @@ def on_segmented_msg(carla_image):
 
 
 def add_camera(world, transform, callback):
-    camera_blueprint = world.get_blueprint_library().find(
-        'sensor.camera.rgb')
+    camera_blueprint = world.get_blueprint_library().find('sensor.camera.rgb')
     camera_blueprint.set_attribute('image_size_x', str(FLAGS.frame_width))
     camera_blueprint.set_attribute('image_size_y', str(FLAGS.frame_height))
     camera_blueprint.set_attribute('fov', str(FLAGS.camera_fov))
@@ -63,8 +60,7 @@ def add_camera(world, transform, callback):
 
 
 def add_depth_camera(world, transform, callback):
-    depth_blueprint = world.get_blueprint_library().find(
-        'sensor.camera.depth')
+    depth_blueprint = world.get_blueprint_library().find('sensor.camera.depth')
     depth_blueprint.set_attribute('image_size_x', str(FLAGS.frame_width))
     depth_blueprint.set_attribute('image_size_y', str(FLAGS.frame_height))
     depth_blueprint.set_attribute('fov', str(FLAGS.camera_fov))
@@ -90,7 +86,7 @@ def setup_world():
     client, world = get_world()
     settings = world.get_settings()
     settings.synchronous_mode = True
-    settings.fixed_delta_seconds = 0.05
+    settings.fixed_delta_seconds = 0.02
     world.apply_settings(settings)
     return world
 
@@ -100,9 +96,8 @@ def wait_for_data(world):
     global CARLA_IMAGE
     global DEPTH_FRAME
     global SEGMENTED_FRAME
-    while (CARLA_IMAGE is None or
-           DEPTH_FRAME is None or
-           SEGMENTED_FRAME is None):
+    while (CARLA_IMAGE is None or DEPTH_FRAME is None
+           or SEGMENTED_FRAME is None):
         time.sleep(0.1)
 
 
@@ -116,11 +111,11 @@ def reset_frames():
     CARLA_IMAGE = None
 
 
-def get_traffic_light_objs(traffic_lights, camera_transform, depth_frame, segmented_frame,
-                           width, height, color, town_name):
+def get_traffic_light_objs(traffic_lights, camera_transform, depth_frame,
+                           segmented_frame, width, height, color, town_name):
     det_objs = pylot.simulation.utils.get_traffic_light_det_objs(
-        traffic_lights, camera_transform, depth_frame, segmented_frame,
-        width, height, town_name, FLAGS.camera_fov)
+        traffic_lights, camera_transform, depth_frame, segmented_frame, width,
+        height, town_name, FLAGS.camera_fov)
     # Overwrite traffic light color because we control it without refreshing
     # the agents.
     if color == carla.TrafficLightState.Yellow:
@@ -206,7 +201,36 @@ def change_traffic_light_colors(world, color):
     for tl in tl_actors:
         tl.set_state(color)
         tl.freeze(True)
+        if color == carla.TrafficLightState.Green:
+            tl.set_green_time(99999999999999999999999999999999999999)
+            tl.set_yellow_time(0)
+            tl.set_red_time(0)
+        elif color == carla.TrafficLightState.Yellow:
+            tl.set_green_time(0)
+            tl.set_yellow_time(99999999999999999999999999999999999999)
+            tl.set_red_time(0)
+        else:
+            tl.set_green_time(0)
+            tl.set_yellow_time(0)
+            tl.set_red_time(99999999999999999999999999999999999999)
     world.tick()
+    time.sleep(1)
+
+    # Make sure that everything is frozen and in the correct state.
+    tl_actors = actor_list.filter('traffic.traffic_light*')
+    for tl in tl_actors:
+        assert tl.is_frozen() and tl.state == color, \
+                "Traffic Light {}: Frozen: {}, Color: {}, Expected: {}".format(
+                            tl.id, tl.is_frozen(), tl.state, color)
+
+
+def test_traffic_light_colors(world, color):
+    actor_list = world.get_actors()
+    tl_actors = actor_list.filter('traffic.traffic_light*')
+    for tl in tl_actors:
+        if tl.state != color:
+            raise ValueError("The expected color was {}, got {}".format(
+                color, tl.state))
 
 
 def get_actors(world):
@@ -231,6 +255,10 @@ def log_obstacles(world, transforms_of_interest, traffic_lights, tl_color,
         global CARLA_IMAGE
         global DEPTH_FRAME
         global SEGMENTED_FRAME
+
+        # Ensure that the traffic lights are of the given color.
+        test_traffic_light_colors(world, tl_color)
+
         log_bounding_boxes(CARLA_IMAGE, DEPTH_FRAME, SEGMENTED_FRAME,
                            traffic_lights, tl_color, speed_signs,
                            traffic_stops, weather, town)
@@ -242,9 +270,11 @@ def log_obstacles(world, transforms_of_interest, traffic_lights, tl_color,
 
 def check_lights_opposite(light_a, light_b):
     """ Checks if the two given lights are opposite to each other or not. """
+
     def get_forward_vector(light):
         light_vector = light.get_transform().get_forward_vector()
         return [light_vector.x, light_vector.y, light_vector.z]
+
     light_a_vector = get_forward_vector(light_a)
     light_b_vector = get_forward_vector(light_b)
     return np.dot(light_a_vector, light_b_vector) < -0.98
@@ -318,7 +348,9 @@ def log_traffic_lights(world):
     print("The total number of transforms were: {}".format(
         len(transforms_of_interest)))
 
-    traffic_lights = [convert_traffic_light_actor(light) for light in traffic_lights]
+    traffic_lights = [
+        convert_traffic_light_actor(light) for light in traffic_lights
+    ]
     for weather in find_weather_presets():
         change_weather(world, weather)
         time.sleep(1)
@@ -340,16 +372,16 @@ def log_speed_limits(world):
             # Speed signs have different coordinate systems, hence
             # we need to offset y, instead of x.
             offset_loc = pylot.simulation.utils.Location(x=0, y=offset, z=0)
-            offset_rot = pylot.simulation.utils.Rotation(
-                pitch=0, yaw=0, roll=0)
+            offset_rot = pylot.simulation.utils.Rotation(pitch=0,
+                                                         yaw=0,
+                                                         roll=0)
             offset_trans = pylot.simulation.utils.Transform(
                 offset_loc, offset_rot)
             transform = speed_sign.transform * offset_trans
             location = to_carla_location(transform.location)
-            w = world_map.get_waypoint(
-                location,
-                project_to_road=True,
-                lane_type=carla.LaneType.Driving)
+            w = world_map.get_waypoint(location,
+                                       project_to_road=True,
+                                       lane_type=carla.LaneType.Driving)
             camera_transform = to_pylot_transform(w.transform)
             camera_transform.location.z += 2.0
             transform = to_carla_transform(camera_transform)
@@ -374,16 +406,16 @@ def log_stop_signs(world):
     for stop_sign in traffic_stops:
         for offset in range(10, 25, 5):
             offset_loc = pylot.simulation.utils.Location(x=-offset, y=0, z=0)
-            offset_rot = pylot.simulation.utils.Rotation(
-                pitch=0, yaw=0, roll=0)
+            offset_rot = pylot.simulation.utils.Rotation(pitch=0,
+                                                         yaw=0,
+                                                         roll=0)
             offset_trans = pylot.simulation.utils.Transform(
                 offset_loc, offset_rot)
             transform = stop_sign.transform * offset_trans
             location = to_carla_location(transform.location)
-            w = world_map.get_waypoint(
-                location,
-                project_to_road=True,
-                lane_type=carla.LaneType.Driving)
+            w = world_map.get_waypoint(location,
+                                       project_to_road=True,
+                                       lane_type=carla.LaneType.Driving)
             camera_transform = to_pylot_transform(w.transform)
             camera_transform.location.z += 2.0
             transform = to_carla_transform(camera_transform)
