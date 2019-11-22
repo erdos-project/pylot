@@ -320,9 +320,11 @@ def log_traffic_lights(world):
     traffic_lights = [convert_traffic_light_actor(light) for light in traffic_lights]
     for weather in find_weather_presets():
         change_weather(world, weather)
+        time.sleep(1)
         for tl_color in tl_colors:
             change_traffic_light_colors(world, tl_color)
             world.tick()
+            time.sleep(1)
             log_obstacles(world, transforms_of_interest, traffic_lights,
                           tl_color, None, None, weather, world_map.name)
 
