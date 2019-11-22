@@ -90,6 +90,7 @@ def setup_world():
     client, world = get_world()
     settings = world.get_settings()
     settings.synchronous_mode = True
+    settings.fixed_delta_seconds = 0.05
     world.apply_settings(settings)
     return world
 
