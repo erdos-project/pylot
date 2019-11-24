@@ -201,10 +201,6 @@ def add_segmentation_component(graph, camera_ops):
             graph)
         segmentation_ops.append(segmentation_op)
 
-    if FLAGS.segmentation_dla:
-        segmentation_op = pylot.operator_creator.create_segmentation_dla_op(
-            graph)
-        segmentation_ops.append(segmentation_op)
     graph.connect(camera_ops, segmentation_ops)
 
     if FLAGS.evaluate_segmentation:

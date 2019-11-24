@@ -500,23 +500,6 @@ def create_segmentation_drn_op(graph):
     return segmentation_op
 
 
-def create_segmentation_dla_op(graph):
-    try:
-        from pylot.perception.segmentation.segmentation_dla_operator import SegmentationDLAOperator
-    except ImportError:
-        raise Exception("Error importing DLA segmentation.")
-    segmentation_op = graph.add(
-        SegmentationDLAOperator,
-        name='segmentation_dla',
-        setup_args={'output_stream_name': 'segmented_stream'},
-        init_args={'output_stream_name': 'segmented_stream',
-                   'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name,
-                   'csv_file_name': FLAGS.csv_log_file_name},
-        _resources = {"GPU": FLAGS.segmentation_dla_gpu_memory_fraction})
-    return segmentation_op
-
-
 def create_segmentation_eval_op(graph, ground_stream_name, segmented_stream_name):
     segmentation_eval_op = graph.add(
         SegmentationEvalOperator,

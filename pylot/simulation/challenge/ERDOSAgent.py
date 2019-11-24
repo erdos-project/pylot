@@ -20,7 +20,6 @@ from erdos.timestamp import Timestamp
 import pylot.config
 from pylot.control.pylot_agent_operator import PylotAgentOperator
 import pylot.operator_creator
-from pylot.planning.planning_operator import PlanningOperator
 from pylot.utils import bgra_to_bgr
 import pylot.simulation.messages
 from pylot.simulation.utils import Location, Rotation, Transform
@@ -98,10 +97,6 @@ def create_segmentation_ops(graph):
             graph)
         segmentation_ops.append(segmentation_op)
 
-    if FLAGS.segmentation_dla:
-        segmentation_op = pylot.operator_creator.create_segmentation_dla_op(
-            graph)
-        segmentation_ops.append(segmentation_op)
     return segmentation_ops
 
 

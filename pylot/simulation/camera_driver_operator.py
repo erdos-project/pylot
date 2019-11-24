@@ -129,7 +129,8 @@ class CameraDriverOperator(Op):
         num_tries = 0
         while self._vehicle is None and num_tries < 30:
             self._vehicle = world.get_actors().find(vehicle_id)
-            self._logger.info("Could not find vehicle. Try {}".format(num_tries))
+            self._logger.info(
+                "Could not find vehicle. Try {}".format(num_tries))
             time.sleep(1)
             num_tries += 1
         if self._vehicle is None:

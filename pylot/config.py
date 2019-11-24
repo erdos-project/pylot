@@ -22,11 +22,6 @@ flags.DEFINE_bool('segmentation_drn', False,
 flags.DEFINE_string('segmentation_drn_model_path',
                     'dependencies/models/drn_d_22_cityscapes.pth',
                     'Path to the model')
-flags.DEFINE_bool('segmentation_dla', False,
-                  'True to enable DLA segmentation operator')
-flags.DEFINE_string('segmentation_dla_model_path',
-                    'dependencies/dla/DLASeg.pth',
-                    'Path to the model')
 flags.DEFINE_bool('obj_detection', False,
                   'True to enable object detection operator')
 flags.DEFINE_bool('detector_ssd_mobilenet_v1', False,
@@ -58,6 +53,9 @@ flags.DEFINE_string('tracker_type', 'cv2',
 flags.DEFINE_string('da_siam_rpn_model_path',
                     'dependencies/models/SiamRPNVOT.model',
                     'Path to the model')
+flags.DEFINE_string('deep_sort_tracker_pedestrian_weights_path',
+                    'dependencies/nanonets_object_tracking/ped_feature_extractor',
+                    'Path to weights for pedestrian feature extractor model')
 flags.DEFINE_bool('lane_detection', False, 'True to enable lane detection')
 flags.DEFINE_bool('fusion', False, 'True to enable fusion operator')
 flags.DEFINE_bool('traffic_light_det', False,
@@ -74,9 +72,6 @@ flags.DEFINE_bool('depth_estimation', False,
                   'True to depth estimation using cameras')
 flags.DEFINE_string('depth_estimation_model_path', 'dependencies/anynet/',
                     'Path to AnyNet depth estimation model')
-flags.DEFINE_string('deep_sort_tracker_pedestrian_weights_path',
-                    'dependencies/nanonets_object_tracking/ped_feature_extractor',
-                    'Path to weights for pedestrian feature extractor model')
 
 # Agent flags.
 flags.DEFINE_bool('stop_for_traffic_lights', True,
@@ -134,10 +129,11 @@ flags.DEFINE_integer('carla_timeout', 10,
 flags.DEFINE_bool('carla_synchronous_mode', True,
                   'Run Carla in synchronous mode.')
 flags.DEFINE_integer('carla_town', 1, 'Sets which Carla town to use.')
-flags.DEFINE_integer('carla_fps', 10, 'Carla FPS; do not set bellow 10.')
+flags.DEFINE_integer('carla_fps', 10,
+                     'Carla simulator FPS; do not set bellow 10.')
 flags.DEFINE_float('carla_step_frequency', -1,
                    'Target frequency of sending control commands. -1 if '
-                   'commands should be applied as soon ASAP.')
+                   'commands should be applied as fast as possible.')
 flags.DEFINE_integer('carla_num_vehicles', 20, 'Carla num vehicles.')
 flags.DEFINE_integer('carla_num_pedestrians', 40, 'Carla num pedestrians.')
 flags.DEFINE_string('carla_weather', 'ClearNoon', 'Carla Weather Presets')
@@ -220,8 +216,6 @@ flags.DEFINE_float('obj_tracking_gpu_memory_fraction', 0.3,
                    'GPU memory fraction allocated to each obj tracker operator')
 flags.DEFINE_float('traffic_light_det_gpu_memory_fraction', 0.3,
                    'GPU memory fraction allocated to each traffic light detector')
-flags.DEFINE_float('segmentation_dla_gpu_memory_fraction', 0.2,
-                   'GPU memory fraction allocated to DLA segmentation')
 flags.DEFINE_float('segmentation_drn_gpu_memory_fraction', 0.2,
                    'GPU memory fraction allocated to DRN segmentation')
 
@@ -253,11 +247,11 @@ flags.register_multi_flags_validator(
     lambda flags_dict: not (flags_dict['replay'] and flags_dict['fusion']),
     message='--fusion cannot be set when --replay is set')
 # flags.register_multi_flags_validator(
-#     ['ground_agent_operator', 'obj_detection', 'traffic_light_det', 'segmentation_drn', 'segmentation_dla'],
+#     ['ground_agent_operator', 'obj_detection', 'traffic_light_det', 'segmentation_drn'],
 #     lambda flags_dict: (flags_dict['ground_agent_operator'] or
 #                         (flags_dict['obj_detection'] and
 #                          flags_dict['traffic_light_det'] and
-#                          (flags_dict['segmentation_drn'] or flags_dict['segmentation_dla']))),
+#                          (flags_dict['segmentation_drn']))),
 #     message='ERDOS agent requires obj detection, segmentation and traffic light detection')
 flags.register_multi_flags_validator(
     ['obj_detection', 'detector_ssd_mobilenet_v1',
@@ -269,10 +263,12 @@ flags.register_multi_flags_validator(
                           flags_dict['detector_ssd_resnet50_v1']))),
     message='a detector must be active when --obj_detection is set')
 
+
 def tracker_flag_validator(flags_dict):
     if flags_dict['obj_tracking']:
         return flags_dict['obj_detection']
     return True
+
 
 flags.register_multi_flags_validator(
     ['obj_detection', 'obj_tracking'],
@@ -286,10 +282,12 @@ flags.register_multi_flags_validator(
                          flags_dict['perfect_tracking_num_steps'])),
     message='perfect_tracking must be enabled when perfect_tracking_num_steps is set')
 
+
 def detector_accuracy_validator(flags_dict):
     if flags_dict['evaluate_obj_detection']:
         return flags_dict['obj_detection']
     return True
+
 
 flags.register_multi_flags_validator(
     ['obj_detection', 'evaluate_obj_detection'],
