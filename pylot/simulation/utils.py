@@ -457,9 +457,19 @@ class Transform(object):
             self.matrix = Transform._create_matrix(self.location,
                                                    self.rotation)
         elif matrix is not None:
+            import numpy as np
             self.matrix = matrix
             self.location = Location(matrix[0, 3], matrix[1, 3], matrix[2, 3])
-            self.rotation, self.forward_vector = None, None
+
+            # No forward vector provided, we multiply the default world
+            # forward vector by the transform matrix to compute.
+            orientation_matrix = np.dot(
+                Transform._create_matrix(Location(1.0, 0, 0),
+                                         Rotation(0, 0, 0)), self.matrix)
+            self.forward_vector = Vector3D(orientation_matrix[0, 3],
+                                           orientation_matrix[1, 3],
+                                           orientation_matrix[2, 3])
+            self.rotation = None
         else:
             self.location, self.rotation = location, rotation
             self.forward_vector = forward_vector
@@ -506,22 +516,31 @@ class Transform(object):
         with respect to the object represented by the transform.
 
         Expected point format:
+            List of Location values.
 
         Args:
-            points: Points in the format [[X0,Y0,Z0],..[Xn,Yn,Zn]]
+            points: Points in the format [Location,..Location]
 
         Returns:
-            Transformed points in the format [[X0,Y0,Z0],..[Xn,Yn,Zn]]
+            Transformed points in the format [Location,..Location]
         """
-        # Needed format: [[X0,..Xn],[Y0,..Yn],[Z0,..Zn]]. So let's transpose
-        # the point matrix.
+        # Retrieve the locations as numpy arrays.
+        points = np.matrix([loc.as_numpy_array() for loc in points])
+
+        # Needed format: [[X0,..Xn],[Y0,..Yn],[Z0,..Zn]].
+        # So let's transpose the point matrix.
         points = points.transpose()
+
         # Add 1s row: [[X0..,Xn],[Y0..,Yn],[Z0..,Zn],[1,..1]]
         points = np.append(points, np.ones((1, points.shape[1])), axis=0)
+
         # Point transformation
         points = np.dot(self.matrix, points)
-        # Return all but last row
-        return points[0:3].transpose()
+
+        # Get all but the last row in array form.
+        points = np.asarray(points[0:3].transpose())
+
+        return [Location(x, y, z) for x, y, z in points]
 
     def inverse_transform(self):
         """ Returns the inverse of the given transform. """
@@ -639,7 +658,11 @@ def depth_to_local_point_cloud(depth_frame, width, height, fov, max_depth=0.9):
     p3d *= normalized_depth * far
 
     # [[X1,Y1,Z1],[X2,Y2,Z2], ... [Xn,Yn,Zn]]
-    return np.transpose(p3d)
+    # Return the points as location,
+    locations = [
+        Location(x, y, z) for x, y, z in np.asarray(np.transpose(p3d))
+    ]
+    return locations
 
 
 def camera_to_unreal_transform(transform):
@@ -706,8 +729,7 @@ def get_3d_world_position_with_depth_map(
     # Transform the points in 3D world coordinates.
     to_world_transform = camera_to_unreal_transform(camera_transform)
     point_cloud = to_world_transform.transform_points(point_cloud)
-    (x, y, z) = point_cloud.tolist()[y * width + x]
-    return Location(x, y, z)
+    return point_cloud[y * width + x]
 
 
 def batch_get_3d_world_position_with_depth_map(
@@ -733,9 +755,7 @@ def batch_get_3d_world_position_with_depth_map(
     # Transform the points in 3D world coordinates.
     to_world_transform = camera_to_unreal_transform(camera_transform)
     point_cloud = to_world_transform.transform_points(point_cloud)
-    point_cloud = point_cloud.tolist()
-    locs = [point_cloud[ys[i] * width + xs[i]] for i in range(len(xs))]
-    return [Location(loc[0], loc[1], loc[2]) for loc in locs]
+    return [point_cloud[ys[i] * width + xs[i]] for i in range(len(xs))]
 
 
 def find_point_depth(x, y, point_cloud):
@@ -761,13 +781,16 @@ def find_point_depth(x, y, point_cloud):
 
 def lidar_point_cloud_to_camera_coordinates(point_cloud):
     """ Transforms a point cloud from lidar to camera coordinates."""
+    point_cloud = [Location(x, y, z) for x, y, z in np.asarray(point_cloud)]
     identity_transform = Transform(
         matrix=np.array([[1, 0, 0, 0],
                          [0, 1, 0, 0],
                          [0, 0, 1, 0],
                          [0, 0, 0, 1]]))
     transform = lidar_to_camera_transform(identity_transform)
-    return transform.transform_points(point_cloud)
+    transformed_points = transform.transform_points(point_cloud)
+    return [[loc.x, loc.y, loc.z] for loc in transformed_points]
+
 
 
 def get_3d_world_position_with_point_cloud(
@@ -793,11 +816,13 @@ def get_3d_world_position_with_point_cloud(
     if depth:
         # Normalize our point to have the same depth as our closest point.
         p3d *= np.array([depth[2]])
+        p3d_locations = [
+            Location(x, y, z) for x, y, z in np.asarray(p3d.transpose())
+        ]
         # Convert from camera to unreal coordinates.
         to_world_transform = camera_to_unreal_transform(camera_transform)
-        point_cloud = to_world_transform.transform_points(p3d.transpose())
-        (x, y, z) = point_cloud.tolist()[0]
-        return Location(x, y, z)
+        point_cloud = to_world_transform.transform_points(p3d_locations)
+        return point_cloud[0]
     else:
         return None
 
@@ -965,6 +990,7 @@ def get_2d_bbox_from_3d_box(vehicle_transform,
                                                      rgb_intrinsic)
 
     # Threshold the bounding box to be within the camera view.
+    bb_coordinates = [(bb.x, bb.y, bb.z) for bb in bb_coordinates]
     thresholded_coordinates = get_bounding_box_in_camera_view(
         bb_coordinates, *rgb_image_size)
     if not thresholded_coordinates:
@@ -1037,11 +1063,11 @@ def is_traffic_light_visible(camera_transform,
     # so that it's pointing out from the traffic light in the
     # opposite direction in which the ligth is beamed.
     prod = np.dot([
-        tl.transform.orientation.y, -tl.transform.orientation.x,
-        tl.transform.orientation.z
+        tl.transform.forward_vector.y, -tl.transform.forward_vector.x,
+        tl.transform.forward_vector.z
     ], [
-        camera_transform.orientation.x, camera_transform.orientation.y,
-        camera_transform.orientation.z
+        camera_transform.forward_vector.x, camera_transform.forward_vector.y,
+        camera_transform.forward_vector.z
     ])
     if tl.transform.location.distance(
             camera_transform.location) > distance_threshold:
@@ -1362,16 +1388,16 @@ def _get_stop_markings_bbox(
         frame_height):
     """ Gets a 2D stop marking bouding box from a 3D bounding box."""
     # Offset trigger_volume by -0.85 so that the top plane is on the ground.
-    ext = np.array([
-        [bbox3d.extent.x, bbox3d.extent.y, bbox3d.extent.z - 0.85],
-        [bbox3d.extent.x, -bbox3d.extent.y, bbox3d.extent.z - 0.85],
-        [-bbox3d.extent.x, bbox3d.extent.y, bbox3d.extent.z - 0.85],
-        [-bbox3d.extent.x, -bbox3d.extent.y, bbox3d.extent.z - 0.85],
-    ])
+    ext_z_value = bbox3d.extent.z - 0.85
+    ext = [
+        Location(x=+bbox3d.extent.x, y=+bbox3d.extent.y, z=ext_z_value),
+        Location(x=+bbox3d.extent.x, y=-bbox3d.extent.y, z=ext_z_value),
+        Location(x=-bbox3d.extent.x, y=+bbox3d.extent.y, z=ext_z_value),
+        Location(x=-bbox3d.extent.x, y=-bbox3d.extent.y, z=ext_z_value),
+    ]
     bbox = bbox3d.transform.transform_points(ext)
     coords = []
-    for loc3d in bbox:
-        loc = Location(loc3d[0, 0], loc3d[0, 1], loc3d[0, 2])
+    for loc in bbox:
         loc_view = loc.to_camera_view(camera_transform.matrix,
                                       camera_intrinsic)
         if (loc_view.z >= 0 and loc_view.x >= 0 and loc_view.y >= 0 and

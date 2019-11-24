@@ -115,7 +115,7 @@ def on_depth_msg(carla_image):
     depth_point_cloud = transform.transform_points(depth_point_cloud)
 
     global depth_pc
-    depth_pc = depth_point_cloud.tolist()
+    depth_pc = depth_point_cloud
 #    pptk.viewer(depth_point_cloud)
 
 

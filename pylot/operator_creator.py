@@ -26,7 +26,6 @@ from pylot.perception.detection.obstacle_accuracy_operator import ObstacleAccura
 from pylot.perception.detection.traffic_light_det_operator import TrafficLightDetOperator
 from pylot.perception.fusion.fusion_operator import FusionOperator
 from pylot.perception.fusion.fusion_verification_operator import FusionVerificationOperator
-from pylot.perception.segmentation.segmentation_drn_operator import SegmentationDRNOperator
 from pylot.perception.segmentation.segmentation_eval_operator import SegmentationEvalOperator
 from pylot.perception.segmentation.segmentation_eval_ground_operator import SegmentationEvalGroundOperator
 from pylot.perception.tracking.object_tracker_operator import ObjectTrackerOp
@@ -488,6 +487,7 @@ def create_object_tracking_op(graph):
 
 
 def create_segmentation_drn_op(graph):
+    from pylot.perception.segmentation.segmentation_drn_operator import SegmentationDRNOperator
     segmentation_op = graph.add(
         SegmentationDRNOperator,
         name='segmentation_drn',

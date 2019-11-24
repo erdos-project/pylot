@@ -173,10 +173,11 @@ class PerfectDetectorOp(Op):
             traffic_light_msg.traffic_lights,
             vehicle_transform * camera_to_unreal_transform(depth_msg.transform),
             depth_msg.frame,
+            segmented_image,
             depth_msg.width,
             depth_msg.height,
             self._town_name,
-            depth_msg.fov)
+            fov=depth_msg.fov)
 
         det_speed_limits = pylot.simulation.utils.get_speed_limit_det_objs(
             speed_limit_signs_msg.speed_signs,
