@@ -31,7 +31,7 @@ def get_waypoint_vector_and_angle(wp_transform, ego_transform):
     if wp_mag > 0:
         wp_angle = get_angle(
             wp_vector,
-            [ego_transform.orientation.x, ego_transform.orientation.y])
+            [ego_transform.forward_vector.x, ego_transform.forward_vector.y])
     else:
         wp_angle = 0
 

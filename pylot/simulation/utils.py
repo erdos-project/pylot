@@ -1,6 +1,5 @@
-import sys
+import carla
 from collections import namedtuple
-from itertools import combinations
 from operator import attrgetter
 import math
 import numpy as np
@@ -289,7 +288,7 @@ class Vector3D(object):
                                     position_vector)
 
         # Transform the points to 2D.
-        position_2D = np.dot(camera_intrinsic, transformed_3D_pos[:3])
+        position_2D = np.dot(intrinsic_matrix, transformed_3D_pos[:3])
 
         # Normalize the 2D points.
         location_2D = type(self)(float(position_2D[0] / position_2D[2]),
@@ -328,7 +327,7 @@ class Rotation(object):
             carla_rotation: The carla.Rotation instance to instantiate this
                 Rotation instance from.
         """
-        if carla.Rotation is not None:
+        if carla_rotation is not None:
             self.pitch = carla_rotation.pitch
             self.yaw = carla_rotation.yaw
             self.roll = carla_rotation.roll
@@ -401,7 +400,7 @@ class Location(Vector3D):
         Returns:
             A carla.Location instance representing the current location.
         """
-        return carla.Location(location.x, location.y, location.z)
+        return carla.Location(self.x, self.y, self.z)
 
     def __repr__(self):
         return self.__str__()
@@ -450,14 +449,14 @@ class Transform(object):
         """
         if carla_transform:
             self.location = Location(carla_location=carla_transform.location)
-            self.rotation = Rotation(transform.rotation.pitch,
-                                     transform.rotation.yaw,
-                                     transform.rotation.roll)
+            self.rotation = Rotation(carla_transform.rotation.pitch,
+                                     carla_transform.rotation.yaw,
+                                     carla_transform.rotation.roll)
             fwd_vec = carla_transform.get_forward_vector()
             self.forward_vector = Vector3D(fwd_vec.x, fwd_vec.y, fwd_vec.z)
             self.matrix = Transform._create_matrix(self.location,
                                                    self.rotation)
-        elif matrix:
+        elif matrix is not None:
             self.matrix = matrix
             self.location = Location(matrix[0, 3], matrix[1, 3], matrix[2, 3])
             self.rotation, self.forward_vector = None, None
@@ -536,11 +535,10 @@ class Transform(object):
             A carla.Transform instance representing the current Transform.
         """
         return carla.Transform(
-            carla.Location(transform.location.x, transform.location.y,
-                           transform.location.z),
-            carla.Rotation(pitch=transform.rotation.pitch,
-                           yaw=transform.rotation.yaw,
-                           roll=transform.rotation.roll))
+            carla.Location(self.location.x, self.location.y, self.location.z),
+            carla.Rotation(pitch=self.rotation.pitch,
+                           yaw=self.rotation.yaw,
+                           roll=self.rotation.roll))
 
     def __mul__(self, other):
         new_matrix = np.dot(self.matrix, other.matrix)
@@ -821,18 +819,14 @@ def get_depth(vehicle_transform, obj_transform):
     # Get location of the ego vehicle.
     ego_vehicle_location = vehicle_transform.location.as_numpy_array()
 
-    # Get forward vector of the ego vehicle.
-    orientation = vehicle_transform.orientation
-    vehicle_forward_vector = np.array(
-        [orientation.x, orientation.y, orientation.z])
-
     # Get location of the other object.
     obj_location = obj_transform.location.as_numpy_array()
 
     # Calculate the vector from the ego vehicle to the object.
     # Scale it by the forward vector, and calculate the norm.
     relative_vector = ego_vehicle_location - obj_location
-    return np.linalg.norm(relative_vector * vehicle_forward_vector)
+    return np.linalg.norm(relative_vector *
+                          vehicle_transform.forward_vector.as_numpy_array())
 
 
 def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
@@ -968,7 +962,7 @@ def get_2d_bbox_from_3d_box(vehicle_transform,
     extrinsic_matrix = (vehicle_transform * rgb_transform).matrix
     bb_coordinates = obj_bounding_box.to_camera_view(obj_transform,
                                                      extrinsic_matrix,
-                                                     intrinsic_matrix)
+                                                     rgb_intrinsic)
 
     # Threshold the bounding box to be within the camera view.
     thresholded_coordinates = get_bounding_box_in_camera_view(
@@ -1101,7 +1095,8 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
 
                 ]
                 bbox_state.append(
-                    (transform_traffic_light_bboxes(light, points), light.state))
+                    (transform_traffic_light_bboxes(light, points),
+                     light.state))
                 right_points = [
                     point + Location(x=-3.0) for point in points
                 ]
@@ -1226,8 +1221,8 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
                 (transform_traffic_light_bboxes(light, points),
                  light.state))
             if light.id not in single_light_ids:
-                # This is a traffids light with 4 signs, we need to come up with
-                # more bounding boxes.
+                # This is a traffids light with 4 signs, we need to come up
+                # with more bounding boxes.
                 bbox_state.append(
                     (transform_traffic_light_bboxes(light, middle_points),
                      light.state))
@@ -1377,7 +1372,8 @@ def _get_stop_markings_bbox(
     coords = []
     for loc3d in bbox:
         loc = Location(loc3d[0, 0], loc3d[0, 1], loc3d[0, 2])
-        loc_view = loc.to_camera_view(camera_transform.matrix, camera_intrinsic)
+        loc_view = loc.to_camera_view(camera_transform.matrix,
+                                      camera_intrinsic)
         if (loc_view.z >= 0 and loc_view.x >= 0 and loc_view.y >= 0 and
             loc_view.x < frame_width and loc_view.y < frame_height):
             coords.append(loc_view)
@@ -1396,6 +1392,11 @@ def _get_stop_markings_bbox(
                             0.4)):
             return (int(xmin), int(xmax), int(ymin), int(ymax))
     return None
+
+
+def have_same_depth(x, y, z, depth_array, threshold):
+    x, y = int(x), int(y)
+    return abs(depth_array[y][x] * 1000 - z) < threshold
 
 
 def get_traffic_stop_det_objs(

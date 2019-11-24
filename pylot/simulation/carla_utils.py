@@ -1,7 +1,6 @@
 import re
 import carla
 
-from pylot.perception.detection.utils import TrafficLightColor
 import pylot.simulation.utils
 
 
@@ -58,7 +57,7 @@ def get_weathers():
         name for name in dir(carla.WeatherParameters)
         if re.match('[A-Z].+', name)
     ]
-    weathers = {x: getattr(carla.WeatherParameters) for x in names}
+    weathers = {x: getattr(carla.WeatherParameters, x) for x in names}
     return weathers
 
 
