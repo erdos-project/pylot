@@ -223,7 +223,7 @@ def add_perfect_tracking_component(graph, carla_op):
         graph.connect([carla_op], tracking_op)
         return tracking_op
     else:
-        []
+        return []
 
 
 def main(argv):
