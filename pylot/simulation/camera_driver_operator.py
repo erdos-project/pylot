@@ -9,8 +9,7 @@ from erdos.timestamp import Timestamp
 
 from pylot.perception.messages import SegmentedFrameMessage
 import pylot.utils
-from pylot.simulation.carla_utils import get_world, to_carla_transform,\
-    set_synchronous_mode
+from pylot.simulation.carla_utils import get_world, set_synchronous_mode
 from pylot.simulation.utils import depth_to_array, labels_to_array,\
     to_bgra_array
 
@@ -130,7 +129,8 @@ class CameraDriverOperator(Op):
         num_tries = 0
         while self._vehicle is None and num_tries < 30:
             self._vehicle = world.get_actors().find(vehicle_id)
-            self._logger.info("Could not find vehicle. Try {}".format(num_tries))
+            self._logger.info(
+                "Could not find vehicle. Try {}".format(num_tries))
             time.sleep(1)
             num_tries += 1
         if self._vehicle is None:
@@ -146,7 +146,7 @@ class CameraDriverOperator(Op):
                                        str(self._camera_setup.height))
         camera_blueprint.set_attribute('fov', str(self._camera_setup.fov))
 
-        transform = to_carla_transform(self._camera_setup.get_transform())
+        transform = self._camera_setup.get_transform().as_carla_transform()
 
         self._logger.info("Spawning a camera: {}".format(self._camera_setup))
 

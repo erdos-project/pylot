@@ -11,11 +11,9 @@ import re
 from pylot.perception.detection.utils import annotate_image_with_bboxes,\
     visualize_ground_bboxes
 from pylot.simulation.carla_utils import convert_speed_limit_actors,\
-    convert_traffic_light_actor, convert_traffic_light_actors,\
-    convert_traffic_stop_actors, get_world, to_carla_location,\
-    to_carla_transform
+    convert_traffic_light_actors, convert_traffic_stop_actors, get_world
 from pylot.simulation.utils import depth_to_array, labels_to_array,\
-    to_bgra_array, to_pylot_transform
+    to_bgra_array, Transform, TrafficLight
 from pylot.utils import bgra_to_bgr, bgr_to_rgb
 import pylot.simulation.utils
 
@@ -144,7 +142,7 @@ def log_bounding_boxes(carla_image, depth_frame, segmented_frame,
     frame = bgra_to_bgr(to_bgra_array(carla_image))
     # Copy the frame to ensure its on the heap.
     frame = copy.deepcopy(frame)
-    transform = to_pylot_transform(carla_image.transform)
+    transform = Transform(carla_transform=carla_image.transform)
     _, world = get_world()
     town_name = world.get_map().name
 
@@ -292,10 +290,6 @@ def log_traffic_lights(world):
         print("Working for traffic light {}".format(light.id))
         # For every traffic light, get the neighbouring lights except the one
         # directly opposite.
-        # group_lights = []
-        # for n_light in light.get_group_traffic_lights():
-        #     if not check_lights_opposite(light, n_light):
-        #         group_lights.append(convert_traffic_light_actor(n_light))
         for offset in range(10, 40, 5):
             # Traffic lights have different coordinate systems, hence
             # we need to offset y, instead of x and add that to the trigger
@@ -311,27 +305,28 @@ def log_traffic_lights(world):
                 offset_loc, offset_rot)
 
             # Transform the offset relative to the traffic light.
-            transform = to_pylot_transform(
-                light.get_transform()) * offset_trans
-            location = to_carla_location(transform.location)
+            transform = Transform(
+                carla_transform=light.get_transform()) * offset_trans
+            location = transform.location.as_carla_location()
 
             # Get the waypoint nearest to the transform.
             w = world_map.get_waypoint(location,
                                        project_to_road=True,
                                        lane_type=carla.LaneType.Driving)
             w_rotation = w.transform.rotation
-            camera_transform = to_pylot_transform(w.transform)
+            camera_transform = Transform(carla_transform=w.transform)
             camera_transform.location.z += 2.0
-            transform = to_carla_transform(camera_transform)
+            transform = camera_transform.as_carla_transform()
             transforms_of_interest.append(transform)
 
             # Get the right lanes.
             wp_right = w.get_right_lane()
             while wp_right and wp_right.lane_type == carla.LaneType.Driving \
                     and w_rotation == wp_right.transform.rotation:
-                camera_transform = to_pylot_transform(wp_right.transform)
+                camera_transform = Transform(
+                    carla_transform=wp_right.transform)
                 camera_transform.location.z += 2.0
-                transform = to_carla_transform(camera_transform)
+                transform = camera_transform.as_carla_transform()
                 transforms_of_interest.append(transform)
                 wp_right = wp_right.get_right_lane()
 
@@ -339,9 +334,9 @@ def log_traffic_lights(world):
             wp_left = w.get_left_lane()
             while wp_left and wp_left.lane_type == carla.LaneType.Driving and \
                     w_rotation == wp_left.transform.rotation:
-                camera_transform = to_pylot_transform(wp_left.transform)
+                camera_transform = Transform(carla_transform=wp_left.transform)
                 camera_transform.location.z += 2.0
-                transform = to_carla_transform(camera_transform)
+                transform = camera_transform.as_carla_transform()
                 transforms_of_interest.append(transform)
                 wp_left = wp_left.get_left_lane()
 
@@ -378,13 +373,14 @@ def log_speed_limits(world):
             offset_trans = pylot.simulation.utils.Transform(
                 offset_loc, offset_rot)
             transform = speed_sign.transform * offset_trans
-            location = to_carla_location(transform.location)
-            w = world_map.get_waypoint(location,
-                                       project_to_road=True,
-                                       lane_type=carla.LaneType.Driving)
-            camera_transform = to_pylot_transform(w.transform)
+            location = transform.location.as_carla_location()
+            w = world_map.get_waypoint(
+                location,
+                project_to_road=True,
+                lane_type=carla.LaneType.Driving)
+            camera_transform = Transform(carla_transform=w.transform)
             camera_transform.location.z += 2.0
-            transform = to_carla_transform(camera_transform)
+            transform = camera_transform.as_carla_transform()
             transforms_of_interest.append(transform)
     # Ensure all traffic lights are red.
     change_traffic_light_colors(world, carla.TrafficLightState.Red)
@@ -412,13 +408,14 @@ def log_stop_signs(world):
             offset_trans = pylot.simulation.utils.Transform(
                 offset_loc, offset_rot)
             transform = stop_sign.transform * offset_trans
-            location = to_carla_location(transform.location)
-            w = world_map.get_waypoint(location,
-                                       project_to_road=True,
-                                       lane_type=carla.LaneType.Driving)
-            camera_transform = to_pylot_transform(w.transform)
+            location = transform.location.as_carla_location()
+            w = world_map.get_waypoint(
+                location,
+                project_to_road=True,
+                lane_type=carla.LaneType.Driving)
+            camera_transform = Transform(carla_transform=w.transform)
             camera_transform.location.z += 2.0
-            transform = to_carla_transform(camera_transform)
+            transform = camera_transform.as_carla_transform()
             transforms_of_interest.append(transform)
     # Ensure all traffic lights are red.
     change_traffic_light_colors(world, carla.TrafficLightState.Red)

@@ -102,10 +102,12 @@ class ChauffeurLoggerOp(Op):
         rotation = pylot.simulation.utils.Rotation(0, 0, 0)
         for obj in msg.obj_trajectories:
             # Convert to screen points.
-            screen_points = pylot.simulation.utils.locations_3d_to_view(
-                obj.trajectory,
-                self._top_down_camera_setup.transform.matrix,
-                intrinsic_matrix)
+            screen_points = [
+                loc.to_camera_view(
+                    pylot.simulation.utils.camera_to_unreal_transform(
+                        self._top_down_camera_setup.transform).matrix,
+                    intrinsic_matrix) for loc in obj.trajectory
+            ]
 
             # Keep track of ground vehicle waypoints
             if obj.obj_id == self._ground_vehicle_id:
@@ -125,25 +127,27 @@ class ChauffeurLoggerOp(Op):
         # Transform to previous and back to current frame
         new_transform = self._current_transform * self._previous_transform.inverse_transform()
         self._waypoints = [
-            (new_transform * pylot.simulation.utils.Transform(pos=wp, rotation=rotation)).location
+            (new_transform * pylot.simulation.utils.Transform(wp, rotation)).location
             for wp in self._waypoints
         ]
 
         # Center first point at 0, 0
         center_transform = pylot.simulation.utils.Transform(
-            pos=self._waypoints[0],
-            rotation=rotation
+            self._waypoints[0],
+            rotation
         ).inverse_transform()
         self._waypoints = [
-            (center_transform * pylot.simulation.utils.Transform(pos=wp, rotation=rotation)).location
+            (center_transform * pylot.simulation.utils.Transform(wp, rotation)).location
             for wp in self._waypoints
         ]
 
         # Convert to screen points
-        screen_waypoints = pylot.simulation.utils.locations_3d_to_view(
-                self._waypoints,
-                self._top_down_camera_setup.transform.matrix,
-                intrinsic_matrix)
+        screen_waypoints = [
+            wp.to_camera_view(
+                pylot.simulation.utils.camera_to_unreal_transform(
+                    self._top_down_camera_setup.transform).matrix,
+                intrinsic_matrix) for wp in self._waypoints
+        ]
 
         # Draw screen points
         for point in screen_waypoints:

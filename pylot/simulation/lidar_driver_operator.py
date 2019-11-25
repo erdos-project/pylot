@@ -4,8 +4,7 @@ import threading
 import time
 
 import pylot.utils
-from pylot.simulation.carla_utils import get_world, to_carla_transform,\
-    set_synchronous_mode
+from pylot.simulation.carla_utils import get_world, set_synchronous_mode
 from pylot.simulation.messages import PointCloudMessage
 
 # ERDOS specific imports.
@@ -146,7 +145,7 @@ class LidarDriverOperator(Op):
         # XXX(ionel): Set sensor tick.
         # lidar_blueprint.set_attribute('sensor_tick')
 
-        transform = to_carla_transform(self._lidar_setup.get_transform())
+        transform = self._lidar_setup.get_transform().as_carla_transform()
 
         self._logger.info("Spawning a lidar: {}".format(self._lidar_setup))
 

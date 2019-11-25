@@ -26,7 +26,6 @@ from pylot.perception.detection.obstacle_accuracy_operator import ObstacleAccura
 from pylot.perception.detection.traffic_light_det_operator import TrafficLightDetOperator
 from pylot.perception.fusion.fusion_operator import FusionOperator
 from pylot.perception.fusion.fusion_verification_operator import FusionVerificationOperator
-from pylot.perception.segmentation.segmentation_drn_operator import SegmentationDRNOperator
 from pylot.perception.segmentation.segmentation_eval_operator import SegmentationEvalOperator
 from pylot.perception.segmentation.segmentation_eval_ground_operator import SegmentationEvalGroundOperator
 from pylot.perception.tracking.object_tracker_operator import ObjectTrackerOp
@@ -488,6 +487,7 @@ def create_object_tracking_op(graph):
 
 
 def create_segmentation_drn_op(graph):
+    from pylot.perception.segmentation.segmentation_drn_operator import SegmentationDRNOperator
     segmentation_op = graph.add(
         SegmentationDRNOperator,
         name='segmentation_drn',
@@ -497,23 +497,6 @@ def create_segmentation_drn_op(graph):
                    'log_file_name': FLAGS.log_file_name,
                    'csv_file_name': FLAGS.csv_log_file_name},
         _resources = {"GPU": FLAGS.segmentation_drn_gpu_memory_fraction})
-    return segmentation_op
-
-
-def create_segmentation_dla_op(graph):
-    try:
-        from pylot.perception.segmentation.segmentation_dla_operator import SegmentationDLAOperator
-    except ImportError:
-        raise Exception("Error importing DLA segmentation.")
-    segmentation_op = graph.add(
-        SegmentationDLAOperator,
-        name='segmentation_dla',
-        setup_args={'output_stream_name': 'segmented_stream'},
-        init_args={'output_stream_name': 'segmented_stream',
-                   'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name,
-                   'csv_file_name': FLAGS.csv_log_file_name},
-        _resources = {"GPU": FLAGS.segmentation_dla_gpu_memory_fraction})
     return segmentation_op
 
 

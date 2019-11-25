@@ -1,6 +1,5 @@
-import sys
+import carla
 from collections import namedtuple
-from itertools import combinations
 from operator import attrgetter
 import math
 import numpy as np
@@ -11,20 +10,13 @@ from pylot.perception.detection.utils import DetectedObject,\
     DetectedSpeedLimit, get_bounding_boxes_from_segmented
 from pylot.perception.segmentation.utils import get_traffic_sign_pixels
 
-Orientation = namedtuple('Orientation', 'x, y, z')
-Rotation = namedtuple('Rotation', 'pitch, yaw, roll')
 Vehicle = namedtuple('Vehicle', 'id, transform, bounding_box, forward_speed')
 Pedestrian = namedtuple('Pedestrian',
                         'id, transform, bounding_box, forward_speed')
-TrafficLight = namedtuple('TrafficLight',
-                          'id, transform, state, trigger_volume_extent')
 SpeedLimitSign = namedtuple('SpeedLimitSign', 'transform, limit')
 StopSign = namedtuple('StopSign', 'transform, bounding_box')
 DetectedLane = namedtuple('DetectedLane', 'left_marking, right_marking')
 LocationGeo = namedtuple('LocationGeo', 'latitude, longitude, altitude')
-Extent = namedtuple('Extent', 'x, y, z')
-Scale = namedtuple('Scale', 'x y z')
-Scale.__new__.__defaults__ = (1.0, 1.0, 1.0)
 
 
 class CameraSetup(object):
@@ -117,24 +109,112 @@ class CanBus(object):
 
 
 class BoundingBox(object):
-    def __init__(self, bb):
-        if hasattr(bb, 'location'):
-            # Path for Carla 0.9.x.
-            loc = Location(bb.location.x, bb.location.y, bb.location.z)
-            # In Carla 0.9.x, the bounding box transform is relative
-            # to the object transform (and so carla.BoundingBox doesn't
-            # have a rotation).
-            rot = Rotation(0, 0, 0)
-        else:
-            # Path for Carla 0.8.4.
-            loc = Location(bb.transform.location.x,
-                           bb.transform.location.y,
-                           bb.transform.location.z)
-            rot = Rotation(bb.transform.rotation.pitch,
-                           bb.transform.rotation.yaw,
-                           bb.transform.rotation.roll)
+    """ The Pylot version of the carla.BoundingBox instance that defines helper
+    functions needed in Pylot, and makes the class serializable.
+
+    Attributes:
+        transform: The transform of the bounding box (rotation is (0, 0, 0))
+        extent: The extent of the bounding box.
+    """
+
+    def __init__(self, carla_bb):
+        """ Initializes the BoundingBox instance from the given
+        carla.BoundingBox instance.
+
+        Args:
+            carla_bb: The carla.BoundingBox instance to initialize from.
+        """
+        loc = Location(carla_location=carla_bb.location)
+        rot = Rotation(0, 0, 0)
         self.transform = Transform(loc, rot)
-        self.extent = Extent(bb.extent.x, bb.extent.y, bb.extent.z)
+        self.extent = Vector3D(carla_bb.extent.x, carla_bb.extent.y,
+                               carla_bb.extent.z)
+
+    def as_carla_bounding_box(self):
+        """ Retrieves the current BoundingBox as an instance of
+        carla.BoundingBox
+
+        Returns:
+            A carla.BoundingBox instance that represents the current bounding
+            box.
+        """
+        bb_loc = self.transform.location.as_carla_location()
+        bb_extent = self.extent.as_carla_vector()
+        return carla.BoundingBox(bb_loc, bb_extent)
+
+    def visualize(self, world, actor_transform, time_between_frames=100):
+        """ Visualize the given bounding box on the world.
+
+        Args:
+            world: The world instance to visualize the bounding box on.
+            actor_transform: The current transform of the actor that the
+                bounding box is of.
+            time_between_frames: Time in ms to show the bounding box for.
+        """
+        bb = self.as_carla_bounding_box()
+        bb.location += actor_transform.location()
+        world.debug.draw_box(bb,
+                             actor_transform.rotation.as_carla_rotation(),
+                             life_time=time_between_frames / 1000.0)
+
+    def to_camera_view(self, object_transform, extrinsic_matrix,
+                       intrinsic_matrix):
+        """ Converts the coordinates of the bounding box for the given object
+        to the coordinates in the view of the camera.
+
+        This method retrieves the extent of the bounding box, transforms them
+        to coordinates relative to the bounding box origin, then converts those
+        to coordinates relative to the object.
+
+        These coordinates are then considered to be in the world coordinate
+        system, which is mapped into the camera view. A negative z-value
+        signifies that the bounding box is behind the camera plane.
+
+        Note that this function does not cap the coordinates to be within the
+        size of the camera image.
+
+        Args:
+            object_transform: The transform of the object that the bounding
+                box is associated with.
+            extrinsic_matrix: The extrinsic matrix of the camera.
+            intrinsic_matrix: The intrinsic matrix of the camera.
+
+        Returns:
+            A list of 8 Location instances specifying the 8 corners of the
+            bounding box.
+        """
+        # Retrieve the eight coordinates of the bounding box with respect to
+        # the origin of the bounding box.
+        import numpy as np
+        extent = self.extent
+        bbox = np.array([
+            Location(x=+extent.x, y=+extent.y, z=-extent.z),
+            Location(x=-extent.x, y=+extent.y, z=-extent.z),
+            Location(x=-extent.x, y=-extent.y, z=-extent.z),
+            Location(x=+extent.x, y=-extent.y, z=-extent.z),
+            Location(x=+extent.x, y=+extent.y, z=+extent.z),
+            Location(x=-extent.x, y=+extent.y, z=+extent.z),
+            Location(x=-extent.x, y=-extent.y, z=+extent.z),
+            Location(x=+extent.x, y=-extent.y, z=+extent.z),
+        ])
+
+        # Transform the vertices with respect to the bounding box transform.
+        bbox = self.transform.transform_points(bbox)
+
+        # Convert the bounding box relative to the world.
+        bbox = object_transform.transform_points(bbox)
+
+        # Object's transform is relative to the world. Thus, the bbox contains
+        # the 3D bounding box vertices relative to the world.
+        camera_coordinates = []
+        for vertex in bbox:
+            location_2D = vertex.to_camera_view(extrinsic_matrix,
+                                                intrinsic_matrix)
+
+            # Add the points to the image.
+            camera_coordinates.append(location_2D)
+
+        return camera_coordinates
 
     def __repr__(self):
         return self.__str__()
@@ -144,82 +224,272 @@ class BoundingBox(object):
             self.transform, self.extent)
 
 
-class Location(object):
-    def __init__(self, x=0, y=0, z=0, carla_loc=None):
-        if carla_loc is not None:
-            self.x = carla_loc.x
-            self.y = carla_loc.y
-            self.z = carla_loc.z
-        else:
-            self.x = x
-            self.y = y
-            self.z = z
+class Vector3D(object):
+    """ Represents a 3D vector and provides useful helper functions.
 
-    def distance(self, other):
-        dist = (self.x - other.x)**2 + (self.y - other.y)**2
-        dist += (self.z - other.z)**2
-        return dist ** 0.5
+    Attributes:
+        x: The value of the first axis.
+        y: The value of the second axis.
+        z: The value of the third axis.
+    """
 
-    def as_numpy_array(self):
-        return np.array([self.x, self.y, self.z])
+    def __init__(self, x, y, z):
+        """ Initializes the Vector3D instance from the given x, y and z values.
+
+        Args:
+            x: The value of the first axis.
+            y: The value of the second axis.
+            z: The value of the third axis.
+        """
+        self.x, self.y, self.z = x, y, z
 
     def __add__(self, other):
-        return Location(x=self.x + other.x,
-                        y=self.y + other.y,
-                        z=self.z + other.z)
+        """ Adds the two vectors together and returns the result. """
+        return type(self)(x=self.x + other.x,
+                          y=self.y + other.y,
+                          z=self.z + other.z)
+
+    def __sub__(self, other):
+        """ Subtracts the other vector from self and returns the result. """
+        return type(self)(x=self.x - other.x,
+                          y=self.y - other.y,
+                          z=self.z - other.z)
+
+    def as_numpy_array(self):
+        """ Retrieves the given vector as a numpy array. """
+        import numpy as np
+        return np.array([self.x, self.y, self.z])
+
+    def as_carla_vector(self):
+        """ Retrieves the given vector as an instance of carla.Vector3D. """
+        return carla.Vector3D(self.x, self.y, self.z)
+
+    def magnitude(self):
+        """ Returns the magnitude of the Vector3D instance. """
+        import numpy as np
+        return np.linalg.norm(self.as_numpy_array())
+
+    def to_camera_view(self, extrinsic_matrix, intrinsic_matrix):
+        """ Converts the given 3D vector to the view of the camera using
+        the extrinsic and the intrinsic matrix.
+
+        Args:
+            extrinsic_matrix: The extrinsic matrix of the camera.
+            intrinsic_matrix: The intrinsic matrix of the camera.
+
+        Returns:
+            An instance with the coordinates converted to the camera view.
+        """
+        import numpy as np
+        position_vector = np.array([[self.x], [self.y], [self.z], [1.0]])
+
+        # Transform the points to the camera in 3D.
+        transformed_3D_pos = np.dot(np.linalg.inv(extrinsic_matrix),
+                                    position_vector)
+
+        # Transform the points to 2D.
+        position_2D = np.dot(intrinsic_matrix, transformed_3D_pos[:3])
+
+        # Normalize the 2D points.
+        location_2D = type(self)(float(position_2D[0] / position_2D[2]),
+                                 float(position_2D[1] / position_2D[2]),
+                                 position_2D[2])
+        return location_2D
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return 'Location({}, {}, {})'.format(self.x, self.y, self.z)
+        return 'Vector3D(x={}, y={}, z={})'.format(self.x, self.y, self.z)
+
+
+class Rotation(object):
+    """ The Pylot version of the carla.Rotation instance that defines helper
+    functions needed in Pylot, and makes the class serializable.
+
+    Attributes:
+        pitch: Rotation about Y-axis.
+        yaw:   Rotation about Z-axis.
+        roll:  Rotation about X-axis.
+    """
+
+    def __init__(self, pitch=0, yaw=0, roll=0, carla_rotation=None):
+        """ Initializes the Rotation instance with either the given pitch,
+        roll and yaw values or from the carla.Rotation instance, if specified.
+
+        The carla.Rotation instance, if provided, takes precedence over the
+        pitch, roll, yaw values provided in the constructor.
+
+        Args:
+            pitch: Rotation about Y-axis.
+            yaw:   Rotation about Z-axis.
+            roll:  Rotation about X-axis.
+            carla_rotation: The carla.Rotation instance to instantiate this
+                Rotation instance from.
+        """
+        if carla_rotation is not None:
+            self.pitch = carla_rotation.pitch
+            self.yaw = carla_rotation.yaw
+            self.roll = carla_rotation.roll
+        else:
+            self.pitch = pitch
+            self.yaw = yaw
+            self.roll = roll
+
+    def as_carla_rotation(self):
+        """ Retrieves the current rotation as an instance of carla.Rotation.
+
+        Returns:
+            A carla.Rotation instance representing the current rotation.
+        """
+        return carla.Rotation(self.pitch, self.yaw, self.roll)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return 'Rotation(pitch={}, yaw={}, roll={})'.format(
+            self.pitch, self.yaw, self.roll)
+
+
+class Location(Vector3D):
+    """ The Pylot version of the carla.Location instance that defines helper
+    functions needed in Pylot, and makes the class serializable.
+
+    Attributes:
+        x: The value of the x-axis.
+        y: The value of the y-axis.
+        z: The value of the z-axis.
+    """
+
+    def __init__(self, x=0, y=0, z=0, carla_location=None):
+        """ Initializes the Location instance with either the given x, y, z
+        values or from the carla.Location instance if specified.
+
+        The carla.Location instance, if provided, takes precedence over the
+        x, y, z values provided in the constructor.
+
+        Args:
+            x: The value of the x-axis.
+            y: The value of the y-axis.
+            z: The value of the z-axis.
+            carla_location: The carla.Location instance to instantiate this
+                Location instance from.
+        """
+        if carla_location is not None:
+            super(Location, self).__init__(carla_location.x, carla_location.y,
+                                           carla_location.z)
+        else:
+            super(Location, self).__init__(x, y, z)
+
+    def distance(self, other):
+        """ Calculates the Euclidean distance between the given point and the
+        other point.
+
+        Args:
+            other: The other Location instance to calculate the distance to.
+
+        Returns:
+            The Euclidean distance between the two points.
+        """
+        return (self - other).magnitude()
+
+    def as_carla_location(self):
+        """ Retrieves the current location as an instance of carla.Location.
+
+        Returns:
+            A carla.Location instance representing the current location.
+        """
+        return carla.Location(self.x, self.y, self.z)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return 'Location(x={}, y={}, z={})'.format(self.x, self.y, self.z)
 
 
 class Transform(object):
-    # Transformations are applied in the order: Scale, Rotation, Translation.
-    # Rotations are applied in the order: Roll (X), Pitch (Y), Yaw (Z).
-    # A 90-degree "Roll" rotation maps the positive Z-axis to the positive
-    # Y-axis. A 90-degree "Pitch" rotation maps the positive X-axis to the
-    # positive Z-axis. A 90-degree "Yaw" rotation maps the positive X-axis
-    # to the positive Y-axis.
-    # Warning: in general, the different stages of the transform
-    # are non-commutative!
+    """ The Pylot version of the carla.Transform instance that defines helper
+    functions needed in Pylot, and makes the class serializable.
 
-    def __init__(self, pos=None, rotation=None, orientation=None, scale=None,
-                 matrix=None, orientation_matrix=None):
-        self.rotation = rotation
-        self.location = pos
-        self.scale = scale
-        if scale is None:
-            scale = Scale()
-        if matrix is None:
-            self.matrix = self._create_matrix(pos, rotation, scale)
-        else:
+    Attributes:
+        location: The location of the object represented by the transform.
+        rotation: The rotation of the object represented by the transform.
+        matrix: The transformation matrix used to convert points in the 3D
+            coordinate space with respect to the location and rotation of the
+            given object.
+    """
+
+    # Rotations are applied in the order: Roll (X), Pitch (Y), Yaw (Z).
+    # A 90-degree "Roll" maps the positive Z-axis to the positive Y-axis.
+    # A 90-degree "Pitch" maps the positive X-axis to the positive Z-axis.
+    # A 90-degree "Yaw" maps the positive X-axis to the positive Y-axis.
+
+    def __init__(self,
+                 location=None,
+                 rotation=None,
+                 forward_vector=None,
+                 matrix=None,
+                 carla_transform=None):
+        """ Instantiates a Transform object with either the given location
+        and rotation, or using the given matrix.
+
+        First precedence is for carla_transform and then for matrix.
+
+        Args:
+            location: The location of the object represented by the transform.
+            rotation: The rotation of the object represented by the transform.
+            forward_vector: The forward vector of the object represented by
+                the transform.
+            matrix: The transformation matrix used to convert points in the
+                3D coordinate space with respect to the object.
+            carla_transform: The carla.Transform to use to initialize the
+                transform instance.
+        """
+        if carla_transform:
+            self.location = Location(carla_location=carla_transform.location)
+            self.rotation = Rotation(carla_transform.rotation.pitch,
+                                     carla_transform.rotation.yaw,
+                                     carla_transform.rotation.roll)
+            fwd_vec = carla_transform.get_forward_vector()
+            self.forward_vector = Vector3D(fwd_vec.x, fwd_vec.y, fwd_vec.z)
+            self.matrix = Transform._create_matrix(self.location,
+                                                   self.rotation)
+        elif matrix is not None:
+            import numpy as np
             self.matrix = matrix
             self.location = Location(matrix[0, 3], matrix[1, 3], matrix[2, 3])
 
-        if orientation is not None:
-            self.orientation_matrix = self._create_matrix(
-                orientation, rotation, Scale())
-            self.orientation = orientation
-        elif orientation_matrix is not None:
-            self.orientation_matrix = orientation_matrix
-            self.orientation = Orientation(orientation_matrix[0, 3],
+            # No forward vector provided, we multiply the default world
+            # forward vector by the transform matrix to compute.
+            orientation_matrix = np.dot(
+                Transform._create_matrix(Location(1.0, 0, 0),
+                                         Rotation(0, 0, 0)), self.matrix)
+            self.forward_vector = Vector3D(orientation_matrix[0, 3],
                                            orientation_matrix[1, 3],
                                            orientation_matrix[2, 3])
+            self.rotation = None
         else:
-            # No orientation provided. We multiply the defautl world
-            # orientation by the transform matrix to compute the orientation.
-            self.orientation_matrix = np.dot(
-                self._create_matrix(Location(1.0, 0, 0),
-                                    Rotation(0, 0, 0),
-                                    Scale()),
-                self.matrix)
-            self.orientation = Orientation(self.orientation_matrix[0, 3],
-                                           self.orientation_matrix[1, 3],
-                                           self.orientation_matrix[2, 3])
+            self.location, self.rotation = location, rotation
+            self.forward_vector = forward_vector
+            self.matrix = Transform._create_matrix(self.location,
+                                                   self.rotation)
 
-    def _create_matrix(self, pos, rotation, scale):
+    @staticmethod
+    def _create_matrix(location, rotation):
+        """ Creates a transformation matrix to convert points in the 3D world
+        coordinate space with respect to the object.
+
+        Use the transform_points function to transpose a given set of points
+        with respect to the object.
+
+        Args:
+            location: The location of the object represented by the transform.
+            rotation: The rotation of the object represented by the transform.
+        Returns:
+            a 4x4 numpy matrix which represents the transformation matrix.
+        """
         matrix = np.matrix(np.identity(4))
         cy = math.cos(np.radians(rotation.yaw))
         sy = math.sin(np.radians(rotation.yaw))
@@ -227,60 +497,71 @@ class Transform(object):
         sr = math.sin(np.radians(rotation.roll))
         cp = math.cos(np.radians(rotation.pitch))
         sp = math.sin(np.radians(rotation.pitch))
-        matrix[0, 3] = pos.x
-        matrix[1, 3] = pos.y
-        matrix[2, 3] = pos.z
-        matrix[0, 0] = scale.x * (cp * cy)
-        matrix[0, 1] = scale.y * (cy * sp * sr - sy * cr)
-        matrix[0, 2] = -scale.z * (cy * sp * cr + sy * sr)
-        matrix[1, 0] = scale.x * (sy * cp)
-        matrix[1, 1] = scale.y * (sy * sp * sr + cy * cr)
-        matrix[1, 2] = scale.z * (cy * sr - sy * sp * cr)
-        matrix[2, 0] = scale.x * (sp)
-        matrix[2, 1] = -scale.y * (cp * sr)
-        matrix[2, 2] = scale.z * (cp * cr)
+        matrix[0, 3] = location.x
+        matrix[1, 3] = location.y
+        matrix[2, 3] = location.z
+        matrix[0, 0] = (cp * cy)
+        matrix[0, 1] = (cy * sp * sr - sy * cr)
+        matrix[0, 2] = -1 * (cy * sp * cr + sy * sr)
+        matrix[1, 0] = (sy * cp)
+        matrix[1, 1] = (sy * sp * sr + cy * cr)
+        matrix[1, 2] = (cy * sr - sy * sp * cr)
+        matrix[2, 0] = (sp)
+        matrix[2, 1] = -1 * (cp * sr)
+        matrix[2, 2] = (cp * cr)
         return matrix
 
     def transform_points(self, points):
+        """ Transforms a given set of points in the 3D world coordinate space
+        with respect to the object represented by the transform.
+
+        Expected point format:
+            List of Location values.
+
+        Args:
+            points: Points in the format [Location,..Location]
+
+        Returns:
+            Transformed points in the format [Location,..Location]
         """
-        Given a 4x4 transformation matrix, transform an array of 3D points.
-        Expected point format: [[X0,Y0,Z0],..[Xn,Yn,Zn]]
-        """
-        # Needed format: [[X0,..Xn],[Y0,..Yn],[Z0,..Zn]]. So let's transpose
-        # the point matrix.
+        # Retrieve the locations as numpy arrays.
+        points = np.matrix([loc.as_numpy_array() for loc in points])
+
+        # Needed format: [[X0,..Xn],[Y0,..Yn],[Z0,..Zn]].
+        # So let's transpose the point matrix.
         points = points.transpose()
+
         # Add 1s row: [[X0..,Xn],[Y0..,Yn],[Z0..,Zn],[1,..1]]
         points = np.append(points, np.ones((1, points.shape[1])), axis=0)
+
         # Point transformation
         points = np.dot(self.matrix, points)
-        # Return all but last row
-        return points[0:3].transpose()
 
-    def transform_locations(self, locs):
-        """
-        Using the transformation matrix, transform a list of locations.
-        """
-        print (np.shape(locs), len(locs))
-        points = np.zeros((4, len(locs)))
-        for idx in range(len(locs)):
-            points[0][idx] = locs[idx].x
-            points[1][idx] = locs[idx].y
-            points[2][idx] = locs[idx].z
-            points[3][idx] = 1
-        points = np.dot(self.matrix, points)
-        # Return all but last row
-        return points[0:3].transpose()
+        # Get all but the last row in array form.
+        points = np.asarray(points[0:3].transpose())
+
+        return [Location(x, y, z) for x, y, z in points]
 
     def inverse_transform(self):
-        return Transform(matrix=inv(self.matrix),
-                         orientation_matrix=inv(self.orientation_matrix))
+        """ Returns the inverse of the given transform. """
+        import numpy as np
+        return Transform(matrix=np.linalg.inv(self.matrix))
+
+    def as_carla_transform(self):
+        """ Convert the transform to a carla.Transform instance.
+
+        Returns:
+            A carla.Transform instance representing the current Transform.
+        """
+        return carla.Transform(
+            carla.Location(self.location.x, self.location.y, self.location.z),
+            carla.Rotation(pitch=self.rotation.pitch,
+                           yaw=self.rotation.yaw,
+                           roll=self.rotation.roll))
 
     def __mul__(self, other):
         new_matrix = np.dot(self.matrix, other.matrix)
-        new_orientation_matrix = np.dot(self.orientation_matrix,
-                                        other.orientation_matrix)
-        return Transform(matrix=new_matrix,
-                         orientation_matrix=new_orientation_matrix)
+        return Transform(matrix=new_matrix)
 
     def __str__(self):
         if self.location:
@@ -288,28 +569,6 @@ class Transform(object):
                 self.location, self.rotation)
         else:
             return "Transform({})".format(str(self.matrix))
-
-
-def to_pylot_transform(transform):
-    """ Converts a Carla transform into a Pylot transform."""
-    orientation = None
-    # get_forward_vector() is only available in carla 0.9.5.
-    get_fwd_vector = getattr(transform, "get_forward_vector", None)
-    if callable(get_fwd_vector):
-        fwd_vector = transform.get_forward_vector()
-        orientation = Orientation(fwd_vector.x, fwd_vector.y, fwd_vector.z)
-
-    return Transform(
-        Location(carla_loc=transform.location),
-        Rotation(transform.rotation.pitch,
-                 transform.rotation.yaw,
-                 transform.rotation.roll),
-        orientation)
-
-
-def to_pylot_location(location):
-    """ Converts a Carla location into a Pylot location. """
-    return Location(carla_loc=location)
 
 
 def depth_to_array(image):
@@ -399,7 +658,11 @@ def depth_to_local_point_cloud(depth_frame, width, height, fov, max_depth=0.9):
     p3d *= normalized_depth * far
 
     # [[X1,Y1,Z1],[X2,Y2,Z2], ... [Xn,Yn,Zn]]
-    return np.transpose(p3d)
+    # Return the points as location,
+    locations = [
+        Location(x, y, z) for x, y, z in np.asarray(np.transpose(p3d))
+    ]
+    return locations
 
 
 def camera_to_unreal_transform(transform):
@@ -466,8 +729,7 @@ def get_3d_world_position_with_depth_map(
     # Transform the points in 3D world coordinates.
     to_world_transform = camera_to_unreal_transform(camera_transform)
     point_cloud = to_world_transform.transform_points(point_cloud)
-    (x, y, z) = point_cloud.tolist()[y * width + x]
-    return Location(x, y, z)
+    return point_cloud[y * width + x]
 
 
 def batch_get_3d_world_position_with_depth_map(
@@ -493,9 +755,7 @@ def batch_get_3d_world_position_with_depth_map(
     # Transform the points in 3D world coordinates.
     to_world_transform = camera_to_unreal_transform(camera_transform)
     point_cloud = to_world_transform.transform_points(point_cloud)
-    point_cloud = point_cloud.tolist()
-    locs = [point_cloud[ys[i] * width + xs[i]] for i in range(len(xs))]
-    return [Location(loc[0], loc[1], loc[2]) for loc in locs]
+    return [point_cloud[ys[i] * width + xs[i]] for i in range(len(xs))]
 
 
 def find_point_depth(x, y, point_cloud):
@@ -521,13 +781,16 @@ def find_point_depth(x, y, point_cloud):
 
 def lidar_point_cloud_to_camera_coordinates(point_cloud):
     """ Transforms a point cloud from lidar to camera coordinates."""
+    point_cloud = [Location(x, y, z) for x, y, z in np.asarray(point_cloud)]
     identity_transform = Transform(
         matrix=np.array([[1, 0, 0, 0],
                          [0, 1, 0, 0],
                          [0, 0, 1, 0],
                          [0, 0, 0, 1]]))
     transform = lidar_to_camera_transform(identity_transform)
-    return transform.transform_points(point_cloud)
+    transformed_points = transform.transform_points(point_cloud)
+    return [[loc.x, loc.y, loc.z] for loc in transformed_points]
+
 
 
 def get_3d_world_position_with_point_cloud(
@@ -553,11 +816,13 @@ def get_3d_world_position_with_point_cloud(
     if depth:
         # Normalize our point to have the same depth as our closest point.
         p3d *= np.array([depth[2]])
+        p3d_locations = [
+            Location(x, y, z) for x, y, z in np.asarray(p3d.transpose())
+        ]
         # Convert from camera to unreal coordinates.
         to_world_transform = camera_to_unreal_transform(camera_transform)
-        point_cloud = to_world_transform.transform_points(p3d.transpose())
-        (x, y, z) = point_cloud.tolist()[0]
-        return Location(x, y, z)
+        point_cloud = to_world_transform.transform_points(p3d_locations)
+        return point_cloud[0]
     else:
         return None
 
@@ -579,18 +844,14 @@ def get_depth(vehicle_transform, obj_transform):
     # Get location of the ego vehicle.
     ego_vehicle_location = vehicle_transform.location.as_numpy_array()
 
-    # Get forward vector of the ego vehicle.
-    orientation = vehicle_transform.orientation
-    vehicle_forward_vector = np.array(
-        [orientation.x, orientation.y, orientation.z])
-
     # Get location of the other object.
     obj_location = obj_transform.location.as_numpy_array()
 
     # Calculate the vector from the ego vehicle to the object.
     # Scale it by the forward vector, and calculate the norm.
     relative_vector = ego_vehicle_location - obj_location
-    return np.linalg.norm(relative_vector * vehicle_forward_vector)
+    return np.linalg.norm(relative_vector *
+                          vehicle_transform.forward_vector.as_numpy_array())
 
 
 def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
@@ -723,13 +984,13 @@ def get_2d_bbox_from_3d_box(vehicle_transform,
         return None
 
     # Convert the bounding box of the object to the camera coordinates.
-    bb_coordinates = map_ground_bounding_box_to_2D(vehicle_transform,
-                                                   obj_transform,
-                                                   obj_bounding_box,
-                                                   rgb_transform,
-                                                   rgb_intrinsic)
+    extrinsic_matrix = (vehicle_transform * rgb_transform).matrix
+    bb_coordinates = obj_bounding_box.to_camera_view(obj_transform,
+                                                     extrinsic_matrix,
+                                                     rgb_intrinsic)
 
     # Threshold the bounding box to be within the camera view.
+    bb_coordinates = [(bb.x, bb.y, bb.z) for bb in bb_coordinates]
     thresholded_coordinates = get_bounding_box_in_camera_view(
         bb_coordinates, *rgb_image_size)
     if not thresholded_coordinates:
@@ -758,87 +1019,6 @@ def get_2d_bbox_from_3d_box(vehicle_transform,
             if depth - depth_threshold <= mean_depth <= depth + depth_threshold:
                 return xmin, xmax, ymin, ymax
     return None
-
-
-def map_ground_bounding_box_to_2D(vehicle_transform, obj_transform,
-                                  obj_bounding_box, rgb_transform,
-                                  rgb_intrinsic):
-    """ Converts the coordinates of the bounding box for the given object to
-    the coordinates in the view of the camera.
-
-    This method retrieves the extent of the bounding box, transforms them to
-    coordinates relative to the bounding box origin, then converts those to
-    coordinates relative to the object.
-
-    These coordinates are then considered to be in the world coordinate system,
-    which is mapped into the camera view. A negative z-value signifies that the
-    bounding box is behind the camera plane.
-
-    Note that this function does not cap the coordinates to be within the
-    size of the camera image.
-
-    Args:
-        vehicle_transform: The transform of the ego vehicle.
-        obj_transform: The transform of the object to be shown in the camera.
-        obj_bounding_box: The bounding box of the object in 3D coordinates.
-        rgb_transform: The transform of the camera relative to the ego vehicle.
-        rgb_intrinsic: The intrinsic matrix of the camera.
-
-    Returns:
-        An array of 8 coordinates that bound the given object relative to the
-        camera view. The first four are the bottom plane, and the remaining
-        depict the top plane.
-    """
-
-    # Create the extrinsic matrix of the camera.
-    extrinsic_mat = vehicle_transform * rgb_transform
-
-    # 8 bounding box vertices relative to the origin of the bounding box.
-    extent = obj_bounding_box.extent
-    bbox = np.array([
-        Location(x=+extent.x, y=+extent.y, z=-extent.z),
-        Location(x=-extent.x, y=+extent.y, z=-extent.z),
-        Location(x=-extent.x, y=-extent.y, z=-extent.z),
-        Location(x=+extent.x, y=-extent.y, z=-extent.z),
-        Location(x=+extent.x, y=+extent.y, z=+extent.z),
-        Location(x=-extent.x, y=+extent.y, z=+extent.z),
-        Location(x=-extent.x, y=-extent.y, z=+extent.z),
-        Location(x=+extent.x, y=-extent.y, z=+extent.z),
-    ])
-
-    # Transform the vertices with respect to the bounding box transform.
-    bbox = obj_bounding_box.transform.transform_points(bbox)
-
-    # Convert the bounding box relative to the world.
-    bbox = obj_transform.transform_points(bbox)
-
-    # Object's transform is relative to the world. Thus, the bbox contains
-    # the 3D bounding box vertices relative to the world.
-    camera_coordinates = []
-    for vertex in bbox:
-        location_2d = map_3D_to_2D(vertex, extrinsic_mat.matrix, rgb_intrinsic)
-
-        # Add the points to the image.
-        camera_coordinates.append(
-            (location_2d.x, location_2d.y, location_2d.z))
-
-    return camera_coordinates
-
-def map_3D_to_2D(location, extrinsic_matrix, camera_intrinsic):
-    position_vector = np.array([[location.x], [location.y], [location.z],
-                                [1.0]])
-
-    # Transform the points to the camera.
-    transformed_3d_pos = np.dot(inv(extrinsic_matrix), position_vector)
-
-    # Transform the points to 2D.
-    position_2d = np.dot(camera_intrinsic, transformed_3d_pos[:3])
-
-    # Normalize the 2D points.
-    location_2d = Location(float(position_2d[0] / position_2d[2]),
-                           float(position_2d[1] / position_2d[2]),
-                           position_2d[2])
-    return location_2d
 
 
 def transform_traffic_light_bboxes(light, points):
@@ -883,11 +1063,11 @@ def is_traffic_light_visible(camera_transform,
     # so that it's pointing out from the traffic light in the
     # opposite direction in which the ligth is beamed.
     prod = np.dot([
-        tl.transform.orientation.y, -tl.transform.orientation.x,
-        tl.transform.orientation.z
+        tl.transform.forward_vector.y, -tl.transform.forward_vector.x,
+        tl.transform.forward_vector.z
     ], [
-        camera_transform.orientation.x, camera_transform.orientation.y,
-        camera_transform.orientation.z
+        camera_transform.forward_vector.x, camera_transform.forward_vector.y,
+        camera_transform.forward_vector.z
     ])
     if tl.transform.location.distance(
             camera_transform.location) > distance_threshold:
@@ -941,7 +1121,8 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
 
                 ]
                 bbox_state.append(
-                    (transform_traffic_light_bboxes(light, points), light.state))
+                    (transform_traffic_light_bboxes(light, points),
+                     light.state))
                 right_points = [
                     point + Location(x=-3.0) for point in points
                 ]
@@ -1066,8 +1247,8 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
                 (transform_traffic_light_bboxes(light, points),
                  light.state))
             if light.id not in single_light_ids:
-                # This is a traffids light with 4 signs, we need to come up with
-                # more bounding boxes.
+                # This is a traffids light with 4 signs, we need to come up
+                # with more bounding boxes.
                 bbox_state.append(
                     (transform_traffic_light_bboxes(light, middle_points),
                      light.state))
@@ -1111,8 +1292,10 @@ def get_traffic_light_det_objs(traffic_lights,
         # Convert the returned bounding boxes to 2D and check if the
         # light is occluded. If not, add it to the detected object list.
         for box, color in bboxes:
-            bounding_box = locations_3d_to_view(box, extrinsic_matrix,
-                                                intrinsic_matrix)
+            bounding_box = [
+                loc.to_camera_view(extrinsic_matrix, intrinsic_matrix)
+                for loc in box
+            ]
             bounding_box = [(bb.x, bb.y, bb.z) for bb in bounding_box]
             thresholded_coordinates = get_bounding_box_in_camera_view(
                 bounding_box, frame_width, frame_height)
@@ -1196,40 +1379,6 @@ def _match_bboxes_with_speed_signs(vehicle_transform, pos_bboxes, speed_signs):
     return result
 
 
-def locations_3d_to_view(locations, extrinsic_matrix, intrinsic_matrix):
-    """ Transforms 3D locations to 2D camera view."""
-    world_points = np.ones((4, len(locations)))
-
-    for i in range(len(locations)):
-        world_points[0][i] = locations[i].x
-        world_points[1][i] = locations[i].y
-        world_points[2][i] = locations[i].z
-
-    # Convert the points to the sensor coordinates.
-    transformed_points = np.dot(
-        np.linalg.inv(extrinsic_matrix), world_points)
-
-    # Convert the points to an unreal space.
-    unreal_points = np.concatenate([
-        transformed_points[1, :],
-        -transformed_points[2, :],
-        transformed_points[0, :]
-    ])
-
-    # Convert to screen points.
-    screen_points = np.dot(intrinsic_matrix, unreal_points)
-
-    screen_points[0] /= screen_points[2]
-    screen_points[1] /= screen_points[2]
-
-    screen_locations = []
-    for i in range(len(locations)):
-        screen_locations.append(Location(float(screen_points[0, i]),
-                                         float(screen_points[1, i]),
-                                         float(screen_points[2, i])))
-    return screen_locations
-
-
 def _get_stop_markings_bbox(
         bbox3d,
         depth_frame,
@@ -1239,20 +1388,18 @@ def _get_stop_markings_bbox(
         frame_height):
     """ Gets a 2D stop marking bouding box from a 3D bounding box."""
     # Offset trigger_volume by -0.85 so that the top plane is on the ground.
-    ext = np.array([
-        [bbox3d.extent.x, bbox3d.extent.y, bbox3d.extent.z - 0.85],
-        [bbox3d.extent.x, -bbox3d.extent.y, bbox3d.extent.z - 0.85],
-        [-bbox3d.extent.x, bbox3d.extent.y, bbox3d.extent.z - 0.85],
-        [-bbox3d.extent.x, -bbox3d.extent.y, bbox3d.extent.z - 0.85],
-    ])
+    ext_z_value = bbox3d.extent.z - 0.85
+    ext = [
+        Location(x=+bbox3d.extent.x, y=+bbox3d.extent.y, z=ext_z_value),
+        Location(x=+bbox3d.extent.x, y=-bbox3d.extent.y, z=ext_z_value),
+        Location(x=-bbox3d.extent.x, y=+bbox3d.extent.y, z=ext_z_value),
+        Location(x=-bbox3d.extent.x, y=-bbox3d.extent.y, z=ext_z_value),
+    ]
     bbox = bbox3d.transform.transform_points(ext)
     coords = []
-    for loc3d in bbox:
-        loc = Location(loc3d[0, 0], loc3d[0, 1], loc3d[0, 2])
-        loc_view = locations_3d_to_view(
-            [loc],
-            camera_transform.matrix,
-            camera_intrinsic)[0]
+    for loc in bbox:
+        loc_view = loc.to_camera_view(camera_transform.matrix,
+                                      camera_intrinsic)
         if (loc_view.z >= 0 and loc_view.x >= 0 and loc_view.y >= 0 and
             loc_view.x < frame_width and loc_view.y < frame_height):
             coords.append(loc_view)
@@ -1271,6 +1418,11 @@ def _get_stop_markings_bbox(
                             0.4)):
             return (int(xmin), int(xmax), int(ymin), int(ymax))
     return None
+
+
+def have_same_depth(x, y, z, depth_array, threshold):
+    x, y = int(x), int(y)
+    return abs(depth_array[y][x] * 1000 - z) < threshold
 
 
 def get_traffic_stop_det_objs(
@@ -1299,3 +1451,48 @@ def get_traffic_stop_det_objs(
         if bbox2d:
             det_objs.append(DetectedObject(bbox2d, 1.0, 'stop marking'))
     return det_objs
+
+
+class TrafficLight(object):
+    """ The Pylot version of a carla TrafficLight that defines helper
+    functions needed in Pylot, and makes the class serializable.
+
+    Args:
+        id: The identifier of the TrafficLight.
+        transform: The transform of the TrafficLight.
+        trigger_volume_extent: The extent of the trigger volume of the light.
+        state: The state of the light. (Green/Yellow/Red/Off)
+    """
+
+    def __init__(self, traffic_light):
+        """ Initializes the TrafficLight instance with the given carla
+        TrafficLight instance.
+
+        Args:
+            traffic_light: The carla.TrafficLight instance to initialize this
+                instance with.
+        """
+        # Retrieve the ID of the TrafficLight.
+        self.id = traffic_light.id
+
+        # Retrieve the Transform of the TrafficLight.
+        self.transform = Transform(
+            carla_transform=traffic_light.get_transform())
+
+        # Retrieve the Trigger Volume of the TrafficLight.
+        self.trigger_volume_extent = Vector3D(
+            traffic_light.trigger_volume.extent.x,
+            traffic_light.trigger_volume.extent.y,
+            traffic_light.trigger_volume.extent.z)
+
+        # Retrieve the State of the TrafficLight (Red/Yellow/Green)
+        from pylot.perception.detection.utils import TrafficLightColor
+        traffic_light_state = traffic_light.get_state()
+        if traffic_light_state == carla.TrafficLightState.Red:
+            self.state = TrafficLightColor.RED
+        elif traffic_light_state == carla.TrafficLightState.Yellow:
+            self.state = TrafficLightColor.YELLOW
+        elif traffic_light_state == carla.TrafficLightState.Green:
+            self.state = TrafficLightColor.GREEN
+        else:
+            self.state = TrafficLightColor.OFF

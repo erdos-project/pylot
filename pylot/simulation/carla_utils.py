@@ -1,7 +1,6 @@
+import re
 import carla
 
-from pylot.perception.detection.utils import TrafficLightColor
-from pylot.simulation.utils import to_pylot_transform
 import pylot.simulation.utils
 
 
@@ -52,24 +51,13 @@ def get_weathers():
     """ Gets the list of weathers that the simulation supports.
 
     Returns:
-        A list of all (weather, name) tuples that we can set the simulation to.
+        A dictionary of {name: weather} that we can set the simulation to.
     """
-    weathers = [
-        (carla.WeatherParameters.ClearNoon, "ClearNoon"),
-        (carla.WeatherParameters.CloudyNoon, "CloudyNoon"),
-        (carla.WeatherParameters.WetNoon, "WetNoon"),
-        (carla.WeatherParameters.WetCloudyNoon, "WetCloudyNoon"),
-        (carla.WeatherParameters.MidRainyNoon, "MidRainyNoon"),
-        (carla.WeatherParameters.HardRainNoon, "HardRainNoon"),
-        (carla.WeatherParameters.SoftRainNoon, "SoftRainNoon"),
-        (carla.WeatherParameters.ClearSunset, "ClearSunset"),
-        (carla.WeatherParameters.CloudySunset, "CloudySunset"),
-        (carla.WeatherParameters.WetSunset, "WetSunset"),
-        (carla.WeatherParameters.WetCloudySunset, "WetCloudySunet"),
-        (carla.WeatherParameters.MidRainSunset, "MidRainSunset"),
-        (carla.WeatherParameters.HardRainSunset, "HardRainSunset"),
-        (carla.WeatherParameters.SoftRainSunset, "SoftRainSunset"),
+    names = [
+        name for name in dir(carla.WeatherParameters)
+        if re.match('[A-Z].+', name)
     ]
+    weathers = {x: getattr(carla.WeatherParameters, x) for x in names}
     return weathers
 
 
@@ -99,57 +87,6 @@ def reset_world(world):
             pass
         else:
             actor.destroy()
-
-
-def to_carla_location(location):
-    """ Converts a Pylot location to Carla location.
-
-    Args:
-        location: Location to convert.
-
-    Returns:
-        Carla location object.
-    """
-    return carla.Location(
-        location.x, location.y, location.z)
-
-
-def to_carla_transform(transform):
-    """ Converts an Pylot transform object to a Carla transform object.
-
-    Args:
-        transform: Transform to convert.
-
-    Returns:
-        Carla transform object.
-    """
-    return carla.Transform(
-        carla.Location(transform.location.x,
-                       transform.location.y,
-                       transform.location.z),
-        carla.Rotation(pitch=transform.rotation.pitch,
-                       yaw=transform.rotation.yaw,
-                       roll=transform.rotation.roll))
-
-
-def render_bounding_boxes_in_world(
-        world, actor_list, time_between_frames_ms=100):
-    """ Render the 3D ground bboxes on the images.
-
-    Args:
-        world: Connection to the simulator world.
-        actor_list: List of actors in the world.
-        time_between_frames_ms: The life time of the rendered bboxes.
-    """
-    vehicles = actor_list.filter('vehicle.*')
-    for vehicle in vehicles:
-        transform = vehicle.get_transform()
-        bounding_box = vehicle.bounding_box
-        bounding_box.location += transform.location
-        world.debug.draw_box(bounding_box,
-                             transform.rotation,
-                             life_time=time_between_frames_ms / 1000.0,
-                             persistent_lines=True)
 
 
 def extract_data_in_pylot_format(actor_list):
@@ -191,7 +128,8 @@ def convert_vehicle_actors(vec_actors):
     """
     vehicles = []
     for vec_actor in vec_actors:
-        transform = to_pylot_transform(vec_actor.get_transform())
+        transform = pylot.simulation.utils.Transform(
+            carla_transform=vec_actor.get_transform())
         bounding_box = pylot.simulation.utils.BoundingBox(
             vec_actor.bounding_box)
         speed = pylot.simulation.utils.get_speed(vec_actor.get_velocity())
@@ -212,7 +150,8 @@ def convert_pedestrian_actors(pedestrian_actors):
     """
     pedestrians = []
     for ped_actor in pedestrian_actors:
-        transform = to_pylot_transform(ped_actor.get_transform())
+        transform = pylot.simulation.utils.Transform(
+            carla_transform=ped_actor.get_transform())
         bounding_box = pylot.simulation.utils.BoundingBox(
             ped_actor.bounding_box)
         speed = pylot.simulation.utils.get_speed(ped_actor.get_velocity())
@@ -220,27 +159,6 @@ def convert_pedestrian_actors(pedestrian_actors):
             ped_actor.id, transform, bounding_box, speed)
         pedestrians.append(pedestrian)
     return pedestrians
-
-
-def convert_traffic_light_actor(tl_actor):
-    transform = to_pylot_transform(tl_actor.get_transform())
-    tl_state = tl_actor.get_state()
-    erdos_tl_state = None
-    if tl_state == carla.TrafficLightState.Red:
-        erdos_tl_state = TrafficLightColor.RED
-    elif tl_state == carla.TrafficLightState.Yellow:
-        erdos_tl_state = TrafficLightColor.YELLOW
-    elif tl_state == carla.TrafficLightState.Green:
-        erdos_tl_state = TrafficLightColor.GREEN
-    else:
-        erdos_tl_state = TrafficLightColor.OFF
-    extent = pylot.simulation.utils.Extent(
-        tl_actor.trigger_volume.extent.x,
-        tl_actor.trigger_volume.extent.y,
-        tl_actor.trigger_volume.extent.z)
-    traffic_light = pylot.simulation.utils.TrafficLight(
-        tl_actor.id, transform, erdos_tl_state, extent)
-    return traffic_light
 
 
 def convert_traffic_light_actors(tl_actors):
@@ -254,7 +172,7 @@ def convert_traffic_light_actors(tl_actors):
     """
     traffic_lights = []
     for tl_actor in tl_actors:
-        traffic_light = convert_traffic_light_actor(tl_actor)
+        traffic_light = pylot.simulation.utils.TrafficLight(tl_actor)
         traffic_lights.append(traffic_light)
     return traffic_lights
 
@@ -270,7 +188,8 @@ def convert_speed_limit_actors(speed_limit_actors):
     """
     speed_limits = []
     for ts_actor in speed_limit_actors:
-        transform = to_pylot_transform(ts_actor.get_transform())
+        transform = pylot.simulation.utils.Transform(
+            carla_transform=ts_actor.get_transform())
         speed_limit = int(ts_actor.type_id.split('.')[-1])
         speed_sign = pylot.simulation.utils.SpeedLimitSign(
             transform, speed_limit)
@@ -289,7 +208,8 @@ def convert_traffic_stop_actors(traffic_stop_actors):
     """
     stop_signs = []
     for ts_actor in traffic_stop_actors:
-        transform = to_pylot_transform(ts_actor.get_transform())
+        transform = pylot.simulation.utils.Transform(
+            carla_transform=ts_actor.get_transform())
         world_trigger_volume = ts_actor.get_transform().transform(
             ts_actor.trigger_volume.location)
         bbox = pylot.simulation.utils.BoundingBox(

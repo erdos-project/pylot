@@ -86,9 +86,9 @@ class WaypointVisualizerOperator(Op):
                                  waypoint.location.y,
                                  waypoint.location.z)
             begin = loc + carla.Location(z=0.5)
-            end = begin + carla.Location(waypoint.orientation.x,
-                                         waypoint.orientation.y,
-                                         waypoint.orientation.z)
+            end = begin + carla.Location(waypoint.forward_vector.x,
+                                         waypoint.forward_vector.y,
+                                         waypoint.forward_vector.z)
             self._world.debug.draw_arrow(begin,
                                          end,
                                          arrow_size=0.3,

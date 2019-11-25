@@ -100,10 +100,12 @@ class TrackVisualizerOperator(Op):
                                    self._top_down_camera_setup.height,
                                    fov=self._top_down_camera_setup.fov)
             # Convert to screen points.
-            screen_points = pylot.simulation.utils.locations_3d_to_view(
-                                obj.trajectory,
-                                self._top_down_camera_setup.transform.matrix,
-                                intrinsic_matrix)
+            screen_points = [
+                loc.to_camera_view(
+                    pylot.simulation.utils.camera_to_unreal_transform(
+                        self._top_down_camera_setup.transform).matrix,
+                    intrinsic_matrix) for loc in obj.trajectory
+            ]
 
             # Draw trajectory points on segmented image.
             for point in screen_points:

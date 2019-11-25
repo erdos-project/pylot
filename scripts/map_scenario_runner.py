@@ -18,8 +18,8 @@ from miou_scenario_runner import setup_world, retrieve_actor, spawn_camera
 from miou_scenario_runner import cleanup_function
 
 from pylot.simulation.utils import get_2d_bbox_from_3d_box
-from pylot.simulation.utils import depth_to_array, to_pylot_transform
-from pylot.simulation.utils import BoundingBox, CameraSetup
+from pylot.simulation.utils import depth_to_array
+from pylot.simulation.utils import BoundingBox, CameraSetup, Transform
 from pylot.perception.detection.utils import get_precision_recall_at_iou
 
 VEHICLE_DESTINATION = carla.Location(x=387.73 - 370, y=327.07, z=0.5)
@@ -161,8 +161,8 @@ def process_depth_images(msg,
     for pedestrian in ego_vehicle.get_world().get_actors().filter('walker.*'):
         bbox = get_2d_bbox_from_3d_box(
             depth_to_array(msg),
-            to_pylot_transform(ego_vehicle.get_transform()),
-            to_pylot_transform(pedestrian.get_transform()),
+            Transform(carla_transform=ego_vehicle.get_transform()),
+            Transform(carla_transform=pedestrian.get_transform()),
             BoundingBox(pedestrian.bounding_box),
             depth_camera_setup.get_unreal_transform(),
             depth_camera_setup.get_intrinsic(), resolution, 1.0, 3.0)
@@ -241,9 +241,9 @@ def main(args):
     # Register a callback function with the camera.
     rgb_camera.listen(process_rgb_images)
 
-    depth_camera_setup = CameraSetup("depth_camera", 'sensor.camera.depth',
-                                     width, height,
-                                     to_pylot_transform(camera_transform))
+    depth_camera_setup = CameraSetup(
+        "depth_camera", 'sensor.camera.depth', width, height,
+        Transform(carla_transform=camera_transform))
     depth_camera.listen(
         functools.partial(process_depth_images,
                           depth_camera_setup=depth_camera_setup,

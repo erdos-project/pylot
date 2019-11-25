@@ -122,9 +122,9 @@ class FusionOperator(Op):
         vehicle_pos = ((msg.data.transform.location.x,
                         msg.data.transform.location.y,
                         msg.data.transform.location.z),
-                       (msg.data.transform.orientation.x,
-                        msg.data.transform.orientation.y,
-                        msg.data.transform.orientation.z))
+                       (msg.data.transform.forward_vector.x,
+                        msg.data.transform.forward_vector.y,
+                        msg.data.transform.forward_vector.z))
         self._car_positions.append((msg.timestamp, vehicle_pos))
 
     def update_objects(self, msg):

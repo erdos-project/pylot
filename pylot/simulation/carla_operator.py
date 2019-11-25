@@ -13,7 +13,7 @@ import pylot.utils
 from pylot.simulation.carla_utils import extract_data_in_pylot_format,\
     get_weathers, get_world, reset_world, set_synchronous_mode
 import pylot.simulation.messages
-from pylot.simulation.utils import to_pylot_transform
+from pylot.simulation.utils import Transform
 import pylot.simulation.utils
 
 
@@ -70,8 +70,9 @@ class CarlaOperator(Op):
             reset_world(self._world)
 
         # Set the weather.
-        weather, name = get_weathers()[self._flags.carla_weather - 1]
-        self._logger.info('Setting the weather to {}'.format(name))
+        weather = get_weathers()[self._flags.carla_weather]
+        self._logger.info('Setting the weather to {}'.format(
+            self._flags.carla_weather))
         self._world.set_weather(weather)
         # Turn on the synchronous mode so we can control the simulation.
         if self._flags.carla_synchronous_mode:
@@ -345,8 +346,8 @@ class CarlaOperator(Op):
         self.spin()
 
     def __publish_hero_vehicle_data(self, timestamp, watermark_msg):
-        vec_transform = to_pylot_transform(
-            self._driving_vehicle.get_transform())
+        vec_transform = Transform(
+            carla_transform=self._driving_vehicle.get_transform())
         forward_speed = pylot.simulation.utils.get_speed(
             self._driving_vehicle.get_velocity())
         can_bus = pylot.simulation.utils.CanBus(vec_transform, forward_speed)

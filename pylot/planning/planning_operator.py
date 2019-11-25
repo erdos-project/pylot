@@ -10,7 +10,7 @@ import pylot.planning.cost_functions
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.utils import get_distance,\
     get_waypoint_vector_and_angle, BehaviorPlannerState
-from pylot.simulation.carla_utils import get_map, to_carla_location
+from pylot.simulation.carla_utils import get_map
 import pylot.utils
 
 WAYPOINT_COMPLETION_THRESHOLD = 0.9
@@ -113,13 +113,12 @@ class PlanningOperator(Op):
             len(msg.data)))
         if len(msg.data) > 0:
             # The last waypoint is the goal location.
-            self._goal_location = to_carla_location(
-                msg.data[-1][0].location)
+            self._goal_location = msg.data[-1][0].location.as_carla_location()
         else:
             # Trajectory does not contain any waypoints. We assume we have
             # arrived at destionation.
-            self._goal_location = to_carla_location(
-                self._vehicle_transform.location)
+            goal_loc = self._vehicle_transform.location
+            self._goal_location = goal_loc.as_carla_location()
         assert self._goal_location, 'Planner does not have a goal'
         self._waypoints = deque()
         for waypoint_option in msg.data:
@@ -169,9 +168,9 @@ class PlanningOperator(Op):
             speed angles.
         """
         if self._recompute_waypoints:
-            ego_location = to_carla_location(self._vehicle_transform.location)
-            self._waypoints = self._map.compute_waypoints(ego_location,
-                                                          self._goal_location)
+            ego_location = self._vehicle_transform.location.as_carla_location()
+            self._waypoints = self._map.compute_waypoints(
+                ego_location, self._goal_location)
         self.__remove_completed_waypoints()
         if not self._waypoints or len(self._waypoints) == 0:
             # If waypoints are empty (e.g., reached destination), set waypoint
