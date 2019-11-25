@@ -6,14 +6,23 @@ if [ -z "$CARLA_HOME" ]; then
     exit 1
 fi
 
-towns=(1 2 3 4 5)
+towns=("Town01" "Town02")
+
+# towns=("Town05")
 
 for town in ${towns[@]}; do
-    ${CARLA_HOME}/CarlaUE4.sh /Game/Carla/Maps/Town0${town} -windowed -ResX=1920 -ResY=1080 -carla-server -benchmark -fps=10 &
-    mkdir $1/signs_town0${town}/
-    sleep 5
-    python sign_data_gatherer.py --data_path=$1/signs_town0${town}/ --log_bbox_images
+    ${CARLA_HOME}/CarlaUE4.sh -opengl &
     sleep 10
-    killall -s 9 ${CARLA_HOME}/CarlaUE4/Binaries/Linux/CarlaUE4
+    # Change the town using the config file.
+    # Do not change Town03 because we start in Town03 and running config.py
+    # randomizes the identifiers for the traffic lights.
+    if [ $town != "Town03" ]; then
+        ${CARLA_HOME}/PythonAPI/util/config.py --map $town
+    fi
+    mkdir -p $1/signs_${town}/
+    sleep 5
+    python sign_data_gatherer.py --data_path=$1/signs_${town}/ --log_bbox_images
+    sleep 10
+    killall -s 9 ${CARLA_HOME}/CarlaUE4/Binaries/Linux/CarlaUE4-Linux-Shipping
     sleep 10
 done
