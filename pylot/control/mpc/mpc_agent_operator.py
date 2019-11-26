@@ -3,7 +3,7 @@ from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging
 from pid_controller.pid import PID
 from pylot.control.messages import ControlMessage
-from pylot.control.mpc.cubic_spline import CubicSpline2D
+from pylot.control.mpc.utils import CubicSpline2D
 from pylot.control.mpc.mpc import ModelPredictiveController
 from pylot.control.mpc.utils import zero_to_2_pi, global_config
 from pylot.map.hd_map import HDMap
