@@ -1,5 +1,6 @@
 absl-py
 cffi
+cvxpy
 gdown
 matplotlib==2.2.4
 open3d-python==0.4.0.0
