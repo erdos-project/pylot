@@ -1,22 +1,18 @@
+import erdust
 import json
-
-from erdos.op import Op
-
-from pylot.utils import is_ground_tracking_stream
+import os
 
 
-class TrajectoryLoggerOp(Op):
-    """ Log actor trajectories."""
+class TrajectoryLoggerOp(erdust.Operator):
+    """ Logs tracked obstacle trajectories."""
 
-    def __init__(self, name, flags):
-        super(TrajectoryLoggerOp, self).__init__(name)
+    def __init__(self, obstacle_tracking_stream, name, flags):
+        obstacle_tracking_stream.add_callback(self.on_trajectories_msg)
         self._flags = flags
         self._msg_cnt = 0
 
     @staticmethod
-    def setup_streams(input_streams):
-        input_streams.filter(is_ground_tracking_stream).add_callback(
-            TrajectoryLoggerOp.on_trajectories_msg)
+    def connect(obstacle_tracking_stream):
         return []
 
     def on_trajectories_msg(self, msg):
@@ -26,7 +22,7 @@ class TrajectoryLoggerOp(Op):
         trajectories = [str(trajectory) for trajectory in msg.obj_trajectories]
         timestamp = msg.timestamp.coordinates[0]
         # Write the trajectories.
-        file_name = '{}trajectories-{}.json'.format(
-            self._flags.data_path, timestamp)
+        file_name = os.path.join(self._flags.data_path,
+                                 'trajectories-{}.json'.format(timestamp))
         with open(file_name, 'w') as outfile:
             json.dump(trajectories, outfile)

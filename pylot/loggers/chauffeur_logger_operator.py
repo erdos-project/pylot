@@ -1,17 +1,15 @@
-from collections import deque
-
 import carla
+from collections import deque
 import cv2
+import erdust
 import json
-import PIL.Image as Image
 import numpy as np
-
-# ERDOS specific imports.
-from erdos.op import Op
-from erdos.utils import setup_logging
+import os
+import PIL.Image as Image
 
 # Pylot specific imports.
-from pylot.perception.segmentation.utils import transform_to_cityscapes_palette, LABEL_2_PIXEL
+from pylot.perception.segmentation.utils import LABEL_2_PIXEL,\
+    transform_to_cityscapes_palette
 from pylot.planning.utils import get_distance
 import pylot.utils
 import pylot.simulation.carla_utils
@@ -27,10 +25,18 @@ TL_LOGGING_RADIUS = 40
 TL_BBOX_LIFETIME_BUFFER = 0.1
 
 
-class ChauffeurLoggerOp(Op):
+class ChauffeurLoggerOp(erdust.Operator):
     """ Logs data in Chauffeur format. """
 
-    def __init__(self, name, flags, top_down_camera_setup, log_file_name=None):
+    def __init__(self,
+                 vehicle_id_stream,
+                 can_bus_stream,
+                 obstacle_tracking_stream,
+                 top_down_camera_stream,
+                 top_down_segmentation_stream,
+                 name,
+                 flags,
+                 top_down_camera_setup):
         """ Initializes the operator with the given parameters.
 
         Args:
@@ -38,10 +44,13 @@ class ChauffeurLoggerOp(Op):
             flags: A handle to the global flags instance to retrieve the
                 configuration.
             top_down_camera_setup: The setup of the top down camera.
-            log_file_name: The file to log the required information to.
         """
-        super(ChauffeurLoggerOp, self).__init__(name)
-        self._logger = setup_logging(self.name, log_file_name)
+        vehicle_id_stream.add_callback(self.on_ground_vehicle_id_update)
+        can_bus_stream.add_callback(self.on_can_bus_update)
+        obstacle_tracking_stream.add_callback(self.on_tracking_update)
+        top_down_camera_stream.add_callback(self.on_top_down_camera_update)
+        top_down_segmentation_stream.add_callback(
+            self.on_top_down_segmentation_update)
         self._flags = flags
         self._buffer_length = 10
 
@@ -66,21 +75,11 @@ class ChauffeurLoggerOp(Op):
             raise ValueError('There was an issue connecting to the simulator.')
 
     @staticmethod
-    def setup_streams(input_streams, top_down_stream_name):
-        input_streams.filter(pylot.utils.is_tracking_stream).add_callback(
-            ChauffeurLoggerOp.on_tracking_update)
-        input_streams.filter(
-            pylot.utils.is_segmented_camera_stream).filter_name(
-                top_down_stream_name).add_callback(
-                    ChauffeurLoggerOp.on_top_down_segmentation_update)
-        input_streams.filter(
-            pylot.utils.is_ground_vehicle_id_stream).add_callback(
-                ChauffeurLoggerOp.on_ground_vehicle_id_update)
-        input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
-            ChauffeurLoggerOp.on_can_bus_update)
-        input_streams.filter(
-            pylot.utils.is_top_down_camera_stream).add_callback(
-                ChauffeurLoggerOp.on_top_down_camera_update)
+    def connect(vehicle_id_stream,
+                can_bus_stream,
+                obstacle_tracking_stream,
+                top_down_camera_stream,
+                top_down_segmentation_stream):
         return []
 
     def on_tracking_update(self, msg):
@@ -125,9 +124,11 @@ class ChauffeurLoggerOp(Op):
                                r, (100, 100, 100), -1)
 
         # Transform to previous and back to current frame
-        new_transform = self._current_transform * self._previous_transform.inverse_transform()
+        new_transform = (self._current_transform *
+                         self._previous_transform.inverse_transform())
         self._waypoints = [
-            (new_transform * pylot.simulation.utils.Transform(wp, rotation)).location
+            (new_transform *
+             pylot.simulation.utils.Transform(wp, rotation)).location
             for wp in self._waypoints
         ]
 
@@ -137,7 +138,8 @@ class ChauffeurLoggerOp(Op):
             rotation
         ).inverse_transform()
         self._waypoints = [
-            (center_transform * pylot.simulation.utils.Transform(wp, rotation)).location
+            (center_transform *
+             pylot.simulation.utils.Transform(wp, rotation)).location
             for wp in self._waypoints
         ]
 
@@ -158,24 +160,28 @@ class ChauffeurLoggerOp(Op):
         # Log future screen points
         future_poses_img = Image.fromarray(future_poses)
         future_poses_img = future_poses_img.convert('RGB')
-        future_poses_img.save('{}{}-{}.png'.format(
-            self._flags.data_path, "future_poses",
-            msg.timestamp.coordinates[0] - len(self._waypoints) * 100))
+        file_name = os.path.join(
+            self._flags.data_path,
+            'future_poses-{}.png'.format(
+                msg.timestamp.coordinates[0] - len(self._waypoints) * 100))
+        future_poses_img.save(file_name)
 
         # Log future poses
         waypoints = [str(wp) for wp in self._waypoints]
-        file_name = '{}waypoints-{}.json'.format(
+        file_name = os.path.join(
             self._flags.data_path,
-            msg.timestamp.coordinates[0] - len(self._waypoints) * 100)
+            'waypoints-{}.json'.format(
+                msg.timestamp.coordinates[0] - len(self._waypoints) * 100))
         with open(file_name, 'w') as outfile:
             json.dump(waypoints, outfile)
 
         # Log past screen points
         past_poses_img = Image.fromarray(past_poses)
         past_poses_img = past_poses_img.convert('RGB')
-        past_poses_img.save('{}{}-{}.png'.format(
+        file_name = os.path.join(
             self._flags.data_path,
-            "past_poses", msg.timestamp.coordinates[0]))
+            'past_poses-{}.png'.format(msg.timestamp.coordinates[0]))
+        past_poses_img.save(file_name)
 
     def on_top_down_segmentation_update(self, msg):
         top_down = np.uint8(transform_to_cityscapes_palette(msg.frame))
@@ -185,17 +191,19 @@ class ChauffeurLoggerOp(Op):
             mask = np.all(top_down == v, axis=-1)
             tmp = np.zeros(top_down.shape[:2])
             tmp[mask] = 1
-            name = '{}{}-{}.png'.format(
-                self._flags.data_path, k, msg.timestamp.coordinates[0])
+            file_name = os.path.join(
+                self._flags.data_path,
+                '{}-{}.png'.format(k, msg.timestamp.coordinates[0]))
             img = Image.fromarray(tmp)
             img = img.convert('RGB')
-            img.save(name)
+            img.save(file_name)
 
-        top_down_img = Image.fromarray(top_down)
-        top_down_img.save('{}{}-{}.png'.format(
+        file_name = os.path.join(
             self._flags.data_path,
-            "top_down_segmentation",
-            msg.timestamp.coordinates[0]))
+            'top_down_segmentation-{}.png'.format(
+                msg.timestamp.coordinates[0]))
+        top_down_img = Image.fromarray(top_down)
+        top_down_img.save(file_name)
 
     def on_ground_vehicle_id_update(self, msg):
         self._ground_vehicle_id = msg.data
@@ -209,14 +217,16 @@ class ChauffeurLoggerOp(Op):
         self._global_transforms.append(msg.data.transform)
 
         # Log heading
-        file_name = '{}heading-{}.json'.format(self._flags.data_path,
-                                               msg.timestamp.coordinates[0])
+        file_name = os.path.join(
+            self._flags.data_path,
+            'heading-{}.json'.format(msg.timestamp.coordinates[0]))
         with open(file_name, 'w') as outfile:
             json.dump(str(self._current_transform.rotation.yaw), outfile)
 
         # Log speed
-        file_name = '{}speed-{}.json'.format(self._flags.data_path,
-                                             msg.timestamp.coordinates[0])
+        file_name = os.path.join(
+            self._flags.data_path,
+            'speed-{}.json'.format(msg.timestamp.coordinates[0]))
         with open(file_name, 'w') as outfile:
             json.dump(str(msg.data.forward_speed), outfile)
 
@@ -235,10 +245,10 @@ class ChauffeurLoggerOp(Op):
         tl_mask = self._get_traffic_light_channel_from_top_down_rgb(img)
         tl_img = Image.fromarray(tl_mask)
         tl_img = tl_img.convert('RGB')
-        tl_img.save('{}{}-{}.png'.format(
+        file_name = os.path.join(
             self._flags.data_path,
-            "traffic_lights",
-            msg.timestamp.coordinates[0]))
+            'traffic_lights-{}.png'.format(msg.timestamp.coordinates[0]))
+        tl_img.save(file_name)
 
     def _draw_trigger_volume(self, world, tl_actor):
         transform = tl_actor.get_transform()
@@ -250,7 +260,8 @@ class ChauffeurLoggerOp(Op):
             bbox_color = carla.Color(r, g, b)
         else:
             bbox_color = carla.Color(0, 0, 0)
-        bbox_life_time = 1 / self._flags.carla_step_frequency + TL_BBOX_LIFETIME_BUFFER
+        bbox_life_time = (1 / self._flags.carla_step_frequency +
+                          TL_BBOX_LIFETIME_BUFFER)
         world.debug.draw_box(bbox,
                              transform.rotation,
                              thickness=0.5,

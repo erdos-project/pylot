@@ -1,26 +1,25 @@
+import erdust
 import open3d as o3d
-
-import pylot.utils
-
-from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging
+import os
 
 
-class LidarLoggerOp(Op):
+class LidarLoggerOp(erdust.Operator):
     """ Logs point cloud messages."""
 
-    def __init__(self, name, flags, log_file_name=None, csv_file_name=None):
-        super(LidarLoggerOp, self).__init__(name)
+    def __init__(self,
+                 lidar_stream,
+                 name, flags,
+                 log_file_name=None,
+                 csv_file_name=None):
+        lidar_stream.add_callback(self.on_lidar_frame)
         self._flags = flags
-        self._logger = setup_logging(self.name, log_file_name)
-        self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+        self._logger = erdust.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.setup_csv_logging(
+            name + '-csv', csv_file_name)
         self._pc_msg_cnt = 0
 
     @staticmethod
-    def setup_streams(input_streams):
-        input_streams.filter(
-            pylot.utils.is_lidar_stream).add_callback(
-                LidarLoggerOp.on_lidar_frame)
+    def connect(lidar_stream):
         return []
 
     def on_lidar_frame(self, msg):
@@ -28,8 +27,9 @@ class LidarLoggerOp(Op):
         if self._pc_msg_cnt % self._flags.log_every_nth_frame != 0:
             return
         # Write the lidar information.
-        file_name = '{}carla-lidar-{}.ply'.format(
-            self._flags.data_path, msg.timestamp.coordinates[0])
+        file_name = os.path.join(
+            self._flags.data_path,
+            'carla-lidar-{}.ply'.format(msg.timestamp.coordinates[0]))
         pcd = o3d.PointCloud()
         pcd.points = o3d.Vector3dVector(msg.point_cloud)
         o3d.write_point_cloud(file_name, pcd)
