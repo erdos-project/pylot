@@ -8,15 +8,24 @@ flags.DEFINE_bool('replay', False,
 flags.DEFINE_string('log_file_name', None, 'Name of the log file')
 flags.DEFINE_string('csv_log_file_name', None,
                     'csv file into which to log runtime stats')
-flags.DEFINE_bool('ground_agent_operator', True,
-                  'True to use the ground truth controller')
+
 
 # Sensors to enable.
 flags.DEFINE_bool('lidar', False, 'True to enable the lidar sensor')
 flags.DEFINE_bool('top_down_segmentation', False,
                   'True for enable the top down segmentation camera')
 
-# Modules to enable.
+# Planning modules to enable.
+flags.DEFINE_bool('waypoint_planning_operator', False,
+                  'True to use the waypoint planning operator.')
+
+# Control modules to enable.
+flags.DEFINE_bool('ground_agent_operator', True,
+                  'True to use the ground truth controller')
+flags.DEFINE_bool('mpc_agent_operator', False,
+                  'True to use the MPC control operator.')
+
+# Perception modules to enable.
 flags.DEFINE_bool('segmentation_drn', False,
                   'True to enable DRN segmantation operator')
 flags.DEFINE_string('segmentation_drn_model_path',
@@ -82,6 +91,7 @@ flags.DEFINE_bool('stop_for_vehicles', True,
                   'True to enable vehicle stopping')
 flags.DEFINE_bool('use_perfect_perception', False,
                   'True to enable the agent to use perfect ground detection')
+
 # Traffic light stopping parameters.
 flags.DEFINE_integer('traffic_light_min_dist_thres', 5,
                      'Min distance threshold traffic light')
@@ -89,6 +99,7 @@ flags.DEFINE_integer('traffic_light_max_dist_thres', 20,
                      'Max distance threshold traffic light')
 flags.DEFINE_float('traffic_light_angle_thres', 0.5,
                    'Traffic light angle threshold')
+
 # Vehicle stopping parameters.
 flags.DEFINE_integer('vehicle_distance_thres', 15,
                      'Vehicle distance threshold')
@@ -115,6 +126,7 @@ flags.DEFINE_integer(
     'target_speed', 10,
     'Target speed in m/s , could be controlled by the speed limit')
 flags.DEFINE_float('steer_gain', 0.7, 'Gain on computed steering angle')
+
 flags.DEFINE_float('brake_strength', 1,
                    'Strength for applying brake; between 0 and 1')
 flags.DEFINE_integer('coast_factor', 2, 'Factor to control coasting')

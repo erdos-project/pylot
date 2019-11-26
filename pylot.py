@@ -223,6 +223,10 @@ def add_agent_op(graph,
         agent_op = pylot.operator_creator.create_ground_agent_op(graph)
         graph.connect([carla_op], [agent_op])
         graph.connect([agent_op], [carla_op])
+    elif FLAGS.mpc_agent_operator:
+        agent_op = pylot.operator_creator.create_mpc_agent_op(graph)
+        graph.connect([carla_op], [agent_op])
+        graph.connect([agent_op], [carla_op])
     else:
         # TODO(ionel): The ERDOS agent doesn't use obj tracker and fusion.
         agent_op = pylot.operator_creator.create_pylot_agent_op(
@@ -238,8 +242,12 @@ def add_planning_component(graph,
                            goal_location,
                            carla_op,
                            agent_op):
-    planning_op = pylot.operator_creator.create_planning_op(
-        graph, goal_location)
+    if FLAGS.waypoint_planning_operator:
+        planning_op = pylot.operator_creator.create_waypoint_planning_op(graph, goal_location)
+    else:
+        planning_op = pylot.operator_creator.create_planning_op(
+            graph, goal_location)
+
     if FLAGS.visualize_waypoints:
         waypoint_viz_op = pylot.operator_creator.create_waypoint_visualizer_op(
             graph)
