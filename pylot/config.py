@@ -209,6 +209,16 @@ flags.DEFINE_bool('perfect_tracking', False,
 flags.DEFINE_integer('perfect_tracking_num_steps', None,
                      'Limit on number of past steps returned by the perfect object tracker.')
 
+# Prediction flags.
+flags.DEFINE_bool('prediction', False,
+                  'True to enable prediction.')
+flags.DEFINE_string('prediction_type', 'linear',
+                    'Prediction type: linear')
+flags.DEFINE_integer('prediction_num_past_steps', None,
+                     'Number of past steps of each agent given to the prediction module.')
+flags.DEFINE_integer('prediction_num_future_steps', None,
+                     'Number of future steps outputted by the prediction module.')
+
 # GPU memory fractions.
 flags.DEFINE_float('obj_detection_gpu_memory_fraction', 0.3,
                    'GPU memory fraction allocated to each obj detector operator')
@@ -277,11 +287,18 @@ flags.register_multi_flags_validator(
 
 flags.register_multi_flags_validator(
     ['perfect_tracking', 'perfect_tracking_num_steps'],
-    lambda flags_dict: (not flags_dict['perfect_tracking_num_steps'] or
+    lambda flags_dict: (not flags_dict['perfect_tracking'] or
                         (flags_dict['perfect_tracking'] and
                          flags_dict['perfect_tracking_num_steps'])),
-    message='perfect_tracking must be enabled when perfect_tracking_num_steps is set')
+    message='--perfect_tracking_num_steps must be set if --perfect_tracking is set')
 
+flags.register_multi_flags_validator(
+    ['prediction', 'prediction_num_past_steps', 'prediction_num_future_steps'],
+    lambda flags_dict: (not flags_dict['prediction'] or
+                        (flags_dict['prediction'] and
+                         flags_dict['prediction_num_past_steps'] and
+                         flags_dict['prediction_num_future_steps'])),
+    message='--prediction_num_past_steps and --prediction_num_future_steps must be set if --prediction is set')
 
 def detector_accuracy_validator(flags_dict):
     if flags_dict['evaluate_obj_detection']:

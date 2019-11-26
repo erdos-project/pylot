@@ -190,6 +190,18 @@ def create_control_op(graph):
         })
     return control_op
 
+def create_linear_predictor_op(graph, output_stream_name):
+    from pylot.prediction.linear_predictor_operator import LinearPredictorOp
+    linear_predictor_op = graph.add(
+        LinearPredictorOp,
+        name='linear_predictor',
+        init_args={
+            'output_stream_name': output_stream_name,
+            'flags': FLAGS,
+            'log_file_name': FLAGS.log_file_name,
+            'csv_file_name': FLAGS.csv_log_file_name},
+        setup_args={'output_stream_name': output_stream_name})
+    return linear_predictor_op
 
 def create_waypoint_visualizer_op(graph):
     from pylot.debug.waypoint_visualize_operator import WaypointVisualizerOperator
@@ -555,6 +567,7 @@ def add_visualization_operators(graph,
                                 camera_ops,
                                 lidar_ops,
                                 perfect_tracker_ops,
+                                prediction_ops,
                                 rgb_camera_name,
                                 depth_camera_name,
                                 front_segmented_camera_name,
@@ -602,6 +615,8 @@ def add_visualization_operators(graph,
             top_down_segmented_camera_name)
         graph.connect(camera_ops + perfect_tracker_ops,
                       [top_down_tracker_video_op])
+        if FLAGS.prediction:
+            graph.connect(prediction_ops, [top_down_tracker_video_op])
 
 
 def add_recording_operators(graph,
