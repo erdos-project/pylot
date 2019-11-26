@@ -255,15 +255,15 @@ def add_planning_component(graph,
     graph.connect([carla_op], [planning_op])
     graph.connect([planning_op], [agent_op])
 
-
 def add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
-                            lidar_ops, perfect_tracker_ops):
+                            lidar_ops, perfect_tracker_ops, prediction_ops):
     # Add visual operators.
     pylot.operator_creator.add_visualization_operators(
         graph,
         camera_ops,
         lidar_ops,
         perfect_tracker_ops,
+        prediction_ops,
         pylot.utils.CENTER_CAMERA_NAME,
         pylot.utils.DEPTH_CAMERA_NAME,
         pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
@@ -307,6 +307,18 @@ def add_perfect_perception_component(graph,
     return (obj_det_ops, traffic_light_det_ops, lane_det_ops, segmentation_ops)
 
 
+def add_prediction_component(graph,
+                             perfect_tracker_ops,
+                             prediction_stream_name):
+    prediction_ops = []
+    if FLAGS.prediction_type == 'linear':
+        prediction_ops.append(pylot.operator_creator.create_linear_predictor_op(
+            graph, prediction_stream_name))
+        graph.connect(perfect_tracker_ops, prediction_ops)
+
+    return prediction_ops
+
+
 def main(argv):
     # Define graph
     graph = erdos.graph.get_current_graph()
@@ -343,11 +355,15 @@ def main(argv):
         # Add segmentation operators.
         segmentation_ops = add_segmentation_component(graph, camera_ops)
 
+    prediction_ops = []
+    if FLAGS.prediction:
+        prediction_ops = add_prediction_component(graph, perfect_tracker_ops, 'prediction_output')
+
     add_ground_eval_ops(graph, obj_det_ops, camera_ops)
 
     # Add debugging operators (e.g., visualizers) to the data-flow graph.
     add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
-                            lidar_ops, perfect_tracker_ops)
+                            lidar_ops, perfect_tracker_ops, prediction_ops)
 
     # Add the behaviour planning agent operator.
     agent_op = add_agent_op(graph,

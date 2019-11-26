@@ -2,7 +2,8 @@ from erdos.message import Message
 
 
 class ObjPrediction(object):
-    def __init__(self, obj_id, probability, trajectory):
+    def __init__(self, obj_class, obj_id, probability, trajectory):
+        self.obj_class = obj_class
         self.id = obj_id
         self.probability = probability
         # List of (x, y, yaw, timestamp).
