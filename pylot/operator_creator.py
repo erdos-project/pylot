@@ -4,7 +4,6 @@ from absl import flags
 # import Control operators.
 from pylot.control.pylot_agent_operator import PylotAgentOperator
 from pylot.control.ground_agent_operator import GroundAgentOperator
-from pylot.control.mpc.mpc_agent_operator import MPCAgentOperator
 # Import debug operators.
 from pylot.debug.depth_camera_visualizer import DepthCameraVisualizer
 from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
@@ -234,6 +233,7 @@ def create_pylot_agent_op(graph, bgr_camera_setup):
 
 
 def create_mpc_agent_op(graph):
+    from pylot.control.mpc.mpc_agent_operator import MPCAgentOperator
     agent_op = graph.add(
         MPCAgentOperator,
         name='mpc_agent',
