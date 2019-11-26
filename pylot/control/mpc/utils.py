@@ -43,6 +43,19 @@ def compute_curvature(vel, accel, yaw):
     return (ddy * dx - ddx * dy) / ((dx ** 2 + dy ** 2) ** (3 / 2))
 
 
+def normalize_yaw(yaw_list):
+    if len(yaw_list) > 1:
+        for i in range(len(yaw_list) - 1):
+            delta_yaw = yaw_list[i + 1] - yaw_list[i]
+            while delta_yaw >= np.pi / 2.0:
+                yaw_list[i + 1] -= np.pi * 2.0
+                delta_yaw = yaw_list[i + 1] - yaw_list[i]
+            while delta_yaw <= -np.pi / 2.0:
+                yaw_list[i + 1] += np.pi * 2.0
+                delta_yaw = yaw_list[i + 1] - yaw_list[i]
+    return yaw_list
+
+
 def zero_to_2_pi(angle):
     return (angle + 360) % 360
 
@@ -288,3 +301,70 @@ class CubicSpline2D:
         s.extend(np.cumsum(self.ds))
         s = np.unique(s)
         return s
+
+
+class Vehicle:
+    def __init__(self, config):
+        self.config = config
+        self.time = None  # Time [s]
+        self.distance = None  # Arc distance [m]
+        self.x = None  # X coordinate [m]
+        self.y = None  # Y coordinate [m]
+        self.curvature = None  # Curvature [1/m]
+        self.vel = None  # Tangential velocity [m/s]
+        self.yaw = None  # Yaw [rad]
+        self.accel = None  # Acceleration [m/s2]
+        self.steer = None  # Steering [rad]
+
+    def update(self, time, distance, x, y, curvature, vel, yaw, accel, steer):
+        self.time = time
+        self.distance = distance
+        self.x = x
+        self.y = y
+        self.curvature = curvature
+        self.vel = vel
+        self.yaw = yaw
+        self.accel = accel
+        self.steer = steer
+
+    def get_position(self):
+        return np.asarray([self.x, self.y])
+
+    def get_state(self):
+        return np.asarray([self.x, self.y, self.vel, self.yaw])
+
+
+class Trajectory:
+    def __init__(self, t_list, s_list, x_list, y_list, k_list, vel_list,
+                 yaw_list, accel_list=None, steer_list=None):
+        self.t_list = list(t_list)  # Time [s]
+        self.s_list = list(s_list)  # Arc distance list [m]
+        self.x_list = list(x_list)  # X coordinate list [m]
+        self.y_list = list(y_list)  # Y coordinate list [m]
+        self.k_list = list(k_list)  # Curvature list [1/m]
+        self.vel_list = list(vel_list)  # Tangential velocity list [m/s]
+        self.yaw_list = list(normalize_yaw(yaw_list))  # Yaw list [rad]
+        if accel_list is not None:
+            self.accel_list = list(accel_list)  # Acceleration list [m/s2]
+        else:
+            self.accel_list = accel_list
+        if steer_list is not None:
+            self.steer_list = list(steer_list)  # Steering list [rad]
+        else:
+            self.steer_list = steer_list
+
+    def append_vel(self, vel):
+        self.vel_list.append(vel)
+
+    def append(self, t, s, x, y, k, vel, yaw, accel=None, steer=None):
+        self.t_list.append(t)
+        self.s_list.append(s)
+        self.x_list.append(x)
+        self.y_list.append(y)
+        self.k_list.append(k)
+        self.vel_list.append(vel)
+        self.yaw_list.append(yaw)
+        if accel is not None:
+            self.accel_list.append(accel)
+        if steer is not None:
+            self.steer_list.append(steer)

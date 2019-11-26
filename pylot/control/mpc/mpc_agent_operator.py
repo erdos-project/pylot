@@ -3,9 +3,8 @@ from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging
 from pid_controller.pid import PID
 from pylot.control.messages import ControlMessage
-from pylot.control.mpc.utils import CubicSpline2D
 from pylot.control.mpc.mpc import ModelPredictiveController
-from pylot.control.mpc.utils import zero_to_2_pi, global_config
+from pylot.control.mpc.utils import zero_to_2_pi, global_config, CubicSpline2D
 from pylot.map.hd_map import HDMap
 from pylot.simulation.carla_utils import get_map, to_carla_location, get_world
 
@@ -134,10 +133,10 @@ class MPCAgentOperator(Op):
                                                    traffic_lights)
 
         control_msg = self.get_control_message(waypoints, vehicle_transform, vehicle_speed, speed_factor, msg.timestamp)
-        self._logger.info("Throttle: {}".format(control_msg.throttle))
-        self._logger.info("Steer: {}".format(control_msg.steer))
-        self._logger.info("Brake: {}".format(control_msg.brake))
-        self._logger.info("State: {}".format(state))
+        self._logger.debug("Throttle: {}".format(control_msg.throttle))
+        self._logger.debug("Steer: {}".format(control_msg.steer))
+        self._logger.debug("Brake: {}".format(control_msg.brake))
+        self._logger.debug("State: {}".format(state))
 
         self.get_output_stream('control_stream').send(control_msg)
 
@@ -241,11 +240,6 @@ class MPCAgentOperator(Op):
             'vel_list': vels,  # Desired tangential velocities [m/s]
             'yaw_list': yaws,  # Yaws [rad]
         }
-        # draw intended trajectory
-        for p in path:
-            self._world.debug.draw_point(carla.Location(x=p[0], y=p[1], z=0.5),
-                                         size=0.2,
-                                         life_time=1.0, color=carla.Color(0, 0, 255))
 
         # initialize mpc controller
         self.mpc = ModelPredictiveController(config=self._config)
@@ -275,11 +269,6 @@ class MPCAgentOperator(Op):
         steer = self.__rad2steer(target_steer_rad)  # [-1.0, 1.0]
         throttle, brake = self.__get_throttle_brake_without_factor(
             current_speed, target_speed)
-
-        # draw next waypoints
-        self._world.debug.draw_point(carla.Location(x=ego_location.x, y=ego_location.y, z=0.5),
-                                     size=0.2,
-                                     life_time=30000.0)
 
         # send controls
         return ControlMessage(steer, throttle, brake, False, False, timestamp)

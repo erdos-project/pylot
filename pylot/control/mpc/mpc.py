@@ -9,9 +9,7 @@ PathTracking/model_predictive_speed_and_steer_control
 import numpy as np
 import cvxpy
 from cvxpy.expressions import constants
-from pylot.control.mpc.trajectory import Trajectory
-from pylot.control.mpc.vehicle import Vehicle
-from pylot.control.mpc.utils import compute_curvature
+from pylot.control.mpc.utils import compute_curvature, Vehicle, Trajectory
 
 
 class ModelPredictiveController:
