@@ -1,3 +1,4 @@
+import erdust
 from erdos.message import Message
 
 
@@ -32,7 +33,7 @@ class FrameMessage(Message):
             self.timestamp, self.width, self.height, self.encoding)
 
 
-class DepthFrameMessage(Message):
+class DepthFrameMessage(erdust.Message):
     """ Message class to be used to send depth camera frames.
 
     Attributes:
@@ -51,7 +52,7 @@ class DepthFrameMessage(Message):
             fov: The field of view of the camera.
             timestamp: A erdos.timestamp.Timestamp of the message.
         """
-        super(DepthFrameMessage, self).__init__(None, timestamp, 'default')
+        super(DepthFrameMessage, self).__init__(timestamp, None)
         self.frame = frame
         self.transform = transform
         self.width = frame.shape[1]

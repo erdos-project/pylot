@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 
 # Semantic Labels
 LABEL_2_PIXEL = {

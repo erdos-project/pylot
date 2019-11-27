@@ -1,35 +1,36 @@
+import erdust
 import numpy as np
 import tensorflow as tf
 import time
 
-from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
-
 from pylot.perception.detection.utils import DetectedObject,\
     TrafficLightColor, annotate_image_with_bboxes, save_image, visualize_image
 from pylot.perception.messages import DetectorMessage
-from pylot.utils import bgr_to_rgb, rgb_to_bgr, create_traffic_lights_stream,\
-    is_camera_stream
+from pylot.utils import bgr_to_rgb, rgb_to_bgr, time_epoch_ms
 
 
-class TrafficLightDetOperator(Op):
+class TrafficLightDetOperator(erdust.Operator):
     """ Subscribes to a camera stream, and runs a model for each frame."""
     def __init__(self,
+                 camera_stream,
+                 traffic_lights_stream,
                  name,
-                 output_stream_name,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-        super(TrafficLightDetOperator, self).__init__(name)
-        self._logger = setup_logging(self.name, log_file_name)
-        self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
-        self._output_stream_name = output_stream_name
+        # Register a callback on the camera input stream.
+        camera_stream.add_callback(self.on_frame, [traffic_lights_stream])
+        self._name = name
+        self._logger = erdust.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.setup_csv_logging(
+            name + '-csv', csv_file_name)
         self._flags = flags
         self._detection_graph = tf.Graph()
         # Load the model from the model file.
         with self._detection_graph.as_default():
             od_graph_def = tf.GraphDef()
-            with tf.gfile.GFile(self._flags.traffic_light_det_model_path, 'rb') as fid:
+            with tf.gfile.GFile(
+                    self._flags.traffic_light_det_model_path, 'rb') as fid:
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name='')
@@ -64,19 +65,11 @@ class TrafficLightDetOperator(Op):
                              TrafficLightColor.OFF: [0, 0, 0]}
 
     @staticmethod
-    def setup_streams(input_streams,
-                      output_stream_name,
-                      camera_stream_name=None):
-        # Select camera input streams.
-        camera_streams = input_streams.filter(is_camera_stream)
-        if camera_stream_name:
-            # Select only the camera the operator is interested in.
-            camera_streams = camera_streams.filter_name(camera_stream_name)
-        # Register a callback on the camera input stream.
-        camera_streams.add_callback(TrafficLightDetOperator.on_frame)
-        return [create_traffic_lights_stream(output_stream_name)]
+    def connect(camera_stream):
+        traffic_lights_stream = erdust.WriteStream()
+        return [traffic_lights_stream]
 
-    def on_frame(self, msg):
+    def on_frame(self, msg, traffic_lights_stream):
         """ Invoked when the operator receives a message on the data stream."""
         start_time = time.time()
         assert msg.encoding == 'BGR', 'Expects BGR frames'
@@ -109,23 +102,20 @@ class TrafficLightDetOperator(Op):
                                        traffic_lights,
                                        self._bbox_colors)
             if self._flags.visualize_traffic_light_output:
-                visualize_image(self.name, rgb_to_bgr(image_np))
+                visualize_image(self._name, rgb_to_bgr(image_np))
             if self._flags.log_traffic_light_detector_output:
                 save_image(image_np,
                            msg.timestamp,
                            self._flags.data_path,
-                           'tl-detector-{}'.format(self.name))
+                           'tl-detector-{}'.format(self._name))
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(
-            time_epoch_ms(), self.name, msg.timestamp, runtime))
+            time_epoch_ms(), self._name, msg.timestamp, runtime))
 
-        output_msg = DetectorMessage(traffic_lights, runtime, msg.timestamp)
-        self.get_output_stream(self._output_stream_name).send(output_msg)
-
-    def execute(self):
-        self.spin()
+        traffic_lights_stream.send(
+            DetectorMessage(traffic_lights, runtime, msg.timestamp))
 
     def __convert_to_detected_tl(self, boxes, scores, labels, height, width):
         traffic_lights = []

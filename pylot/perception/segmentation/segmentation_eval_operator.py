@@ -1,21 +1,29 @@
+import erdust
 import heapq
-
-from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
 from pylot.perception.segmentation.utils import compute_semantic_iou,\
     transform_to_cityscapes_palette
-from pylot.utils import is_ground_segmented_camera_stream,\
-    is_non_ground_segmented_camera_stream
+from pylot.utils import time_epoch_ms
 
 
-class SegmentationEvalOperator(Op):
+class SegmentationEvalOperator(erdust.Operator):
 
-    def __init__(self, name, flags, log_file_name=None, csv_file_name=None):
-        super(SegmentationEvalOperator, self).__init__(name)
+    def __init__(self,
+                 ground_segmented_stream,
+                 segmented_stream,
+                 name,
+                 flags,
+                 log_file_name=None,
+                 csv_file_name=None):
+        ground_segmented_stream.add_callback(self.on_ground_segmented_frame)
+        segmented_stream.add_callback(self.on_segmented_frame)
+        # Register a watermark callback.
+        erdust.add_watermark_callback(self.on_notification)
+        self._name = name
         self._flags = flags
-        self._logger = setup_logging(self.name, log_file_name)
-        self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+        self._logger = erdust.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.setup_csv_logging(
+            name + '-csv', csv_file_name)
         # Buffer of ground truth segmented frames.
         self._ground_frames = []
         # Buffer of segmentation output frames.
@@ -26,17 +34,7 @@ class SegmentationEvalOperator(Op):
         self._last_notification = None
 
     @staticmethod
-    def setup_streams(input_streams,
-                      ground_stream_name,
-                      segmented_stream_name):
-        input_streams.filter(is_ground_segmented_camera_stream).add_callback(
-            SegmentationEvalOperator.on_ground_segmented_frame)
-        input_streams.filter(is_non_ground_segmented_camera_stream) \
-                     .filter_name(segmented_stream_name) \
-                     .add_callback(SegmentationEvalOperator.on_segmented_frame)
-        # Register a watermark callback.
-        input_streams.add_completion_callback(
-            SegmentationEvalOperator.on_notification)
+    def connect(ground_segmented_stream, segmented_stream):
         return []
 
     def on_notification(self, msg):
@@ -104,9 +102,6 @@ class SegmentationEvalOperator(Op):
             self._logger.fatal('Unexpected segmentation metric {}'.format(
                 self._flags.eval_segmentation_metric))
 
-    def execute(self):
-        self.spin()
-
     def __compute_closest_frame_time(self, time):
         base = int(time) / self._sim_interval * self._sim_interval
         if time - base < self._sim_interval / 2:
@@ -120,7 +115,7 @@ class SegmentationEvalOperator(Op):
         self._logger.info('IoU class scores: {}'.format(class_iou))
         self._logger.info('mean IoU score: {}'.format(mean_iou))
         self._csv_logger.info('{},{},{},{}'.format(
-            time_epoch_ms(), self.name, self._flags.eval_segmentation_metric,
+            time_epoch_ms(), self._name, self._flags.eval_segmentation_metric,
             mean_iou))
 
     def __mean_iou_to_latency(self, mean_iou):

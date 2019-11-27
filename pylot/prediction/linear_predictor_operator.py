@@ -21,7 +21,7 @@ class LinearPredictorOp(erdust.Operator):
         self._flags = flags
 
     @staticmethod
-    def setup_streams(ground_tracking_stream):
+    def connect(ground_tracking_stream):
         linear_prediction_stream = erdust.WriteStream()
         return [linear_prediction_stream]
 

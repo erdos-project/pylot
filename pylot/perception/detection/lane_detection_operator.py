@@ -1,42 +1,33 @@
 import cv2
+import erdust
 import numpy as np
 import time
 
-from erdos.message import Message
-from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
-
-from pylot.utils import add_timestamp, bgra_to_bgr, create_detected_lane_stream, is_camera_stream
+from pylot.utils import add_timestamp, time_epoch_ms
 
 
-class LaneDetectionOperator(Op):
+class LaneDetectionOperator(erdust.Operator):
     def __init__(self,
+                 camera_stream,
+                 detected_lanes_stream,
                  name,
-                 output_stream_name,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-        super(LaneDetectionOperator, self).__init__(name)
+        camera_stream.add_callback(self.on_msg_camera_stream,
+                                   [detected_lanes_stream])
+        self._name = name
         self._flags = flags
-        self._logger = setup_logging(self.name, log_file_name)
-        self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
-        self._output_stream_name = output_stream_name
+        self._logger = erdust.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.setup_csv_logging(
+            name + '-csv', csv_file_name)
 
     @staticmethod
-    def setup_streams(input_streams,
-                      output_stream_name,
-                      camera_stream_name=None):
-        # Select camera input streams.
-        camera_streams = input_streams.filter(is_camera_stream)
-        if camera_stream_name:
-            # Select only the camera the operator is interested in.
-            camera_streams = camera_streams.filter_name(camera_stream_name)
-        # Register a callback on the camera input stream.
-        camera_streams.add_callback(
-            LaneDetectionOperator.on_msg_camera_stream)
-        return [create_detected_lane_stream(output_stream_name)]
+    def connect(camera_stream):
+        detected_lanes_stream = erdust.WriteStream()
+        return [detected_lanes_stream]
 
-    def on_msg_camera_stream(self, msg):
+    def on_msg_camera_stream(self, msg, detected_lanes_stream):
         start_time = time.time()
         assert msg.encoding == 'BGR', 'Expects BGR frames'
         image_np = msg.frame
@@ -79,15 +70,14 @@ class LaneDetectionOperator(Op):
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(
-            time_epoch_ms(), self.name, msg.timestamp, runtime))
+            time_epoch_ms(), self._name, msg.timestamp, runtime))
 
         if self._flags.visualize_lane_detection:
             add_timestamp(msg.timestamp, lines_edges)
-            cv2.imshow(self.name, lines_edges)
+            cv2.imshow(self._name, lines_edges)
             cv2.waitKey(1)
 
-        output_msg = Message(image_np, msg.timestamp)
-        self.get_output_stream(self._output_stream_name).send(output_msg)
+        detected_lanes_stream.send(erdust.Message(msg.timestamp, image_np))
 
     def apply_canny(self, img):
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -206,6 +196,3 @@ class LaneDetectionOperator(Op):
         binary = np.zeros_like(s_channel)
         binary[(s_channel > thresh_min) & (s_channel <= thresh_max)] = 1
         return binary
-
-    def execute(self):
-        self.spin()

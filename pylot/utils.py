@@ -262,6 +262,10 @@ def rgb_to_bgr(image_np):
     return image_np[:, :, ::-1]
 
 
+def time_epoch_ms():
+    return int(time.time() * 1000)
+
+
 def compute_magnitude_angle(target_loc, cur_loc, orientation):
     """
     Computes relative angle and distance between a target and a current

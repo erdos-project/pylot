@@ -1,102 +1,94 @@
-from collections import deque
-import time
+import erdust
+import matplotlib.pyplot as plt
+import numpy as np
 import os
+import time
 import torch
 import torch.nn as nn
 import torch.nn.parallel
 import torch.utils.data
-import numpy as np
 import torch.backends.cudnn as cudnn
-import threading
-import matplotlib.pyplot as plt
 
 import anynet.anynet
 from anynet import preprocess
 
-from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
-
 from pylot.simulation.messages import DepthFrameMessage
-from pylot.utils import create_depth_estimation_stream, is_camera_stream, \
-    rgb_to_bgr
+from pylot.utils import bgr_to_rgb, time_epoch_ms
 
 
-class DepthEstimationOperator(Op):
+class DepthEstimationOperator(erdust.Operator):
     """ Estimates depth using left and right cameras, and AnyNet."""
     def __init__(self,
+                 left_camera_stream,
+                 right_camera_stream,
+                 depth_estimation_stream,
                  name,
-                 output_stream_name,
                  transform,
+                 fov,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-        super(DepthEstimationOperator, self).__init__(name)
+
+        left_camera_stream.add_callback(self.on_left_camera_msg)
+        right_camera_stream.add_callback(self.on_right_camera_msg)
+        erdust.add_watermark_callback(
+            [left_camera_stream, right_camera_stream],
+            [depth_estimation_stream],
+            self.compute_depth)
+        self._name = name
         self._flags = flags
-        self._left_imgs = deque()
-        self._right_imgs = deque()
-        self._logger = setup_logging(self.name, log_file_name)
-        self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
-        self._output_stream_name = output_stream_name
+        self._left_imgs = {}
+        self._right_imgs = {}
+        self._logger = erdust.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.setup_csv_logging(
+            name + '-csv', csv_file_name)
         self._transform = transform
-        self._lock = threading.Lock()
+        self._fov = fov
         # Load AnyNet
         model = anynet.anynet.AnyNet()
         model = nn.DataParallel(model).cuda()
-
-        path_to_anynet = self._flags.depth_estimation_model_path
-        pretrained = os.path.join(path_to_anynet,
+        pretrained = os.path.join(self._flags.depth_estimation_model_path,
                                   'results/pretrained_anynet/checkpoint.tar')
-        resume = os.path.join(path_to_anynet,
+        resume = os.path.join(self._flags.depth_estimation_model_path,
                               'results/finetune_anynet/checkpoint.tar')
-
         if os.path.isfile(pretrained):
             checkpoint = torch.load(pretrained)
             model.load_state_dict(checkpoint['state_dict'])
+        else:
+            self._logger.warning('No pretrained Anynet model')
 
         if os.path.isfile(resume):
             checkpoint = torch.load(resume)
             model.load_state_dict(checkpoint['state_dict'])
+        else:
+            self._logger.warning('No Anynet checkpoint available')
 
         self._model = model
 
     @staticmethod
-    def setup_streams(input_streams, output_stream_name,
-                      left_camera_name, right_camera_name):
-        # Select camera input streams.
-        camera_streams = input_streams.filter(is_camera_stream)
-        camera_streams.filter_name(left_camera_name).add_callback(
-            DepthEstimationOperator.on_left_camera_msg)
-        camera_streams.filter_name(right_camera_name).add_callback(
-            DepthEstimationOperator.on_right_camera_msg)
-        return [create_depth_estimation_stream(output_stream_name)]
+    def connect(left_camera_stream, right_camera_stream):
+        depth_estimation_stream = erdust.WriteStream()
+        return [depth_estimation_stream]
 
     def on_left_camera_msg(self, msg):
-        with self._lock:
-            # used as bgr_to_rgb, need RGB frames
-            img = rgb_to_bgr(msg.frame).astype(np.uint8)
-            img = preprocess.crop(img)
-            processed = preprocess.get_transform(augment=False)
-            img = processed(img)
-            self._left_imgs.append(img)
-            if self._right_imgs:
-                self.eval_depth(msg)
+        img = bgr_to_rgb(msg.frame).astype(np.uint8)
+        img = preprocess.crop(img)
+        processed = preprocess.get_transform(augment=False)
+        img = processed(img)
+        self._left_imgs[msg.timestamp] = img
 
     def on_right_camera_msg(self, msg):
-        with self._lock:
-            # used as bgr_to_rgb, need RGB frames
-            img = rgb_to_bgr(msg.frame).astype(np.uint8)
-            img = preprocess.crop(img)
-            processed = preprocess.get_transform(augment=False)
-            img = processed(img)
-            self._right_imgs.append(img)
-            if self._left_imgs:
-                self.eval_depth(msg)
+        img = bgr_to_rgb(msg.frame).astype(np.uint8)
+        img = preprocess.crop(img)
+        processed = preprocess.get_transform(augment=False)
+        img = processed(img)
+        self._right_imgs[msg.timestamp] = img
 
-    def eval_depth(self, msg):
+    def compute_depth(self, timestamp, depth_estimation_stream):
         start_time = time.time()
 
-        imgL = self._left_imgs.popleft()
-        imgR = self._right_imgs.popleft()
+        imgL = self._left_imgs.pop(timestamp)
+        imgR = self._right_imgs.pop(timestamp)
 
         cudnn.benchmark = False
         self._model.eval()
@@ -111,17 +103,11 @@ class DepthEstimationOperator(Op):
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(
-            time_epoch_ms(), self.name, msg.timestamp, runtime))
+            time_epoch_ms(), self._name, timestamp, runtime))
 
         if self._flags.visualize_depth_est:
             plt.imshow(output, cmap='viridis')
             plt.show()
 
-        output_msg = DepthFrameMessage(
-            depth, self._transform, 90, msg.timestamp)
-        self.get_output_stream(self._output_stream_name).send(output_msg)
-
-    def execute(self):
-        """Operator execute entry method."""
-        # Ensures that the operator runs continuously.
-        self.spin()
+        depth_estimation_stream.send(
+            DepthFrameMessage(depth, self._transform, self._fov, timestamp))

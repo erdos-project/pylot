@@ -1,7 +1,7 @@
-from erdos.message import Message
+import erdust
 
 
-class DetectorMessage(Message):
+class DetectorMessage(erdust.Message):
     """ This class represents a detector output message to be sent by
     operators.
 
@@ -19,7 +19,7 @@ class DetectorMessage(Message):
             runtime: Detector operator runtime.
             timestamp: The timestamp of the message.
         """
-        super(DetectorMessage, self).__init__(None, timestamp, 'default')
+        super(DetectorMessage, self).__init__(timestamp, None)
         self.detected_objects = detected_objects
         self.runtime = runtime
 
@@ -29,7 +29,7 @@ class DetectorMessage(Message):
                 self.timestamp, self.runtime, self.detected_objects)
 
 
-class SegmentedFrameMessage(Message):
+class SegmentedFrameMessage(erdust.Message):
     """ This class represents a message to be used to send segmented frames
 
     Attributes:
@@ -48,7 +48,7 @@ class SegmentedFrameMessage(Message):
                 frame.
             timestamp: The timestamp of the message.
         """
-        super(SegmentedFrameMessage, self).__init__(None, timestamp, 'default')
+        super(SegmentedFrameMessage, self).__init__(timestamp, None)
         self.frame = frame
         self.width = frame.shape[1]
         self.height = frame.shape[0]
@@ -89,7 +89,7 @@ class ObjPositionSpeed(object):
                 self.sigma_speed_y)
 
 
-class ObjPositionsSpeedsMessage(Message):
+class ObjPositionsSpeedsMessage(erdust.Message):
     """ This class represents a message to be used to send vehicle position and
         speed info.
 
@@ -105,8 +105,7 @@ class ObjPositionsSpeedsMessage(Message):
             obj_positions_speeds: A list of 2D object positions.
             timestamp: The timestamp of the message.
         """
-        super(ObjPositionsSpeedsMessage, self).__init__(
-            None, timestamp, 'default')
+        super(ObjPositionsSpeedsMessage, self).__init__(timestamp, None)
         self.obj_positions_speeds = obj_positions_speeds
 
     def __str__(self):
@@ -133,14 +132,12 @@ class ObjTrajectory(object):
         self.trajectory = trajectory
 
     def __str__(self):
-        trajectory_str = ', '.join([str(loc)
-                                    for loc in self.trajectory])
         return '{} {}, Trajectory {}'.format(self.obj_class,
                                              self.obj_id,
                                              self.trajectory)
 
 
-class ObjTrajectoriesMessage(Message):
+class ObjTrajectoriesMessage(erdust.Message):
     """ This class represents a message to be used to send vehicle
         trajectory info.
     """
@@ -152,12 +149,11 @@ class ObjTrajectoriesMessage(Message):
         Args:
             obj_trajectories: A list of ObjTrajectory instances.
         """
-        super(ObjTrajectoriesMessage, self).__init__(
-            None, timestamp, 'default')
+        super(ObjTrajectoriesMessage, self).__init__(timestamp, None)
         self.obj_trajectories = obj_trajectories
 
     def __str__(self):
         trajectories_str = '\n'.join([str(traj)
                                       for traj in self.obj_trajectories])
-        return 'ObjTrajectoriesMessage(timestamp {}, trajectories:\n{})'.format(
+        return 'ObjTrajectoriesMessage(timestamp {}, trajectories: {})'.format(
             self.timestamp, trajectories_str)

@@ -1,24 +1,31 @@
+import erdust
 import heapq
-
-from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
 from pylot.perception.detection.utils import get_pedestrian_mAP,\
     get_precision_recall_at_iou
-import pylot.utils
+from pylot.utils import time_epoch_ms
 
 
-class ObstacleAccuracyOperator(Op):
+class ObstacleAccuracyOperator(erdust.Operator):
 
     def __init__(self,
+                 obstacles_stream,
+                 ground_obstacles_stream,
                  name,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-        super(ObstacleAccuracyOperator, self).__init__(name)
+        obstacles_stream.add_callback(self.on_obstacles)
+        ground_obstacles_stream.add_callback(self.on_ground_obstacles)
+        erdust.add_watermark_callback(
+            [obstacles_stream, ground_obstacles_stream],
+            [],
+            self.on_notification)
+        self._name = name
         self._flags = flags
-        self._logger = setup_logging(self.name, log_file_name)
-        self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+        self._logger = erdust.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.setup_csv_logging(
+            name + '-csv', csv_file_name)
         self._last_notification = None
         # Buffer of detected obstacles.
         self._detected_obstacles = []
@@ -30,18 +37,7 @@ class ObstacleAccuracyOperator(Op):
         self._iou_thresholds = [0.1 * i for i in range(1, 10)]
 
     @staticmethod
-    def setup_streams(input_streams, ground_obstacles_stream):
-        def not_ground_obstacles(stream):
-            return stream.name != ground_obstacles_stream
-
-        input_streams.filter(pylot.utils.is_obstacles_stream)\
-                     .filter(not_ground_obstacles).add_callback(
-                         ObstacleAccuracyOperator.on_obstacles)
-        input_streams.filter_name(ground_obstacles_stream).add_callback(
-            ObstacleAccuracyOperator.on_ground_obstacles)
-        # Register a watermark callback.
-        input_streams.add_completion_callback(
-            ObstacleAccuracyOperator.on_notification)
+    def connect(obstacles_stream, ground_obstacles_stream):
         return []
 
     def on_notification(self, msg):
@@ -75,7 +71,7 @@ class ObstacleAccuracyOperator(Op):
                         self._logger.info('precision-IoU is: {}'.format(
                             avg_precision))
                         self._csv_logger.info('{},{},{},{}'.format(
-                            time_epoch_ms(), self.name, 'precision-IoU',
+                            time_epoch_ms(), self._name, 'precision-IoU',
                             avg_precision))
                 else:
                     # Get detector output obstacles.
@@ -84,7 +80,7 @@ class ObstacleAccuracyOperator(Op):
                         mAP = get_pedestrian_mAP(end_bboxes, det_objs)
                         self._logger.info('mAP is: {}'.format(mAP))
                         self._csv_logger.info('{},{},{},{}'.format(
-                            time_epoch_ms(), self.name, 'mAP', mAP))
+                            time_epoch_ms(), self._name, 'mAP', mAP))
                 self._logger.info('Computing accuracy for {} {}'.format(
                     end_time, start_time))
             else:
@@ -167,9 +163,6 @@ class ObstacleAccuracyOperator(Op):
         _, ped_bboxes, _ = self.__get_bboxes_by_category(msg.detected_objects)
         # Add the pedestrians to the ground obstacles buffer.
         self._ground_obstacles.append((game_time, ped_bboxes))
-
-    def execute(self):
-        self.spin()
 
     def __compute_closest_frame_time(self, time):
         base = int(time) / self._sim_interval * self._sim_interval

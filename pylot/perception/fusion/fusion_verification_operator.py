@@ -1,24 +1,21 @@
 from collections import deque
+import erdust
 import numpy as np
 
-from erdos.op import Op
-from erdos.utils import setup_logging
 
-from pylot.utils import is_fusion_stream, is_ground_vehicles_stream
-
-
-class FusionVerificationOperator(Op):
-    def __init__(self, name, log_file_name=None):
-        super(FusionVerificationOperator, self).__init__(name)
-        self._logger = setup_logging(self.name, log_file_name)
+class FusionVerificationOperator(erdust.Operator):
+    def __init__(self,
+                 ground_vehicles_stream,
+                 fusion_stream,
+                 name,
+                 log_file_name=None):
+        ground_vehicles_stream.add_callback(self.on_vehicles_update)
+        fusion_stream.add_callback(self.on_fusion_update)
+        self._logger = erdust.setup_logging(name, log_file_name)
         self.vehicles = deque()
 
     @staticmethod
-    def setup_streams(input_streams):
-        input_streams.filter(is_ground_vehicles_stream).add_callback(
-            FusionVerificationOperator.on_vehicles_update)
-        input_streams.filter(is_fusion_stream).add_callback(
-            FusionVerificationOperator.on_fusion_update)
+    def connect(ground_vehicles_stream, fusion_stream):
         return []
 
     def on_vehicles_update(self, msg):
@@ -45,6 +42,3 @@ class FusionVerificationOperator(Op):
 
         self._logger.info(
             "Fusion: min vehicle position errors: {}".format(min_errors))
-
-    def execute(self):
-        self.spin()

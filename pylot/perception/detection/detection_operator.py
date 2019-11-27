@@ -1,31 +1,32 @@
+import erdust
 import numpy as np
 import tensorflow as tf
 import time
-
-from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
 from pylot.perception.detection.utils import DetectedObject,\
     load_coco_labels, load_coco_bbox_colors, annotate_image_with_bboxes,\
     save_image, visualize_image
 from pylot.perception.messages import DetectorMessage
-from pylot.utils import bgr_to_rgb, create_obstacles_stream, is_camera_stream
+from pylot.utils import bgr_to_rgb, time_epoch_ms
 
 
-class DetectionOperator(Op):
+class DetectionOperator(erdust.Operator):
     """ Subscribes to a camera stream, and runs a model for each frame."""
     def __init__(self,
+                 camera_stream,
+                 obstacles_stream,
                  name,
-                 output_stream_name,
                  model_path,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-        super(DetectionOperator, self).__init__(name)
+        camera_stream.add_callback(self.on_msg_camera_stream,
+                                   [obstacles_stream])
+        self._name = name
         self._flags = flags
-        self._logger = setup_logging(self.name, log_file_name)
-        self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
-        self._output_stream_name = output_stream_name
+        self._logger = erdust.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.setup_csv_logging(
+            name + '-csv', csv_file_name)
         self._detection_graph = tf.Graph()
         # Load the model from the model file.
         with self._detection_graph.as_default():
@@ -56,22 +57,14 @@ class DetectionOperator(Op):
         self._bbox_colors = load_coco_bbox_colors(self._coco_labels)
 
     @staticmethod
-    def setup_streams(input_streams,
-                      output_stream_name,
-                      camera_stream_name=None):
-        # Select camera input streams.
-        camera_streams = input_streams.filter(is_camera_stream)
-        if camera_stream_name:
-            # Select only the camera the operator is interested in.
-            camera_streams = camera_streams.filter_name(camera_stream_name)
-        # Register a callback on the camera input stream.
-        camera_streams.add_callback(DetectionOperator.on_msg_camera_stream)
-        return [create_obstacles_stream(output_stream_name)]
+    def connect(camera_stream):
+        obstacles_stream = erdust.WriteStream()
+        return [obstacles_stream]
 
-    def on_msg_camera_stream(self, msg):
+    def on_msg_camera_stream(self, msg, obstacles_stream):
         """ Invoked when the operator receives a message on the data stream."""
         self._logger.info('{} received frame {}'.format(
-            self.name, msg.timestamp))
+            self._name, msg.timestamp))
         start_time = time.time()
         # The models expect BGR images.
         assert msg.encoding == 'BGR', 'Expects BGR frames'
@@ -110,22 +103,20 @@ class DetectionOperator(Op):
             annotate_image_with_bboxes(
                 msg.timestamp, image_np, detected_objects, self._bbox_colors)
             if self._flags.visualize_detector_output:
-                visualize_image(self.name, image_np)
+                visualize_image(self._name, image_np)
             if self._flags.log_detector_output:
                 save_image(bgr_to_rgb(image_np),
                            msg.timestamp,
                            self._flags.data_path,
-                           'detector-{}'.format(self.name))
+                           'detector-{}'.format(self._name))
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(
-            time_epoch_ms(), self.name, msg.timestamp, runtime))
-        output_msg = DetectorMessage(detected_objects, runtime, msg.timestamp)
-        self.get_output_stream(self._output_stream_name).send(output_msg)
-
-    def execute(self):
-        self.spin()
+            time_epoch_ms(), self._name, msg.timestamp, runtime))
+        # Send out obstacles.
+        obstacles_stream.send(
+            DetectorMessage(detected_objects, runtime, msg.timestamp))
 
     def __convert_to_detected_objs(self, boxes, scores, labels, height, width):
         index = 0

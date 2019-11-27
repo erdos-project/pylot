@@ -1,25 +1,28 @@
 from collections import deque
-
-from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
+import erdust
 
 from pylot.perception.detection.utils import get_precision_recall_at_iou
-from pylot.utils import is_obstacles_stream
+from pylot.utils import time_epoch_ms
 
 
-class DetectionEvalGroundOperator(Op):
-    def __init__(self, name, flags, log_file_name=None, csv_file_name=None):
-        super(DetectionEvalGroundOperator, self).__init__(name)
-        self._logger = setup_logging(self.name, log_file_name)
-        self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+class DetectionEvalGroundOperator(erdust.Operator):
+    def __init__(self,
+                 obstacles_stream,
+                 name,
+                 flags,
+                 log_file_name=None,
+                 csv_file_name=None):
+        obstacles_stream.add_callback(self.on_ground_obstacles)
+        self._name = name
+        self._logger = erdust.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.setup_csv_logging(
+            name + '-csv', csv_file_name)
         self._flags = flags
         self._ground_bboxes = deque()
         self._iou_thresholds = [0.1 * i for i in range(1, 10)]
 
     @staticmethod
-    def setup_streams(input_streams):
-        input_streams.filter(is_obstacles_stream).add_callback(
-            DetectionEvalGroundOperator.on_ground_obstacles)
+    def connect(obstacles_stream):
         return []
 
     def on_ground_obstacles(self, msg):
@@ -55,7 +58,7 @@ class DetectionEvalGroundOperator(Op):
                     "The latency is {} and the average precision is {}".format(
                         latency, avg_precision))
                 self._csv_logger.info('{},{},{},{}'.format(
-                    time_epoch_ms(), self.name, latency, avg_precision))
+                    time_epoch_ms(), self._name, latency, avg_precision))
 
         # Buffer the new bounding boxes.
         self._ground_bboxes.append((game_time, bboxes))
