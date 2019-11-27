@@ -1,13 +1,12 @@
-from erdos.message import Message
+import erdust
 
 
-class WaypointsMessage(Message):
+class WaypointsMessage(erdust.Message):
     """ This class represents a message to be used to send waypoints."""
 
     def __init__(self, timestamp, waypoints=None, target_speed=0, wp_angle=0,
-                 wp_vector=0, wp_angle_speed=0, wp_vector_speed=0,
-                 stream_name='default'):
-        super(WaypointsMessage, self).__init__(None, timestamp, stream_name)
+                 wp_vector=0, wp_angle_speed=0, wp_vector_speed=0):
+        super(WaypointsMessage, self).__init__(timestamp, None)
         self.wp_angle = wp_angle
         self.wp_vector = wp_vector
         self.wp_angle_speed = wp_angle_speed
@@ -22,14 +21,15 @@ class WaypointsMessage(Message):
                 self.wp_angle_speed, self.wp_vector_speed, self.waypoints)
 
 
-class BehaviorMessage(Message):
+class BehaviorMessage(erdust.Message):
 
-    def __init__(self, timestamp,
+    def __init__(self,
+                 timestamp,
                  target_lane_id,
                  target_speed,
                  target_deadline,
                  target_leading_vehicle_id=None):
-        super(BehaviorMessage, self).__init__(None, timestamp, 'default')
+        super(BehaviorMessage, self).__init__(timestamp, None)
         self.target_lane_id = target_lane_id
         self.target_speed = target_speed
         self.target_deadline = target_deadline

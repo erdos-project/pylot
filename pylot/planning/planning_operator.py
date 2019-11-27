@@ -1,9 +1,6 @@
-from collections import deque
-
 import carla
-
-from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging
+from collections import deque
+import erdust
 
 from pylot.map.hd_map import HDMap
 import pylot.planning.cost_functions
@@ -16,7 +13,7 @@ import pylot.utils
 WAYPOINT_COMPLETION_THRESHOLD = 0.9
 
 
-class PlanningOperator(Op):
+class PlanningOperator(erdust.Operator):
     """ Planning operator for Carla 0.9.x.
 
     IMPORTANT: Do not use with older Carla versions.
@@ -25,15 +22,23 @@ class PlanningOperator(Op):
     HD Map.
     """
     def __init__(self,
+                 can_bus_stream,
+                 open_drive_stream,
+                 global_trajectory_stream,
+                 waypoints_stream,
                  name,
                  flags,
                  goal_location=None,
                  log_file_name=None,
                  csv_file_name=None):
-        super(PlanningOperator, self).__init__(name)
+        can_bus_stream.add_callback(self.on_can_bus_update, [waypoints_stream])
+        open_drive_stream.add_callback(self.on_opendrive_map)
+        global_trajectory_stream.add_callback(self.on_global_trajectory)
+
         self._log_file_name = log_file_name
-        self._logger = setup_logging(self.name, log_file_name)
-        self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+        self._logger = erdust.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.setup_csv_logging(
+            name + '-csv', csv_file_name)
         self._flags = flags
         # Initialize the state of the behaviour planner.
         # XXX(ionel): The behaviour planner is not ready yet.
@@ -92,16 +97,9 @@ class PlanningOperator(Op):
                                   efficiency_weight]
 
     @staticmethod
-    def setup_streams(input_streams):
-        input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
-            PlanningOperator.on_can_bus_update)
-        input_streams.filter(pylot.utils.is_open_drive_stream).add_callback(
-            PlanningOperator.on_opendrive_map)
-        input_streams.filter(pylot.utils.is_global_trajectory_stream)\
-                     .add_callback(PlanningOperator.on_global_trajectory)
-        # input_streams.filter(pylot.utils.is_predictions_stream).add_callback(
-        #     PlanningOperator.on_predictions)
-        return [pylot.utils.create_waypoints_stream()]
+    def connect(can_bus_stream, open_drive_stream, global_trajectory_stream):
+        waypoints_stream = erdust.WriteStream()
+        return [waypoints_stream]
 
     def on_opendrive_map(self, msg):
         self._logger.info('Planner running in scenario runner mode')
@@ -124,7 +122,7 @@ class PlanningOperator(Op):
         for waypoint_option in msg.data:
             self._waypoints.append(waypoint_option[0])
 
-    def on_can_bus_update(self, msg):
+    def on_can_bus_update(self, msg, waypoints_stream):
         self._vehicle_transform = msg.data.transform
         (next_waypoint_steer,
          next_waypoint_speed) = self.__update_waypoints()
@@ -144,7 +142,7 @@ class PlanningOperator(Op):
             wp_angle=wp_steer_angle,
             wp_vector=wp_steer_vector,
             wp_angle_speed=wp_speed_angle)
-        self.get_output_stream('waypoints').send(output_msg)
+        waypoints_stream.send(output_msg)
 
     def __get_target_speed(self, waypoint):
         if get_distance(waypoint.location,
