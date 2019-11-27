@@ -1,4 +1,4 @@
-from erdos.message import Message
+import erdust
 
 
 class ObjPrediction(object):
@@ -10,13 +10,13 @@ class ObjPrediction(object):
         self.trajectory = trajectory
 
     def __str__(self):
-        return 'Object {}, probability {}, trajectory {}'.format(
-            self.id, self.probability, self.trajectory)
+        return 'Object {}, class {}, probability {}, trajectory {}'.format(
+            self.id, self.obj_class, self.probability, self.trajectory)
 
 
-class PredictionMessage(Message):
+class PredictionMessage(erdust.Message):
     def __init__(self, timestamp, predictions):
-        super(PredictionMessage, self).__init__(None, timestamp, 'default')
+        super(PredictionMessage, self).__init__(timestamp, None)
         self.predictions = predictions
 
     def __str__(self):
