@@ -40,8 +40,8 @@ class ObstacleAccuracyOperator(erdust.Operator):
     def connect(obstacles_stream, ground_obstacles_stream):
         return []
 
-    def on_notification(self, msg):
-        game_time = msg.timestamp.coordinates[0]
+    def on_notification(self, timestamp):
+        game_time = timestamp.coordinates[0]
         if not self._last_notification:
             self._last_notification = game_time
             return

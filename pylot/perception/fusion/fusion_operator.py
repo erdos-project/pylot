@@ -1,16 +1,13 @@
 from collections import deque
+import erdust
 import numpy as np
 import time
 
-from erdos.op import Op
-from erdos.utils import frequency, setup_csv_logging, setup_logging, \
-    time_epoch_ms
-
 from pylot.perception.messages import ObjPositionsSpeedsMessage
-import pylot.utils
+from pylot.utils import time_epoch_ms
 
 
-class FusionOperator(Op):
+class FusionOperator(erdust.Operator):
     """Fusion Operator
 
     Args:
@@ -22,36 +19,41 @@ class FusionOperator(Op):
     """
 
     def __init__(self,
+                 can_bus_stream,
+                 obstacles_stream,
+                 depth_camera_stream,
+                 fused_stream,
                  name,
                  flags,
-                 output_stream_name,
                  log_file_name=None,
                  csv_file_name=None,
                  camera_fov=np.pi / 4,
                  rgbd_max_range=1000):
-        super(FusionOperator, self).__init__(name)
-        self._logger = setup_logging(self.name, log_file_name)
-        self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+        self.can_bus_stream = can_bus_stream
+        self.obstacles_stream = obstacles_stream
+        self.depth_camera_stream = depth_camera_stream
+        can_bus_stream.add_callback(self.update_pos)
+        obstacles_stream.add_callback(self.update_objects)
+        depth_camera_stream.add_callback(self.update_distances)
+        self._fused_stream = fused_stream
+        self._name = name
+        self._logger = erdust.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.setup_csv_logging(
+            name + '-csv', csv_file_name)
         self._flags = flags
-        self._output_stream_name = output_stream_name
         self._segments = []
         self._objs = []
         self._rgbd_max_range = rgbd_max_range
-        # TODO(ionel): Check fov is same as the camere fov.
+        # TODO(ionel): Check fov is same as the camera fov.
         self._camera_fov = camera_fov
         self._car_positions = deque()
         self._distances = deque()
         self._objects = deque()
 
     @staticmethod
-    def setup_streams(input_streams, output_stream_name):
-        input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
-            FusionOperator.update_pos)
-        input_streams.filter(pylot.utils.is_obstacles_stream).add_callback(
-            FusionOperator.update_objects)
-        input_streams.filter(pylot.utils.is_depth_camera_stream).add_callback(
-            FusionOperator.update_distances)
-        return [pylot.utils.create_fusion_stream(output_stream_name)]
+    def connect(can_bus_stream, obstacles_stream, depth_camera_stream):
+        fused_stream = erdust.WriteStream()
+        return [fused_stream]
 
     def __calc_object_positions(self,
                                 object_bounds,
@@ -94,7 +96,6 @@ class FusionOperator(Op):
             while queue[0][0] < oldest_timestamp:
                 queue.popleft()
 
-    @frequency(1)
     def fuse(self):
         # Return if we don't have car position, distances or objects.
         start_time = time.time()
@@ -113,7 +114,7 @@ class FusionOperator(Op):
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},{}'.format(
-            time_epoch_ms(), self.name, runtime))
+            time_epoch_ms(), self._name, runtime))
 
         output_msg = ObjPositionsSpeedsMessage(object_positions, timestamp)
         self.get_output_stream(self._output_stream_name).send(output_msg)
@@ -132,7 +133,7 @@ class FusionOperator(Op):
         self._logger.info("Received update objects")
         vehicle_bounds = []
         for detected_object in msg.detected_objects:
-            self._logger.info("%s received: %s ", self.name, detected_object)
+            self._logger.info("%s received: %s ", self._name, detected_object)
             # TODO(ionel): Deal with different types of labels.
             if detected_object.label in {"truck", "car"}:
                 vehicle_bounds.append(detected_object.corners)
@@ -141,6 +142,12 @@ class FusionOperator(Op):
     def update_distances(self, msg):
         self._distances.append((msg.timestamp, msg.frame))
 
-    def execute(self):
-        self.fuse()
-        self.spin()
+    def run(self):
+        while True:
+            can_bus_msg = self.can_bus_stream.read()
+            obstacles_msg = self.obstacles_stream.read()
+            depth_camera_msg = self.depth_camera_stream.read()
+            self.update_pos(can_bus_msg)
+            self.update_objects(obstacles_msg)
+            self.update_distances(depth_camera_msg)
+            self.fuse()

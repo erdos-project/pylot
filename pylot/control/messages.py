@@ -1,7 +1,7 @@
-from erdos.message import Message
+import erdust
 
 
-class ControlMessage(Message):
+class ControlMessage(erdust.Message):
     """ This class represents a message to be used to send control commands.
 
     Attributes:
@@ -12,9 +12,8 @@ class ControlMessage(Message):
         reverse: Boolean controlling reverse gear engagement.
     """
 
-    def __init__(self, steer, throttle, brake, hand_brake, reverse, timestamp,
-                 stream_name='default'):
-        super(ControlMessage, self).__init__(None, timestamp, stream_name)
+    def __init__(self, steer, throttle, brake, hand_brake, reverse, timestamp):
+        super(ControlMessage, self).__init__(timestamp, None)
         self.steer = steer
         self.throttle = throttle
         self.brake = brake

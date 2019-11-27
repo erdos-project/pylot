@@ -1,14 +1,9 @@
+import carla
 from collections import deque
+import erdust
 import math
 from pid_controller.pid import PID
-import threading
 import time
-
-import carla
-
-# ERDOS imports
-from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 
 # Pylot imports
 from pylot.control.messages import ControlMessage
@@ -18,23 +13,46 @@ from pylot.map.hd_map import HDMap
 from pylot.simulation.carla_utils import get_map
 from pylot.simulation.utils import get_3d_world_position_with_point_cloud,\
     get_3d_world_position_with_depth_map
-import pylot.utils
+from pylot.utils import time_epoch_ms
 
 INTERSECTION_SPEED_M_PER_SEC = 5
 
 
-class PylotAgentOperator(Op):
+class PylotAgentOperator(erdust.Operator):
     def __init__(self,
+                 can_bus_stream,
+                 waypoints_stream,
+                 traffic_lights_stream,
+                 obstacles_stream,
+                 lidar_stream,
+                 open_drive_stream,
+                 depth_camera_stream,
+                 control_stream,
                  name,
                  flags,
                  bgr_camera_setup,
                  log_file_name=None,
                  csv_file_name=None):
-        super(PylotAgentOperator, self).__init__(name)
+        can_bus_stream.add_callback(self.on_can_bus_update)
+        waypoints_stream.add_callback(self.on_waypoints_update)
+        traffic_lights_stream.add_callback(self.on_traffic_lights_update)
+        obstacles_stream.add_callback(self.on_obstacles_update)
+        lidar_stream.add_callback(self.on_lidar_update)
+        open_drive_stream.add_callback(self.on_opendrive_map)
+        depth_camera_stream.add_callback(self.on_depth_camera_update)
+        erdust.add_watermark_callback(
+            [can_bus_stream,
+             waypoints_stream,
+             traffic_lights_stream,
+             obstacles_stream],
+            [control_stream],
+            self.on_watermark)
+        self._name = name
         self._flags = flags
         self._log_file_name = log_file_name
-        self._logger = setup_logging(self.name, log_file_name)
-        self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+        self._logger = erdust.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.setup_csv_logging(
+            name + '-csv', csv_file_name)
         self._bgr_camera_setup = bgr_camera_setup
         self._map = None
         if not hasattr(self._flags, 'track'):
@@ -53,7 +71,6 @@ class PylotAgentOperator(Op):
         self._point_clouds = deque()
         self._depth_camera_msgs = deque()
         self._vehicle_labels = {'car', 'bicycle', 'motorcycle', 'bus', 'truck'}
-        self._lock = threading.Lock()
         self._last_traffic_light_game_time = -100000
         self._last_moving_time = 0
         # Num of control commands to override to ensure the agent doesn't get
@@ -61,38 +78,17 @@ class PylotAgentOperator(Op):
         self._num_control_override = 0
 
     @staticmethod
-    def setup_streams(input_streams):
-        input_streams.filter(
-            pylot.utils.is_can_bus_stream).add_callback(
-                PylotAgentOperator.on_can_bus_update)
-        input_streams.filter(
-            pylot.utils.is_waypoints_stream).add_callback(
-                PylotAgentOperator.on_waypoints_update)
-        input_streams.filter(
-            pylot.utils.is_traffic_lights_stream).add_callback(
-                PylotAgentOperator.on_traffic_lights_update)
-        input_streams.filter(
-            pylot.utils.is_obstacles_stream).add_callback(
-                PylotAgentOperator.on_obstacles_update)
-        input_streams.filter(
-            pylot.utils.is_lidar_stream).add_callback(
-                PylotAgentOperator.on_lidar_update)
-        input_streams.filter(
-            pylot.utils.is_open_drive_stream).add_callback(
-                PylotAgentOperator.on_opendrive_map)
-        input_streams.filter(
-            pylot.utils.is_depth_camera_stream).add_callback(
-                PylotAgentOperator.on_depth_camera_update)
-        input_streams.filter(
-            pylot.utils.is_segmented_camera_stream).add_callback(
-                PylotAgentOperator.on_segmented_frame)
-        input_streams.filter(
-            pylot.utils.is_detected_lane_stream).add_callback(
-                PylotAgentOperator.on_detected_lane_update)
-
+    def connect(can_bus_stream,
+                waypoints_stream,
+                traffic_lights_stream,
+                obstacles_stream,
+                lidar_stream,
+                open_drive_stream,
+                depth_camera_stream):
         # Set no watermark on the output stream so that we do not
         # close the watermark loop with the carla operator.
-        return [pylot.utils.create_control_stream()]
+        control_stream = erdust.WriteStream()
+        return [control_stream]
 
     def compute_command(self,
                         can_bus_msg,
@@ -165,83 +161,53 @@ class PylotAgentOperator(Op):
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(
-            time_epoch_ms(), self.name, timestamp, runtime))
+            time_epoch_ms(), self._name, timestamp, runtime))
 
-        self.get_output_stream('control_stream').send(control_msg)
+        return control_msg
 
-    def synchronize_msg_buffers(self, timestamp, buffers):
-        for buffer in buffers:
-            while (len(buffer) > 0 and buffer[0].timestamp < timestamp):
-                buffer.popleft()
-            if len(buffer) == 0:
-                return False
-            assert buffer[0].timestamp == timestamp
-        return True
-
-    def run_if_you_can(self):
-        streams = [self._can_bus_msgs, self._waypoint_msgs,
-                   self._traffic_lights_msgs, self._obstacles_msgs]
-        for stream in streams:
-            if len(stream) == 0:
-                return
+    def on_watermark(self, timestamp, control_stream):
         can_bus_msg = self._can_bus_msgs.popleft()
         waypoint_msg = self._waypoint_msgs.popleft()
         tl_msg = self._traffic_lights_msgs.popleft()
         obstacles_msg = self._obstacles_msgs.popleft()
-
-        self._logger.info('Timestamps {} {} {} {}'.format(
-            can_bus_msg.timestamp, waypoint_msg.timestamp,
-            tl_msg.timestamp, obstacles_msg.timestamp))
-        assert (can_bus_msg.timestamp == waypoint_msg.timestamp ==
-                tl_msg.timestamp == obstacles_msg.timestamp)
-
-        if len(self._point_clouds) == 0 and len(self._depth_camera_msgs) == 0:
-            # No point clouds or depth frame msgs available.
-            return
         pc_msg = None
-        if len(self._point_clouds) > 0:
+        if len(self._point_clouds) == 0 and len(self._depth_camera_msgs) == 0:
+            self._logger.fatal('No point clouds or depth frame msgs available')
+            return
+        elif len(self._point_clouds) > 0:
             pc_msg = self._point_clouds.popleft()
         depth_msg = None
         if len(self._depth_camera_msgs) > 0:
             depth_msg = self._depth_camera_msgs.popleft()
 
-        self.compute_command(can_bus_msg,
-                             waypoint_msg,
-                             tl_msg,
-                             obstacles_msg,
-                             pc_msg,
-                             depth_msg,
-                             can_bus_msg.timestamp)
+        control_command_msg = self.compute_command(can_bus_msg,
+                                                   waypoint_msg,
+                                                   tl_msg,
+                                                   obstacles_msg,
+                                                   pc_msg,
+                                                   depth_msg,
+                                                   timestamp)
+        control_stream.send(control_command_msg)
 
     def on_waypoints_update(self, msg):
         self._logger.info('Waypoints update at {}'.format(msg.timestamp))
-        with self._lock:
-            self._waypoint_msgs.append(msg)
-            self.run_if_you_can()
+        self._waypoint_msgs.append(msg)
 
     def on_can_bus_update(self, msg):
         self._logger.info('Can bus update at {}'.format(msg.timestamp))
-        with self._lock:
-            self._can_bus_msgs.append(msg)
-            self.run_if_you_can()
+        self._can_bus_msgs.append(msg)
 
     def on_traffic_lights_update(self, msg):
         self._logger.info('Traffic light update at {}'.format(msg.timestamp))
-        with self._lock:
-            self._traffic_lights_msgs.append(msg)
-            self.run_if_you_can()
+        self._traffic_lights_msgs.append(msg)
 
     def on_obstacles_update(self, msg):
         self._logger.info('Obstacle update at {}'.format(msg.timestamp))
-        with self._lock:
-            self._obstacles_msgs.append(msg)
-            self.run_if_you_can()
+        self._obstacles_msgs.append(msg)
 
     def on_lidar_update(self, msg):
         self._logger.info('Lidar update at {}'.format(msg.timestamp))
-        with self._lock:
-            self._point_clouds.append(msg)
-            self.run_if_you_can()
+        self._point_clouds.append(msg)
 
     def on_opendrive_map(self, msg):
         self._map = HDMap(carla.Map('challenge', msg.data),
@@ -249,21 +215,7 @@ class PylotAgentOperator(Op):
 
     def on_depth_camera_update(self, msg):
         self._logger.info('Depth camera frame at {}'.format(msg.timestamp))
-        with self._lock:
-            self._depth_camera_msgs.append(msg)
-            self.run_if_you_can()
-
-    def on_segmented_frame(self, msg):
-        self._logger.info('Received segmented frame at {}'.format(
-            msg.timestamp))
-        # TODO(ionel): Implement!
-
-    def on_detected_lane_update(self, msg):
-        # TODO(ionel): Implement!
-        pass
-
-    def execute(self):
-        self.spin()
+        self._depth_camera_msgs.append(msg)
 
     def __transform_to_3d(
             self, x, y, vehicle_transform, point_cloud, depth_frame):

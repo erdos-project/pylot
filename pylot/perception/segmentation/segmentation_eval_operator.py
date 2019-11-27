@@ -37,15 +37,15 @@ class SegmentationEvalOperator(erdust.Operator):
     def connect(ground_segmented_stream, segmented_stream):
         return []
 
-    def on_notification(self, msg):
+    def on_notification(self, timestamp):
         if not self._last_notification:
-            self._last_notification = msg.timestamp.coordinates[0]
+            self._last_notification = timestamp.coordinates[0]
             return
         else:
-            self._sim_interval = msg.timestamp.coordinates[0] - self._last_notification
-            self._last_notification = msg.timestamp.coordinates[0]
+            self._sim_interval = timestamp.coordinates[0] - self._last_notification
+            self._last_notification = timestamp.coordinates[0]
 
-        game_time = msg.timestamp.coordinates[0]
+        game_time = timestamp.coordinates[0]
         while len(self._segmented_start_end_times) > 0:
             (end_time, start_time) = self._segmented_start_end_times[0]
             # We can compute mIoU if the end time is not greater than the

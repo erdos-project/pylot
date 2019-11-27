@@ -1,17 +1,13 @@
+import erdust
 import numpy as np
 import math
 from pid_controller.pid import PID
 
 # Pipeline imports.
 from pylot.control.messages import ControlMessage
-import pylot.utils
-
-# ERDOS specific imports.
-from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging
 
 
-class PIDControlOperator(Op):
+class PIDControlOperator(erdust.Operator):
     """ This class receives the vehicle identifier and low level waypoints
     from the local planner and sends out control commands to the vehicle
     being driven inside the simulation.
@@ -28,6 +24,9 @@ class PIDControlOperator(Op):
     """
 
     def __init__(self,
+                 waypoints_stream,
+                 can_bus_stream,
+                 control_stream,
                  name,
                  longitudinal_control_args,
                  flags,
@@ -49,10 +48,13 @@ class PIDControlOperator(Op):
             log_file_name: The file to log the required information to.
             csv_file_name: The CSV file to log info to.
         """
-        super(PIDControlOperator, self).__init__(name)
+        waypoints_stream.add_callback(self.on_waypoint)
+        can_bus_stream.add_callback(self.on_can_bus_update, [control_stream])
+        self._name = name
         self._flags = flags
-        self._logger = setup_logging(self.name, log_file_name)
-        self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+        self._logger = erdust.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.setup_csv_logging(
+            name + '-csv', csv_file_name)
         self._longitudinal_control_args = longitudinal_control_args
         self._pid = PID(
             p=longitudinal_control_args['K_P'],
@@ -64,24 +66,9 @@ class PIDControlOperator(Op):
         self._latest_speed = 0
 
     @staticmethod
-    def setup_streams(input_streams):
-        """ This method registers the callback functions to the input streams.
-        It publishes no output streams, since control is the terminal part of
-        our pipeline.
-
-        Args:
-            input_streams: The streams to get the low level routing information
-                and the vehicle identifier from.
-
-        Returns:
-            An empty list representing that this operator does not send out
-            any information.
-        """
-        input_streams.filter(pylot.utils.is_waypoints_stream).add_callback(
-            PIDControlOperator.on_waypoint)
-        input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
-            PIDControlOperator.on_can_bus_update)
-        return [pylot.utils.create_control_stream()]
+    def connect(waypoints_stream, can_bus_stream):
+        control_stream = erdust.WriteStream()
+        return [control_stream]
 
     def _get_throttle_brake(self, target_speed):
         """ Computes the throttle/brake required to reach the target speed.
@@ -153,7 +140,7 @@ class PIDControlOperator(Op):
             steering = max(steering, -1)
         return steering
 
-    def on_can_bus_update(self, msg):
+    def on_can_bus_update(self, msg, control_stream):
         self._latest_speed = msg.data.forward_speed
         self._vehicle_transform = msg.data.transform
         throttle = 0.0
@@ -163,16 +150,13 @@ class PIDControlOperator(Op):
             throttle, brake = self._get_throttle_brake(
                 self._last_waypoint_msg.target_speed)
             steer = self._get_steering(self._last_waypoint_msg.waypoints[0])
-        control_msg = ControlMessage(
-            steer, throttle, brake, False, False, msg.timestamp)
-        self.get_output_stream('control_stream').send(control_msg)
+        control_stream.send(
+            ControlMessage(steer,
+                           throttle,
+                           brake,
+                           False,
+                           False,
+                           msg.timestamp))
 
     def on_waypoint(self, msg):
-        """ This function receives the next waypoint from the local planner
-        and sends out control information to the simulation.
-
-        Args:
-            msg: Instance of `planning.messages.ControlMessage' to retrieve
-                the desired information from.
-        """
         self._last_waypoint_msg = msg

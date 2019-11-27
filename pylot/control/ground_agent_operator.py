@@ -1,10 +1,7 @@
 from collections import deque
+import erdust
 import math
-import threading
 from pid_controller.pid import PID
-
-from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging
 
 from pylot.control.messages import ControlMessage
 import pylot.control.utils
@@ -13,15 +10,40 @@ from pylot.simulation.carla_utils import get_map
 import pylot.utils
 
 
-class GroundAgentOperator(Op):
+class GroundAgentOperator(erdust.Operator):
     def __init__(self,
+                 can_bus_stream,
+                 ground_pedestrians_stream,
+                 ground_vehicles_stream,
+                 ground_traffic_lights_stream,
+                 ground_speed_limit_signs_stream,
+                 waypoints_stream,
+                 control_stream,
                  name,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-        super(GroundAgentOperator, self).__init__(name)
-        self._logger = setup_logging(self.name, log_file_name)
-        self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+        can_bus_stream.add_callback(self.on_can_bus_update)
+        ground_pedestrians_stream.add_callback(self.on_pedestrians_update)
+        ground_vehicles_stream.add_callback(self.on_vehicles_update)
+        ground_traffic_lights_stream.add_callback(
+            self.on_traffic_lights_update)
+        ground_speed_limit_signs_stream.add_callback(
+            self.on_speed_limit_signs_update)
+        waypoints_stream.add_callback(self.on_waypoints_update)
+        erdust.add_watermark_callback(
+            [can_bus_stream,
+             ground_pedestrians_stream,
+             ground_vehicles_stream,
+             ground_traffic_lights_stream,
+             ground_speed_limit_signs_stream,
+             waypoints_stream],
+            [control_stream],
+            self.on_watermark)
+        self._name = name
+        self._logger = erdust.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.setup_csv_logging(
+            name + '-csv', csv_file_name)
         self._flags = flags
         self._map = HDMap(get_map(self._flags.carla_host,
                                   self._flags.carla_port,
@@ -34,33 +56,20 @@ class GroundAgentOperator(Op):
         self._traffic_light_msgs = deque()
         self._speed_limit_sign_msgs = deque()
         self._waypoint_msgs = deque()
-        self._lock = threading.Lock()
 
     @staticmethod
-    def setup_streams(input_streams):
-        input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
-            GroundAgentOperator.on_can_bus_update)
-        input_streams.filter(
-            pylot.utils.is_ground_pedestrians_stream).add_callback(
-                GroundAgentOperator.on_pedestrians_update)
-        input_streams.filter(
-            pylot.utils.is_ground_vehicles_stream).add_callback(
-                GroundAgentOperator.on_vehicles_update)
-        input_streams.filter(
-            pylot.utils.is_ground_traffic_lights_stream).add_callback(
-                GroundAgentOperator.on_traffic_lights_update)
-        input_streams.filter(
-            pylot.utils.is_ground_speed_limit_signs_stream).add_callback(
-                GroundAgentOperator.on_speed_limit_signs_update)
-        input_streams.filter(pylot.utils.is_waypoints_stream).add_callback(
-            GroundAgentOperator.on_waypoints_update)
-        input_streams.add_completion_callback(
-            GroundAgentOperator.on_notification)
+    def connect(can_bus_stream,
+                ground_pedestrians_stream,
+                ground_vehicles_stream,
+                ground_traffic_lights_stream,
+                ground_speed_limit_signs_stream,
+                waypoints_stream):
         # Set no watermark on the output stream so that we do not
         # close the watermark loop with the carla operator.
-        return [pylot.utils.create_control_stream()]
+        control_stream = erdust.WriteStream()
+        return [control_stream]
 
-    def on_notification(self, msg):
+    def on_watermark(self, timestamp, control_stream):
         # Get hero vehicle info.
         can_bus_msg = self._can_bus_msgs.popleft()
         vehicle_transform = can_bus_msg.data.transform
@@ -90,34 +99,31 @@ class GroundAgentOperator(Op):
                                                    vehicles,
                                                    pedestrians,
                                                    traffic_lights)
-        control_msg = self.get_control_message(
-            wp_angle, wp_angle_speed, speed_factor,
-            vehicle_speed, msg.timestamp)
-        self.get_output_stream('control_stream').send(control_msg)
+        control_stream.send(
+            self.get_control_message(
+                wp_angle,
+                wp_angle_speed,
+                speed_factor,
+                vehicle_speed,
+                timestamp))
 
     def on_waypoints_update(self, msg):
-        with self._lock:
-            self._waypoint_msgs.append(msg)
+        self._waypoint_msgs.append(msg)
 
     def on_can_bus_update(self, msg):
-        with self._lock:
-            self._can_bus_msgs.append(msg)
+        self._can_bus_msgs.append(msg)
 
     def on_pedestrians_update(self, msg):
-        with self._lock:
-            self._pedestrian_msgs.append(msg)
+        self._pedestrian_msgs.append(msg)
 
     def on_vehicles_update(self, msg):
-        with self._lock:
-            self._vehicle_msgs.append(msg)
+        self._vehicle_msgs.append(msg)
 
     def on_traffic_lights_update(self, msg):
-        with self._lock:
-            self._traffic_light_msgs.append(msg)
+        self._traffic_light_msgs.append(msg)
 
     def on_speed_limit_signs_update(self, msg):
-        with self._lock:
-            self._speed_limit_sign_msgs.append(msg)
+        self._speed_limit_sign_msgs.append(msg)
 
     def stop_for_agents(self,
                         ego_vehicle_location,
@@ -181,9 +187,6 @@ class GroundAgentOperator(Op):
         }
 
         return speed_factor, state
-
-    def execute(self):
-        self.spin()
 
     def get_control_message(self, wp_angle, wp_angle_speed, speed_factor,
                             current_speed, timestamp):
