@@ -1,31 +1,19 @@
 import cv2
+import erdust
 
-from erdos.op import Op
-
-from erdos.utils import setup_logging
-from pylot.utils import add_timestamp, is_depth_camera_stream
+from pylot.utils import add_timestamp
 
 
-class DepthCameraVisualizer(Op):
+class DepthCameraVisualizer(erdust.Operator):
     """ Subscribes to depth camera streams, and visualizes frames."""
-    def __init__(self, name, flags, log_file_name=None):
-        super(DepthCameraVisualizer, self).__init__(name)
-        self._logger = setup_logging(self.name, log_file_name)
-        self._flags = flags
+    def __init__(self, depth_camera_stream, name):
+        depth_camera_stream.add_callback(self.display_frame)
 
     @staticmethod
-    def setup_streams(input_streams, filter_name=None):
-        if filter_name:
-            input_streams = input_streams.filter_name(filter_name)
-        else:
-            input_streams = input_streams.filter(is_depth_camera_stream)
-        input_streams.add_callback(DepthCameraVisualizer.display_frame)
+    def connect(depth_camera_stream):
         return []
 
     def display_frame(self, msg):
         add_timestamp(msg.timestamp, msg.frame)
         cv2.imshow(self.name, msg.frame)
         cv2.waitKey(1)
-
-    def execute(self):
-        self.spin()

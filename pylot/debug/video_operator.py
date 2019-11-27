@@ -1,25 +1,18 @@
+import erdust
 import cv2
 
-from erdos.op import Op
-from erdos.utils import setup_logging
-
-from pylot.utils import add_timestamp, is_camera_stream
+from pylot.utils import add_timestamp
 
 
-class VideoOperator(Op):
+class VideoOperator(erdust.Operator):
     """ Subscribes to camera streams, and visualizes frames."""
-    def __init__(self, name, flags, log_file_name=None):
-        super(VideoOperator, self).__init__(name)
-        self._logger = setup_logging(self.name, log_file_name)
-        self._flags = flags
+
+    def __init__(self, camera_stream, name):
+        self.name = name
+        camera_stream.add_callback(self.display_frame)
 
     @staticmethod
-    def setup_streams(input_streams, filter_name=None):
-        if filter_name:
-            input_streams = input_streams.filter_name(filter_name)
-        else:
-            input_streams = input_streams.filter(is_camera_stream)
-        input_streams.add_callback(VideoOperator.display_frame)
+    def connect(camera_stream):
         return []
 
     def display_frame(self, msg):
@@ -27,6 +20,3 @@ class VideoOperator(Op):
         add_timestamp(msg.timestamp, msg.frame)
         cv2.imshow(self.name, msg.frame)
         cv2.waitKey(1)
-
-    def execute(self):
-        self.spin()

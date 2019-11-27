@@ -1,15 +1,11 @@
 import carla
-
-# ERDOS specific imports.
-from erdos.op import Op
-from erdos.utils import setup_logging
+import erdust
 
 # Pylot specific imports.
-import pylot.utils
 import pylot.simulation.carla_utils
 
 
-class WaypointVisualizerOperator(Op):
+class WaypointVisualizerOperator(erdust.Operator):
     """ WaypointVisualizerOperator visualizes the waypoints released by a
     global route planner.
 
@@ -20,18 +16,19 @@ class WaypointVisualizerOperator(Op):
         _world: A handle to the world to draw the waypoints on.
     """
 
-    def __init__(self, name, flags, log_file_name=None):
+    def __init__(self, waypoints_stream, name, flags):
         """ Initializes the WaypointVisualizerOperator with the given
         parameters.
 
         Args:
+            waypoints_stream: A stream on which we receive
+                              `planning.messages.WaypointsMessage` messages,
+                              which must be drawn on the screen.
             name: The name of the operator.
             flags: A handle to the global flags instance to retrieve the
                 configuration.
-            log_file_name: The file to log the required information to.
         """
-        super(WaypointVisualizerOperator, self).__init__(name)
-        self._logger = setup_logging(self.name, log_file_name)
+        waypoints_stream.add_callback(self.on_wp_update)
         self._flags = flags
         _, self._world = pylot.simulation.carla_utils.get_world(
             self._flags.carla_host,
@@ -50,25 +47,7 @@ class WaypointVisualizerOperator(Op):
                         carla.Color(0, 64, 64)]
 
     @staticmethod
-    def setup_streams(input_streams):
-        """ This method takes in a single input stream called `wp_debug` which
-        sends a `planning.messages.WaypointsMessage` to be drawn on
-        the screen.
-
-        Args:
-            input_streams: A list of streams to take the input from (length=2)
-
-        Returns:
-            An empty list representing that this operator does not publish
-            any output streams.
-        """
-        if len(input_streams) > 1:
-            raise ValueError(
-                "The WaypointVisualizerOperator should not receive more than"
-                " two inputs. Please check the graph connections.")
-
-        input_streams.filter(pylot.utils.is_waypoints_stream).add_callback(
-            WaypointVisualizerOperator.on_wp_update)
+    def connect(waypoints_stream):
         return []
 
     def on_wp_update(self, msg):

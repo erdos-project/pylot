@@ -1,11 +1,6 @@
-from collections import deque
 import cv2
+import erdust
 import numpy as np
-import threading
-
-# ERDOS specific imports.
-from erdos.op import Op
-from erdos.utils import setup_logging
 
 # Pylot specific imports.
 from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
@@ -13,12 +8,18 @@ import pylot.utils
 import pylot.simulation.carla_utils
 
 
-class TrackVisualizerOperator(Op):
+class TrackVisualizerOperator(erdust.Operator):
     """ TrackVisualizerOperator visualizes the past and predicted future
         locations of agents on the top-down segmented image.
     """
 
-    def __init__(self, name, flags, top_down_camera_setup, log_file_name=None):
+    def __init__(self,
+                 obstacle_tracking_stream,
+                 prediction_stream,
+                 segmented_camera_stream,
+                 name,
+                 flags,
+                 top_down_camera_setup):
         """ Initializes the TrackVisualizerOperator with the given
         parameters.
 
@@ -28,97 +29,55 @@ class TrackVisualizerOperator(Op):
                 configuration.
             log_file_name: The file to log the required information to.
         """
-        super(TrackVisualizerOperator, self).__init__(name)
-        self._logger = setup_logging(self.name, log_file_name)
+        obstacle_tracking_stream.add_callback(self.on_tracking_update)
+        prediction_stream.add_callback(self.on_prediction_update)
+        segmented_camera_stream.add_callback(
+            self.on_top_down_segmentation_update)
+        erdust.add_watermark_callback(
+            [obstacle_tracking_stream,
+             prediction_stream,
+             segmented_camera_stream],
+            [],
+            self.on_watermark)
         self._flags = flags
         self._past_colors = {'pedestrian': [255, 0, 0],
                              'vehicle': [128, 128, 0]}
         self._future_colors = {'pedestrian': [0, 0, 255],
                                'vehicle': [0, 255, 0]}
-
-        # Queues of incoming data.
-        self._tracking_msgs = deque()
-        self._top_down_segmentation_msgs = deque()
-        self._prediction_msgs = deque()
-        self._lock = threading.Lock()
-        self._frame_cnt = 0
-
+        # Dictionaries to store incoming data.
+        self._tracking_msgs = {}
+        self._top_down_segmentation_msgs = {}
+        self._prediction_msgs = {}
         # Get top-down camera.
         self._top_down_camera_setup = top_down_camera_setup
 
     @staticmethod
-    def setup_streams(input_streams, top_down_stream_name):
-        input_streams.filter(pylot.utils.is_tracking_stream).add_callback(
-            TrackVisualizerOperator.on_tracking_update)
-        input_streams.filter(pylot.utils.is_prediction_stream).add_callback(
-            TrackVisualizerOperator.on_prediction_update)
-        input_streams.filter(
-            pylot.utils.is_segmented_camera_stream).filter_name(
-                top_down_stream_name).add_callback(
-                    TrackVisualizerOperator.on_top_down_segmentation_update)
-        # Register a completion watermark callback. The callback is invoked
-        # after all the messages with a given timestamp have been received.
-        input_streams.add_completion_callback(
-           TrackVisualizerOperator.on_notification)
+    def connect(obstacle_tracking_stream,
+                prediction_stream,
+                segmented_camera_stream):
         return []
 
-    def synchronize_msg_buffers(self, timestamp, buffers):
-        for buffer in buffers:
-            while (len(buffer) > 0 and buffer[0].timestamp < timestamp):
-                buffer.popleft()
-            if len(buffer) == 0:
-                return False
-            assert buffer[0].timestamp == timestamp
-        return True
-
     def on_tracking_update(self, msg):
-        with self._lock:
-            self._tracking_msgs.append(msg)
-
-    def on_top_down_segmentation_update(self, msg):
-        with self._lock:
-            self._top_down_segmentation_msgs.append(msg)
+        self._tracking_msgs[msg.timestamp] = msg
 
     def on_prediction_update(self, msg):
-        with self._lock:
-            self._prediction_msgs.append(msg)
+        self._prediction_msgs[msg.timestamp] = msg
 
-    def on_notification(self, msg):
-        # Pop the oldest message from each buffer.
-        msg_buffers = [self._tracking_msgs, self._top_down_segmentation_msgs]
-        if self._flags.prediction:
-            msg_buffers.append(self._prediction_msgs)
-        with self._lock:
-            if not self.synchronize_msg_buffers(
-                    msg.timestamp,
-                    msg_buffers):
-                return
-            tracking_msg = self._tracking_msgs.popleft()
-            segmentation_msg = self._top_down_segmentation_msgs.popleft()
-            if self._flags.prediction:
-                prediction_msg = self._prediction_msgs.popleft()
+    def on_top_down_segmentation_update(self, msg):
+        self._top_down_segmentation_msgs[msg.timestamp] = msg
 
-        if self._flags.prediction:
-            self._logger.info('Timestamps {} {} {}'.format(
-                tracking_msg.timestamp, segmentation_msg.timestamp, prediction_msg.timestamp))
-
-            assert (tracking_msg.timestamp == segmentation_msg.timestamp == prediction_msg.timestamp)
-        else:
-            self._logger.info('Timestamps {} {}'.format(
-                tracking_msg.timestamp, segmentation_msg.timestamp))
-
-            assert (tracking_msg.timestamp == segmentation_msg.timestamp)
-
-        self._frame_cnt += 1
+    def on_watermark(self, timestamp):
+        tracking_msg = self._tracking_msgs.pop()
+        segmentation_msg = self._top_down_segmentation_msgs.pop()
+        prediction_msg = self._prediction_msgs.pop()
 
         display_img = np.uint8(transform_to_cityscapes_palette(
             segmentation_msg.frame))
         for obj in tracking_msg.obj_trajectories:
             self._draw_trajectory_on_img(obj, display_img, False)
-        if self._flags.prediction:
-            for obj in prediction_msg.predictions:
-                display_img = self._draw_trajectory_on_img(obj, display_img, True)
-        pylot.utils.add_timestamp(msg.timestamp, display_img)
+        for obj in prediction_msg.predictions:
+            display_img = self._draw_trajectory_on_img(obj, display_img, True)
+        pylot.utils.add_timestamp(timestamp, display_img)
         cv2.imshow('img', display_img)
         cv2.waitKey(1)
 
