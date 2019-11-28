@@ -1,13 +1,8 @@
+import carla
+import erdust
 import random
 import sys
 import time
-import carla
-
-# ERDOS specific imports.
-from erdos.op import Op
-from erdos.timestamp import Timestamp
-from erdos.utils import setup_logging, setup_csv_logging
-from erdos.message import Message, WatermarkMessage
 
 import pylot.utils
 from pylot.simulation.carla_utils import extract_data_in_pylot_format,\
@@ -17,7 +12,7 @@ from pylot.simulation.utils import Transform
 import pylot.simulation.utils
 
 
-class CarlaOperator(Op):
+class CarlaOperator(erdust.Operator):
     """ CarlaOperator initializes and controls the simulation.
 
     This operator connects to the simulation, sets the required weather in the
@@ -31,6 +26,14 @@ class CarlaOperator(Op):
     """
 
     def __init__(self,
+#                 control_stream,
+                 can_bus_stream,
+                 ground_traffic_lights_stream,
+                 ground_vehicles_stream,
+                 ground_pedestrians_stream,
+                 ground_speed_limit_signs_stream,
+                 ground_stop_signs_stream,
+                 vehicle_id_stream,
                  name,
                  auto_pilot,
                  flags,
@@ -46,10 +49,21 @@ class CarlaOperator(Op):
             log_file_name: The file to log the required information to.
             csv_file_name: The file to log info to in csv format.
         """
-        super(CarlaOperator, self).__init__(name)
+        # Register callback on control stream.
+#        control_stream.add_callback(CarlaOperator.on_control_msg)
+        self.can_bus_stream = can_bus_stream
+        self.ground_traffic_lights_stream = ground_traffic_lights_stream
+        self.ground_vehicles_stream = ground_vehicles_stream
+        self.ground_pedestrians_stream = ground_pedestrians_stream
+        self.ground_speed_limit_signs_stream = ground_speed_limit_signs_stream
+        self.ground_stop_signs_stream = ground_stop_signs_stream
+        self.vehicle_id_stream = vehicle_id_stream
+
+        self._name = name
         self._flags = flags
-        self._logger = setup_logging(self.name, log_file_name)
-        self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.utils.setup_csv_logging(
+            name + '-csv', csv_file_name)
         self._auto_pilot = auto_pilot
         # Connect to CARLA and retrieve the world running.
         self._client, self._world = get_world(self._flags.carla_host,
@@ -100,18 +114,22 @@ class CarlaOperator(Op):
             self._start_pedestrians(ped_control_ids)
 
     @staticmethod
-    def setup_streams(input_streams):
-        # Register callback on control stream.
-        input_streams.filter(pylot.utils.is_control_stream).add_callback(
-            CarlaOperator.on_control_msg)
-        ground_agent_streams = [
-            pylot.utils.create_can_bus_stream(),
-            pylot.utils.create_ground_traffic_lights_stream(),
-            pylot.utils.create_ground_vehicles_stream(),
-            pylot.utils.create_ground_pedestrians_stream(),
-            pylot.utils.create_ground_speed_limit_signs_stream(),
-            pylot.utils.create_ground_stop_signs_stream()]
-        return ground_agent_streams + [pylot.utils.create_vehicle_id_stream()]
+#    def connect(control_stream):
+    def connect():
+        can_bus_stream = erdust.WriteStream()
+        ground_traffic_lights_stream = erdust.WriteStream()
+        ground_vehicles_stream = erdust.WriteStream()
+        ground_pedestrians_stream = erdust.WriteStream()
+        ground_speed_limit_signs_stream = erdust.WriteStream()
+        ground_stop_signs_stream = erdust.WriteStream()
+        vehicle_id_stream = erdust.WriteStream()
+        return [can_bus_stream,
+                ground_traffic_lights_stream,
+                ground_vehicles_stream,
+                ground_pedestrians_stream,
+                ground_speed_limit_signs_stream,
+                ground_stop_signs_stream,
+                vehicle_id_stream]
 
     def on_control_msg(self, msg):
         """ Invoked when a ControlMessage is received.
@@ -319,19 +337,18 @@ class CarlaOperator(Op):
         game_time = int(msg.elapsed_seconds * 1000)
         self._logger.info('The world is at the timestamp {}'.format(game_time))
         # Create a timestamp and send a WatermarkMessage on the output stream.
-        timestamp = Timestamp(coordinates=[game_time])
-        watermark_msg = WatermarkMessage(timestamp)
+        timestamp = erdust.Timestamp(coordinates=[game_time])
+        watermark_msg = erdust.WatermarkMessage(timestamp)
         self.__publish_hero_vehicle_data(timestamp, watermark_msg)
         self.__publish_ground_actors_data(timestamp, watermark_msg)
 
-    def execute(self):
+    def run(self):
         # Register a callback function and a function that ticks the world.
         # TODO(ionel): We do not currently have a top message.
-        timestamp = Timestamp(coordinates=[sys.maxint])
-        vehicle_id_msg = Message(self._driving_vehicle.id, timestamp)
-        self.get_output_stream('vehicle_id_stream').send(vehicle_id_msg)
-        self.get_output_stream('vehicle_id_stream').send(
-            WatermarkMessage(timestamp))
+        timestamp = erdust.Timestamp(coordinates=[sys.maxsize])
+        self.vehicle_id_stream.send(
+            erdust.Message(timestamp, self._driving_vehicle.id))
+        self.vehicle_id_stream.send(erdust.WatermarkMessage(timestamp))
 
         # XXX(ionel): Hack to fix a race condition. Driver operators
         # register a carla listen callback only after they've received
@@ -343,7 +360,6 @@ class CarlaOperator(Op):
         time.sleep(5)
         self._world.on_tick(self.publish_world_data)
         self._tick_simulator()
-        self.spin()
 
     def __publish_hero_vehicle_data(self, timestamp, watermark_msg):
         vec_transform = Transform(
@@ -351,9 +367,8 @@ class CarlaOperator(Op):
         forward_speed = pylot.simulation.utils.get_speed(
             self._driving_vehicle.get_velocity())
         can_bus = pylot.simulation.utils.CanBus(vec_transform, forward_speed)
-        self.get_output_stream('can_bus').send(
-            Message(can_bus, timestamp))
-        self.get_output_stream('can_bus').send(watermark_msg)
+        self.can_bus_stream.send(erdust.Message(timestamp, can_bus))
+        self.can_bus_stream.send(erdust.WatermarkMessage(timestamp))
 
         # Set the world simulation view with respect to the vehicle.
         v_pose = self._driving_vehicle.get_transform()
@@ -371,23 +386,30 @@ class CarlaOperator(Op):
          speed_limits,
          traffic_stops) = extract_data_in_pylot_format(actor_list)
 
-        vehicles_msg = pylot.simulation.messages.GroundVehiclesMessage(
-            vehicles, timestamp)
-        self.get_output_stream('vehicles').send(vehicles_msg)
-        self.get_output_stream('vehicles').send(watermark_msg)
-        pedestrians_msg = pylot.simulation.messages.GroundPedestriansMessage(
-            pedestrians, timestamp)
-        self.get_output_stream('pedestrians').send(pedestrians_msg)
-        self.get_output_stream('pedestrians').send(watermark_msg)
-        traffic_lights_msg = pylot.simulation.messages.GroundTrafficLightsMessage(
-            traffic_lights, timestamp)
-        self.get_output_stream('traffic_lights').send(traffic_lights_msg)
-        self.get_output_stream('traffic_lights').send(watermark_msg)
-        speed_limit_signs_msg = pylot.simulation.messages.GroundSpeedSignsMessage(
-            speed_limits, timestamp)
-        self.get_output_stream('speed_limit_signs').send(speed_limit_signs_msg)
-        self.get_output_stream('speed_limit_signs').send(watermark_msg)
-        stop_signs_msg = pylot.simulation.messages.GroundStopSignsMessage(
-            traffic_stops, timestamp)
-        self.get_output_stream('stop_signs').send(stop_signs_msg)
-        self.get_output_stream('stop_signs').send(watermark_msg)
+        # Send ground vehicles.
+        self.ground_vehicles_stream.send(
+            pylot.simulation.messages.GroundVehiclesMessage(
+                timestamp, vehicles))
+        self.ground_vehicles_stream.send(erdust.WatermarkMessage(timestamp))
+        # Send ground pedestrians.
+        self.ground_pedestrians_stream.send(
+            pylot.simulation.messages.GroundPedestriansMessage(
+                timestamp, pedestrians))
+        self.ground_pedestrians_stream.send(erdust.WatermarkMessage(timestamp))
+        # Send ground traffic lights.
+        self.ground_traffic_lights_stream.send(
+            pylot.simulation.messages.GroundTrafficLightsMessage(
+                timestamp, traffic_lights))
+        self.ground_traffic_lights_stream.send(
+            erdust.WatermarkMessage(timestamp))
+        # Send ground speed signs.
+        self.ground_speed_limit_signs_stream.send(
+            pylot.simulation.messages.GroundSpeedSignsMessage(
+                timestamp, speed_limits))
+        self.ground_speed_limit_signs_stream.send(
+            erdust.WatermarkMessage(timestamp))
+        # Send stop signs.
+        self.ground_stop_signs_stream.send(
+            pylot.simulation.messages.GroundStopSignsMessage(
+                timestamp, traffic_stops))
+        self.ground_stop_signs_stream.send(erdust.WatermarkMessage(timestamp))

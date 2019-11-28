@@ -1,20 +1,14 @@
 import copy
+import erdust
 import numpy as np
 import threading
 import time
 
-import pylot.utils
 from pylot.simulation.carla_utils import get_world, set_synchronous_mode
 from pylot.simulation.messages import PointCloudMessage
 
-# ERDOS specific imports.
-from erdos.op import Op
-from erdos.utils import setup_logging
-from erdos.message import WatermarkMessage
-from erdos.timestamp import Timestamp
 
-
-class LidarDriverOperator(Op):
+class LidarDriverOperator(erdust.Operator):
     """ LidarDriverOperator publishes Lidar point clouds onto a stream.
 
     This operator attaches a vehicle at the required position with respect to
@@ -26,7 +20,13 @@ class LidarDriverOperator(Op):
         _lidar: Handle to the Lidar inside the simulation.
         _vehicle: Handle to the hero vehicle inside the simulation.
     """
-    def __init__(self, name, lidar_setup, flags, log_file_name=None):
+    def __init__(self,
+                 ground_vehicle_id_stream,
+                 lidar_stream,
+                 name,
+                 lidar_setup,
+                 flags,
+                 log_file_name=None):
         """ Initializes the Lidar inside the simulation with the given
         parameters.
 
@@ -37,11 +37,11 @@ class LidarDriverOperator(Op):
                 configuration.
             log_file_name: The file to log the required information to.
         """
-        super(LidarDriverOperator, self).__init__(
-            name, no_watermark_passthrough=True)
-        # The operator does not pass watermarks by defaults.
+        ground_vehicle_id_stream.add_callback(self.on_vehicle_id)
+        self._lidar_stream = lidar_stream
+        self._name = name
         self._flags = flags
-        self._logger = setup_logging(self.name, log_file_name)
+        self._logger = erdust.setup_logging(name, log_file_name)
         self._lidar_setup = lidar_setup
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None
@@ -50,17 +50,9 @@ class LidarDriverOperator(Op):
         self._lock = threading.Lock()
 
     @staticmethod
-    def setup_streams(input_streams, lidar_setup):
-        """ Set up callback functions on the input streams and return the
-        output stream that publishes the point clouds.
-
-        Args:
-            input_streams: The streams that this operator is connected to.
-            lidar_setup: A LidarSetup tuple.
-        """
-        input_streams.filter(pylot.utils.is_ground_vehicle_id_stream)\
-                     .add_callback(LidarDriverOperator.on_vehicle_id)
-        return [pylot.utils.create_lidar_stream(lidar_setup)]
+    def connect(ground_vehicle_id_stream):
+        lidar_stream = erdust.WriteStream()
+        return [lidar_stream]
 
     def process_point_clouds(self, carla_pc):
         """ Invoked when a pointcloud is received from the simulator.
@@ -71,8 +63,8 @@ class LidarDriverOperator(Op):
         # Ensure that the code executes serially
         with self._lock:
             game_time = int(carla_pc.timestamp * 1000)
-            timestamp = Timestamp(coordinates=[game_time])
-            watermark_msg = WatermarkMessage(timestamp)
+            timestamp = erdust.Timestamp(coordinates=[game_time])
+            watermark_msg = erdust.WatermarkMessage(timestamp)
 
             # Transform the raw_data into a point cloud.
             points = np.frombuffer(carla_pc.raw_data, dtype=np.dtype('f4'))
@@ -87,11 +79,11 @@ class LidarDriverOperator(Op):
                 self._lidar_setup.get_transform(),
                 timestamp)
 
-            self.get_output_stream(self._lidar_setup.name).send(msg)
+            self._lidar_stream.send(msg)
             # Note: The operator is set not to automatically propagate
             # watermark messages received on input streams. Thus, we can
             # issue watermarks only after the Carla callback is invoked.
-            self.get_output_stream(self._lidar_setup.name).send(watermark_msg)
+            self._lidar_stream.send(watermark_msg)
 
     def on_vehicle_id(self, msg):
         """ This function receives the identifier for the vehicle, retrieves

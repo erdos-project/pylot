@@ -142,7 +142,7 @@ class ObjTrajectoriesMessage(erdust.Message):
         trajectory info.
     """
 
-    def __init__(self, obj_trajectories, timestamp):
+    def __init__(self, timestamp, obj_trajectories):
         """ Constructs the ObjTrajectoriesMessage with the given data and
         timestamp.
 

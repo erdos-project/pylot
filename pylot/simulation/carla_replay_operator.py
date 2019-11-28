@@ -1,12 +1,7 @@
+import erdust
 import sys
 import threading
 import time
-
-# ERDOS specific imports.
-from erdos.op import Op
-from erdos.timestamp import Timestamp
-from erdos.utils import setup_logging, setup_csv_logging
-from erdos.message import Message, WatermarkMessage
 
 import pylot.utils
 from pylot.simulation.carla_utils import get_world,\
@@ -15,7 +10,7 @@ import pylot.simulation.messages
 import pylot.simulation.utils
 
 
-class CarlaReplayOperator(Op):
+class CarlaReplayOperator(erdust.Operator):
     """ Replays a prior simulation from logs.
 
     The operator reads data from a log file, and publishes it on the ground
@@ -27,29 +22,50 @@ class CarlaReplayOperator(Op):
     """
 
     def __init__(self,
+                 can_bus_stream,
+                 ground_traffic_lights_stream,
+                 ground_vehicles_stream,
+                 ground_pedestrians_stream,
+                 ground_speed_limit_signs_stream,
+                 ground_stop_signs_stream,
+                 vehicle_id_stream,
                  name,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-        super(CarlaReplayOperator, self).__init__(name)
+        self._can_bus_stream = can_bus_stream
+        self._ground_traffic_lights_stream = ground_traffic_lights_stream
+        self._ground_vehicles_stream = ground_vehicles_stream
+        self._ground_pedestrians_stream = ground_pedestrians_stream
+        self._ground_speed_limit_signs_stream = ground_speed_limit_signs_stream
+        self._ground_stop_signs_stream = ground_stop_signs_stream
+        self._vehicle_id_stream = vehicle_id_stream
+        self._name = name
         self._flags = flags
-        self._logger = setup_logging(self.name, log_file_name)
-        self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+        self._logger = erdust.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.setup_csv_logging(
+            name + '-csv', csv_file_name)
         self._client = None
         self._world = None
         # Lock to ensure that the callbacks do not execute simultaneously.
         self._lock = threading.Lock()
 
     @staticmethod
-    def setup_streams(input_streams):
-        ground_agent_streams = [
-            pylot.utils.create_can_bus_stream(),
-            pylot.utils.create_ground_traffic_lights_stream(),
-            pylot.utils.create_ground_vehicles_stream(),
-            pylot.utils.create_ground_pedestrians_stream(),
-            pylot.utils.create_ground_speed_limit_signs_stream(),
-            pylot.utils.create_ground_stop_signs_stream()]
-        return ground_agent_streams + [pylot.utils.create_vehicle_id_stream()]
+    def connect():
+        can_bus_stream = erdust.WriteStream()
+        ground_traffic_lights_stream = erdust.WriteStream()
+        ground_vehicles_stream = erdust.WriteStream()
+        ground_pedestrians_stream = erdust.WriteStream()
+        ground_speed_limit_signs_stream = erdust.WriteStream()
+        ground_stop_signs_stream = erdust.WriteStream()
+        vehicle_id_stream = erdust.WriteStream()
+        return [can_bus_stream,
+                ground_traffic_lights_stream,
+                ground_vehicles_stream,
+                ground_pedestrians_stream,
+                ground_speed_limit_signs_stream,
+                ground_stop_signs_stream,
+                vehicle_id_stream]
 
     def on_world_tick(self, msg):
         """ Callback function that gets called when the world is ticked.
@@ -61,8 +77,8 @@ class CarlaReplayOperator(Op):
         """
         with self._lock:
             game_time = int(msg.elapsed_seconds * 1000)
-            timestamp = Timestamp(coordinates=[game_time])
-            watermark_msg = WatermarkMessage(timestamp)
+            timestamp = erdust.Timestamp(coordinates=[game_time])
+            watermark_msg = erdust.WatermarkMessage(timestamp)
             self.__publish_hero_vehicle_data(timestamp, watermark_msg)
             self.__publish_ground_actors_data(timestamp, watermark_msg)
             # XXX(ionel): Hack! Sleep a bit to not overlead the subscribers.
@@ -74,9 +90,8 @@ class CarlaReplayOperator(Op):
         forward_speed = pylot.simulation.utils.get_speed(
             self._driving_vehicle.get_velocity())
         can_bus = pylot.simulation.utils.CanBus(vec_transform, forward_speed)
-        self.get_output_stream('can_bus').send(
-            Message(can_bus, timestamp))
-        self.get_output_stream('can_bus').send(watermark_msg)
+        self._can_bus_stream.send(erdust.Message(timestamp, can_bus))
+        self._can_bus_stream.send(watermark_msg)
 
     def __publish_ground_actors_data(self, timestamp, watermark_msg):
         # Get all the actors in the simulation.
@@ -89,27 +104,27 @@ class CarlaReplayOperator(Op):
          traffic_stops) = extract_data_in_pylot_format(actor_list)
 
         vehicles_msg = pylot.simulation.messages.GroundVehiclesMessage(
-            vehicles, timestamp)
-        self.get_output_stream('vehicles').send(vehicles_msg)
-        self.get_output_stream('vehicles').send(watermark_msg)
+            timestamp, vehicles)
+        self._ground_vehicles_stream.send(vehicles_msg)
+        self._ground_vehicles_stream.send(watermark_msg)
         pedestrians_msg = pylot.simulation.messages.GroundPedestriansMessage(
-            pedestrians, timestamp)
-        self.get_output_stream('pedestrians').send(pedestrians_msg)
-        self.get_output_stream('pedestrians').send(watermark_msg)
+            timestamp, pedestrians)
+        self._ground_pedestrians_stream.send(pedestrians_msg)
+        self._ground_pedestrians_stream.send(watermark_msg)
         traffic_lights_msg = pylot.simulation.messages.GroundTrafficLightsMessage(
-            traffic_lights, timestamp)
-        self.get_output_stream('traffic_lights').send(traffic_lights_msg)
-        self.get_output_stream('traffic_lights').send(watermark_msg)
+            timestamp, traffic_lights)
+        self._ground_traffic_lights_stream.send(traffic_lights_msg)
+        self._ground_traffic_lights_stream.send(watermark_msg)
         speed_limit_signs_msg = pylot.simulation.messages.GroundSpeedSignsMessage(
-            speed_limits, timestamp)
-        self.get_output_stream('speed_limit_signs').send(speed_limit_signs_msg)
-        self.get_output_stream('speed_limit_signs').send(watermark_msg)
+            timestamp, speed_limits)
+        self._ground_speed_limit_signs_stream.send(speed_limit_signs_msg)
+        self._ground_speed_limit_signs_stream.send(watermark_msg)
         stop_signs_msg = pylot.simulation.messages.GroundStopSignsMessage(
-            traffic_stops, timestamp)
-        self.get_output_stream('stop_signs').send(stop_signs_msg)
-        self.get_output_stream('stop_signs').send(watermark_msg)
+            timestamp, traffic_stops)
+        self._ground_stop_signs_stream.send(stop_signs_msg)
+        self._ground_stop_signs_stream.send(watermark_msg)
 
-    def execute(self):
+    def run(self):
         # Connect to CARLA and retrieve the world running.
         self._client, self._world = get_world(self._flags.carla_host,
                                               self._flags.carla_port,
@@ -130,10 +145,8 @@ class CarlaReplayOperator(Op):
         if self._driving_vehicle is None:
             raise ValueError("There was an issue finding the vehicle.")
         # TODO(ionel): We do not currently have a top message.
-        timestamp = Timestamp(coordinates=[sys.maxint])
-        vehicle_id_msg = Message(self._driving_vehicle.id, timestamp)
-        self.get_output_stream('vehicle_id_stream').send(vehicle_id_msg)
-        self.get_output_stream('vehicle_id_stream').send(
-            WatermarkMessage(timestamp))
+        timestamp = erdust.Timestamp(coordinates=[sys.maxsize])
+        vehicle_id_msg = erdust.Message(timestamp, self._driving_vehicle.id)
+        self._vehicle_id_stream.send(vehicle_id_msg)
+        self._vehicle_id_stream.send(erdust.WatermarkMessage(timestamp))
         self._world.on_tick(self.on_world_tick)
-        self.spin()

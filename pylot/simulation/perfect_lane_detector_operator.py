@@ -1,16 +1,15 @@
-from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging
+import erdust
 
-from pylot.utils import create_detected_lane_stream, is_can_bus_stream
 from pylot.simulation.utils import DetectedLane, Location
 from pylot.simulation.messages import DetectedLaneMessage
 from pylot.simulation.carla_utils import get_world
 
 
-class PerfectLaneDetectionOperator(Op):
+class PerfectLaneDetectionOperator(erdust.Operator):
     def __init__(self,
+                 can_bus_stream,
+                 detected_lane_stream,
                  name,
-                 output_stream_name,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
@@ -24,30 +23,29 @@ class PerfectLaneDetectionOperator(Op):
             log_file_name: Name of the log file.
             csv_file_name: Name of the csv file.
         """
-        super(PerfectLaneDetectionOperator, self).__init__(name)
+        can_bus_stream.add_callback(self.on_position_update,
+                                    [detected_lane_stream])
+        self._name = name
         self._flags = flags
-        self._logger = setup_logging(self.name, log_file_name)
-        self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
-        self._world_map = None
-        self._output_stream_name = output_stream_name
+        self._logger = erdust.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.setup_csv_logging(
+            name + '-csv', csv_file_name)
         self._waypoint_precision = 0.05
+        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
+                             self._flags.carla_timeout)
+        self._world_map = world.get_map()
 
     @staticmethod
-    def setup_streams(input_streams, output_stream_name):
-        # Filter the CanBus message stream to get regular update on the
-        # vehicle location.
-        input_streams.filter(is_can_bus_stream).add_callback(
-            PerfectLaneDetectionOperator.on_position_update)
-
-        # Send the detected lane message.
-        return [create_detected_lane_stream(output_stream_name)]
+    def connect(can_bus_stream):
+        detected_lane_stream = erdust.WriteStream()
+        return [detected_lane_stream]
 
     def lateral_shift(self, transform, shift):
         transform.rotation.yaw += 90
         shifted = transform.location + shift * transform.get_forward_vector()
         return Location(carla_location=shifted)
 
-    def on_position_update(self, can_bus_msg):
+    def on_position_update(self, can_bus_msg, detected_lane_stream):
         """ Invoked on the receipt of an update to the position of the vehicle.
 
         Uses the position of the vehicle to get future waypoints and draw
@@ -81,12 +79,5 @@ class PerfectLaneDetectionOperator(Op):
             DetectedLane(left, right)
             for left, right in zip(left_markings, right_markings)
         ]
-        output_msg = DetectedLaneMessage(detected_lanes, can_bus_msg.timestamp)
-        self.get_output_stream(self._output_stream_name).send(output_msg)
-
-    def execute(self):
-        """ Retrieve the world instance from the simulator. """
-        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
-                             self._flags.carla_timeout)
-        self._world_map = world.get_map()
-        self.spin()
+        output_msg = DetectedLaneMessage(can_bus_msg.timestamp, detected_lanes)
+        detected_lane_stream.send(output_msg)

@@ -117,7 +117,7 @@ class FusionOperator(erdust.Operator):
             time_epoch_ms(), self._name, runtime))
 
         output_msg = ObjPositionsSpeedsMessage(object_positions, timestamp)
-        self.get_output_stream(self._output_stream_name).send(output_msg)
+        self._fused_stream.send(output_msg)
 
     def update_pos(self, msg):
         vehicle_pos = ((msg.data.transform.location.x,

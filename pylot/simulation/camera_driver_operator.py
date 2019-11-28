@@ -1,11 +1,6 @@
+import erdust
 import threading
 import time
-
-# ERDOS specific imports.
-from erdos.op import Op
-from erdos.utils import setup_logging
-from erdos.message import WatermarkMessage
-from erdos.timestamp import Timestamp
 
 from pylot.perception.messages import SegmentedFrameMessage
 import pylot.utils
@@ -14,7 +9,7 @@ from pylot.simulation.utils import depth_to_array, labels_to_array,\
     to_bgra_array
 
 
-class CameraDriverOperator(Op):
+class CameraDriverOperator(erdust.Operator):
     """ Publishes images onto the desired stream from a camera.
 
     This operator attaches a vehicle at the required position with respect to
@@ -27,6 +22,8 @@ class CameraDriverOperator(Op):
         _vehicle: Handle to the simulated hero vehicle.
     """
     def __init__(self,
+                 ground_vehicle_id_stream,
+                 camera_stream,
                  name,
                  camera_setup,
                  flags,
@@ -41,11 +38,11 @@ class CameraDriverOperator(Op):
                 configuration.
             log_file_name: The file to log the required information to.
         """
-        super(CameraDriverOperator, self).__init__(
-            name, no_watermark_passthrough=True)
-        # The operator does not pass watermarks by defaults.
+        ground_vehicle_id_stream.add_callback(self.on_vehicle_id)
+        self._camera_stream = camera_stream
+        self._name = name
         self._flags = flags
-        self._logger = setup_logging(self.name, log_file_name)
+        self._logger = erdust.setup_logging(name, log_file_name)
         self._camera_setup = camera_setup
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None
@@ -55,17 +52,9 @@ class CameraDriverOperator(Op):
         self._lock = threading.Lock()
 
     @staticmethod
-    def setup_streams(input_streams, camera_setup):
-        """ Set up callback functions on the input streams and return the
-        output stream that publishes the images.
-
-        Args:
-            input_streams: The streams that this operator is connected to.
-            camera_setup: A CameraSetup tuple.
-        """
-        input_streams.filter(pylot.utils.is_ground_vehicle_id_stream)\
-                     .add_callback(CameraDriverOperator.on_vehicle_id)
-        return [pylot.utils.create_camera_stream(camera_setup)]
+    def connect(ground_vehicle_id_stream):
+        camera_stream = erdust.WriteStream()
+        return [camera_stream]
 
     def process_images(self, carla_image):
         """ Invoked when an image is received from the simulator.
@@ -76,8 +65,8 @@ class CameraDriverOperator(Op):
         # Ensure that the code executes serially
         with self._lock:
             game_time = int(carla_image.timestamp * 1000)
-            timestamp = Timestamp(coordinates=[game_time])
-            watermark_msg = WatermarkMessage(timestamp)
+            timestamp = erdust.Timestamp(coordinates=[game_time])
+            watermark_msg = erdust.WatermarkMessage(timestamp)
 
             msg = None
             if self._camera_setup.camera_type == 'sensor.camera.rgb':
@@ -97,11 +86,11 @@ class CameraDriverOperator(Op):
                 frame = labels_to_array(carla_image)
                 msg = SegmentedFrameMessage(frame, 0, timestamp)
                 # Send the message containing the frame.
-            self.get_output_stream(self._camera_setup.name).send(msg)
+            self._camera_stream.send(msg)
             # Note: The operator is set not to automatically propagate
             # watermark messages received on input streams. Thus, we can
             # issue watermarks only after the Carla callback is invoked.
-            self.get_output_stream(self._camera_setup.name).send(watermark_msg)
+            self._camera_stream.send(watermark_msg)
 
     def on_vehicle_id(self, msg):
         """ This function receives the identifier for the vehicle, retrieves

@@ -1,24 +1,20 @@
 from collections import deque
-import threading
-
-from erdos.message import WatermarkMessage
-from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging
+import erdust
 
 import pylot.utils
 from pylot.perception.detection.utils import DetectedObject,\
     annotate_image_with_bboxes, save_image, visualize_image
 from pylot.perception.messages import DetectorMessage
-from pylot.simulation.utils import get_2d_bbox_from_3d_box, camera_to_unreal_transform
+from pylot.simulation.utils import get_2d_bbox_from_3d_box,\
+    camera_to_unreal_transform
 from pylot.simulation.carla_utils import get_world
 
 
-class PerfectDetectorOp(Op):
+class PerfectDetectorOp(erdust.Operator):
     """ Operator that transforms information it receives from Carla into
     perfect bounding boxes.
 
     Attributes:
-        _output_stream_name: Name of the stream to output detected objects to.
         _bgr_imgs: Buffer of received ground BGR image messages.
         _can_bus_msgs: Buffer of received ground can bus messages.
         _depth_imgs: Buffer of received depth image messages.
@@ -27,8 +23,17 @@ class PerfectDetectorOp(Op):
         _segmented_imgs: Buffer of segmented frame msgs received from Carla.
     """
     def __init__(self,
+                 depth_camera_stream,
+                 center_camera_stream,
+                 segmented_camera_stream,
+                 can_bus_stream,
+                 ground_pedestrians_stream,
+                 ground_vehicles_stream,
+                 ground_traffic_lights_stream,
+                 ground_speed_limit_signs_stream,
+                 ground_stop_signs_stream,
+                 obstacles_stream,
                  name,
-                 output_stream_name,
                  bgr_camera_setup,
                  flags,
                  log_file_name=None,
@@ -38,11 +43,36 @@ class PerfectDetectorOp(Op):
         Args:
             bgr_camera_setup: A simulation.utils.CameraSetup object
         """
-        super(PerfectDetectorOp, self).__init__(name)
-        self._logger = setup_logging(self.name, log_file_name)
-        self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+        depth_camera_stream.add_callback(self.on_depth_camera_update)
+        center_camera_stream.add_callback(self.on_bgr_camera_update)
+        segmented_camera_stream.add_callback(self.on_segmented_frame)
+        can_bus_stream.add_callback(self.on_can_bus_update)
+        ground_pedestrians_stream.add_callback(self.on_pedestrians_update)
+        ground_vehicles_stream.add_callback(self.on_vehicles_update)
+        ground_traffic_lights_stream.add_callback(self.on_traffic_light_update)
+        ground_speed_limit_signs_stream.add_callback(
+            self.on_speed_limit_signs_update)
+        ground_stop_signs_stream.add_callback(self.on_stop_signs_update)
+        # Register a completion watermark callback. The callback is invoked
+        # after all the messages with a given timestamp have been received.
+        erdust.add_watermark_callback(
+            [depth_camera_stream,
+             center_camera_stream,
+             segmented_camera_stream,
+             can_bus_stream,
+             ground_pedestrians_stream,
+             ground_vehicles_stream,
+             ground_traffic_lights_stream,
+             ground_speed_limit_signs_stream,
+             ground_stop_signs_stream],
+            [obstacles_stream],
+            self.on_watermark)
+
+        self._name = name
+        self._logger = erdust.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.setup_csv_logging(
+            name + '-csv', csv_file_name)
         self._flags = flags
-        self._output_stream_name = output_stream_name
         _, world = get_world(self._flags.carla_host,
                              self._flags.carla_port,
                              self._flags.carla_timeout)
@@ -62,101 +92,38 @@ class PerfectDetectorOp(Op):
         self._bgr_intrinsic = bgr_camera_setup.get_intrinsic()
         self._bgr_transform = bgr_camera_setup.get_unreal_transform()
         self._bgr_img_size = (bgr_camera_setup.width, bgr_camera_setup.height)
-        self._lock = threading.Lock()
         self._frame_cnt = 0
 
     @staticmethod
-    def setup_streams(input_streams, output_stream_name):
-        # Register a callback on depth frames data stream.
-        input_streams.filter(pylot.utils.is_depth_camera_stream).add_callback(
-            PerfectDetectorOp.on_depth_camera_update)
-        # Register a callback on BGR frames data stream.
-        input_streams.filter(pylot.utils.is_center_camera_stream).add_callback(
-            PerfectDetectorOp.on_bgr_camera_update)
-        # Register a callback on segmented frames data stream.
-        input_streams.filter(
-            pylot.utils.is_segmented_camera_stream).add_callback(
-                PerfectDetectorOp.on_segmented_frame)
-        # Register a callback on can bus messages data stream.
-        input_streams.filter(
-            pylot.utils.is_can_bus_stream).add_callback(
-                PerfectDetectorOp.on_can_bus_update)
-        # Register a callback to receive pedestrian updates from Carla.
-        input_streams.filter(
-            pylot.utils.is_ground_pedestrians_stream).add_callback(
-                PerfectDetectorOp.on_pedestrians_update)
-        # Register a callback to receive vehicle updates from Carla.
-        input_streams.filter(
-            pylot.utils.is_ground_vehicles_stream).add_callback(
-                PerfectDetectorOp.on_vehicles_update)
-        # Register a completion watermark callback. The callback is invoked
-        # after all the messages with a given timestamp have been received.
-        input_streams.add_completion_callback(
-            PerfectDetectorOp.on_notification)
-        # Register a callback on traffic lights data stream.
-        input_streams.filter(
-            pylot.utils.is_ground_traffic_lights_stream).add_callback(
-                PerfectDetectorOp.on_traffic_light_update)
-        # Register a callback on speed limits data stream.
-        input_streams.filter(
-            pylot.utils.is_ground_speed_limit_signs_stream).add_callback(
-                PerfectDetectorOp.on_speed_limit_signs_update)
-        # Register a callback on stop signs data stream.
-        input_streams.filter(
-            pylot.utils.is_ground_stop_signs_stream).add_callback(
-                PerfectDetectorOp.on_stop_signs_update)
+    def connect(depth_camera_stream,
+                center_camera_stream,
+                segmented_camera_stream,
+                can_bus_stream,
+                ground_pedestrians_stream,
+                ground_vehicles_stream,
+                ground_traffic_lights_stream,
+                ground_speed_limit_signs_stream,
+                ground_stop_signs_stream):
+        obstacles_stream = erdust.WriteStream()
         # Stream on which to output bounding boxes.
-        return [pylot.utils.create_obstacles_stream(output_stream_name)]
+        return [obstacles_stream]
 
-    def synchronize_msg_buffers(self, timestamp, buffers):
-        for buffer in buffers:
-            while (len(buffer) > 0 and buffer[0].timestamp < timestamp):
-                buffer.popleft()
-            if len(buffer) == 0:
-                return False
-            assert buffer[0].timestamp == timestamp
-        return True
-
-    def on_notification(self, msg):
-        # Pop the oldest message from each buffer.
-        with self._lock:
-            if not self.synchronize_msg_buffers(
-                    msg.timestamp,
-                    [self._depth_imgs, self._bgr_imgs, self._segmented_imgs,
-                     self._can_bus_msgs, self._pedestrians, self._vehicles,
-                     self._traffic_lights, self._speed_limit_signs,
-                     self._stop_signs]):
-                return
-            depth_msg = self._depth_imgs.popleft()
-            bgr_msg = self._bgr_imgs.popleft()
-            segmented_msg = self._segmented_imgs.popleft()
-            can_bus_msg = self._can_bus_msgs.popleft()
-            pedestrians_msg = self._pedestrians.popleft()
-            vehicles_msg = self._vehicles.popleft()
-            traffic_light_msg = self._traffic_lights.popleft()
-            speed_limit_signs_msg = self._speed_limit_signs.popleft()
-            stop_signs_msg = self._stop_signs.popleft()
-
-        self._logger.info('Timestamps {} {} {} {} {} {}'.format(
-            depth_msg.timestamp, bgr_msg.timestamp, segmented_msg.timestamp,
-            can_bus_msg.timestamp, pedestrians_msg.timestamp,
-            vehicles_msg.timestamp, traffic_light_msg.timestamp))
-
-        # The popper messages should have the same timestamp.
-        assert (depth_msg.timestamp == bgr_msg.timestamp ==
-                segmented_msg.timestamp == can_bus_msg.timestamp ==
-                pedestrians_msg.timestamp == vehicles_msg.timestamp ==
-                traffic_light_msg.timestamp)
-
+    def on_watermark(self, timestamp, obstacles_stream):
+        depth_msg = self._depth_imgs.popleft()
+        bgr_msg = self._bgr_imgs.popleft()
+        segmented_msg = self._segmented_imgs.popleft()
+        can_bus_msg = self._can_bus_msgs.popleft()
+        pedestrians_msg = self._pedestrians.popleft()
+        vehicles_msg = self._vehicles.popleft()
+        traffic_light_msg = self._traffic_lights.popleft()
+        speed_limit_signs_msg = self._speed_limit_signs.popleft()
+        stop_signs_msg = self._stop_signs.popleft()
         self._frame_cnt += 1
         if (hasattr(self._flags, 'log_every_nth_frame') and
             self._frame_cnt % self._flags.log_every_nth_frame != 0):
             # There's no point to run the perfect detector if collecting
             # data, and only logging every nth frame.
-            output_msg = DetectorMessage([], 0, msg.timestamp)
-            self.get_output_stream(self._output_stream_name).send(output_msg)
-            self.get_output_stream(self._output_stream_name)\
-                .send(WatermarkMessage(msg.timestamp))
+            obstacles_stream.send(DetectorMessage([], 0, timestamp))
             return
         depth_array = depth_msg.frame
         segmented_image = segmented_msg.frame
@@ -195,14 +162,7 @@ class PerfectDetectorOp(Op):
                     det_speed_limits + det_stop_signs)
 
         # Send the detected obstacles.
-        output_msg = DetectorMessage(det_objs, 0, msg.timestamp)
-
-        self.get_output_stream(self._output_stream_name).send(output_msg)
-        # Send watermark on the output stream because operators do not
-        # automatically forward watermarks when they've registed an
-        # on completion callback.
-        self.get_output_stream(self._output_stream_name)\
-            .send(WatermarkMessage(msg.timestamp))
+        obstacles_stream.send(DetectorMessage(det_objs, 0, timestamp))
 
         if (self._flags.visualize_ground_obstacles or
             self._flags.log_detector_output):
@@ -217,43 +177,31 @@ class PerfectDetectorOp(Op):
                            'perfect-detector')
 
     def on_can_bus_update(self, msg):
-        with self._lock:
-            self._can_bus_msgs.append(msg)
+        self._can_bus_msgs.append(msg)
 
     def on_traffic_light_update(self, msg):
-        with self._lock:
-            self._traffic_lights.append(msg)
+        self._traffic_lights.append(msg)
 
     def on_speed_limit_signs_update(self, msg):
-        with self._lock:
-            self._speed_limit_signs.append(msg)
+        self._speed_limit_signs.append(msg)
 
     def on_stop_signs_update(self, msg):
-        with self._lock:
-            self._stop_signs.append(msg)
+        self._stop_signs.append(msg)
 
     def on_pedestrians_update(self, msg):
-        with self._lock:
-            self._pedestrians.append(msg)
+        self._pedestrians.append(msg)
 
     def on_vehicles_update(self, msg):
-        with self._lock:
-            self._vehicles.append(msg)
+        self._vehicles.append(msg)
 
     def on_depth_camera_update(self, msg):
-        with self._lock:
-            self._depth_imgs.append(msg)
+        self._depth_imgs.append(msg)
 
     def on_bgr_camera_update(self, msg):
-        with self._lock:
-            self._bgr_imgs.append(msg)
+        self._bgr_imgs.append(msg)
 
     def on_segmented_frame(self, msg):
-        with self._lock:
-            self._segmented_imgs.append(msg)
-
-    def execute(self):
-        self.spin()
+        self._segmented_imgs.append(msg)
 
     def __get_pedestrians(self, pedestrians, vehicle_transform, depth_array,
                           segmented_image):
