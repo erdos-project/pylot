@@ -152,9 +152,9 @@ flags.DEFINE_string('carla_weather', 'ClearNoon', 'Carla Weather Presets')
 flags.DEFINE_integer(
     'carla_spawn_point_index', -1,
     'Index of spawn point where to place ego vehicle. -1 to randomly assign.')
-flags.DEFINE_integer('carla_camera_image_width', 800,
+flags.DEFINE_integer('carla_camera_image_width', 1920,
                      'Carla camera image width')
-flags.DEFINE_integer('carla_camera_image_height', 600,
+flags.DEFINE_integer('carla_camera_image_height', 1080,
                      'Carla camera image height')
 flags.DEFINE_string('carla_replay_file', '', 'Path to the Carla log file')
 flags.DEFINE_float('carla_replay_start_time', 0.0,

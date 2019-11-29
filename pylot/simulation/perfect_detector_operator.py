@@ -41,7 +41,7 @@ class PerfectDetectorOp(erdust.Operator):
         """ Initializes the operator.
 
         Args:
-            bgr_camera_setup: A simulation.utils.CameraSetup object
+            bgr_camera_setup: A simulation.sensor_setup.CameraSetup object
         """
         depth_camera_stream.add_callback(self.on_depth_camera_update)
         center_camera_stream.add_callback(self.on_bgr_camera_update)

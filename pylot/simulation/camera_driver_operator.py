@@ -17,7 +17,7 @@ class CameraDriverOperator(erdust.Operator):
     publishes it to downstream operators.
 
     Attributes:
-        _camera_setup: A CameraSetup tuple.
+        _camera_setup: A simulation.sensor_setup.CameraSetup tuple.
         _camera: Handle to the camera inside the simulation.
         _vehicle: Handle to the simulated hero vehicle.
     """
@@ -33,7 +33,7 @@ class CameraDriverOperator(erdust.Operator):
 
         Args:
             name: The unique name of the operator.
-            camera_setup: A CameraSetup tuple.
+            camera_setup: A simulation.sensor_setup.CameraSetup tuple.
             flags: A handle to the global flags instance to retrieve the
                 configuration.
             log_file_name: The file to log the required information to.
