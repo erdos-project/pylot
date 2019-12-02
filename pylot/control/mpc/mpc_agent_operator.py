@@ -10,7 +10,6 @@ from pylot.simulation.carla_utils import get_map, to_carla_location, get_world
 
 import numpy as np
 
-import carla
 import collections
 import itertools
 import math

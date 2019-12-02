@@ -174,6 +174,20 @@ def create_planning_op(graph, goal_location):
     return planning_op
 
 
+def create_rrt_star_planning_op(graph, goal_location):
+    from pylot.planning.rrt_star.rrt_star_planning_operator import RRTStarPlanningOperator
+    planning_op = graph.add(
+        RRTStarPlanningOperator,
+        name='planning',
+        init_args={
+            'goal_location': goal_location,
+            'flags': FLAGS,
+            'log_file_name': FLAGS.log_file_name,
+            'csv_file_name': FLAGS.csv_log_file_name
+        })
+    return planning_op
+
+
 def create_waypoint_planning_op(graph, goal_location):
     from pylot.planning.waypoint_planning_operator import WaypointPlanningOperator
     planning_op = graph.add(

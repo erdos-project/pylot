@@ -244,6 +244,8 @@ def add_planning_component(graph,
                            agent_op):
     if FLAGS.waypoint_planning_operator:
         planning_op = pylot.operator_creator.create_waypoint_planning_op(graph, goal_location)
+    elif FLAGS.rrt_star_planning_operator:
+        planning_op = pylot.operator_creator.create_rrt_star_planning_op(graph, goal_location)
     else:
         planning_op = pylot.operator_creator.create_planning_op(
             graph, goal_location)
@@ -254,6 +256,7 @@ def add_planning_component(graph,
         graph.connect([planning_op], [waypoint_viz_op])
     graph.connect([carla_op], [planning_op])
     graph.connect([planning_op], [agent_op])
+
 
 def add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
                             lidar_ops, perfect_tracker_ops, prediction_ops):

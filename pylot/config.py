@@ -18,6 +18,8 @@ flags.DEFINE_bool('top_down_segmentation', False,
 # Planning modules to enable.
 flags.DEFINE_bool('waypoint_planning_operator', False,
                   'True to use the waypoint planning operator.')
+flags.DEFINE_bool('rrt_star_planning_operator', False,
+                  'True to use the RRTStar planning operator.')
 
 # Control modules to enable.
 flags.DEFINE_bool('ground_agent_operator', True,
