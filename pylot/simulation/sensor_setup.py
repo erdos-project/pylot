@@ -2,18 +2,27 @@ import pylot.simulation.utils
 from pylot.simulation.utils import Location, Rotation, Transform
 
 
-def create_center_camera_setups(
+def create_rgb_camera_setup(
+        camera_name, camera_location, width, height, fov=90):
+    rotation = Rotation(0, 0, 0)
+    transform = Transform(camera_location, rotation)
+    return RGBCameraSetup(camera_name, width, height, transform, fov)
+
+
+def create_depth_camera_setup(
         camera_name_prefix, camera_location, width, height, fov=90):
     rotation = Rotation(0, 0, 0)
     transform = Transform(camera_location, rotation)
-    rgb_camera_setup = RGBCameraSetup(
-        camera_name_prefix + '_RGB', width, height, transform, fov)
-    depth_camera_setup = DepthCameraSetup(
+    return DepthCameraSetup(
         camera_name_prefix + '_depth', width, height, transform, fov=fov)
-    front_segmented_camera_setup = SegmentedCameraSetup(
-        camera_name_prefix + '_segmented', width, height, transform,
-        fov=fov)
-    return (rgb_camera_setup, depth_camera_setup, front_segmented_camera_setup)
+
+
+def create_segmented_camera_setup(
+        camera_name_prefix, camera_location, width, height, fov=90):
+    rotation = Rotation(0, 0, 0)
+    transform = Transform(camera_location, rotation)
+    return SegmentedCameraSetup(
+        camera_name_prefix + '_segmented', width, height, transform, fov=fov)
 
 
 def create_left_right_camera_setups(
@@ -84,8 +93,14 @@ class CameraSetup(object):
         self.intrinsic_mat = pylot.simulation.utils.create_intrinsic_matrix(
             self.width, self.height, self.fov)
 
+    def get_fov(self):
+        return self.fov
+
     def get_intrinsic(self):
         return self.intrinsic_mat
+
+    def get_name(self):
+        return self.name
 
     def get_transform(self):
         return self.transform

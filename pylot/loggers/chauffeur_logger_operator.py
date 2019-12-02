@@ -8,8 +8,7 @@ import os
 import PIL.Image as Image
 
 # Pylot specific imports.
-from pylot.perception.segmentation.utils import LABEL_2_PIXEL,\
-    transform_to_cityscapes_palette
+from pylot.perception.segmentation.utils import LABEL_2_PIXEL
 from pylot.planning.utils import get_distance
 import pylot.utils
 import pylot.simulation.carla_utils
@@ -25,7 +24,7 @@ TL_LOGGING_RADIUS = 40
 TL_BBOX_LIFETIME_BUFFER = 0.1
 
 
-class ChauffeurLoggerOp(erdust.Operator):
+class ChauffeurLoggerOperator(erdust.Operator):
     """ Logs data in Chauffeur format. """
 
     def __init__(self,
@@ -184,7 +183,7 @@ class ChauffeurLoggerOp(erdust.Operator):
         past_poses_img.save(file_name)
 
     def on_top_down_segmentation_update(self, msg):
-        top_down = np.uint8(transform_to_cityscapes_palette(msg.frame))
+        top_down = np.uint8(msg.frame)
 
         # Save the segmented channels
         for k, v in LABEL_2_PIXEL.items():

@@ -10,7 +10,7 @@ from pylot.simulation.utils import get_2d_bbox_from_3d_box,\
 from pylot.simulation.carla_utils import get_world
 
 
-class PerfectDetectorOp(erdust.Operator):
+class PerfectDetectorOperator(erdust.Operator):
     """ Operator that transforms information it receives from Carla into
     perfect bounding boxes.
 

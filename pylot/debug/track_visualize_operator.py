@@ -3,7 +3,6 @@ import erdust
 import numpy as np
 
 # Pylot specific imports.
-from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
 import pylot.utils
 import pylot.simulation.carla_utils
 
@@ -71,8 +70,7 @@ class TrackVisualizerOperator(erdust.Operator):
         segmentation_msg = self._top_down_segmentation_msgs.pop()
         prediction_msg = self._prediction_msgs.pop()
 
-        display_img = np.uint8(transform_to_cityscapes_palette(
-            segmentation_msg.frame))
+        display_img = np.uint8(segmentation_msg.frame)
         for obj in tracking_msg.obj_trajectories:
             self._draw_trajectory_on_img(obj, display_img, False)
         for obj in prediction_msg.predictions:

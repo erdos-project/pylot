@@ -3,7 +3,7 @@ import os
 import pickle
 
 
-class DepthCameraLoggerOp(erdust.Operator):
+class DepthCameraLoggerOperator(erdust.Operator):
     def __init__(self, depth_camera_stream, name, flags, filename_prefix):
         depth_camera_stream.add_callback(self.on_depth_frame)
         self._flags = flags

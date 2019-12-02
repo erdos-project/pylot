@@ -33,7 +33,7 @@ class SegmentedFrameMessage(erdust.Message):
     """ This class represents a message to be used to send segmented frames
 
     Attributes:
-        frame: The segmented frame.
+        frame: The segmented frame in Cityscapes palette.
         runtime: The runtime of the operator that produced the segmented frame.
         width: the width of the frame.
         height: the height of the frame.

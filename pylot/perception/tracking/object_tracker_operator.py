@@ -6,7 +6,7 @@ from pylot.perception.detection.utils import visualize_image
 from pylot.utils import time_epoch_ms
 
 
-class ObjectTrackerOp(erdust.Operator):
+class ObjectTrackerOperator(erdust.Operator):
     def __init__(self,
                  obstacles_stream,
                  camera_stream,
@@ -27,17 +27,21 @@ class ObjectTrackerOp(erdust.Operator):
         self._tracker_type = tracker_type
         try:
             if tracker_type == 'cv2':
-                from pylot.perception.tracking.cv2_tracker import MultiObjectCV2Tracker
+                from pylot.perception.tracking.cv2_tracker import\
+                    MultiObjectCV2Tracker
                 self._tracker = MultiObjectCV2Tracker(self._flags)
             elif tracker_type == 'da_siam_rpn':
-                from pylot.perception.tracking.da_siam_rpn_tracker import MultiObjectDaSiamRPNTracker
+                from pylot.perception.tracking.da_siam_rpn_tracker import\
+                    MultiObjectDaSiamRPNTracker
                 self._tracker = MultiObjectDaSiamRPNTracker(self._flags)
             elif tracker_type == 'deep_sort':
-                from pylot.perception.tracking.deep_sort_tracker import MultiObjectDeepSORTTracker
+                from pylot.perception.tracking.deep_sort_tracker import\
+                    MultiObjectDeepSORTTracker
                 self._tracker = MultiObjectDeepSORTTracker(self._flags,
                                                            self._logger)
             elif tracker_type == 'sort':
-                from pylot.perception.tracking.sort_tracker import MultiObjectSORTTracker
+                from pylot.perception.tracking.sort_tracker import\
+                    MultiObjectSORTTracker
                 self._tracker = MultiObjectSORTTracker(self._flags)
             else:
                 self._logger.fatal(

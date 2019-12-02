@@ -6,7 +6,7 @@ import PIL.Image as Image
 import pylot.utils
 
 
-class RGBCameraLoggerOp(erdust.Operator):
+class RGBCameraLoggerOperator(erdust.Operator):
     """ Logs RGB camera frames."""
 
     def __init__(self, bgr_camera_stream, name, flags, filename_prefix):

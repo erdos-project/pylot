@@ -3,14 +3,6 @@ import math
 import numpy as np
 import time
 
-CENTER_CAMERA_NAME = 'front_rgb_camera'
-LEFT_CAMERA_NAME = 'front_left_rgb_camera'
-RIGHT_CAMERA_NAME = 'front_right_rgb_camera'
-DEPTH_CAMERA_NAME = 'front_depth_camera'
-FRONT_SEGMENTED_CAMERA_NAME = 'front_semantic_camera'
-TOP_DOWN_SEGMENTED_CAMERA_NAME = 'top_down_semantic_camera'
-TOP_DOWN_CAMERA_NAME = 'top_down_rgb_camera'
-
 
 def add_timestamp(timestamp, image_np):
     txt_font = cv2.FONT_HERSHEY_SIMPLEX

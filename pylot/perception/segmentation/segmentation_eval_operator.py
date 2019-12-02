@@ -1,8 +1,7 @@
 import erdust
 import heapq
 
-from pylot.perception.segmentation.utils import compute_semantic_iou,\
-    transform_to_cityscapes_palette
+from pylot.perception.segmentation.utils import compute_semantic_iou
 from pylot.utils import time_epoch_ms
 
 
@@ -73,8 +72,7 @@ class SegmentationEvalOperator(erdust.Operator):
     def on_ground_segmented_frame(self, msg):
         # Buffer the ground truth frames.
         game_time = msg.timestamp.coordinates[0]
-        self._ground_frames.append(
-            (game_time, transform_to_cityscapes_palette(msg.frame)))
+        self._ground_frames.append((game_time, msg.frame))
 
     def on_segmented_frame(self, msg):
         game_time = msg.timestamp.coordinates[0]

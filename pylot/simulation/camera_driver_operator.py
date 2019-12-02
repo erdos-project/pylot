@@ -3,6 +3,7 @@ import threading
 import time
 
 from pylot.perception.messages import SegmentedFrameMessage
+from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
 import pylot.utils
 from pylot.simulation.carla_utils import get_world, set_synchronous_mode
 from pylot.simulation.utils import depth_to_array, labels_to_array,\
@@ -83,7 +84,8 @@ class CameraDriverOperator(erdust.Operator):
                     carla_image.fov,
                     timestamp)
             elif self._camera_setup.camera_type == 'sensor.camera.semantic_segmentation':
-                frame = labels_to_array(carla_image)
+                frame = transform_to_cityscapes_palette(
+                    labels_to_array(carla_image))
                 msg = SegmentedFrameMessage(frame, 0, timestamp)
                 # Send the message containing the frame.
             self._camera_stream.send(msg)

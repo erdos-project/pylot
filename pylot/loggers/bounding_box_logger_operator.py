@@ -3,7 +3,7 @@ import json
 import os
 
 
-class BoundingBoxLoggerOp(erdust.Operator):
+class BoundingBoxLoggerOperator(erdust.Operator):
     """ Logs bounding boxes of DetectedObjects received on a stream."""
 
     def __init__(self, obstacles_stream, name, flags):

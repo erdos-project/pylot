@@ -5,7 +5,7 @@ from pylot.prediction.messages import ObjPrediction, PredictionMessage
 from pylot.simulation.utils import Location
 
 
-class LinearPredictorOp(erdust.Operator):
+class LinearPredictorOperator(erdust.Operator):
     """Operator that takes in past (x,y) locations of agents, and fits a linear
     model to these locations.
     """

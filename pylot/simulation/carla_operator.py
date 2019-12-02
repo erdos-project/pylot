@@ -35,7 +35,6 @@ class CarlaOperator(erdust.Operator):
                  ground_stop_signs_stream,
                  vehicle_id_stream,
                  name,
-                 auto_pilot,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
@@ -43,7 +42,6 @@ class CarlaOperator(erdust.Operator):
 
         Args:
             name: The unique name of the operator.
-            auto_pilot: True to enable auto_pilot for ego vehicle.
             flags: A handle to the global flags instance to retrieve the
                 configuration.
             log_file_name: The file to log the required information to.
@@ -64,7 +62,6 @@ class CarlaOperator(erdust.Operator):
         self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._csv_logger = erdust.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
-        self._auto_pilot = auto_pilot
         # Connect to CARLA and retrieve the world running.
         self._client, self._world = get_world(self._flags.carla_host,
                                               self._flags.carla_port,
@@ -140,7 +137,7 @@ class CarlaOperator(erdust.Operator):
         # If auto pilot is enabled for the ego vehicle we do not apply the
         # control, but we still want to tick in this method to ensure that
         # all operators finished work before the world ticks.
-        if not self._auto_pilot:
+        if not self._flags.carla_auto_pilot:
             # Transform the message to a carla control cmd.
             vec_control = carla.VehicleControl(
                 throttle=msg.throttle,
@@ -322,8 +319,8 @@ class CarlaOperator(erdust.Operator):
 
             driving_vehicle = self._world.try_spawn_actor(v_blueprint,
                                                           start_pose)
-        if self._auto_pilot:
-            driving_vehicle.set_autopilot(self._auto_pilot)
+        if self._flags.carla_auto_pilot:
+            driving_vehicle.set_autopilot(self._flags.carla_auto_pilot)
         return driving_vehicle
 
     def publish_world_data(self, msg):

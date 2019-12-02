@@ -3,7 +3,7 @@ import json
 import os
 
 
-class TrajectoryLoggerOp(erdust.Operator):
+class TrajectoryLoggerOperator(erdust.Operator):
     """ Logs tracked obstacle trajectories."""
 
     def __init__(self, obstacle_tracking_stream, name, flags):
