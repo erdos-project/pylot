@@ -4,7 +4,7 @@ import cv2
 from pylot.utils import add_timestamp
 
 
-class VideoOperator(erdust.Operator):
+class CameraVisualizerOperator(erdust.Operator):
     """ Subscribes to camera streams, and visualizes frames."""
 
     def __init__(self, camera_stream, name):
@@ -16,7 +16,6 @@ class VideoOperator(erdust.Operator):
         return []
 
     def display_frame(self, msg):
-        assert msg.encoding == 'BGR', 'Expects BGR frames'
         add_timestamp(msg.timestamp, msg.frame)
         cv2.imshow(self.name, msg.frame)
         cv2.waitKey(1)

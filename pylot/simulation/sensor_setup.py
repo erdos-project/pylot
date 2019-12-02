@@ -178,6 +178,9 @@ class LidarSetup(object):
         self.lower_fov = lower_fov
         self.points_per_second = points_per_second
 
+    def get_name(self):
+        return self.name
+
     def get_transform(self):
         return self.transform
 

@@ -52,6 +52,7 @@ class SegmentedFrameMessage(erdust.Message):
         self.frame = frame
         self.width = frame.shape[1]
         self.height = frame.shape[0]
+        self.encoding = 'cityscapes'
         self.runtime = runtime
 
     def __str__(self):
