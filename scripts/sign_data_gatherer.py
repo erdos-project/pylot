@@ -344,7 +344,7 @@ def log_traffic_lights(world):
         len(transforms_of_interest)))
 
     traffic_lights = [
-        convert_traffic_light_actor(light) for light in traffic_lights
+        TrafficLight(light) for light in traffic_lights
     ]
     for weather in find_weather_presets():
         change_weather(world, weather)
