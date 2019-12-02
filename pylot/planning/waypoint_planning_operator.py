@@ -1,4 +1,6 @@
 import carla
+import collections
+import itertools
 import pylot.utils
 
 from erdos.op import Op
@@ -8,6 +10,8 @@ from pylot.map.hd_map import HDMap
 from pylot.planning.messages import WaypointsMessage
 from pylot.simulation.carla_utils import get_map, to_carla_location
 from pylot.planning.utils import get_waypoint_vector_and_angle
+
+DEFAULT_NUM_WAYPOINTS = 50
 
 
 class WaypointPlanningOperator(Op):
@@ -59,6 +63,8 @@ class WaypointPlanningOperator(Op):
             next_waypoint, self._vehicle_transform)
         wp_speed_vector, wp_speed_angle = get_waypoint_vector_and_angle(
             next_waypoint, self._vehicle_transform)
+
+        waypoints = collections.deque(itertools.islice(self._waypoints, 0, DEFAULT_NUM_WAYPOINTS))  # only take 50 meters
 
         output_msg = WaypointsMessage(
             msg.timestamp,

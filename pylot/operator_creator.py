@@ -219,6 +219,7 @@ def create_control_op(graph):
         })
     return control_op
 
+
 def create_linear_predictor_op(graph, output_stream_name):
     from pylot.prediction.linear_predictor_operator import LinearPredictorOp
     linear_predictor_op = graph.add(
@@ -232,6 +233,7 @@ def create_linear_predictor_op(graph, output_stream_name):
         setup_args={'output_stream_name': output_stream_name})
     return linear_predictor_op
 
+
 def create_waypoint_visualizer_op(graph):
     from pylot.debug.waypoint_visualize_operator import WaypointVisualizerOperator
     waypoint_viz_op = graph.add(
@@ -242,6 +244,30 @@ def create_waypoint_visualizer_op(graph):
             'log_file_name': FLAGS.log_file_name
         })
     return waypoint_viz_op
+
+
+def create_planning_visualizer_op(graph):
+    from pylot.debug.planning_visualize_operator import PlanningVisualizeOperator
+    planning_viz_op = graph.add(
+        PlanningVisualizeOperator,
+        name='planning_viz',
+        init_args={
+            'flags': FLAGS,
+            'log_file_name': FLAGS.log_file_name
+        })
+    return planning_viz_op
+
+
+def create_can_bus_visualizer(graph):
+    from pylot.debug.can_bus_visualize_operator import CanBusVisualizeOperator
+    can_bus_viz_op = graph.add(
+        CanBusVisualizeOperator,
+        name='can_bus_viz',
+        init_args={
+            'flags': FLAGS,
+            'log_file_name': FLAGS.log_file_name
+        })
+    return can_bus_viz_op
 
 
 def create_pylot_agent_op(graph, bgr_camera_setup):
@@ -268,6 +294,7 @@ def create_mpc_agent_op(graph):
             'csv_file_name': FLAGS.csv_log_file_name
         })
     return agent_op
+
 
 def create_ground_agent_op(graph):
     agent_op = graph.add(

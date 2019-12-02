@@ -1,9 +1,35 @@
+"""
+Author: Edward Fang
+Email: edward.fang@berkeley.edu
+This code is adapted from: https://github.com/dixantmittal/fast-rrt-star
+"""
 import networkx as nx
 from pylot.planning.rrt_star.utils import *
 
 
-def apply_rrt_star(state_space, starting_state, target_space, obstacle_map, n_samples=5000, granularity=0.1,
+def apply_rrt_star(state_space, starting_state, target_space, obstacle_map, n_samples=500, granularity=0.5,
                    d_threshold=0.5):
+    """
+    Run RRT* algorithm, described here: http://roboticsproceedings.org/rss06/p34.pdf.
+
+    :param state_space: tuple
+        state space bounding box in form (origin_x, origin_y), (range_x, range_y)
+    :param starting_state: tuple
+        starting state in form (x, y)
+    :param target_space: tuple
+        target space bounding box in form (origin_x, origin_y), (range_x, range_y)
+    :param obstacle_map: dict
+        dict mapping obstacle ID to (origin_x, origin_y), (range_x, range_y)
+    :param n_samples: int
+        number of RRT* samples to run
+    :param granularity: float
+        granularity of the incremental collision checking technique
+    :param d_threshold: float
+        distance that new points should be sampled from relative to existing node
+    :return: np.ndarray, float
+        return the path in form [[x0, y0],...] and final cost
+        if solution not found, returns the path to the closest point to the target space and final cost is none
+    """
     tree = nx.DiGraph()
     tree.add_node(starting_state)
 
@@ -85,7 +111,7 @@ def apply_rrt_star(state_space, starting_state, target_space, obstacle_map, n_sa
                     tree.add_weighted_edges_from([(m_new, m_g, d)])
                     cost[m_g] = c
 
-        # if target is reached, return the tree and final state
+        # if target is reached, update tree and final state
         if lies_in_area(m_new, target_space):
             cost = nx.single_source_dijkstra_path_length(tree, starting_state)
             if final_state is None:
@@ -99,10 +125,12 @@ def apply_rrt_star(state_space, starting_state, target_space, obstacle_map, n_sa
             closest_state = m_new
             min_dist = cur_dist
 
-
     if final_state is None:
         final_state = closest_state
         final_cost = None
     else:
         final_cost = cost[final_state]
-    return tree, final_state, final_cost
+
+    path = nx.shortest_path(tree, starting_state, final_state)
+    path = np.array([[p[0], p[1]] for p in path])
+    return path, final_cost

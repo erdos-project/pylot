@@ -4,6 +4,17 @@ import carla
 import pylot.simulation.utils
 
 
+def to_carla_location(location):
+    """ Converts a Pylot location to Carla location.
+    Args:
+        location: Location to convert.
+    Returns:
+        Carla location object.
+    """
+    return carla.Location(
+        location.x, location.y, location.z)
+
+
 def get_world(host="localhost", port=2000, timeout=10):
     """ Get a handle to the world running inside the simulation.
 
