@@ -6,7 +6,7 @@ from pylot.perception.detection.utils import get_pedestrian_mAP,\
 from pylot.utils import time_epoch_ms
 
 
-class ObstacleAccuracyOperator(erdust.Operator):
+class DetectionEvalOperator(erdust.Operator):
 
     def __init__(self,
                  obstacles_stream,

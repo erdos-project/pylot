@@ -11,17 +11,17 @@ class LinearPredictorOperator(erdust.Operator):
     """
 
     def __init__(self,
-                 ground_tracking_stream,
+                 tracking_stream,
                  linear_prediction_stream,
                  name,
                  flags):
         """Initializes the LinearPredictor Operator."""
-        ground_tracking_stream.add_callback(
+        tracking_stream.add_callback(
             self.generate_predicted_trajectories, [linear_prediction_stream])
         self._flags = flags
 
     @staticmethod
-    def connect(ground_tracking_stream):
+    def connect(tracking_stream):
         linear_prediction_stream = erdust.WriteStream()
         return [linear_prediction_stream]
 

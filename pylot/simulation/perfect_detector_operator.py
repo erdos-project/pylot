@@ -36,8 +36,7 @@ class PerfectDetectorOperator(erdust.Operator):
                  name,
                  bgr_camera_setup,
                  flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+                 log_file_name=None):
         """ Initializes the operator.
 
         Args:
@@ -70,8 +69,6 @@ class PerfectDetectorOperator(erdust.Operator):
 
         self._name = name
         self._logger = erdust.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.setup_csv_logging(
-            name + '-csv', csv_file_name)
         self._flags = flags
         _, world = get_world(self._flags.carla_host,
                              self._flags.carla_port,

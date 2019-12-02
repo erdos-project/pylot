@@ -16,10 +16,7 @@ class PerfectTrackerOperator(erdust.Operator):
                  can_bus_stream,
                  ground_tracking_stream,
                  name,
-                 output_stream_name,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+                 flags):
         """Initializes the PerfectTracker Operator. """
         ground_vehicles_stream.add_callback(self.on_vehicles_update)
         ground_pedestrians_stream.add_callback(self.on_pedestrians_update)
@@ -30,11 +27,7 @@ class PerfectTrackerOperator(erdust.Operator):
                                       [ground_tracking_stream],
                                       self.on_watermark)
         self._name = name
-        self._logger = erdust.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.setup_csv_logging(
-            name + '-csv', csv_file_name)
         self._flags = flags
-        self._output_stream_name = output_stream_name
 
         # Queues of incoming data.
         self._vehicles_raw_msgs = deque()

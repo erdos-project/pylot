@@ -1,676 +1,556 @@
 from absl import flags
+import erdust
 
-
-# import Control operators.
-from pylot.control.pylot_agent_operator import PylotAgentOperator
-from pylot.control.ground_agent_operator import GroundAgentOperator
-# Import debug operators.
-from pylot.debug.depth_camera_visualizer import DepthCameraVisualizer
-from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
-from pylot.debug.segmented_video_operator import SegmentedVideoOperator
-from pylot.debug.segmented_top_down_video_operator import SegmentedTopDownVideoOperator
-from pylot.debug.track_visualize_operator import TrackVisualizerOperator
-from pylot.debug.video_operator import VideoOperator
-# Import logging operators.
-from pylot.loggers.bounding_box_logger_operator import BoundingBoxLoggerOp
-from pylot.loggers.camera_logger_operator import CameraLoggerOp
-from pylot.loggers.chauffeur_logger_operator import ChauffeurLoggerOp
-from pylot.loggers.multiple_object_tracker_logger_operator import MultipleObjectTrackerLoggerOp
-from pylot.loggers.lidar_logger_operator import LidarLoggerOp
-from pylot.loggers.trajectory_logger_operator import TrajectoryLoggerOp
-# Import perception operators.
+# Simulation operators.
+from pylot.simulation.camera_driver_operator import CameraDriverOperator
+from pylot.simulation.carla_operator import CarlaOperator
+from pylot.simulation.lidar_driver_operator import LidarDriverOperator
+# Perception operators.
 from pylot.perception.detection.detection_operator import DetectionOperator
-from pylot.perception.detection.detection_eval_ground_operator import DetectionEvalGroundOperator
-from pylot.perception.detection.lane_detection_operator import LaneDetectionOperator
-from pylot.perception.detection.obstacle_accuracy_operator import ObstacleAccuracyOperator
-from pylot.perception.detection.traffic_light_det_operator import TrafficLightDetOperator
+from pylot.perception.detection.detection_eval_operator import \
+    DetectionEvalOperator
+from pylot.perception.detection.detection_eval_ground_operator import \
+    DetectionEvalGroundOperator
+from pylot.perception.detection.lane_detection_operator import \
+    LaneDetectionOperator
+from pylot.perception.detection.traffic_light_det_operator import \
+    TrafficLightDetOperator
+from pylot.perception.tracking.object_tracker_operator import \
+    ObjectTrackerOperator
 from pylot.perception.fusion.fusion_operator import FusionOperator
-from pylot.perception.fusion.fusion_verification_operator import FusionVerificationOperator
-from pylot.perception.segmentation.segmentation_eval_operator import SegmentationEvalOperator
-from pylot.perception.segmentation.segmentation_eval_ground_operator import SegmentationEvalGroundOperator
-from pylot.perception.tracking.object_tracker_operator import ObjectTrackerOp
+from pylot.perception.fusion.fusion_verification_operator import \
+    FusionVerificationOperator
+from pylot.perception.segmentation.segmentation_eval_operator import \
+    SegmentationEvalOperator
+from pylot.perception.segmentation.segmentation_eval_ground_operator import \
+    SegmentationEvalGroundOperator
+# Planning operators.
+from pylot.planning.planning_operator import PlanningOperator
+from pylot.planning.waypoint_planning_operator import WaypointPlanningOperator
+# Prediction operators.
+from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
+# Control operators.
+from pylot.control.ground_agent_operator import GroundAgentOperator
+from pylot.control.mpc.mpc_agent_operator import MPCAgentOperator
+from pylot.control.pid_control_operator import PIDControlOperator
+from pylot.control.pylot_agent_operator import PylotAgentOperator
+# Logging operators.
+from pylot.loggers.bounding_box_logger_operator import \
+    BoundingBoxLoggerOperator
+from pylot.loggers.camera_logger_operator import CameraLoggerOperator
+from pylot.loggers.chauffeur_logger_operator import ChauffeurLoggerOperator
+from pylot.loggers.depth_camera_logger_operator import \
+    DepthCameraLoggerOperator
+from pylot.loggers.lidar_logger_operator import LidarLoggerOperator
+from pylot.loggers.multiple_object_tracker_logger_operator import \
+    MultipleObjectTrackerLoggerOperator
+from pylot.loggers.trajectory_logger_operator import TrajectoryLoggerOperator
+# Visualizing operators.
+from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
+from pylot.debug.track_visualizer_operator import TrackVisualizerOperator
+from pylot.debug.camera_visualizer_operator import CameraVisualizerOperator
+from pylot.debug.waypoint_visualizer_operator import WaypointVisualizerOperator
+# Perfect versions of operators.
+from pylot.simulation.perfect_detector_operator import PerfectDetectorOperator
+from pylot.simulation.perfect_lane_detector_operator import \
+    PerfectLaneDetectionOperator
+from pylot.simulation.perfect_tracker_operator import PerfectTrackerOperator
 
 FLAGS = flags.FLAGS
 
 
-def create_carla_op(graph, auto_pilot):
-    from pylot.simulation.carla_operator import CarlaOperator
-    carla_op = graph.add(
-        CarlaOperator,
-        name='carla',
-        init_args={
-            'auto_pilot': auto_pilot,
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name,
-            'csv_file_name': FLAGS.csv_log_file_name
-        })
-    return carla_op
+def add_carla_bridge():
+    return erdust.connect(
+         CarlaOperator,
+         [],
+         'carla_operator',
+         FLAGS,
+         log_file_name=FLAGS.log_file_name,
+         csv_file_name=FLAGS.csv_log_file_name)
 
 
-def create_carla_replay_op(graph):
-    from pylot.simulation.carla_replay_operator import CarlaReplayOperator
-    carla_replay_op = graph.add(
-        CarlaReplayOperator,
-        name='carla_replay',
-        init_args={
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name,
-            'csv_file_name': FLAGS.csv_log_file_name
-
-        })
-    return carla_replay_op
-
-
-def create_camera_driver_op(graph, camera_setup):
-    from pylot.simulation.camera_driver_operator import CameraDriverOperator
-    camera_op = graph.add(
-        CameraDriverOperator,
-        name=camera_setup.name,
-        init_args={
-            'camera_setup': camera_setup,
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name
-        },
-        setup_args={'camera_setup': camera_setup})
-    return camera_op
-
-
-def create_driver_ops(graph, camera_setups, lidar_setups, auto_pilot=False):
-    camera_ops = []
-    lidar_ops = []
-    if FLAGS.carla_replay_file == '':
-        carla_op = create_carla_op(graph, auto_pilot)
-    else:
-        carla_op = create_carla_replay_op(graph)
-    camera_ops = [create_camera_driver_op(graph, cs)
-                      for cs in camera_setups]
-    lidar_ops = [create_lidar_driver_op(graph, ls)
-                     for ls in lidar_setups]
-    graph.connect([carla_op], camera_ops + lidar_ops)
-    return (carla_op, camera_ops, lidar_ops)
+def add_obstacle_detection(camera_stream):
+    obstacles_streams = []
+    if FLAGS.detector_ssd_mobilenet_v1:
+        obstacles_streams.append(erdust.connect(
+            DetectionOperator,
+            [camera_stream],
+            'detector_ssd_mobilenet_v1',
+            FLAGS.detector_ssd_mobilenet_v1_model_path,
+            FLAGS,
+            log_file_name=FLAGS.log_file_name,
+            csv_file_name=FLAGS.csv_log_file_name))
+    if FLAGS.detector_frcnn_resnet101:
+        obstacles_streams.append(erdust.connect(
+            DetectionOperator,
+            [camera_stream],
+            'detector_faster_rcnn_resnet101',
+            FLAGS.detector_frcnn_resnet101_model_path,
+            FLAGS,
+            log_file_name=FLAGS.log_file_name,
+            csv_file_name=FLAGS.csv_log_file_name))
+    if FLAGS.detector_ssd_resnet50_v1:
+        obstacles_streams.append(erdust.connect(
+            DetectionOperator,
+            [camera_stream],
+            'detector_ssd_resnet50_v1',
+            FLAGS.detector_ssd_resnet50_v1_model_path,
+            FLAGS,
+            log_file_name=FLAGS.log_file_name,
+            csv_file_name=FLAGS.csv_log_file_name))
+    return obstacles_streams
 
 
-def create_camera_logger_op(graph):
-    camera_logger_op = graph.add(
-        CameraLoggerOp,
-        name='camera_logger_op',
-        init_args={'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name,
-                   'csv_file_name': FLAGS.csv_log_file_name})
-    return camera_logger_op
+def add_detection_decay(ground_obstacles_stream):
+    erdust.connect(DetectionEvalGroundOperator,
+                   [ground_obstacles_stream],
+                   'detection_decay_operator',
+                   FLAGS,
+                   log_file_name=FLAGS.log_file_name,
+                   csv_file_name=FLAGS.csv_log_file_name)
 
 
-def create_chauffeur_logger_op(graph, top_down_camera_setup, top_down_stream_name):
-    chauffeur_logger_op = graph.add(
-        ChauffeurLoggerOp,
-        name='chauffeur_logger_op',
-        init_args={'flags': FLAGS,
-                   'top_down_camera_setup': top_down_camera_setup,
-                   'log_file_name': FLAGS.log_file_name},
-        setup_args={'top_down_stream_name': top_down_stream_name})
-
-    return chauffeur_logger_op
-
-
-def create_bounding_box_logger_op(graph):
-    bbox_logger_op = graph.add(
-        BoundingBoxLoggerOp,
-        name='bounding_box_logger',
-        init_args={'flags': FLAGS})
-    return bbox_logger_op
+def add_detection_evaluation(obstacles_stream,
+                             ground_obstacles_stream,
+                             name='detection_eval_operator'):
+    erdust.connect(DetectionEvalOperator,
+                   [obstacles_stream, ground_obstacles_stream],
+                   name,
+                   FLAGS,
+                   log_file_name=FLAGS.log_file_name,
+                   csv_file_name=FLAGS.csv_log_file_name)
 
 
-def create_multiple_object_tracker_logger_op(graph):
-    multiple_object_tracker_logger_op = graph.add(
-        MultipleObjectTrackerLoggerOp,
-        name='multiple_object_tracker_logger',
-        init_args={'flags': FLAGS})
-    return multiple_object_tracker_logger_op
+def add_traffic_light_detector(traffic_light_camera_stream):
+    traffic_lights_stream = erdust.connect(TrafficLightDetOperator,
+                                           [traffic_light_camera_stream],
+                                           'traffic_light_detector_operator',
+                                           FLAGS,
+                                           FLAGS.log_file_name,
+                                           FLAGS.csv_log_file_name)
+    return traffic_lights_stream
 
 
-def create_lidar_driver_op(graph, lidar_setup):
-    from pylot.simulation.lidar_driver_operator import LidarDriverOperator
-    lidar_op = graph.add(
-        LidarDriverOperator,
-        name=lidar_setup.name,
-        init_args={
-            'lidar_setup': lidar_setup,
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name
-        },
-        setup_args={'lidar_setup': lidar_setup})
-    return lidar_op
+def add_lane_detection(bgr_camera_stream, name='lane_detection'):
+    lane_detection_stream = erdust.connect(
+        LaneDetectionOperator,
+        [bgr_camera_stream],
+        name,
+        FLAGS,
+        log_file_name=FLAGS.log_file_name,
+        csv_file_name=FLAGS.csv_log_file_name)
+    return lane_detection_stream
 
 
-def create_lidar_logger_op(graph):
-    lidar_logger_op = graph.add(
-        LidarLoggerOp,
-        name='lidar_logger_op',
-        init_args={'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name,
-                   'csv_file_name': FLAGS.csv_log_file_name})
-    return lidar_logger_op
+def add_obstacle_tracking(obstacles_stream,
+                          bgr_camera_stream,
+                          name_prefix='tracker_'):
+    obstacle_tracking_stream = erdust.connect(
+        ObjectTrackerOperator,
+        [obstacles_stream, bgr_camera_stream],
+        name_prefix + FLAGS.tracker_type,
+        FLAGS.tracker_type,
+        FLAGS,
+        log_file_name=FLAGS.log_file_name,
+        csv_file_name=FLAGS.csv_log_file_name)
+    return obstacle_tracking_stream
 
 
-def create_trajectory_logger_op(graph):
-    trajectory_logger_op = graph.add(
-        TrajectoryLoggerOp,
-        name='trajectory_logger_op',
-        init_args={'flags': FLAGS})
-    return trajectory_logger_op
-
-
-def create_planning_op(graph, goal_location):
-    from pylot.planning.planning_operator import PlanningOperator
-    planning_op = graph.add(
-        PlanningOperator,
-        name='planning',
-        init_args={
-            'goal_location': goal_location,
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name,
-            'csv_file_name': FLAGS.csv_log_file_name
-        })
-    return planning_op
-
-
-def create_waypoint_planning_op(graph, goal_location):
-    from pylot.planning.waypoint_planning_operator import WaypointPlanningOperator
-    planning_op = graph.add(
-        WaypointPlanningOperator,
-        name='planning',
-        init_args={
-            'goal_location': goal_location,
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name,
-            'csv_file_name': FLAGS.csv_log_file_name
-        })
-    return planning_op
-
-
-def create_control_op(graph):
-    from pylot.control.pid_control_operator import PIDControlOperator
-    control_op = graph.add(
-        PIDControlOperator,
-        name='controller',
-        init_args={
-            'longitudinal_control_args': {
-                'K_P': FLAGS.pid_p,
-                'K_I': FLAGS.pid_i,
-                'K_D': FLAGS.pid_d,
-            },
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name,
-            'csv_file_name': FLAGS.csv_log_file_name
-        })
-    return control_op
-
-def create_linear_predictor_op(graph, output_stream_name):
-    from pylot.prediction.linear_predictor_operator import LinearPredictorOp
-    linear_predictor_op = graph.add(
-        LinearPredictorOp,
-        name='linear_predictor',
-        init_args={
-            'output_stream_name': output_stream_name,
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name,
-            'csv_file_name': FLAGS.csv_log_file_name},
-        setup_args={'output_stream_name': output_stream_name})
-    return linear_predictor_op
-
-def create_waypoint_visualizer_op(graph):
-    from pylot.debug.waypoint_visualize_operator import WaypointVisualizerOperator
-    waypoint_viz_op = graph.add(
-        WaypointVisualizerOperator,
-        name='waypoint_viz',
-        init_args={
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name
-        })
-    return waypoint_viz_op
-
-
-def create_pylot_agent_op(graph, bgr_camera_setup):
-    agent_op = graph.add(
-        PylotAgentOperator,
-        name='pylot_agent',
-        init_args={
-            'flags': FLAGS,
-            'bgr_camera_setup': bgr_camera_setup,
-            'log_file_name': FLAGS.log_file_name,
-            'csv_file_name': FLAGS.csv_log_file_name
-        })
-    return agent_op
-
-
-def create_mpc_agent_op(graph):
-    from pylot.control.mpc.mpc_agent_operator import MPCAgentOperator
-    agent_op = graph.add(
-        MPCAgentOperator,
-        name='mpc_agent',
-        init_args={
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name,
-            'csv_file_name': FLAGS.csv_log_file_name
-        })
-    return agent_op
-
-def create_ground_agent_op(graph):
-    agent_op = graph.add(
-        GroundAgentOperator,
-        name='ground_agent',
-        init_args={
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name,
-            'csv_file_name': FLAGS.csv_log_file_name
-        })
-    return agent_op
-
-
-def create_lidar_visualizer_op(graph):
-    lidar_visualizer_op = graph.add(
-        LidarVisualizerOperator,
-        name='lidar_visualizer',
-        init_args={'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name})
-    return lidar_visualizer_op
-
-
-def create_lidar_record_op(graph):
-    record_lidar_op = graph.add(
-        RecordOp,
-        name='record_lidar',
-        init_args={'filename': 'pylot_lidar_data.erdos'},
-        setup_args={'filter': 'lidar'})
-    return record_lidar_op
-
-
-def create_camera_video_op(graph, name, filter_name):
-    video_op = graph.add(
-        VideoOperator,
-        name=name,
-        init_args={'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name},
-        setup_args={'filter_name': filter_name})
-    return video_op
-
-
-def create_depth_camera_visualizer_op(graph, name, filter_name):
-    depth_visualizer_op = graph.add(
-        DepthCameraVisualizer,
-        name=name,
-        init_args={'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name},
-        setup_args={'filter_name': filter_name})
-    return depth_visualizer_op
-
-
-def create_segmented_video_op(graph, front_stream_name):
-    segmented_video_op = graph.add(
-        SegmentedVideoOperator,
-        name='front_segmented_video',
-        init_args={'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name},
-        setup_args={'front_stream_name': front_stream_name})
-    return segmented_video_op
-
-
-def create_top_down_segmented_video_op(graph, top_down_stream_name):
-    top_down_segmented_video_op = graph.add(
-        SegmentedTopDownVideoOperator,
-        name='top_down_segmented_video',
-        init_args={'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name},
-        setup_args={'top_down_stream_name': top_down_stream_name})
-    return top_down_segmented_video_op
-
-
-def create_top_down_tracking_video_op(
-        graph, top_down_camera_setup, top_down_stream_name):
-    top_down_tracking_video_op = graph.add(
-        TrackVisualizerOperator,
-        name='top_down_tracking_video',
-        init_args={'flags': FLAGS,
-                   'top_down_camera_setup': top_down_camera_setup,
-                   'log_file_name': FLAGS.log_file_name},
-        setup_args={'top_down_stream_name': top_down_stream_name})
-    return top_down_tracking_video_op
-
-
-def create_record_op(graph, name, filename, filter_name):
-    record_op = graph.add(
-        RecordOp,
-        name=name,
-        init_args={'filename': filename},
-        setup_args={'filter_name': filter_name})
-    return record_op
-
-
-def create_record_carla_op(graph):
-    input_names = [
-        'can_bus', 'traffic_lights', 'pedestrians', 'vehicles', 'traffic_signs'
-    ]
-    record_carla_op = graph.add(
-        RecordOp,
-        name='record_carla',
-        init_args={'filename': 'pylot_carla_data.erdos'},
-        setup_args={'filter': input_names})
-    return record_carla_op
-
-
-def create_perfect_detector_op(graph, bgr_camera_setup, output_stream_name):
-    from pylot.simulation.perfect_detector_operator import PerfectDetectorOp
-    perfect_det_op = graph.add(
-        PerfectDetectorOp,
-        name='perfect_detector',
-        init_args={'bgr_camera_setup': bgr_camera_setup,
-                   'output_stream_name': output_stream_name,
-                   'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name,
-                   'csv_file_name': FLAGS.csv_log_file_name},
-        setup_args={'output_stream_name': output_stream_name})
-    return perfect_det_op
-
-
-def create_perfect_lane_detector_op(graph, output_stream_name):
-    from pylot.simulation import perfect_lane_detector_operator
-    perfect_lane_detector_op = graph.add(
-        perfect_lane_detector_operator.PerfectLaneDetectionOperator,
-        name='perfect_lane_detection_op',
-        init_args={
-            'output_stream_name': output_stream_name,
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name,
-            'csv_file_name': FLAGS.csv_log_file_name
-        },
-        setup_args={'output_stream_name': output_stream_name})
-    return perfect_lane_detector_op
-
-
-def create_detector_op_helper(graph, name, model_path, gpu_memory_fraction):
-    obj_detector_op = graph.add(
-        DetectionOperator,
-        name=name,
-        setup_args={'output_stream_name': 'obj_stream'},
-        init_args={'output_stream_name': 'obj_stream',
-                   'model_path': model_path,
-                   'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name,
-                   'csv_file_name': FLAGS.csv_log_file_name},
-        _resources = {"GPU": gpu_memory_fraction})
-    return obj_detector_op
-
-
-def create_perfect_tracking_op(graph, output_stream_name):
-    from pylot.simulation.perfect_tracker_operator import PerfectTrackerOp
-    perfect_tracker_op = graph.add(
-        PerfectTrackerOp,
-        name='perfect_tracker',
-        init_args={'output_stream_name': output_stream_name,
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name,
-            'csv_file_name': FLAGS.csv_log_file_name
-        },
-        setup_args={'output_stream_name': output_stream_name})
-    return perfect_tracker_op
-
-
-def create_depth_estimation_op(graph, center_transform,
-                               left_camera_name, right_camera_name):
+def add_depth_estimation(left_camera_stream,
+                         right_camera_stream,
+                         center_camera_setup,
+                         name='depth_estimation_operator'):
     try:
-        from pylot.perception.depth_estimation.depth_estimation_operator import DepthEstimationOperator
+        from pylot.perception.depth_estimation.depth_estimation_operator\
+            import DepthEstimationOperator
     except ImportError:
         raise Exception("Error importing AnyNet depth estimation.")
 
-    depth_estimation_op = graph.add(
+    depth_estimation_stream = erdust.connect(
         DepthEstimationOperator,
-        name='depth_estimation',
-        init_args={
-            'output_stream_name': 'depth_estimation',
-            'transform': center_transform,
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name
-        },
-        setup_args={
-            'output_stream_name': 'depth_estimation',
-            'left_camera_name': left_camera_name,
-            'right_camera_name': right_camera_name})
-    return depth_estimation_op
+        [left_camera_stream, right_camera_stream],
+        name,
+        center_camera_setup.get_transform(),
+        center_camera_setup.get_fov(),
+        FLAGS,
+        log_file_name=FLAGS.log_file_name,
+        csv_file_name=FLAGS.csv_log_file_name)
+    return depth_estimation_stream
 
 
-def create_detector_ops(graph):
-    detector_ops = []
-    if FLAGS.detector_ssd_mobilenet_v1:
-        detector_ops.append(create_detector_op_helper(
-            graph,
-            'detector_ssd_mobilenet_v1',
-            FLAGS.detector_ssd_mobilenet_v1_model_path,
-            FLAGS.obj_detection_gpu_memory_fraction))
-    if FLAGS.detector_frcnn_resnet101:
-        detector_ops.append(create_detector_op_helper(
-            graph,
-            'detector_faster_rcnn_resnet101',
-            FLAGS.detector_frcnn_resnet101_model_path,
-            FLAGS.obj_detection_gpu_memory_fraction))
-    if FLAGS.detector_ssd_resnet50_v1:
-        detector_ops.append(create_detector_op_helper(
-            graph,
-            'detector_ssd_resnet50_v1',
-            FLAGS.detector_ssd_resnet50_v1_model_path,
-            FLAGS.obj_detection_gpu_memory_fraction))
-    return detector_ops
+def add_segmentation(bgr_camera_stream, name='drn_segmentation_operator'):
+    try:
+        from pylot.perception.segmentation.segmentation_drn_operator import\
+            SegmentationDRNOperator
+    except ImportError:
+        raise Exception("Error importing DRN segmentation.")
+
+    segmented_stream = erdust.connect(SegmentationDRNOperator,
+                                      [bgr_camera_stream],
+                                      name,
+                                      FLAGS,
+                                      log_file_name=FLAGS.log_file_name,
+                                      csv_file_name=FLAGS.csv_log_file_name)
+    return segmented_stream
 
 
-def create_eval_ground_truth_detector_op(graph):
-    ground_truth_op = graph.add(
-        DetectionEvalGroundOperator,
-        name='eval_ground_detection',
-        init_args={
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name,
-            'csv_file_name': FLAGS.csv_log_file_name
-        },
-    )
-    return ground_truth_op
+def add_segmentation_evaluation(
+        ground_segmented_stream,
+        segmented_stream,
+        name='segmentation_evaluation_operator'):
+    erdust.connect(SegmentationEvalOperator,
+                   [ground_segmented_stream, segmented_stream],
+                   name,
+                   FLAGS,
+                   log_file_name=FLAGS.log_file_name,
+                   csv_file_name=FLAGS.csv_file_name)
 
 
-def create_obstacle_accuracy_op(graph, ground_obstacles_stream_name):
-    obstacle_accuracy_op = graph.add(
-        ObstacleAccuracyOperator,
-        name='obstacle_accuracy',
-        setup_args={'ground_obstacles_stream': ground_obstacles_stream_name},
-        init_args={'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name,
-                   'csv_file_name': FLAGS.csv_log_file_name})
-    return obstacle_accuracy_op
+def add_segmentation_decay(ground_segmented_stream,
+                           name='segmentation_decay_operator'):
+    erdust.connect(SegmentationEvalGroundOperator,
+                   [ground_segmented_stream],
+                   name,
+                   FLAGS,
+                   log_file_name=FLAGS.log_file_name,
+                   csv_file_name=FLAGS.csv_file_name)
 
 
-def create_traffic_light_op(graph):
-    traffic_light_det_op = graph.add(
-        TrafficLightDetOperator,
-        name='traffic_light_detector',
-        setup_args={'output_stream_name': 'detected_traffic_lights'},
-        init_args={'output_stream_name': 'detected_traffic_lights',
-                   'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name,
-                   'csv_file_name': FLAGS.csv_log_file_name},
-        _resources = {"GPU": FLAGS.traffic_light_det_gpu_memory_fraction})
-    return traffic_light_det_op
+def add_linear_prediction(tracking_stream):
+    prediction_stream = erdust.connect(LinearPredictorOperator,
+                                       [tracking_stream],
+                                       'linear_prediction_operator',
+                                       FLAGS)
+    return prediction_stream
 
 
-def create_object_tracking_op(graph):
-    tracker_op = None
-    name = 'tracker_' + FLAGS.tracker_type
-    setup_args = {'output_stream_name': 'tracker_stream'}
-    init_args = {'output_stream_name': 'tracker_stream',
-                 'tracker_type': FLAGS.tracker_type,
-                 'flags': FLAGS,
-                 'log_file_name': FLAGS.log_file_name,
-                 'csv_file_name': FLAGS.csv_log_file_name}
-    if FLAGS.tracker_type == 'cv2':
-        # Doesn't require a GPU.
-        tracker_op = graph.add(
-            ObjectTrackerOp,
-            name=name,
-            setup_args=setup_args,
-            init_args=init_args)
-    else:
-        # Other trackers require a GPU.
-        tracker_op = graph.add(
-            ObjectTrackerOp,
-            name=name,
-            setup_args=setup_args,
-            init_args=init_args,
-            _resources = {"GPU": FLAGS.obj_tracking_gpu_memory_fraction})
-    return tracker_op
+def add_planning(can_bus_stream,
+                 open_drive_stream,
+                 global_trajectory_stream,
+                 goal_location,
+                 name='planning_operator'):
+    waypoints_stream = erdust.connect(
+        PlanningOperator,
+        [can_bus_stream, open_drive_stream, global_trajectory_stream],
+        name,
+        FLAGS,
+        goal_location,
+        log_file_name=FLAGS.log_file_name,
+        csv_file_name=FLAGS.csv_file_name)
+    return waypoints_stream
 
 
-def create_segmentation_drn_op(graph):
-    from pylot.perception.segmentation.segmentation_drn_operator import SegmentationDRNOperator
-    segmentation_op = graph.add(
-        SegmentationDRNOperator,
-        name='segmentation_drn',
-        setup_args={'output_stream_name': 'segmented_stream'},
-        init_args={'output_stream_name': 'segmented_stream',
-                   'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name,
-                   'csv_file_name': FLAGS.csv_log_file_name},
-        _resources = {"GPU": FLAGS.segmentation_drn_gpu_memory_fraction})
-    return segmentation_op
+def add_waypoint_planning(can_bus_stream,
+                          goal_location,
+                          name='waypoints_planning_operator'):
+    waypoints_stream = erdust.connect(WaypointPlanningOperator,
+                                      [can_bus_stream],
+                                      name,
+                                      FLAGS,
+                                      goal_location,
+                                      log_file_name=FLAGS.log_file_name)
+    return waypoints_stream
 
 
-def create_segmentation_eval_op(graph, ground_stream_name, segmented_stream_name):
-    segmentation_eval_op = graph.add(
-        SegmentationEvalOperator,
-        name='segmentation_eval',
-        init_args={'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name,
-                   'csv_file_name': FLAGS.csv_log_file_name},
-        setup_args={'ground_stream_name': ground_stream_name,
-                    'segmented_stream_name': segmented_stream_name})
-    return segmentation_eval_op
+def add_camera_driver(vehicle_id_stream, camera_setup):
+    camera_stream = erdust.connect(CameraDriverOperator,
+                                   [vehicle_id_stream],
+                                   camera_setup.get_name() + "_operator",
+                                   camera_setup,
+                                   FLAGS,
+                                   log_file_name=FLAGS.log_file_name)
+
+    return camera_stream
 
 
-def create_lane_detection_op(graph):
-    lane_det_op = graph.add(
-        LaneDetectionOperator,
-        name='lane_detection',
-        init_args={'output_stream_name': 'lane_det',
-                   'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name,
-                   'csv_file_name': FLAGS.csv_log_file_name},
-        setup_args={'output_stream_name': 'lane_det'})
-    return lane_det_op
+def add_lidar_driver(vehicle_id_stream, lidar_setup):
+    point_cloud_stream = erdust.connect(LidarDriverOperator,
+                                        [vehicle_id_stream],
+                                        lidar_setup.get_name() + "_operator",
+                                        lidar_setup,
+                                        FLAGS,
+                                        log_file_name=FLAGS.log_file_name)
+    return point_cloud_stream
 
 
-def create_segmentation_ground_eval_op(graph, ground_stream_name):
-    seg_eval_op = graph.add(
-        SegmentationEvalGroundOperator,
-        name='segmentation_ground_eval',
-        init_args={'flags': FLAGS,
-                   'log_file_name': FLAGS.log_file_name,
-                   'csv_file_name': FLAGS.csv_log_file_name},
-        setup_args={'ground_stream_name': ground_stream_name})
-    return seg_eval_op
-
-
-def create_fusion_ops(graph):
-    fusion_op = graph.add(
+def add_fusion(can_bus_stream,
+               obstacles_stream,
+               depth_stream,
+               ground_vehicles_stream=None):
+    obstacle_pos_stream = erdust.connect(
         FusionOperator,
-        name='fusion',
-        setup_args={'output_stream_name': 'fusion_vehicles'},
-        init_args={'flags': FLAGS,
-                   'output_stream_name': 'fusion_vehicles',
-                   'log_file_name': FLAGS.log_file_name,
-                   'csv_file_name': FLAGS.csv_log_file_name})
-    fusion_verification_op = graph.add(
-        FusionVerificationOperator,
-        name='fusion_verifier',
-        init_args={'log_file_name': FLAGS.log_file_name})
-    return (fusion_op, fusion_verification_op)
+        [can_bus_stream, obstacles_stream, depth_stream],
+        'fusion_operator',
+        FLAGS,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name)
+
+    if ground_vehicles_stream:
+        erdust.connect(FusionVerificationOperator,
+                       [ground_vehicles_stream, obstacle_pos_stream],
+                       'fusion_verification_operator',
+                       log_file_name=FLAGS.log_file_name)
+    return obstacle_pos_stream
 
 
-def add_visualization_operators(graph,
-                                camera_ops,
-                                lidar_ops,
-                                perfect_tracker_ops,
-                                prediction_ops,
-                                rgb_camera_name,
-                                depth_camera_name,
-                                front_segmented_camera_name,
-                                top_down_segmented_camera_name,
-                                top_down_camera_setup):
+def add_pid_control(waypoints_stream, can_bus_stream):
+    longitudinal_control_args = {
+        'K_P': FLAGS.pid_p,
+        'K_I': FLAGS.pid_i,
+        'K_D': FLAGS.pid_d,
+    }
+    control_stream = erdust.connect(PIDControlOperator,
+                                    [waypoints_stream, can_bus_stream],
+                                    'pid_control_operator',
+                                    longitudinal_control_args,
+                                    FLAGS,
+                                    log_file_name=FLAGS.log_file_name,
+                                    csv_file_name=FLAGS.csv_log_file_name)
+    return control_stream
+
+
+def add_ground_agent(can_bus_stream,
+                     ground_pedestrians_stream,
+                     ground_vehicles_stream,
+                     ground_traffic_lights_stream,
+                     ground_speed_limit_signs_stream,
+                     waypoints_stream):
+    control_stream = erdust.connect(GroundAgentOperator,
+                                    [can_bus_stream,
+                                     ground_pedestrians_stream,
+                                     ground_vehicles_stream,
+                                     ground_traffic_lights_stream,
+                                     ground_speed_limit_signs_stream,
+                                     waypoints_stream],
+                                    'ground_agent_operator',
+                                    FLAGS,
+                                    log_file_name=FLAGS.log_file_name,
+                                    csv_file_name=FLAGS.csv_log_file_name)
+    return control_stream
+
+
+def add_mpc_agent(can_bus_stream,
+                  ground_pedestrians_stream,
+                  ground_vehicles_stream,
+                  ground_traffic_lights_stream,
+                  ground_speed_limit_signs_stream,
+                  waypoints_stream):
+    control_stream = erdust.connect(MPCAgentOperator,
+                                    [can_bus_stream,
+                                     ground_pedestrians_stream,
+                                     ground_vehicles_stream,
+                                     ground_traffic_lights_stream,
+                                     ground_speed_limit_signs_stream,
+                                     waypoints_stream],
+                                    'mpc_agent_operator',
+                                    FLAGS,
+                                    log_file_name=FLAGS.log_file_name,
+                                    csv_file_name=FLAGS.csv_log_file_name)
+    return control_stream
+
+
+def add_pylot_agent(can_bus_stream,
+                    waypoints_stream,
+                    traffic_lights_stream,
+                    obstacles_stream,
+                    lidar_stream,
+                    open_drive_stream,
+                    depth_camera_stream,
+                    camera_setup):
+    input_streams = [can_bus_stream, waypoints_stream, traffic_lights_stream,
+                     obstacles_stream, lidar_stream, open_drive_stream,
+                     depth_camera_stream]
+    control_stream = erdust.connect(PylotAgentOperator,
+                                    input_streams,
+                                    'pylot_agent_operator',
+                                    FLAGS,
+                                    camera_setup,
+                                    log_file_name=FLAGS.log_file_name,
+                                    csv_log_file_name=FLAGS.csv_log_file_name)
+    return control_stream
+
+
+def add_bounding_box_logging(obstacles_stream,
+                             name='bounding_box_logger_operator'):
+    erdust.connect(BoundingBoxLoggerOperator, [obstacles_stream], name, FLAGS)
+
+
+def add_camera_logging(stream, name, filename_prefix):
+    erdust.connect(
+        CameraLoggerOperator,
+        [stream],
+        name,
+        FLAGS,
+        filename_prefix)
+
+
+def add_depth_camera_logging(depth_camera_stream,
+                             name='depth_camera_logger_operator',
+                             filename_prefix='carla-depth-'):
+    erdust.connect(
+        DepthCameraLoggerOperator,
+        [depth_camera_stream],
+        name,
+        FLAGS,
+        filename_prefix)
+
+
+def add_chauffeur_logging(
+        vehicle_id_stream,
+        can_bus_stream,
+        obstacle_tracking_stream,
+        top_down_camera_stream,
+        top_down_segmentation_stream,
+        top_down_camera_setup):
+    erdust.connect(
+        ChauffeurLoggerOperator,
+        [vehicle_id_stream,
+         can_bus_stream,
+         obstacle_tracking_stream,
+         top_down_camera_stream,
+         top_down_segmentation_stream],
+        'chauffeur_logger_operator',
+        FLAGS,
+        top_down_camera_setup)
+
+
+def add_lidar_logging(point_cloud_stream, name='lidar_logger_operator'):
+    erdust.connect(LidarLoggerOperator, [point_cloud_stream], name, FLAGS)
+
+
+def add_multiple_object_tracker_logging(
+        obstacles_stream, name='multiple_object_tracker_logger_operator'):
+    erdust.connect(MultipleObjectTrackerLoggerOperator,
+                   [obstacles_stream],
+                   name,
+                   FLAGS)
+
+
+def add_trajectory_logging(obstacles_tracking_stream,
+                           name='trajectory_logger_operator'):
+    erdust.connect(TrajectoryLoggerOperator,
+                   [obstacles_tracking_stream],
+                   name,
+                   FLAGS)
+
+
+def add_logging(center_camera_stream,
+                left_camera_stream,
+                right_camera_stream,
+                top_down_segmented_stream,
+                center_segmented_camera_stream):
+    add_camera_logging(
+        left_camera_stream, 'left_camera_logger_operator', 'carla-left-')
+    add_camera_logging(
+        right_camera_stream, 'right_camera_logger_operator', 'carla-right-')
+    add_camera_logging(
+        center_camera_stream, 'center_camera_logger_operator', 'carla-center-')
+    add_camera_logging(top_down_segmented_stream,
+                       'top_down_segmented_logger_operator',
+                       'carla-top-down-segmented-')
+    add_camera_logging(center_segmented_camera_stream,
+                       'center_segmented_camera_logger_operator',
+                       'carla-segmented-')
+
+
+def add_visualizers(camera_stream,
+                    depth_camera_stream,
+                    point_cloud_stream,
+                    segmented_stream,
+                    top_down_segmented_stream,
+                    obstacle_tracking_stream,
+                    prediction_stream,
+                    top_down_camera_setup):
     if FLAGS.visualize_rgb_camera:
-        camera_video_op = create_camera_video_op(graph,
-                                                 'rgb_camera',
-                                                 rgb_camera_name)
-        graph.connect(camera_ops, [camera_video_op])
-
+        add_camera_visualizer(camera_stream, 'rgb_camera')
     if FLAGS.visualize_depth_camera:
-        depth_video_op = create_depth_camera_visualizer_op(
-            graph,
-            'depth_camera_video',
-            depth_camera_name)
-        graph.connect(camera_ops, [depth_video_op])
-
+        add_camera_visualizer(depth_camera_stream, 'depth_camera')
     if FLAGS.visualize_lidar:
-        lidar_visualizer_op = create_lidar_visualizer_op(graph)
-        graph.connect(lidar_ops, [lidar_visualizer_op])
-
-    # Due to cv2 multithreading issues, the viewers for front-facing
-    # and top-down segmentation have to be placed into two
-    # separate operators.
-
+        add_lidar_visualizer(point_cloud_stream)
     if FLAGS.visualize_segmentation:
-        # Segmented camera. The stream comes from CARLA.
-        segmented_video_op = create_segmented_video_op(
-            graph,
-            front_segmented_camera_name)
-        graph.connect(camera_ops, [segmented_video_op])
-
+        add_camera_visualizer(segmented_stream, 'segmented_camera')
     if FLAGS.visualize_top_down_segmentation:
-        # Top down segmented camera. The stream comes from CARLA.
-        top_down_segmented_video_op = create_top_down_segmented_video_op(
-            graph,
-            top_down_segmented_camera_name)
-        graph.connect(camera_ops, [top_down_segmented_video_op])
-
+        add_camera_visualizer(top_down_segmented_stream,
+                              'top_down_segmented_camera')
     if FLAGS.visualize_top_down_tracker_output:
-        top_down_tracker_video_op = create_top_down_tracking_video_op(
-            graph,
-            top_down_camera_setup,
-            top_down_segmented_camera_name)
-        graph.connect(camera_ops + perfect_tracker_ops,
-                      [top_down_tracker_video_op])
-        if FLAGS.prediction:
-            graph.connect(prediction_ops, [top_down_tracker_video_op])
+        add_top_down_tracking_visualizer(obstacle_tracking_stream,
+                                         prediction_stream,
+                                         top_down_segmented_stream,
+                                         top_down_camera_setup)
 
 
-def add_recording_operators(graph,
-                            camera_ops,
-                            carla_op,
-                            lidar_ops=None,
-                            rgb_camera_name=None,
-                            depth_camera_name=None):
-    if FLAGS.record_rgb_camera:
-        record_rgb_op = create_record_op(graph,
-                                         'record_rgb_camera',
-                                         'pylot_rgb_camera_data.erdos',
-                                         rgb_camera_name)
-        graph.connect(camera_ops, [record_rgb_op])
+def add_lidar_visualizer(point_cloud_stream, name='lidar_visualizer_operator'):
+    erdust.connect(LidarVisualizerOperator, [point_cloud_stream], name)
 
-    if FLAGS.record_depth_camera:
-        record_depth_camera_op = create_record_op(
-            graph,
-            'record_depth_camera',
-            'pylot_depth_camera_data.erdos',
-            depth_camera_name)
-        graph.connect(camera_ops, [record_depth_camera_op])
 
-    if FLAGS.record_lidar:
-        record_lidar_op = create_lidar_record_op(graph)
-        graph.connect(lidar_ops, [record_lidar_op])
+def add_camera_visualizer(camera_stream, name):
+    erdust.connect(CameraVisualizerOperator, [camera_stream], name)
 
-    if FLAGS.record_ground_truth:
-        record_carla_op = create_record_carla_op(graph)
-        graph.connect([carla_op], [record_carla_op])
+
+def add_top_down_tracking_visualizer(
+        obstacle_tracking_stream,
+        prediction_stream,
+        top_down_segmented_camera_stream,
+        top_down_camera_setup,
+        name='top_down_tracking_visualizer_operator'):
+    erdust.connect(TrackVisualizerOperator,
+                   [obstacle_tracking_stream,
+                    prediction_stream,
+                    top_down_segmented_camera_stream],
+                   name,
+                   FLAGS,
+                   top_down_camera_setup)
+
+
+def add_waypoint_visualizer(waypoints_stream,
+                            name='waypoint_visualizer_operator'):
+    erdust.connect(WaypointVisualizerOperator, [waypoints_stream], name, FLAGS)
+
+
+def add_perfect_detector(depth_camera_stream,
+                         center_camera_stream,
+                         segmented_camera_stream,
+                         can_bus_stream,
+                         ground_pedestrians_stream,
+                         ground_vehicles_stream,
+                         ground_traffic_lights_stream,
+                         ground_speed_limit_signs_stream,
+                         ground_stop_signs_stream,
+                         camera_setup):
+    obstacles_stream = erdust.connect(
+        PerfectDetectorOperator,
+        [depth_camera_stream,
+         center_camera_stream,
+         segmented_camera_stream,
+         can_bus_stream,
+         ground_pedestrians_stream,
+         ground_vehicles_stream,
+         ground_traffic_lights_stream,
+         ground_speed_limit_signs_stream,
+         ground_stop_signs_stream],
+        'perfect_detector_operator',
+        camera_setup,
+        FLAGS,
+        log_file_name=FLAGS.log_file_name)
+    return obstacles_stream
+
+
+def add_perfect_lane_detector(can_bus_stream):
+    detected_lanes_stream = erdust.connect(
+        PerfectLaneDetectionOperator,
+        [can_bus_stream],
+        'perfect_lane_detection_operator',
+        FLAGS,
+        log_file_name=FLAGS.log_file_name)
+    return detected_lanes_stream
+
+
+def add_perfect_tracking(
+        ground_vehicles_stream, ground_pedestrians_stream, can_bus_stream):
+    ground_tracking_stream = erdust.connect(PerfectTrackerOperator,
+                                            [ground_vehicles_stream,
+                                             ground_pedestrians_stream,
+                                             can_bus_stream],
+                                            'perfect_tracking_operator',
+                                            FLAGS)
+    return ground_tracking_stream

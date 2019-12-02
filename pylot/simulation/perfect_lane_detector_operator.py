@@ -11,8 +11,7 @@ class PerfectLaneDetectionOperator(erdust.Operator):
                  detected_lane_stream,
                  name,
                  flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+                 log_file_name=None):
         """ Initializes the PerfectLaneDetectionOperator to use the given name
         and output to the given stream.
 
@@ -21,15 +20,12 @@ class PerfectLaneDetectionOperator(erdust.Operator):
             output_stream_name: The name of the output stream.
             flags: The flags to be used while initializing.
             log_file_name: Name of the log file.
-            csv_file_name: Name of the csv file.
         """
         can_bus_stream.add_callback(self.on_position_update,
                                     [detected_lane_stream])
         self._name = name
         self._flags = flags
         self._logger = erdust.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.setup_csv_logging(
-            name + '-csv', csv_file_name)
         self._waypoint_precision = 0.05
         _, world = get_world(self._flags.carla_host, self._flags.carla_port,
                              self._flags.carla_timeout)
