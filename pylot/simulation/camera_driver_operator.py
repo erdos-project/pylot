@@ -43,7 +43,7 @@ class CameraDriverOperator(erdust.Operator):
         self._camera_stream = camera_stream
         self._name = name
         self._flags = flags
-        self._logger = erdust.setup_logging(name, log_file_name)
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._camera_setup = camera_setup
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None

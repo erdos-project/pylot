@@ -39,8 +39,8 @@ class DepthEstimationOperator(erdust.Operator):
         self._flags = flags
         self._left_imgs = {}
         self._right_imgs = {}
-        self._logger = erdust.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.setup_csv_logging(
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._transform = transform
         self._fov = fov

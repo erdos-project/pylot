@@ -14,8 +14,8 @@ class DetectionEvalGroundOperator(erdust.Operator):
                  csv_file_name=None):
         obstacles_stream.add_callback(self.on_ground_obstacles)
         self._name = name
-        self._logger = erdust.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.setup_csv_logging(
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._flags = flags
         self._ground_bboxes = deque()

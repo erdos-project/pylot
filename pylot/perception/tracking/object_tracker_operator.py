@@ -21,8 +21,8 @@ class ObjectTrackerOperator(erdust.Operator):
         camera_stream.add_callback(self.on_frame_msg)
         self._name = name
         self._flags = flags
-        self._logger = erdust.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.setup_csv_logging(
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._tracker_type = tracker_type
         try:

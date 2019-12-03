@@ -21,8 +21,8 @@ class SegmentationEvalGroundOperator(erdust.Operator):
         ground_segmented_stream.add_callback(self.on_ground_segmented_frame)
         self._name = name
         self._flags = flags
-        self._logger = erdust.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.setup_csv_logging(
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._time_delta = None
         self._ground_masks = deque()

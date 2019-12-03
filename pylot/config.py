@@ -266,8 +266,8 @@ flags.DEFINE_integer('decay_max_latency', 400,
                      'Max latency to evaluate in ground truth experiments')
 flags.DEFINE_bool('evaluate_segmentation', False,
                   'True to enable segmentation evaluation')
-flags.DEFINE_string('segmentation_metric', 'mIoU', ['mIoU', 'timely-mIoU'],
-                    'Segmentation evaluation metric')
+flags.DEFINE_enum('segmentation_metric', 'mIoU', ['mIoU', 'timely-mIoU'],
+                  'Segmentation evaluation metric')
 flags.DEFINE_bool('compute_segmentation_decay', False,
                   'True to enable ground truth segmentation evaluation')
 flags.DEFINE_bool(
@@ -296,14 +296,6 @@ flags.DEFINE_integer('top_down_lateral_view', 20,
                      'ego-vehicle that the top-down camera shows.')
 
 # Flag validators.
-flags.register_multi_flags_validator(
-    ['replay', 'evaluate_obj_detection'],
-    lambda flags_dict: not (flags_dict['replay'] and flags_dict['evaluate_obj_detection']),
-    message='--evaluate_obj_detection cannot be set when --replay is set')
-flags.register_multi_flags_validator(
-    ['replay', 'fusion'],
-    lambda flags_dict: not (flags_dict['replay'] and flags_dict['fusion']),
-    message='--fusion cannot be set when --replay is set')
 flags.register_multi_flags_validator(
     ['obj_detection', 'detector_ssd_mobilenet_v1',
      'detector_frcnn_resnet101', 'detector_ssd_resnet50_v1'],

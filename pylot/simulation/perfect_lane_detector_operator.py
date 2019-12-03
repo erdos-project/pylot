@@ -25,7 +25,7 @@ class PerfectLaneDetectionOperator(erdust.Operator):
                                     [detected_lane_stream])
         self._name = name
         self._flags = flags
-        self._logger = erdust.setup_logging(name, log_file_name)
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._waypoint_precision = 0.05
         _, world = get_world(self._flags.carla_host, self._flags.carla_port,
                              self._flags.carla_timeout)

@@ -68,7 +68,7 @@ class PerfectDetectorOperator(erdust.Operator):
             self.on_watermark)
 
         self._name = name
-        self._logger = erdust.setup_logging(name, log_file_name)
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
         _, world = get_world(self._flags.carla_host,
                              self._flags.carla_port,

@@ -92,7 +92,7 @@ def add_traffic_light_camera(transform,
 
 def add_lidar(vehicle_id_stream):
     # Place Lidar sensor in the same location as the center camera.
-    lidar_setup = pylot.simulator.sensor_setup.create_center_lidar_setup(
+    lidar_setup = pylot.simulation.sensor_setup.create_center_lidar_setup(
         CENTER_CAMERA_LOCATION)
     point_cloud_stream = pylot.operator_creator.add_lidar_driver(
         vehicle_id_stream, lidar_setup)
@@ -137,8 +137,7 @@ def driver():
          transform, vehicle_id_stream)
     # TODO(ionel): Check when we need to add top_down.
     (top_down_segmented_stream,
-     top_down_camera_setup) = add_top_down_segmented_camera(
-         transform, vehicle_id_stream)
+     top_down_camera_setup) = add_top_down_segmented_camera(vehicle_id_stream)
 
 
 def main(argv):

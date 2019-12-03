@@ -52,8 +52,8 @@ class PIDControlOperator(erdust.Operator):
         can_bus_stream.add_callback(self.on_can_bus_update, [control_stream])
         self._name = name
         self._flags = flags
-        self._logger = erdust.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.setup_csv_logging(
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._longitudinal_control_args = longitudinal_control_args
         self._pid = PID(

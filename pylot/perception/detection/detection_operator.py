@@ -24,8 +24,8 @@ class DetectionOperator(erdust.Operator):
                                    [obstacles_stream])
         self._name = name
         self._flags = flags
-        self._logger = erdust.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.setup_csv_logging(
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._detection_graph = tf.Graph()
         # Load the model from the model file.

@@ -137,7 +137,7 @@ class DepthCameraSetup(CameraSetup):
                  height,
                  transform,
                  fov=90):
-        super(RGBCameraSetup, self).__init__(
+        super(DepthCameraSetup, self).__init__(
             name, 'sensor.camera.depth', width, height, transform, fov)
 
 
@@ -148,7 +148,7 @@ class SegmentedCameraSetup(CameraSetup):
                  height,
                  transform,
                  fov=90):
-        super(RGBCameraSetup, self).__init__(
+        super(SegmentedCameraSetup, self).__init__(
             name,
             'sensor.camera.semantic_segmentation',
             width,

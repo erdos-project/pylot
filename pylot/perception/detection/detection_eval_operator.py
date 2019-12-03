@@ -23,8 +23,8 @@ class DetectionEvalOperator(erdust.Operator):
             self.on_notification)
         self._name = name
         self._flags = flags
-        self._logger = erdust.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.setup_csv_logging(
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdust.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._last_notification = None
         # Buffer of detected obstacles.

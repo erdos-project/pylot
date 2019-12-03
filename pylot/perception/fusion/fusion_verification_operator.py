@@ -11,7 +11,7 @@ class FusionVerificationOperator(erdust.Operator):
                  log_file_name=None):
         ground_vehicles_stream.add_callback(self.on_vehicles_update)
         fusion_stream.add_callback(self.on_fusion_update)
-        self._logger = erdust.setup_logging(name, log_file_name)
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
         self.vehicles = deque()
 
     @staticmethod
