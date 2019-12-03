@@ -48,8 +48,10 @@ flags.DEFINE_string('path_coco_labels', 'dependencies/models/coco.names',
 ###################################
 flags.DEFINE_bool('obj_tracking', False,
                   'True to enable object tracking operator')
-flags.DEFINE_string('tracker_type', 'cv2',
-                    'Tracker type: cv2 | da_siam_rpn')
+flags.DEFINE_enum('tracker_type',
+                  'cv2',
+                  ['cv2', 'da_siam_rpn', 'deep_sort', 'sort'],
+                  'Tracker type')
 flags.DEFINE_float(
     'obj_tracking_gpu_memory_fraction',
     0.3,
@@ -75,7 +77,7 @@ flags.DEFINE_bool('lane_detection', False, 'True to enable lane detection')
 # Fusion flags.
 ###################################
 flags.DEFINE_bool('fusion', False, 'True to enable fusion operator')
-flags.DEFINE_bool('evaluat_fusion', False, 'True to enable fusion evaluation')
+flags.DEFINE_bool('evaluate_fusion', False, 'True to enable fusion evaluation')
 ###################################
 # Traffic light detection flags.
 ###################################
@@ -135,10 +137,10 @@ flags.DEFINE_bool('waypoint_planning_operator', False,
 # Control
 ######################################################################
 # By default we use the Pylot agent.
-flags.DEFINE_bool('ground_agent_operator', True,
-                  'True to use the ground truth controller')
-flags.DEFINE_bool('mpc_agent_operator', False,
-                  'True to use the MPC control operator.')
+flags.DEFINE_enum('control_agent_operator',
+                  'pylot',
+                  ['pylot', 'ground', 'mpc'],
+                  'Control agent operator to use to drive')
 # Agent flags.
 flags.DEFINE_bool('stop_for_traffic_lights', True,
                   'True to enable traffic light stopping')
@@ -184,8 +186,10 @@ flags.DEFINE_integer('coast_factor', 2, 'Factor to control coasting')
 ######################################################################
 # Carla flags.
 ######################################################################
-flags.DEFINE_string('carla_version', '0.9.6',
-                    'Carla simulator version. Options: 0.9.5 | 0.9.6')
+flags.DEFINE_enum('carla_version',
+                  '0.9.6',
+                  ['0.9.5', '0.9.6'],
+                  'Carla simulator version')
 flags.DEFINE_string('carla_host', 'localhost', 'Carla host.')
 flags.DEFINE_integer('carla_port', 2000, 'Carla port.')
 flags.DEFINE_integer('carla_timeout', 10,
@@ -252,8 +256,8 @@ flags.DEFINE_bool('evaluate_obj_detection', False,
                   'True to enable object detection accuracy evaluation')
 flags.DEFINE_bool('compute_detection_decay', False,
                   'True to enable ground truth object detection evaluation.')
-flags.DEFINE_string('detection_metric', 'mAP',
-                    'Metric to evaluate detection on: mAP | timely-mAP')
+flags.DEFINE_enum('detection_metric', 'mAP', ['mAP', 'timely-mAP'],
+                  'Detection evaluation metric')
 flags.DEFINE_bool(
     'detection_eval_use_accuracy_model',
     False,
@@ -262,8 +266,8 @@ flags.DEFINE_integer('decay_max_latency', 400,
                      'Max latency to evaluate in ground truth experiments')
 flags.DEFINE_bool('evaluate_segmentation', False,
                   'True to enable segmentation evaluation')
-flags.DEFINE_string('segmentation_metric', 'mIoU',
-                    'Metric to evaluate segmentation on: mIoU | timely-mIoU')
+flags.DEFINE_string('segmentation_metric', 'mIoU', ['mIoU', 'timely-mIoU'],
+                    'Segmentation evaluation metric')
 flags.DEFINE_bool('compute_segmentation_decay', False,
                   'True to enable ground truth segmentation evaluation')
 flags.DEFINE_bool(
@@ -300,12 +304,6 @@ flags.register_multi_flags_validator(
     ['replay', 'fusion'],
     lambda flags_dict: not (flags_dict['replay'] and flags_dict['fusion']),
     message='--fusion cannot be set when --replay is set')
-# flags.register_multi_flags_validator(
-#     ['ground_agent_operator', 'obj_detection', 'traffic_light_det'],
-#     lambda flags_dict: (flags_dict['ground_agent_operator'] or
-#                         (flags_dict['obj_detection'] and
-#                          flags_dict['traffic_light_det'])),
-#     message='ERDOS agent requires obj detection and traffic light detection')
 flags.register_multi_flags_validator(
     ['obj_detection', 'detector_ssd_mobilenet_v1',
      'detector_frcnn_resnet101', 'detector_ssd_resnet50_v1'],
