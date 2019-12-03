@@ -78,12 +78,12 @@ class SegmentationEvalOperator(erdust.Operator):
         game_time = msg.timestamp.coordinates[0]
         self._segmented_frames.append((game_time, msg.frame))
         # Two metrics: 1) mIoU, and 2) timely-mIoU
-        if self._flags.eval_segmentation_metric == 'mIoU':
+        if self._flags.segmentation_metric == 'mIoU':
             # We will compare with segmented ground frame with the same game
             # time.
             heapq.heappush(self._segmented_start_end_times,
                            (game_time, game_time))
-        elif self._flags.eval_segmentation_metric == 'timely-mIoU':
+        elif self._flags.segmentation_metric == 'timely-mIoU':
             # Ground segmented frame time should be as close as possible to
             # the time game time + segmentation runtime.
             segmented_time = game_time + msg.runtime
@@ -98,7 +98,7 @@ class SegmentationEvalOperator(erdust.Operator):
                            (segmented_time, game_time))
         else:
             self._logger.fatal('Unexpected segmentation metric {}'.format(
-                self._flags.eval_segmentation_metric))
+                self._flags.segmentation_metric))
 
     def __compute_closest_frame_time(self, time):
         base = int(time) / self._sim_interval * self._sim_interval
@@ -113,7 +113,7 @@ class SegmentationEvalOperator(erdust.Operator):
         self._logger.info('IoU class scores: {}'.format(class_iou))
         self._logger.info('mean IoU score: {}'.format(mean_iou))
         self._csv_logger.info('{},{},{},{}'.format(
-            time_epoch_ms(), self._name, self._flags.eval_segmentation_metric,
+            time_epoch_ms(), self._name, self._flags.segmentation_metric,
             mean_iou))
 
     def __mean_iou_to_latency(self, mean_iou):

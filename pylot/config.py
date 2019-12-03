@@ -7,15 +7,20 @@ flags.DEFINE_string('log_file_name', None, 'Name of the log file')
 flags.DEFINE_string('csv_log_file_name', None,
                     'csv file into which to log runtime stats')
 
-# Perception modules to enable.
-flags.DEFINE_bool('segmentation', False,
-                  'True to enable segmantation operator')
-flags.DEFINE_string('segmentation_model_path',
-                    'dependencies/models/drn_d_22_cityscapes.pth',
-                    'Path to the model')
-# Obstacle detections flags.
+######################################################################
+# Perception
+######################################################################
+flags.DEFINE_bool('use_perfect_perception', False,
+                  'True to enable the agent to use perfect ground detection')
+###################################
+# Obstacle detection flags.
+###################################
 flags.DEFINE_bool('obj_detection', False,
                   'True to enable object detection operator')
+flags.DEFINE_float(
+    'obj_detection_gpu_memory_fraction',
+    0.3,
+    'GPU memory fraction allocated to each obj detector operator')
 flags.DEFINE_bool('detector_ssd_mobilenet_v1', False,
                   'True to enable SSD mobilenet v1 detector')
 flags.DEFINE_string(
@@ -38,21 +43,42 @@ flags.DEFINE_float('detector_min_score_threshold', 0.5,
                    'Min score threshold for bounding box')
 flags.DEFINE_string('path_coco_labels', 'dependencies/models/coco.names',
                     'Path to the COCO labels')
+###################################
 # Obstacle tracking flags.
+###################################
 flags.DEFINE_bool('obj_tracking', False,
                   'True to enable object tracking operator')
 flags.DEFINE_string('tracker_type', 'cv2',
                     'Tracker type: cv2 | da_siam_rpn')
+flags.DEFINE_float(
+    'obj_tracking_gpu_memory_fraction',
+    0.3,
+    'GPU memory fraction allocated to each obj tracker operator')
 flags.DEFINE_string('da_siam_rpn_model_path',
                     'dependencies/models/SiamRPNVOT.model',
                     'Path to the model')
-flags.DEFINE_string('deep_sort_tracker_pedestrian_weights_path',
-                    'dependencies/nanonets_object_tracking/ped_feature_extractor',
-                    'Path to weights for pedestrian feature extractor model')
+flags.DEFINE_string(
+    'deep_sort_tracker_pedestrian_weights_path',
+    'dependencies/nanonets_object_tracking/ped_feature_extractor',
+    'Path to weights for pedestrian feature extractor model')
+flags.DEFINE_bool('perfect_tracking', False,
+                  'True to enable perfect object tracker.')
+flags.DEFINE_integer(
+    'perfect_tracking_num_steps',
+    None,
+    'Limit on number of past steps returned by the perfect object tracker.')
+###################################
+# Lane detection flags.
+###################################
 flags.DEFINE_bool('lane_detection', False, 'True to enable lane detection')
+###################################
+# Fusion flags.
+###################################
 flags.DEFINE_bool('fusion', False, 'True to enable fusion operator')
-
+flags.DEFINE_bool('evaluat_fusion', False, 'True to enable fusion evaluation')
+###################################
 # Traffic light detection flags.
+###################################
 flags.DEFINE_bool('traffic_light_det', False,
                   'True to enable traffic light detection operator')
 flags.DEFINE_string(
@@ -61,24 +87,58 @@ flags.DEFINE_string(
     'Path to the traffic light model protobuf')
 flags.DEFINE_float('traffic_light_det_min_score_threshold', 0.3,
                    'Min score threshold for bounding box')
-
-# Estimate depth using two cameras.
+flags.DEFINE_float(
+    'traffic_light_det_gpu_memory_fraction',
+    0.3,
+    'GPU memory fraction allocated to each traffic light detector')
+###################################
+# Semantic segmentation flags.
+###################################
+flags.DEFINE_bool('segmentation', False,
+                  'True to enable segmantation operator')
+flags.DEFINE_string('segmentation_model_path',
+                    'dependencies/models/drn_d_22_cityscapes.pth',
+                    'Path to the model')
+flags.DEFINE_float(
+    'segmentation_drn_gpu_memory_fraction',
+    0.2,
+    'GPU memory fraction allocated to DRN segmentation')
+###################################
+# Depth estimation flags.
+###################################
 flags.DEFINE_bool('depth_estimation', False,
                   'True to depth estimation using cameras')
 flags.DEFINE_string('depth_estimation_model_path', 'dependencies/anynet/',
                     'Path to AnyNet depth estimation model')
 
-# Planning modules to enable.
+######################################################################
+# Prediction
+######################################################################
+flags.DEFINE_bool('prediction', False, 'True to enable prediction.')
+flags.DEFINE_string('prediction_type', 'linear', 'Prediction type: linear')
+flags.DEFINE_integer(
+    'prediction_num_past_steps',
+    None,
+    'Number of past steps of each agent given to the prediction module.')
+flags.DEFINE_integer(
+    'prediction_num_future_steps',
+    None,
+    'Number of future steps outputted by the prediction module.')
+
+######################################################################
+# Planning
+######################################################################
 flags.DEFINE_bool('waypoint_planning_operator', False,
                   'True to use the waypoint planning operator.')
 
-# Control modules to enable.
+######################################################################
+# Control
+######################################################################
+# By default we use the Pylot agent.
 flags.DEFINE_bool('ground_agent_operator', True,
                   'True to use the ground truth controller')
 flags.DEFINE_bool('mpc_agent_operator', False,
                   'True to use the MPC control operator.')
-
-
 # Agent flags.
 flags.DEFINE_bool('stop_for_traffic_lights', True,
                   'True to enable traffic light stopping')
@@ -86,23 +146,17 @@ flags.DEFINE_bool('stop_for_pedestrians', True,
                   'True to enable pedestrian stopping')
 flags.DEFINE_bool('stop_for_vehicles', True,
                   'True to enable vehicle stopping')
-flags.DEFINE_bool('use_perfect_perception', False,
-                  'True to enable the agent to use perfect ground detection')
-
-# Traffic light stopping parameters.
+# Agent stopping parameters.
 flags.DEFINE_integer('traffic_light_min_dist_thres', 5,
                      'Min distance threshold traffic light')
 flags.DEFINE_integer('traffic_light_max_dist_thres', 20,
                      'Max distance threshold traffic light')
 flags.DEFINE_float('traffic_light_angle_thres', 0.5,
                    'Traffic light angle threshold')
-
-# Vehicle stopping parameters.
 flags.DEFINE_integer('vehicle_distance_thres', 15,
                      'Vehicle distance threshold')
 flags.DEFINE_float('vehicle_angle_thres', 0.4,
                    'Vehicle angle threshold')
-# Pedestrian stopping parameters.
 flags.DEFINE_integer('pedestrian_distance_hit_thres', 35,
                      'Pedestrian hit zone distance threshold')
 flags.DEFINE_float('pedestrian_angle_hit_thres', 0.15,
@@ -115,7 +169,6 @@ flags.DEFINE_float('pedestrian_angle_emergency_thres', 0.5,
 flags.DEFINE_float('pid_p', 0.25, 'PID p parameter')
 flags.DEFINE_float('pid_i', 0.20, 'PID i parameter')
 flags.DEFINE_float('pid_d', 0.0, 'PID d parameter')
-
 # Steering control parameters
 flags.DEFINE_float('default_throttle', 0.0, 'Default throttle')
 flags.DEFINE_float('throttle_max', 0.75, 'Max throttle')
@@ -128,7 +181,9 @@ flags.DEFINE_float('brake_strength', 1,
                    'Strength for applying brake; between 0 and 1')
 flags.DEFINE_integer('coast_factor', 2, 'Factor to control coasting')
 
+######################################################################
 # Carla flags.
+######################################################################
 flags.DEFINE_string('carla_version', '0.9.6',
                     'Carla simulator version. Options: 0.9.5 | 0.9.6')
 flags.DEFINE_string('carla_host', 'localhost', 'Carla host.')
@@ -195,50 +250,30 @@ flags.DEFINE_bool('visualize_top_down_tracker_output', False,
 # Accuracy evaluation flags.
 flags.DEFINE_bool('evaluate_obj_detection', False,
                   'True to enable object detection accuracy evaluation')
+flags.DEFINE_bool('compute_detection_decay', False,
+                  'True to enable ground truth object detection evaluation.')
+flags.DEFINE_string('detection_metric', 'mAP',
+                    'Metric to evaluate detection on: mAP | timely-mAP')
+flags.DEFINE_bool(
+    'detection_eval_use_accuracy_model',
+    False,
+    'Enable to use a model for detection accuracy decay over time')
+flags.DEFINE_integer('decay_max_latency', 400,
+                     'Max latency to evaluate in ground truth experiments')
 flags.DEFINE_bool('evaluate_segmentation', False,
                   'True to enable segmentation evaluation')
-flags.DEFINE_bool('eval_ground_truth_segmentation', False,
-                  'True to enable ground truth segmentation evaluation')
-flags.DEFINE_bool('eval_ground_truth_object_detection', False,
-                  'True to enable ground truth object detection evaluation.')
-flags.DEFINE_string('eval_detection_metric', 'mAP',
-                    'Metric to evaluate detection on: mAP | timely-mAP')
-flags.DEFINE_bool('detection_eval_use_accuracy_model', False,
-                  'Enable to use a model for detection accuracy decay over time')
-flags.DEFINE_integer('eval_ground_truth_max_latency', 2000,
-                     'Max latency to evaluate in ground truth experiments')
-flags.DEFINE_string('eval_segmentation_metric', 'mIoU',
+flags.DEFINE_string('segmentation_metric', 'mIoU',
                     'Metric to evaluate segmentation on: mIoU | timely-mIoU')
-flags.DEFINE_bool('segmentation_eval_use_accuracy_model', False,
-                  'Enable to use a model for segmentation accuracy decay over time')
+flags.DEFINE_bool('compute_segmentation_decay', False,
+                  'True to enable ground truth segmentation evaluation')
+flags.DEFINE_bool(
+    'segmentation_eval_use_accuracy_model',
+    False,
+    'Enable to use a model for segmentation accuracy decay over time')
 
-# Perfect tracking flags.
-flags.DEFINE_bool('perfect_tracking', False,
-                  'True to enable perfect object tracker.')
-flags.DEFINE_integer('perfect_tracking_num_steps', None,
-                     'Limit on number of past steps returned by the perfect object tracker.')
-
-# Prediction flags.
-flags.DEFINE_bool('prediction', False,
-                  'True to enable prediction.')
-flags.DEFINE_string('prediction_type', 'linear',
-                    'Prediction type: linear')
-flags.DEFINE_integer('prediction_num_past_steps', None,
-                     'Number of past steps of each agent given to the prediction module.')
-flags.DEFINE_integer('prediction_num_future_steps', None,
-                     'Number of future steps outputted by the prediction module.')
-
-# GPU memory fractions.
-flags.DEFINE_float('obj_detection_gpu_memory_fraction', 0.3,
-                   'GPU memory fraction allocated to each obj detector operator')
-flags.DEFINE_float('obj_tracking_gpu_memory_fraction', 0.3,
-                   'GPU memory fraction allocated to each obj tracker operator')
-flags.DEFINE_float('traffic_light_det_gpu_memory_fraction', 0.3,
-                   'GPU memory fraction allocated to each traffic light detector')
-flags.DEFINE_float('segmentation_drn_gpu_memory_fraction', 0.2,
-                   'GPU memory fraction allocated to DRN segmentation')
-
-# Recording operators
+########################################
+# Recording operators.
+########################################
 flags.DEFINE_string('data_path', 'data/', 'Path where to logged data')
 flags.DEFINE_bool('log_detector_output', False,
                   'Enable recording of bbox annotated detector images')

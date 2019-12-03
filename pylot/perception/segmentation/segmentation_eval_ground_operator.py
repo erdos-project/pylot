@@ -50,7 +50,7 @@ class SegmentationEvalGroundOperator(erdust.Operator):
             # Pop the oldest frame if it's older than the max latency
             # we're interested in.
             if (msg.timestamp.coordinates[0] - self._ground_masks[0][0] >
-                self._flags.eval_ground_truth_max_latency):
+                self._flags.decay_max_latency):
                 self._ground_masks.popleft()
 
             cur_time = time_epoch_ms()

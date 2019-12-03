@@ -135,12 +135,12 @@ class DetectionEvalOperator(erdust.Operator):
         _, ped_bboxes, _ = self.__get_bboxes_by_category(msg.detected_objects)
         self._detected_obstacles.append((game_time, ped_bboxes))
         # Two metrics: 1) mAP, and 2) timely-mAP
-        if self._flags.eval_detection_metric == 'mAP':
+        if self._flags.detection_metric == 'mAP':
             # We will compare the bboxes with the ground truth at the same
             # game time.
             heapq.heappush(self._detector_start_end_times,
                            (game_time, game_time))
-        elif self._flags.eval_detection_metric == 'timely-mAP':
+        elif self._flags.detection_metric == 'timely-mAP':
             # Ground bboxes time should be as close as possible to the time of
             # the obstacles + detector runtime.
             ground_bboxes_time = game_time + msg.runtime
@@ -156,7 +156,7 @@ class DetectionEvalOperator(erdust.Operator):
                            (ground_bboxes_time, game_time))
         else:
             self._logger.fatal('Unexpected detection metric {}'.format(
-                self._flags.eval_detection_metric))
+                self._flags.detection_metric))
 
     def on_ground_obstacles(self, msg):
         game_time = msg.timestamp.coordinates[0]

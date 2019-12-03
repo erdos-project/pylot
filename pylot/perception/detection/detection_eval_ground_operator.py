@@ -38,7 +38,7 @@ class DetectionEvalGroundOperator(erdust.Operator):
         # Remove the buffered bboxes that are too old.
         while (len(self._ground_bboxes) > 0 and
                game_time - self._ground_bboxes[0][0] >
-               self._flags.eval_ground_truth_max_latency):
+               self._flags.decay_max_latency):
             self._ground_bboxes.popleft()
 
         for (old_game_time, old_bboxes) in self._ground_bboxes:
