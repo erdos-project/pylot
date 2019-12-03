@@ -34,7 +34,7 @@ class SegmentationDRNOperator(erdust.Operator):
         self._model = DRNSeg(
             arch, classes, pretrained_model=None, pretrained=False)
         self._model.load_state_dict(
-            torch.load(self._flags.segmentation_drn_model_path))
+            torch.load(self._flags.segmentation_model_path))
         if torch.cuda.is_available():
             self._model = torch.nn.DataParallel(self._model).cuda()
 

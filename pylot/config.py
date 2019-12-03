@@ -2,35 +2,18 @@ from absl import flags
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_bool('replay', False,
-                  ('True if run in replay mode, otherwise run '
-                   'Carla in server mode using `./CarlaUE4.sh -carla-server`'))
+# Files where to log information.
 flags.DEFINE_string('log_file_name', None, 'Name of the log file')
 flags.DEFINE_string('csv_log_file_name', None,
                     'csv file into which to log runtime stats')
 
-
-# Sensors to enable.
-flags.DEFINE_bool('lidar', False, 'True to enable the lidar sensor')
-flags.DEFINE_bool('top_down_segmentation', False,
-                  'True for enable the top down segmentation camera')
-
-# Planning modules to enable.
-flags.DEFINE_bool('waypoint_planning_operator', False,
-                  'True to use the waypoint planning operator.')
-
-# Control modules to enable.
-flags.DEFINE_bool('ground_agent_operator', True,
-                  'True to use the ground truth controller')
-flags.DEFINE_bool('mpc_agent_operator', False,
-                  'True to use the MPC control operator.')
-
 # Perception modules to enable.
-flags.DEFINE_bool('segmentation_drn', False,
-                  'True to enable DRN segmantation operator')
-flags.DEFINE_string('segmentation_drn_model_path',
+flags.DEFINE_bool('segmentation', False,
+                  'True to enable segmantation operator')
+flags.DEFINE_string('segmentation_model_path',
                     'dependencies/models/drn_d_22_cityscapes.pth',
                     'Path to the model')
+# Obstacle detections flags.
 flags.DEFINE_bool('obj_detection', False,
                   'True to enable object detection operator')
 flags.DEFINE_bool('detector_ssd_mobilenet_v1', False,
@@ -55,6 +38,7 @@ flags.DEFINE_float('detector_min_score_threshold', 0.5,
                    'Min score threshold for bounding box')
 flags.DEFINE_string('path_coco_labels', 'dependencies/models/coco.names',
                     'Path to the COCO labels')
+# Obstacle tracking flags.
 flags.DEFINE_bool('obj_tracking', False,
                   'True to enable object tracking operator')
 flags.DEFINE_string('tracker_type', 'cv2',
@@ -67,6 +51,8 @@ flags.DEFINE_string('deep_sort_tracker_pedestrian_weights_path',
                     'Path to weights for pedestrian feature extractor model')
 flags.DEFINE_bool('lane_detection', False, 'True to enable lane detection')
 flags.DEFINE_bool('fusion', False, 'True to enable fusion operator')
+
+# Traffic light detection flags.
 flags.DEFINE_bool('traffic_light_det', False,
                   'True to enable traffic light detection operator')
 flags.DEFINE_string(
@@ -81,6 +67,17 @@ flags.DEFINE_bool('depth_estimation', False,
                   'True to depth estimation using cameras')
 flags.DEFINE_string('depth_estimation_model_path', 'dependencies/anynet/',
                     'Path to AnyNet depth estimation model')
+
+# Planning modules to enable.
+flags.DEFINE_bool('waypoint_planning_operator', False,
+                  'True to use the waypoint planning operator.')
+
+# Control modules to enable.
+flags.DEFINE_bool('ground_agent_operator', True,
+                  'True to use the ground truth controller')
+flags.DEFINE_bool('mpc_agent_operator', False,
+                  'True to use the MPC control operator.')
+
 
 # Agent flags.
 flags.DEFINE_bool('stop_for_traffic_lights', True,
@@ -269,12 +266,11 @@ flags.register_multi_flags_validator(
     lambda flags_dict: not (flags_dict['replay'] and flags_dict['fusion']),
     message='--fusion cannot be set when --replay is set')
 # flags.register_multi_flags_validator(
-#     ['ground_agent_operator', 'obj_detection', 'traffic_light_det', 'segmentation_drn'],
+#     ['ground_agent_operator', 'obj_detection', 'traffic_light_det'],
 #     lambda flags_dict: (flags_dict['ground_agent_operator'] or
 #                         (flags_dict['obj_detection'] and
-#                          flags_dict['traffic_light_det'] and
-#                          (flags_dict['segmentation_drn']))),
-#     message='ERDOS agent requires obj detection, segmentation and traffic light detection')
+#                          flags_dict['traffic_light_det'])),
+#     message='ERDOS agent requires obj detection and traffic light detection')
 flags.register_multi_flags_validator(
     ['obj_detection', 'detector_ssd_mobilenet_v1',
      'detector_frcnn_resnet101', 'detector_ssd_resnet50_v1'],

@@ -31,6 +31,8 @@ flags.DEFINE_bool('log_trajectories', False,
                   'True to enable trajectory logging')
 flags.DEFINE_bool('log_chauffeur', False,
                   'True to log data in ChauffeurNet style.')
+flags.DEFINE_bool('log_top_down_segmentation', False,
+                  'True to enable logging of top down segmentation')
 
 
 CENTER_CAMERA_LOCATION_X = 1.5
@@ -166,7 +168,7 @@ def create_camera_setups():
         _add_depth_estimation_camera_setups(camera_setups)
 
     top_down_segmented_camera_setup = None
-    if FLAGS.top_down_segmentation or FLAGS.log_chauffeur:
+    if FLAGS.log_top_down_segmentation or FLAGS.log_chauffeur:
         top_down_segmented_camera_setup = _add_top_down_segmented_camera_setup(
             camera_setups)
         if FLAGS.log_chauffeur:

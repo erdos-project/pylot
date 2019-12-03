@@ -92,7 +92,7 @@ def create_detection_ops(graph):
 
 def create_segmentation_ops(graph):
     segmentation_ops = []
-    if FLAGS.segmentation_drn:
+    if FLAGS.segmentation:
         segmentation_op = pylot.operator_creator.create_segmentation_drn_op(
             graph)
         segmentation_ops.append(segmentation_op)
