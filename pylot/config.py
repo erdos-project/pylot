@@ -117,7 +117,10 @@ flags.DEFINE_string('depth_estimation_model_path', 'dependencies/anynet/',
 # Prediction
 ######################################################################
 flags.DEFINE_bool('prediction', False, 'True to enable prediction.')
-flags.DEFINE_string('prediction_type', 'linear', 'Prediction type: linear')
+flags.DEFINE_enum('prediction_type',
+                  'linear',
+                  ['linear'],
+                  'Type of prediction module to use')
 flags.DEFINE_integer(
     'prediction_num_past_steps',
     None,

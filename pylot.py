@@ -1,384 +1,346 @@
 from absl import app
 from absl import flags
 
-import erdos.graph
+import erdust
 
 import pylot.config
 import pylot.operator_creator
+from pylot.simulation.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
+    SegmentedCameraSetup
 import pylot.simulation.utils
-import pylot.utils
 
 FLAGS = flags.FLAGS
 
-CENTER_CAMERA_LOCATION_X = 1.5
-CENTER_CAMERA_LOCATION_Y = 0.0
-CENTER_CAMERA_LOCATION_Z = 1.4
-CENTER_CAMERA_LOCATION = pylot.simulation.utils.Location(
-    CENTER_CAMERA_LOCATION_X,
-    CENTER_CAMERA_LOCATION_Y,
-    CENTER_CAMERA_LOCATION_Z)
+CENTER_CAMERA_LOCATION = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
 
 
-def create_left_right_camera_setups():
-    rotation = pylot.simulation.utils.Rotation(0, 0, 0)
-    left_loc = pylot.simulation.utils.Location(CENTER_CAMERA_LOCATION_X,
-                                               CENTER_CAMERA_LOCATION_Y - 0.4,
-                                               CENTER_CAMERA_LOCATION_Z)
-    right_loc = pylot.simulation.utils.Location(CENTER_CAMERA_LOCATION_X,
-                                                CENTER_CAMERA_LOCATION_Y + 0.4,
-                                                CENTER_CAMERA_LOCATION_Z)
-    left_transform = pylot.simulation.utils.Transform(left_loc, rotation)
-    right_transform = pylot.simulation.utils.Transform(right_loc, rotation)
+def add_rgb_camera(transform, vehicle_id_stream, name='center_rgb_camera'):
+    rgb_camera_setup = RGBCameraSetup(name,
+                                      FLAGS.carla_camera_image_width,
+                                      FLAGS.carla_camera_image_height,
+                                      transform)
+    camera_stream = pylot.operator_creator.add_camera_driver(
+        vehicle_id_stream, rgb_camera_setup)
+    return (camera_stream, rgb_camera_setup)
 
-    left_camera_setup = pylot.simulation.utils.CameraSetup(
-        pylot.utils.LEFT_CAMERA_NAME,
-        'sensor.camera.rgb',
+
+def add_depth_camera(transform, vehicle_id_stream, name='center_depth_camera'):
+    depth_camera_setup = DepthCameraSetup(name,
+                                          FLAGS.carla_camera_image_width,
+                                          FLAGS.carla_camera_image_height,
+                                          transform)
+    ground_depth_camera_stream = pylot.operator_creator.add_camera_driver(
+        vehicle_id_stream, depth_camera_setup)
+    return (ground_depth_camera_stream, depth_camera_setup)
+
+
+def add_segmented_camera(transform,
+                         vehicle_id_stream,
+                         name='center_segmented_camera'):
+    segmented_camera_setup = SegmentedCameraSetup(
+        name,
         FLAGS.carla_camera_image_width,
         FLAGS.carla_camera_image_height,
-        left_transform)
-    right_camera_setup = pylot.simulation.utils.CameraSetup(
-        pylot.utils.RIGHT_CAMERA_NAME,
-        'sensor.camera.rgb',
-        FLAGS.carla_camera_image_width,
-        FLAGS.carla_camera_image_height,
-        right_transform)
-    return [left_camera_setup, right_camera_setup]
+        transform)
+    ground_segmented_camera_stream = pylot.operator_creator.add_camera_driver(
+        vehicle_id_stream, segmented_camera_setup)
+    return (ground_segmented_camera_stream, segmented_camera_setup)
 
 
-def create_top_down_segmentation_setups():
-    # Height calculation relies on the fact that the camera's FOV is 90.
-    location = pylot.simulation.utils.Location(
-        CENTER_CAMERA_LOCATION_X,
-        CENTER_CAMERA_LOCATION_Y,
-        CENTER_CAMERA_LOCATION_Z + FLAGS.top_down_lateral_view)
-    rotation = pylot.simulation.utils.Rotation(-90, 0, 0)
-    transform = pylot.simulation.utils.Transform(location, rotation)
-    top_down_segmented_camera_setup = pylot.simulation.utils.CameraSetup(
-        pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME,
-        'sensor.camera.semantic_segmentation',
+def add_traffic_light_camera(transform,
+                             vehicle_id_stream,
+                             name='center_traffic_light_rgb_camera'):
+    traffic_light_camera_setup = RGBCameraSetup(
+        name,
         FLAGS.carla_camera_image_width,
         FLAGS.carla_camera_image_height,
         transform,
-        fov=90)
-    return top_down_segmented_camera_setup
+        fov=45)
+    traffic_light_camera_stream = pylot.operator_creator.add_camera_driver(
+        vehicle_id_stream, traffic_light_camera_setup)
+    return (traffic_light_camera_stream, traffic_light_camera_setup)
 
 
-def create_camera_setups():
-    rotation = pylot.simulation.utils.Rotation(0, 0, 0)
-    transform = pylot.simulation.utils.Transform(
-        CENTER_CAMERA_LOCATION, rotation)
-    bgr_camera_setup = pylot.simulation.utils.CameraSetup(
-        pylot.utils.CENTER_CAMERA_NAME,
-        'sensor.camera.rgb',
-        FLAGS.carla_camera_image_width,
-        FLAGS.carla_camera_image_height,
-        transform)
-    depth_camera_setup = pylot.simulation.utils.CameraSetup(
-        pylot.utils.DEPTH_CAMERA_NAME,
-        'sensor.camera.depth',
-        FLAGS.carla_camera_image_width,
-        FLAGS.carla_camera_image_height,
-        transform)
-    front_segmented_camera_setup = pylot.simulation.utils.CameraSetup(
-        pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
-        'sensor.camera.semantic_segmentation',
-        FLAGS.carla_camera_image_width,
-        FLAGS.carla_camera_image_height,
-        transform)
-    return [bgr_camera_setup, depth_camera_setup, front_segmented_camera_setup]
+def add_lidar(vehicle_id_stream):
+    # Place Lidar sensor in the same location as the center camera.
+    lidar_setup = pylot.simulation.sensor_setup.create_center_lidar_setup(
+        CENTER_CAMERA_LOCATION)
+    point_cloud_stream = pylot.operator_creator.add_lidar_driver(
+        vehicle_id_stream, lidar_setup)
+    return (point_cloud_stream, lidar_setup)
 
 
-def create_lidar_setups():
-    if FLAGS.lidar:
-        rotation = pylot.simulation.utils.Rotation(0, 0, 0)
-        # Place the lidar in the same position as the camera.
-        lidar_transform = pylot.simulation.utils.Transform(
-            CENTER_CAMERA_LOCATION, rotation)
-        return [pylot.simulation.utils.LidarSetup(
-            name='front_center_lidar',
-            lidar_type='sensor.lidar.ray_cast',
-            transform=lidar_transform,
-            range=5000,  # in centimers
-            rotation_frequency=20,
-            channels=32,
-            upper_fov=15,
-            lower_fov=-30,
-            points_per_second=500000)]
-    return []
+def add_top_down_segmented_camera(vehicle_id_stream):
+    top_down_segmented_camera_setup = \
+        pylot.simulation.sensor_setup.create_top_down_segmented_camera_setup(
+            'top_down',
+            CENTER_CAMERA_LOCATION,
+            FLAGS.carla_camera_image_width,
+            FLAGS.carla_camera_image_height,
+            FLAGS.top_down_lateral_view)
+    top_down_segmented_stream = pylot.operator_creator.add_camera_driver(
+        vehicle_id_stream, top_down_segmented_camera_setup)
+    return (top_down_segmented_stream, top_down_segmented_camera_setup)
 
 
-def add_driver_operators(graph, auto_pilot):
-    camera_setups = create_camera_setups()
-    bgr_camera_setup = camera_setups[0]
-    top_down_segmentation_setup = None
-    if FLAGS.depth_estimation:
-        camera_setups = camera_setups + create_left_right_camera_setups()
-    if FLAGS.top_down_segmentation or FLAGS.visualize_top_down_tracker_output:
-        top_down_segmentation_setup = create_top_down_segmentation_setups()
-        camera_setups = camera_setups + [top_down_segmentation_setup]
-
-    lidar_setups = create_lidar_setups()
-
-    (carla_op,
-     camera_ops,
-     lidar_ops) = pylot.operator_creator.create_driver_ops(
-         graph, camera_setups, lidar_setups, auto_pilot)
-    return (bgr_camera_setup,
-            top_down_segmentation_setup,
-            carla_op,
-            camera_ops,
-            lidar_ops)
+def add_depth_estimation(vehicle_id_stream, center_camera_setup):
+    (left_camera_setup, right_camera_setup) = \
+        pylot.simulation.sensor_setup.create_left_right_camera_setups(
+            'camera',
+            CENTER_CAMERA_LOCATION,
+            FLAGS.carla_camera_image_width,
+            FLAGS.carla_camera_image_height)
+    left_camera_stream = pylot.operator_creator.add_camera_driver(
+        vehicle_id_stream, left_camera_setup)
+    right_camera_stream = pylot.operator_creator.add_camera_driver(
+        vehicle_id_stream, right_camera_setup)
+    depth_estimation_stream = pylot.operator_creator.add_depth_estimation(
+        left_camera_stream, right_camera_stream, center_camera_setup)
+    return depth_estimation_stream
 
 
-def add_ground_eval_ops(graph, perfect_det_ops, camera_ops):
-    if FLAGS.eval_ground_truth_segmentation:
-        eval_ground_seg_op = pylot.operator_creator.create_segmentation_ground_eval_op(
-            graph, pylot.utils.FRONT_SEGMENTED_CAMERA_NAME)
-        graph.connect(camera_ops, [eval_ground_seg_op])
+def add_perception(center_camera_stream, traffic_light_camera_stream):
 
-    # This operator evaluates the temporal decay of the ground truth of
-    # object detection across timestamps.
-    if FLAGS.eval_ground_truth_object_detection:
-        eval_ground_det_op = pylot.operator_creator.create_eval_ground_truth_detector_op(
-            graph)
-        graph.connect(perfect_det_ops, [eval_ground_det_op])
-
-
-def add_detection_component(graph, bgr_camera_setup, camera_ops, carla_op):
-    obj_detector_ops = []
     if FLAGS.obj_detection:
-        obj_detector_ops = pylot.operator_creator.create_detector_ops(graph)
-        graph.connect(camera_ops, obj_detector_ops)
-
+        obstacles_stream = pylot.operator_creator.add_obstacle_detection(
+            center_camera_stream)
         if FLAGS.evaluate_obj_detection:
-            perfect_det_op = pylot.operator_creator.create_perfect_detector_op(
-                graph, bgr_camera_setup, 'perfect_detector')
-            graph.connect([carla_op] + camera_ops, [perfect_det_op])
-            obstacle_accuracy_op = pylot.operator_creator.create_obstacle_accuracy_op(
-                graph, 'perfect_detector')
-            graph.connect(obj_detector_ops + [perfect_det_op],
-                          [obstacle_accuracy_op])
+            pylot.operator_creator.add_detection_evaluation(
+                obstacles_stream,
+                ground_obstacles_stream)
 
-        if FLAGS.obj_tracking:
-            tracker_op = pylot.operator_creator.create_object_tracking_op(
-                graph)
-            graph.connect(camera_ops + obj_detector_ops, [tracker_op])
-
-        if FLAGS.fusion:
-            (fusion_op,
-             fusion_verif_op) = pylot.operator_creator.create_fusion_ops(graph)
-            graph.connect(obj_detector_ops + camera_ops + [carla_op],
-                          [fusion_op])
-            graph.connect([fusion_op, carla_op], [fusion_verif_op])
-
-    # Currently, we keep this separate from the existing trackers, because the
-    # perfect tracker returns ego-vehicle (x,y,z) coordinates, while our
-    # existing trackers use camera coordinates.
-    perfect_tracker_ops = []
-    if FLAGS.perfect_tracking:
-        perfect_tracker_ops = [pylot.operator_creator.create_perfect_tracking_op(
-            graph, 'perfect_tracker')]
-        graph.connect([carla_op], perfect_tracker_ops)
-
-    traffic_light_det_ops = []
     if FLAGS.traffic_light_det:
-        traffic_light_det_ops.append(
-            pylot.operator_creator.create_traffic_light_op(graph))
-        graph.connect(camera_ops, traffic_light_det_ops)
+        traffic_lights_stream = \
+            pylot.operator_creator.add_traffic_light_detector(
+                traffic_light_camera_stream)
 
-    lane_detection_ops = []
     if FLAGS.lane_detection:
-        lane_detection_ops.append(
-            pylot.operator_creator.create_lane_detection_op(graph))
-        graph.connect(camera_ops, lane_detection_ops)
-    return (obj_detector_ops, perfect_tracker_ops, traffic_light_det_ops, lane_detection_ops)
+        lane_detection_stream = pylot.operator_creator.add_lane_detection(
+            center_camera_stream)
+
+    if FLAGS.segmentation:
+        segmented_stream = pylot.operator_creator.add_segmentation(
+            center_camera_stream)
+        if FLAGS.evaluate_segmentation:
+            pylot.operator_creator.add_segmentation_evaluation(
+                ground_segmented_stream, segmented_stream)
+
+    if FLAGS.obj_tracking:
+        obstacles_tracking_stream = \
+            pylot.operator_creator.add_obstacle_tracking(
+                obstacles_stream,
+                center_camera_stream)
+
+    if FLAGS.fusion:
+        if FLAGS.evaluate_fusion:
+            pylot.operator_creator.add_fusion(
+                can_bus_stream,
+                obstacles_stream,
+                depth_stream,
+                ground_vehicles_stream)
+        else:
+            pylot.operator_creator.add_fusion(
+                can_bus_stream,
+                obstacles_stream,
+                depth_stream)
+
+    return (obstacles_stream,
+            obstacles_tracking_stream,
+            traffic_lights_stream,
+            lane_detection_stream,
+            segmented_stream)
 
 
-def add_segmentation_component(graph, camera_ops):
-    segmentation_ops = []
-    if FLAGS.segmentation_drn:
-        segmentation_op = pylot.operator_creator.create_segmentation_drn_op(
-            graph)
-        segmentation_ops.append(segmentation_op)
+def add_perfect_perception(center_camera_stream,
+                           depth_camera_stream,
+                           segmented_camera_stream,
+                           can_bus_stream,
+                           ground_pedestrians_stream,
+                           ground_vehicles_stream,
+                           ground_traffic_lights_stream,
+                           ground_speed_limit_signs_stream,
+                           ground_stop_signs_stream,
+                           center_camera_setup):
+    obstacles_stream = pylot.operator_creator.add_perfect_detector(
+        depth_camera_stream,
+        center_camera_stream,
+        segmented_camera_stream,
+        can_bus_stream,
+        ground_pedestrians_stream,
+        ground_vehicles_stream,
+        ground_traffic_lights_stream,
+        ground_speed_limit_signs_stream,
+        ground_stop_signs_stream,
+        center_camera_setup)
 
-    graph.connect(camera_ops, segmentation_ops)
+    # TODO: Split perfect detector into obstacle and traffic light detectors.
+    traffic_lights_stream = None
+    
+    lane_detection_stream = pylot.operator_creator.add_perfect_lane_detector(
+        can_bus_stream)
 
-    if FLAGS.evaluate_segmentation:
-        eval_segmentation_op = pylot.operator_creator.create_segmentation_eval_op(
-            graph, pylot.utils.FRONT_SEGMENTED_CAMERA_NAME, 'segmented_stream')
-        graph.connect(camera_ops + segmentation_ops, [eval_segmentation_op])
+    # TODO: The perfect tracker returns ego-vehicle (x,y,z) coordinates, while
+    # our existing trackers use camera coordinates. Fix!
+    obstacles_tracking_stream = pylot.operator_creator.add_perfect_tracking(
+        ground_vehicles_stream, ground_pedestrians_stream, can_bus_stream)
 
-    return segmentation_ops
-
-
-def add_agent_op(graph,
-                 carla_op,
-                 traffic_light_det_ops,
-                 obj_detector_ops,
-                 segmentation_ops,
-                 lane_detection_ops,
-                 bgr_camera_setup):
-    agent_op = None
-    if FLAGS.ground_agent_operator:
-        agent_op = pylot.operator_creator.create_ground_agent_op(graph)
-        graph.connect([carla_op], [agent_op])
-        graph.connect([agent_op], [carla_op])
-    elif FLAGS.mpc_agent_operator:
-        agent_op = pylot.operator_creator.create_mpc_agent_op(graph)
-        graph.connect([carla_op], [agent_op])
-        graph.connect([agent_op], [carla_op])
-    else:
-        # TODO(ionel): The ERDOS agent doesn't use obj tracker and fusion.
-        agent_op = pylot.operator_creator.create_pylot_agent_op(
-            graph, bgr_camera_setup)
-        input_ops = [carla_op] + traffic_light_det_ops + obj_detector_ops +\
-                    segmentation_ops + lane_detection_ops
-        graph.connect(input_ops, [agent_op])
-        graph.connect([agent_op], [carla_op])
-    return agent_op
+    return (obstacles_stream,
+            obstacles_tracking_stream,
+            traffic_lights_stream,
+            lane_detection_stream,
+            segmented_camera_stream)
 
 
-def add_planning_component(graph,
-                           goal_location,
-                           carla_op,
-                           agent_op):
-    if FLAGS.waypoint_planning_operator:
-        planning_op = pylot.operator_creator.create_waypoint_planning_op(graph, goal_location)
-    else:
-        planning_op = pylot.operator_creator.create_planning_op(
-            graph, goal_location)
-
-    if FLAGS.visualize_waypoints:
-        waypoint_viz_op = pylot.operator_creator.create_waypoint_visualizer_op(
-            graph)
-        graph.connect([planning_op], [waypoint_viz_op])
-    graph.connect([carla_op], [planning_op])
-    graph.connect([planning_op], [agent_op])
-
-def add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
-                            lidar_ops, perfect_tracker_ops, prediction_ops):
-    # Add visual operators.
-    pylot.operator_creator.add_visualization_operators(
-        graph,
-        camera_ops,
-        lidar_ops,
-        perfect_tracker_ops,
-        prediction_ops,
-        pylot.utils.CENTER_CAMERA_NAME,
-        pylot.utils.DEPTH_CAMERA_NAME,
-        pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
-        pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME,
-        top_down_camera_setup)
-
-    # Add recording operators.
-    pylot.operator_creator.add_recording_operators(
-        graph,
-        camera_ops,
-        carla_op,
-        lidar_ops,
-        pylot.utils.CENTER_CAMERA_NAME,
-        pylot.utils.DEPTH_CAMERA_NAME)
-    # Add operator that estimates depth.
-    if FLAGS.depth_estimation:
-        depth_estimation_op = pylot.operator_creator.create_depth_estimation_op(
-            graph, pylot.utils.LEFT_CAMERA_NAME, pylot.utils.RIGHT_CAMERA_NAME)
-        graph.connect(camera_ops + lidar_ops + [carla_op],
-                      [depth_estimation_op])
-
-
-def add_perfect_perception_component(graph,
-                                     bgr_camera_setup,
-                                     ground_obstacles_stream_name,
-                                     lane_detection_stream_name,
-                                     carla_op,
-                                     camera_ops):
-    obj_det_ops = [pylot.operator_creator.create_perfect_detector_op(
-        graph, bgr_camera_setup, ground_obstacles_stream_name)]
-    graph.connect([carla_op] + camera_ops, obj_det_ops)
-    # TODO(ionel): Populate the other types of detectors.
-    traffic_light_det_ops = []
-    lane_det_ops = [
-        pylot.operator_creator.create_perfect_lane_detector_op(
-            graph, lane_detection_stream_name)
-    ]
-    graph.connect([carla_op], lane_det_ops)
-    # Get the ground segmented frames from the driver operators.
-    segmentation_ops = camera_ops
-    return (obj_det_ops, traffic_light_det_ops, lane_det_ops, segmentation_ops)
-
-
-def add_prediction_component(graph,
-                             perfect_tracker_ops,
-                             prediction_stream_name):
-    prediction_ops = []
+def add_prediction(obstacles_tracking_stream):
     if FLAGS.prediction_type == 'linear':
-        prediction_ops.append(pylot.operator_creator.create_linear_predictor_op(
-            graph, prediction_stream_name))
-        graph.connect(perfect_tracker_ops, prediction_ops)
-
-    return prediction_ops
-
-
-def main(argv):
-    # Define graph
-    graph = erdos.graph.get_current_graph()
-
-    # Add camera and lidar driver operators to the data-flow graph.
-    (bgr_camera_setup,
-     top_down_camera_setup,
-     carla_op,
-     camera_ops,
-     lidar_ops) = add_driver_operators(
-         graph, auto_pilot=FLAGS.carla_auto_pilot)
-
-    perfect_tracker_ops = []
-    if FLAGS.use_perfect_perception:
-        # Add operators that use ground information.
-        (obj_det_ops,
-         traffic_light_det_ops,
-         lane_det_ops,
-         segmentation_ops) = add_perfect_perception_component(
-             graph,
-             bgr_camera_setup,
-             'perfect_detector_output',
-             'perfect_lane_detector_output',
-             carla_op,
-             camera_ops)
+        prediction_stream = pylot.operator_creator.add_linear_prediction(
+            obstacles_tracking_stream)
     else:
-        # Add detectors.
-        (obj_det_ops,
-         perfect_tracker_ops,
-         traffic_light_det_ops,
-         lane_det_ops) = add_detection_component(
-             graph, bgr_camera_setup, camera_ops, carla_op)
+        raise ValueError('Unexpected prediction_type {}'.format(
+            FLAGS.prediction_type))
+    return prediction_stream
 
-        # Add segmentation operators.
-        segmentation_ops = add_segmentation_component(graph, camera_ops)
 
-    prediction_ops = []
+def add_planning(can_bus_stream,
+                 open_drive_stream,
+                 global_trajectory_stream,
+                 goal_location):
+    if FLAGS.waypoint_planning_operator:
+        waypoints_stream = pylot.operator_creator.add_waypoint_planning(
+            can_bus_stream,
+            goal_location)
+    else:
+        waypoints_stream = pylot.operator_creator.add_planning(
+            can_bus_stream,
+            open_drive_stream,
+            global_trajectory_stream,
+            goal_location)
+    if FLAGS.visualize_waypoints:
+        pylot.operator_creator.add_waypoint_visualizer(waypoints_stream)
+    return waypoints_stream
+
+
+def add_control(can_bus_stream,
+                obstacles_stream,
+                traffic_lights_stream,
+                waypoints_stream):
+    if FLAGS.control_agent_operator == 'pylot':
+        control_stream = pylot.operator_creator.add_pylot_agent(
+            can_bus_stream,
+            waypoints_stream,
+            traffic_lights_stream,
+            obstacles_stream,
+            lidar_stream,
+            open_drive_stream,
+            depth_camera_stream,
+            camera_setup)
+    elif FLAGS.control_agent_operator == 'mpc':
+        control_stream = pylot.operator_creator.add_mpc_agent(
+            can_bus_stream,
+            ground_pedestrians_stream,
+            ground_vehicles_stream,
+            traffic_lights_stream,
+            ground_speed_limit_signs_stream,
+            waypoints_stream)
+    elif FLAGS.control_agent_operator == 'ground':
+        control_stream = pylot.operator_creator.add_ground_agent(
+            can_bus_stream,
+            ground_pedestrians_stream,
+            ground_vehicles_stream,
+            traffic_lights_stream,
+            ground_speed_limit_signs_stream,
+            waypoints_stream)
+    else:
+        raise ValueError('Unexpected control_agent_operator {}'.format(
+            FLAGS.control_agent_operator))
+    return control_stream
+
+
+def driver():
+    transform = pylot.simulation.utils.Transform(
+        CENTER_CAMERA_LOCATION, pylot.simulation.utils.Rotation(0, 0, 0))
+
+    # Create carla operator.
+    (can_bus_stream,
+     ground_traffic_lights_stream,
+     ground_vehicles_stream,
+     ground_pedestrians_stream,
+     ground_speed_limit_signs_stream,
+     ground_stop_signs_stream,
+     vehicle_id_stream) = pylot.operator_creator.add_carla_bridge()
+
+    # Add sensors.
+    (center_camera_stream,
+     rgb_camera_setup) = add_rgb_camera(transform, vehicle_id_stream)
+    (depth_camera_stream,
+     depth_camera_setup) = add_depth_camera(transform, vehicle_id_stream)
+    (segmented_stream, _) = add_segmented_camera(transform, vehicle_id_stream)
+    (point_cloud_stream, lidar_setup) = add_lidar(vehicle_id_stream)
+    (traffic_light_camera_stream,
+     traffic_light_camera_setup) = add_traffic_light_camera(
+         transform, vehicle_id_stream)
+
+    if FLAGS.depth_estimation:
+        add_depth_estimation(vehicle_id_stream, rgb_camera_setup)
+
+    if FLAGS.visualize_top_down_segmentation:
+        (top_down_segmented_stream,
+         top_down_segmetned_camera_setup) = add_top_down_segmented_camera(
+             vehicle_id_stream)
+
+    if FLAGS.use_perfect_perception:
+        (obstacles_stream,
+         obstacles_tracking_stream,
+         traffic_lights_stream,
+         lane_detection_stream,
+         segmented_stream) = add_perfect_perception(
+             center_camera_stream,
+             depth_camera_stream,
+             segmented_stream,
+             can_bus_stream,
+             ground_pedestrians_stream,
+             ground_vehicles_stream,
+             ground_traffic_lights_stream,
+             ground_speed_limit_signs_stream,
+             ground_stop_signs_stream,
+             rgb_camera_setup)
+    else:
+        (obstacles_stream,
+         obstacles_tracking_stream,
+         traffic_lights_stream,
+         lane_detection_stream,
+         segmented_stream) = add_perception(
+             center_camera_stream, traffic_light_camera_stream)
+
     if FLAGS.prediction:
-        prediction_ops = add_prediction_component(graph, perfect_tracker_ops, 'prediction_output')
-
-    add_ground_eval_ops(graph, obj_det_ops, camera_ops)
-
-    # Add debugging operators (e.g., visualizers) to the data-flow graph.
-    add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
-                            lidar_ops, perfect_tracker_ops, prediction_ops)
-
-    # Add the behaviour planning agent operator.
-    agent_op = add_agent_op(graph,
-                            carla_op,
-                            traffic_light_det_ops,
-                            obj_det_ops,
-                            segmentation_ops,
-                            lane_det_ops,
-                            bgr_camera_setup)
+        prediction_stream = add_prediction(obstacles_tracking_stream)
 
     # Add planning operators.
     goal_location = (234.269989014, 59.3300170898, 39.4306259155)
-    add_planning_component(graph, goal_location, carla_op, agent_op)
+    waypoints_stream = add_planning(can_bus_stream,
+                                    open_drive_stream,
+                                    global_trajectory_stream,
+                                    goal_location)
 
-    graph.execute("ros")
+    # Add the behaviour planning and control operator.
+    control_stream = add_control(can_bus_stream,
+                                 obstacles_stream,
+                                 traffic_lights_stream,
+                                 waypoints_stream)
+
+    pylot.operator_creator.add_visualizers(
+        center_camera_stream,
+        depth_camera_stream,
+        point_cloud_stream,
+        segmented_stream,
+        top_down_segmented_stream,
+        obstacles_tracking_stream,
+        prediction_stream,
+        top_down_segmetned_camera_setup)
+
+
+def main(argv):
+    erdust.run(driver)
 
 
 if __name__ == '__main__':
