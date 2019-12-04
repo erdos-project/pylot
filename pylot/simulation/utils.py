@@ -404,7 +404,6 @@ class Transform(object):
                                            self.matrix[1, 0],
                                            self.matrix[2, 0])
 
-
     @staticmethod
     def _create_matrix(location, rotation):
         """ Creates a transformation matrix to convert points in the 3D world
@@ -498,6 +497,13 @@ class Transform(object):
                 self.location, self.rotation)
         else:
             return "Transform({})".format(str(self.matrix))
+
+
+def get_top_down_transform(transform, top_down_lateral_view):
+    # Height calculation relies on the fact that the camera's FOV is 90.
+    top_down_location = (transform.location +
+                         Location(0, 0, top_down_lateral_view))
+    return Transform(top_down_location, Rotation(-90, 0, 0))
 
 
 def depth_to_array(image):

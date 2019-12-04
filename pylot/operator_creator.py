@@ -57,6 +57,10 @@ from pylot.simulation.perfect_lane_detector_operator import \
 from pylot.simulation.perfect_tracker_operator import PerfectTrackerOperator
 from pylot.simulation.perfect_traffic_light_detector_operator import \
     PerfectTrafficLightDetectorOperator
+# Sensor setups.
+from pylot.simulation.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
+    SegmentedCameraSetup
+import pylot.simulation.utils
 
 FLAGS = flags.FLAGS
 
@@ -254,7 +258,67 @@ def add_waypoint_planning(can_bus_stream,
     return waypoints_stream
 
 
-def add_camera_driver(vehicle_id_stream, camera_setup):
+def add_rgb_camera(transform,
+                   vehicle_id_stream,
+                   name='center_rgb_camera',
+                   fov=90):
+    rgb_camera_setup = RGBCameraSetup(name,
+                                      FLAGS.carla_camera_image_width,
+                                      FLAGS.carla_camera_image_height,
+                                      transform,
+                                      fov)
+    camera_stream = _add_camera_driver(vehicle_id_stream, rgb_camera_setup)
+    return (camera_stream, rgb_camera_setup)
+
+
+def add_depth_camera(transform,
+                     vehicle_id_stream,
+                     name='center_depth_camera',
+                     fov=90):
+    depth_camera_setup = DepthCameraSetup(name,
+                                          FLAGS.carla_camera_image_width,
+                                          FLAGS.carla_camera_image_height,
+                                          transform,
+                                          fov)
+    ground_depth_camera_stream = _add_camera_driver(
+        vehicle_id_stream, depth_camera_setup)
+    return (ground_depth_camera_stream, depth_camera_setup)
+
+
+def add_segmented_camera(transform,
+                         vehicle_id_stream,
+                         name='center_segmented_camera',
+                         fov=90):
+    segmented_camera_setup = SegmentedCameraSetup(
+        name,
+        FLAGS.carla_camera_image_width,
+        FLAGS.carla_camera_image_height,
+        transform,
+        fov)
+    ground_segmented_camera_stream = _add_camera_driver(
+        vehicle_id_stream, segmented_camera_setup)
+    return (ground_segmented_camera_stream, segmented_camera_setup)
+
+
+def add_left_right_cameras(transform,
+                           vehicle_id_stream,
+                           fov=90):
+    (left_camera_setup, right_camera_setup) = \
+        pylot.simulation.sensor_setup.create_left_right_camera_setups(
+            'camera',
+            transform.location,
+            FLAGS.carla_camera_image_width,
+            FLAGS.carla_camera_image_height,
+            FLAGS.offset_left_right_cameras,
+            fov)
+    left_camera_stream = _add_camera_driver(
+        vehicle_id_stream, left_camera_setup)
+    right_camera_stream = _add_camera_driver(
+        vehicle_id_stream, right_camera_setup)
+    return (left_camera_stream, right_camera_stream)
+
+
+def _add_camera_driver(vehicle_id_stream, camera_setup):
     [camera_stream] = erdust.connect(CameraDriverOperator,
                                      [vehicle_id_stream],
                                      camera_setup.get_name() + "_operator",
@@ -265,7 +329,14 @@ def add_camera_driver(vehicle_id_stream, camera_setup):
     return camera_stream
 
 
-def add_lidar_driver(vehicle_id_stream, lidar_setup):
+def add_lidar(transform, vehicle_id_stream, name='center_lidar'):
+    lidar_setup = pylot.simulation.sensor_setup.create_center_lidar_setup(
+        transform.location)
+    point_cloud_stream = _add_lidar_driver(vehicle_id_stream, lidar_setup)
+    return (point_cloud_stream, lidar_setup)
+
+
+def _add_lidar_driver(vehicle_id_stream, lidar_setup):
     [point_cloud_stream] = erdust.connect(LidarDriverOperator,
                                           [vehicle_id_stream],
                                           lidar_setup.get_name() + "_operator",

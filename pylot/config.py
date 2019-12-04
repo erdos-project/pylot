@@ -112,6 +112,10 @@ flags.DEFINE_bool('depth_estimation', False,
                   'True to depth estimation using cameras')
 flags.DEFINE_string('depth_estimation_model_path', 'dependencies/anynet/',
                     'Path to AnyNet depth estimation model')
+flags.DEFINE_float(
+    'offset_left_right_cameras',
+    0.4,
+    'How much we offset the left and right cameras from the center.')
 
 ######################################################################
 # Prediction

@@ -26,10 +26,10 @@ def create_segmented_camera_setup(
 
 
 def create_left_right_camera_setups(
-        camera_name_prefix, location, width, height, fov=90):
+        camera_name_prefix, location, width, height, camera_offset, fov=90):
     rotation = Rotation(0, 0, 0)
-    left_loc = location + Location(0, -0.4, 0)
-    right_loc = location + Location(0, 0.4, 0)
+    left_loc = location + Location(0, -camera_offset, 0)
+    right_loc = location + Location(0, camera_offset, 0)
     left_transform = Transform(left_loc, rotation)
     right_transform = Transform(right_loc, rotation)
     left_camera_setup = RGBCameraSetup(camera_name_prefix + '_left',
@@ -59,21 +59,6 @@ def create_center_lidar_setup(location):
         upper_fov=15,
         lower_fov=-30,
         points_per_second=500000)
-
-
-def create_top_down_segmented_camera_setup(
-        camera_name, location, width, height, top_down_lateral_view):
-    # Height calculation relies on the fact that the camera's FOV is 90.
-    top_down_loc = location + Location(0, 0, top_down_lateral_view)
-    rotation = pylot.simulation.utils.Rotation(-90, 0, 0)
-    transform = pylot.simulation.utils.Transform(top_down_loc, rotation)
-    top_down_segmented_camera_setup = SegmentedCameraSetup(
-        camera_name,
-        width,
-        height,
-        transform,
-        fov=90)
-    return top_down_segmented_camera_setup
 
 
 class CameraSetup(object):
