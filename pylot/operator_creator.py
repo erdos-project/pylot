@@ -55,6 +55,8 @@ from pylot.simulation.perfect_detector_operator import PerfectDetectorOperator
 from pylot.simulation.perfect_lane_detector_operator import \
     PerfectLaneDetectionOperator
 from pylot.simulation.perfect_tracker_operator import PerfectTrackerOperator
+from pylot.simulation.perfect_traffic_light_detector_operator import \
+    PerfectTrafficLightDetectorOperator
 
 FLAGS = flags.FLAGS
 
@@ -514,7 +516,6 @@ def add_perfect_detector(depth_camera_stream,
                          can_bus_stream,
                          ground_pedestrians_stream,
                          ground_vehicles_stream,
-                         ground_traffic_lights_stream,
                          ground_speed_limit_signs_stream,
                          ground_stop_signs_stream,
                          camera_setup):
@@ -526,7 +527,6 @@ def add_perfect_detector(depth_camera_stream,
          can_bus_stream,
          ground_pedestrians_stream,
          ground_vehicles_stream,
-         ground_traffic_lights_stream,
          ground_speed_limit_signs_stream,
          ground_stop_signs_stream],
         'perfect_detector_operator',
@@ -534,6 +534,24 @@ def add_perfect_detector(depth_camera_stream,
         FLAGS,
         log_file_name=FLAGS.log_file_name)
     return obstacles_stream
+
+
+def add_perfect_traffic_light_detector(ground_traffic_lights_stream,
+                                       center_camera_stream,
+                                       depth_camera_stream,
+                                       segmented_camera_stream,
+                                       can_bus_stream):
+    [traffic_lights_stream] = erdust.connect(
+        PerfectTrafficLightDetectorOperator,
+        [ground_traffic_lights_stream,
+         center_camera_stream,
+         depth_camera_stream,
+         segmented_camera_stream,
+         can_bus_stream],
+        'perfect_traffic_light_detector_operator',
+        FLAGS,
+        log_file_name=FLAGS.log_file_name)
+    return traffic_lights_stream
 
 
 def add_perfect_lane_detector(can_bus_stream):

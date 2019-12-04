@@ -6,7 +6,6 @@ from pylot.perception.detection.utils import DetectedObject,\
     annotate_image_with_bboxes, save_image, visualize_image
 from pylot.perception.messages import DetectorMessage
 from pylot.simulation.utils import get_2d_bbox_from_3d_box
-from pylot.simulation.carla_utils import get_world
 
 
 class PerfectDetectorOperator(erdust.Operator):
@@ -28,7 +27,6 @@ class PerfectDetectorOperator(erdust.Operator):
                  can_bus_stream,
                  ground_pedestrians_stream,
                  ground_vehicles_stream,
-                 ground_traffic_lights_stream,
                  ground_speed_limit_signs_stream,
                  ground_stop_signs_stream,
                  obstacles_stream,
@@ -47,7 +45,6 @@ class PerfectDetectorOperator(erdust.Operator):
         can_bus_stream.add_callback(self.on_can_bus_update)
         ground_pedestrians_stream.add_callback(self.on_pedestrians_update)
         ground_vehicles_stream.add_callback(self.on_vehicles_update)
-        ground_traffic_lights_stream.add_callback(self.on_traffic_light_update)
         ground_speed_limit_signs_stream.add_callback(
             self.on_speed_limit_signs_update)
         ground_stop_signs_stream.add_callback(self.on_stop_signs_update)
@@ -60,7 +57,6 @@ class PerfectDetectorOperator(erdust.Operator):
              can_bus_stream,
              ground_pedestrians_stream,
              ground_vehicles_stream,
-             ground_traffic_lights_stream,
              ground_speed_limit_signs_stream,
              ground_stop_signs_stream],
             [obstacles_stream],
@@ -69,19 +65,12 @@ class PerfectDetectorOperator(erdust.Operator):
         self._name = name
         self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
-        _, world = get_world(self._flags.carla_host,
-                             self._flags.carla_port,
-                             self._flags.carla_timeout)
-        if world is None:
-            raise ValueError("There was an issue connecting to the simulator.")
-        self._town_name = world.get_map().name
         # Queues of incoming data.
         self._bgr_imgs = deque()
         self._can_bus_msgs = deque()
         self._depth_imgs = deque()
         self._pedestrians = deque()
         self._segmented_imgs = deque()
-        self._traffic_lights = deque()
         self._vehicles = deque()
         self._speed_limit_signs = deque()
         self._stop_signs = deque()
@@ -97,7 +86,6 @@ class PerfectDetectorOperator(erdust.Operator):
                 can_bus_stream,
                 ground_pedestrians_stream,
                 ground_vehicles_stream,
-                ground_traffic_lights_stream,
                 ground_speed_limit_signs_stream,
                 ground_stop_signs_stream):
         obstacles_stream = erdust.WriteStream()
@@ -111,7 +99,6 @@ class PerfectDetectorOperator(erdust.Operator):
         can_bus_msg = self._can_bus_msgs.popleft()
         pedestrians_msg = self._pedestrians.popleft()
         vehicles_msg = self._vehicles.popleft()
-        traffic_light_msg = self._traffic_lights.popleft()
         speed_limit_signs_msg = self._speed_limit_signs.popleft()
         stop_signs_msg = self._stop_signs.popleft()
         self._frame_cnt += 1
@@ -122,25 +109,14 @@ class PerfectDetectorOperator(erdust.Operator):
             obstacles_stream.send(DetectorMessage([], 0, timestamp))
             return
         depth_array = depth_msg.frame
-        segmented_image = segmented_msg.frame
         vehicle_transform = can_bus_msg.data.transform
 
         det_ped = self.__get_pedestrians(pedestrians_msg.pedestrians,
                                          vehicle_transform, depth_array,
-                                         segmented_image)
+                                         segmented_msg.frame)
 
         det_vec = self.__get_vehicles(vehicles_msg.vehicles, vehicle_transform,
-                                      depth_array, segmented_image)
-
-        det_traffic_lights = pylot.simulation.utils.get_traffic_light_det_objs(
-            traffic_light_msg.traffic_lights,
-            vehicle_transform * depth_msg.transform,
-            depth_msg.frame,
-            segmented_image,
-            depth_msg.width,
-            depth_msg.height,
-            self._town_name,
-            fov=depth_msg.fov)
+                                      depth_array, segmented_msg.frame)
 
         det_speed_limits = pylot.simulation.utils.get_speed_limit_det_objs(
             speed_limit_signs_msg.speed_signs,
@@ -154,8 +130,7 @@ class PerfectDetectorOperator(erdust.Operator):
             vehicle_transform * depth_msg.transform,
             depth_msg.frame, depth_msg.width, depth_msg.height, depth_msg.fov)
 
-        det_objs = (det_ped + det_vec + det_traffic_lights +
-                    det_speed_limits + det_stop_signs)
+        det_objs = det_ped + det_vec + det_speed_limits + det_stop_signs
 
         # Send the detected obstacles.
         obstacles_stream.send(DetectorMessage(det_objs, 0, timestamp))
@@ -174,9 +149,6 @@ class PerfectDetectorOperator(erdust.Operator):
 
     def on_can_bus_update(self, msg):
         self._can_bus_msgs.append(msg)
-
-    def on_traffic_light_update(self, msg):
-        self._traffic_lights.append(msg)
 
     def on_speed_limit_signs_update(self, msg):
         self._speed_limit_signs.append(msg)
@@ -218,7 +190,8 @@ class PerfectDetectorOperator(erdust.Operator):
                 self._bgr_intrinsic, self._bgr_img_size, depth_array,
                 segmented_image, 4)
             if bbox is not None:
-                det_objs.append(DetectedObject(bbox, 1.0, 'pedestrian', pedestrian.id))
+                det_objs.append(
+                    DetectedObject(bbox, 1.0, 'pedestrian', pedestrian.id))
         return det_objs
 
     def __get_vehicles(self, vehicles, vehicle_transform, depth_array,
@@ -239,5 +212,6 @@ class PerfectDetectorOperator(erdust.Operator):
                 self._bgr_transform, self._bgr_intrinsic, self._bgr_img_size,
                 depth_array, segmented_image, 10)
             if bbox is not None:
-                det_objs.append(DetectedObject(bbox, 1.0, 'vehicle', vehicle.id))
+                det_objs.append(
+                    DetectedObject(bbox, 1.0, 'vehicle', vehicle.id))
         return det_objs

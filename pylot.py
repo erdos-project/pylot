@@ -168,13 +168,19 @@ def add_perfect_perception(center_camera_stream,
         can_bus_stream,
         ground_pedestrians_stream,
         ground_vehicles_stream,
-        ground_traffic_lights_stream,
         ground_speed_limit_signs_stream,
         ground_stop_signs_stream,
         center_camera_setup)
 
-    # TODO: Split perfect detector into obstacle and traffic light detectors.
-    traffic_lights_stream = None
+    # The perfect traffic light detector uses the regular camera because
+    # it is not sensitive to fov settings.
+    traffic_lights_stream = \
+        pylot.operator_creator.add_perfect_traffic_light_detector(
+            ground_traffic_lights_stream,
+            center_camera_stream,
+            depth_camera_stream,
+            segmented_camera_stream,
+            can_bus_stream)
     
     lane_detection_stream = pylot.operator_creator.add_perfect_lane_detector(
         can_bus_stream)
