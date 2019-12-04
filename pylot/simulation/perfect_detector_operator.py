@@ -5,8 +5,7 @@ import pylot.utils
 from pylot.perception.detection.utils import DetectedObject,\
     annotate_image_with_bboxes, save_image, visualize_image
 from pylot.perception.messages import DetectorMessage
-from pylot.simulation.utils import get_2d_bbox_from_3d_box,\
-    camera_to_unreal_transform
+from pylot.simulation.utils import get_2d_bbox_from_3d_box
 from pylot.simulation.carla_utils import get_world
 
 
@@ -135,7 +134,7 @@ class PerfectDetectorOperator(erdust.Operator):
 
         det_traffic_lights = pylot.simulation.utils.get_traffic_light_det_objs(
             traffic_light_msg.traffic_lights,
-            vehicle_transform * camera_to_unreal_transform(depth_msg.transform),
+            vehicle_transform * depth_msg.transform,
             depth_msg.frame,
             segmented_image,
             depth_msg.width,
@@ -152,7 +151,7 @@ class PerfectDetectorOperator(erdust.Operator):
 
         det_stop_signs = pylot.simulation.utils.get_traffic_stop_det_objs(
             stop_signs_msg.stop_signs,
-            vehicle_transform * camera_to_unreal_transform(depth_msg.transform),
+            vehicle_transform * depth_msg.transform,
             depth_msg.frame, depth_msg.width, depth_msg.height, depth_msg.fov)
 
         det_objs = (det_ped + det_vec + det_traffic_lights +
