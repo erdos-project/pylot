@@ -191,7 +191,6 @@ flags.DEFINE_bool('visualize_traffic_light_output', False,
                   'True to enable visualization of traffic light output')
 flags.DEFINE_bool('visualize_lane_detection', False,
                   'True to visualize lane detection')
-flags.DEFINE_bool('visualize_waypoints', False, 'True to visualize waypoints')
 flags.DEFINE_bool('visualize_top_down_segmentation', False,
                   'True to visualize top-down segmentation')
 flags.DEFINE_bool('visualize_top_down_tracker_output', False,

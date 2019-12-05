@@ -1,14 +1,14 @@
 import carla
 import collections
 import itertools
-import pylot.utils
 
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging
 
+import pylot.utils
 from pylot.map.hd_map import HDMap
 from pylot.planning.messages import WaypointsMessage
-from pylot.simulation.carla_utils import get_map, to_carla_location
+from pylot.simulation.carla_utils import get_map
 from pylot.planning.utils import get_waypoint_vector_and_angle
 
 DEFAULT_NUM_WAYPOINTS = 50
@@ -64,11 +64,13 @@ class WaypointPlanningOperator(Op):
         wp_speed_vector, wp_speed_angle = get_waypoint_vector_and_angle(
             next_waypoint, self._vehicle_transform)
 
-        waypoints = collections.deque(itertools.islice(self._waypoints, 0, DEFAULT_NUM_WAYPOINTS))  # only take 50 meters
+        waypoints = collections.deque(
+            itertools.islice(self._waypoints, 0, DEFAULT_NUM_WAYPOINTS)
+        )  # only take 50 meters
 
         output_msg = WaypointsMessage(
             msg.timestamp,
-            waypoints=self._waypoints,
+            waypoints=waypoints,
             wp_angle=wp_steer_angle,
             wp_vector=wp_steer_vector,
             wp_angle_speed=wp_speed_angle
@@ -76,5 +78,5 @@ class WaypointPlanningOperator(Op):
         self.get_output_stream('waypoints').send(output_msg)
 
     def __update_waypoints(self):
-        ego_location = to_carla_location(self._vehicle_transform.location)
+        ego_location = self._vehicle_transform.location.as_carla_location()
         self._waypoints = self._map.compute_waypoints(ego_location, self._goal_location)

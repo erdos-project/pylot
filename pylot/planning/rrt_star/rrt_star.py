@@ -7,28 +7,29 @@ import networkx as nx
 from pylot.planning.rrt_star.utils import *
 
 
-def apply_rrt_star(state_space, starting_state, target_space, obstacle_map, n_samples=500, granularity=0.5,
-                   d_threshold=0.5):
+def apply_rrt_star(state_space, starting_state, target_space, obstacle_map,
+                   n_samples=500, granularity=0.5, d_threshold=0.5):
     """
-    Run RRT* algorithm, described here: http://roboticsproceedings.org/rss06/p34.pdf.
+    Run RRT* algorithm, described here:
+        http://roboticsproceedings.org/rss06/p34.pdf.
 
-    :param state_space: tuple
-        state space bounding box in form (origin_x, origin_y), (range_x, range_y)
-    :param starting_state: tuple
-        starting state in form (x, y)
-    :param target_space: tuple
-        target space bounding box in form (origin_x, origin_y), (range_x, range_y)
-    :param obstacle_map: dict
-        dict mapping obstacle ID to (origin_x, origin_y), (range_x, range_y)
-    :param n_samples: int
-        number of RRT* samples to run
-    :param granularity: float
-        granularity of the incremental collision checking technique
-    :param d_threshold: float
-        distance that new points should be sampled from relative to existing node
-    :return: np.ndarray, float
+    Args:
+        state_space: tuple of form (origin_x, origin_y), (range_x, range_y)
+        starting_state: tuple of form (x, y)
+        target_space: tuple of form (origin_x, origin_y), (range_x, range_y)
+        obstacle_map: dict of form
+            {id: (origin_x, origin_y), (range_x, range_y)}
+        n_samples: int of number of RRT* samples to run
+        granularity: float specifying fineness of the incremental collision
+            checking technique
+        d_threshold: float of distance that new points should be sampled from
+            relative to existing node
+
+    Returns:
+        np.ndarray, float
         return the path in form [[x0, y0],...] and final cost
-        if solution not found, returns the path to the closest point to the target space and final cost is none
+        if solution not found, returns the path to the closest point to the
+        target space and final cost is none
     """
     tree = nx.DiGraph()
     tree.add_node(starting_state)
@@ -42,7 +43,8 @@ def apply_rrt_star(state_space, starting_state, target_space, obstacle_map, n_sa
     # cost for each vertex
     cost = {starting_state: 0}
 
-    gamma = 1 + np.power(2, space_dim) * (1 + 1.0 / space_dim) * get_free_area(state_space, obstacle_map)
+    gamma = 1 + np.power(2, space_dim) * (1 + 1.0 / space_dim) * \
+        get_free_area(state_space, obstacle_map)
 
     for i in range(n_samples):
 
@@ -65,7 +67,8 @@ def apply_rrt_star(state_space, starting_state, target_space, obstacle_map, n_sa
             continue
 
         # find k nearest neighbours
-        radius = np.minimum(np.power(gamma / volume_of_unit_ball[space_dim] * np.log(i + 1) / (i + 1),
+        radius = np.minimum(np.power(gamma / volume_of_unit_ball[space_dim] *
+                                     np.log(i + 1) / (i + 1),
                                      1 / space_dim), d_threshold)
         m_near = nearest_neighbours(list(tree.nodes), m_new, radius=radius)
 
@@ -79,10 +82,12 @@ def apply_rrt_star(state_space, starting_state, target_space, obstacle_map, n_sa
             d = cartesian_distance(m_g, m_new)
             c = cost[m_g] + d
 
-            # if cost is less than current lowest cost, that means m_new to m_g could be a potential link
+            # if cost is less than current lowest cost, that means m_new to m_g
+            # could be a potential link
             if c < cost[min_cost] + d_min_cost:
 
-                # check if path between(m_g,m_new) defined by motion-model is collision free
+                # check if path between(m_g,m_new) defined by motion-model is
+                # collision free
                 if not is_collision_free(m_g, m_new, obstacle_map, granularity):
                     continue
 
@@ -100,10 +105,12 @@ def apply_rrt_star(state_space, starting_state, target_space, obstacle_map, n_sa
             d = cartesian_distance(m_new, m_g)
             c = cost[m_new] + d
 
-            # if cost is less than current cost, that means m_new to m_g could be a potential link
+            # if cost is less than current cost, that means m_new to m_g could
+            # be a potential link
             if c < cost[m_g]:
                 # check if path between(m_g,m_new) is collision free
-                is_free = is_collision_free(m_g, m_new, obstacle_map, granularity)
+                is_free = is_collision_free(m_g, m_new, obstacle_map,
+                                            granularity)
 
                 # if path is free, update the links
                 if is_free:

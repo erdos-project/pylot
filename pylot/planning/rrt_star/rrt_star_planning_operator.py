@@ -1,7 +1,6 @@
 import carla
 import collections
 import itertools
-import pylot.utils
 import threading
 
 from collections import deque
@@ -9,10 +8,11 @@ from erdos.op import Op
 from erdos.message import WatermarkMessage
 from erdos.utils import setup_csv_logging, setup_logging
 
+import pylot.utils
 from pylot.map.hd_map import HDMap
 from pylot.planning.messages import WaypointsMessage
 from pylot.simulation.utils import Transform, Location, Rotation
-from pylot.simulation.carla_utils import get_map, to_carla_location
+from pylot.simulation.carla_utils import get_map
 from pylot.planning.rrt_star.rrt_star import apply_rrt_star
 from pylot.planning.rrt_star.utils import start_target_to_space
 from pylot.planning.utils import get_waypoint_vector_and_angle
@@ -151,5 +151,5 @@ class RRTStarPlanningOperator(Op):
         self.get_output_stream('waypoints').send(WatermarkMessage(msg.timestamp))
 
     def __update_waypoints(self):
-        ego_location = to_carla_location(self._vehicle_transform.location)
+        ego_location = self._vehicle_transform.location.as_carla_location()
         self._waypoints = self._map.compute_waypoints(ego_location, self._goal_location)

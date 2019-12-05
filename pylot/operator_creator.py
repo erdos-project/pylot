@@ -234,18 +234,6 @@ def create_linear_predictor_op(graph, output_stream_name):
     return linear_predictor_op
 
 
-def create_waypoint_visualizer_op(graph):
-    from pylot.debug.waypoint_visualize_operator import WaypointVisualizerOperator
-    waypoint_viz_op = graph.add(
-        WaypointVisualizerOperator,
-        name='waypoint_viz',
-        init_args={
-            'flags': FLAGS,
-            'log_file_name': FLAGS.log_file_name
-        })
-    return waypoint_viz_op
-
-
 def create_planning_visualizer_op(graph):
     from pylot.debug.planning_visualize_operator import PlanningVisualizeOperator
     planning_viz_op = graph.add(

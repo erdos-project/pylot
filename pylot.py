@@ -251,10 +251,6 @@ def add_planning_component(graph,
         planning_op = pylot.operator_creator.create_planning_op(
             graph, goal_location)
 
-    if FLAGS.visualize_waypoints:
-        waypoint_viz_op = pylot.operator_creator.create_waypoint_visualizer_op(graph)
-        graph.connect([planning_op], [waypoint_viz_op])
-
     if FLAGS.visualize_planning:
         rrt_star_viz_op = pylot.operator_creator.create_planning_visualizer_op(graph)
         graph.connect([planning_op], [rrt_star_viz_op])
