@@ -1,4 +1,5 @@
 from erdos.message import Message
+from pylot.simulation.utils import Vector3D, Transform
 
 
 class FrameMessage(Message):
@@ -94,7 +95,8 @@ class IMUMessage(Message):
         transform: The simulation.utils.Transform of the IMU.
         acceleration: carla.vector3D linear acceleration measurement in m/s^2
         gyro: carla.vector3D angular velocity measurement in rad/sec
-        compass: float orientation measurement w.r.t North direction ((0, -1, 0) in Unreal) in radians
+        compass: float orientation measurement w.r.t North direction ((0, -1, 0)
+            in Unreal) in radians
     """
     def __init__(self, transform, acceleration, gyro, compass, timestamp):
         """ Initializes the IMU messsage.
@@ -103,17 +105,20 @@ class IMUMessage(Message):
             transform: The simulation.utils.Transform of the IMU.
             acceleration: carla.vector3D linear acceleration measurement in m/s^2
             gyro: carla.vector3D angular velocity measurement in rad/sec
-            compass: float orientation measurement w.r.t North direction ((0, -1, 0) in Unreal) in radians
+            compass: float orientation measurement w.r.t North direction
+                ((0, -1, 0) in Unreal) in radians
         """
         super(IMUMessage, self).__init__(None, timestamp, 'default')
-        self.transform = transform
-        self.acceleration = acceleration
-        self.gyro = gyro
+        self.transform = Transform(carla_transform=transform)
+        self.acceleration = Vector3D(carla_vector=acceleration)
+        self.gyro = Vector3D(carla_vector=gyro)
         self.compass = compass
 
     def __str__(self):
-        return 'IMUMessage(timestamp: {}, transform: {}, transform: {}, transform: {}, transform: {})'.format(
-            self.timestamp, self.transform, self.acceleration, self.gyro, self.compass)
+        return 'IMUMessage(timestamp: {}, transform: {}, transform: {}, '\
+               'transform: {}, transform: {})'.format(
+                self.timestamp, self.transform, self.acceleration, self.gyro,
+                self.compass)
 
 
 class GroundVehiclesMessage(Message):
