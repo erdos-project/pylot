@@ -18,7 +18,6 @@ class PlanningVisualizeOperator(Op):
     Attributes:
         _world: A handle to the world to draw the waypoints on.
     """
-
     def __init__(self, name, flags, log_file_name=None):
         """ Initializes the PlanningVisualizeOperator with the given
         parameters.
@@ -69,6 +68,9 @@ class PlanningVisualizeOperator(Op):
                                  waypoint.location.y,
                                  0.5)
 
-            self._world.debug.draw_point(loc,
-                                         size=0.2,
-                                         life_time=0.1, color=carla.Color(0, 0, 255))
+            self._world.debug.draw_point(
+                loc,
+                size=0.2,
+                life_time=self._flags.planning_vis_life_time,
+                color=carla.Color(0, 0, 255)
+            )

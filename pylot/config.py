@@ -196,7 +196,11 @@ flags.DEFINE_bool('visualize_top_down_segmentation', False,
 flags.DEFINE_bool('visualize_top_down_tracker_output', False,
                   'True to enable visualization of top-down tracker output')
 flags.DEFINE_bool('visualize_can_bus', False, 'True to visualize can bus.')
+flags.DEFINE_float('can_bus_vis_life_time', 30000.0,
+                   'Time in seconds to visualize CanBus waypoints')
 flags.DEFINE_bool('visualize_planning', False, 'True to visualize planning.')
+flags.DEFINE_float('planning_vis_life_time', 0.1,
+                   'Time in seconds to visualize planning waypoints')
 
 # Accuracy evaluation flags.
 flags.DEFINE_bool('evaluate_obj_detection', False,
