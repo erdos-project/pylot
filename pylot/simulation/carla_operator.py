@@ -111,8 +111,7 @@ class CarlaOperator(Op):
             pylot.utils.create_ground_pedestrians_stream(),
             pylot.utils.create_ground_speed_limit_signs_stream(),
             pylot.utils.create_ground_stop_signs_stream(),
-            pylot.utils.create_imu_stream()
-            pylot.utils.create_cont]
+            pylot.utils.create_imu_stream()]
         return ground_agent_streams + [pylot.utils.create_vehicle_id_stream()]
 
     def on_control_msg(self, msg):

@@ -1548,13 +1548,13 @@ def kalman_step(y, A, B, c, D, e, u, Q, R, init_x, init_V):
     Vpred = np.zeros([init_V.shape[0], init_V.shape[1]])
     Vfilt = np.zeros_like(Vpred)
   
-    xpred = A @ init_x + B @ u + c
-    Vpred = A @ init_V @ A.T + Q
-    error = y - (D @ xpred + e)
-    S = D @ Vpred @ D.T + R 
-    K = Vpred @ D.T @ np.linalg.inv(S) 
+    xpred = A.dot(init_x) + B.dot(u) + c
+    Vpred = A.dot(init_V).dot(A.T) + Q
+    error = y - (D.dot(xpred) + e)
+    S = D.dot(Vpred).dot(D.T) + R 
+    K = Vpred.dot(D.T).dot( np.linalg.inv(S)) 
 
-    xfilt = xpred + K @ error
-    Vfilt = (np.eye(K.shape[0]) - K @ D) @ Vpred
+    xfilt = xpred + K.dot(error)
+    Vfilt = (np.eye(K.shape[0]) - K.dot(D)).dot(Vpred)
 
     return xfilt,Vfilt

@@ -178,7 +178,7 @@ def create_trajectory_logger_op(graph):
 
 def create_kalman_logger_op(graph):
     kalman_logger_op = graph.add(
-        KalmanLoggerOp
+        KalmanLoggerOp,
         name='kalman_logger_op',
         init_args={
             'flags': FLAGS,

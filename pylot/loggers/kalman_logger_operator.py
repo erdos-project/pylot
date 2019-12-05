@@ -22,7 +22,7 @@ class KalmanLoggerOp(Op):
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-        super(KalmanLoggerOperator, self).__init__(name)
+        super(KalmanLoggerOp, self).__init__(name)
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
         self._flags = flags
@@ -43,20 +43,22 @@ class KalmanLoggerOp(Op):
 
     @staticmethod
     def setup_streams(input_streams):
+        print("SETTING UP STREAMS")
         input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
-            KalmanLoggerOperator.on_can_bus_update)
+            KalmanLoggerOp.on_can_bus_update)
         input_streams.filter(pylot.utils.is_imu_stream).add_callback(
-            KalmanLoggerOperator.on_imu_update)
+            KalmanLoggerOp.on_imu_update)
         input_streams.filter(pylot.utils.is_control_stream).add_callback(
-            KalmanLoggerOperator.on_control_update)
+            KalmanLoggerOp.on_control_update)
 
         input_streams.add_completion_callback(
-           KalmanLoggerOperator.on_notification)
+           KalmanLoggerOp.on_notification)
         # Set no watermark on the output stream so that we do not
         # close the watermark loop with the carla operator.
         return []
 
     def on_can_bus_update(self, msg):
+        print("CAN BUS UPDATE")
         with self._lock:
             self._can_bus_msgs.append(msg)
 
@@ -86,15 +88,15 @@ class KalmanLoggerOp(Op):
 
         X_meas = [x,y, vel,yaw]
         u = [acccel,steer]
-	    Q = np.eye(4) * .1
-	    R = np.eye(4)
-	    R[2] *= .1
-	    R[3] *=.1
+        Q = np.eye(4) * .1
+	R = np.eye(4)
+	R[2] *= .1
+	R[3] *=.1
 
         # prev_vel = self._init_X[2]
         # prev_yaw = self._init_X[3]
         # prev_steer = self._init_V[1]
-	    A,B,c = self.get_transition_matrix(self, vel, yaw, steer)
+	A,B,c = self.get_transition_matrix(self, vel, yaw, steer)
         X_filt, V_filt = kalman_step(X_meas, A, B, c, np.eye(np.shape(X_meas)), 0, u, Q,R,self._init_X,self._init_V)
         self._init_X = X_filt
         self._init_V = V_filt
