@@ -194,7 +194,7 @@ class ObjectTrackerOp(Op):
         else:
             if self._flags.visualize_tracker_output and not catch_up:
                 for tracked_object in tracked_objects:
-                    # tracked objects have no label, draw black bbox for them ([0, 0, 0])
-                    tracked_object.visualize_on_img(frame, {"": [0, 0, 0]})
+                    # tracked objects have no label, draw white bbox for them ([255, 255, 255])
+                    tracked_object.visualize_on_img(frame, {"": (255, 255, 255)})
                 visualize_image(self.name, frame)
 
