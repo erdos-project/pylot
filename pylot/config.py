@@ -14,6 +14,7 @@ flags.DEFINE_string('csv_log_file_name', None,
 flags.DEFINE_bool('lidar', False, 'True to enable the lidar sensor')
 flags.DEFINE_bool('top_down_segmentation', False,
                   'True for enable the top down segmentation camera')
+flags.DEFINE_bool('imu', True, 'True to enable the IMU sensor')
 
 # Planning modules to enable.
 flags.DEFINE_bool('waypoint_planning_operator', False,
@@ -171,6 +172,8 @@ flags.DEFINE_bool('visualize_depth_camera', False,
                   'True to enable depth camera video operator')
 flags.DEFINE_bool('visualize_lidar', False,
                   'True to enable CARLA Lidar visualizer operator')
+flags.DEFINE_bool('visualize_imu', False,
+                  'True to enable CARLA IMU visualizer operator')
 flags.DEFINE_bool('visualize_depth_estimation', False,
                   'True to enable depth estimation visualization')
 flags.DEFINE_bool('visualize_rgb_camera', False,

@@ -107,6 +107,19 @@ def create_lidar_setups():
     return []
 
 
+def create_imu_setups():
+    if FLAGS.imu:
+        rotation = pylot.simulation.utils.Rotation(0, 0, 0)
+        # Place the IMU in the same position as the camera.
+        imu_transform = pylot.simulation.utils.Transform(
+            CENTER_CAMERA_LOCATION, rotation)
+        return [pylot.simulation.utils.IMUSetup(
+            name='imu',
+            imu_type='sensor.other.imu',
+            transform=imu_transform
+        )]
+
+
 def add_driver_operators(graph, auto_pilot):
     camera_setups = create_camera_setups()
     bgr_camera_setup = camera_setups[0]
@@ -118,16 +131,20 @@ def add_driver_operators(graph, auto_pilot):
         camera_setups = camera_setups + [top_down_segmentation_setup]
 
     lidar_setups = create_lidar_setups()
+    imu_setups = create_imu_setups()
 
     (carla_op,
      camera_ops,
-     lidar_ops) = pylot.operator_creator.create_driver_ops(
-         graph, camera_setups, lidar_setups, auto_pilot)
+     lidar_ops,
+     imu_ops) = pylot.operator_creator.create_driver_ops(
+         graph, camera_setups, lidar_setups, imu_setups, auto_pilot)
+
     return (bgr_camera_setup,
             top_down_segmentation_setup,
             carla_op,
             camera_ops,
-            lidar_ops)
+            lidar_ops,
+            imu_ops)
 
 
 def add_ground_eval_ops(graph, perfect_det_ops, camera_ops):
@@ -256,7 +273,7 @@ def add_planning_component(graph,
     graph.connect([planning_op], [agent_op])
 
 def add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
-                            lidar_ops, perfect_tracker_ops, prediction_ops):
+                            lidar_ops, perfect_tracker_ops, prediction_ops, imu_ops):
     # Add visual operators.
     pylot.operator_creator.add_visualization_operators(
         graph,
@@ -268,7 +285,9 @@ def add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
         pylot.utils.DEPTH_CAMERA_NAME,
         pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
         pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME,
-        top_down_camera_setup)
+        top_down_camera_setup,
+        imu_ops
+    )
 
     # Add recording operators.
     pylot.operator_creator.add_recording_operators(
@@ -328,8 +347,8 @@ def main(argv):
      top_down_camera_setup,
      carla_op,
      camera_ops,
-     lidar_ops) = add_driver_operators(
-         graph, auto_pilot=FLAGS.carla_auto_pilot)
+     lidar_ops,
+     imu_ops) = add_driver_operators(graph, auto_pilot=FLAGS.carla_auto_pilot)
 
     perfect_tracker_ops = []
     if FLAGS.use_perfect_perception:
@@ -363,7 +382,7 @@ def main(argv):
 
     # Add debugging operators (e.g., visualizers) to the data-flow graph.
     add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
-                            lidar_ops, perfect_tracker_ops, prediction_ops)
+                            lidar_ops, perfect_tracker_ops, prediction_ops, imu_ops)
 
     # Add the behaviour planning agent operator.
     agent_op = add_agent_op(graph,

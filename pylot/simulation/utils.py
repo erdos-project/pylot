@@ -94,6 +94,23 @@ class LidarSetup(object):
                 self.lower_fov, self.points_per_second)
 
 
+class IMUSetup(object):
+    def __init__(self, name, imu_type, transform):
+        self.name = name
+        self.imu_type = imu_type
+        self.transform = transform
+
+    def get_transform(self):
+        return self.transform
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return "IMUSetup(name: {}, type: {}, transform: {})".format(
+            self.name, self.imu_type, self.transform)
+
+
 class CanBus(object):
     def __init__(self, transform, forward_speed):
         self.transform = transform
