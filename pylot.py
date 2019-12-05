@@ -211,17 +211,6 @@ def driver():
         depth_estimation_stream = pylot.operator_creator.add_depth_estimation(
             left_camera_stream, right_camera_stream, rgb_camera_setup)
 
-    if FLAGS.visualize_top_down_segmentation:
-        top_down_transform = pylot.simulation.utils.get_top_down_transform(
-            transform, FLAGS.top_down_lateral_view)
-        (top_down_segmented_stream,
-         top_down_segmetned_camera_setup) = \
-            pylot.operator_creator.add_segmented_camera(
-                top_down_transform,
-                vehicle_id_stream,
-                name='top_down_segmented_camera',
-                fov=90)
-
     if FLAGS.use_perfect_perception:
         (obstacles_stream,
          obstacles_tracking_stream,
@@ -261,6 +250,17 @@ def driver():
                                  obstacles_stream,
                                  traffic_lights_stream,
                                  waypoints_stream)
+
+    if FLAGS.visualize_top_down_segmentation:
+        top_down_transform = pylot.simulation.utils.get_top_down_transform(
+            transform, FLAGS.top_down_lateral_view)
+        (top_down_segmented_stream,
+         top_down_segmetned_camera_setup) = \
+            pylot.operator_creator.add_segmented_camera(
+                top_down_transform,
+                vehicle_id_stream,
+                name='top_down_segmented_camera',
+                fov=90)
 
     pylot.operator_creator.add_visualizers(
         center_camera_stream,

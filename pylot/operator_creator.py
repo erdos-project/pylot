@@ -508,25 +508,6 @@ def add_trajectory_logging(obstacles_tracking_stream,
                    FLAGS)
 
 
-def add_logging(center_camera_stream,
-                left_camera_stream,
-                right_camera_stream,
-                top_down_segmented_stream,
-                center_segmented_camera_stream):
-    add_camera_logging(
-        left_camera_stream, 'left_camera_logger_operator', 'carla-left-')
-    add_camera_logging(
-        right_camera_stream, 'right_camera_logger_operator', 'carla-right-')
-    add_camera_logging(
-        center_camera_stream, 'center_camera_logger_operator', 'carla-center-')
-    add_camera_logging(top_down_segmented_stream,
-                       'top_down_segmented_logger_operator',
-                       'carla-top-down-segmented-')
-    add_camera_logging(center_segmented_camera_stream,
-                       'center_segmented_camera_logger_operator',
-                       'carla-segmented-')
-
-
 def add_visualizers(camera_stream,
                     depth_camera_stream,
                     point_cloud_stream,
