@@ -79,8 +79,8 @@ class KalmanLoggerOp(Op):
         y = vehicle_transform.location.y
         timestamp = can_bus_msg.timestamp
 
-        accel = (speed - self.speed)
-
+        accel = (speed - self.prev_speed)
+        self.prev_speed = speed
         # imu_msg = self._imu_msgs.popleft()
         # accel = imu_msg.accelerometer
 
