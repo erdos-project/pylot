@@ -23,7 +23,7 @@ class PerfectTrackerOperator(erdust.Operator):
         can_bus_stream.add_callback(self.on_can_bus_update)
         erdust.add_watermark_callback([ground_vehicles_stream,
                                        ground_pedestrians_stream,
-                                       can_bus_stream]
+                                       can_bus_stream],
                                       [ground_tracking_stream],
                                       self.on_watermark)
         self._name = name

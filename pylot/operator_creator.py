@@ -67,12 +67,13 @@ FLAGS = flags.FLAGS
 
 def add_carla_bridge():
     return erdust.connect(
-         CarlaOperator,
-         [],
-         'carla_operator',
-         FLAGS,
-         log_file_name=FLAGS.log_file_name,
-         csv_file_name=FLAGS.csv_log_file_name)
+        CarlaOperator,
+        [],
+        True,
+        'carla_operator',
+        FLAGS,
+        log_file_name=FLAGS.log_file_name,
+        csv_file_name=FLAGS.csv_log_file_name)
 
 
 def add_obstacle_detection(camera_stream):
@@ -81,6 +82,7 @@ def add_obstacle_detection(camera_stream):
         obstacles_streams += erdust.connect(
             DetectionOperator,
             [camera_stream],
+            True,
             'detector_ssd_mobilenet_v1',
             FLAGS.detector_ssd_mobilenet_v1_model_path,
             FLAGS,
@@ -90,6 +92,7 @@ def add_obstacle_detection(camera_stream):
         obstacles_streams += erdust.connect(
             DetectionOperator,
             [camera_stream],
+            True,
             'detector_faster_rcnn_resnet101',
             FLAGS.detector_frcnn_resnet101_model_path,
             FLAGS,
@@ -99,6 +102,7 @@ def add_obstacle_detection(camera_stream):
         obstacles_streams += erdust.connect(
             DetectionOperator,
             [camera_stream],
+            True,
             'detector_ssd_resnet50_v1',
             FLAGS.detector_ssd_resnet50_v1_model_path,
             FLAGS,
@@ -110,6 +114,7 @@ def add_obstacle_detection(camera_stream):
 def add_detection_decay(ground_obstacles_stream):
     erdust.connect(DetectionEvalGroundOperator,
                    [ground_obstacles_stream],
+                   True,
                    'detection_decay_operator',
                    FLAGS,
                    log_file_name=FLAGS.log_file_name,
@@ -121,6 +126,7 @@ def add_detection_evaluation(obstacles_stream,
                              name='detection_eval_operator'):
     erdust.connect(DetectionEvalOperator,
                    [obstacles_stream, ground_obstacles_stream],
+                   True,
                    name,
                    FLAGS,
                    log_file_name=FLAGS.log_file_name,
@@ -130,6 +136,7 @@ def add_detection_evaluation(obstacles_stream,
 def add_traffic_light_detector(traffic_light_camera_stream):
     [traffic_lights_stream] = erdust.connect(TrafficLightDetOperator,
                                              [traffic_light_camera_stream],
+                                             True,
                                              'traffic_light_detector_operator',
                                              FLAGS,
                                              FLAGS.log_file_name,
@@ -141,6 +148,7 @@ def add_lane_detection(bgr_camera_stream, name='lane_detection'):
     [lane_detection_stream] = erdust.connect(
         LaneDetectionOperator,
         [bgr_camera_stream],
+        True,
         name,
         FLAGS,
         log_file_name=FLAGS.log_file_name,
@@ -154,6 +162,7 @@ def add_obstacle_tracking(obstacles_stream,
     [obstacle_tracking_stream] = erdust.connect(
         ObjectTrackerOperator,
         [obstacles_stream, bgr_camera_stream],
+        True,
         name_prefix + FLAGS.tracker_type,
         FLAGS.tracker_type,
         FLAGS,
@@ -175,6 +184,7 @@ def add_depth_estimation(left_camera_stream,
     [depth_estimation_stream] = erdust.connect(
         DepthEstimationOperator,
         [left_camera_stream, right_camera_stream],
+        True,
         name,
         center_camera_setup.get_transform(),
         center_camera_setup.get_fov(),
@@ -193,6 +203,7 @@ def add_segmentation(bgr_camera_stream, name='drn_segmentation_operator'):
 
     [segmented_stream] = erdust.connect(SegmentationDRNOperator,
                                         [bgr_camera_stream],
+                                        True,
                                         name,
                                         FLAGS,
                                         log_file_name=FLAGS.log_file_name,
@@ -206,6 +217,7 @@ def add_segmentation_evaluation(
         name='segmentation_evaluation_operator'):
     erdust.connect(SegmentationEvalOperator,
                    [ground_segmented_stream, segmented_stream],
+                   True,
                    name,
                    FLAGS,
                    log_file_name=FLAGS.log_file_name,
@@ -216,6 +228,7 @@ def add_segmentation_decay(ground_segmented_stream,
                            name='segmentation_decay_operator'):
     erdust.connect(SegmentationEvalGroundOperator,
                    [ground_segmented_stream],
+                   True,
                    name,
                    FLAGS,
                    log_file_name=FLAGS.log_file_name,
@@ -225,6 +238,7 @@ def add_segmentation_decay(ground_segmented_stream,
 def add_linear_prediction(tracking_stream):
     [prediction_stream] = erdust.connect(LinearPredictorOperator,
                                          [tracking_stream],
+                                         True,
                                          'linear_prediction_operator',
                                          FLAGS)
     return prediction_stream
@@ -238,6 +252,7 @@ def add_planning(can_bus_stream,
     [waypoints_stream] = erdust.connect(
         PlanningOperator,
         [can_bus_stream, open_drive_stream, global_trajectory_stream],
+        True,
         name,
         FLAGS,
         goal_location,
@@ -251,6 +266,7 @@ def add_waypoint_planning(can_bus_stream,
                           name='waypoints_planning_operator'):
     [waypoints_stream] = erdust.connect(WaypointPlanningOperator,
                                         [can_bus_stream],
+                                        True,
                                         name,
                                         FLAGS,
                                         goal_location,
@@ -321,6 +337,7 @@ def add_left_right_cameras(transform,
 def _add_camera_driver(vehicle_id_stream, camera_setup):
     [camera_stream] = erdust.connect(CameraDriverOperator,
                                      [vehicle_id_stream],
+                                     False,
                                      camera_setup.get_name() + "_operator",
                                      camera_setup,
                                      FLAGS,
@@ -339,6 +356,7 @@ def add_lidar(transform, vehicle_id_stream, name='center_lidar'):
 def _add_lidar_driver(vehicle_id_stream, lidar_setup):
     [point_cloud_stream] = erdust.connect(LidarDriverOperator,
                                           [vehicle_id_stream],
+                                          False,
                                           lidar_setup.get_name() + "_operator",
                                           lidar_setup,
                                           FLAGS,
@@ -353,6 +371,7 @@ def add_fusion(can_bus_stream,
     [obstacle_pos_stream] = erdust.connect(
         FusionOperator,
         [can_bus_stream, obstacles_stream, depth_stream],
+        True,
         'fusion_operator',
         FLAGS,
         log_file_name=FLAGS.log_file_name,
@@ -361,6 +380,7 @@ def add_fusion(can_bus_stream,
     if ground_vehicles_stream:
         erdust.connect(FusionVerificationOperator,
                        [ground_vehicles_stream, obstacle_pos_stream],
+                       True,
                        'fusion_verification_operator',
                        log_file_name=FLAGS.log_file_name)
     return obstacle_pos_stream
@@ -374,6 +394,7 @@ def add_pid_control(waypoints_stream, can_bus_stream):
     }
     [control_stream] = erdust.connect(PIDControlOperator,
                                       [waypoints_stream, can_bus_stream],
+                                      True,
                                       'pid_control_operator',
                                       longitudinal_control_args,
                                       FLAGS,
@@ -395,6 +416,7 @@ def add_ground_agent(can_bus_stream,
                                        ground_traffic_lights_stream,
                                        ground_speed_limit_signs_stream,
                                        waypoints_stream],
+                                      True,
                                       'ground_agent_operator',
                                       FLAGS,
                                       log_file_name=FLAGS.log_file_name,
@@ -415,6 +437,7 @@ def add_mpc_agent(can_bus_stream,
                                        ground_traffic_lights_stream,
                                        ground_speed_limit_signs_stream,
                                        waypoints_stream],
+                                      True,
                                       'mpc_agent_operator',
                                       FLAGS,
                                       log_file_name=FLAGS.log_file_name,
@@ -436,6 +459,7 @@ def add_pylot_agent(can_bus_stream,
     [control_stream] = erdust.connect(
         PylotAgentOperator,
         input_streams,
+        True,
         'pylot_agent_operator',
         FLAGS,
         camera_setup,
@@ -446,13 +470,15 @@ def add_pylot_agent(can_bus_stream,
 
 def add_bounding_box_logging(obstacles_stream,
                              name='bounding_box_logger_operator'):
-    erdust.connect(BoundingBoxLoggerOperator, [obstacles_stream], name, FLAGS)
+    erdust.connect(
+        BoundingBoxLoggerOperator, [obstacles_stream], True, name, FLAGS)
 
 
 def add_camera_logging(stream, name, filename_prefix):
     erdust.connect(
         CameraLoggerOperator,
         [stream],
+        True,
         name,
         FLAGS,
         filename_prefix)
@@ -464,6 +490,7 @@ def add_depth_camera_logging(depth_camera_stream,
     erdust.connect(
         DepthCameraLoggerOperator,
         [depth_camera_stream],
+        True,
         name,
         FLAGS,
         filename_prefix)
@@ -483,19 +510,22 @@ def add_chauffeur_logging(
          obstacle_tracking_stream,
          top_down_camera_stream,
          top_down_segmentation_stream],
+        True,
         'chauffeur_logger_operator',
         FLAGS,
         top_down_camera_setup)
 
 
 def add_lidar_logging(point_cloud_stream, name='lidar_logger_operator'):
-    erdust.connect(LidarLoggerOperator, [point_cloud_stream], name, FLAGS)
+    erdust.connect(
+        LidarLoggerOperator, [point_cloud_stream], True, name, FLAGS)
 
 
 def add_multiple_object_tracker_logging(
         obstacles_stream, name='multiple_object_tracker_logger_operator'):
     erdust.connect(MultipleObjectTrackerLoggerOperator,
                    [obstacles_stream],
+                   True,
                    name,
                    FLAGS)
 
@@ -504,6 +534,7 @@ def add_trajectory_logging(obstacles_tracking_stream,
                            name='trajectory_logger_operator'):
     erdust.connect(TrajectoryLoggerOperator,
                    [obstacles_tracking_stream],
+                   True,
                    name,
                    FLAGS)
 
@@ -535,11 +566,11 @@ def add_visualizers(camera_stream,
 
 
 def add_lidar_visualizer(point_cloud_stream, name='lidar_visualizer_operator'):
-    erdust.connect(LidarVisualizerOperator, [point_cloud_stream], name)
+    erdust.connect(LidarVisualizerOperator, [point_cloud_stream], True, name)
 
 
 def add_camera_visualizer(camera_stream, name):
-    erdust.connect(CameraVisualizerOperator, [camera_stream], name)
+    erdust.connect(CameraVisualizerOperator, [camera_stream], True, name)
 
 
 def add_top_down_tracking_visualizer(
@@ -552,6 +583,7 @@ def add_top_down_tracking_visualizer(
                    [obstacle_tracking_stream,
                     prediction_stream,
                     top_down_segmented_camera_stream],
+                   True,
                    name,
                    FLAGS,
                    top_down_camera_setup)
@@ -559,7 +591,8 @@ def add_top_down_tracking_visualizer(
 
 def add_waypoint_visualizer(waypoints_stream,
                             name='waypoint_visualizer_operator'):
-    erdust.connect(WaypointVisualizerOperator, [waypoints_stream], name, FLAGS)
+    erdust.connect(
+        WaypointVisualizerOperator, [waypoints_stream], True, name, FLAGS)
 
 
 def add_perfect_detector(depth_camera_stream,
@@ -581,6 +614,7 @@ def add_perfect_detector(depth_camera_stream,
          ground_vehicles_stream,
          ground_speed_limit_signs_stream,
          ground_stop_signs_stream],
+        True,
         'perfect_detector_operator',
         camera_setup,
         FLAGS,
@@ -600,6 +634,7 @@ def add_perfect_traffic_light_detector(ground_traffic_lights_stream,
          depth_camera_stream,
          segmented_camera_stream,
          can_bus_stream],
+        True,
         'perfect_traffic_light_detector_operator',
         FLAGS,
         log_file_name=FLAGS.log_file_name)
@@ -610,6 +645,7 @@ def add_perfect_lane_detector(can_bus_stream):
     [detected_lanes_stream] = erdust.connect(
         PerfectLaneDetectionOperator,
         [can_bus_stream],
+        True,
         'perfect_lane_detection_operator',
         FLAGS,
         log_file_name=FLAGS.log_file_name)
@@ -622,6 +658,7 @@ def add_perfect_tracking(
                                               [ground_vehicles_stream,
                                                ground_pedestrians_stream,
                                                can_bus_stream],
+                                              True,
                                               'perfect_tracking_operator',
                                               FLAGS)
     return ground_tracking_stream
