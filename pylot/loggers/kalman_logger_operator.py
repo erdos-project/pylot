@@ -52,14 +52,14 @@ class KalmanLoggerOp(Op):
         input_streams.filter(pylot.utils.is_control_stream).add_callback(
             KalmanLoggerOp.on_control_update)
 
-        input_streams.add_completion_callback(
-           KalmanLoggerOp.on_notification)
+        #input_streams.add_completion_callback(
+        #   KalmanLoggerOp.on_notification)
         # Set no watermark on the output stream so that we do not
         # close the watermark loop with the carla operator.
         return []
 
     def on_can_bus_update(self, msg):
-        print("CAN BUS UPDATE")
+        self._logger.info("CAN BUS UPDATE")
         with self._lock:
             self._can_bus_msgs.append(msg)
 
@@ -68,11 +68,53 @@ class KalmanLoggerOp(Op):
             self._imu_msgs.append(msg)
 
     def on_control_update(self, msg):
+        self._logger.info("CONTROL UPDATE")
         with self._lock:
             self._control_msgs.append(msg)
+        can_bus_msg = self._can_bus_msgs.popleft()
+        vehicle_transform = can_bus_msg.data.transform
+        speed = can_bus_msg.data.forward_speed
+        yaw = vehicle_transform.rotation.yaw
+        x = vehicle_transform.location.x
+        y = vehicle_transform.location.y
+        timestamp = can_bus_msg.timestamp
+
+        accel = (speed - self.speed)
+
+        # imu_msg = self._imu_msgs.popleft()
+        # accel = imu_msg.accelerometer
+
+        control_msg = self._control_msgs.popleft()
+        steer = control_msg.steer
+
+        X_meas = [x,y, vel,yaw]
+        u = [acccel,steer]
+        Q = np.eye(4) * .1
+        R = np.eye(4)
+        R[2] *= .1
+        R[3] *=.1
+
+        # prev_vel = self._init_X[2]
+        # prev_yaw = self._init_X[3]
+        # prev_steer = self._init_V[1]
+        A,B,c = self.get_transition_matrix(self, vel, yaw, steer)
+        X_filt, V_filt = kalman_step(X_meas, A, B, c, np.eye(np.shape(X_meas)), 0, u, Q,R,self._init_X,self._init_V)
+        self._init_X = X_filt
+        self._init_V = V_filt
+        self._logger.info('{} Measure: x {}, y {}, vel {}, yaw {}'.format(
+            timestamp,X_meas[0],X_meas[1],X_meas[2],X_meas[3]))
+        self._logger.info('{} Filter: x {}, y {}, vel {}, yaw {}'.format(
+              timestamp, X_filt[0],X_filt[1],X_filt[2],X_filt[3]))
+        self._logger.info('{} Variance: '.format(timestamp) \
+            + '\n'.join([''.join(['{:4}'.format(item) for item in row]) for row in Vfilt]))
+        self._logger.info('{} Control: Acceleration {}, Steer {}'.format(
+              timestamp, u[0],u[1]))
+
+
 
     def on_notification(self, msg):
         # Get hero vehicle info.
+        self._logger.info("NOTIFICATION UPDATE")
         can_bus_msg = self._can_bus_msgs.popleft()
         vehicle_transform = can_bus_msg.data.transform
         speed = can_bus_msg.data.forward_speed
