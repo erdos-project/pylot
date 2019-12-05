@@ -26,8 +26,8 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
                 if not track.is_confirmed() or track.time_since_update > 1:
                     continue
                 bbox = track.to_tlbr() # converts x, y, w, h bbox to tlbr bbox (top left and bottom right coords)
-                corners = (bbox[0], bbox[2], bbox[1], bbox[3]) # converts to xmin, xmax, ymin, ymax format
-                tracked_objects.append(DetectedObject(corners, "", 0, track.track_id))
+                corners = (int(bbox[0]), int(bbox[2]), int(bbox[1]), int(bbox[3])) # converts to xmin, xmax, ymin, ymax format
+                tracked_objects.append(DetectedObject(corners, 0, "", track.track_id))
             return True, tracked_objects
         return False, []
 

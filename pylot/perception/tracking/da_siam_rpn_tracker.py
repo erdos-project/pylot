@@ -25,7 +25,7 @@ class SingleObjectDaSiamRPNTracker(object):
                 int(target_pos[0] + target_sz[0] / 2.0),
                 int(target_pos[1] - target_sz[1] / 2.0),
                 int(target_pos[1] + target_sz[1] / 2.0))
-        return DetectedObject(bbox, "", 0)
+        return DetectedObject(bbox, 0, "")
 
 
 class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
