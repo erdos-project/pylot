@@ -256,11 +256,6 @@ def main(argv):
             graph, top_down_segmented_camera_setup,
             pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME)]
 
-    kalman_op = []
-    if FLAGS.log_kalman:
-        kalman_op = [pylot.operator_creator.create_kalman_logger_op(graph)]
-        graph.connect([carla_op], kalman_op)
-
 
     # Connect the camera logging ops with the camera ops.
     graph.connect(camera_ops, camera_log_ops + chauffeur_log_ops)
