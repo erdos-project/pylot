@@ -39,6 +39,7 @@ class KalmanLoggerOp(Op):
         self._control_msgs = deque()
         self._init_X =[0,0,0,0]
         self._init_V = np.eye(4)
+        self.prev_speed = 0
         self._lock = threading.Lock()
 
     @staticmethod
@@ -46,8 +47,8 @@ class KalmanLoggerOp(Op):
         print("SETTING UP STREAMS")
         input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
             KalmanLoggerOp.on_can_bus_update)
-        input_streams.filter(pylot.utils.is_imu_stream).add_callback(
-            KalmanLoggerOp.on_imu_update)
+        # input_streams.filter(pylot.utils.is_imu_stream).add_callback(
+        #     KalmanLoggerOp.on_imu_update)
         input_streams.filter(pylot.utils.is_control_stream).add_callback(
             KalmanLoggerOp.on_control_update)
 
@@ -80,8 +81,10 @@ class KalmanLoggerOp(Op):
         y = vehicle_transform.location.y
         timestamp = can_bus_msg.timestamp
 
-        imu_msg = self._imu_msgs.popleft()
-        accel = imu_msg.accelerometer
+        accel = (speed - self.speed)
+
+        # imu_msg = self._imu_msgs.popleft()
+        # accel = imu_msg.accelerometer
 
         control_msg = self._control_msgs.popleft()
         steer = control_msg.steer
@@ -89,14 +92,14 @@ class KalmanLoggerOp(Op):
         X_meas = [x,y, vel,yaw]
         u = [acccel,steer]
         Q = np.eye(4) * .1
-	R = np.eye(4)
-	R[2] *= .1
-	R[3] *=.1
+        R = np.eye(4)
+        R[2] *= .1
+        R[3] *=.1
 
         # prev_vel = self._init_X[2]
         # prev_yaw = self._init_X[3]
         # prev_steer = self._init_V[1]
-	A,B,c = self.get_transition_matrix(self, vel, yaw, steer)
+        A,B,c = self.get_transition_matrix(self, vel, yaw, steer)
         X_filt, V_filt = kalman_step(X_meas, A, B, c, np.eye(np.shape(X_meas)), 0, u, Q,R,self._init_X,self._init_V)
         self._init_X = X_filt
         self._init_V = V_filt
