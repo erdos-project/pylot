@@ -20,6 +20,7 @@ from pylot.loggers.chauffeur_logger_operator import ChauffeurLoggerOp
 from pylot.loggers.multiple_object_tracker_logger_operator import MultipleObjectTrackerLoggerOp
 from pylot.loggers.lidar_logger_operator import LidarLoggerOp
 from pylot.loggers.trajectory_logger_operator import TrajectoryLoggerOp
+from pylot.loggers.kalman_logger_operator import KalmanLoggerOp
 # Import perception operators.
 from pylot.perception.detection.detection_operator import DetectionOperator
 from pylot.perception.detection.detection_eval_ground_operator import DetectionEvalGroundOperator
@@ -174,6 +175,17 @@ def create_trajectory_logger_op(graph):
         name='trajectory_logger_op',
         init_args={'flags': FLAGS})
     return trajectory_logger_op
+
+def create_kalman_logger_op(graph):
+    kalman_logger_op = graph.add(
+        KalmanLoggerOp
+        name='kalman_logger_op',
+        init_args={
+            'flags': FLAGS,
+            'log_file_name': FLAGS.log_file_name,
+            'csv_file_name': FLAGS.csv_log_file_name
+        })
+    return kalman_logger_op
 
 
 def create_planning_op(graph, goal_location):

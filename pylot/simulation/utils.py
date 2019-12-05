@@ -1525,3 +1525,36 @@ class TrafficLight(object):
             self.state = TrafficLightColor.GREEN
         else:
             self.state = TrafficLightColor.OFF
+
+
+def kalman_step(y, A, B, c, D, e, u, Q, R, init_x, init_V):
+    '''
+    Args: 
+        y - observations
+        A, B, C, d:  x(:,t+1) = A x(:,t) + B u(:,t) + c + w(:,t) 
+                     y(:,t)   = D x(:,t) + e      + v(:,t)
+        Q - covariance matrix of system x(t+1)=A*x(t)+w(t) , w(t)~N(0,Q)
+        R - covariance matrix of output y(t)=C*x(t)+v(t) , v(t)~N(0,R)
+        init_x - initial/prev mean
+        init_V - initial/prev covariance
+    Return: 
+        xfilt - Next State
+        Vfilt - Estimate Covariance
+    '''
+
+    error = np.zeros([y.shape[0]])
+    xpred = np.zeros([init_x.shape[0]])
+    xfilt = np.zeros_like(xpred)
+    Vpred = np.zeros([init_V.shape[0], init_V.shape[1]])
+    Vfilt = np.zeros_like(Vpred)
+  
+    xpred = A @ init_x + B @ u + c
+    Vpred = A @ init_V @ A.T + Q
+    error = y - (D @ xpred + e)
+    S = D @ Vpred @ D.T + R 
+    K = Vpred @ D.T @ np.linalg.inv(S) 
+
+    xfilt = xpred + K @ error
+    Vfilt = (np.eye(K.shape[0]) - K @ D) @ Vpred
+
+    return xfilt,Vfilt
