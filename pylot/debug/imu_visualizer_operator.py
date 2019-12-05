@@ -7,7 +7,8 @@ import pylot.simulation.carla_utils
 
 
 class IMUVisualizerOperator(Op):
-    """ Subscribes to IMU streams and visualizes forward linear + angular acceleration."""
+    """ Subscribes to IMU streams and visualizes forward linear + angular
+    acceleration."""
 
     def __init__(self, name, flags, log_file_name=None):
         super(IMUVisualizerOperator, self).__init__(name)
@@ -28,7 +29,8 @@ class IMUVisualizerOperator(Op):
 
     def on_imu_update(self, msg):
         """ The callback function that gets called upon receipt of the
-        IMU message to be drawn on the screen. Draws forward linear and angular acceleration.
+        IMU message to be drawn on the screen. Draws forward linear and angular
+        acceleration.
 
         Args:
             msg: A message of type `pylot.simulation.messages.IMUMessage` to
