@@ -65,6 +65,15 @@ def create_lidar_stream(lidar_setup):
                       labels={'sensor_type': lidar_setup.lidar_type})
 
 
+def is_imu_stream(stream):
+    return stream.get_label('sensor_type') == 'sensor.other.imu'
+
+
+def create_imu_stream(imu_setup):
+    return DataStream(name=imu_setup.name,
+                      labels={'sensor_type': imu_setup.imu_type})
+
+
 # Ground streams
 def is_ground_segmented_camera_stream(stream):
     return (stream.get_label('sensor_type') == 'camera' and

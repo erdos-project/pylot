@@ -94,6 +94,23 @@ class LidarSetup(object):
                 self.lower_fov, self.points_per_second)
 
 
+class IMUSetup(object):
+    def __init__(self, name, imu_type, transform):
+        self.name = name
+        self.imu_type = imu_type
+        self.transform = transform
+
+    def get_transform(self):
+        return self.transform
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return "IMUSetup(name: {}, type: {}, transform: {})".format(
+            self.name, self.imu_type, self.transform)
+
+
 class CanBus(object):
     def __init__(self, transform, forward_speed):
         self.transform = transform
@@ -233,14 +250,20 @@ class Vector3D(object):
         z: The value of the third axis.
     """
 
-    def __init__(self, x, y, z):
+    def __init__(self, x=None, y=None, z=None, carla_vector=None):
         """ Initializes the Vector3D instance from the given x, y and z values.
+        Alternatively, pass in a carla_vector (carla.vector3D).
 
         Args:
             x: The value of the first axis.
             y: The value of the second axis.
             z: The value of the third axis.
+            carla_vector: carla.vector3D
         """
+        if carla_vector is not None:
+            x = carla_vector.x
+            y = carla_vector.y
+            z = carla_vector.z
         self.x, self.y, self.z = x, y, z
 
     def __add__(self, other):

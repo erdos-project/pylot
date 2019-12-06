@@ -11,6 +11,7 @@ from pylot.debug.segmented_video_operator import SegmentedVideoOperator
 from pylot.debug.segmented_top_down_video_operator import SegmentedTopDownVideoOperator
 from pylot.debug.track_visualize_operator import TrackVisualizerOperator
 from pylot.debug.video_operator import VideoOperator
+from pylot.debug.imu_visualizer_operator import IMUVisualizerOperator
 # Import logging operators.
 from pylot.loggers.bounding_box_logger_operator import BoundingBoxLoggerOp
 from pylot.loggers.camera_logger_operator import CameraLoggerOp
@@ -75,9 +76,7 @@ def create_camera_driver_op(graph, camera_setup):
     return camera_op
 
 
-def create_driver_ops(graph, camera_setups, lidar_setups, auto_pilot=False):
-    camera_ops = []
-    lidar_ops = []
+def create_driver_ops(graph, camera_setups, lidar_setups, imu_setups, auto_pilot=False):
     if FLAGS.carla_replay_file == '':
         carla_op = create_carla_op(graph, auto_pilot)
     else:
@@ -86,8 +85,10 @@ def create_driver_ops(graph, camera_setups, lidar_setups, auto_pilot=False):
                       for cs in camera_setups]
     lidar_ops = [create_lidar_driver_op(graph, ls)
                      for ls in lidar_setups]
-    graph.connect([carla_op], camera_ops + lidar_ops)
-    return (carla_op, camera_ops, lidar_ops)
+    imu_ops = [create_imu_driver_op(graph, ims)
+                    for ims in imu_setups]
+    graph.connect([carla_op], camera_ops + lidar_ops + imu_ops)
+    return (carla_op, camera_ops, lidar_ops, imu_ops)
 
 
 def create_camera_logger_op(graph):
@@ -140,6 +141,20 @@ def create_lidar_driver_op(graph, lidar_setup):
         },
         setup_args={'lidar_setup': lidar_setup})
     return lidar_op
+
+
+def create_imu_driver_op(graph, imu_setup):
+    from pylot.simulation.imu_driver_operator import IMUDriverOperator
+    imu_op = graph.add(
+        IMUDriverOperator,
+        name=imu_setup.name,
+        init_args={
+            'imu_setup': imu_setup,
+            'flags': FLAGS,
+            'log_file_name': FLAGS.log_file_name
+        },
+        setup_args={'imu_setup': imu_setup})
+    return imu_op
 
 
 def create_lidar_logger_op(graph):
@@ -312,6 +327,18 @@ def create_lidar_record_op(graph):
         init_args={'filename': 'pylot_lidar_data.erdos'},
         setup_args={'filter': 'lidar'})
     return record_lidar_op
+
+
+def create_imu_visualizer_op(graph):
+    imu_visualizer_op = graph.add(
+        IMUVisualizerOperator,
+        name='imu_visualizer',
+        init_args={
+            'flags': FLAGS,
+            'log_file_name': FLAGS.log_file_name
+        }
+    )
+    return imu_visualizer_op
 
 
 def create_camera_video_op(graph, name, filter_name):
@@ -628,7 +655,8 @@ def add_visualization_operators(graph,
                                 depth_camera_name,
                                 front_segmented_camera_name,
                                 top_down_segmented_camera_name,
-                                top_down_camera_setup):
+                                top_down_camera_setup,
+                                imu_ops):
     if FLAGS.visualize_rgb_camera:
         camera_video_op = create_camera_video_op(graph,
                                                  'rgb_camera',
@@ -645,6 +673,10 @@ def add_visualization_operators(graph,
     if FLAGS.visualize_lidar:
         lidar_visualizer_op = create_lidar_visualizer_op(graph)
         graph.connect(lidar_ops, [lidar_visualizer_op])
+
+    if FLAGS.visualize_imu:
+        imu_visualizer_op = create_imu_visualizer_op(graph)
+        graph.connect(imu_ops, [imu_visualizer_op])
 
     # Due to cv2 multithreading issues, the viewers for front-facing
     # and top-down segmentation have to be placed into two
