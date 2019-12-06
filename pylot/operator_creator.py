@@ -77,9 +77,6 @@ def create_camera_driver_op(graph, camera_setup):
 
 
 def create_driver_ops(graph, camera_setups, lidar_setups, imu_setups, auto_pilot=False):
-    camera_ops = []
-    lidar_ops = []
-    imu_ops = []
     if FLAGS.carla_replay_file == '':
         carla_op = create_carla_op(graph, auto_pilot)
     else:
