@@ -241,19 +241,26 @@ def add_agent_op(graph,
 def add_planning_component(graph,
                            goal_location,
                            carla_op,
-                           agent_op):
+                           agent_op,
+                           prediction_op):
     if FLAGS.waypoint_planning_operator:
         planning_op = pylot.operator_creator.create_waypoint_planning_op(graph, goal_location)
+    elif FLAGS.rrt_star_planning_operator:
+        planning_op = pylot.operator_creator.create_rrt_star_planning_op(graph, goal_location)
     else:
         planning_op = pylot.operator_creator.create_planning_op(
             graph, goal_location)
 
-    if FLAGS.visualize_waypoints:
-        waypoint_viz_op = pylot.operator_creator.create_waypoint_visualizer_op(
-            graph)
-        graph.connect([planning_op], [waypoint_viz_op])
+    if FLAGS.visualize_planning:
+        planning_viz_op = pylot.operator_creator.create_planning_visualizer_op(graph)
+        graph.connect([planning_op], [planning_viz_op])
+
+    if FLAGS.prediction:
+        graph.connect(prediction_op, [planning_op])
+
     graph.connect([carla_op], [planning_op])
     graph.connect([planning_op], [agent_op])
+
 
 def add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
                             lidar_ops, perfect_tracker_ops, prediction_ops):
@@ -278,12 +285,18 @@ def add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
         lidar_ops,
         pylot.utils.CENTER_CAMERA_NAME,
         pylot.utils.DEPTH_CAMERA_NAME)
+
     # Add operator that estimates depth.
     if FLAGS.depth_estimation:
         depth_estimation_op = pylot.operator_creator.create_depth_estimation_op(
             graph, pylot.utils.LEFT_CAMERA_NAME, pylot.utils.RIGHT_CAMERA_NAME)
         graph.connect(camera_ops + lidar_ops + [carla_op],
                       [depth_estimation_op])
+
+    # Add operator that visualizes CanBus
+    if FLAGS.visualize_can_bus:
+        can_bus_viz_op = pylot.operator_creator.create_can_bus_visualizer(graph)
+        graph.connect([carla_op], [can_bus_viz_op])
 
 
 def add_perfect_perception_component(graph,
@@ -376,7 +389,7 @@ def main(argv):
 
     # Add planning operators.
     goal_location = (234.269989014, 59.3300170898, 39.4306259155)
-    add_planning_component(graph, goal_location, carla_op, agent_op)
+    add_planning_component(graph, goal_location, carla_op, agent_op, prediction_ops)
 
     graph.execute("ros")
 

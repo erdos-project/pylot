@@ -3,6 +3,7 @@ cffi
 cvxpy
 gdown
 matplotlib==2.2.4
+networkx==2.0
 open3d-python==0.4.0.0
 opencv-python
 opencv-contrib-python

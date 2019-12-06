@@ -6,7 +6,7 @@ from pylot.control.messages import ControlMessage
 from pylot.control.mpc.mpc import ModelPredictiveController
 from pylot.control.mpc.utils import zero_to_2_pi, global_config, CubicSpline2D
 from pylot.map.hd_map import HDMap
-from pylot.simulation.carla_utils import get_map, to_carla_location, get_world
+from pylot.simulation.carla_utils import get_map, get_world
 
 import numpy as np
 
@@ -246,7 +246,7 @@ class MPCAgentOperator(Op):
 
     def get_control_message(self, waypoints, vehicle_transform, current_speed, speed_factor, timestamp):
         # Figure out the location of the ego vehicle and compute the next waypoint.
-        ego_location = to_carla_location(vehicle_transform.location)
+        ego_location = vehicle_transform.location.as_carla_location()
         ego_yaw = np.deg2rad(zero_to_2_pi(vehicle_transform.rotation.yaw))
 
         # step the controller

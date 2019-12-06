@@ -14,6 +14,7 @@ setup(
     install_requires=[
         "absl-py",
         "cffi",
+        "cvxpy",
         "gdown",
         "erdos>=0.1.1",
         "matplotlib==2.2.4",

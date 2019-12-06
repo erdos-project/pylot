@@ -18,6 +18,8 @@ flags.DEFINE_bool('top_down_segmentation', False,
 # Planning modules to enable.
 flags.DEFINE_bool('waypoint_planning_operator', False,
                   'True to use the waypoint planning operator.')
+flags.DEFINE_bool('rrt_star_planning_operator', False,
+                  'True to use the RRTStar planning operator.')
 
 # Control modules to enable.
 flags.DEFINE_bool('ground_agent_operator', True,
@@ -189,11 +191,12 @@ flags.DEFINE_bool('visualize_traffic_light_output', False,
                   'True to enable visualization of traffic light output')
 flags.DEFINE_bool('visualize_lane_detection', False,
                   'True to visualize lane detection')
-flags.DEFINE_bool('visualize_waypoints', False, 'True to visualize waypoints')
 flags.DEFINE_bool('visualize_top_down_segmentation', False,
                   'True to visualize top-down segmentation')
 flags.DEFINE_bool('visualize_top_down_tracker_output', False,
                   'True to enable visualization of top-down tracker output')
+flags.DEFINE_bool('visualize_can_bus', False, 'True to visualize can bus.')
+flags.DEFINE_bool('visualize_planning', False, 'True to visualize planning.')
 
 # Accuracy evaluation flags.
 flags.DEFINE_bool('evaluate_obj_detection', False,
