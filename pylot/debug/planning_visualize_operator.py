@@ -8,6 +8,8 @@ from erdos.utils import setup_logging
 import pylot.utils
 import pylot.simulation.carla_utils
 
+DEFAULT_VIS_TIME = 0.1
+
 
 class PlanningVisualizeOperator(Op):
     """ PlanningVisualizeOperator visualizes the waypoints released by planner.
@@ -66,11 +68,11 @@ class PlanningVisualizeOperator(Op):
         for waypoint in msg.waypoints:
             loc = carla.Location(waypoint.location.x,
                                  waypoint.location.y,
-                                 0.5)
+                                 waypoint.location.z + 0.5)
 
             self._world.debug.draw_point(
                 loc,
                 size=0.2,
-                life_time=self._flags.planning_vis_life_time,
+                life_time=DEFAULT_VIS_TIME,
                 color=carla.Color(0, 0, 255)
             )

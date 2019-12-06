@@ -5,11 +5,12 @@ This code is adapted from: https://github.com/dixantmittal/fast-rrt-star
 """
 import numpy as np
 
+
 volume_of_unit_ball = {
     1: 2,
     2: 3.142,
     3: 4.189,
-}
+}  # mapping n-dimensions: unit ball volume
 
 collision_cache = {}
 

@@ -252,8 +252,8 @@ def add_planning_component(graph,
             graph, goal_location)
 
     if FLAGS.visualize_planning:
-        rrt_star_viz_op = pylot.operator_creator.create_planning_visualizer_op(graph)
-        graph.connect([planning_op], [rrt_star_viz_op])
+        planning_viz_op = pylot.operator_creator.create_planning_visualizer_op(graph)
+        graph.connect([planning_op], [planning_viz_op])
 
     if FLAGS.prediction:
         graph.connect(prediction_op, [planning_op])
