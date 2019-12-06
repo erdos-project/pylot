@@ -1,4 +1,14 @@
-import carla
+"""
+An RRT* planning operator that runs the RRT* algorithm defined under
+pylot/planning/rrt_star/rrt_star.py.
+
+Planner steps:
+1. Get ego vehicle information from can_bus stream
+2. Compute the potential obstacles using the predictions from prediction stream
+3. Compute the target waypoint to reach
+4. Construct state_space, target_space, start_state and run RRT*
+5. Construct waypoints message and output on waypoints stream
+"""
 import collections
 import itertools
 import threading
@@ -8,6 +18,7 @@ from erdos.op import Op
 from erdos.message import WatermarkMessage
 from erdos.utils import setup_csv_logging, setup_logging
 
+import carla
 import pylot.utils
 from pylot.map.hd_map import HDMap
 from pylot.planning.messages import WaypointsMessage
@@ -39,9 +50,17 @@ class RRTStarPlanningOperator(Op):
     def __init__(self,
                  name,
                  flags,
-                 goal_location=None,
+                 goal_location,
                  log_file_name=None,
                  csv_file_name=None):
+        """
+        Initialize the RRT* planner. Setup logger and map attributes.
+
+        Args:
+            name: name of the operator
+            flags: config flags
+            goal_location: global goal location for planner to route to
+        """
         super(RRTStarPlanningOperator, self).__init__(name)
         self._log_file_name = log_file_name
         self._logger = setup_logging(self.name, log_file_name)
@@ -98,14 +117,14 @@ class RRTStarPlanningOperator(Op):
         # convert to waypoints if path found, else use default waypoints
         if cost is not None:
             path_transforms = []
-            for p in path:
+            for point in path:
                 p_loc = self._carla_map.get_waypoint(
-                    carla.Location(x=p[0], y=p[1], z=0),
+                    carla.Location(x=point[0], y=point[1], z=0),
                     project_to_road=True,
                 ).transform.location  # project to road to approximate Z
                 path_transforms.append(
                     Transform(
-                        location=Location(x=p[0], y=p[1], z=p_loc.z),
+                        location=Location(x=point[0], y=point[1], z=p_loc.z),
                         rotation=Rotation(),
                     )
                 )
@@ -143,15 +162,30 @@ class RRTStarPlanningOperator(Op):
             WatermarkMessage(msg.timestamp))
 
     def _build_obstacle_map(self, vehicle_transform):
+        """
+        Construct an obstacle map given vehicle_transform.
+
+        Args:
+            vehicle_transform: Transform of vehicle from can_bus stream
+
+        Returns:
+            an obstacle map that maps
+                {id_time: (obstacle_origin, obstacle_range)}
+            only obstacles within DEFAULT_DISTANCE_THRESHOLD in front of the ego
+            vehicle are considered to save computation cost
+        """
         obstacle_map = {}
         prediction_msg = self._prediction_msgs.popleft()
+        # look over all predictions
         for prediction in prediction_msg.predictions:
             time = 0
+            # use all prediction times as potential obstacles
             for location in prediction.trajectory:
                 if is_within_distance_ahead(vehicle_transform.location,
                                             location,
                                             vehicle_transform.rotation.yaw,
                                             DEFAULT_DISTANCE_THRESHOLD):
+                    # compute the obstacle origin and range of the obstacle
                     obstacle_origin = (
                         (location.x - DEFAULT_OBSTACLE_LENGTH / 2,
                          location.y - DEFAULT_OBSTACLE_WIDTH / 2),
@@ -163,6 +197,16 @@ class RRTStarPlanningOperator(Op):
         return obstacle_map
 
     def _compute_target_location(self, vehicle_transform):
+        """
+        Update the global waypoint route and compute the target location for
+        RRT* search to plan for.
+
+        Args:
+            vehicle_transform: Transform of vehicle from can_bus stream
+
+        Returns:
+            target location
+        """
         ego_location = vehicle_transform.location.as_carla_location()
         self._waypoints = self._hd_map.compute_waypoints(
             ego_location,
@@ -174,6 +218,22 @@ class RRTStarPlanningOperator(Op):
 
     @staticmethod
     def _run_rrt_star(vehicle_transform, target_location, obstacle_map):
+        """
+        Run the RRT* algorithm given the vehicle_transform, target_location,
+        and obstacle_map.
+
+        Args:
+            vehicle_transform: Transform of vehicle from can_bus stream
+            target_location: Location target
+            obstacle_map: an obstacle map that maps
+                {id_time: (obstacle_origin, obstacle_range)}
+
+        Returns:
+            np.ndarray, float
+            return the path in form [[x0, y0],...] and final cost
+            if solution not found, returns the path to the closest point to the
+            target space and final cost is none
+        """
         starting_state = (vehicle_transform.location.x,
                           vehicle_transform.location.y)
         target_space = (
