@@ -37,7 +37,7 @@ class LidarDriverOperator(erdust.Operator):
                 configuration.
             log_file_name: The file to log the required information to.
         """
-        ground_vehicle_id_stream.add_callback(self.on_vehicle_id)
+        self._vehicle_id_stream = ground_vehicle_id_stream
         self._lidar_stream = lidar_stream
         self._name = name
         self._flags = flags
@@ -85,15 +85,10 @@ class LidarDriverOperator(erdust.Operator):
             # issue watermarks only after the Carla callback is invoked.
             self._lidar_stream.send(watermark_msg)
 
-    def on_vehicle_id(self, msg):
-        """ This function receives the identifier for the vehicle, retrieves
-        the handler for the vehicle from the simulation and attaches the
-        camera to it.
-
-        Args:
-            msg: The identifier for the vehicle to attach the camera to.
-        """
-        vehicle_id = msg.data
+    def run(self):
+        # Read the vehicle id from the vehicle id stream
+        vehicle_id_msg = self._vehicle_id_stream.read()
+        vehicle_id = vehicle_id_msg.data
         self._logger.info(
             "The LidarDriverOperator received the vehicle id: {}".format(
                 vehicle_id))
@@ -111,7 +106,8 @@ class LidarDriverOperator(erdust.Operator):
         num_tries = 0
         while self._vehicle is None and num_tries < 30:
             self._vehicle = world.get_actors().find(vehicle_id)
-            self._logger.info("Could not find vehicle. Try {}".format(num_tries))
+            self._logger.info(
+                "Could not find vehicle. Try {}".format(num_tries))
             time.sleep(1)
             num_tries += 1
         if self._vehicle is None:
@@ -146,3 +142,7 @@ class LidarDriverOperator(erdust.Operator):
                                         attach_to=self._vehicle)
         # Register the callback on the Lidar.
         self._lidar.listen(self.process_point_clouds)
+        # TODO: We might have to loop here to keep hold of the thread so that
+        # Carla callbacks are still invoked.
+        # while True:
+        #     time.sleep(0.01)

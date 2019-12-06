@@ -39,7 +39,7 @@ class CameraDriverOperator(erdust.Operator):
                 configuration.
             log_file_name: The file to log the required information to.
         """
-        ground_vehicle_id_stream.add_callback(self.on_vehicle_id)
+        self._vehicle_id_stream = ground_vehicle_id_stream
         self._camera_stream = camera_stream
         self._name = name
         self._flags = flags
@@ -57,52 +57,10 @@ class CameraDriverOperator(erdust.Operator):
         camera_stream = erdust.WriteStream()
         return [camera_stream]
 
-    def process_images(self, carla_image):
-        """ Invoked when an image is received from the simulator.
-
-        Args:
-            carla_image: a carla.Image.
-        """
-        # Ensure that the code executes serially
-        with self._lock:
-            game_time = int(carla_image.timestamp * 1000)
-            timestamp = erdust.Timestamp(coordinates=[game_time])
-            watermark_msg = erdust.WatermarkMessage(timestamp)
-
-            msg = None
-            if self._camera_setup.camera_type == 'sensor.camera.rgb':
-                msg = pylot.simulation.messages.FrameMessage(
-                    pylot.utils.bgra_to_bgr(to_bgra_array(carla_image)),
-                    timestamp)
-            elif self._camera_setup.camera_type == 'sensor.camera.depth':
-                # Include the transform relative to the vehicle.
-                # Carla carla_image.transform returns the world transform, but
-                # we do not use it directly.
-                msg = pylot.simulation.messages.DepthFrameMessage(
-                    depth_to_array(carla_image),
-                    self._camera_setup.get_transform(),
-                    carla_image.fov,
-                    timestamp)
-            elif self._camera_setup.camera_type == 'sensor.camera.semantic_segmentation':
-                frame = transform_to_cityscapes_palette(
-                    labels_to_array(carla_image))
-                msg = SegmentedFrameMessage(frame, 0, timestamp)
-                # Send the message containing the frame.
-            self._camera_stream.send(msg)
-            # Note: The operator is set not to automatically propagate
-            # watermark messages received on input streams. Thus, we can
-            # issue watermarks only after the Carla callback is invoked.
-            self._camera_stream.send(watermark_msg)
-
-    def on_vehicle_id(self, msg):
-        """ This function receives the identifier for the vehicle, retrieves
-        the handler for the vehicle from the simulation and attaches the
-        camera to it.
-
-        Args:
-            msg: The identifier for the vehicle to attach the camera to.
-        """
-        vehicle_id = msg.data
+    def run(self):
+        # Read the vehicle id from the vehicle id stream
+        vehicle_id_msg = self._vehicle_id_stream.read()
+        vehicle_id = vehicle_id_msg.data
         self._logger.info(
             "The CameraDriverOperator received the vehicle id: {}".format(
                 vehicle_id))
@@ -147,3 +105,44 @@ class CameraDriverOperator(erdust.Operator):
 
         # Register the callback on the camera.
         self._camera.listen(self.process_images)
+        # TODO: We might have to loop here to keep hold of the thread so that
+        # Carla callbacks are still invoked.
+        # while True:
+        #     time.sleep(0.01)
+
+    def process_images(self, carla_image):
+        """ Invoked when an image is received from the simulator.
+
+        Args:
+            carla_image: a carla.Image.
+        """
+        # Ensure that the code executes serially
+        with self._lock:
+            game_time = int(carla_image.timestamp * 1000)
+            timestamp = erdust.Timestamp(coordinates=[game_time])
+            watermark_msg = erdust.WatermarkMessage(timestamp)
+
+            msg = None
+            if self._camera_setup.camera_type == 'sensor.camera.rgb':
+                msg = pylot.simulation.messages.FrameMessage(
+                    pylot.utils.bgra_to_bgr(to_bgra_array(carla_image)),
+                    timestamp)
+            elif self._camera_setup.camera_type == 'sensor.camera.depth':
+                # Include the transform relative to the vehicle.
+                # Carla carla_image.transform returns the world transform, but
+                # we do not use it directly.
+                msg = pylot.simulation.messages.DepthFrameMessage(
+                    depth_to_array(carla_image),
+                    self._camera_setup.get_transform(),
+                    carla_image.fov,
+                    timestamp)
+            elif self._camera_setup.camera_type == 'sensor.camera.semantic_segmentation':
+                frame = transform_to_cityscapes_palette(
+                    labels_to_array(carla_image))
+                msg = SegmentedFrameMessage(frame, 0, timestamp)
+                # Send the message containing the frame.
+            self._camera_stream.send(msg)
+            # Note: The operator is set not to automatically propagate
+            # watermark messages received on input streams. Thus, we can
+            # issue watermarks only after the Carla callback is invoked.
+            self._camera_stream.send(watermark_msg)
