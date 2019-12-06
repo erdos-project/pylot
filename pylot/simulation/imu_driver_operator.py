@@ -10,6 +10,7 @@ from erdos.timestamp import Timestamp
 import pylot.utils
 from pylot.simulation.carla_utils import get_world, set_synchronous_mode
 from pylot.simulation.messages import IMUMessage
+from pylot.simulation.utils import Vector3D, Transform
 
 
 class IMUDriverOperator(Op):
@@ -79,9 +80,9 @@ class IMUDriverOperator(Op):
             watermark_msg = WatermarkMessage(timestamp)
 
             msg = IMUMessage(
-                imu_msg.transform,
-                imu_msg.accelerometer,
-                imu_msg.gyroscope,
+                Transform(carla_transform=imu_msg.transform),
+                Vector3D(carla_vector=imu_msg.accelerometer),
+                Vector3D(carla_vector=imu_msg.gyroscope),
                 imu_msg.compass,
                 timestamp
             )
