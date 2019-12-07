@@ -1,10 +1,14 @@
 import carla
+import collections
 import erdust
+import itertools
 
 from pylot.map.hd_map import HDMap
 from pylot.planning.messages import WaypointsMessage
 from pylot.simulation.carla_utils import get_map
 from pylot.planning.utils import get_waypoint_vector_and_angle
+
+DEFAULT_NUM_WAYPOINTS = 50
 
 
 class WaypointPlanningOperator(erdust.Operator):
@@ -26,7 +30,6 @@ class WaypointPlanningOperator(erdust.Operator):
         self._log_file_name = log_file_name
         self._flags = flags
         self._wp_index = 4  # use 5th waypoint for steering and speed
-        self._waypoints = None
         self._map = HDMap(get_map(self._flags.carla_host,
                                   self._flags.carla_port,
                                   self._flags.carla_timeout),
@@ -41,18 +44,22 @@ class WaypointPlanningOperator(erdust.Operator):
     def on_can_bus_update(self, msg, waypoints_stream):
         """ Recompute path to goal location and send WaypointsMessage."""
         vehicle_transform = msg.data.transform
-        self._waypoints = self._map.compute_waypoints(
+        waypoints = self._map.compute_waypoints(
             vehicle_transform.location.as_carla_location(),
             self._goal_location)
-        next_waypoint = self._waypoints[self._wp_index]
+        next_waypoint = waypoints[self._wp_index]
         wp_steer_vector, wp_steer_angle = get_waypoint_vector_and_angle(
             next_waypoint, vehicle_transform)
         wp_speed_vector, wp_speed_angle = get_waypoint_vector_and_angle(
             next_waypoint, vehicle_transform)
 
+        head_waypoints = collections.deque(
+            itertools.islice(waypoints, 0, DEFAULT_NUM_WAYPOINTS)
+        )  # only take 50 meters
+
         output_msg = WaypointsMessage(
             msg.timestamp,
-            waypoints=self._waypoints,
+            waypoints=head_waypoints,
             wp_angle=wp_steer_angle,
             wp_vector=wp_steer_vector,
             wp_angle_speed=wp_speed_angle

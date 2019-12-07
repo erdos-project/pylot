@@ -94,7 +94,7 @@ def add_perfect_perception(center_camera_stream,
             depth_camera_stream,
             segmented_camera_stream,
             can_bus_stream)
-    
+
     lane_detection_stream = pylot.operator_creator.add_perfect_lane_detector(
         can_bus_stream)
 
@@ -121,19 +121,26 @@ def add_prediction(obstacles_tracking_stream):
 
 
 def add_planning(can_bus_stream,
+                 prediction_stream,
                  open_drive_stream,
                  global_trajectory_stream,
                  goal_location):
-    if FLAGS.waypoint_planning_operator:
-        waypoints_stream = pylot.operator_creator.add_waypoint_planning(
-            can_bus_stream,
-            goal_location)
-    else:
+    if FLAGS.planning_type == 'single_waypoint':
         waypoints_stream = pylot.operator_creator.add_planning(
             can_bus_stream,
             open_drive_stream,
             global_trajectory_stream,
             goal_location)
+    elif FLAGS.planning_type == 'multiple_waypoints':
+        waypoints_stream = pylot.operator_creator.add_waypoint_planning(
+            can_bus_stream,
+            goal_location)
+    elif FLAGS.planning_type == 'rrt_star':
+        waypoints_stream = pylot.operator_creator.add_rrt_start_planning(
+            can_bus_stream, prediction_stream, goal_location)
+    else:
+        raise ValueError('Unexpected planning_type {}'.format(
+            FLAGS.planning_type)
     if FLAGS.visualize_waypoints:
         pylot.operator_creator.add_waypoint_visualizer(waypoints_stream)
     return waypoints_stream
@@ -237,12 +244,14 @@ def driver():
          segmented_stream) = add_perception(
              center_camera_stream, traffic_light_camera_stream)
 
+    prediction_stream = None
     if FLAGS.prediction:
         prediction_stream = add_prediction(obstacles_tracking_stream)
 
     # Add planning operators.
     goal_location = (234.269989014, 59.3300170898, 39.4306259155)
     waypoints_stream = add_planning(can_bus_stream,
+                                    prediction_stream,
                                     open_drive_stream,
                                     global_trajectory_stream,
                                     goal_location)
@@ -266,6 +275,9 @@ def driver():
 
     if FLAGS.visualize_imu:
         pylot.operator_creator.add_imu_visualizer(imu_stream)
+
+    if FLAGS.visualize_can_bus:
+        pylot.operator_creator.add_can_bus_visualize(can_bus_stream)
 
     pylot.operator_creator.add_visualizers(
         center_camera_stream,

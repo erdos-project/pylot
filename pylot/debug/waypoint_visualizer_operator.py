@@ -4,6 +4,8 @@ import erdust
 # Pylot specific imports.
 import pylot.simulation.carla_utils
 
+DEFAULT_VIS_TIME = 0.1
+
 
 class WaypointVisualizerOperator(erdust.Operator):
     """ WaypointVisualizerOperator visualizes the waypoints released by a
@@ -36,15 +38,6 @@ class WaypointVisualizerOperator(erdust.Operator):
             self._flags.carla_timeout)
         if self._world is None:
             raise ValueError("Error connecting to the simulator.")
-        self._colors = [carla.Color(255, 0, 0),
-                        carla.Color(0, 255, 0),
-                        carla.Color(0, 0, 255),
-                        carla.Color(128, 128, 0),
-                        carla.Color(0, 128, 128),
-                        carla.Color(128, 0, 128),
-                        carla.Color(64, 64, 0),
-                        carla.Color(64, 0, 64),
-                        carla.Color(0, 64, 64)]
 
     @staticmethod
     def connect(waypoints_stream):
@@ -58,19 +51,11 @@ class WaypointVisualizerOperator(erdust.Operator):
             msg: A message of type `planning.messages.WaypointsMessage` to
                 be drawn on the screen.
         """
-        assert len(msg.waypoints) <= len(self._colors)
-        index = 0
         for waypoint in msg.waypoints:
             loc = carla.Location(waypoint.location.x,
                                  waypoint.location.y,
-                                 waypoint.location.z)
-            begin = loc + carla.Location(z=0.5)
-            end = begin + carla.Location(waypoint.forward_vector.x,
-                                         waypoint.forward_vector.y,
-                                         waypoint.forward_vector.z)
-            self._world.debug.draw_arrow(begin,
-                                         end,
-                                         arrow_size=0.3,
-                                         life_time=30.0,
-                                         color=self._colors[index])
-            index += 1
+                                 waypoint.location.z + 0.5)
+            self._world.debug.draw_point(loc,
+                                         size=0.2,
+                                         life_time=DEFAULT_VIS_TIME,
+                                         color=carla.Color(0, 0, 255))

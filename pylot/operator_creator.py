@@ -27,6 +27,8 @@ from pylot.perception.segmentation.segmentation_eval_ground_operator import \
     SegmentationEvalGroundOperator
 # Planning operators.
 from pylot.planning.planning_operator import PlanningOperator
+from pylot.planning.rrt_star.rrt_star_planning_operator import \
+    RRTStarPlanningOperator
 from pylot.planning.waypoint_planning_operator import WaypointPlanningOperator
 # Prediction operators.
 from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
@@ -48,6 +50,7 @@ from pylot.loggers.multiple_object_tracker_logger_operator import \
 from pylot.loggers.trajectory_logger_operator import TrajectoryLoggerOperator
 # Visualizing operators.
 from pylot.debug.camera_visualizer_operator import CameraVisualizerOperator
+from pylot.debug.can_bus_visualizer_operator import CanBusVisualizerOperator
 from pylot.debug.imu_visualizer_operator import IMUVisualizerOperator
 from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
 from pylot.debug.track_visualizer_operator import TrackVisualizerOperator
@@ -254,6 +257,22 @@ def add_planning(can_bus_stream,
     [waypoints_stream] = erdust.connect(
         PlanningOperator,
         [can_bus_stream, open_drive_stream, global_trajectory_stream],
+        True,
+        name,
+        FLAGS,
+        goal_location,
+        log_file_name=FLAGS.log_file_name,
+        csv_file_name=FLAGS.csv_file_name)
+    return waypoints_stream
+
+
+def add_rrt_start_planning(can_bus_stream,
+                           prediction_stream,
+                           goal_location,
+                           name='rrt_star_planning_operator'):
+    [waypoints_stream] = erdust.connect(
+        RRTStarPlanningOperator,
+        [can_bus_stream, prediction_stream],
         True,
         name,
         FLAGS,
@@ -590,6 +609,15 @@ def add_camera_visualizer(camera_stream, name):
 def add_imu_visualizer(imu_stream, name='imu_visualizer_operator'):
     erdust.connect(IMUVisualizerOperator,
                    [imu_stream],
+                   True,
+                   name,
+                   FLAGS,
+                   log_file_name=FLAGS.log_file_name)
+
+
+def add_can_bus_visualize(can_bus_stream, name='can_bus_visualizer_operator'):
+    erdust.connect(CanBusVisualizerOperator,
+                   [can_bus_stream],
                    True,
                    name,
                    FLAGS,

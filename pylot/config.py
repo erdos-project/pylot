@@ -137,8 +137,10 @@ flags.DEFINE_integer(
 ######################################################################
 # Planning
 ######################################################################
-flags.DEFINE_bool('waypoint_planning_operator', False,
-                  'True to use the waypoint planning operator.')
+flags.DEFINE_enum('planning_type',
+                  'single_waypoint',
+                  ['single_waypoint', 'multiple_waypoints', 'rrt_star'],
+                  'Type of planning module to use')
 flags.DEFINE_bool('imu', True, 'True to enable the IMU sensor')
 
 ######################################################################
@@ -256,6 +258,7 @@ flags.DEFINE_bool('visualize_traffic_light_output', False,
 flags.DEFINE_bool('visualize_lane_detection', False,
                   'True to visualize lane detection')
 flags.DEFINE_bool('visualize_waypoints', False, 'True to visualize waypoints')
+flags.DEFINE_bool('visualize_can_bus', False, 'True to visualize can bus.')
 flags.DEFINE_bool('visualize_top_down_segmentation', False,
                   'True to visualize top-down segmentation')
 flags.DEFINE_bool('visualize_top_down_tracker_output', False,
