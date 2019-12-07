@@ -1,6 +1,5 @@
 import cv2
 import erdust
-import numpy as np
 
 # Pylot specific imports.
 import pylot.utils

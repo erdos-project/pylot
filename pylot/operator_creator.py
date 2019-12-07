@@ -4,6 +4,7 @@ import erdust
 # Simulation operators.
 from pylot.simulation.camera_driver_operator import CameraDriverOperator
 from pylot.simulation.carla_operator import CarlaOperator
+from pylot.simulation.imu_driver_operator import IMUDriverOperator
 from pylot.simulation.lidar_driver_operator import LidarDriverOperator
 # Perception operators.
 from pylot.perception.detection.detection_operator import DetectionOperator
@@ -46,9 +47,10 @@ from pylot.loggers.multiple_object_tracker_logger_operator import \
     MultipleObjectTrackerLoggerOperator
 from pylot.loggers.trajectory_logger_operator import TrajectoryLoggerOperator
 # Visualizing operators.
+from pylot.debug.camera_visualizer_operator import CameraVisualizerOperator
+from pylot.debug.imu_visualizer_operator import IMUVisualizerOperator
 from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
 from pylot.debug.track_visualizer_operator import TrackVisualizerOperator
-from pylot.debug.camera_visualizer_operator import CameraVisualizerOperator
 from pylot.debug.waypoint_visualizer_operator import WaypointVisualizerOperator
 # Perfect versions of operators.
 from pylot.simulation.perfect_detector_operator import PerfectDetectorOperator
@@ -364,6 +366,18 @@ def _add_lidar_driver(vehicle_id_stream, lidar_setup):
     return point_cloud_stream
 
 
+def add_imu(transform, vehicle_id_stream, name='imu'):
+    imu_setup = pylot.simulation.sensor_setup.IMUSetup(name, transform)
+    [imu_stream] = erdust.connect(IMUDriverOperator,
+                                  [vehicle_id_stream],
+                                  False,
+                                  imu_setup.get_name() + "_operator",
+                                  imu_setup,
+                                  FLAGS,
+                                  log_file_name=FLAGS.log_file_name)
+    return (imu_stream, imu_setup)
+
+
 def add_fusion(can_bus_stream,
                obstacles_stream,
                depth_stream,
@@ -571,6 +585,15 @@ def add_lidar_visualizer(point_cloud_stream, name='lidar_visualizer_operator'):
 
 def add_camera_visualizer(camera_stream, name):
     erdust.connect(CameraVisualizerOperator, [camera_stream], True, name)
+
+
+def add_imu_visualizer(imu_stream, name='imu_visualizer_operator'):
+    erdust.connect(IMUVisualizerOperator,
+                   [imu_stream],
+                   True,
+                   name,
+                   FLAGS,
+                   log_file_name=FLAGS.log_file_name)
 
 
 def add_top_down_tracking_visualizer(

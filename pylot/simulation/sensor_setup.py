@@ -182,3 +182,19 @@ class LidarSetup(object):
                 self.name, self.lidar_type, self.transform, self.range,
                 self.rotation_frequency, self.channels, self.upper_fov,
                 self.lower_fov, self.points_per_second)
+
+
+class IMUSetup(object):
+    def __init__(self, name, transform):
+        self.name = name
+        self.transform = transform
+
+     def get_transform(self):
+        return self.transform
+
+     def __repr__(self):
+        return self.__str__()
+
+     def __str__(self):
+        return "IMUSetup(name: {}, transform: {})".format(
+            self.name, self.transform)

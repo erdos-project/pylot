@@ -112,11 +112,14 @@ class PerfectDetectorOperator(erdust.Operator):
         vehicle_transform = can_bus_msg.data.transform
 
         det_ped = self.__get_pedestrians(pedestrians_msg.pedestrians,
-                                         vehicle_transform, depth_array,
-                                         segmented_msg.frame)
+                                         vehicle_transform,
+                                         depth_array,
+                                         segmented_msg.frame.as_numpy_array())
 
-        det_vec = self.__get_vehicles(vehicles_msg.vehicles, vehicle_transform,
-                                      depth_array, segmented_msg.frame)
+        det_vec = self.__get_vehicles(vehicles_msg.vehicles,
+                                      vehicle_transform,
+                                      depth_array,
+                                      segmented_msg.frame.as_numpy_array())
 
         det_speed_limits = pylot.simulation.utils.get_speed_limit_det_objs(
             speed_limit_signs_msg.speed_signs,

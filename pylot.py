@@ -203,6 +203,8 @@ def driver():
     (traffic_light_camera_stream,
      traffic_light_camera_setup) = pylot.operator_creator.add_rgb_camera(
          transform, vehicle_id_stream, 'traffic_light_camera', 45)
+    (imu_stream, _) = pylot.operator_creator.add_imu(
+        transform, vehicle_id_stream)
 
     if FLAGS.depth_estimation:
         (left_camera_stream,
@@ -261,6 +263,9 @@ def driver():
                 vehicle_id_stream,
                 name='top_down_segmented_camera',
                 fov=90)
+
+    if FLAGS.visualize_imu:
+        pylot.operator_creator.add_imu_visualizer(imu_stream)
 
     pylot.operator_creator.add_visualizers(
         center_camera_stream,

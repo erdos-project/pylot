@@ -51,8 +51,8 @@ class SegmentedFrame(object):
         if encoding == 'carla':
             self._frame = frame
         elif encoding == 'cityscapes':
-            self._frame = None
-            # TODO(ionel):
+            raise ValueError('Transformation from cityscapes to carla encoding'
+                             ' is not yet implemented!')
         else:
             raise ValueError(
                 'Unexpected encoding {} for segmented frame'.format(encoding))
@@ -68,6 +68,9 @@ class SegmentedFrame(object):
         for key, value in CITYSCAPES_CLASSES.items():
             result[np.where(self._frame == key)] = value
         return result
+
+    def as_numpy_array(self):
+        return self._frame
 
     def get_traffic_sign_bounding_boxes(self, min_width=2, min_height=3):
         # Set the pixels we are interested in to True.

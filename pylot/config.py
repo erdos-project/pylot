@@ -139,6 +139,7 @@ flags.DEFINE_integer(
 ######################################################################
 flags.DEFINE_bool('waypoint_planning_operator', False,
                   'True to use the waypoint planning operator.')
+flags.DEFINE_bool('imu', True, 'True to enable the IMU sensor')
 
 ######################################################################
 # Control
@@ -238,6 +239,8 @@ flags.DEFINE_bool('visualize_depth_estimation', False,
                   'True to enable depth estimation visualization')
 flags.DEFINE_bool('visualize_rgb_camera', False,
                   'True to enable RGB camera video operator')
+flags.DEFINE_bool('visualize_imu', False,
+                  'True to enable CARLA IMU visualizer operator')
 flags.DEFINE_bool('visualize_segmentation', False,
                   'True to enable CARLA segmented video operator')
 flags.DEFINE_bool('visualize_ground_obstacles', False,

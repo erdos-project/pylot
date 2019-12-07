@@ -157,14 +157,19 @@ class Vector3D(object):
         z: The value of the third axis.
     """
 
-    def __init__(self, x, y, z):
+    def __init__(self, x=None, y=None, z=None, carla_vector=None):
         """ Initializes the Vector3D instance from the given x, y and z values.
 
         Args:
             x: The value of the first axis.
             y: The value of the second axis.
             z: The value of the third axis.
+            carla_vector: carla.vector3D.
         """
+        if carla_vector is not None:
+            x = carla_vector.x
+            y = carla_vector.y
+            z = carla_vector.z
         self.x, self.y, self.z = x, y, z
 
     def __add__(self, other):
