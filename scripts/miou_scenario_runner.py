@@ -8,13 +8,10 @@ import collections
 
 import cv2
 import carla
-import numpy as np
 
 from pylot.simulation.carla_utils import get_world
 from pylot.simulation.utils import labels_to_array
-from pylot.perception.segmentation.utils import transform_to_cityscapes_palette
-from pylot.perception.segmentation.utils import generate_masks
-from pylot.perception.segmentation.utils import compute_semantic_iou_from_masks
+from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 
 VEHICLE_DESTINATION = carla.Location(x=387.73 - 370, y=327.07, z=0.5)
 SAVED_FRAMES = collections.deque()
@@ -119,8 +116,7 @@ def save_frame(file_name, frame):
         file_name: The file name to save the segmented image to.
         frame: The segmented frame to save.
     """
-    frame = transform_to_cityscapes_palette(frame)
-    cv2.imwrite(file_name, frame)
+    cv2.imwrite(file_name, frame.as_cityscapes_palette())
 
 
 def compute_and_log_miou(current_frame, current_timestamp, csv, deadline=210):
@@ -132,8 +128,7 @@ def compute_and_log_miou(current_frame, current_timestamp, csv, deadline=210):
         current_timestamp: The timestamp associated with the frame.
         csv: The csv file to write the results to.
     """
-    current_frame_masks = generate_masks(current_frame)
-    SAVED_FRAMES.append((current_timestamp, current_frame_masks))
+    SAVED_FRAMES.append((current_timestamp, current_frame))
 
     # Remove data older than the deadline that we don't need anymore.
     while (current_timestamp - SAVED_FRAMES[0][0]) * 1000 > deadline:
@@ -141,10 +136,9 @@ def compute_and_log_miou(current_frame, current_timestamp, csv, deadline=210):
 
     # Go over each of the saved frames, compute the difference in the
     # timestamp, and the mIOU and log both of them.
-    for old_timestamp, old_frame_masks in SAVED_FRAMES:
-        (mean_iou,
-         class_iou) = compute_semantic_iou_from_masks(current_frame_masks,
-                                                      old_frame_masks)
+    for old_timestamp, old_frame in SAVED_FRAMES:
+        (mean_iou, class_iou) = \
+            current_frame.compute_semantic_iou_using_masks(old_frame)
         time_diff = current_timestamp - old_timestamp
 
         # Format of the CSV file: (latency_in_ms, class, mean IOU)
@@ -171,7 +165,7 @@ def process_segmentation_images(msg,
         sys.exit(0)
 
     # Compute the segmentation mIOU.
-    frame = labels_to_array(msg)
+    frame = SegmentedFrame(labels_to_array(msg))
     compute_and_log_miou(frame, msg.timestamp, csv)
 
     # Visualize the run.

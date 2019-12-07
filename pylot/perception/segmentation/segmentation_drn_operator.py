@@ -7,6 +7,7 @@ import time
 import torch
 
 from pylot.perception.messages import SegmentedFrameMessage
+from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.utils import add_timestamp, rgb_to_bgr, time_epoch_ms
 
 
@@ -73,5 +74,6 @@ class SegmentationDRNOperator(erdust.Operator):
         self._csv_logger.info('{},{},"{}",{}'.format(
             time_epoch_ms(), self._name, msg.timestamp, runtime))
 
+        frame = SegmentedFrame(image_np, 'cityscapes')
         segmented_stream.send(
-            SegmentedFrameMessage(image_np, runtime, msg.timestamp))
+            SegmentedFrameMessage(frame, runtime, msg.timestamp))

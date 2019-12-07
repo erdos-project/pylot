@@ -8,7 +8,6 @@ import os
 import PIL.Image as Image
 
 # Pylot specific imports.
-from pylot.perception.segmentation.utils import LABEL_2_PIXEL
 from pylot.planning.utils import get_distance
 import pylot.utils
 import pylot.simulation.carla_utils
@@ -183,26 +182,13 @@ class ChauffeurLoggerOperator(erdust.Operator):
         past_poses_img.save(file_name)
 
     def on_top_down_segmentation_update(self, msg):
-        top_down = np.uint8(msg.frame)
-
         # Save the segmented channels
-        for k, v in LABEL_2_PIXEL.items():
-            mask = np.all(top_down == v, axis=-1)
-            tmp = np.zeros(top_down.shape[:2])
-            tmp[mask] = 1
-            file_name = os.path.join(
-                self._flags.data_path,
-                '{}-{}.png'.format(k, msg.timestamp.coordinates[0]))
-            img = Image.fromarray(tmp)
-            img = img.convert('RGB')
-            img.save(file_name)
-
+        msg.frame.save_per_class_masks(msg.timestamp)
         file_name = os.path.join(
             self._flags.data_path,
             'top_down_segmentation-{}.png'.format(
                 msg.timestamp.coordinates[0]))
-        top_down_img = Image.fromarray(top_down)
-        top_down_img.save(file_name)
+        msg.frame.save(file_name)
 
     def on_ground_vehicle_id_update(self, msg):
         self._ground_vehicle_id = msg.data

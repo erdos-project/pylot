@@ -5,9 +5,8 @@ from pylot.perception.messages import ObjTrajectory, ObjTrajectoriesMessage
 
 
 class PerfectTrackerOperator(erdust.Operator):
-    """Operator that gives past trajectories of other agents in
-       the environment, i.e. their past (x,y,z) locations from an
-       ego-vehicle perspective.
+    """Operator that gives past trajectories of other agents in the environment,
+       i.e. their past (x,y,z) locations from an ego-vehicle perspective.
     """
 
     def __init__(self,

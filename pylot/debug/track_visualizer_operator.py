@@ -70,7 +70,7 @@ class TrackVisualizerOperator(erdust.Operator):
         segmentation_msg = self._top_down_segmentation_msgs.pop()
         prediction_msg = self._prediction_msgs.pop()
 
-        display_img = np.uint8(segmentation_msg.frame)
+        display_img = segmentation_msg.frame.as_cityscapes_palette()
         for obj in tracking_msg.obj_trajectories:
             self._draw_trajectory_on_img(obj, display_img, False)
         for obj in prediction_msg.predictions:

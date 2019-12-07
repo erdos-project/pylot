@@ -27,8 +27,8 @@ class CameraLoggerOperator(erdust.Operator):
         # Write the image.
         if msg.encoding == 'BGR':
             frame = pylot.utils.bgr_to_rgb(msg.frame)
-        elif msg.encoding == 'cityscapes':
-            frame = msg.frame
+        elif msg.encoding == 'segmented':
+            frame = msg.frame.as_cityscapes_palette()
         else:
             raise ValueError('{} unexpected frame encoding {}'.format(
                 self._name, msg.encoding))

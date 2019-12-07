@@ -2,8 +2,6 @@ from collections import deque
 import erdust
 import time
 
-from pylot.perception.segmentation.utils import generate_masks,\
-    compute_semantic_iou_from_masks
 from pylot.utils import time_epoch_ms
 
 
@@ -25,7 +23,7 @@ class SegmentationEvalGroundOperator(erdust.Operator):
         self._csv_logger = erdust.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._time_delta = None
-        self._ground_masks = deque()
+        self._ground_frames = deque()
 
     @staticmethod
     def connect(ground_segmented_stream):
@@ -35,28 +33,28 @@ class SegmentationEvalGroundOperator(erdust.Operator):
         start_time = time.time()
         # We don't fully transform it to cityscapes palette to avoid
         # introducing extra latency.
-        frame_masks = generate_masks(msg.frame)
+        frame = msg.frame
 
-        if len(self._ground_masks) > 0:
+        if len(self._ground_frames) > 0:
             if self._time_delta is None:
                 self._time_delta = (msg.timestamp.coordinates[0] -
-                                    self._ground_masks[0][0])
+                                    self._ground_frames[0][0])
             else:
                 # Check that no frames got dropped.
                 recv_time_delta = (msg.timestamp.coordinates[0] -
-                                   self._ground_masks[-1][0])
+                                   self._ground_frames[-1][0])
                 assert self._time_delta == recv_time_delta
 
             # Pop the oldest frame if it's older than the max latency
             # we're interested in.
-            if (msg.timestamp.coordinates[0] - self._ground_masks[0][0] >
+            if (msg.timestamp.coordinates[0] - self._ground_frames[0][0] >
                 self._flags.decay_max_latency):
-                self._ground_masks.popleft()
+                self._ground_frames.popleft()
 
             cur_time = time_epoch_ms()
-            for timestamp, ground_masks in self._ground_masks:
-                (mean_iou, class_iou) = compute_semantic_iou_from_masks(
-                    frame_masks, ground_masks)
+            for timestamp, ground_frame in self._ground_frames:
+                (mean_iou, class_iou) = \
+                    ground_frame.compute_semantic_iou_using_masks(frame)
                 time_diff = msg.timestamp.coordinates[0] - timestamp
                 self._logger.info(
                     'Segmentation ground latency {} ; mean IoU {}'.format(
@@ -86,8 +84,7 @@ class SegmentationEvalGroundOperator(erdust.Operator):
                         class_iou[vehicle_key]))
 
         # Append the processed image to the buffer.
-        self._ground_masks.append(
-            (msg.timestamp.coordinates[0], frame_masks))
+        self._ground_frames.append((msg.timestamp.coordinates[0], frame))
 
         runtime = (time.time() - start_time) * 1000
         self._logger.info('Segmentation eval ground runtime {}'.format(

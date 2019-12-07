@@ -16,6 +16,9 @@ class CameraVisualizerOperator(erdust.Operator):
         return []
 
     def display_frame(self, msg):
-        add_timestamp(msg.timestamp, msg.frame)
-        cv2.imshow(self.name, msg.frame)
-        cv2.waitKey(1)
+        if msg.encoding == 'segmented':
+            msg.frame.visualize(self.name, msg.timestamp)
+        else:
+            add_timestamp(msg.timestamp, msg.frame)
+            cv2.imshow(self.name, msg.frame)
+            cv2.waitKey(1)

@@ -273,25 +273,6 @@ def calculate_iou(ground_truth, prediction):
     return float(inter_area) / (gt_area + pred_area - inter_area)
 
 
-def get_bounding_boxes_from_segmented(frame, min_width=2, min_height=3):
-    """ Extracts bounding box from frame.
-    Assumes that the pixels we are interested in are set to True.
-    """
-    bboxes = []
-    # Labels the connected segmented pixels.
-    map_labeled = measure.label(frame, connectivity=1)
-    # Extract the regions out of the labeled frames.
-    for region in measure.regionprops(map_labeled):
-        x_min = region.bbox[1]
-        x_max = region.bbox[3]
-        y_min = region.bbox[0]
-        y_max = region.bbox[2]
-        # Filter the bboxes that are extremely small.
-        if x_max - x_min > min_width and y_max - y_min > min_height:
-            bboxes.append((x_min, x_max, y_min, y_max))
-    return bboxes
-
-
 def get_prediction_results(ground_truths, predictions, iou_threshold):
     """Calculate the number of true positives, false positives and false
     negatives from the given ground truth and predictions."""

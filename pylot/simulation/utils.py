@@ -7,8 +7,7 @@ from numpy.linalg import inv
 from numpy.matlib import repmat
 
 from pylot.perception.detection.utils import DetectedObject,\
-    DetectedSpeedLimit, get_bounding_boxes_from_segmented
-from pylot.perception.segmentation.utils import get_traffic_sign_pixels
+    DetectedSpeedLimit
 
 Vehicle = namedtuple('Vehicle', 'id, transform, bounding_box, forward_speed')
 Pedestrian = namedtuple('Pedestrian',
@@ -1270,9 +1269,8 @@ def get_speed_limit_det_objs(
         segmented_frame: Segmented frame.
     """
     # Compute the bounding boxes.
-    traffic_signs_frame = get_traffic_sign_pixels(segmented_frame)
-    bboxes = get_bounding_boxes_from_segmented(
-        traffic_signs_frame, min_width=8, min_height=9)
+    bboxes = segmented_frame.get_traffic_sign_bounding_boxes(
+        min_width=8, min_height=9)
 
     # Get the positions of the bounding box centers.
     x_mids = [(bbox[0] + bbox[1]) / 2 for bbox in bboxes]

@@ -1,7 +1,6 @@
 import erdust
 import heapq
 
-from pylot.perception.segmentation.utils import compute_semantic_iou
 from pylot.utils import time_epoch_ms
 
 
@@ -108,8 +107,8 @@ class SegmentationEvalOperator(erdust.Operator):
             return base + self._sim_interval
 
     def __compute_mean_iou(self, ground_frame, segmented_frame):
-        (mean_iou, class_iou) = compute_semantic_iou(ground_frame,
-                                                     segmented_frame)
+        (mean_iou, class_iou) = ground_frame.compute_semantic_iou(
+            segmented_frame)
         self._logger.info('IoU class scores: {}'.format(class_iou))
         self._logger.info('mean IoU score: {}'.format(mean_iou))
         self._csv_logger.info('{},{},{},{}'.format(
