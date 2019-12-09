@@ -7,6 +7,7 @@ from pylot.control.mpc.mpc import ModelPredictiveController
 from pylot.control.mpc.utils import zero_to_2_pi, global_config, CubicSpline2D
 from pylot.map.hd_map import HDMap
 from pylot.simulation.carla_utils import get_map, get_world
+from pylot.simulation.utils import kalman_step
 
 import numpy as np
 
@@ -45,6 +46,9 @@ class MPCAgentOperator(Op):
         self._traffic_light_msgs = deque()
         self._speed_limit_sign_msgs = deque()
         self._waypoint_msgs = deque()
+        self._init_X =[0,0,0,0]
+        self._init_V = np.eye(4)
+        self.prev_speed = 0
         self._lock = threading.Lock()
 
     @staticmethod
@@ -138,7 +142,89 @@ class MPCAgentOperator(Op):
         self._logger.debug("Brake: {}".format(control_msg.brake))
         self._logger.debug("State: {}".format(state))
 
+        vel = vehicle_speed
+        yaw = vehicle_transform.rotation.yaw
+        x = vehicle_transform.location.x
+        y = vehicle_transform.location.y
+        timestamp = can_bus_msg.timestamp
+
+        accel = (vehicle_speed - self.prev_speed)/.1
+        self.prev_speed = speed
+
+        # imu_msg = self._imu_msgs.popleft()
+        # accel = imu_msg.accelerometer
+
+        steer = control_msg.steer
+
+        X_meas = [x,y, vel,yaw]
+        u = [acccel,steer]
+        Q = np.eye(4) * .1
+        R = np.eye(4)
+        R[2] *= .1
+        R[3] *=.1
+
+        # prev_vel = self._init_X[2]
+        # prev_yaw = self._init_X[3]
+        # prev_steer = self._init_V[1]
+        A,B,c = self.get_transition_matrix(self, vel, yaw, steer)
+        X_filt, V_filt = kalman_step(X_meas, A, B, c, np.eye(np.shape(X_meas)), 0, u, Q,R,self._init_X,self._init_V)
+        self._init_X = X_filt
+        self._init_V = V_filt
+        self._logger.info('{} Measure: x {}, y {}, vel {}, yaw {}'.format(
+            timestamp,X_meas[0],X_meas[1],X_meas[2],X_meas[3]))
+        self._logger.info('{} Filter: x {}, y {}, vel {}, yaw {}'.format(
+              timestamp, X_filt[0],X_filt[1],X_filt[2],X_filt[3]))
+        self._logger.info('{} Variance: '.format(timestamp) \
+            + '\n'.join([''.join(['{:4}'.format(item) for item in row]) for row in Vfilt]))
+        self._logger.info('{} Control: Acceleration {}, Steer {}'.format(
+              timestamp, u[0],u[1]))
+
+
         self.get_output_stream('control_stream').send(control_msg)
+
+    def get_transition_matrix(self, vel, yaw, steer):
+        """
+        Return the transition matrices linearized around vel, yaw, steer.
+        Transition matrices A, B, C are of the form:
+            Ax_t + Bu_t + C = x_t+1
+
+        :param vel: reference velocity in m/s
+        :param yaw: reference yaw in radians
+        :param steer: reference steer in radians
+        :return: transition matrices
+        """
+        # state matrix
+        delta_t = .1
+        wheelbase = 2.85
+        matrix_a = np.zeros((4,4))
+        matrix_a[0, 0] = 1.0
+        matrix_a[1, 1] = 1.0
+        matrix_a[2, 2] = 1.0
+        matrix_a[3, 3] = 1.0
+        matrix_a[0, 2] = delta_t * np.cos(yaw)
+        matrix_a[0, 3] = -delta_t * vel * np.sin(yaw)
+        matrix_a[1, 2] = delta_t * np.sin(yaw)
+        matrix_a[1, 3] = delta_t * vel * np.cos(yaw)
+        matrix_a[3, 2] = \
+            delta_t * np.tan(steer) / wheelbase
+
+        # input matrix
+        matrix_b = np.zeros((4,4))
+        matrix_b[2, 0] = delta_t
+        matrix_b[3, 1] = delta_t * vel / \
+            (wheelbase * np.cos(steer)**2)
+
+        # constant matrix
+        matrix_c = np.zeros(4)
+        matrix_c[0] = delta_t * vel * np.sin(yaw) * yaw
+        matrix_c[1] = - delta_t * vel * np.cos(yaw) * yaw
+        matrix_c[3] = - delta_t * vel * steer / \
+            (wheelbase * np.cos(steer)**2)
+
+        return matrix_a, matrix_b, matrix_c
+
+
+
 
     def stop_for_agents(self,
                         ego_vehicle_location,
