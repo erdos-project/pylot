@@ -189,12 +189,12 @@ class IMUSetup(object):
         self.name = name
         self.transform = transform
 
-     def get_transform(self):
+    def get_transform(self):
         return self.transform
 
-     def __repr__(self):
+    def __repr__(self):
         return self.__str__()
 
-     def __str__(self):
+    def __str__(self):
         return "IMUSetup(name: {}, transform: {})".format(
             self.name, self.transform)

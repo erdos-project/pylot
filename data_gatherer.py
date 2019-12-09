@@ -5,6 +5,7 @@ import erdust
 import pylot.config
 from pylot.control.messages import ControlMessage
 import pylot.operator_creator
+from pylot.simulation.carla_utils import get_world
 import pylot.simulation.utils
 
 FLAGS = flags.FLAGS
@@ -12,20 +13,21 @@ FLAGS = flags.FLAGS
 # Flags that control what data is recorded.
 flags.DEFINE_integer('log_every_nth_frame', 1,
                      'Control how often the script logs frames')
-flags.DEFINE_bool('log_obstacles', False,
-                  'True to enable obstacle bounding box and camera logging')
-flags.DEFINE_bool(
-    'log_traffic_lights',
-    False,
-    'True to enable traffic lights bounding box and camera logging')
-flags.DEFINE_bool('log_cameras',
-                  False,
-                  'True to enable center camera RGB and segmented logging')
+flags.DEFINE_bool('log_rgb_camera', False,
+                  'True to enable center camera RGB logging')
+flags.DEFINE_bool('log_segmented_camera', False,
+                  'True to enable center segmented camera logging')
 flags.DEFINE_bool('log_left_right_cameras', False,
                   'Control whether we log left and right cameras.')
 flags.DEFINE_bool('log_depth_camera', False,
                   'True to enable depth camera logging')
 flags.DEFINE_bool('log_lidar', False, 'True to enable lidar logging')
+flags.DEFINE_bool('log_obstacles', False,
+                  'True to enable obstacle bounding box logging')
+flags.DEFINE_bool(
+    'log_traffic_lights',
+    False,
+    'True to enable traffic lights bounding box and camera logging')
 flags.DEFINE_bool('log_multiple_object_tracker', False,
                   'True to enable logging in the MOT format')
 flags.DEFINE_bool('log_trajectories', False,
@@ -39,17 +41,31 @@ CENTER_CAMERA_LOCATION = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
 
 
 class SynchronizerOperator(erdust.Operator):
-    def __init__(self, control_stream):
-        pass
+    def __init__(self,
+                 wait_stream,
+                 control_stream,
+                 flags):
+        erdust.add_watermark_callback(
+            [wait_stream], [control_stream], self.on_watermark)
+        self._world = None
+        self._flags = flags
 
     @staticmethod
-    def connect():
+    def connect(wait_stream):
         # Set no watermark on the output stream so that we do not
         # close the watermark loop with the carla operator.
         control_stream = erdust.WriteStream()
         return [control_stream]
 
     def on_watermark(self, timestamp, control_stream):
+        if self._world is None:
+            _, self._world = get_world(self._flags.carla_host,
+                                       self._flags.carla_port,
+                                       self._flags.carla_timeout)
+        # TODO: Carla operator should tick the world. Change once we support
+        # loops.
+        print("SynchronizerOperator ticked the world {}".format(timestamp))
+        self._world.tick()
         control_msg = ControlMessage(0, 0, 0, False, False, timestamp)
         control_stream.send(control_msg)
 
@@ -77,20 +93,22 @@ def driver():
     (segmented_stream, _) = pylot.operator_creator.add_segmented_camera(
         transform, vehicle_id_stream)
 
-    if FLAGS.log_cameras:
+    if FLAGS.log_rgb_camera:
         pylot.operator_creator.add_camera_logging(
             center_camera_stream,
             'center_camera_logger_operator',
             'carla-center-')
+
+    if FLAGS.log_segmented_camera:
         pylot.operator_creator.add_camera_logging(
             segmented_stream,
             'center_segmented_camera_logger_operator',
             'carla-segmented-')
-        pylot.operator_creator.add_depth_camera_logging(depth_camera_stream)
 
     if FLAGS.log_depth_camera:
         pylot.operator_creator.add_depth_camera_logging(depth_camera_stream)
-        
+
+    traffic_light_camera_stream = None
     if FLAGS.log_traffic_lights:
         (traffic_light_camera_stream,
          traffic_light_camera_setup) = pylot.operator_creator.add_rgb_camera(
@@ -99,20 +117,24 @@ def driver():
             traffic_light_camera_stream,
             'traffic_light_camera_logger_operator',
             'carla-traffic-light-')
-
-        # The perfect traffic light detector uses the regular camera because
-        # it is not sensitive to fov settings. Thus, we don't need to add
-        # segmented and depth cameras for the traffic light detector.
+        (traffic_light_segmented_camera_stream, _) = \
+            pylot.operator_creator.add_segmented_camera(
+                transform,
+                vehicle_id_stream,
+                'traffic_light_segmented_camera',
+                45)
+        (traffic_light_depth_camera_stream, _) = \
+            pylot.operator_creator.add_depth_camera(
+                transform, vehicle_id_stream, 'traffic_light_depth_camera', 45)
         traffic_lights_stream = \
             pylot.operator_creator.add_perfect_traffic_light_detector(
                 ground_traffic_lights_stream,
-                center_camera_stream,
-                depth_camera_stream,
-                segmented_stream,
+                traffic_light_camera_stream,
+                traffic_light_depth_camera_stream,
+                traffic_light_segmented_camera_stream,
                 can_bus_stream)
-        
         pylot.operator_creator.add_bounding_box_logging(traffic_lights_stream)
-        
+
     if FLAGS.log_left_right_cameras:
         (left_camera_stream,
          right_camera_stream) = pylot.operator_creator.add_left_right_cameras(
@@ -123,12 +145,14 @@ def driver():
         pylot.operator_creator.add_camera_logging(
             right_camera_stream,
             'right_camera_logger_operator', 'carla-right-')
-    
+
+    point_cloud_stream = None
     if FLAGS.log_lidar:
         (point_cloud_stream, _) = pylot.operator_creator.add_lidar(
             transform, vehicle_id_stream)
         pylot.operator_creator.add_lidar_logging(point_cloud_stream)
 
+    obstacles_stream = None
     if FLAGS.log_obstacles:
         obstacles_stream = pylot.operator_creator.add_perfect_detector(
             depth_camera_stream,
@@ -146,6 +170,7 @@ def driver():
         pylot.operator_creator.add_multiple_object_tracker_logging(
             obstacles_stream)
 
+    obstacles_tracking_stream = None
     if FLAGS.log_trajectories or FLAGS.log_chauffeur:
         obstacles_tracking_stream = \
             pylot.operator_creator.add_perfect_tracking(
@@ -156,6 +181,8 @@ def driver():
             pylot.operator_creator.add_trajectory_logging(
                 obstacles_tracking_stream)
 
+    top_down_segmented_stream = None
+    top_down_camera_setup = None
     if FLAGS.log_chauffeur or FLAGS.log_top_down_segmentation:
         top_down_transform = pylot.simulation.utils.get_top_down_transform(
             transform, FLAGS.top_down_lateral_view)
@@ -188,9 +215,11 @@ def driver():
                 top_down_segmented_stream,
                 top_down_camera_setup)
 
+    prediction_stream = None
     pylot.operator_creator.add_visualizers(
         center_camera_stream,
         depth_camera_stream,
+        point_cloud_stream,
         segmented_stream,
         top_down_segmented_stream,
         obstacles_tracking_stream,
@@ -211,8 +240,11 @@ def driver():
             stream_to_sync_on = traffic_light_camera_stream
         if obstacles_stream is not None:
             stream_to_sync_on = obstacles_stream
-        control_stream = erdust.connect(SynchronizerOperator,
-                                        [stream_to_sync_on])
+        control_stream = erdust.connect(
+            SynchronizerOperator,
+            [stream_to_sync_on],
+            False,  # Does not flow watermarks.
+            FLAGS)
     else:
         raise ValueError("Must be in auto pilot mode. Pass --carla_auto_pilot")
 

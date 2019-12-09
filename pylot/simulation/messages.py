@@ -117,9 +117,9 @@ class IMUMessage(erdust.Message):
         self.gyro = gyro
         self.compass = compass
 
-     def __str__(self):
+    def __str__(self):
         return 'IMUMessage(timestamp: {}, transform: {}, acceleration: {}, '\
-               'gyro: {}, compass: {})'.format(
+            'gyro: {}, compass: {})'.format(
                 self.timestamp, self.transform, self.acceleration, self.gyro,
                 self.compass)
 

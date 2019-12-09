@@ -113,8 +113,14 @@ def reset_frames():
 def get_traffic_light_objs(traffic_lights, camera_transform, depth_frame,
                            segmented_frame, width, height, color, town_name):
     det_objs = pylot.simulation.utils.get_traffic_light_det_objs(
-        traffic_lights, camera_transform, depth_frame, segmented_frame, width,
-        height, town_name, FLAGS.camera_fov)
+        traffic_lights,
+        camera_transform,
+        depth_frame,
+        segmented_frame.as_numpy_array(),
+        width,
+        height,
+        town_name,
+        FLAGS.camera_fov)
     # Overwrite traffic light color because we control it without refreshing
     # the agents.
     if color == carla.TrafficLightState.Yellow:

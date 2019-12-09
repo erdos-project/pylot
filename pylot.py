@@ -67,6 +67,9 @@ def add_perception(center_camera_stream, traffic_light_camera_stream):
 def add_perfect_perception(center_camera_stream,
                            depth_camera_stream,
                            segmented_camera_stream,
+                           tl_camera_stream,
+                           tl_depth_camera_stream,
+                           tl_segmented_camera_stream,
                            can_bus_stream,
                            ground_pedestrians_stream,
                            ground_vehicles_stream,
@@ -90,9 +93,9 @@ def add_perfect_perception(center_camera_stream,
     traffic_lights_stream = \
         pylot.operator_creator.add_perfect_traffic_light_detector(
             ground_traffic_lights_stream,
-            center_camera_stream,
-            depth_camera_stream,
-            segmented_camera_stream,
+            tl_camera_stream,
+            tl_depth_camera_stream,
+            tl_segmented_camera_stream,
             can_bus_stream)
 
     lane_detection_stream = pylot.operator_creator.add_perfect_lane_detector(
@@ -140,7 +143,7 @@ def add_planning(can_bus_stream,
             can_bus_stream, prediction_stream, goal_location)
     else:
         raise ValueError('Unexpected planning_type {}'.format(
-            FLAGS.planning_type)
+            FLAGS.planning_type))
     if FLAGS.visualize_waypoints:
         pylot.operator_creator.add_waypoint_visualizer(waypoints_stream)
     return waypoints_stream
@@ -207,8 +210,8 @@ def driver():
     # Place Lidar sensor in the same location as the center camera.
     (point_cloud_stream, lidar_setup) = pylot.operator_creator.add_lidar(
         transform, vehicle_id_stream)
-    (traffic_light_camera_stream,
-     traffic_light_camera_setup) = pylot.operator_creator.add_rgb_camera(
+    (tl_camera_stream,
+     tl_camera_setup) = pylot.operator_creator.add_rgb_camera(
          transform, vehicle_id_stream, 'traffic_light_camera', 45)
     (imu_stream, _) = pylot.operator_creator.add_imu(
         transform, vehicle_id_stream)
@@ -221,6 +224,16 @@ def driver():
             left_camera_stream, right_camera_stream, rgb_camera_setup)
 
     if FLAGS.use_perfect_perception:
+        # Add segmented and depth cameras with fov 45. These cameras are needed
+        # by the perfect traffic light detector.
+        (tl_depth_camera_stream, _) = pylot.operator_creator.add_depth_camera(
+            transform, vehicle_id_stream, 'traffic_light_depth_camera', 45)
+        (tl_segmented_camera_stream, _) = \
+            pylot.operator_creator.add_segmented_camera(
+                transform,
+                vehicle_id_stream,
+                'traffic_light_segmented_camera',
+                45)
         (obstacles_stream,
          obstacles_tracking_stream,
          traffic_lights_stream,
@@ -229,6 +242,9 @@ def driver():
              center_camera_stream,
              depth_camera_stream,
              segmented_stream,
+             tl_camera_stream,
+             tl_depth_camera_stream,
+             tl_segmented_camera_stream,
              can_bus_stream,
              ground_pedestrians_stream,
              ground_vehicles_stream,

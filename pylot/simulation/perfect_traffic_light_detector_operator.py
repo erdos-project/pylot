@@ -78,7 +78,7 @@ class PerfectTrafficLightDetectorOperator(erdust.Operator):
             traffic_light_msg.traffic_lights,
             vehicle_transform * depth_msg.transform,
             depth_msg.frame,
-            segmented_msg.frame,
+            segmented_msg.frame.as_numpy_array(),
             depth_msg.width,
             depth_msg.height,
             self._town_name,
