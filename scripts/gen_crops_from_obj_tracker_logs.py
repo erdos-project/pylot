@@ -27,8 +27,9 @@ def merge_mot_txt_files(dir_path, result_file="combined_logs.txt"):
     dir_path: path to directory that holds several mot-[timestep].txt files
     result_file: name of output file containing merged log files
     """
-    relevant_files = sorted(glob.glob(dir_path + "*.txt"), 
+    relevant_files = sorted(glob.glob(dir_path + "/*.txt"),
                             key=lambda line: int(line.split("mot-")[1][:-4])) # sort by timestamp
+    print("Found {} mot txt files.".format(len(relevant_files)))
     with open(result_file, "w") as combined_file:
         combined_text = []
         for f in relevant_files:
@@ -53,6 +54,7 @@ def get_crops(mot_detections_file, imgs_path, out_dir, area_tol=1500):
         if h * w >= area_tol:
             cv2.imwrite(out_dir + "/crop-{}-{}.png".format(timestamp, obj_id), crop)
             kept_crops_infos.append(line)
+    print("Keeping {}/{} crops with area >= {}".format(len(kept_crops_infos), len(mot_data), area_tol))
     with open(out_dir + "/filtered_crops_logs.txt", "w") as f:
         f.writelines(kept_crops_infos)
 
@@ -70,7 +72,8 @@ def convert_crops_to_pytorch_imagefolder_structure(crops_dir):
             obj_id_to_crops[obj_id] = {f}
         else:
             obj_id_to_crops[obj_id].add(f)
-
+    os.mkdir(crops_dir + "/train")
+    os.mkdir(crops_dir + "/test")
     for obj_id in obj_id_to_crops:
         os.mkdir(crops_dir + "/train/" + obj_id)
         os.mkdir(crops_dir + "/test/" + obj_id)
