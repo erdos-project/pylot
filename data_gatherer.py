@@ -9,7 +9,6 @@ from pylot.control.messages import ControlMessage
 import pylot.operator_creator
 import pylot.simulation.utils
 import pylot.utils
-from pylot import create_imu_setups
 
 
 FLAGS = flags.FLAGS
@@ -197,6 +196,17 @@ def create_lidar_setups():
         lidar_setups.append(lidar_setup)
     return lidar_setups
 
+def create_imu_setups():
+    if FLAGS.imu:
+        rotation = pylot.simulation.utils.Rotation(0, 0, 0)
+        # Place the IMU in the same position as the camera.
+        imu_transform = pylot.simulation.utils.Transform(
+            CENTER_CAMERA_LOCATION, rotation)
+        return [pylot.simulation.utils.IMUSetup(
+            name='imu',
+            imu_type='sensor.other.imu',
+            transform=imu_transform
+        )]
 
 def add_perfect_detection_component(
         graph, camera_setups, carla_op, camera_ops):
