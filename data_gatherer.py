@@ -9,6 +9,7 @@ from pylot.control.messages import ControlMessage
 import pylot.operator_creator
 import pylot.simulation.utils
 import pylot.utils
+from pylot import create_imu_setups
 
 
 FLAGS = flags.FLAGS
@@ -235,11 +236,14 @@ def main(argv):
     camera_setups, top_down_segmented_camera_setup = create_camera_setups()
     lidar_setups = create_lidar_setups()
 
+    imu_setups = create_imu_setups()
+
     # Add operator that interacts with the Carla simulator.
     (carla_op,
      camera_ops,
-     lidar_ops) = pylot.operator_creator.create_driver_ops(
-         graph, camera_setups, lidar_setups, auto_pilot=FLAGS.carla_auto_pilot)
+     lidar_ops,
+     imu_ops) = pylot.operator_creator.create_driver_ops(
+         graph, camera_setups, lidar_setups, imu_setups, auto_pilot=FLAGS.carla_auto_pilot)
 
     # Add an operator that logs BGR frames and segmented frames.
     camera_log_ops = []
