@@ -197,6 +197,13 @@ def is_fusion_stream(stream):
     return stream.get_label('fusion_output') == 'true'
 
 
+def is_past_control_stream(stream):
+    return stream.name == 'past_control_stream'
+
+def create_past_control_stream():
+    return DataStream(name='past_control_stream')
+
+
 def create_control_stream():
     # XXX(ionel): HACK! We set no_watermark to avoid closing the cycle in
     # the data-flow.

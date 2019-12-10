@@ -125,6 +125,20 @@ class CanBus(object):
             self.transform, self.forward_speed)
 
 
+class Control(object):
+    def __init__(self, steer, throttle, brake):
+        self.steer = steer
+        self.throttle = throttle
+        self.brake = brake
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return "Control(steer: {}, throttle: {}, brake: {})".format(
+            self.steer, self.throttle, self.brake)
+
+
 class BoundingBox(object):
     """ The Pylot version of the carla.BoundingBox instance that defines helper
     functions needed in Pylot, and makes the class serializable.

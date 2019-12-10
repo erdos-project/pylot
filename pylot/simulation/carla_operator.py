@@ -106,6 +106,7 @@ class CarlaOperator(Op):
             CarlaOperator.on_control_msg)
         ground_agent_streams = [
             pylot.utils.create_can_bus_stream(),
+            pylot.utils.create_past_control_stream(),
             pylot.utils.create_ground_traffic_lights_stream(),
             pylot.utils.create_ground_vehicles_stream(),
             pylot.utils.create_ground_pedestrians_stream(),
@@ -360,6 +361,16 @@ class CarlaOperator(Op):
         v_pose.location -= 10 * carla.Location(v_pose.get_forward_vector())
         v_pose.location.z = 5
         self._world.get_spectator().set_transform(v_pose)
+
+        control = self._driving_vehicle.get_control()
+        steer = control.steer
+        throttle = control.throttle
+        brake = control.brake
+        control_msg = pylot.simulation.utils.Control(steer, throttle, brake)
+        self.get_output_stream('past_control_stream').send(
+            Message(control_msg, timestamp))
+        self.get_output_stream('past_control_stream').send(watermark_msg)
+
 
     def __publish_ground_actors_data(self, timestamp, watermark_msg):
         # Get all the actors in the simulation.
