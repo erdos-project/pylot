@@ -2,7 +2,6 @@ from collections import deque
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging
 from pylot.map.hd_map import HDMap
-from pylot.simulation.carla_utils import get_map, to_carla_location, get_world
 from pylot.simulation.utils import kalman_step
 
 import numpy as np

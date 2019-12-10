@@ -245,9 +245,6 @@ def create_can_bus_stream():
 def is_can_bus_stream(stream):
     return stream.name == 'can_bus'
 
-def create_imu_stream():
-    return DataStream(name='imu')
-
 def is_imu_stream(stream):
     return stream.get_label('sensor_type') == 'sensor.other.imu'
 

@@ -1,6 +1,6 @@
 from collections import deque
 from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging
+from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 from pid_controller.pid import PID
 from pylot.control.messages import ControlMessage
 from pylot.control.mpc.mpc import ModelPredictiveController
@@ -29,6 +29,7 @@ class MPCAgentOperator(Op):
         super(MPCAgentOperator, self).__init__(name)
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
+ 
         self._flags = flags
         self._config = global_config
         self._map = HDMap(get_map(self._flags.carla_host,
@@ -46,9 +47,10 @@ class MPCAgentOperator(Op):
         self._traffic_light_msgs = deque()
         self._speed_limit_sign_msgs = deque()
         self._waypoint_msgs = deque()
-        self._init_X =[0,0,0,0]
+        self._init_X = None
         self._init_V = np.eye(4)
-        self.prev_speed = 0
+        self.prev_speed = None
+        self.naive_pred = None
         self._lock = threading.Lock()
 
     @staticmethod
@@ -141,46 +143,72 @@ class MPCAgentOperator(Op):
         self._logger.debug("Steer: {}".format(control_msg.steer))
         self._logger.debug("Brake: {}".format(control_msg.brake))
         self._logger.debug("State: {}".format(state))
-
-        vel = vehicle_speed
-        yaw = vehicle_transform.rotation.yaw
-        x = vehicle_transform.location.x
-        y = vehicle_transform.location.y
-        timestamp = can_bus_msg.timestamp
-
-        accel = (vehicle_speed - self.prev_speed)/.1
-        self.prev_speed = speed
-
-        # imu_msg = self._imu_msgs.popleft()
-        # accel = imu_msg.accelerometer
-
-        steer = control_msg.steer
-
-        X_meas = [x,y, vel,yaw]
-        u = [acccel,steer]
-        Q = np.eye(4) * .1
-        R = np.eye(4)
-        R[2] *= .1
-        R[3] *=.1
-
-        # prev_vel = self._init_X[2]
-        # prev_yaw = self._init_X[3]
-        # prev_steer = self._init_V[1]
-        A,B,c = self.get_transition_matrix(self, vel, yaw, steer)
-        X_filt, V_filt = kalman_step(X_meas, A, B, c, np.eye(np.shape(X_meas)), 0, u, Q,R,self._init_X,self._init_V)
-        self._init_X = X_filt
-        self._init_V = V_filt
-        self._logger.info('{} Measure: x {}, y {}, vel {}, yaw {}'.format(
-            timestamp,X_meas[0],X_meas[1],X_meas[2],X_meas[3]))
-        self._logger.info('{} Filter: x {}, y {}, vel {}, yaw {}'.format(
-              timestamp, X_filt[0],X_filt[1],X_filt[2],X_filt[3]))
-        self._logger.info('{} Variance: '.format(timestamp) \
-            + '\n'.join([''.join(['{:4}'.format(item) for item in row]) for row in Vfilt]))
-        self._logger.info('{} Control: Acceleration {}, Steer {}'.format(
-              timestamp, u[0],u[1]))
-
-
+        
         self.get_output_stream('control_stream').send(control_msg)
+        
+        vel_gt = vehicle_speed
+        yaw_gt = vehicle_transform.rotation.yaw
+        x_gt = vehicle_transform.location.x
+        y_gt = vehicle_transform.location.y
+        timestamp = can_bus_msg.timestamp
+       
+        
+        #simulate noise
+        vel = vel_gt + np.random.normal(0,.1)
+        yaw = yaw_gt + np.random.normal(0,.1)
+        x = x_gt + np.random.normal(0,1)
+        y = y_gt + np.random.normal(0,1)
+    
+        X_meas = np.array([x,y, vel,yaw])
+        
+        if self._init_X is None:
+            self._init_X = X_meas
+            self.prev_speed = vel
+            self.naive_pred = X_meas 
+        else:
+            dt = .1
+            accel = (vel- self.prev_speed)/dt
+            self.prev_speed = vel
+
+                # imu_msg = self._imu_msgs.popleft()
+            # accel = imu_msg.accelerometer
+
+            steer = control_msg.steer
+
+            u = np.array([accel,steer])
+            Q = np.eye(4) * .1
+            R = np.eye(4)
+            R[2] *= .1
+            R[3] *=.1
+
+            # prev_vel = self._init_X[2]
+            # prev_yaw = self._init_X[3]
+            # prev_steer = self._init_V[1]
+            A,B,c = self.get_transition_matrix( vel, yaw, steer)
+            X_filt, V_filt = kalman_step(X_meas, A, B, c, np.eye(*np.shape(X_meas)), 0, u, Q,R,self._init_X,self._init_V)
+            self._init_X = X_filt
+            self._init_V = V_filt
+            
+            A,B,c = self.get_transition_matrix(self.naive_pred[2], self.naive_pred[3], steer)
+            self.naive_pred = A.dot(self.naive_pred) + B.dot(u) + c
+            
+        
+            self._logger.info('{} GT Measure: x {}, y {}, vel {}, yaw {}'.format(
+                timestamp,x_gt, y_gt,vel_gt, yaw_gt))
+            self._logger.info('{} Dead Reckoning: x {}, y {}, vel {}, yaw {}'.format(
+                timestamp, self.naive_pred[0], self.naive_pred[1], self.naive_pred[2], self.naive_pred[3]))
+            self._logger.info('{} Filter: x {}, y {}, vel {}, yaw {}'.format(
+                  timestamp, self._init_X[0], self._init_X[1], self._init_X[2], self._init_X[3]))
+            self._logger.info('{} Variance: ['.format(timestamp) \
+                + '\n'.join([''.join(['{:4} '.format(item) for item in row]) for row in V_filt]) + ']')
+            self._logger.info('{} Control: Acceleration {}, Steer {}'.format(
+                  timestamp, u[0],u[1]))
+            
+            self._csv_logger.info('{},{},{},{},{},{},{},{},{},{},{},{},{},{}'.format(
+                timestamp,time_epoch_ms(), x_gt,y_gt,vel_gt,yaw_gt, self.naive_pred[0], self.naive_pred[1],
+                self.naive_pred[2], self.naive_pred[3], self._init_X[0], self._init_X[1], self._init_X[2], self._init_X[3]))
+
+
 
     def get_transition_matrix(self, vel, yaw, steer):
         """
@@ -209,7 +237,7 @@ class MPCAgentOperator(Op):
             delta_t * np.tan(steer) / wheelbase
 
         # input matrix
-        matrix_b = np.zeros((4,4))
+        matrix_b = np.zeros((4,2))
         matrix_b[2, 0] = delta_t
         matrix_b[3, 1] = delta_t * vel / \
             (wheelbase * np.cos(steer)**2)
