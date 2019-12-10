@@ -27,7 +27,7 @@ class MultipleObjectTrackerLoggerOp(Op):
         lines = []
         for det_obj in msg.detected_objects:
             label, bbox_corners = det_obj.get_bbox_label()
-            if label in {"pedestrian"}:
+            if label in {"pedestrian", "vehicle"}:
                 (x1, y1), (x2, y2) = bbox_corners
                 bbox_x, bbox_y = x1, y1
                 bbox_w, bbox_h = x2 - x1, y2 - y1
