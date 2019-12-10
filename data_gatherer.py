@@ -287,6 +287,12 @@ def main(argv):
         pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME,
         top_down_segmented_camera_setup)
 
+
+    kalman_op = []
+    if FLAGS.log_kalman:
+        kalman_op = [pylot.operator_creator.create_kalman_logger_op(graph)]
+        graph.connect([carla_op], kalman_op)
+
     if FLAGS.carla_auto_pilot:
         # We do not need planning and agent ops if we're running in
         # auto pilot mode. Instead, we insert a synchronizing operator
