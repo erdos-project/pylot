@@ -341,12 +341,19 @@ def add_perfect_perception_component(graph,
 
 def add_prediction_component(graph,
                              perfect_tracker_ops,
+                             carla_op,
                              prediction_stream_name):
     prediction_ops = []
     if FLAGS.prediction_type == 'linear':
+
         prediction_ops.append(pylot.operator_creator.create_linear_predictor_op(
             graph, prediction_stream_name))
         graph.connect(perfect_tracker_ops, prediction_ops)
+        if FLAGS.evaluate_prediction:
+            eval_prediction_op = pylot.operator_creator.create_prediction_eval_op(
+                graph)
+            graph.connect([carla_op] + perfect_tracker_ops + prediction_ops,
+                          [eval_prediction_op])
 
     return prediction_ops
 
@@ -389,7 +396,7 @@ def main(argv):
 
     prediction_ops = []
     if FLAGS.prediction:
-        prediction_ops = add_prediction_component(graph, perfect_tracker_ops, 'prediction_output')
+        prediction_ops = add_prediction_component(graph, perfect_tracker_ops, carla_op, 'prediction_output')
 
     add_ground_eval_ops(graph, obj_det_ops, camera_ops)
 

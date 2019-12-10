@@ -182,7 +182,7 @@ def is_traffic_lights_stream(stream):
 
 
 def create_depth_estimation_stream(name):
-    return DataStream(name=name, labels={'depth_estiomation': 'true'})
+    return DataStream(name=name, labels={'depth_estimation': 'true'})
 
 
 def is_depth_estimation_stream(stream):

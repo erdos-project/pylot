@@ -417,6 +417,17 @@ class Location(Vector3D):
         """
         return (self - other).magnitude()
 
+    def l1_distance(self, other):
+        """ Calculates the L1 distance between the given point and the other point.
+
+        Args:
+            other: The other Location instance to calculate the L1 distance to.
+
+        Returns:
+            The L1 distance between the two points.
+        """
+        return abs(self.x - other.x) + abs(self.y - other.y) + abs(self.z - other.z)
+
     def as_carla_location(self):
         """ Retrieves the current location as an instance of carla.Location.
 
@@ -490,11 +501,11 @@ class Transform(object):
             self.forward_vector = Vector3D(self.matrix[0, 0],
                                            self.matrix[1, 0],
                                            self.matrix[2, 0])
-            pitch_r = math.asin(self.forward_vector.z)
-            yaw_r = math.acos(self.forward_vector.x / math.cos(pitch_r))
-            roll_r = math.asin(matrix[2, 1] / (-1 * math.cos(pitch_r)))
-            self.rotation = Rotation(math.degrees(pitch_r),
-                                     math.degrees(yaw_r), math.degrees(roll_r))
+            #pitch_r = math.asin(self.forward_vector.z)
+            #yaw_r = math.acos(self.forward_vector.x / math.cos(pitch_r))
+            #roll_r = math.asin(matrix[2, 1] / (-1 * math.cos(pitch_r)))
+            #self.rotation = Rotation(math.degrees(pitch_r),
+            #                         math.degrees(yaw_r), math.degrees(roll_r))
         else:
             self.location, self.rotation = location, rotation
             self.matrix = Transform._create_matrix(self.location,

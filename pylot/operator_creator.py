@@ -248,7 +248,6 @@ def create_linear_predictor_op(graph, output_stream_name):
         setup_args={'output_stream_name': output_stream_name})
     return linear_predictor_op
 
-
 def create_planning_visualizer_op(graph):
     from pylot.debug.planning_visualize_operator import PlanningVisualizeOperator
     planning_viz_op = graph.add(
@@ -271,6 +270,19 @@ def create_can_bus_visualizer(graph):
             'log_file_name': FLAGS.log_file_name
         })
     return can_bus_viz_op
+
+
+def create_prediction_eval_op(graph):
+    from pylot.prediction.prediction_eval_operator import PredictionEvalOperator
+    prediction_eval_op = graph.add(
+        PredictionEvalOperator,
+        name='prediction_eval',
+        init_args={
+            'flags': FLAGS,
+            'log_file_name': FLAGS.log_file_name,
+            'csv_file_name': FLAGS.csv_log_file_name
+        })
+    return prediction_eval_op
 
 
 def create_pylot_agent_op(graph, bgr_camera_setup):

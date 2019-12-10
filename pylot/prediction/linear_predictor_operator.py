@@ -56,7 +56,7 @@ class LinearPredictorOp(Op):
                 location = obj.trajectory[-(t+1)] # t-th most recent step
                 xy[t][0] = location.x
                 xy[t][1] = location.y
-            linear_model_params = np.linalg.lstsq(ts, xy)[0]
+            linear_model_params = np.linalg.lstsq(ts, xy, rcond=None)[0]
             # Predict future steps and convert to list of locations.
             predict_array = np.matmul(future_ts, linear_model_params)
             predictions = []

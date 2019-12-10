@@ -236,6 +236,8 @@ flags.DEFINE_integer('prediction_num_past_steps', None,
                      'Number of past steps of each agent given to the prediction module.')
 flags.DEFINE_integer('prediction_num_future_steps', None,
                      'Number of future steps outputted by the prediction module.')
+flags.DEFINE_bool('evaluate_prediction', False,
+                  'True to evaluate prediction.')
 
 # GPU memory fractions.
 flags.DEFINE_float('obj_detection_gpu_memory_fraction', 0.3,
@@ -317,6 +319,20 @@ flags.register_multi_flags_validator(
                          flags_dict['prediction_num_past_steps'] and
                          flags_dict['prediction_num_future_steps'])),
     message='--prediction_num_past_steps and --prediction_num_future_steps must be set if --prediction is set')
+
+flags.register_multi_flags_validator(
+    ['prediction', 'perfect_tracking'],
+    lambda flags_dict: (not flags_dict['prediction'] or
+                        flags_dict['perfect_tracking']),
+    message='top-down tracking must be set if prediction is set')
+
+flags.register_multi_flags_validator(
+    ['evaluate_prediction', 'prediction_num_future_steps', 'perfect_tracking_num_steps'],
+    lambda flags_dict: (not flags_dict['evaluate_prediction'] or
+                        (flags_dict['evaluate_prediction'] and
+                         flags_dict['prediction_num_future_steps'] <= \
+                         flags_dict['perfect_tracking_num_steps'])),
+    message='to evaluate prediction, we must track at least as many steps as we predict.')
 
 def detector_accuracy_validator(flags_dict):
     if flags_dict['evaluate_obj_detection']:
