@@ -265,8 +265,8 @@ flags.DEFINE_bool(
 flags.DEFINE_integer('top_down_lateral_view', 20,
                      'Distance in meters to the left and right of the '
                      'ego-vehicle that the top-down camera shows.')
-#flags.DEFINE_bool('log_kalman', False,
- #                   'True to log Kalman state estimates')
+flags.DEFINE_bool('log_kalman', False,
+                   'True to log Kalman state estimates')
 
 # Flag validators.
 flags.register_multi_flags_validator(

@@ -31,9 +31,6 @@ flags.DEFINE_bool('log_trajectories', False,
                   'True to enable trajectory logging')
 flags.DEFINE_bool('log_chauffeur', False,
                   'True to log data in ChauffeurNet style.')
-flags.DEFINE_bool('log_kalman', False,
-                    'True to log Kalman state estimates')
-
 
 CENTER_CAMERA_LOCATION_X = 1.5
 CENTER_CAMERA_LOCATION_Y = 0.0
@@ -196,17 +193,6 @@ def create_lidar_setups():
         lidar_setups.append(lidar_setup)
     return lidar_setups
 
-def create_imu_setups():
-    if FLAGS.imu:
-        rotation = pylot.simulation.utils.Rotation(0, 0, 0)
-        # Place the IMU in the same position as the camera.
-        imu_transform = pylot.simulation.utils.Transform(
-            CENTER_CAMERA_LOCATION, rotation)
-        return [pylot.simulation.utils.IMUSetup(
-            name='imu',
-            imu_type='sensor.other.imu',
-            transform=imu_transform
-        )]
 
 def add_perfect_detection_component(
         graph, camera_setups, carla_op, camera_ops):
@@ -246,14 +232,12 @@ def main(argv):
     camera_setups, top_down_segmented_camera_setup = create_camera_setups()
     lidar_setups = create_lidar_setups()
 
-    imu_setups = create_imu_setups()
 
     # Add operator that interacts with the Carla simulator.
     (carla_op,
      camera_ops,
-     lidar_ops,
-     imu_ops) = pylot.operator_creator.create_driver_ops(
-         graph, camera_setups, lidar_setups, imu_setups, auto_pilot=FLAGS.carla_auto_pilot)
+     lidar_ops) = pylot.operator_creator.create_driver_ops(
+         graph, camera_setups, lidar_setups, auto_pilot=FLAGS.carla_auto_pilot)
 
     # Add an operator that logs BGR frames and segmented frames.
     camera_log_ops = []
@@ -289,19 +273,22 @@ def main(argv):
         pylot.operator_creator.create_multiple_object_tracker_logger_op(graph)]
     graph.connect(detector_ops, multiple_object_tracker_logger_op)
 
+    prediction_ops = []
+    imu_ops = []
+
     # Add visual operators.
     pylot.operator_creator.add_visualization_operators(
         graph,
         camera_ops,
         lidar_ops,
         tracking_ops,
-        [],
+        prediction_ops,
         pylot.utils.CENTER_CAMERA_NAME,
         pylot.utils.DEPTH_CAMERA_NAME,
         pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
         pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME,
         top_down_segmented_camera_setup,
-        [])
+        imu_ops)
 
 
     kalman_op = []

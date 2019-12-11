@@ -252,10 +252,6 @@ def create_can_bus_stream():
 def is_can_bus_stream(stream):
     return stream.name == 'can_bus'
 
-def is_imu_stream(stream):
-    return stream.get_label('sensor_type') == 'sensor.other.imu'
-
-
 
 def add_timestamp(timestamp, image_np):
     txt_font = cv2.FONT_HERSHEY_SIMPLEX

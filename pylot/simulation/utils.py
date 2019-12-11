@@ -126,6 +126,9 @@ class CanBus(object):
 
 
 class Control(object):
+    """
+    Control class passed through message to recieve past controls of ego vehicle
+    """
     def __init__(self, steer, throttle, brake):
         self.steer = steer
         self.throttle = throttle
@@ -1572,6 +1575,47 @@ def kalman_step(y, A, B, c, D, e, u, Q, R, init_x, init_V):
     Vfilt = (np.eye(K.shape[0]) - K.dot(D)).dot(Vpred)
 
     return xfilt,Vfilt
+
+def get_transition_matrix(self, vel, yaw, steer):
+    """
+    Return the transition matrices linearized around vel, yaw, steer.
+    Transition matrices A, B, C are of the form:
+        Ax_t + Bu_t + C = x_t+1
+
+    :param vel: reference velocity in m/s
+    :param yaw: reference yaw in radians
+    :param steer: reference steer in radians
+    :return: transition matrices
+    """
+    # state matrix
+    delta_t = .1
+    wheelbase = 2.85
+    matrix_a = np.zeros((4,4))
+    matrix_a[0, 0] = 1.0
+    matrix_a[1, 1] = 1.0
+    matrix_a[2, 2] = 1.0
+    matrix_a[3, 3] = 1.0
+    matrix_a[0, 2] = delta_t * np.cos(yaw)
+    matrix_a[0, 3] = -delta_t * vel * np.sin(yaw)
+    matrix_a[1, 2] = delta_t * np.sin(yaw)
+    matrix_a[1, 3] = delta_t * vel * np.cos(yaw)
+    matrix_a[3, 2] = \
+        delta_t * np.tan(steer) / wheelbase
+
+    # input matrix
+    matrix_b = np.zeros((4,2))
+    matrix_b[2, 0] = delta_t
+    matrix_b[3, 1] = delta_t * vel / \
+        (wheelbase * np.cos(steer)**2)
+
+    # constant matrix
+    matrix_c = np.zeros(4)
+    matrix_c[0] = delta_t * vel * np.sin(yaw) * yaw
+    matrix_c[1] = - delta_t * vel * np.cos(yaw) * yaw
+    matrix_c[3] = - delta_t * vel * steer / \
+        (wheelbase * np.cos(steer)**2)
+
+    return matrix_a, matrix_b, matrix_c
 
 def rad2steer(rad):
     """
