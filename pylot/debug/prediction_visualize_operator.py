@@ -99,23 +99,9 @@ class PredictionVisualizeOperator(Op):
         transform = can_bus_msg.data.transform
 
         for prediction in prediction_msg.predictions:
-            for location in prediction.trajectory:
-                pred_trans = pylot.simulation.utils.Transform(
-                    location=pylot.simulation.utils.Location(
-                        x=location.x,
-                        y=location.y,
-                        z=location.z,
-                    ),
-                    rotation=pylot.simulation.utils.Rotation()
-                )
-                new_trans = transform * pred_trans  # convert to global from ego
-                new_location = new_trans.location
-                loc = carla.Location(new_location.x,
-                                     new_location.y,
-                                     new_location.z + 0.5)
-
+            for location in transform.transform_points(prediction.trajectory):
                 self._world.debug.draw_point(
-                    loc,
+                    location.as_carla_location(),
                     size=0.2,
                     life_time=DEFAULT_VIS_TIME,
                     color=carla.Color(0, 255, 0)

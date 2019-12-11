@@ -180,26 +180,15 @@ class RRTStarPlanningOperator(Op):
         for prediction in prediction_msg.predictions:
             time = 0
             # use all prediction times as potential obstacles
-            for location in prediction.trajectory:
-                prediction_transform_ego = pylot.simulation.utils.Transform(
-                    location=pylot.simulation.utils.Location(
-                        x=location.x,
-                        y=location.y,
-                        z=location.z,
-                    ),
-                    rotation=pylot.simulation.utils.Rotation()
-                )
-                # convert to global from ego
-                prediction_transform_global = vehicle_transform * prediction_transform_ego
-                prediction_location_global = prediction_transform_global.location
+            for location in vehicle_transform.transform_points(prediction.trajectory):
                 if is_within_distance_ahead(vehicle_transform.location,
-                                            prediction_location_global,
+                                            location,
                                             vehicle_transform.rotation.yaw,
                                             DEFAULT_DISTANCE_THRESHOLD):
                     # compute the obstacle origin and range of the obstacle
                     obstacle_origin = (
-                        (prediction_location_global.x - DEFAULT_OBSTACLE_LENGTH / 2,
-                         prediction_location_global.y - DEFAULT_OBSTACLE_WIDTH / 2),
+                        (location.x - DEFAULT_OBSTACLE_LENGTH / 2,
+                         location.y - DEFAULT_OBSTACLE_WIDTH / 2),
                         (DEFAULT_OBSTACLE_LENGTH, DEFAULT_OBSTACLE_WIDTH)
                     )
                     obs_id = str("{}_{}".format(prediction.id, time))
