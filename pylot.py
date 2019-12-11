@@ -409,7 +409,6 @@ def main(argv):
                             lane_det_ops,
                             bgr_camera_setup)
 
-
     # Add planning operators.
     goal_location = (234.269989014, 59.3300170898, 39.4306259155)
     add_planning_component(graph, goal_location, carla_op, agent_op, prediction_ops)

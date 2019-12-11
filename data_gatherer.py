@@ -32,6 +32,7 @@ flags.DEFINE_bool('log_trajectories', False,
 flags.DEFINE_bool('log_chauffeur', False,
                   'True to log data in ChauffeurNet style.')
 
+
 CENTER_CAMERA_LOCATION_X = 1.5
 CENTER_CAMERA_LOCATION_Y = 0.0
 CENTER_CAMERA_LOCATION_Z = 1.4
@@ -232,7 +233,6 @@ def main(argv):
     camera_setups, top_down_segmented_camera_setup = create_camera_setups()
     lidar_setups = create_lidar_setups()
 
-
     # Add operator that interacts with the Carla simulator.
     (carla_op,
      camera_ops,
@@ -253,7 +253,6 @@ def main(argv):
         chauffeur_log_ops = [pylot.operator_creator.create_chauffeur_logger_op(
             graph, top_down_segmented_camera_setup,
             pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME)]
-
 
     # Connect the camera logging ops with the camera ops.
     graph.connect(camera_ops, camera_log_ops + chauffeur_log_ops)

@@ -1,13 +1,12 @@
 from collections import deque
 from erdos.op import Op
-from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
+from erdos.utils import setup_csv_logging, setup_logging
 from pid_controller.pid import PID
 from pylot.control.messages import ControlMessage
 from pylot.control.mpc.mpc import ModelPredictiveController
 from pylot.control.mpc.utils import zero_to_2_pi, global_config, CubicSpline2D
 from pylot.map.hd_map import HDMap
 from pylot.simulation.carla_utils import get_map, get_world
-from pylot.simulation.utils import kalman_step
 
 import numpy as np
 
@@ -140,51 +139,6 @@ class MPCAgentOperator(Op):
         self._logger.debug("State: {}".format(state))
         
         self.get_output_stream('control_stream').send(control_msg)
-        
-        
-    def get_transition_matrix(self, vel, yaw, steer):
-        """
-        Return the transition matrices linearized around vel, yaw, steer.
-        Transition matrices A, B, C are of the form:
-            Ax_t + Bu_t + C = x_t+1
-
-        :param vel: reference velocity in m/s
-        :param yaw: reference yaw in radians
-        :param steer: reference steer in radians
-        :return: transition matrices
-        """
-        # state matrix
-        delta_t = .1
-        wheelbase = 2.85
-        matrix_a = np.zeros((4,4))
-        matrix_a[0, 0] = 1.0
-        matrix_a[1, 1] = 1.0
-        matrix_a[2, 2] = 1.0
-        matrix_a[3, 3] = 1.0
-        matrix_a[0, 2] = delta_t * np.cos(yaw)
-        matrix_a[0, 3] = -delta_t * vel * np.sin(yaw)
-        matrix_a[1, 2] = delta_t * np.sin(yaw)
-        matrix_a[1, 3] = delta_t * vel * np.cos(yaw)
-        matrix_a[3, 2] = \
-            delta_t * np.tan(steer) / wheelbase
-
-        # input matrix
-        matrix_b = np.zeros((4,2))
-        matrix_b[2, 0] = delta_t
-        matrix_b[3, 1] = delta_t * vel / \
-            (wheelbase * np.cos(steer)**2)
-
-        # constant matrix
-        matrix_c = np.zeros(4)
-        matrix_c[0] = delta_t * vel * np.sin(yaw) * yaw
-        matrix_c[1] = - delta_t * vel * np.cos(yaw) * yaw
-        matrix_c[3] = - delta_t * vel * steer / \
-            (wheelbase * np.cos(steer)**2)
-
-        return matrix_a, matrix_b, matrix_c
-
-
-
 
     def stop_for_agents(self,
                         ego_vehicle_location,
