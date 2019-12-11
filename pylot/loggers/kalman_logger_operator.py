@@ -25,10 +25,6 @@ class KalmanLoggerOp(Op):
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
         self._flags = flags
-        _, self._world = get_world(
-            self._flags.carla_host,
-            self._flags.carla_port,
-            self._flags.carla_timeout)
         self._can_bus_msgs = deque()
         self._imu_msgs = deque()
         self._control_msgs = deque()
