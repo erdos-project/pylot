@@ -36,7 +36,6 @@ class KalmanLoggerOp(Op):
 
     @staticmethod
     def setup_streams(input_streams):
-        print("SETTING UP STREAMS")
         input_streams.filter(pylot.utils.is_can_bus_stream).add_callback(
             KalmanLoggerOp.on_can_bus_update)
         # input_streams.filter(pylot.utils.is_imu_stream).add_callback(
@@ -52,7 +51,6 @@ class KalmanLoggerOp(Op):
 
     def on_can_bus_update(self, msg):
         self._logger.info("CAN BUS UPDATE")
-        with self._lock:
             self._can_bus_msgs.append(msg)
 
     # def on_imu_update(self, msg):
@@ -60,7 +58,6 @@ class KalmanLoggerOp(Op):
     #         self._imu_msgs.append(msg)
 
     def on_control_update(self, msg):
-        self._logger.info("CONTROL UPDATE")
         with self._lock:
             self._control_msgs.append(msg)
 
@@ -71,11 +68,11 @@ class KalmanLoggerOp(Op):
         # accel = imu_msg.accelerometer
 
         control_msg = self._control_msgs.popleft()
-        steer = control_msg.steer
+        steer = control_msg.data.steer
         steer_rad = steer2rad(steer)
 
         vel_gt = vehicle_speed
-        yaw_gt = np.radian(vehicle_transform.rotation.yaw)
+        yaw_gt = np.radians(vehicle_transform.rotation.yaw)
         x_gt = vehicle_transform.location.x
         y_gt = vehicle_transform.location.y
         timestamp = can_bus_msg.timestamp
@@ -124,8 +121,8 @@ class KalmanLoggerOp(Op):
             self._logger.info('{} Control: Acceleration {}, Steer {}'.format(
                   timestamp, u[0],u[1]))
             
-            self._csv_logger.info('{},{},{},{},{},{},{},{},{},{},{},{},{},{}'.format(
-                timestamp,time_epoch_ms(), x_gt,y_gt,vel_gt,yaw_gt, self.naive_pred[0], self.naive_pred[1],
+            self._csv_logger.info('{},{},{},{},{},{},{},{},{},{},{},{},{}'.format(
+                time_epoch_ms(), x_gt,y_gt,vel_gt,yaw_gt, self.naive_pred[0], self.naive_pred[1],
                 self.naive_pred[2], self.naive_pred[3], self._init_X[0], self._init_X[1], self._init_X[2], self._init_X[3]))
 
 
