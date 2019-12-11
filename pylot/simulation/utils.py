@@ -1576,7 +1576,7 @@ def kalman_step(y, A, B, c, D, e, u, Q, R, init_x, init_V):
 
     return xfilt, Vfilt
 
-def get_transition_matrix(self, vel, yaw, steer):
+def get_transition_matrix(vel, yaw, steer):
     """
     Return the transition matrices linearized around vel, yaw, steer.
     Transition matrices A, B, C are of the form:
