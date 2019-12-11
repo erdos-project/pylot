@@ -137,7 +137,7 @@ class MPCAgentOperator(Op):
         self._logger.debug("Steer: {}".format(control_msg.steer))
         self._logger.debug("Brake: {}".format(control_msg.brake))
         self._logger.debug("State: {}".format(state))
-        
+
         self.get_output_stream('control_stream').send(control_msg)
 
     def stop_for_agents(self,
