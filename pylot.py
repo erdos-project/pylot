@@ -293,7 +293,8 @@ def add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
         pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
         pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME,
         top_down_camera_setup,
-        imu_ops
+        imu_ops,
+        carla_op
     )
 
     # Add recording operators.
@@ -311,11 +312,6 @@ def add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
             graph, pylot.utils.LEFT_CAMERA_NAME, pylot.utils.RIGHT_CAMERA_NAME)
         graph.connect(camera_ops + lidar_ops + [carla_op],
                       [depth_estimation_op])
-
-    # Add operator that visualizes CanBus
-    if FLAGS.visualize_can_bus:
-        can_bus_viz_op = pylot.operator_creator.create_can_bus_visualizer(graph)
-        graph.connect([carla_op], [can_bus_viz_op])
 
 
 def add_perfect_perception_component(graph,

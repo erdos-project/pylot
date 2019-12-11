@@ -200,6 +200,7 @@ flags.DEFINE_bool('visualize_top_down_tracker_output', False,
                   'True to enable visualization of top-down tracker output')
 flags.DEFINE_bool('visualize_can_bus', False, 'True to visualize can bus.')
 flags.DEFINE_bool('visualize_planning', False, 'True to visualize planning.')
+flags.DEFINE_bool('visualize_prediction', False, 'True to visualize prediction.')
 
 # Accuracy evaluation flags.
 flags.DEFINE_bool('evaluate_obj_detection', False,

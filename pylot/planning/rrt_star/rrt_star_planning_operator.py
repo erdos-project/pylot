@@ -180,7 +180,7 @@ class RRTStarPlanningOperator(Op):
         for prediction in prediction_msg.predictions:
             time = 0
             # use all prediction times as potential obstacles
-            for location in prediction.trajectory:
+            for location in vehicle_transform.transform_points(prediction.trajectory):
                 if is_within_distance_ahead(vehicle_transform.location,
                                             location,
                                             vehicle_transform.rotation.yaw,

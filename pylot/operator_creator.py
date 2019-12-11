@@ -12,6 +12,7 @@ from pylot.debug.segmented_top_down_video_operator import SegmentedTopDownVideoO
 from pylot.debug.track_visualize_operator import TrackVisualizerOperator
 from pylot.debug.video_operator import VideoOperator
 from pylot.debug.imu_visualizer_operator import IMUVisualizerOperator
+from pylot.debug.prediction_visualize_operator import PredictionVisualizeOperator
 # Import logging operators.
 from pylot.loggers.bounding_box_logger_operator import BoundingBoxLoggerOp
 from pylot.loggers.camera_logger_operator import CameraLoggerOp
@@ -341,6 +342,18 @@ def create_imu_visualizer_op(graph):
     return imu_visualizer_op
 
 
+def create_prediction_visualizer_op(graph):
+    prediction_visualizer_op = graph.add(
+        PredictionVisualizeOperator,
+        name='prediction_visualizer',
+        init_args={
+            'flags': FLAGS,
+            'log_file_name': FLAGS.log_file_name
+        }
+    )
+    return prediction_visualizer_op
+
+
 def create_camera_video_op(graph, name, filter_name):
     video_op = graph.add(
         VideoOperator,
@@ -656,7 +669,8 @@ def add_visualization_operators(graph,
                                 front_segmented_camera_name,
                                 top_down_segmented_camera_name,
                                 top_down_camera_setup,
-                                imu_ops):
+                                imu_ops,
+                                carla_op):
     if FLAGS.visualize_rgb_camera:
         camera_video_op = create_camera_video_op(graph,
                                                  'rgb_camera',
@@ -674,9 +688,18 @@ def add_visualization_operators(graph,
         lidar_visualizer_op = create_lidar_visualizer_op(graph)
         graph.connect(lidar_ops, [lidar_visualizer_op])
 
+    # Add operator that visualizes CanBus
+    if FLAGS.visualize_can_bus:
+        can_bus_viz_op = create_can_bus_visualizer(graph)
+        graph.connect([carla_op], [can_bus_viz_op])
+
     if FLAGS.visualize_imu:
         imu_visualizer_op = create_imu_visualizer_op(graph)
         graph.connect(imu_ops, [imu_visualizer_op])
+
+    if FLAGS.prediction and FLAGS.visualize_prediction:
+        prediction_visualizer_op = create_prediction_visualizer_op(graph)
+        graph.connect(prediction_ops + [carla_op], [prediction_visualizer_op])
 
     # Due to cv2 multithreading issues, the viewers for front-facing
     # and top-down segmentation have to be placed into two
