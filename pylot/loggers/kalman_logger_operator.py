@@ -50,7 +50,7 @@ class KalmanLoggerOp(Op):
         return []
 
     def on_can_bus_update(self, msg):
-        self._logger.info("CAN BUS UPDATE")
+        with self._lock:    
             self._can_bus_msgs.append(msg)
 
     # def on_imu_update(self, msg):
