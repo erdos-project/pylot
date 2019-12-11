@@ -295,11 +295,13 @@ def main(argv):
         camera_ops,
         lidar_ops,
         tracking_ops,
+        [],
         pylot.utils.CENTER_CAMERA_NAME,
         pylot.utils.DEPTH_CAMERA_NAME,
         pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
         pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME,
-        top_down_segmented_camera_setup)
+        top_down_segmented_camera_setup,
+        [])
 
 
     kalman_op = []
