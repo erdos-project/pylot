@@ -239,7 +239,7 @@ def main(argv):
      camera_ops,
      lidar_ops,
      imu_ops) = pylot.operator_creator.create_driver_ops(
-         graph, camera_setups, lidar_setups, auto_pilot=FLAGS.carla_auto_pilot)
+         graph, camera_setups, lidar_setups, imu_setups, auto_pilot=FLAGS.carla_auto_pilot)
 
     # Add an operator that logs BGR frames and segmented frames.
     camera_log_ops = []
