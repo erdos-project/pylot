@@ -25,10 +25,6 @@ class KalmanLoggerOp(Op):
         self._logger = setup_logging(self.name, log_file_name)
         self._csv_logger = setup_csv_logging(self.name + '-csv', csv_file_name)
         self._flags = flags
-        self._map = HDMap(get_map(self._flags.carla_host,
-                                  self._flags.carla_port,
-                                  self._flags.carla_timeout),
-                          log_file_name)
         _, self._world = get_world(
             self._flags.carla_host,
             self._flags.carla_port,
