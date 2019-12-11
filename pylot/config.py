@@ -250,6 +250,8 @@ flags.DEFINE_float('segmentation_drn_gpu_memory_fraction', 0.2,
 
 # Recording operators
 flags.DEFINE_string('data_path', 'data/', 'Path where to logged data')
+flags.DEFINE_bool('log_imu', False,
+                  'Enable logging of IMU measurements.')
 flags.DEFINE_bool('log_detector_output', False,
                   'Enable recording of bbox annotated detector images')
 flags.DEFINE_bool('log_traffic_light_detector_output', False,

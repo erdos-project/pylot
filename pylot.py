@@ -347,6 +347,12 @@ def add_prediction_component(graph,
     return prediction_ops
 
 
+def add_logging_component(graph, imu_ops):
+    if FLAGS.log_imu:
+        imu_logger_op = pylot.operator_creator.create_imu_logger_op(graph)
+        graph.connect(imu_ops, [imu_logger_op])
+
+
 def main(argv):
     # Define graph
     graph = erdos.graph.get_current_graph()
@@ -392,6 +398,9 @@ def main(argv):
     # Add debugging operators (e.g., visualizers) to the data-flow graph.
     add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
                             lidar_ops, perfect_tracker_ops, prediction_ops, imu_ops)
+
+    # Add logging operators (e.g., IMU) to the data-flow graph.
+    add_logging_component(graph, imu_ops)
 
     # Add the behaviour planning agent operator.
     agent_op = add_agent_op(graph,

@@ -17,6 +17,7 @@ from pylot.debug.prediction_visualize_operator import PredictionVisualizeOperato
 from pylot.loggers.bounding_box_logger_operator import BoundingBoxLoggerOp
 from pylot.loggers.camera_logger_operator import CameraLoggerOp
 from pylot.loggers.chauffeur_logger_operator import ChauffeurLoggerOp
+from pylot.loggers.imu_logger_operator import IMULoggerOperator
 from pylot.loggers.multiple_object_tracker_logger_operator import MultipleObjectTrackerLoggerOp
 from pylot.loggers.lidar_logger_operator import LidarLoggerOp
 from pylot.loggers.trajectory_logger_operator import TrajectoryLoggerOp
@@ -156,6 +157,14 @@ def create_imu_driver_op(graph, imu_setup):
         },
         setup_args={'imu_setup': imu_setup})
     return imu_op
+
+
+def create_imu_logger_op(graph):
+    imu_logger_op = graph.add(
+        IMULoggerOperator,
+        name='trajectory_logger_op',
+        init_args={'flags': FLAGS})
+    return imu_logger_op
 
 
 def create_lidar_logger_op(graph):
