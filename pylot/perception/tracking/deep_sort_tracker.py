@@ -12,7 +12,7 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
         self._deepsort = deepsort_rbc(wt_path=flags.deep_sort_tracker_pedestrian_weights_path)
         self.tracker = None
 
-    def reinitialize(self, frame, bboxes, confidence_scores):
+    def reinitialize(self, frame, bboxes, confidence_scores, ids):
         # update tracker with new detections
         self.track(frame, confidence_scores=confidence_scores, bboxes=bboxes)
 

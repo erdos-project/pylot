@@ -105,7 +105,7 @@ class ObjectTrackerOp(Op):
                 (timestamp, frame) = self._to_process.popleft()
                 assert timestamp == msg.timestamp
                 # Re-initialize trackers.
-                self.__initialize_trackers(frame, bboxes, msg.timestamp, confidence_scores)
+                self.__initialize_trackers(frame, bboxes, msg.timestamp, confidence_scores, ids)
                 self._logger.info('Trackers have {} frames to catch-up'.format(
                     len(self._to_process)))
                 for (timestamp, frame) in self._to_process:
@@ -175,11 +175,11 @@ class ObjectTrackerOp(Op):
                 confidence_scores.append(detected_obj.confidence)
         return bboxes, ids, confidence_scores
 
-    def __initialize_trackers(self, frame, bboxes, timestamp, confidence_scores):
+    def __initialize_trackers(self, frame, bboxes, timestamp, confidence_scores, ids):
         self._ready_to_update = True
         self._ready_to_update_timestamp = timestamp
         self._logger.info('Restarting trackers at frame {}'.format(timestamp))
-        self._tracker.reinitialize(frame, bboxes, confidence_scores)
+        self._tracker.reinitialize(frame, bboxes, confidence_scores, ids)
 
     def __track_bboxes_on_frame(self, frame, timestamp, catch_up):
         self._logger.info('Processing frame {}'.format(timestamp))

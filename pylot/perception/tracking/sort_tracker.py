@@ -10,7 +10,7 @@ class MultiObjectSORTTracker(MultiObjectTracker):
     def __init__(self, flags):
         self.tracker = Sort()
 
-    def reinitialize(self, frame, bboxes, confidence_scores):
+    def reinitialize(self, frame, bboxes, confidence_scores, ids):
         detections = self.convert_detections_for_sort_alg(bboxes, confidence_scores)
         self.tracker.update(detections)
 
