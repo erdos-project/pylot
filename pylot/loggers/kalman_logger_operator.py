@@ -2,7 +2,7 @@ from collections import deque
 from erdos.op import Op
 from erdos.utils import setup_csv_logging, setup_logging, time_epoch_ms
 from pylot.map.hd_map import HDMap
-from pylot.simulation.utils import kalman_step
+from pylot.simulation.utils import kalman_step, steer2rad
 
 import numpy as np
 
@@ -80,9 +80,10 @@ class KalmanLoggerOp(Op):
 
         control_msg = self._control_msgs.popleft()
         steer = control_msg.steer
+        steer_rad = steer2rad(steer)
 
         vel_gt = vehicle_speed
-        yaw_gt = vehicle_transform.rotation.yaw
+        yaw_gt = np.radian(vehicle_transform.rotation.yaw)
         x_gt = vehicle_transform.location.x
         y_gt = vehicle_transform.location.y
         timestamp = can_bus_msg.timestamp
@@ -105,18 +106,18 @@ class KalmanLoggerOp(Op):
             accel = (vel- self.prev_speed)/dt
             self.prev_speed = vel
 
-            u = np.array([accel,steer])
+            u = np.array([accel,steer_rad])
             Q = np.eye(4) * .1
             R = np.eye(4)
             R[2] *= .1
             R[3] *=.1
 
-            A,B,c = self.get_transition_matrix( vel, yaw, steer)
+            A,B,c = self.get_transition_matrix( vel, yaw, steer_rad)
             X_filt, V_filt = kalman_step(X_meas, A, B, c, np.eye(*np.shape(X_meas)), 0, u, Q,R,self._init_X,self._init_V)
             self._init_X = X_filt
             self._init_V = V_filt
             
-            A,B,c = self.get_transition_matrix(self.naive_pred[2], self.naive_pred[3], steer)
+            A,B,c = self.get_transition_matrix(self.naive_pred[2], self.naive_pred[3], steer_rad)
             self.naive_pred = A.dot(self.naive_pred) + B.dot(u) + c
             
         
@@ -180,7 +181,7 @@ class KalmanLoggerOp(Op):
     #           timestamp, u[0],u[1]))
 
 
-   def get_transition_matrix(self, vel, yaw, steer):
+    def get_transition_matrix(self, vel, yaw, steer):
         """
         Return the transition matrices linearized around vel, yaw, steer.
         Transition matrices A, B, C are of the form:
