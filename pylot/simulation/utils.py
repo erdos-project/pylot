@@ -1546,15 +1546,15 @@ class TrafficLight(object):
 
 def kalman_step(y, A, B, c, D, e, u, Q, R, init_x, init_V):
     '''
-    Args: 
+    Args:
         y - observations
-        A, B, C, d:  x(:,t+1) = A x(:,t) + B u(:,t) + c + w(:,t) 
+        A, B, C, d:  x(:,t+1) = A x(:,t) + B u(:,t) + c + w(:,t)
                      y(:,t)   = D x(:,t) + e      + v(:,t)
         Q - covariance matrix of system x(t+1)=A*x(t)+w(t) , w(t)~N(0,Q)
         R - covariance matrix of output y(t)=C*x(t)+v(t) , v(t)~N(0,R)
         init_x - initial/prev mean
         init_V - initial/prev covariance
-    Return: 
+    Return:
         xfilt - Next State
         Vfilt - Estimate Covariance
     '''
@@ -1564,17 +1564,17 @@ def kalman_step(y, A, B, c, D, e, u, Q, R, init_x, init_V):
     xfilt = np.zeros_like(xpred)
     Vpred = np.zeros([init_V.shape[0], init_V.shape[1]])
     Vfilt = np.zeros_like(Vpred)
-  
+
     xpred = A.dot(init_x) + B.dot(u) + c
     Vpred = A.dot(init_V).dot(A.T) + Q
     error = y - (D.dot(xpred) + e)
-    S = D.dot(Vpred).dot(D.T) + R 
-    K = Vpred.dot(D.T).dot( np.linalg.inv(S)) 
+    S = D.dot(Vpred).dot(D.T) + R
+    K = Vpred.dot(D.T).dot(np.linalg.inv(S))
 
     xfilt = xpred + K.dot(error)
     Vfilt = (np.eye(K.shape[0]) - K.dot(D)).dot(Vpred)
 
-    return xfilt,Vfilt
+    return xfilt, Vfilt
 
 def get_transition_matrix(self, vel, yaw, steer):
     """
@@ -1590,7 +1590,7 @@ def get_transition_matrix(self, vel, yaw, steer):
     # state matrix
     delta_t = .1
     wheelbase = 2.85
-    matrix_a = np.zeros((4,4))
+    matrix_a = np.zeros((4, 4))
     matrix_a[0, 0] = 1.0
     matrix_a[1, 1] = 1.0
     matrix_a[2, 2] = 1.0
@@ -1603,7 +1603,7 @@ def get_transition_matrix(self, vel, yaw, steer):
         delta_t * np.tan(steer) / wheelbase
 
     # input matrix
-    matrix_b = np.zeros((4,2))
+    matrix_b = np.zeros((4, 2))
     matrix_b[2, 0] = delta_t
     matrix_b[3, 1] = delta_t * vel / \
         (wheelbase * np.cos(steer)**2)
@@ -1642,4 +1642,3 @@ def steer2rad(steer):
     else:
         rad = max(rad, -np.pi/2)
     return rad
-

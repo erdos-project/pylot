@@ -22,7 +22,7 @@ class KalmanLoggerOp(Op):
 
     Attributes:
     init_X - initial/previous Kalman state estimate
-    init_V - error covariance, 
+    init_V - error covariance,
     Q - process noise,
     R - measurement noise,
     prev_speed - log previous speed used to approximate acceleration
@@ -48,9 +48,9 @@ class KalmanLoggerOp(Op):
         self.Q = np.eye(4) * .1
         self.R = np.eye(4)
         self.R[2] *= .1
-        self.R[3] *=.1
+        self.R[3] *= .1
         self.prev_speed = None
-        self.dt=.1
+        self.dt = .1
         self.naive_pred = None
         self._lock = threading.Lock()
 
@@ -64,7 +64,7 @@ class KalmanLoggerOp(Op):
         return []
 
     def on_can_bus_update(self, msg):
-        with self._lock:    
+        with self._lock:
             self._can_bus_msgs.append(msg)
 
 
@@ -87,49 +87,54 @@ class KalmanLoggerOp(Op):
         x_gt = vehicle_transform.location.x
         y_gt = vehicle_transform.location.y
         timestamp = can_bus_msg.timestamp
-        
+
         #simulate noise
-        vel = vel_gt + np.random.normal(0,.1)
-        yaw = yaw_gt + np.random.normal(0,.1)
-        x = x_gt + np.random.normal(0,1)
-        y = y_gt + np.random.normal(0,1)
-        
+        vel = vel_gt + np.random.normal(0, .1)
+        yaw = yaw_gt + np.random.normal(0, .1)
+        x = x_gt + np.random.normal(0, 1)
+        y = y_gt + np.random.normal(0, 1)
+
         #noisy kalman measurement
-        X_meas = np.array([x,y, vel,yaw])
-        
+        X_meas = np.array([x, y, vel, yaw])
+
         #Initialize state
         if self._init_X is None:
             self._init_X = X_meas
             self.prev_speed = vel
-            self.naive_pred = X_meas 
+            self.naive_pred = X_meas
         else:
             accel = (vel- self.prev_speed)/self.dt
             self.prev_speed = vel
-
-            u = np.array([accel,steer_rad])
+            u = np.array([accel, steer_rad])
 
             #kalman filtering
-            A,B,c = get_transition_matrix(vel, yaw, steer_rad)
-            X_filt, V_filt = kalman_step(X_meas, A, B, c, np.eye(*np.shape(X_meas)), 0, u,self.Q,self.R,self._init_X,self._init_V)
+            A, B, c = get_transition_matrix(vel, yaw, steer_rad)
+            X_filt, V_filt = kalman_step(
+                X_meas, A, B, c, np.eye(*np.shape(X_meas)), 0,
+                u, self.Q, self.R, self._init_X, self._init_V)
+
             self._init_X = X_filt
             self._init_V = V_filt
-            
+
             #dead reckoning
-            A,B,c = get_transition_matrix(self.naive_pred[2], self.naive_pred[3], steer_rad)
+            A, B, c = get_transition_matrix(self.naive_pred[2], self.naive_pred[3], steer_rad)
             self.naive_pred = A.dot(self.naive_pred) + B.dot(u) + c
-            
+
             #logging
             self._logger.info('{} GT Measure: x {}, y {}, vel {}, yaw {}'.format(
-                timestamp,x_gt, y_gt,vel_gt, yaw_gt))
+                timestamp, x_gt, y_gt, vel_gt, yaw_gt))
             self._logger.info('{} Dead Reckoning: x {}, y {}, vel {}, yaw {}'.format(
-                timestamp, self.naive_pred[0], self.naive_pred[1], self.naive_pred[2], self.naive_pred[3]))
+                timestamp, self.naive_pred[0], self.naive_pred[1],
+                self.naive_pred[2], self.naive_pred[3]))
             self._logger.info('{} Filter: x {}, y {}, vel {}, yaw {}'.format(
-                  timestamp, self._init_X[0], self._init_X[1], self._init_X[2], self._init_X[3]))
+                timestamp, self._init_X[0], self._init_X[1], self._init_X[2], self._init_X[3]))
             self._logger.info('{} Variance: ['.format(timestamp) \
-                + '\n'.join([''.join(['{:4} '.format(item) for item in row]) for row in V_filt]) + ']')
+                + '\n'.join([''.join(['{:4} '.format(item) for item in row]) \
+                for row in V_filt]) + ']')
             self._logger.info('{} Control: Acceleration {}, Steer {}'.format(
-                  timestamp, u[0],u[1]))
-            
+                timestamp, u[0], u[1]))
+
             self._csv_logger.info('{},{},{},{},{},{},{},{},{},{},{},{},{}'.format(
-                time_epoch_ms(), x_gt,y_gt,vel_gt,yaw_gt, self.naive_pred[0], self.naive_pred[1],
-                self.naive_pred[2], self.naive_pred[3], self._init_X[0], self._init_X[1], self._init_X[2], self._init_X[3]))
+                time_epoch_ms(), x_gt, y_gt, vel_gt, yaw_gt,
+                self.naive_pred[0], self.naive_pred[1], self.naive_pred[2], self.naive_pred[3],
+                self._init_X[0], self._init_X[1], self._init_X[2], self._init_X[3]))
