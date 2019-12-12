@@ -288,7 +288,8 @@ def main(argv):
         pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
         pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME,
         top_down_segmented_camera_setup,
-        imu_ops)
+        imu_ops,
+        carla_op)
 
 
     kalman_op = []
