@@ -67,13 +67,20 @@ gdown https://doc-0s-6g-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7
 gdown https://doc-0k-6g-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7deffksulhg5h7mbp1/dpfhmlqtdcbn0rfvqhbd0ofcg5aqphps/1555783200000/04094321888119883640/*/1_bIGtHYdAoTMS-hqOPE1j3KU-ON15cVV?e=download --output SiamRPNOTB.model
 cd ../
 
-###### Get DeepSORT and SORT tracker models
+###### Get DeepSORT and SORT tracker models ######
 git clone https://github.com/ICGog/nanonets_object_tracking.git
 git clone https://github.com/abewley/sort.git
 
 ###### Download the DaSiamRPN code ######
 git clone https://github.com/ICGog/DaSiamRPN.git
 pip install --user opencv-python
+
+###### Download misc tracker dependencies ######
+pip install -U scikit-learn
+sudo apt-get install python-tk
+pip install numba
+pip install filterpy
+pip install scikit-image
 
 ###### Download the DRN segmentation code ######
 git clone https://github.com/ICGog/drn.git
