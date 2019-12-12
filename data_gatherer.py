@@ -226,18 +226,33 @@ def add_perfect_tracking_component(graph, carla_op):
         return []
 
 
+def create_imu_setups():
+    if FLAGS.imu:
+        rotation = pylot.simulation.utils.Rotation(0, 0, 0)
+        # Place the IMU in the same position as the camera.
+        imu_transform = pylot.simulation.utils.Transform(
+            CENTER_CAMERA_LOCATION, rotation)
+        return [pylot.simulation.utils.IMUSetup(
+            name='imu',
+            imu_type='sensor.other.imu',
+            transform=imu_transform
+        )]
+
+
 def main(argv):
     # Get default data-flow graph.
     graph = erdos.graph.get_current_graph()
 
     camera_setups, top_down_segmented_camera_setup = create_camera_setups()
     lidar_setups = create_lidar_setups()
+    imu_setups = create_imu_setups()
 
     # Add operator that interacts with the Carla simulator.
     (carla_op,
      camera_ops,
-     lidar_ops) = pylot.operator_creator.create_driver_ops(
-         graph, camera_setups, lidar_setups, auto_pilot=FLAGS.carla_auto_pilot)
+     lidar_ops,
+     imu_ops) = pylot.operator_creator.create_driver_ops(
+         graph, camera_setups, lidar_setups, imu_setups, auto_pilot=FLAGS.carla_auto_pilot)
 
     # Add an operator that logs BGR frames and segmented frames.
     camera_log_ops = []
@@ -278,11 +293,14 @@ def main(argv):
         camera_ops,
         lidar_ops,
         tracking_ops,
+        imu_ops,
         pylot.utils.CENTER_CAMERA_NAME,
         pylot.utils.DEPTH_CAMERA_NAME,
         pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
         pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME,
-        top_down_segmented_camera_setup)
+        top_down_segmented_camera_setup,
+        carla_op
+    )
 
     if FLAGS.carla_auto_pilot:
         # We do not need planning and agent ops if we're running in

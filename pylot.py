@@ -288,12 +288,12 @@ def add_debugging_component(graph, top_down_camera_setup, carla_op, camera_ops,
         lidar_ops,
         perfect_tracker_ops,
         prediction_ops,
+        imu_ops,
         pylot.utils.CENTER_CAMERA_NAME,
         pylot.utils.DEPTH_CAMERA_NAME,
         pylot.utils.FRONT_SEGMENTED_CAMERA_NAME,
         pylot.utils.TOP_DOWN_SEGMENTED_CAMERA_NAME,
         top_down_camera_setup,
-        imu_ops,
         carla_op
     )
 

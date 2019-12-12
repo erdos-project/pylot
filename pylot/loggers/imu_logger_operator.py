@@ -16,12 +16,6 @@ class IMULoggerOperator(Op):
         super(IMULoggerOperator, self).__init__(name)
         self._logger = setup_logging(self.name, log_file_name)
         self._flags = flags
-        _, self._world = pylot.simulation.carla_utils.get_world(
-            self._flags.carla_host,
-            self._flags.carla_port,
-            self._flags.carla_timeout)
-        if self._world is None:
-            raise ValueError("Error connecting to the simulator.")
 
     @staticmethod
     def setup_streams(input_streams):
