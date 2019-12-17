@@ -70,10 +70,10 @@ import pylot.simulation.utils
 FLAGS = flags.FLAGS
 
 
-def add_carla_bridge():
+def add_carla_bridge(control_stream):
     return erdust.connect(
         CarlaOperator,
-        [],
+        [control_stream],
         True,
         'carla_operator',
         FLAGS,

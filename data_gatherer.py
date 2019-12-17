@@ -5,7 +5,6 @@ import erdust
 import pylot.config
 from pylot.control.messages import ControlMessage
 import pylot.operator_creator
-from pylot.simulation.carla_utils import get_world
 import pylot.simulation.utils
 
 FLAGS = flags.FLAGS
@@ -47,7 +46,6 @@ class SynchronizerOperator(erdust.Operator):
                  flags):
         erdust.add_watermark_callback(
             [wait_stream], [control_stream], self.on_watermark)
-        self._world = None
         self._flags = flags
 
     @staticmethod
@@ -58,14 +56,9 @@ class SynchronizerOperator(erdust.Operator):
         return [control_stream]
 
     def on_watermark(self, timestamp, control_stream):
-        if self._world is None:
-            _, self._world = get_world(self._flags.carla_host,
-                                       self._flags.carla_port,
-                                       self._flags.carla_timeout)
-        # TODO: Carla operator should tick the world. Change once we support
-        # loops.
-        print("SynchronizerOperator ticked the world {}".format(timestamp))
-        self._world.tick()
+        # The control message is ignored by the bridge operator because
+        # data gathering is conducted using auto pilot. Send default control
+        # message.
         control_msg = ControlMessage(0, 0, 0, False, False, timestamp)
         control_stream.send(control_msg)
 
@@ -74,6 +67,7 @@ def driver():
     transform = pylot.simulation.utils.Transform(
         CENTER_CAMERA_LOCATION, pylot.simulation.utils.Rotation(0, 0, 0))
 
+    control_loop_stream = erdust.LoopStream()
     # Create carla operator.
     (can_bus_stream,
      ground_traffic_lights_stream,
@@ -81,7 +75,8 @@ def driver():
      ground_pedestrians_stream,
      ground_speed_limit_signs_stream,
      ground_stop_signs_stream,
-     vehicle_id_stream) = pylot.operator_creator.add_carla_bridge()
+     vehicle_id_stream) = pylot.operator_creator.add_carla_bridge(
+         control_loop_stream)
 
     # Add sensors.
     (center_camera_stream,
@@ -240,11 +235,12 @@ def driver():
             stream_to_sync_on = traffic_lights_stream
         if obstacles_stream is not None:
             stream_to_sync_on = obstacles_stream
-        control_stream = erdust.connect(
+        (control_stream,) = erdust.connect(
             SynchronizerOperator,
             [stream_to_sync_on],
             False,  # Does not flow watermarks.
             FLAGS)
+        control_loop_stream.set(control_stream)
     else:
         raise ValueError("Must be in auto pilot mode. Pass --carla_auto_pilot")
 

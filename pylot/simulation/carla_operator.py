@@ -26,7 +26,7 @@ class CarlaOperator(erdust.Operator):
     """
 
     def __init__(self,
-#                 control_stream,
+                 control_stream,
                  can_bus_stream,
                  ground_traffic_lights_stream,
                  ground_vehicles_stream,
@@ -48,7 +48,7 @@ class CarlaOperator(erdust.Operator):
             csv_file_name: The file to log info to in csv format.
         """
         # Register callback on control stream.
-#        control_stream.add_callback(CarlaOperator.on_control_msg)
+        control_stream.add_callback(self.on_control_msg)
         self.can_bus_stream = can_bus_stream
         self.ground_traffic_lights_stream = ground_traffic_lights_stream
         self.ground_vehicles_stream = ground_vehicles_stream
@@ -111,8 +111,7 @@ class CarlaOperator(erdust.Operator):
             self._start_pedestrians(ped_control_ids)
 
     @staticmethod
-#    def connect(control_stream):
-    def connect():
+    def connect(control_stream):
         can_bus_stream = erdust.WriteStream()
         ground_traffic_lights_stream = erdust.WriteStream()
         ground_vehicles_stream = erdust.WriteStream()
