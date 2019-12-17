@@ -289,17 +289,13 @@ def driver():
                 name='top_down_segmented_camera',
                 fov=90)
 
-    if FLAGS.visualize_imu:
-        pylot.operator_creator.add_imu_visualizer(imu_stream)
-
-    if FLAGS.visualize_can_bus:
-        pylot.operator_creator.add_can_bus_visualize(can_bus_stream)
-
     pylot.operator_creator.add_visualizers(
         center_camera_stream,
         depth_camera_stream,
         point_cloud_stream,
         segmented_stream,
+        imu_stream,
+        can_bus_stream,
         top_down_segmented_stream,
         obstacles_tracking_stream,
         prediction_stream,

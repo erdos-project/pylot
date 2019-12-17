@@ -73,8 +73,6 @@ class MPCAgentOperator(erdust.Operator):
                 ground_traffic_lights_stream,
                 ground_speed_limit_signs_stream,
                 waypoints_stream):
-        # Set no watermark on the output stream so that we do not
-        # close the watermark loop with the carla operator.
         control_stream = erdust.WriteStream()
         return [control_stream]
 

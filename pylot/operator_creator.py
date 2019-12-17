@@ -44,6 +44,7 @@ from pylot.loggers.camera_logger_operator import CameraLoggerOperator
 from pylot.loggers.chauffeur_logger_operator import ChauffeurLoggerOperator
 from pylot.loggers.depth_camera_logger_operator import \
     DepthCameraLoggerOperator
+from pylot.loggers.imu_logger_operator import IMULoggerOperator
 from pylot.loggers.lidar_logger_operator import LidarLoggerOperator
 from pylot.loggers.multiple_object_tracker_logger_operator import \
     MultipleObjectTrackerLoggerOperator
@@ -549,6 +550,10 @@ def add_chauffeur_logging(
         top_down_camera_setup)
 
 
+def add_imu_logging(imu_stream, name='imu_logger_operator'):
+    erdust.connect(IMULoggerOperator, [imu_stream], True, name, FLAGS)
+
+
 def add_lidar_logging(point_cloud_stream, name='lidar_logger_operator'):
     erdust.connect(
         LidarLoggerOperator, [point_cloud_stream], True, name, FLAGS)
@@ -576,6 +581,8 @@ def add_visualizers(camera_stream,
                     depth_camera_stream,
                     point_cloud_stream,
                     segmented_stream,
+                    imu_stream,
+                    can_bus_stream,
                     top_down_segmented_stream,
                     obstacle_tracking_stream,
                     prediction_stream,
@@ -584,6 +591,10 @@ def add_visualizers(camera_stream,
         add_camera_visualizer(camera_stream, 'rgb_camera')
     if FLAGS.visualize_depth_camera:
         add_camera_visualizer(depth_camera_stream, 'depth_camera')
+    if FLAGS.visualize_imu:
+        add_imu_visualizer(imu_stream)
+    if FLAGS.visualize_can_bus:
+        add_can_bus_visualize(can_bus_stream)
     if FLAGS.visualize_lidar:
         add_lidar_visualizer(point_cloud_stream)
     if FLAGS.visualize_segmentation:

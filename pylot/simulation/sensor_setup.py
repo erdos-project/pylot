@@ -61,6 +61,11 @@ def create_center_lidar_setup(location):
         points_per_second=500000)
 
 
+def create_imu_setup(location):
+    return IMUSetup(name='imu',
+                    transform=Transform(location, Rotation(0, 0, 0)))
+
+
 class CameraSetup(object):
     def __init__(self,
                  name,
@@ -188,6 +193,9 @@ class IMUSetup(object):
     def __init__(self, name, transform):
         self.name = name
         self.transform = transform
+
+    def get_name(self):
+        return self.name
 
     def get_transform(self):
         return self.transform

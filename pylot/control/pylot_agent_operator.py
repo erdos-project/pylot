@@ -85,8 +85,6 @@ class PylotAgentOperator(erdust.Operator):
                 lidar_stream,
                 open_drive_stream,
                 depth_camera_stream):
-        # Set no watermark on the output stream so that we do not
-        # close the watermark loop with the carla operator.
         control_stream = erdust.WriteStream()
         return [control_stream]
 

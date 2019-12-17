@@ -20,6 +20,8 @@ flags.DEFINE_bool('log_left_right_cameras', False,
                   'Control whether we log left and right cameras.')
 flags.DEFINE_bool('log_depth_camera', False,
                   'True to enable depth camera logging')
+flags.DEFINE_bool('log_imu', False,
+                  'Enable logging of IMU measurements.')
 flags.DEFINE_bool('log_lidar', False, 'True to enable lidar logging')
 flags.DEFINE_bool('log_obstacles', False,
                   'True to enable obstacle bounding box logging')
@@ -87,6 +89,8 @@ def driver():
          transform, vehicle_id_stream)
     (segmented_stream, _) = pylot.operator_creator.add_segmented_camera(
         transform, vehicle_id_stream)
+    (imu_stream, _) = pylot.operator_creator.add_imu(
+        transform, vehicle_id_stream)
 
     if FLAGS.log_rgb_camera:
         pylot.operator_creator.add_camera_logging(
@@ -102,6 +106,9 @@ def driver():
 
     if FLAGS.log_depth_camera:
         pylot.operator_creator.add_depth_camera_logging(depth_camera_stream)
+
+    if FLAGS.log_imu:
+        pylot.operator_creator.add_imu_logging(imu_stream)
 
     traffic_lights_stream = None
     if FLAGS.log_traffic_lights:
@@ -216,6 +223,8 @@ def driver():
         depth_camera_stream,
         point_cloud_stream,
         segmented_stream,
+        imu_stream,
+        can_bus_stream,
         top_down_segmented_stream,
         obstacles_tracking_stream,
         prediction_stream,
