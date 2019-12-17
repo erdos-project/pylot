@@ -183,7 +183,7 @@ class ChauffeurLoggerOperator(erdust.Operator):
 
     def on_top_down_segmentation_update(self, msg):
         # Save the segmented channels
-        msg.frame.save_per_class_masks(msg.timestamp)
+        msg.frame.save_per_class_masks(self._flags.data_path, msg.timestamp)
         file_name = os.path.join(
             self._flags.data_path,
             'top_down_segmentation-{}.png'.format(

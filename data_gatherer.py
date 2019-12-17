@@ -108,7 +108,7 @@ def driver():
     if FLAGS.log_depth_camera:
         pylot.operator_creator.add_depth_camera_logging(depth_camera_stream)
 
-    traffic_light_camera_stream = None
+    traffic_lights_stream = None
     if FLAGS.log_traffic_lights:
         (traffic_light_camera_stream,
          traffic_light_camera_setup) = pylot.operator_creator.add_rgb_camera(
@@ -233,11 +233,11 @@ def driver():
     if FLAGS.carla_auto_pilot:
         # We insert a synchronizing operator that sends back a command when
         # the low watermark progresses on all input stream.
-        stream_to_sync_on = None
+        stream_to_sync_on = center_camera_stream
         if obstacles_tracking_stream is not None:
             stream_to_sync_on = obstacles_tracking_stream
-        if traffic_light_camera_stream is not None:
-            stream_to_sync_on = traffic_light_camera_stream
+        if traffic_lights_stream is not None:
+            stream_to_sync_on = traffic_lights_stream
         if obstacles_stream is not None:
             stream_to_sync_on = obstacles_stream
         control_stream = erdust.connect(

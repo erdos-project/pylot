@@ -32,7 +32,6 @@ class PerfectTrafficLightDetectorOperator(erdust.Operator):
              can_bus_stream],
             [traffic_lights_stream],
             self.on_watermark)
-
         self._name = name
         self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
@@ -83,9 +82,7 @@ class PerfectTrafficLightDetectorOperator(erdust.Operator):
             depth_msg.height,
             self._town_name,
             fov=depth_msg.fov)
-        # Send the detected traffic lights.
-        traffic_lights_stream.send(
-            DetectorMessage(det_traffic_lights, 0, timestamp))
+
         if (self._flags.visualize_ground_obstacles or
             self._flags.log_detector_output):
             annotate_image_with_bboxes(
@@ -97,6 +94,10 @@ class PerfectTrafficLightDetectorOperator(erdust.Operator):
                            bgr_msg.timestamp,
                            self._flags.data_path,
                            'perfect-detector')
+
+        # Send the detected traffic lights.
+        traffic_lights_stream.send(
+            DetectorMessage(det_traffic_lights, 0, timestamp))
 
     def on_can_bus_update(self, msg):
         self._can_bus_msgs.append(msg)

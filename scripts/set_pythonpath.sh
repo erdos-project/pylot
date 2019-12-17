@@ -16,4 +16,4 @@ if [ -z "$CARLA_VERSION" ]; then
     exit 1
 fi
 
-export PYTHONPATH=$PYTHONPATH:$PYLOT_HOME/dependencies/:$CARLA_HOME/PythonAPI/carla/dist/carla-$CARLA_VERSION-py2.7-linux-x86_64.egg:$CARLA_HOME/PythonAPI/carla/
+export PYTHONPATH=$PYTHONPATH:$PYLOT_HOME/dependencies/:$CARLA_HOME/PythonAPI/carla/dist/carla-$CARLA_VERSION-py3.5-linux-x86_64.egg:$CARLA_HOME/PythonAPI/carla/

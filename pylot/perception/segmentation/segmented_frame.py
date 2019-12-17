@@ -157,12 +157,11 @@ class SegmentedFrame(object):
                 mean_iou = np.mean(iou.values())
         return (mean_iou, iou)
 
-    def save_per_class_masks(self, timestamp):
+    def save_per_class_masks(self, data_path, timestamp):
         masks = self.get_per_class_masks()
         for k, v in CITYSCAPES_LABELS.items():
             file_name = os.path.join(
-                self._flags.data_path,
-                '{}-{}.png'.format(v, timestamp.coordinates[0]))
+                data_path, '{}-{}.png'.format(v, timestamp.coordinates[0]))
             img = Image.fromarray(masks[k])
             img = img.convert('RGB')
             img.save(file_name)

@@ -1278,8 +1278,8 @@ def get_speed_limit_det_objs(
         min_width=8, min_height=9)
 
     # Get the positions of the bounding box centers.
-    x_mids = [(bbox[0] + bbox[1]) / 2 for bbox in bboxes]
-    y_mids = [(bbox[2] + bbox[3]) / 2 for bbox in bboxes]
+    x_mids = [(bbox[0] + bbox[1]) // 2 for bbox in bboxes]
+    y_mids = [(bbox[2] + bbox[3]) // 2 for bbox in bboxes]
     pos_3d = batch_get_3d_world_position_with_depth_map(
         x_mids, y_mids, depth_frame, frame_width, frame_height,
         fov, camera_transform)
