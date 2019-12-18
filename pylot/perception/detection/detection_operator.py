@@ -1,3 +1,4 @@
+from absl import flags
 import erdust
 import numpy as np
 import tensorflow as tf
@@ -8,6 +9,15 @@ from pylot.perception.detection.utils import DetectedObject,\
     save_image, visualize_image
 from pylot.perception.messages import DetectorMessage
 from pylot.utils import bgr_to_rgb, time_epoch_ms
+
+flags.DEFINE_float(
+    'obj_detection_gpu_memory_fraction',
+    0.3,
+    'GPU memory fraction allocated to each obj detector operator')
+flags.DEFINE_float('detector_min_score_threshold', 0.5,
+                   'Min score threshold for bounding box')
+flags.DEFINE_string('path_coco_labels', 'dependencies/models/coco.names',
+                    'Path to the COCO labels')
 
 
 class DetectionOperator(erdust.Operator):

@@ -1,3 +1,4 @@
+from absl import flags
 import numpy as np
 import torch
 
@@ -6,6 +7,10 @@ from DaSiamRPN.code.run_SiamRPN import SiamRPN_init, SiamRPN_track
 
 from pylot.perception.detection.utils import DetectedObject
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
+
+flags.DEFINE_string('da_siam_rpn_model_path',
+                    'dependencies/models/SiamRPNVOT.model',
+                    'Path to the model')
 
 
 class SingleObjectDaSiamRPNTracker(object):

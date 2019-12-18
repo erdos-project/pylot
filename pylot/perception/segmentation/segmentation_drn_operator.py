@@ -1,3 +1,4 @@
+from absl import flags
 import cv2
 import drn.segment
 from drn.segment import DRNSeg
@@ -9,6 +10,14 @@ import torch
 from pylot.perception.messages import SegmentedFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.utils import add_timestamp, rgb_to_bgr, time_epoch_ms
+
+flags.DEFINE_string('segmentation_model_path',
+                    'dependencies/models/drn_d_22_cityscapes.pth',
+                    'Path to the model')
+flags.DEFINE_float(
+    'segmentation_drn_gpu_memory_fraction',
+    0.2,
+    'GPU memory fraction allocated to DRN segmentation')
 
 
 class SegmentationDRNOperator(erdust.Operator):

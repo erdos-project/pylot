@@ -3,7 +3,7 @@ from absl import flags
 
 import erdust
 
-import pylot.config
+import pylot.flags
 import pylot.operator_creator
 import pylot.simulation.utils
 

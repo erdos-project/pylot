@@ -183,7 +183,8 @@ class HDMap(object):
 
         return True
 
-    def _must_obbey_european_traffic_light(self, ego_transform, tl_locations):
+    def _must_obbey_european_traffic_light(
+            self, ego_transform, tl_locations, tl_max_dist_thresh):
         ego_loc = ego_transform.location.as_carla_location()
         ego_waypoint = self._map.get_waypoint(ego_loc,
                                               project_to_road=False,
@@ -201,11 +202,12 @@ class HDMap(object):
                     ego_loc,
                     tl_loc,
                     ego_transform.rotation.yaw,
-                    self._flags.traffic_light_max_dist_thres):
+                    tl_max_dist_thresh):
                 return (True, tl_loc)
         return (False,  None)
 
-    def _must_obbey_american_traffic_light(self, ego_transform, tl_locations):
+    def _must_obbey_american_traffic_light(
+            self, ego_transform, tl_locations, tl_max_dist_thresh):
         ego_loc = ego_transform.location.as_carla_location()
         ego_waypoint = self._map.get_waypoint(ego_loc,
                                               project_to_road=False,
@@ -221,7 +223,7 @@ class HDMap(object):
                     ego_loc,
                     tl_loc,
                     ego_transform.rotation.yaw,
-                    self._flags.traffic_light_max_dist_thres):
+                    tl_max_dist_thresh):
                 magnitude, angle = compute_magnitude_angle(
                     tl_loc,
                     ego_transform.location,

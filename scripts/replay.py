@@ -1,14 +1,11 @@
 from absl import app
 from absl import flags
-import cv2
 import time
 
 import carla
 
-import pylot.config
-import pylot.utils
+import pylot.flags
 from pylot.simulation.carla_utils import get_world
-from pylot.simulation.utils import to_bgra_array
 
 FLAGS = flags.FLAGS
 

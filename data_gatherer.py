@@ -2,8 +2,8 @@ from absl import app
 from absl import flags
 import erdust
 
-import pylot.config
 from pylot.control.messages import ControlMessage
+import pylot.flags
 import pylot.operator_creator
 import pylot.simulation.utils
 
@@ -89,8 +89,6 @@ def driver():
          transform, vehicle_id_stream)
     (segmented_stream, _) = pylot.operator_creator.add_segmented_camera(
         transform, vehicle_id_stream)
-    (imu_stream, _) = pylot.operator_creator.add_imu(
-        transform, vehicle_id_stream)
 
     if FLAGS.log_rgb_camera:
         pylot.operator_creator.add_camera_logging(
@@ -107,7 +105,10 @@ def driver():
     if FLAGS.log_depth_camera:
         pylot.operator_creator.add_depth_camera_logging(depth_camera_stream)
 
+    imu_stream = None
     if FLAGS.log_imu:
+        (imu_stream, _) = pylot.operator_creator.add_imu(
+            transform, vehicle_id_stream)
         pylot.operator_creator.add_imu_logging(imu_stream)
 
     traffic_lights_stream = None

@@ -13,13 +13,6 @@ class PIDControlOperator(erdust.Operator):
     being driven inside the simulation.
 
     Args:
-        longitudinal_control_args: A dictionary of arguments to be used to
-            initialize the longitudinal controller. It needs to contain
-            three floating point values with the keys K_P, K_D, K_I, where
-                K_P -- Proportional Term
-                K_D -- Differential Term
-                K_I -- Integral Term
-                K_dt -- Time differential in seconds.
         _pid: The longitudinal PID controller.
     """
 
@@ -28,7 +21,6 @@ class PIDControlOperator(erdust.Operator):
                  can_bus_stream,
                  control_stream,
                  name,
-                 longitudinal_control_args,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
@@ -37,12 +29,6 @@ class PIDControlOperator(erdust.Operator):
 
         Args:
             name: The name of the operator.
-            longitudinal_control_args: A dictionary of arguments to be used to
-                initialize the longitudinal controller. It needs to contain
-                three floating point values with the keys K_P, K_D, K_I, where
-                    K_P -- Proportional Term
-                    K_D -- Differential Term
-                    K_I -- Integral Term
             flags: A handle to the global flags instance to retrieve the
                 configuration.
             log_file_name: The file to log the required information to.
@@ -55,12 +41,9 @@ class PIDControlOperator(erdust.Operator):
         self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._csv_logger = erdust.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
-        self._longitudinal_control_args = longitudinal_control_args
-        self._pid = PID(
-            p=longitudinal_control_args['K_P'],
-            i=longitudinal_control_args['K_I'],
-            d=longitudinal_control_args['K_D'],
-        )
+        self._pid = PID(p=self._flags.pid_p,
+                        i=self._flags.pid_i,
+                        d=self._flags.pid_d)
         self._vehicle_transform = None
         self._last_waypoint_msg = None
         self._latest_speed = 0

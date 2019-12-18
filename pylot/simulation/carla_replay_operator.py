@@ -1,3 +1,4 @@
+from absl import flags
 import erdust
 import sys
 import threading
@@ -8,6 +9,14 @@ from pylot.simulation.carla_utils import get_world,\
     extract_data_in_pylot_format
 import pylot.simulation.messages
 import pylot.simulation.utils
+
+flags.DEFINE_float('carla_replay_start_time', 0.0,
+                   'The time at which to start replaying')
+flags.DEFINE_float('carla_replay_duration', 0.0,
+                   'The duration of the replay run')
+flags.DEFINE_integer('carla_replay_id', 0,
+                     'The actor id to follow during the replay')
+flags.DEFINE_string('carla_replay_file', '', 'Path to the Carla log file')
 
 
 class CarlaReplayOperator(erdust.Operator):

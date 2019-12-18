@@ -1,3 +1,4 @@
+from absl import flags
 import erdust
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,6 +15,9 @@ from anynet import preprocess
 
 from pylot.simulation.messages import DepthFrameMessage
 from pylot.utils import bgr_to_rgb, time_epoch_ms
+
+flags.DEFINE_string('depth_estimation_model_path', 'dependencies/anynet/',
+                    'Path to AnyNet depth estimation model')
 
 
 class DepthEstimationOperator(erdust.Operator):

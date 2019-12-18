@@ -17,8 +17,8 @@ from erdos.operators import NoopOp
 from erdos.ros.ros_output_data_stream import ROSOutputDataStream
 from erdos.timestamp import Timestamp
 
-import pylot.config
 from pylot.control.pylot_agent_operator import PylotAgentOperator
+import pylot.flags
 import pylot.operator_creator
 from pylot.utils import bgra_to_bgr
 import pylot.simulation.messages

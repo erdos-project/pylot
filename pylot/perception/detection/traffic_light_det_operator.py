@@ -1,3 +1,4 @@
+from absl import flags
 import erdust
 import numpy as np
 import tensorflow as tf
@@ -7,6 +8,17 @@ from pylot.perception.detection.utils import DetectedObject,\
     TrafficLightColor, annotate_image_with_bboxes, save_image, visualize_image
 from pylot.perception.messages import DetectorMessage
 from pylot.utils import bgr_to_rgb, rgb_to_bgr, time_epoch_ms
+
+flags.DEFINE_string(
+    'traffic_light_det_model_path',
+    'dependencies/models/traffic_light_det_inference_graph.pb',
+    'Path to the traffic light model protobuf')
+flags.DEFINE_float('traffic_light_det_min_score_threshold', 0.3,
+                   'Min score threshold for bounding box')
+flags.DEFINE_float(
+    'traffic_light_det_gpu_memory_fraction',
+    0.3,
+    'GPU memory fraction allocated to each traffic light detector')
 
 
 class TrafficLightDetOperator(erdust.Operator):

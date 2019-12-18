@@ -1,7 +1,13 @@
+from absl import flags
 from collections import defaultdict, deque
 import erdust
 
 from pylot.perception.messages import ObjTrajectory, ObjTrajectoriesMessage
+
+flags.DEFINE_integer(
+    'perfect_tracking_num_steps',
+    None,
+    'Limit on number of past steps returned by the perfect object tracker.')
 
 
 class PerfectTrackerOperator(erdust.Operator):

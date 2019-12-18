@@ -1,8 +1,18 @@
+from absl import flags
 import erdust
 import numpy as np
 
 from pylot.prediction.messages import ObjPrediction, PredictionMessage
 from pylot.simulation.utils import Location
+
+flags.DEFINE_integer(
+    'prediction_num_past_steps',
+    None,
+    'Number of past steps of each agent given to the prediction module.')
+flags.DEFINE_integer(
+    'prediction_num_future_steps',
+    None,
+    'Number of future steps outputted by the prediction module.')
 
 
 class LinearPredictorOperator(erdust.Operator):

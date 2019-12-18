@@ -2,8 +2,8 @@ from absl import app
 from absl import flags
 import erdust
 
-import pylot.config
 from pylot.control.messages import ControlMessage
+import pylot.flags
 import pylot.operator_creator
 import pylot.simulation.utils
 

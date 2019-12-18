@@ -423,16 +423,10 @@ def add_fusion(can_bus_stream,
 
 
 def add_pid_control(waypoints_stream, can_bus_stream):
-    longitudinal_control_args = {
-        'K_P': FLAGS.pid_p,
-        'K_I': FLAGS.pid_i,
-        'K_D': FLAGS.pid_d,
-    }
     [control_stream] = erdust.connect(PIDControlOperator,
                                       [waypoints_stream, can_bus_stream],
                                       True,
                                       'pid_control_operator',
-                                      longitudinal_control_args,
                                       FLAGS,
                                       log_file_name=FLAGS.log_file_name,
                                       csv_file_name=FLAGS.csv_log_file_name)
