@@ -9,9 +9,8 @@ from numpy.matlib import repmat
 from pylot.perception.detection.utils import DetectedObject,\
     DetectedSpeedLimit
 
-Vehicle = namedtuple('Vehicle', 'id, transform, bounding_box, forward_speed')
-Pedestrian = namedtuple('Pedestrian',
-                        'id, transform, bounding_box, forward_speed')
+Obstacle = namedtuple(
+    'Obstacle', 'id, label, transform, bounding_box, forward_speed')
 SpeedLimitSign = namedtuple('SpeedLimitSign', 'transform, limit')
 StopSign = namedtuple('StopSign', 'transform, bounding_box')
 DetectedLane = namedtuple('DetectedLane', 'left_marking, right_marking')

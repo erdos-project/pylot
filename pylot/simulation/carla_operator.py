@@ -55,8 +55,7 @@ class CarlaOperator(erdust.Operator):
                  control_stream,
                  can_bus_stream,
                  ground_traffic_lights_stream,
-                 ground_vehicles_stream,
-                 ground_pedestrians_stream,
+                 ground_obstacles_stream,
                  ground_speed_limit_signs_stream,
                  ground_stop_signs_stream,
                  vehicle_id_stream,
@@ -77,8 +76,7 @@ class CarlaOperator(erdust.Operator):
         control_stream.add_callback(self.on_control_msg)
         self.can_bus_stream = can_bus_stream
         self.ground_traffic_lights_stream = ground_traffic_lights_stream
-        self.ground_vehicles_stream = ground_vehicles_stream
-        self.ground_pedestrians_stream = ground_pedestrians_stream
+        self.ground_obstacles_stream = ground_obstacles_stream
         self.ground_speed_limit_signs_stream = ground_speed_limit_signs_stream
         self.ground_stop_signs_stream = ground_stop_signs_stream
         self.vehicle_id_stream = vehicle_id_stream
@@ -140,15 +138,13 @@ class CarlaOperator(erdust.Operator):
     def connect(control_stream):
         can_bus_stream = erdust.WriteStream()
         ground_traffic_lights_stream = erdust.WriteStream()
-        ground_vehicles_stream = erdust.WriteStream()
-        ground_pedestrians_stream = erdust.WriteStream()
+        ground_obstacles_stream = erdust.WriteStream()
         ground_speed_limit_signs_stream = erdust.WriteStream()
         ground_stop_signs_stream = erdust.WriteStream()
         vehicle_id_stream = erdust.WriteStream()
         return [can_bus_stream,
                 ground_traffic_lights_stream,
-                ground_vehicles_stream,
-                ground_pedestrians_stream,
+                ground_obstacles_stream,
                 ground_speed_limit_signs_stream,
                 ground_stop_signs_stream,
                 vehicle_id_stream]
@@ -408,16 +404,11 @@ class CarlaOperator(erdust.Operator):
          speed_limits,
          traffic_stops) = extract_data_in_pylot_format(actor_list)
 
-        # Send ground vehicles.
-        self.ground_vehicles_stream.send(
-            pylot.simulation.messages.GroundVehiclesMessage(
-                timestamp, vehicles))
-        self.ground_vehicles_stream.send(erdust.WatermarkMessage(timestamp))
-        # Send ground pedestrians.
-        self.ground_pedestrians_stream.send(
-            pylot.simulation.messages.GroundPedestriansMessage(
-                timestamp, pedestrians))
-        self.ground_pedestrians_stream.send(erdust.WatermarkMessage(timestamp))
+        # Send ground pedestrians and vehicles.
+        self.ground_obstacles_stream.send(
+            pylot.simulation.messages.GroundObstaclesMessage(
+                timestamp, vehicles + pedestrians))
+        self.ground_obstacles_stream.send(erdust.WatermarkMessage(timestamp))
         # Send ground traffic lights.
         self.ground_traffic_lights_stream.send(
             pylot.simulation.messages.GroundTrafficLightsMessage(

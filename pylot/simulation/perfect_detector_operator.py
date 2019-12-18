@@ -25,8 +25,7 @@ class PerfectDetectorOperator(erdust.Operator):
                  center_camera_stream,
                  segmented_camera_stream,
                  can_bus_stream,
-                 ground_pedestrians_stream,
-                 ground_vehicles_stream,
+                 ground_obstacles_stream,
                  ground_speed_limit_signs_stream,
                  ground_stop_signs_stream,
                  obstacles_stream,
@@ -43,8 +42,7 @@ class PerfectDetectorOperator(erdust.Operator):
         center_camera_stream.add_callback(self.on_bgr_camera_update)
         segmented_camera_stream.add_callback(self.on_segmented_frame)
         can_bus_stream.add_callback(self.on_can_bus_update)
-        ground_pedestrians_stream.add_callback(self.on_pedestrians_update)
-        ground_vehicles_stream.add_callback(self.on_vehicles_update)
+        ground_obstacles_stream.add_callback(self.on_obstacles_update)
         ground_speed_limit_signs_stream.add_callback(
             self.on_speed_limit_signs_update)
         ground_stop_signs_stream.add_callback(self.on_stop_signs_update)
@@ -55,8 +53,7 @@ class PerfectDetectorOperator(erdust.Operator):
              center_camera_stream,
              segmented_camera_stream,
              can_bus_stream,
-             ground_pedestrians_stream,
-             ground_vehicles_stream,
+             ground_obstacles_stream,
              ground_speed_limit_signs_stream,
              ground_stop_signs_stream],
             [obstacles_stream],
@@ -69,9 +66,8 @@ class PerfectDetectorOperator(erdust.Operator):
         self._bgr_imgs = deque()
         self._can_bus_msgs = deque()
         self._depth_imgs = deque()
-        self._pedestrians = deque()
+        self._obstacles = deque()
         self._segmented_imgs = deque()
-        self._vehicles = deque()
         self._speed_limit_signs = deque()
         self._stop_signs = deque()
         self._bgr_intrinsic = bgr_camera_setup.get_intrinsic()
@@ -84,8 +80,7 @@ class PerfectDetectorOperator(erdust.Operator):
                 center_camera_stream,
                 segmented_camera_stream,
                 can_bus_stream,
-                ground_pedestrians_stream,
-                ground_vehicles_stream,
+                ground_obstacles_stream,
                 ground_speed_limit_signs_stream,
                 ground_stop_signs_stream):
         obstacles_stream = erdust.WriteStream()
@@ -97,8 +92,7 @@ class PerfectDetectorOperator(erdust.Operator):
         bgr_msg = self._bgr_imgs.popleft()
         segmented_msg = self._segmented_imgs.popleft()
         can_bus_msg = self._can_bus_msgs.popleft()
-        pedestrians_msg = self._pedestrians.popleft()
-        vehicles_msg = self._vehicles.popleft()
+        obstacles_msg = self._obstacles.popleft()
         speed_limit_signs_msg = self._speed_limit_signs.popleft()
         stop_signs_msg = self._stop_signs.popleft()
         self._frame_cnt += 1
@@ -111,15 +105,11 @@ class PerfectDetectorOperator(erdust.Operator):
         depth_array = depth_msg.frame
         vehicle_transform = can_bus_msg.data.transform
 
-        det_ped = self.__get_pedestrians(pedestrians_msg.pedestrians,
-                                         vehicle_transform,
-                                         depth_array,
-                                         segmented_msg.frame.as_numpy_array())
-
-        det_vec = self.__get_vehicles(vehicles_msg.vehicles,
-                                      vehicle_transform,
-                                      depth_array,
-                                      segmented_msg.frame.as_numpy_array())
+        det_obstacles = self.__get_obstacles(
+            obstacles_msg.obstacles,
+            vehicle_transform,
+            depth_array,
+            segmented_msg.frame.as_numpy_array())
 
         det_speed_limits = pylot.simulation.utils.get_speed_limit_det_objs(
             speed_limit_signs_msg.speed_signs,
@@ -133,7 +123,7 @@ class PerfectDetectorOperator(erdust.Operator):
             vehicle_transform * depth_msg.transform,
             depth_msg.frame, depth_msg.width, depth_msg.height, depth_msg.fov)
 
-        det_objs = det_ped + det_vec + det_speed_limits + det_stop_signs
+        det_objs = det_obstacles + det_speed_limits + det_stop_signs
 
         # Send the detected obstacles.
         obstacles_stream.send(DetectorMessage(det_objs, 0, timestamp))
@@ -159,11 +149,8 @@ class PerfectDetectorOperator(erdust.Operator):
     def on_stop_signs_update(self, msg):
         self._stop_signs.append(msg)
 
-    def on_pedestrians_update(self, msg):
-        self._pedestrians.append(msg)
-
-    def on_vehicles_update(self, msg):
-        self._vehicles.append(msg)
+    def on_obstacles_update(self, msg):
+        self._obstacles.append(msg)
 
     def on_depth_camera_update(self, msg):
         self._depth_imgs.append(msg)
@@ -174,47 +161,37 @@ class PerfectDetectorOperator(erdust.Operator):
     def on_segmented_frame(self, msg):
         self._segmented_imgs.append(msg)
 
-    def __get_pedestrians(self, pedestrians, vehicle_transform, depth_array,
-                          segmented_image):
-        """ Transforms pedestrians into detected objects.
+    def __get_obstacles(self, obstacles, vehicle_transform, depth_array,
+                        segmented_image):
+        """ Transforms obstacles into detected objects.
         Args:
-            pedestrians: List of Pedestrian objects.
+            obstacles: List of pylot.simulation.util.Obstacle objects.
             vehicle_transform: Ego-vehicle transform.
-            depth_array: Depth frame taken at the time when pedestrians were
+            depth_array: Depth frame taken at the time when obstacles were
                          collected.
             segmented_image: The segmentation frame taken at the time when
                 the pedestrians were collected.
         """
         det_objs = []
-        for pedestrian in pedestrians:
+        for obstacle in obstacles:
+            if obstacle.label == 'pedestrian':
+                segmentation_class = 4
+            elif obstacle.label == 'vehicle':
+                segmentation_class = 10
+            else:
+                raise ValueError('Unexpected obstacle label {}'.format(
+                    obstacle.label))
             bbox = get_2d_bbox_from_3d_box(
-                vehicle_transform, pedestrian.transform,
-                pedestrian.bounding_box, self._bgr_transform,
-                self._bgr_intrinsic, self._bgr_img_size, depth_array,
-                segmented_image, 4)
+                vehicle_transform,
+                obstacle.transform,
+                obstacle.bounding_box,
+                self._bgr_transform,
+                self._bgr_intrinsic,
+                self._bgr_img_size,
+                depth_array,
+                segmented_image,
+                segmentation_class)
             if bbox is not None:
                 det_objs.append(
-                    DetectedObject(bbox, 1.0, 'pedestrian', pedestrian.id))
-        return det_objs
-
-    def __get_vehicles(self, vehicles, vehicle_transform, depth_array,
-                       segmented_image):
-        """ Transforms vehicles into detected objects.
-        Args:
-            vehicles: List of Vehicle objects.
-            vehicle_transform: Ego-vehicle transform.
-            depth_array: Depth frame taken at the time when vehicles were
-                         collected.
-            segmented_image: The segmentation frame taken at the time when
-                the vehicles were collected.
-        """
-        det_objs = []
-        for vehicle in vehicles:
-            bbox = get_2d_bbox_from_3d_box(
-                vehicle_transform, vehicle.transform, vehicle.bounding_box,
-                self._bgr_transform, self._bgr_intrinsic, self._bgr_img_size,
-                depth_array, segmented_image, 10)
-            if bbox is not None:
-                det_objs.append(
-                    DetectedObject(bbox, 1.0, 'vehicle', vehicle.id))
+                    DetectedObject(bbox, 1.0, obstacle.label, obstacle.id))
         return det_objs

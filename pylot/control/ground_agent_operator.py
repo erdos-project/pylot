@@ -13,8 +13,7 @@ import pylot.utils
 class GroundAgentOperator(erdust.Operator):
     def __init__(self,
                  can_bus_stream,
-                 ground_pedestrians_stream,
-                 ground_vehicles_stream,
+                 ground_obstacles_stream,
                  ground_traffic_lights_stream,
                  ground_speed_limit_signs_stream,
                  waypoints_stream,
@@ -24,8 +23,7 @@ class GroundAgentOperator(erdust.Operator):
                  log_file_name=None,
                  csv_file_name=None):
         can_bus_stream.add_callback(self.on_can_bus_update)
-        ground_pedestrians_stream.add_callback(self.on_pedestrians_update)
-        ground_vehicles_stream.add_callback(self.on_vehicles_update)
+        ground_obstacles_stream.add_callback(self.on_obstacles_update)
         ground_traffic_lights_stream.add_callback(
             self.on_traffic_lights_update)
         ground_speed_limit_signs_stream.add_callback(
@@ -33,8 +31,7 @@ class GroundAgentOperator(erdust.Operator):
         waypoints_stream.add_callback(self.on_waypoints_update)
         erdust.add_watermark_callback(
             [can_bus_stream,
-             ground_pedestrians_stream,
-             ground_vehicles_stream,
+             ground_obstacles_stream,
              ground_traffic_lights_stream,
              ground_speed_limit_signs_stream,
              waypoints_stream],
@@ -51,16 +48,14 @@ class GroundAgentOperator(erdust.Operator):
                           log_file_name)
         self._pid = PID(p=flags.pid_p, i=flags.pid_i, d=flags.pid_d)
         self._can_bus_msgs = deque()
-        self._pedestrian_msgs = deque()
-        self._vehicle_msgs = deque()
+        self._obstacle_msgs = deque()
         self._traffic_light_msgs = deque()
         self._speed_limit_sign_msgs = deque()
         self._waypoint_msgs = deque()
 
     @staticmethod
     def connect(can_bus_stream,
-                ground_pedestrians_stream,
-                ground_vehicles_stream,
+                ground_obstacles_stream,
                 ground_traffic_lights_stream,
                 ground_speed_limit_signs_stream,
                 waypoints_stream):
@@ -77,25 +72,18 @@ class GroundAgentOperator(erdust.Operator):
         wp_angle = waypoint_msg.wp_angle
         wp_vector = waypoint_msg.wp_vector
         wp_angle_speed = waypoint_msg.wp_angle_speed
-        # Get ground pedestrian info.
-        pedestrians_msg = self._pedestrian_msgs.popleft()
-        pedestrians = pedestrians_msg.pedestrians
-        # Get ground vehicle info.
-        vehicles_msg = self._vehicle_msgs.popleft()
-        vehicles = vehicles_msg.vehicles
+        # Get ground obstacle info.
+        obstacles = self._obstacle_msgs.popleft().obstacles
         # Get ground traffic lights info.
-        traffic_lights_msg = self._traffic_light_msgs.popleft()
-        traffic_lights = traffic_lights_msg.traffic_lights
+        traffic_lights = self._traffic_light_msgs.popleft().traffic_lights
         # Get ground traffic signs info.
-        speed_limit_signs_msg = self._speed_limit_sign_msgs.popleft()
-        speed_limit_signs = speed_limit_signs_msg.speed_signs
+        speed_limit_signs = self._speed_limit_sign_msgs.popleft().speed_signs
         # TODO(ionel): Use traffic signs info as well.
 
         speed_factor, state = self.stop_for_agents(vehicle_transform.location,
                                                    wp_angle,
                                                    wp_vector,
-                                                   vehicles,
-                                                   pedestrians,
+                                                   obstacles,
                                                    traffic_lights)
         control_stream.send(
             self.get_control_message(
@@ -111,11 +99,8 @@ class GroundAgentOperator(erdust.Operator):
     def on_can_bus_update(self, msg):
         self._can_bus_msgs.append(msg)
 
-    def on_pedestrians_update(self, msg):
-        self._pedestrian_msgs.append(msg)
-
-    def on_vehicles_update(self, msg):
-        self._vehicle_msgs.append(msg)
+    def on_obstacles_update(self, msg):
+        self._obstacle_msgs.append(msg)
 
     def on_traffic_lights_update(self, msg):
         self._traffic_light_msgs.append(msg)
@@ -127,35 +112,33 @@ class GroundAgentOperator(erdust.Operator):
                         ego_vehicle_location,
                         wp_angle,
                         wp_vector,
-                        vehicles,
-                        pedestrians,
+                        obstacles,
                         traffic_lights):
         speed_factor = 1
         speed_factor_tl = 1
         speed_factor_p = 1
         speed_factor_v = 1
 
-        if self._flags.stop_for_vehicles:
-            for obs_vehicle in vehicles:
+        for obstacle in obstacles:
+            if obstacle.label == 'vehicle' and self._flags.stop_for_vehicles:
                 # Only brake for vehicles that are in ego vehicle's lane.
                 if self._map.are_on_same_lane(
                         ego_vehicle_location,
-                        obs_vehicle.transform.location):
+                        obstacle.transform.location):
                     new_speed_factor_v = pylot.control.utils.stop_vehicle(
                         ego_vehicle_location,
-                        obs_vehicle.transform.location,
+                        obstacle.transform.location,
                         wp_vector,
                         speed_factor_v,
                         self._flags)
                     speed_factor_v = min(speed_factor_v, new_speed_factor_v)
-
-        if self._flags.stop_for_pedestrians:
-            for pedestrian in pedestrians:
+            if obstacle.label == 'pedestrian' and \
+               self._flags.stop_for_pedestrians:
                 # Only brake for pedestrians that are on the road.
-                if self._map.is_on_lane(pedestrian.transform.location):
+                if self._map.is_on_lane(obstacle.transform.location):
                     new_speed_factor_p = pylot.control.utils.stop_pedestrian(
                         ego_vehicle_location,
-                        pedestrian.transform.location,
+                        obstacle.transform.location,
                         wp_vector,
                         speed_factor_p,
                         self._flags)

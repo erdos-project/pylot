@@ -5,25 +5,26 @@ import numpy as np
 
 class FusionVerificationOperator(erdust.Operator):
     def __init__(self,
-                 ground_vehicles_stream,
+                 ground_obstacles_stream,
                  fusion_stream,
                  name,
                  log_file_name=None):
-        ground_vehicles_stream.add_callback(self.on_vehicles_update)
+        ground_obstacles_stream.add_callback(self.on_obstacles_update)
         fusion_stream.add_callback(self.on_fusion_update)
         self._logger = erdust.utils.setup_logging(name, log_file_name)
         self.vehicles = deque()
 
     @staticmethod
-    def connect(ground_vehicles_stream, fusion_stream):
+    def connect(ground_obstacles_stream, fusion_stream):
         return []
 
-    def on_vehicles_update(self, msg):
+    def on_obstacles_update(self, msg):
         vehicle_positions = []
-        for vehicle in msg.vehicles:
-            position = np.array([vehicle.transform.location.x,
-                                 vehicle.transform.location.y])
-            vehicle_positions.append(position)
+        for obstacle in msg.obstacles:
+            if obstacle.label == 'vehicle':
+                position = np.array([obstacle.transform.location.x,
+                                     obstacle.transform.location.y])
+                vehicle_positions.append(position)
 
         self.vehicles.append((msg.timestamp, vehicle_positions))
 

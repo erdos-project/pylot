@@ -118,13 +118,14 @@ def extract_data_in_pylot_format(actor_list):
 
 
 def convert_vehicle_actors(vec_actors):
-    """ Converts a Carla vehicle object into a Pylot Vehicle object.
+    """ Converts a Carla vehicle object into a pylot.simulation.utils.Obstacle
+        object.
 
     Args:
         vec_actors: A list of Carla vehicle actors.
 
     Returns:
-        A list of Pylot Vehicles.
+        A list of obstacles.
     """
     vehicles = []
     for vec_actor in vec_actors:
@@ -133,20 +134,21 @@ def convert_vehicle_actors(vec_actors):
         bounding_box = pylot.simulation.utils.BoundingBox(
             vec_actor.bounding_box)
         speed = pylot.simulation.utils.get_speed(vec_actor.get_velocity())
-        vehicle = pylot.simulation.utils.Vehicle(
-            vec_actor.id, transform, bounding_box, speed)
+        vehicle = pylot.simulation.utils.Obstacle(
+            vec_actor.id, 'vehicle', transform, bounding_box, speed)
         vehicles.append(vehicle)
     return vehicles
 
 
 def convert_pedestrian_actors(pedestrian_actors):
-    """ Converts a Carla pedestrian actor into a Pylot pedestrian object.
+    """ Converts a Carla pedestrian actor into a pylot.simulation.util.Obstacle
+        object.
 
     Args:
         pedestrian_actors: A list of Carla pedestrian actors.
 
     Returns:
-        A list of Pylot Pedestrians.
+        A list of obstacles.
     """
     pedestrians = []
     for ped_actor in pedestrian_actors:
@@ -155,8 +157,8 @@ def convert_pedestrian_actors(pedestrian_actors):
         bounding_box = pylot.simulation.utils.BoundingBox(
             ped_actor.bounding_box)
         speed = pylot.simulation.utils.get_speed(ped_actor.get_velocity())
-        pedestrian = pylot.simulation.utils.Pedestrian(
-            ped_actor.id, transform, bounding_box, speed)
+        pedestrian = pylot.simulation.utils.Obstacle(
+            ped_actor.id, 'pedestrian', transform, bounding_box, speed)
         pedestrians.append(pedestrian)
     return pedestrians
 

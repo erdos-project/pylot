@@ -403,7 +403,7 @@ def add_imu(transform, vehicle_id_stream, name='imu'):
 def add_fusion(can_bus_stream,
                obstacles_stream,
                depth_stream,
-               ground_vehicles_stream=None):
+               ground_obstacles_stream):
     [obstacle_pos_stream] = erdust.connect(
         FusionOperator,
         [can_bus_stream, obstacles_stream, depth_stream],
@@ -413,9 +413,9 @@ def add_fusion(can_bus_stream,
         log_file_name=FLAGS.log_file_name,
         csv_log_file_name=FLAGS.csv_log_file_name)
 
-    if ground_vehicles_stream:
+    if FLAGS.evaluate_fusion:
         erdust.connect(FusionVerificationOperator,
-                       [ground_vehicles_stream, obstacle_pos_stream],
+                       [ground_obstacles_stream, obstacle_pos_stream],
                        True,
                        'fusion_verification_operator',
                        log_file_name=FLAGS.log_file_name)
@@ -434,15 +434,13 @@ def add_pid_control(waypoints_stream, can_bus_stream):
 
 
 def add_ground_agent(can_bus_stream,
-                     ground_pedestrians_stream,
-                     ground_vehicles_stream,
+                     ground_obstacles_stream,
                      ground_traffic_lights_stream,
                      ground_speed_limit_signs_stream,
                      waypoints_stream):
     [control_stream] = erdust.connect(GroundAgentOperator,
                                       [can_bus_stream,
-                                       ground_pedestrians_stream,
-                                       ground_vehicles_stream,
+                                       ground_obstacles_stream,
                                        ground_traffic_lights_stream,
                                        ground_speed_limit_signs_stream,
                                        waypoints_stream],
@@ -455,15 +453,13 @@ def add_ground_agent(can_bus_stream,
 
 
 def add_mpc_agent(can_bus_stream,
-                  ground_pedestrians_stream,
-                  ground_vehicles_stream,
+                  ground_obstacles_stream,
                   ground_traffic_lights_stream,
                   ground_speed_limit_signs_stream,
                   waypoints_stream):
     [control_stream] = erdust.connect(MPCAgentOperator,
                                       [can_bus_stream,
-                                       ground_pedestrians_stream,
-                                       ground_vehicles_stream,
+                                       ground_obstacles_stream,
                                        ground_traffic_lights_stream,
                                        ground_speed_limit_signs_stream,
                                        waypoints_stream],
@@ -657,8 +653,7 @@ def add_perfect_detector(depth_camera_stream,
                          center_camera_stream,
                          segmented_camera_stream,
                          can_bus_stream,
-                         ground_pedestrians_stream,
-                         ground_vehicles_stream,
+                         ground_obstacles_stream,
                          ground_speed_limit_signs_stream,
                          ground_stop_signs_stream,
                          camera_setup):
@@ -668,8 +663,7 @@ def add_perfect_detector(depth_camera_stream,
          center_camera_stream,
          segmented_camera_stream,
          can_bus_stream,
-         ground_pedestrians_stream,
-         ground_vehicles_stream,
+         ground_obstacles_stream,
          ground_speed_limit_signs_stream,
          ground_stop_signs_stream],
         True,
@@ -710,11 +704,9 @@ def add_perfect_lane_detector(can_bus_stream):
     return detected_lanes_stream
 
 
-def add_perfect_tracking(
-        ground_vehicles_stream, ground_pedestrians_stream, can_bus_stream):
+def add_perfect_tracking(ground_obstacles_stream, can_bus_stream):
     [ground_tracking_stream] = erdust.connect(PerfectTrackerOperator,
-                                              [ground_vehicles_stream,
-                                               ground_pedestrians_stream,
+                                              [ground_obstacles_stream,
                                                can_bus_stream],
                                               True,
                                               'perfect_tracking_operator',

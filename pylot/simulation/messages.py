@@ -124,35 +124,19 @@ class IMUMessage(erdust.Message):
                 self.compass)
 
 
-class GroundVehiclesMessage(erdust.Message):
-    """ Message class to be used to send ground info about vehicle actors.
+class GroundObstaclesMessage(erdust.Message):
+    """ Message class used to send ground pedestrian and vehicle info.
 
     Attributes:
-        vehicles: A list of simulation.utils.Vehicle tuples.
+        obstacles: A list of simulation.utils.Obstacle tuples.
     """
-    def __init__(self, timestamp, vehicles):
-        super(GroundVehiclesMessage, self).__init__(timestamp, None)
-        self.vehicles = vehicles
+    def __init__(self, timestamp, obstacles):
+        super(GroundObstaclesMessage, self).__init__(timestamp, None)
+        self.obstacles = obstacles
 
     def __str__(self):
-        return 'GroundVehiclesMessage(timestamp: {}, vehicles: {})'.format(
-            self.timestamp, self.vehicles)
-
-
-class GroundPedestriansMessage(erdust.Message):
-    """ Message class to be used to send ground info about pedestrian actors.
-
-    Attributes:
-        pedestrians: A list of simulation.utils.Pedestrian tuples.
-    """
-    def __init__(self, timestamp, pedestrians):
-        super(GroundPedestriansMessage, self).__init__(timestamp, None)
-        self.pedestrians = pedestrians
-
-    def __str__(self):
-        return 'GroundPedestriansMessage(timestmap: {}, '\
-            'pedestrians: {})'.format(
-                self.timestamp, self.pedestrians)
+        return 'GroundObstaclesMessage(timestamp: {}, obstacles: {})'.format(
+            self.timestamp, self.obstacles)
 
 
 class GroundTrafficLightsMessage(erdust.Message):

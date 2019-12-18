@@ -51,8 +51,7 @@ def driver():
     # Create carla operator.
     (can_bus_stream,
      ground_traffic_lights_stream,
-     ground_vehicles_stream,
-     ground_pedestrians_stream,
+     ground_obstacles_stream,
      ground_speed_limit_signs_stream,
      ground_stop_signs_stream,
      vehicle_id_stream) = pylot.operator_creator.add_carla_bridge(
@@ -75,8 +74,7 @@ def driver():
             center_camera_stream,
             segmented_stream,
             can_bus_stream,
-            ground_pedestrians_stream,
-            ground_vehicles_stream,
+            ground_obstacles_stream,
             ground_speed_limit_signs_stream,
             ground_stop_signs_stream,
             rgb_camera_setup)

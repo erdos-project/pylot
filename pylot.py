@@ -12,7 +12,9 @@ FLAGS = flags.FLAGS
 CENTER_CAMERA_LOCATION = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
 
 
-def add_perception(center_camera_stream, traffic_light_camera_stream):
+def add_perception(center_camera_stream,
+                   traffic_light_camera_stream,
+                   can_bus_stream):
 
     if FLAGS.obj_detection:
         obstacles_stream = pylot.operator_creator.add_obstacle_detection(
@@ -49,8 +51,7 @@ def add_perception(center_camera_stream, traffic_light_camera_stream):
             pylot.operator_creator.add_fusion(
                 can_bus_stream,
                 obstacles_stream,
-                depth_stream,
-                ground_vehicles_stream)
+                depth_stream)
         else:
             pylot.operator_creator.add_fusion(
                 can_bus_stream,
@@ -71,8 +72,7 @@ def add_perfect_perception(center_camera_stream,
                            tl_depth_camera_stream,
                            tl_segmented_camera_stream,
                            can_bus_stream,
-                           ground_pedestrians_stream,
-                           ground_vehicles_stream,
+                           ground_obstacles_stream,
                            ground_traffic_lights_stream,
                            ground_speed_limit_signs_stream,
                            ground_stop_signs_stream,
@@ -82,8 +82,7 @@ def add_perfect_perception(center_camera_stream,
         center_camera_stream,
         segmented_camera_stream,
         can_bus_stream,
-        ground_pedestrians_stream,
-        ground_vehicles_stream,
+        ground_obstacles_stream,
         ground_speed_limit_signs_stream,
         ground_stop_signs_stream,
         center_camera_setup)
@@ -104,7 +103,7 @@ def add_perfect_perception(center_camera_stream,
     # TODO: The perfect tracker returns ego-vehicle (x,y,z) coordinates, while
     # our existing trackers use camera coordinates. Fix!
     obstacles_tracking_stream = pylot.operator_creator.add_perfect_tracking(
-        ground_vehicles_stream, ground_pedestrians_stream, can_bus_stream)
+        ground_obstacles_stream, can_bus_stream)
 
     return (obstacles_stream,
             obstacles_tracking_stream,
@@ -159,23 +158,21 @@ def add_control(can_bus_stream,
             waypoints_stream,
             traffic_lights_stream,
             obstacles_stream,
-            lidar_stream,
+            point_cloud_stream,
             open_drive_stream,
             depth_camera_stream,
             camera_setup)
     elif FLAGS.control_agent_operator == 'mpc':
         control_stream = pylot.operator_creator.add_mpc_agent(
             can_bus_stream,
-            ground_pedestrians_stream,
-            ground_vehicles_stream,
+            ground_obstacles_stream,
             traffic_lights_stream,
             ground_speed_limit_signs_stream,
             waypoints_stream)
     elif FLAGS.control_agent_operator == 'ground':
         control_stream = pylot.operator_creator.add_ground_agent(
             can_bus_stream,
-            ground_pedestrians_stream,
-            ground_vehicles_stream,
+            ground_obstacles_stream,
             traffic_lights_stream,
             ground_speed_limit_signs_stream,
             waypoints_stream)
@@ -189,14 +186,15 @@ def driver():
     transform = pylot.simulation.utils.Transform(
         CENTER_CAMERA_LOCATION, pylot.simulation.utils.Rotation(0, 0, 0))
 
+    control_loop_stream = erdust.LoopStream()
     # Create carla operator.
     (can_bus_stream,
      ground_traffic_lights_stream,
-     ground_vehicles_stream,
-     ground_pedestrians_stream,
+     ground_obstacles_stream,
      ground_speed_limit_signs_stream,
      ground_stop_signs_stream,
-     vehicle_id_stream) = pylot.operator_creator.add_carla_bridge()
+     vehicle_id_stream) = pylot.operator_creator.add_carla_bridge(
+         control_loop_stream)
 
     # Add sensors.
     (center_camera_stream,
@@ -213,13 +211,17 @@ def driver():
     (tl_camera_stream,
      tl_camera_setup) = pylot.operator_creator.add_rgb_camera(
          transform, vehicle_id_stream, 'traffic_light_camera', 45)
-    (imu_stream, _) = pylot.operator_creator.add_imu(
-        transform, vehicle_id_stream)
+
+    imu_stream = None
+    if FLAGS.imu:
+        (imu_stream, _) = pylot.operator_creator.add_imu(
+            transform, vehicle_id_stream)
 
     if FLAGS.depth_estimation:
         (left_camera_stream,
          right_camera_stream) = pylot.operator_creator.add_left_right_cameras(
              transform, vehicle_id_stream)
+        # TODO: Connect depth estimation stream.
         depth_estimation_stream = pylot.operator_creator.add_depth_estimation(
             left_camera_stream, right_camera_stream, rgb_camera_setup)
 
@@ -246,8 +248,7 @@ def driver():
              tl_depth_camera_stream,
              tl_segmented_camera_stream,
              can_bus_stream,
-             ground_pedestrians_stream,
-             ground_vehicles_stream,
+             ground_obstacles_stream,
              ground_traffic_lights_stream,
              ground_speed_limit_signs_stream,
              ground_stop_signs_stream,
@@ -258,13 +259,14 @@ def driver():
          traffic_lights_stream,
          lane_detection_stream,
          segmented_stream) = add_perception(
-             center_camera_stream, traffic_light_camera_stream)
+             center_camera_stream, tl_camera_stream, can_bus_stream)
 
     prediction_stream = None
     if FLAGS.prediction:
         prediction_stream = add_prediction(obstacles_tracking_stream)
 
     # Add planning operators.
+    # TODO: Do not hardcode goal location.
     goal_location = (234.269989014, 59.3300170898, 39.4306259155)
     waypoints_stream = add_planning(can_bus_stream,
                                     prediction_stream,
@@ -277,6 +279,7 @@ def driver():
                                  obstacles_stream,
                                  traffic_lights_stream,
                                  waypoints_stream)
+    control_loop_stream.set(control_stream)
 
     if FLAGS.visualize_top_down_segmentation:
         top_down_transform = pylot.simulation.utils.get_top_down_transform(
