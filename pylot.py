@@ -12,9 +12,15 @@ FLAGS = flags.FLAGS
 CENTER_CAMERA_LOCATION = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
 
 
-def add_perception(center_camera_stream,
+def add_perception(transform,
+                   vehicle_id_stream,
+                   center_camera_stream,
+                   center_camera_setup,
                    traffic_light_camera_stream,
-                   can_bus_stream):
+                   can_bus_stream,
+                   depth_stream=None,
+                   ground_obstacles_stream=None,
+                   ground_segmented_stream=None):
 
     if FLAGS.obj_detection:
         obstacles_stream = pylot.operator_creator.add_obstacle_detection(
@@ -46,6 +52,13 @@ def add_perception(center_camera_stream,
                 obstacles_stream,
                 center_camera_stream)
 
+    if FLAGS.depth_estimation:
+        (left_camera_stream,
+         right_camera_stream) = pylot.operator_creator.add_left_right_cameras(
+             transform, vehicle_id_stream)
+        depth_stream = pylot.operator_creator.add_depth_estimation(
+            left_camera_stream, right_camera_stream, center_camera_setup)
+
     if FLAGS.fusion:
         if FLAGS.evaluate_fusion:
             pylot.operator_creator.add_fusion(
@@ -65,18 +78,29 @@ def add_perception(center_camera_stream,
             segmented_stream)
 
 
-def add_perfect_perception(center_camera_stream,
+def add_perfect_perception(transform,
+                           vehicle_id_stream,
+                           center_camera_stream,
                            depth_camera_stream,
                            segmented_camera_stream,
                            tl_camera_stream,
-                           tl_depth_camera_stream,
-                           tl_segmented_camera_stream,
                            can_bus_stream,
                            ground_obstacles_stream,
                            ground_traffic_lights_stream,
                            ground_speed_limit_signs_stream,
                            ground_stop_signs_stream,
                            center_camera_setup):
+    # Add segmented and depth cameras with fov 45. These cameras are needed
+    # by the perfect traffic light detector.
+    (tl_depth_camera_stream, _) = pylot.operator_creator.add_depth_camera(
+        transform, vehicle_id_stream, 'traffic_light_depth_camera', 45)
+    (tl_segmented_camera_stream, _) = \
+        pylot.operator_creator.add_segmented_camera(
+            transform,
+            vehicle_id_stream,
+            'traffic_light_segmented_camera',
+            45)
+
     obstacles_stream = pylot.operator_creator.add_perfect_detector(
         depth_camera_stream,
         center_camera_stream,
@@ -148,10 +172,14 @@ def add_planning(can_bus_stream,
     return waypoints_stream
 
 
-def add_control(can_bus_stream,
+def add_control(center_camera_setup,
+                can_bus_stream,
                 obstacles_stream,
                 traffic_lights_stream,
-                waypoints_stream):
+                waypoints_stream,
+                open_drive_stream,
+                point_cloud_stream,
+                depth_camera_stream):
     if FLAGS.control_agent_operator == 'pylot':
         control_stream = pylot.operator_creator.add_pylot_agent(
             can_bus_stream,
@@ -161,20 +189,18 @@ def add_control(can_bus_stream,
             point_cloud_stream,
             open_drive_stream,
             depth_camera_stream,
-            camera_setup)
+            center_camera_setup)
     elif FLAGS.control_agent_operator == 'mpc':
         control_stream = pylot.operator_creator.add_mpc_agent(
             can_bus_stream,
-            ground_obstacles_stream,
+            obstacles_stream,
             traffic_lights_stream,
-            ground_speed_limit_signs_stream,
             waypoints_stream)
     elif FLAGS.control_agent_operator == 'ground':
         control_stream = pylot.operator_creator.add_ground_agent(
             can_bus_stream,
-            ground_obstacles_stream,
+            obstacles_stream,
             traffic_lights_stream,
-            ground_speed_limit_signs_stream,
             waypoints_stream)
     else:
         raise ValueError('Unexpected control_agent_operator {}'.format(
@@ -193,7 +219,8 @@ def driver():
      ground_obstacles_stream,
      ground_speed_limit_signs_stream,
      ground_stop_signs_stream,
-     vehicle_id_stream) = pylot.operator_creator.add_carla_bridge(
+     vehicle_id_stream,
+     open_drive_stream) = pylot.operator_creator.add_carla_bridge(
          control_loop_stream)
 
     # Add sensors.
@@ -217,36 +244,18 @@ def driver():
         (imu_stream, _) = pylot.operator_creator.add_imu(
             transform, vehicle_id_stream)
 
-    if FLAGS.depth_estimation:
-        (left_camera_stream,
-         right_camera_stream) = pylot.operator_creator.add_left_right_cameras(
-             transform, vehicle_id_stream)
-        # TODO: Connect depth estimation stream.
-        depth_estimation_stream = pylot.operator_creator.add_depth_estimation(
-            left_camera_stream, right_camera_stream, rgb_camera_setup)
-
     if FLAGS.use_perfect_perception:
-        # Add segmented and depth cameras with fov 45. These cameras are needed
-        # by the perfect traffic light detector.
-        (tl_depth_camera_stream, _) = pylot.operator_creator.add_depth_camera(
-            transform, vehicle_id_stream, 'traffic_light_depth_camera', 45)
-        (tl_segmented_camera_stream, _) = \
-            pylot.operator_creator.add_segmented_camera(
-                transform,
-                vehicle_id_stream,
-                'traffic_light_segmented_camera',
-                45)
         (obstacles_stream,
          obstacles_tracking_stream,
          traffic_lights_stream,
          lane_detection_stream,
          segmented_stream) = add_perfect_perception(
+             transform,
+             vehicle_id_stream,
              center_camera_stream,
              depth_camera_stream,
              segmented_stream,
              tl_camera_stream,
-             tl_depth_camera_stream,
-             tl_segmented_camera_stream,
              can_bus_stream,
              ground_obstacles_stream,
              ground_traffic_lights_stream,
@@ -259,7 +268,12 @@ def driver():
          traffic_lights_stream,
          lane_detection_stream,
          segmented_stream) = add_perception(
-             center_camera_stream, tl_camera_stream, can_bus_stream)
+             transform,
+             vehicle_id_stream,
+             center_camera_stream,
+             rgb_camera_setup,
+             tl_camera_stream,
+             can_bus_stream)
 
     prediction_stream = None
     if FLAGS.prediction:
@@ -274,11 +288,16 @@ def driver():
                                     global_trajectory_stream,
                                     goal_location)
 
+    # TODO: Merge depth camera stream and point cloud stream.
     # Add the behaviour planning and control operator.
-    control_stream = add_control(can_bus_stream,
+    control_stream = add_control(rgb_camera_setup,
+                                 can_bus_stream,
                                  obstacles_stream,
                                  traffic_lights_stream,
-                                 waypoints_stream)
+                                 waypoints_stream,
+                                 open_drive_stream,
+                                 depth_camera_stream,
+                                 point_cloud_stream)
     control_loop_stream.set(control_stream)
 
     if FLAGS.visualize_top_down_segmentation:

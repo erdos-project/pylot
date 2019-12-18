@@ -19,7 +19,6 @@ class MPCAgentOperator(erdust.Operator):
                  can_bus_stream,
                  ground_obstacles_stream,
                  ground_traffic_lights_stream,
-                 ground_speed_limit_signs_stream,
                  waypoints_stream,
                  control_stream,
                  name,
@@ -30,14 +29,11 @@ class MPCAgentOperator(erdust.Operator):
         ground_obstacles_stream.add_callback(self.on_obstacles_update)
         ground_traffic_lights_stream.add_callback(
             self.on_traffic_lights_update)
-        ground_speed_limit_signs_stream.add_callback(
-            self.on_speed_limit_signs_update)
         waypoints_stream.add_callback(self.on_waypoints_update)
         erdust.add_watermark_callback(
             [can_bus_stream,
              ground_obstacles_stream,
              ground_traffic_lights_stream,
-             ground_speed_limit_signs_stream,
              waypoints_stream],
             [control_stream],
             self.on_watermark)
@@ -59,14 +55,12 @@ class MPCAgentOperator(erdust.Operator):
         self._can_bus_msgs = deque()
         self._obstacles_msgs = deque()
         self._traffic_light_msgs = deque()
-        self._speed_limit_sign_msgs = deque()
         self._waypoint_msgs = deque()
 
     @staticmethod
     def connect(can_bus_stream,
                 ground_obstacles_stream,
                 ground_traffic_lights_stream,
-                ground_speed_limit_signs_stream,
                 waypoints_stream):
         control_stream = erdust.WriteStream()
         return [control_stream]
@@ -82,9 +76,6 @@ class MPCAgentOperator(erdust.Operator):
 
     def on_traffic_lights_update(self, msg):
         self._traffic_light_msgs.append(msg)
-
-    def on_speed_limit_signs_update(self, msg):
-        self._speed_limit_sign_msgs.append(msg)
 
     def on_watermark(self, timestamp, control_stream):
         # Get hero vehicle info.
@@ -106,9 +97,6 @@ class MPCAgentOperator(erdust.Operator):
 
         # Get ground traffic lights info.
         traffic_lights = self._traffic_light_msgs.popleft().traffic_lights
-
-        # Get ground traffic signs info.
-        speed_limit_signs = self._speed_limit_sign_msgs.popleft().speed_signs
 
         speed_factor, state = self.stop_for_agents(vehicle_transform.location,
                                                    wp_angle,

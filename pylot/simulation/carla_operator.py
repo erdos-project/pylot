@@ -59,6 +59,7 @@ class CarlaOperator(erdust.Operator):
                  ground_speed_limit_signs_stream,
                  ground_stop_signs_stream,
                  vehicle_id_stream,
+                 open_drive_stream,
                  name,
                  flags,
                  log_file_name=None,
@@ -80,6 +81,7 @@ class CarlaOperator(erdust.Operator):
         self.ground_speed_limit_signs_stream = ground_speed_limit_signs_stream
         self.ground_stop_signs_stream = ground_stop_signs_stream
         self.vehicle_id_stream = vehicle_id_stream
+        self.open_drive_stream = open_drive_stream
 
         self._name = name
         self._flags = flags
@@ -103,7 +105,11 @@ class CarlaOperator(erdust.Operator):
             # them up right now. In future, move this logic to a seperate
             # destroy function.
             reset_world(self._world)
-
+        # Send open drive string.
+        timestamp = erdust.Timestamp(coordinates=[sys.maxsize])
+        self.open_drive_stream.send(
+            erdust.Message(timestamp, self._world.get_map().to_opendrive()))
+        self.open_drive_stream.send(erdust.WatermarkMessage(timestamp))
         # Set the weather.
         weather = get_weathers()[self._flags.carla_weather]
         self._logger.info('Setting the weather to {}'.format(
@@ -142,12 +148,14 @@ class CarlaOperator(erdust.Operator):
         ground_speed_limit_signs_stream = erdust.WriteStream()
         ground_stop_signs_stream = erdust.WriteStream()
         vehicle_id_stream = erdust.WriteStream()
+        open_drive_stream = erdust.WriteStream()
         return [can_bus_stream,
                 ground_traffic_lights_stream,
                 ground_obstacles_stream,
                 ground_speed_limit_signs_stream,
                 ground_stop_signs_stream,
-                vehicle_id_stream]
+                vehicle_id_stream,
+                open_drive_stream]
 
     def on_control_msg(self, msg):
         """ Invoked when a ControlMessage is received.

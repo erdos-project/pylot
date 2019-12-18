@@ -54,7 +54,8 @@ def driver():
      ground_obstacles_stream,
      ground_speed_limit_signs_stream,
      ground_stop_signs_stream,
-     vehicle_id_stream) = pylot.operator_creator.add_carla_bridge(
+     vehicle_id_stream,
+     open_drive_stream) = pylot.operator_creator.add_carla_bridge(
          control_loop_stream)
 
     # Add sensors.
