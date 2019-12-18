@@ -1,9 +1,17 @@
+from absl import flags
 import erdust
 import heapq
 
 from pylot.perception.detection.utils import get_pedestrian_mAP,\
     get_precision_recall_at_iou
 from pylot.utils import time_epoch_ms
+
+flags.DEFINE_enum('detection_metric', 'mAP', ['mAP', 'timely-mAP'],
+                  'Detection evaluation metric')
+flags.DEFINE_bool(
+    'detection_eval_use_accuracy_model',
+    False,
+    'Enable to use a model for detection accuracy decay over time')
 
 
 class DetectionEvalOperator(erdust.Operator):

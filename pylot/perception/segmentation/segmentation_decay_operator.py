@@ -5,46 +5,39 @@ import time
 from pylot.utils import time_epoch_ms
 
 
-class SegmentationEvalGroundOperator(erdust.Operator):
+class SegmentationDecayOperator(erdust.Operator):
     """ Computes how much segmentation accuracy decreases over time.
 
     The operator subscribes to the Carla perfect segmented frames stream.
     """
     def __init__(self,
                  ground_segmented_stream,
+                 iou_stream,
                  name,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-        ground_segmented_stream.add_callback(self.on_ground_segmented_frame)
+        ground_segmented_stream.add_callback(
+            self.on_ground_segmented_frame, [iou_stream])
         self._name = name
         self._flags = flags
         self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._csv_logger = erdust.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
-        self._time_delta = None
         self._ground_frames = deque()
 
     @staticmethod
     def connect(ground_segmented_stream):
-        return []
+        iou_stream = erdust.WriteStream()
+        return [iou_stream]
 
-    def on_ground_segmented_frame(self, msg):
+    def on_ground_segmented_frame(self, msg, iou_stream):
         start_time = time.time()
         # We don't fully transform it to cityscapes palette to avoid
         # introducing extra latency.
         frame = msg.frame
 
         if len(self._ground_frames) > 0:
-            if self._time_delta is None:
-                self._time_delta = (msg.timestamp.coordinates[0] -
-                                    self._ground_frames[0][0])
-            else:
-                # Check that no frames got dropped.
-                recv_time_delta = (msg.timestamp.coordinates[0] -
-                                   self._ground_frames[-1][0])
-                assert self._time_delta == recv_time_delta
-
             # Pop the oldest frame if it's older than the max latency
             # we're interested in.
             if (msg.timestamp.coordinates[0] - self._ground_frames[0][0] >
@@ -61,6 +54,8 @@ class SegmentationEvalGroundOperator(erdust.Operator):
                         time_diff, mean_iou))
                 self._csv_logger.info('{},{},mIoU,{},{}'.format(
                     cur_time, self._name, time_diff, mean_iou))
+                iou_stream.send(erdust.Message(msg.timestamp,
+                                               (time_diff, mean_iou)))
                 pedestrian_key = 4
                 if pedestrian_key in class_iou:
                     self._logger.info(

@@ -5,14 +5,15 @@ from pylot.perception.detection.utils import get_precision_recall_at_iou
 from pylot.utils import time_epoch_ms
 
 
-class DetectionEvalGroundOperator(erdust.Operator):
+class DetectionDecayOperator(erdust.Operator):
     def __init__(self,
                  obstacles_stream,
+                 map_stream,
                  name,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-        obstacles_stream.add_callback(self.on_ground_obstacles)
+        obstacles_stream.add_callback(self.on_ground_obstacles, [map_stream])
         self._name = name
         self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._csv_logger = erdust.utils.setup_csv_logging(
@@ -23,9 +24,10 @@ class DetectionEvalGroundOperator(erdust.Operator):
 
     @staticmethod
     def connect(obstacles_stream):
-        return []
+        map_stream = erdust.WriteStream()
+        return [map_stream]
 
-    def on_ground_obstacles(self, msg):
+    def on_ground_obstacles(self, msg, map_stream):
         # Ignore the first several seconds of the simulation because the car is
         # not moving at the beginning.
         game_time = msg.timestamp.coordinates[0]
@@ -59,6 +61,8 @@ class DetectionEvalGroundOperator(erdust.Operator):
                         latency, avg_precision))
                 self._csv_logger.info('{},{},{},{}'.format(
                     time_epoch_ms(), self._name, latency, avg_precision))
+                map_stream.send(erdust.Message(msg.timestamp,
+                                               (latency, avg_precision)))
 
         # Buffer the new bounding boxes.
         self._ground_bboxes.append((game_time, bboxes))

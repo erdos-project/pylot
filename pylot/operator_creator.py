@@ -10,8 +10,8 @@ from pylot.simulation.lidar_driver_operator import LidarDriverOperator
 from pylot.perception.detection.detection_operator import DetectionOperator
 from pylot.perception.detection.detection_eval_operator import \
     DetectionEvalOperator
-from pylot.perception.detection.detection_eval_ground_operator import \
-    DetectionEvalGroundOperator
+from pylot.perception.detection.detection_decay_operator import \
+    DetectionDecayOperator
 from pylot.perception.detection.lane_detection_operator import \
     LaneDetectionOperator
 from pylot.perception.detection.traffic_light_det_operator import \
@@ -23,8 +23,8 @@ from pylot.perception.fusion.fusion_verification_operator import \
     FusionVerificationOperator
 from pylot.perception.segmentation.segmentation_eval_operator import \
     SegmentationEvalOperator
-from pylot.perception.segmentation.segmentation_eval_ground_operator import \
-    SegmentationEvalGroundOperator
+from pylot.perception.segmentation.segmentation_decay_operator import \
+    SegmentationDecayOperator
 # Planning operators.
 from pylot.planning.planning_operator import PlanningOperator
 from pylot.planning.rrt_star.rrt_star_planning_operator import \
@@ -118,13 +118,14 @@ def add_obstacle_detection(camera_stream):
 
 
 def add_detection_decay(ground_obstacles_stream):
-    erdust.connect(DetectionEvalGroundOperator,
-                   [ground_obstacles_stream],
-                   True,
-                   'detection_decay_operator',
-                   FLAGS,
-                   log_file_name=FLAGS.log_file_name,
-                   csv_file_name=FLAGS.csv_log_file_name)
+    [map_stream] = erdust.connect(DetectionDecayOperator,
+                                  [ground_obstacles_stream],
+                                  True,
+                                  'detection_decay_operator',
+                                  FLAGS,
+                                  log_file_name=FLAGS.log_file_name,
+                                  csv_file_name=FLAGS.csv_log_file_name)
+    return map_stream
 
 
 def add_detection_evaluation(obstacles_stream,
@@ -227,18 +228,19 @@ def add_segmentation_evaluation(
                    name,
                    FLAGS,
                    log_file_name=FLAGS.log_file_name,
-                   csv_file_name=FLAGS.csv_file_name)
+                   csv_file_name=FLAGS.csv_log_file_name)
 
 
 def add_segmentation_decay(ground_segmented_stream,
                            name='segmentation_decay_operator'):
-    erdust.connect(SegmentationEvalGroundOperator,
-                   [ground_segmented_stream],
-                   True,
-                   name,
-                   FLAGS,
-                   log_file_name=FLAGS.log_file_name,
-                   csv_file_name=FLAGS.csv_file_name)
+    [iou_stream] = erdust.connect(SegmentationDecayOperator,
+                                  [ground_segmented_stream],
+                                  True,
+                                  name,
+                                  FLAGS,
+                                  log_file_name=FLAGS.log_file_name,
+                                  csv_file_name=FLAGS.csv_log_file_name)
+    return iou_stream
 
 
 def add_linear_prediction(tracking_stream):
@@ -263,7 +265,7 @@ def add_planning(can_bus_stream,
         FLAGS,
         goal_location,
         log_file_name=FLAGS.log_file_name,
-        csv_file_name=FLAGS.csv_file_name)
+        csv_file_name=FLAGS.csv_log_file_name)
     return waypoints_stream
 
 
@@ -279,7 +281,7 @@ def add_rrt_start_planning(can_bus_stream,
         FLAGS,
         goal_location,
         log_file_name=FLAGS.log_file_name,
-        csv_file_name=FLAGS.csv_file_name)
+        csv_file_name=FLAGS.csv_log_file_name)
     return waypoints_stream
 
 

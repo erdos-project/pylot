@@ -128,7 +128,7 @@ class SegmentedFrame(object):
             # Ignore non-existing classes.
             if sum_union > 0:
                 iou[key] = float(sum_intersection) / float(sum_union)
-        mean_iou = np.mean(iou.values())
+        mean_iou = np.mean(list(iou.values()))
         return (mean_iou, iou)
 
     def compute_semantic_iou_using_masks(self, other_frame):
@@ -154,7 +154,7 @@ class SegmentedFrame(object):
             # Ignore non-existing classes.
             if sum_union > 0:
                 iou[i] = float(sum_intersection) / float(sum_union)
-                mean_iou = np.mean(iou.values())
+                mean_iou = np.mean(list(iou.values()))
         return (mean_iou, iou)
 
     def save_per_class_masks(self, data_path, timestamp):

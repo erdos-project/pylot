@@ -267,26 +267,8 @@ flags.DEFINE_bool('visualize_top_down_tracker_output', False,
 # Accuracy evaluation flags.
 flags.DEFINE_bool('evaluate_obj_detection', False,
                   'True to enable object detection accuracy evaluation')
-flags.DEFINE_bool('compute_detection_decay', False,
-                  'True to enable ground truth object detection evaluation.')
-flags.DEFINE_enum('detection_metric', 'mAP', ['mAP', 'timely-mAP'],
-                  'Detection evaluation metric')
-flags.DEFINE_bool(
-    'detection_eval_use_accuracy_model',
-    False,
-    'Enable to use a model for detection accuracy decay over time')
-flags.DEFINE_integer('decay_max_latency', 400,
-                     'Max latency to evaluate in ground truth experiments')
 flags.DEFINE_bool('evaluate_segmentation', False,
                   'True to enable segmentation evaluation')
-flags.DEFINE_enum('segmentation_metric', 'mIoU', ['mIoU', 'timely-mIoU'],
-                  'Segmentation evaluation metric')
-flags.DEFINE_bool('compute_segmentation_decay', False,
-                  'True to enable ground truth segmentation evaluation')
-flags.DEFINE_bool(
-    'segmentation_eval_use_accuracy_model',
-    False,
-    'Enable to use a model for segmentation accuracy decay over time')
 
 ########################################
 # Recording operators.

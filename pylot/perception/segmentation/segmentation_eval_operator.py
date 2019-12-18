@@ -1,7 +1,15 @@
+from absl import flags
 import erdust
 import heapq
 
 from pylot.utils import time_epoch_ms
+
+flags.DEFINE_enum('segmentation_metric', 'mIoU', ['mIoU', 'timely-mIoU'],
+                  'Segmentation evaluation metric')
+flags.DEFINE_bool(
+    'segmentation_eval_use_accuracy_model',
+    False,
+    'Enable to use a model for segmentation accuracy decay over time')
 
 
 class SegmentationEvalOperator(erdust.Operator):
