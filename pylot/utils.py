@@ -1,6 +1,8 @@
 import cv2
+import logging
 import math
 import numpy as np
+import os
 import time
 
 
@@ -85,3 +87,16 @@ def is_within_distance_ahead(
     d_angle = math.degrees(math.acos(
         np.dot(forward_vector, target_vector) / norm_dst))
     return d_angle < 90.0
+
+
+def set_tf_loglevel(level):
+    """ To be used to suppress TensorFlow logging."""
+    if level >= logging.FATAL:
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    if level >= logging.ERROR:
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+    if level >= logging.WARNING:
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+    else:
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
+    logging.getLogger('tensorflow').setLevel(level)

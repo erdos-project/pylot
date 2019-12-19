@@ -1,5 +1,6 @@
 from absl import flags
 import erdust
+import logging
 import numpy as np
 import tensorflow as tf
 import time
@@ -7,7 +8,8 @@ import time
 from pylot.perception.detection.utils import DetectedObject,\
     TrafficLightColor, annotate_image_with_bboxes, save_image, visualize_image
 from pylot.perception.messages import DetectorMessage
-from pylot.utils import bgr_to_rgb, rgb_to_bgr, time_epoch_ms
+from pylot.utils import bgr_to_rgb, rgb_to_bgr, set_tf_loglevel, \
+    time_epoch_ms
 
 flags.DEFINE_string(
     'traffic_light_det_model_path',
@@ -39,6 +41,7 @@ class TrafficLightDetOperator(erdust.Operator):
         self._flags = flags
         self._detection_graph = tf.Graph()
         # Load the model from the model file.
+        set_tf_loglevel(logging.ERROR)
         with self._detection_graph.as_default():
             od_graph_def = tf.compat.v1.GraphDef()
             with tf.io.gfile.GFile(

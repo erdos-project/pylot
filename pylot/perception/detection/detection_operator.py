@@ -1,5 +1,6 @@
 from absl import flags
 import erdust
+import logging
 import numpy as np
 import tensorflow as tf
 import time
@@ -8,7 +9,7 @@ from pylot.perception.detection.utils import DetectedObject,\
     load_coco_labels, load_coco_bbox_colors, annotate_image_with_bboxes,\
     save_image, visualize_image
 from pylot.perception.messages import DetectorMessage
-from pylot.utils import bgr_to_rgb, time_epoch_ms
+from pylot.utils import bgr_to_rgb, set_tf_loglevel, time_epoch_ms
 
 flags.DEFINE_float(
     'obj_detection_gpu_memory_fraction',
@@ -39,6 +40,7 @@ class DetectionOperator(erdust.Operator):
             name + '-csv', csv_file_name)
         self._detection_graph = tf.Graph()
         # Load the model from the model file.
+        set_tf_loglevel(logging.ERROR)
         with self._detection_graph.as_default():
             od_graph_def = tf.compat.v1.GraphDef()
             with tf.io.gfile.GFile(model_path, 'rb') as fid:
