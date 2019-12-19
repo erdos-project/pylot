@@ -163,6 +163,8 @@ class CarlaOperator(erdust.Operator):
         Args:
             msg: A control.messages.ControlMessage message.
         """
+        self._logger.debug(
+            '@{}: received control message'.format(msg.timestamp))
         # If auto pilot is enabled for the ego vehicle we do not apply the
         # control, but we still want to tick in this method to ensure that
         # all operators finished work before the world ticks.

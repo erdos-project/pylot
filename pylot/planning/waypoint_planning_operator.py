@@ -27,7 +27,8 @@ class WaypointPlanningOperator(erdust.Operator):
                  goal_location=None,
                  log_file_name=None):
         can_bus_stream.add_callback(self.on_can_bus_update, [waypoints_stream])
-        self._log_file_name = log_file_name
+        self._name = name
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
         self._wp_index = 4  # use 5th waypoint for steering and speed
         self._map = HDMap(get_map(self._flags.carla_host,
@@ -43,6 +44,8 @@ class WaypointPlanningOperator(erdust.Operator):
 
     def on_can_bus_update(self, msg, waypoints_stream):
         """ Recompute path to goal location and send WaypointsMessage."""
+        self._logger.debug(
+            '@{}: received can bus message'.format(msg.timestamp))
         vehicle_transform = msg.data.transform
         waypoints = self._map.compute_waypoints(
             vehicle_transform.location.as_carla_location(),
@@ -65,3 +68,6 @@ class WaypointPlanningOperator(erdust.Operator):
             wp_angle_speed=wp_speed_angle
         )
         waypoints_stream.send(output_msg)
+        self._logger.debug(
+            'WaypointPlanningOperator sent output for timestamp {}'.format(
+                output_msg.timestamp))

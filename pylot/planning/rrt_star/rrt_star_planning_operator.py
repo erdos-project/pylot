@@ -88,12 +88,17 @@ class RRTStarPlanningOperator(erdust.Operator):
         return [waypoints_stream]
 
     def on_can_bus_update(self, msg):
+        self._logger.debug(
+            '@{}: received can bus message'.format(msg.timestamp))
         self._can_bus_msgs.append(msg)
 
     def on_prediction_update(self, msg):
+        self._logger.debug(
+            '@{}: received prediction message'.format(msg.timestamp))
         self._prediction_msgs.append(msg)
 
     def on_watermark(self, timestamp, waypoints_stream):
+        self._logger.debug('@{}: received watermark'.format(timestamp))
         # get ego info
         can_bus_msg = self._can_bus_msgs.popleft()
         vehicle_transform = can_bus_msg.data.transform

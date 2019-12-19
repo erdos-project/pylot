@@ -6,8 +6,10 @@ import os
 class LidarLoggerOperator(erdust.Operator):
     """ Logs point cloud messages."""
 
-    def __init__(self, lidar_stream, name, flags):
+    def __init__(self, lidar_stream, name, flags, log_file_name=None):
         lidar_stream.add_callback(self.on_lidar_frame)
+        self._name = name
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
         self._pc_msg_cnt = 0
 
@@ -16,6 +18,8 @@ class LidarLoggerOperator(erdust.Operator):
         return []
 
     def on_lidar_frame(self, msg):
+        self._logger.debug('@{}: {} received message'.format(
+            msg.timestamp, self._name))
         self._pc_msg_cnt += 1
         if self._pc_msg_cnt % self._flags.log_every_nth_frame != 0:
             return

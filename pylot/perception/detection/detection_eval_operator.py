@@ -89,7 +89,7 @@ class DetectionEvalOperator(erdust.Operator):
                         self._logger.info('mAP is: {}'.format(mAP))
                         self._csv_logger.info('{},{},{},{}'.format(
                             time_epoch_ms(), self._name, 'mAP', mAP))
-                self._logger.info('Computing accuracy for {} {}'.format(
+                self._logger.debug('Computing accuracy for {} {}'.format(
                     end_time, start_time))
             else:
                 # The remaining entries require newer ground bboxes.

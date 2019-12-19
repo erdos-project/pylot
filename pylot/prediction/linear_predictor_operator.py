@@ -24,10 +24,12 @@ class LinearPredictorOperator(erdust.Operator):
                  tracking_stream,
                  linear_prediction_stream,
                  name,
-                 flags):
+                 flags,
+                 log_file_name=None):
         """Initializes the LinearPredictor Operator."""
         tracking_stream.add_callback(
             self.generate_predicted_trajectories, [linear_prediction_stream])
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
 
     @staticmethod
@@ -36,6 +38,8 @@ class LinearPredictorOperator(erdust.Operator):
         return [linear_prediction_stream]
 
     def generate_predicted_trajectories(self, msg, linear_prediction_stream):
+        self._logger.debug(
+            '@{}: received trajectories message'.format(msg.timestamp))
         obj_predictions_list = []
 
         for obj in msg.obj_trajectories:

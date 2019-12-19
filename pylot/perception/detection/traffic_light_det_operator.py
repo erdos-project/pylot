@@ -83,6 +83,8 @@ class TrafficLightDetOperator(erdust.Operator):
 
     def on_frame(self, msg, traffic_lights_stream):
         """ Invoked when the operator receives a message on the data stream."""
+        self._logger.debug('@{}: {} received message'.format(
+            msg.timestamp, self._name))
         start_time = time.time()
         assert msg.encoding == 'BGR', 'Expects BGR frames'
         image_np = bgr_to_rgb(msg.frame)
@@ -105,7 +107,8 @@ class TrafficLightDetOperator(erdust.Operator):
         traffic_lights = self.__convert_to_detected_tl(
             boxes, scores, labels, msg.height, msg.width)
 
-        self._logger.info('Detected traffic lights {}'.format(traffic_lights))
+        self._logger.debug('@{}: {} detected traffic lights {}'.format(
+            msg.timestamp, self._name, traffic_lights))
 
         if (self._flags.visualize_traffic_light_output or
             self._flags.log_traffic_light_detector_output):

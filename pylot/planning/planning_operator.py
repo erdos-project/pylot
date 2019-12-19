@@ -102,13 +102,15 @@ class PlanningOperator(erdust.Operator):
         return [waypoints_stream]
 
     def on_opendrive_map(self, msg):
+        self._logger.debug(
+            '@{}: received open drive message'.format(msg.timestamp))
         self._logger.info('Planner running in scenario runner mode')
         self._map = HDMap(carla.Map('map', msg.data),
                           self._log_file_name)
 
     def on_global_trajectory(self, msg):
-        self._logger.info('Global trajectory contains {} waypoints'.format(
-            len(msg.data)))
+        self._logger.debug('@{}: global trajectory has {} waypoints'.format(
+            msg.timestamp, len(msg.data)))
         if len(msg.data) > 0:
             # The last waypoint is the goal location.
             self._goal_location = msg.data[-1][0].location.as_carla_location()
@@ -123,6 +125,8 @@ class PlanningOperator(erdust.Operator):
             self._waypoints.append(waypoint_option[0])
 
     def on_can_bus_update(self, msg, waypoints_stream):
+        self._logger.debug(
+            '@{}: received can bus message'.format(msg.timestamp))
         self._vehicle_transform = msg.data.transform
         (next_waypoint_steer,
          next_waypoint_speed) = self.__update_waypoints()

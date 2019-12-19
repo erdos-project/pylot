@@ -29,6 +29,7 @@ class CanBusVisualizerOperator(erdust.Operator):
             log_file_name: The file to log the required information to.
         """
         can_bus_stream.add_callback(self.on_can_bus_update)
+        self._name = name
         self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
         _, self._world = pylot.simulation.carla_utils.get_world(
@@ -49,8 +50,9 @@ class CanBusVisualizerOperator(erdust.Operator):
         Args:
             msg: CanBus message
         """
+        self._logger.debug('@{}: {} received message'.format(
+            msg.timestamp, self._name))
         vehicle_transform = msg.data.transform
-
         # draw position
         self._world.debug.draw_point(
             carla.Location(x=vehicle_transform.location.x,

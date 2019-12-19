@@ -60,7 +60,7 @@ class SegmentationEvalOperator(erdust.Operator):
                 # This is the closest ground segmentation to the end time.
                 heapq.heappop(self._segmented_start_end_times)
                 end_frame = self.__get_ground_segmentation_at(end_time)
-                self._logger.info('Computing for times {} {}'.format(
+                self._logger.debug('Computing for times {} {}'.format(
                     start_time, end_time))
                 if self._flags.segmentation_eval_use_accuracy_model:
                     # Not using the segmentation output => get ground

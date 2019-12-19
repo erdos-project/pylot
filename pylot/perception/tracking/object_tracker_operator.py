@@ -16,7 +16,6 @@ class ObjectTrackerOperator(erdust.Operator):
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-
         obstacles_stream.add_callback(self.on_obstacles_msg)
         camera_stream.add_callback(self.on_frame_msg)
         self._name = name
@@ -44,7 +43,7 @@ class ObjectTrackerOperator(erdust.Operator):
                     MultiObjectSORTTracker
                 self._tracker = MultiObjectSORTTracker(self._flags)
             else:
-                self._logger.fatal(
+                raise ValueError(
                     'Unexpected tracker type {}'.format(tracker_type))
         except ImportError:
             self._logger.fatal('Error importing {}'.format(tracker_type))
@@ -60,6 +59,8 @@ class ObjectTrackerOperator(erdust.Operator):
 
     def on_frame_msg(self, msg):
         """ Invoked when a FrameMessage is received on the camera stream."""
+        self._logger.debug('@{}: {} received frame'.format(
+            msg.timestamp, self._name))
         start_time = time.time()
         assert msg.encoding == 'BGR', 'Expects BGR frames'
         frame = msg.frame
@@ -77,14 +78,16 @@ class ObjectTrackerOperator(erdust.Operator):
 
     def on_obstacles_msg(self, msg):
         """ Invoked when detected objects are received on the stream."""
+        self._logger.debug('@{}: {} received obstacles'.format(
+            msg.timestamp, self._name))
         self._ready_to_update = False
-        self._logger.info("Received {} bboxes for {}".format(
-            len(msg.detected_objects), msg.timestamp))
+        self._logger.debug("@{}: received {} bounding boxes".format(
+            msg.timestamp, len(msg.detected_objects)))
         # Remove frames that are older than the detector update.
         while len(self._to_process
                   ) > 0 and self._to_process[0][0] < msg.timestamp:
-            self._logger.info("Removing stale {} {}".format(
-                self._to_process[0][0], msg.timestamp))
+            self._logger.debug("@{}: removing stale {} {}".format(
+                msg.timestamp, self._to_process[0][0], msg.timestamp))
             self._to_process.popleft()
 
         # Track all pedestrians.
@@ -98,14 +101,15 @@ class ObjectTrackerOperator(erdust.Operator):
                 # Re-initialize trackers.
                 self.__initialize_trackers(
                     frame, bboxes, msg.timestamp, confidence_scores)
-                self._logger.info('Trackers have {} frames to catch-up'.format(
-                    len(self._to_process)))
+                self._logger.debug(
+                    'Trackers have {} frames to catch-up'.format(
+                        len(self._to_process)))
                 for (timestamp, frame) in self._to_process:
                     if self._ready_to_update:
                         self.__track_bboxes_on_frame(frame, timestamp, True)
             else:
-                self._logger.info(
-                    'Received bboxes update {}, but no frame to process'.
+                self._logger.debug(
+                    '@{}: received bboxes update, but no frame to process'.
                     format(msg.timestamp))
 
     def __get_highest_confidence_pedestrian(self, detected_objs):
@@ -136,11 +140,11 @@ class ObjectTrackerOperator(erdust.Operator):
             self, frame, bboxes, timestamp, confidence_scores):
         self._ready_to_update = True
         self._ready_to_update_timestamp = timestamp
-        self._logger.info('Restarting trackers at frame {}'.format(timestamp))
+        self._logger.debug('Restarting trackers at frame {}'.format(timestamp))
         self._tracker.reinitialize(frame, bboxes, confidence_scores)
 
     def __track_bboxes_on_frame(self, frame, timestamp, catch_up):
-        self._logger.info('Processing frame {}'.format(timestamp))
+        self._logger.debug('Processing frame {}'.format(timestamp))
         # Sequentually update state for each bounding box.
         ok, tracked_objects = self._tracker.track(frame)
         if not ok:
@@ -155,4 +159,3 @@ class ObjectTrackerOperator(erdust.Operator):
                     # tracked objects have no label, draw black bbox for them ([0, 0, 0])
                     tracked_object.visualize_on_img(frame, {"": [0, 0, 0]})
                 visualize_image(self._name, frame)
-

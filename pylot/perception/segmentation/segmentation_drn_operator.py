@@ -57,8 +57,8 @@ class SegmentationDRNOperator(erdust.Operator):
         """Camera stream callback method.
         Invoked upon the receipt of a message on the camera stream.
         """
-        self._logger.info('{} received frame {}'.format(
-            self._name, msg.timestamp))
+        self._logger.debug('@{}: {} received message'.format(
+            msg.timestamp, self._name))
         start_time = time.time()
         assert msg.encoding == 'BGR', 'Expects BGR frames'
         image = torch.from_numpy(msg.frame.transpose([2, 0,

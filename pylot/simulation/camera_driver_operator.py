@@ -61,7 +61,7 @@ class CameraDriverOperator(erdust.Operator):
         # Read the vehicle id from the vehicle id stream
         vehicle_id_msg = self._vehicle_id_stream.read()
         vehicle_id = vehicle_id_msg.data
-        self._logger.info(
+        self._logger.debug(
             "The CameraDriverOperator received the vehicle id: {}".format(
                 vehicle_id))
 
@@ -78,7 +78,7 @@ class CameraDriverOperator(erdust.Operator):
         num_tries = 0
         while self._vehicle is None and num_tries < 30:
             self._vehicle = world.get_actors().find(vehicle_id)
-            self._logger.info(
+            self._logger.debug(
                 "Could not find vehicle. Try {}".format(num_tries))
             time.sleep(1)
             num_tries += 1
@@ -97,7 +97,7 @@ class CameraDriverOperator(erdust.Operator):
 
         transform = self._camera_setup.get_transform().as_carla_transform()
 
-        self._logger.info("Spawning a camera: {}".format(self._camera_setup))
+        self._logger.debug("Spawning a camera: {}".format(self._camera_setup))
 
         self._camera = world.spawn_actor(camera_blueprint,
                                          transform,

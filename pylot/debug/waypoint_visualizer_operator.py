@@ -18,7 +18,7 @@ class WaypointVisualizerOperator(erdust.Operator):
         _world: A handle to the world to draw the waypoints on.
     """
 
-    def __init__(self, waypoints_stream, name, flags):
+    def __init__(self, waypoints_stream, name, flags, log_file_name=None):
         """ Initializes the WaypointVisualizerOperator with the given
         parameters.
 
@@ -31,6 +31,8 @@ class WaypointVisualizerOperator(erdust.Operator):
                 configuration.
         """
         waypoints_stream.add_callback(self.on_wp_update)
+        self._name = name
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
         _, self._world = pylot.simulation.carla_utils.get_world(
             self._flags.carla_host,
@@ -51,6 +53,8 @@ class WaypointVisualizerOperator(erdust.Operator):
             msg: A message of type `planning.messages.WaypointsMessage` to
                 be drawn on the screen.
         """
+        self._logger.debug('@{}: {} received message'.format(
+            msg.timestamp, self._name))
         for waypoint in msg.waypoints:
             loc = carla.Location(waypoint.location.x,
                                  waypoint.location.y,

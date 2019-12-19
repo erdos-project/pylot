@@ -10,6 +10,7 @@ class IMUVisualizerOperator(erdust.Operator):
 
     def __init__(self, imu_stream, name, flags, log_file_name=None):
         imu_stream.add_callback(self.on_imu_update)
+        self._name = name
         self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
         _, self._world = pylot.simulation.carla_utils.get_world(
@@ -31,8 +32,9 @@ class IMUVisualizerOperator(erdust.Operator):
             msg: A message of type `pylot.simulation.messages.IMUMessage` to
                 be drawn on the screen.
         """
+        self._logger.debug('@{}: {} received message'.format(
+            msg.timestamp, self._name))
         transform = msg.transform
-
         # Acceleration measured in ego frame, not global
         # z acceleration not useful for visualization so set to 0
         rotation_transform = carla.Transform(

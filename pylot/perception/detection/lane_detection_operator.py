@@ -28,6 +28,8 @@ class LaneDetectionOperator(erdust.Operator):
         return [detected_lanes_stream]
 
     def on_msg_camera_stream(self, msg, detected_lanes_stream):
+        self._logger.debug('@{}: {} received message'.format(
+            msg.timestamp, self._name))
         start_time = time.time()
         assert msg.encoding == 'BGR', 'Expects BGR frames'
         image_np = msg.frame

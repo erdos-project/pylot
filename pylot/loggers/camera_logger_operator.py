@@ -9,9 +9,15 @@ import pylot.utils
 class CameraLoggerOperator(erdust.Operator):
     """ Logs camera frames."""
 
-    def __init__(self, camera_stream, name, flags, filename_prefix):
+    def __init__(self,
+                 camera_stream,
+                 name,
+                 flags,
+                 filename_prefix,
+                 log_file_name=None):
         camera_stream.add_callback(self.on_frame)
         self._name = name
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
         self._frame_cnt = 0
         self._filename_prefix = filename_prefix
@@ -21,6 +27,8 @@ class CameraLoggerOperator(erdust.Operator):
         return []
 
     def on_frame(self, msg):
+        self._logger.debug('@{}: {} received message'.format(
+            msg.timestamp, self._name))
         self._frame_cnt += 1
         if self._frame_cnt % self._flags.log_every_nth_frame != 0:
             return

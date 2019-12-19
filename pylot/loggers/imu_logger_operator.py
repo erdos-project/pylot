@@ -7,9 +7,10 @@ class IMULoggerOperator(erdust.Operator):
     every frame to preserve linearization when approximating jerk in smoothness
     evaluation metrics."""
 
-    def __init__(self, imu_stream, name, flags):
+    def __init__(self, imu_stream, name, flags, log_file_name=None):
         imu_stream.add_callback(self.on_imu_update)
         self._name = name
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
 
     @staticmethod
@@ -24,6 +25,8 @@ class IMULoggerOperator(erdust.Operator):
             msg: A message of type `pylot.simulation.messages.IMUMessage` to
                 be logged.
         """
+        self._logger.debug('@{}: {} received message'.format(
+            msg.timestamp, self._name))
         transform = msg.transform
         acceleration = msg.acceleration
         gyro = msg.gyro

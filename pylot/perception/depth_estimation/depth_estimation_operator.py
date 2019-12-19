@@ -75,6 +75,8 @@ class DepthEstimationOperator(erdust.Operator):
         return [depth_estimation_stream]
 
     def on_left_camera_msg(self, msg):
+        self._logger.debug('@{}: {} received left camera message'.format(
+            msg.timestamp, self._name))
         img = bgr_to_rgb(msg.frame).astype(np.uint8)
         img = preprocess.crop(img)
         processed = preprocess.get_transform(augment=False)
@@ -82,6 +84,8 @@ class DepthEstimationOperator(erdust.Operator):
         self._left_imgs[msg.timestamp] = img
 
     def on_right_camera_msg(self, msg):
+        self._logger.debug('@{}: {} received right camera message'.format(
+            msg.timestamp, self._name))
         img = bgr_to_rgb(msg.frame).astype(np.uint8)
         img = preprocess.crop(img)
         processed = preprocess.get_transform(augment=False)
@@ -89,6 +93,8 @@ class DepthEstimationOperator(erdust.Operator):
         self._right_imgs[msg.timestamp] = img
 
     def compute_depth(self, timestamp, depth_estimation_stream):
+        self._logger.debug('@{}: {} received watermark'.format(
+            timestamp, self._name))
         start_time = time.time()
 
         imgL = self._left_imgs.pop(timestamp)

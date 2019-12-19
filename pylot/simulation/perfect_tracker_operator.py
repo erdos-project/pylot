@@ -20,7 +20,8 @@ class PerfectTrackerOperator(erdust.Operator):
                  can_bus_stream,
                  ground_tracking_stream,
                  name,
-                 flags):
+                 flags,
+                 log_file_name=None):
         """Initializes the PerfectTracker Operator. """
         ground_obstacles_stream.add_callback(self.on_obstacles_update)
         can_bus_stream.add_callback(self.on_can_bus_update)
@@ -29,8 +30,8 @@ class PerfectTrackerOperator(erdust.Operator):
                                       [ground_tracking_stream],
                                       self.on_watermark)
         self._name = name
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
-
         # Queues of incoming data.
         self._obstacles_raw_msgs = deque()
         self._can_bus_msgs = deque()
@@ -48,6 +49,7 @@ class PerfectTrackerOperator(erdust.Operator):
         return [ground_tracking_stream]
 
     def on_watermark(self, timestamp, ground_tracking_stream):
+        self._logger.debug('@{}: received watermark'.format(timestamp))
         obstacles_msg = self._obstacles_raw_msgs.popleft()
         can_bus_msg = self._can_bus_msgs.popleft()
 
@@ -79,7 +81,11 @@ class PerfectTrackerOperator(erdust.Operator):
         ground_tracking_stream.send(output_msg)
 
     def on_obstacles_update(self, msg):
+        self._logger.debug(
+            '@{}: received obstacles message'.format(msg.timestamp))
         self._obstacles_raw_msgs.append(msg)
 
     def on_can_bus_update(self, msg):
+        self._logger.debug(
+            '@{}: received can bus message'.format(msg.timestamp))
         self._can_bus_msgs.append(msg)

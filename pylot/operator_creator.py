@@ -141,13 +141,14 @@ def add_detection_evaluation(obstacles_stream,
 
 
 def add_traffic_light_detector(traffic_light_camera_stream):
-    [traffic_lights_stream] = erdust.connect(TrafficLightDetOperator,
-                                             [traffic_light_camera_stream],
-                                             True,
-                                             'traffic_light_detector_operator',
-                                             FLAGS,
-                                             FLAGS.log_file_name,
-                                             FLAGS.csv_log_file_name)
+    [traffic_lights_stream] = erdust.connect(
+        TrafficLightDetOperator,
+        [traffic_light_camera_stream],
+        True,
+        'traffic_light_detector_operator',
+        FLAGS,
+        log_file_name=FLAGS.log_file_name,
+        csv_file_name=FLAGS.csv_log_file_name)
     return traffic_lights_stream
 
 
@@ -248,7 +249,8 @@ def add_linear_prediction(tracking_stream):
                                          [tracking_stream],
                                          True,
                                          'linear_prediction_operator',
-                                         FLAGS)
+                                         FLAGS,
+                                         log_file_name=FLAGS.log_file_name)
     return prediction_stream
 
 
@@ -492,8 +494,12 @@ def add_pylot_agent(can_bus_stream,
 
 def add_bounding_box_logging(obstacles_stream,
                              name='bounding_box_logger_operator'):
-    erdust.connect(
-        BoundingBoxLoggerOperator, [obstacles_stream], True, name, FLAGS)
+    erdust.connect(BoundingBoxLoggerOperator,
+                   [obstacles_stream],
+                   True,
+                   name,
+                   FLAGS,
+                   log_file_name=FLAGS.log_file_name)
 
 
 def add_camera_logging(stream, name, filename_prefix):
@@ -503,7 +509,8 @@ def add_camera_logging(stream, name, filename_prefix):
         True,
         name,
         FLAGS,
-        filename_prefix)
+        filename_prefix,
+        log_file_name=FLAGS.log_file_name)
 
 
 def add_depth_camera_logging(depth_camera_stream,
@@ -515,7 +522,8 @@ def add_depth_camera_logging(depth_camera_stream,
         True,
         name,
         FLAGS,
-        filename_prefix)
+        filename_prefix,
+        log_file_name=FLAGS.log_file_name)
 
 
 def add_chauffeur_logging(
@@ -539,12 +547,21 @@ def add_chauffeur_logging(
 
 
 def add_imu_logging(imu_stream, name='imu_logger_operator'):
-    erdust.connect(IMULoggerOperator, [imu_stream], True, name, FLAGS)
+    erdust.connect(IMULoggerOperator,
+                   [imu_stream],
+                   True,
+                   name,
+                   FLAGS,
+                   log_file_name=FLAGS.log_file_name)
 
 
 def add_lidar_logging(point_cloud_stream, name='lidar_logger_operator'):
-    erdust.connect(
-        LidarLoggerOperator, [point_cloud_stream], True, name, FLAGS)
+    erdust.connect(LidarLoggerOperator,
+                   [point_cloud_stream],
+                   True,
+                   name,
+                   FLAGS,
+                   log_file_name=FLAGS.log_file_name)
 
 
 def add_multiple_object_tracker_logging(
@@ -553,7 +570,8 @@ def add_multiple_object_tracker_logging(
                    [obstacles_stream],
                    True,
                    name,
-                   FLAGS)
+                   FLAGS,
+                   log_file_name=FLAGS.log_file_name)
 
 
 def add_trajectory_logging(obstacles_tracking_stream,
@@ -562,7 +580,8 @@ def add_trajectory_logging(obstacles_tracking_stream,
                    [obstacles_tracking_stream],
                    True,
                    name,
-                   FLAGS)
+                   FLAGS,
+                   log_file_name=FLAGS.log_file_name)
 
 
 def add_visualizers(camera_stream,
@@ -598,11 +617,19 @@ def add_visualizers(camera_stream,
 
 
 def add_lidar_visualizer(point_cloud_stream, name='lidar_visualizer_operator'):
-    erdust.connect(LidarVisualizerOperator, [point_cloud_stream], True, name)
+    erdust.connect(LidarVisualizerOperator,
+                   [point_cloud_stream],
+                   True,
+                   name,
+                   log_file_name=FLAGS.log_file_name)
 
 
 def add_camera_visualizer(camera_stream, name):
-    erdust.connect(CameraVisualizerOperator, [camera_stream], True, name)
+    erdust.connect(CameraVisualizerOperator,
+                   [camera_stream],
+                   True,
+                   name,
+                   log_file_name=FLAGS.log_file_name)
 
 
 def add_imu_visualizer(imu_stream, name='imu_visualizer_operator'):
@@ -636,13 +663,18 @@ def add_top_down_tracking_visualizer(
                    True,
                    name,
                    FLAGS,
-                   top_down_camera_setup)
+                   top_down_camera_setup,
+                   log_file_name=FLAGS.log_file_name)
 
 
 def add_waypoint_visualizer(waypoints_stream,
                             name='waypoint_visualizer_operator'):
-    erdust.connect(
-        WaypointVisualizerOperator, [waypoints_stream], True, name, FLAGS)
+    erdust.connect(WaypointVisualizerOperator,
+                   [waypoints_stream],
+                   True,
+                   name,
+                   FLAGS,
+                   log_file_name=FLAGS.log_file_name)
 
 
 def add_perfect_detector(depth_camera_stream,
@@ -701,10 +733,12 @@ def add_perfect_lane_detector(can_bus_stream):
 
 
 def add_perfect_tracking(ground_obstacles_stream, can_bus_stream):
-    [ground_tracking_stream] = erdust.connect(PerfectTrackerOperator,
-                                              [ground_obstacles_stream,
-                                               can_bus_stream],
-                                              True,
-                                              'perfect_tracking_operator',
-                                              FLAGS)
+    [ground_tracking_stream] = erdust.connect(
+        PerfectTrackerOperator,
+        [ground_obstacles_stream,
+         can_bus_stream],
+        True,
+        'perfect_tracking_operator',
+        FLAGS,
+        log_file_name=FLAGS.log_file_name)
     return ground_tracking_stream

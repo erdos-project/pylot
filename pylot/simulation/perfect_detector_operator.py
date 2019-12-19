@@ -88,6 +88,7 @@ class PerfectDetectorOperator(erdust.Operator):
         return [obstacles_stream]
 
     def on_watermark(self, timestamp, obstacles_stream):
+        self._logger.debug('@{}: received watermark'.format(timestamp))
         depth_msg = self._depth_imgs.popleft()
         bgr_msg = self._bgr_imgs.popleft()
         segmented_msg = self._segmented_imgs.popleft()
@@ -141,24 +142,36 @@ class PerfectDetectorOperator(erdust.Operator):
                            'perfect-detector')
 
     def on_can_bus_update(self, msg):
+        self._logger.debug(
+            '@{}: received can bus message'.format(msg.timestamp))
         self._can_bus_msgs.append(msg)
 
     def on_speed_limit_signs_update(self, msg):
+        self._logger.debug(
+            '@{}: received ground speed limits update'.format(msg.timestamp))
         self._speed_limit_signs.append(msg)
 
     def on_stop_signs_update(self, msg):
+        self._logger.debug(
+            '@{}: received ground stop signs update'.format(msg.timestamp))
         self._stop_signs.append(msg)
 
     def on_obstacles_update(self, msg):
+        self._logger.debug(
+            '@{}: received ground obstacles update'.format(msg.timestamp))
         self._obstacles.append(msg)
 
     def on_depth_camera_update(self, msg):
+        self._logger.debug('@{}: received depth frame'.format(msg.timestamp))
         self._depth_imgs.append(msg)
 
     def on_bgr_camera_update(self, msg):
+        self._logger.debug('@{}: received BGR frame'.format(msg.timestamp))
         self._bgr_imgs.append(msg)
 
     def on_segmented_frame(self, msg):
+        self._logger.debug(
+            '@{}: received segmented frame'.format(msg.timestamp))
         self._segmented_imgs.append(msg)
 
     def __get_obstacles(self, obstacles, vehicle_transform, depth_array,

@@ -17,7 +17,8 @@ class TrackVisualizerOperator(erdust.Operator):
                  segmented_camera_stream,
                  name,
                  flags,
-                 top_down_camera_setup):
+                 top_down_camera_setup,
+                 log_file_name=None):
         """ Initializes the TrackVisualizerOperator with the given
         parameters.
 
@@ -37,6 +38,8 @@ class TrackVisualizerOperator(erdust.Operator):
              segmented_camera_stream],
             [],
             self.on_watermark)
+        self._name = name
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
         self._past_colors = {'pedestrian': [255, 0, 0],
                              'vehicle': [128, 128, 0]}
@@ -65,6 +68,8 @@ class TrackVisualizerOperator(erdust.Operator):
         self._top_down_segmentation_msgs[msg.timestamp] = msg
 
     def on_watermark(self, timestamp):
+        self._logger.debug('@{}: {} received watermark'.format(
+            timestamp, self._name))
         tracking_msg = self._tracking_msgs.pop()
         segmentation_msg = self._top_down_segmentation_msgs.pop()
         prediction_msg = self._prediction_msgs.pop()

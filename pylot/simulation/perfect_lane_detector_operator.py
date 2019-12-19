@@ -50,6 +50,8 @@ class PerfectLaneDetectionOperator(erdust.Operator):
         Args:
             can_bus_msg: Contains the current location of the ego vehicle.
         """
+        self._logger.debug(
+            '@{}: received can bus message'.format(can_bus_msg.timestamp))
         vehicle_location = can_bus_msg.data.transform.location
         lane_waypoints = []
         next_wp = [

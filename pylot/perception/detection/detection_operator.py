@@ -73,8 +73,8 @@ class DetectionOperator(erdust.Operator):
 
     def on_msg_camera_stream(self, msg, obstacles_stream):
         """ Invoked when the operator receives a message on the data stream."""
-        self._logger.info('{} received frame {}'.format(
-            self._name, msg.timestamp))
+        self._logger.debug('@{}: {} received message'.format(
+            msg.timestamp, self._name))
         start_time = time.time()
         # The models expect BGR images.
         assert msg.encoding == 'BGR', 'Expects BGR frames'
@@ -106,7 +106,8 @@ class DetectionOperator(erdust.Operator):
 
         detected_objects = self.__convert_to_detected_objs(
             boxes, scores, labels, msg.height, msg.width)
-        self._logger.info('Detected objects: {}'.format(detected_objects))
+        self._logger.debug('@{}: {} detected objects: {}'.format(
+            msg.timestamp, self._name, detected_objects))
 
         if (self._flags.visualize_detector_output or
             self._flags.log_detector_output):

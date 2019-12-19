@@ -59,6 +59,7 @@ class PerfectTrafficLightDetectorOperator(erdust.Operator):
         return [traffic_lights_stream]
 
     def on_watermark(self, timestamp, traffic_lights_stream):
+        self._logger.debug('@{}: received watermark'.format(timestamp))
         traffic_light_msg = self._traffic_lights.popleft()
         bgr_msg = self._bgr_imgs.popleft()
         depth_msg = self._depth_imgs.popleft()
@@ -100,16 +101,24 @@ class PerfectTrafficLightDetectorOperator(erdust.Operator):
             DetectorMessage(det_traffic_lights, 0, timestamp))
 
     def on_can_bus_update(self, msg):
+        self._logger.debug(
+            '@{}: received can bus message'.format(msg.timestamp))
         self._can_bus_msgs.append(msg)
 
     def on_traffic_light_update(self, msg):
+        self._logger.debug(
+            '@{}: received ground traffic lights update'.format(msg.timestamp))
         self._traffic_lights.append(msg)
 
     def on_bgr_camera_update(self, msg):
+        self._logger.debug('@{}: received BGR frame'.format(msg.timestamp))
         self._bgr_imgs.append(msg)
 
     def on_depth_camera_update(self, msg):
+        self._logger.debug('@{}: received depth frame'.format(msg.timestamp))
         self._depth_imgs.append(msg)
 
     def on_segmented_frame(self, msg):
+        self._logger.debug(
+            '@{}: received segmented frame'.format(msg.timestamp))
         self._segmented_imgs.append(msg)

@@ -4,8 +4,15 @@ import pickle
 
 
 class DepthCameraLoggerOperator(erdust.Operator):
-    def __init__(self, depth_camera_stream, name, flags, filename_prefix):
+    def __init__(self,
+                 depth_camera_stream,
+                 name,
+                 flags,
+                 filename_prefix,
+                 log_file_name=None):
         depth_camera_stream.add_callback(self.on_depth_frame)
+        self._name = name
+        self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
         self._depth_frame_cnt = 0
         self._filename_prefix = filename_prefix
@@ -15,6 +22,8 @@ class DepthCameraLoggerOperator(erdust.Operator):
         return []
 
     def on_depth_frame(self, msg):
+        self._logger.debug('@{}: {} received message'.format(
+            msg.timestamp, self._name))
         self._depth_frame_cnt += 1
         if self._depth_frame_cnt % self._flags.log_every_nth_frame != 0:
             return

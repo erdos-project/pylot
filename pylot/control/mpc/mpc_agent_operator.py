@@ -78,6 +78,7 @@ class MPCAgentOperator(erdust.Operator):
         self._traffic_light_msgs.append(msg)
 
     def on_watermark(self, timestamp, control_stream):
+        self._logger.debug('Received watermark {}'.format(timestamp))
         # Get hero vehicle info.
         can_bus_msg = self._can_bus_msgs.popleft()
         vehicle_transform = can_bus_msg.data.transform
