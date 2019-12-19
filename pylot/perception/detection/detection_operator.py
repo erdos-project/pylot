@@ -12,7 +12,7 @@ from pylot.perception.messages import DetectorMessage
 from pylot.utils import bgr_to_rgb, set_tf_loglevel, time_epoch_ms
 
 flags.DEFINE_float(
-    'obj_detection_gpu_memory_fraction',
+    'obstacle_detection_gpu_memory_fraction',
     0.3,
     'GPU memory fraction allocated to each obj detector operator')
 flags.DEFINE_float('detector_min_score_threshold', 0.5,
@@ -49,7 +49,7 @@ class DetectionOperator(erdust.Operator):
                 tf.import_graph_def(od_graph_def, name='')
 
         self._gpu_options = tf.compat.v1.GPUOptions(
-            per_process_gpu_memory_fraction=flags.obj_detection_gpu_memory_fraction)
+            per_process_gpu_memory_fraction=flags.obstacle_detection_gpu_memory_fraction)
         # Create a TensorFlow session.
         self._tf_session = tf.compat.v1.Session(
             graph=self._detection_graph,

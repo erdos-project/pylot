@@ -12,8 +12,10 @@ flags.DEFINE_string('csv_log_file_name', None,
 ######################################################################
 # Perception
 ######################################################################
-flags.DEFINE_bool('obj_detection', False,
-                  'True to enable object detection operator')
+flags.DEFINE_bool('obstacle_detection', False,
+                  'True to enable obstacle detection operator')
+flags.DEFINE_bool('perfect_obstacle_detection', False,
+                  'True to enable perfect obstacle detection')
 flags.DEFINE_bool('detector_ssd_mobilenet_v1', False,
                   'True to enable SSD mobilenet v1 detector')
 flags.DEFINE_string(
@@ -32,21 +34,30 @@ flags.DEFINE_string(
     'detector_ssd_resnet50_v1_model_path',
     'dependencies/models/ssd_resnet50_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03/frozen_inference_graph.pb',
     'Path to the model')
-flags.DEFINE_bool('obj_tracking', False,
-                  'True to enable object tracking operator')
+flags.DEFINE_bool('obstacle_tracking', False,
+                  'True to enable obstacle tracking operator')
+flags.DEFINE_bool('perfect_obstacle_tracking', False,
+                  'True to enable perfect obstacle tracking')
 flags.DEFINE_enum('tracker_type',
                   'cv2',
                   ['cv2', 'da_siam_rpn', 'deep_sort', 'sort'],
                   'Tracker type')
 flags.DEFINE_bool('lane_detection', False, 'True to enable lane detection')
+flags.DEFINE_bool('perfect_lane_detection', False,
+                  'True to enable perfect lane detection')
 flags.DEFINE_bool('fusion', False, 'True to enable fusion operator')
-flags.DEFINE_bool('evaluate_fusion', False, 'True to enable fusion evaluation')
-flags.DEFINE_bool('traffic_light_det', False,
+flags.DEFINE_bool('traffic_light_detection', False,
                   'True to enable traffic light detection operator')
+flags.DEFINE_bool('perfect_traffic_light_detection', False,
+                  'True to enable perfect traffic light detection')
 flags.DEFINE_bool('segmentation', False,
-                  'True to enable segmantation operator')
+                  'True to enable segmentation operator')
+flags.DEFINE_bool('perfect_segmentation', False,
+                  'True to enable perfect segmentation')
 flags.DEFINE_bool('depth_estimation', False,
-                  'True to depth estimation using cameras')
+                  'True to estimate depth using cameras')
+flags.DEFINE_bool('perfect_depth_estimation', False,
+                  'True to use perfect depth')
 flags.DEFINE_float(
     'offset_left_right_cameras',
     0.4,
@@ -77,14 +88,6 @@ flags.DEFINE_enum('control_agent_operator',
                   'pylot',
                   ['pylot', 'ground', 'mpc'],
                   'Control agent operator to use to drive')
-
-######################################################################
-# Perfect components
-######################################################################
-flags.DEFINE_bool('use_perfect_perception', False,
-                  'True to enable the agent to use perfect ground detection')
-flags.DEFINE_bool('perfect_tracking', False,
-                  'True to enable perfect object tracker.')
 
 ######################################################################
 # Carla flags
@@ -127,8 +130,9 @@ flags.DEFINE_bool('visualize_top_down_tracker_output', False,
                   'True to enable visualization of top-down tracker output')
 
 # Accuracy evaluation flags.
-flags.DEFINE_bool('evaluate_obj_detection', False,
+flags.DEFINE_bool('evaluate_obstacle_detection', False,
                   'True to enable object detection accuracy evaluation')
+flags.DEFINE_bool('evaluate_fusion', False, 'True to enable fusion evaluation')
 flags.DEFINE_bool('evaluate_segmentation', False,
                   'True to enable segmentation evaluation')
 
@@ -148,35 +152,113 @@ flags.DEFINE_integer('top_down_lateral_view', 20,
 
 # Flag validators.
 flags.register_multi_flags_validator(
-    ['obj_detection', 'detector_ssd_mobilenet_v1',
+    ['obstacle_detection', 'detector_ssd_mobilenet_v1',
      'detector_frcnn_resnet101', 'detector_ssd_resnet50_v1'],
-    lambda flags_dict: (not flags_dict['obj_detection'] or
-                        (flags_dict['obj_detection'] and
+    lambda flags_dict: (not flags_dict['obstacle_detection'] or
+                        (flags_dict['obstacle_detection'] and
                          (flags_dict['detector_ssd_mobilenet_v1'] or
                           flags_dict['detector_frcnn_resnet101'] or
                           flags_dict['detector_ssd_resnet50_v1']))),
-    message='a detector must be active when --obj_detection is set')
+    message='a detector must be active when --obstacle_detection is set')
 
 
-def tracker_flag_validator(flags_dict):
-    if flags_dict['obj_tracking']:
-        return flags_dict['obj_detection']
+def ground_agent_validator(flags_dict):
+    if flags_dict['control_agent_operator'] == 'ground':
+        return flags_dict['planning_type'] == 'single_waypoint'
     return True
 
 
 flags.register_multi_flags_validator(
-    ['obj_detection', 'obj_tracking'],
-    tracker_flag_validator,
-    message='--obj_detection must be set if --obj_tracking is set')
+    ['planning_type',
+     'control_agent_operator'],
+    ground_agent_validator,
+    message='ground agent requires single_waypoint planning')
 
 
-def detector_accuracy_validator(flags_dict):
-    if flags_dict['evaluate_obj_detection']:
-        return flags_dict['obj_detection']
+def mpc_agent_validator(flags_dict):
+    if flags_dict['control_agent_operator'] == 'mpc':
+        return (flags_dict['planning_type'] == 'multiple_waypoints' or
+                flags_dict['planning_type'] == 'rrt_star')
     return True
 
 
 flags.register_multi_flags_validator(
-    ['obj_detection', 'evaluate_obj_detection'],
-    detector_accuracy_validator,
-    message='--obj_detection must be set if --evaluate_obj_detection is set')
+    ['planning_type',
+     'control_agent_operator'],
+    mpc_agent_validator,
+    message='mpc agent requires multiple_waypoints or rrt_star planning')
+
+
+def pylot_agent_validator(flags_dict):
+    if flags_dict['control_agent_operator'] == 'pylot':
+        has_obstacle_detector = (
+            flags_dict['obstacle_detection'] or
+            flags_dict['perfect_obstacle_detection'])
+        has_traffic_light_detector = (
+            flags_dict['traffic_light_detection'] or
+            flags_dict['perfect_traffic_light_detection'])
+        # TODO: Add lane detection, obstacle tracking and prediction once
+        # the agent depends on these components.
+        has_depth = (flags_dict['depth_estimation'] or
+                     flags_dict['perfect_depth_estimation'])
+        has_planner = flags_dict['planning_type'] == 'single_waypoint'
+        return (has_obstacle_detector and
+                has_traffic_light_detector and
+                has_planner and
+                has_depth)
+    return True
+
+
+flags.register_multi_flags_validator(
+    ['obstacle_detection',
+     'perfect_obstacle_detection',
+     'traffic_light_detection',
+     'perfect_traffic_light_detection',
+     'depth_estimation',
+     'perfect_depth_estimation',
+     'planning_type',
+     'control_agent_operator'],
+    pylot_agent_validator,
+    message='pylot agent requires obstacle detection, traffic light detection,'
+    ' depth, and single waypoint planning')
+
+
+def obstacle_tracking_validator(flags_dict):
+    if flags_dict['obstacle_tracking']:
+        return (flags_dict['obstacle_detection'] or
+                flags_dict['perfect_obstacle_detection'])
+    return True
+
+
+flags.register_multi_flags_validator(
+    ['obstacle_detection',
+     'perfect_obstacle_detection',
+     'obstacle_tracking'],
+    obstacle_tracking_validator,
+    message='--obstacle_detection or --perfect_obstacle_detection must be set'
+    ' when --obstacle_tracking is enabled')
+
+
+def detector_evaluation_validator(flags_dict):
+    if flags_dict['evaluate_obstacle_detection']:
+        return flags_dict['obstacle_detection']
+    return True
+
+
+flags.register_multi_flags_validator(
+    ['obstacle_detection', 'evaluate_obstacle_detection'],
+    detector_evaluation_validator,
+    message='--obstacle_detection must be set when '
+    '--evaluate_obstacle_detection is enabled')
+
+
+def fusion_evaluation_validator(flags_dict):
+    if flags_dict['evaluate_fusion']:
+        return flags_dict['fusion']
+    return True
+
+
+flags.register_multi_flags_validator(
+    ['fusion', 'evaluate_fusion'],
+    fusion_evaluation_validator,
+    message='--fusion must be set when --evaluate_fusion is enabled')

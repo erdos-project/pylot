@@ -70,15 +70,15 @@ def create_agent_op(graph, bgr_camera_setup):
 def create_detection_ops(graph):
     obj_det_ops = []
     tracker_ops = []
-    if FLAGS.obj_detection:
+    if FLAGS.obstacle_detection:
         obj_det_ops = pylot.operator_creator.create_detector_ops(graph)
-        if FLAGS.obj_tracking:
+        if FLAGS.obstacle_tracking:
             tracker_op = pylot.operator_creator.create_object_tracking_op(
                 graph)
             tracker_ops.append(tracker_op)
 
     traffic_light_det_ops = []
-    if FLAGS.traffic_light_det:
+    if FLAGS.traffic_light_detection:
         traffic_light_det_ops.append(
             pylot.operator_creator.create_traffic_light_op(graph))
 

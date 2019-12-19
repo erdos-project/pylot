@@ -66,15 +66,19 @@ class MPCAgentOperator(erdust.Operator):
         return [control_stream]
 
     def on_waypoints_update(self, msg):
+        self._logger.debug('@{}: waypoints update'.format(msg.timestamp))
         self._waypoint_msgs.append(msg)
 
     def on_can_bus_update(self, msg):
+        self._logger.debug('@{}: can bus update'.format(msg.timestamp))
         self._can_bus_msgs.append(msg)
 
     def on_obstacles_update(self, msg):
+        self._logger.debug('@{}: obstacles update'.format(msg.timestamp))
         self._obstacles_msgs.append(msg)
 
     def on_traffic_lights_update(self, msg):
+        self._logger.debug('@{}: traffic lights update'.format(msg.timestamp))
         self._traffic_light_msgs.append(msg)
 
     def on_watermark(self, timestamp, control_stream):
