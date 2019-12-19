@@ -306,6 +306,9 @@ class Location(Vector3D):
                 Location instance from.
         """
         if carla_location is not None:
+            if not isinstance(carla_location, carla.Location):
+                raise ValueError(
+                    "carla_location should be of type carla.Location")
             super(Location, self).__init__(carla_location.x, carla_location.y,
                                            carla_location.z)
         else:
