@@ -40,18 +40,18 @@ class DetectionOperator(erdust.Operator):
         self._detection_graph = tf.Graph()
         # Load the model from the model file.
         with self._detection_graph.as_default():
-            od_graph_def = tf.GraphDef()
-            with tf.gfile.GFile(model_path, 'rb') as fid:
+            od_graph_def = tf.compat.v1.GraphDef()
+            with tf.io.gfile.GFile(model_path, 'rb') as fid:
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name='')
 
-        self._gpu_options = tf.GPUOptions(
+        self._gpu_options = tf.compat.v1.GPUOptions(
             per_process_gpu_memory_fraction=flags.obj_detection_gpu_memory_fraction)
         # Create a TensorFlow session.
-        self._tf_session = tf.Session(
+        self._tf_session = tf.compat.v1.Session(
             graph=self._detection_graph,
-            config=tf.ConfigProto(gpu_options=self._gpu_options))
+            config=tf.compat.v1.ConfigProto(gpu_options=self._gpu_options))
         # Get the tensors we're interested in.
         self._image_tensor = self._detection_graph.get_tensor_by_name(
             'image_tensor:0')

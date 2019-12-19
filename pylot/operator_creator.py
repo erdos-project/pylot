@@ -411,7 +411,7 @@ def add_fusion(can_bus_stream,
         'fusion_operator',
         FLAGS,
         log_file_name=FLAGS.log_file_name,
-        csv_log_file_name=FLAGS.csv_log_file_name)
+        csv_file_name=FLAGS.csv_log_file_name)
 
     if FLAGS.evaluate_fusion:
         erdust.connect(FusionVerificationOperator,
@@ -486,7 +486,7 @@ def add_pylot_agent(can_bus_stream,
         FLAGS,
         camera_setup,
         log_file_name=FLAGS.log_file_name,
-        csv_log_file_name=FLAGS.csv_log_file_name)
+        csv_file_name=FLAGS.csv_log_file_name)
     return control_stream
 
 

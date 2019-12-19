@@ -68,7 +68,7 @@ flags.DEFINE_enum('planning_type',
                   'single_waypoint',
                   ['single_waypoint', 'multiple_waypoints', 'rrt_star'],
                   'Type of planning module to use')
-flags.DEFINE_bool('imu', True, 'True to enable the IMU sensor')
+flags.DEFINE_bool('imu', False, 'True to enable the IMU sensor')
 
 ######################################################################
 # Control

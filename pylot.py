@@ -22,23 +22,27 @@ def add_perception(transform,
                    ground_obstacles_stream=None,
                    ground_segmented_stream=None):
 
+    obstacles_stream = None
     if FLAGS.obj_detection:
         obstacles_stream = pylot.operator_creator.add_obstacle_detection(
-            center_camera_stream)
+            center_camera_stream)[0]
         if FLAGS.evaluate_obj_detection:
             pylot.operator_creator.add_detection_evaluation(
                 obstacles_stream,
                 ground_obstacles_stream)
 
+    traffic_lights_stream = None
     if FLAGS.traffic_light_det:
         traffic_lights_stream = \
             pylot.operator_creator.add_traffic_light_detector(
                 traffic_light_camera_stream)
 
+    lane_detection_stream = None
     if FLAGS.lane_detection:
         lane_detection_stream = pylot.operator_creator.add_lane_detection(
             center_camera_stream)
 
+    segmented_stream = None
     if FLAGS.segmentation:
         segmented_stream = pylot.operator_creator.add_segmentation(
             center_camera_stream)
@@ -46,12 +50,14 @@ def add_perception(transform,
             pylot.operator_creator.add_segmentation_evaluation(
                 ground_segmented_stream, segmented_stream)
 
+    obstacles_tracking_stream = None
     if FLAGS.obj_tracking:
         obstacles_tracking_stream = \
             pylot.operator_creator.add_obstacle_tracking(
                 obstacles_stream,
                 center_camera_stream)
 
+    depth_stream = None
     if FLAGS.depth_estimation:
         (left_camera_stream,
          right_camera_stream) = pylot.operator_creator.add_left_right_cameras(
@@ -75,7 +81,8 @@ def add_perception(transform,
             obstacles_tracking_stream,
             traffic_lights_stream,
             lane_detection_stream,
-            segmented_stream)
+            segmented_stream,
+            depth_stream)
 
 
 def add_perfect_perception(transform,
@@ -267,7 +274,8 @@ def driver():
          obstacles_tracking_stream,
          traffic_lights_stream,
          lane_detection_stream,
-         segmented_stream) = add_perception(
+         segmented_stream,
+         depth_stream) = add_perception(
              transform,
              vehicle_id_stream,
              center_camera_stream,
@@ -282,6 +290,8 @@ def driver():
     # Add planning operators.
     # TODO: Do not hardcode goal location.
     goal_location = (234.269989014, 59.3300170898, 39.4306259155)
+    # TODO: Set global_trajectory_stream.
+    global_trajectory_stream = None
     waypoints_stream = add_planning(can_bus_stream,
                                     prediction_stream,
                                     open_drive_stream,
@@ -300,11 +310,13 @@ def driver():
                                  point_cloud_stream)
     control_loop_stream.set(control_stream)
 
+    top_down_segmented_stream = None
+    top_down_segmented_camera_setup = None
     if FLAGS.visualize_top_down_segmentation:
         top_down_transform = pylot.simulation.utils.get_top_down_transform(
             transform, FLAGS.top_down_lateral_view)
         (top_down_segmented_stream,
-         top_down_segmetned_camera_setup) = \
+         top_down_segmented_camera_setup) = \
             pylot.operator_creator.add_segmented_camera(
                 top_down_transform,
                 vehicle_id_stream,
@@ -321,7 +333,7 @@ def driver():
         top_down_segmented_stream,
         obstacles_tracking_stream,
         prediction_stream,
-        top_down_segmetned_camera_setup)
+        top_down_segmented_camera_setup)
 
 
 def main(argv):
