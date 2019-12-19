@@ -158,12 +158,13 @@ class Vector3D(object):
 
     def __init__(self, x=None, y=None, z=None, carla_vector=None):
         """ Initializes the Vector3D instance from the given x, y and z values.
+        Alternatively, pass in a carla_vector (carla.vector3D).
 
         Args:
             x: The value of the first axis.
             y: The value of the second axis.
             z: The value of the third axis.
-            carla_vector: carla.vector3D.
+            carla_vector: carla.vector3D
         """
         if carla_vector is not None:
             x = carla_vector.x
@@ -363,7 +364,7 @@ class Transform(object):
         """ Instantiates a Transform object with either the given location
         and rotation, or using the given matrix.
 
-        Rotation in assumed in degrees.
+        Rotation is assumed in degrees.
 
         First precedence is for carla_transform and then for matrix.
 
@@ -387,6 +388,7 @@ class Transform(object):
             self.matrix = Transform._create_matrix(self.location,
                                                    self.rotation)
         elif matrix is not None:
+            import numpy as np
             self.matrix = matrix
             self.location = Location(matrix[0, 3], matrix[1, 3], matrix[2, 3])
 
@@ -403,6 +405,8 @@ class Transform(object):
             self.location, self.rotation = location, rotation
             self.matrix = Transform._create_matrix(self.location,
                                                    self.rotation)
+
+            # Forward vector is retrieved from the matrix.
             self.forward_vector = Vector3D(self.matrix[0, 0],
                                            self.matrix[1, 0],
                                            self.matrix[2, 0])
@@ -442,18 +446,19 @@ class Transform(object):
         matrix[2, 2] = (cp * cr)
         return matrix
 
-    def transform_points(self, points):
-        """ Transforms a given set of points in the 3D world coordinate space
-        with respect to the object represented by the transform.
-
-        Expected point format:
-            List of Location values.
+    def __transform(self, points, matrix):
+        """ Internal function to transform the points according to the
+        given matrix. This function either converts the points from
+        coordinate space relative to the transform to the world coordinate
+        space (using self.matrix), or from world coordinate space to the
+        space relative to the transform (using inv(self.matrix))
 
         Args:
-            points: Points in the format [Location,..Location]
+            points: Points in the format [Location, ... Location]
+            matrix: The matrix of the transformation to apply.
 
         Returns:
-            Transformed points in the format [Location,..Location]
+            Transformed points in the format [Location, ... Location]
         """
         # Retrieve the locations as numpy arrays.
         points = np.matrix([loc.as_numpy_array() for loc in points])
@@ -465,18 +470,47 @@ class Transform(object):
         # Add 1s row: [[X0..,Xn],[Y0..,Yn],[Z0..,Zn],[1,..1]]
         points = np.append(points, np.ones((1, points.shape[1])), axis=0)
 
-        # Point transformation
-        points = np.dot(self.matrix, points)
+        # Point transformation (depends on the given matrix)
+        points = np.dot(matrix, points)
 
         # Get all but the last row in array form.
         points = np.asarray(points[0:3].transpose())
 
         return [Location(x, y, z) for x, y, z in points]
 
-    def inverse_transform(self):
-        """ Returns the inverse of the given transform. """
-        import numpy as np
-        return Transform(matrix=np.linalg.inv(self.matrix))
+    def transform_points(self, points):
+        """ Transforms the given set of locations (specified in the coordinate
+        space of the current transform) to be in the world coordinate space.
+
+        For example, if the transform is at location (3, 0, 0) and the
+        location passed to the argument is (10, 0, 0), this function will
+        return (13, 0, 0) i.e. the location of the argument in the world
+        coordinate space.
+
+        Args:
+            points: Points in the format [Location,..Location]
+
+        Returns:
+            Transformed points in the format [Location,..Location]
+        """
+        return self.__transform(points, self.matrix)
+
+    def inverse_transform_points(self, points):
+        """ Transforms the given set of locations (specified in world
+        coordinate space) to be relative to the given transform.
+
+        For example, if the transform is at location (3, 0, 0) and the
+        location passed to the argument is (10, 0, 0), this function will
+        return (7, 0, 0) i.e. the location of the argument relative to the
+        given transform.
+
+        Args:
+            points: Points in the format [Location, ... Location]
+
+        Returns:
+            Transformed points in the format [Location, ... Location]
+        """
+        return self.__transform(points, np.linalg.inv(self.matrix))
 
     def as_carla_transform(self):
         """ Convert the transform to a carla.Transform instance.

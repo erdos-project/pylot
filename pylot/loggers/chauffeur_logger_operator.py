@@ -122,22 +122,17 @@ class ChauffeurLoggerOperator(erdust.Operator):
                                r, (100, 100, 100), -1)
 
         # Transform to previous and back to current frame
-        new_transform = (self._current_transform *
-                         self._previous_transform.inverse_transform())
         self._waypoints = [
-            (new_transform *
-             pylot.simulation.utils.Transform(wp, rotation)).location
+            self._current_transform.transform_points(
+                self._previous_transform.inverse_transform_points([wp]))[0]
             for wp in self._waypoints
         ]
 
         # Center first point at 0, 0
         center_transform = pylot.simulation.utils.Transform(
-            self._waypoints[0],
-            rotation
-        ).inverse_transform()
+            self._waypoints[0], rotation)
         self._waypoints = [
-            (center_transform *
-             pylot.simulation.utils.Transform(wp, rotation)).location
+            center_transform.inverse_transform_points([wp])[0]
             for wp in self._waypoints
         ]
 
