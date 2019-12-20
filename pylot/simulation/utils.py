@@ -257,6 +257,9 @@ class Rotation(object):
                 Rotation instance from.
         """
         if carla_rotation is not None:
+            if not isinstance(carla_rotation, carla.Rotation):
+                raise ValueError(
+                    "carla_rotation should be of type carla.Rotation")
             self.pitch = carla_rotation.pitch
             self.yaw = carla_rotation.yaw
             self.roll = carla_rotation.roll
