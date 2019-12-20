@@ -85,10 +85,8 @@ class TrackVisualizerOperator(erdust.Operator):
 
     def _draw_trajectory_on_img(self, obj, img, predict):
         # Intrinsic matrix of the top down segmentation camera.
-        intrinsic_matrix = pylot.simulation.utils.create_intrinsic_matrix(
-                               self._top_down_camera_setup.width,
-                               self._top_down_camera_setup.height,
-                               fov=self._top_down_camera_setup.fov)
+        intrinsic_matrix = self._top_down_camera_setup.get_intrinsic_matrix()
+
         # Convert to screen points.
         screen_points = [
             loc.to_camera_view(

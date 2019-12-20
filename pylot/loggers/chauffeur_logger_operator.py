@@ -91,10 +91,7 @@ class ChauffeurLoggerOperator(erdust.Operator):
                                 dtype=np.uint8)
 
         # Intrinsic matrix of the top down segmentation camera.
-        intrinsic_matrix = pylot.simulation.utils.create_intrinsic_matrix(
-            self._top_down_camera_setup.width,
-            self._top_down_camera_setup.height,
-            fov=self._top_down_camera_setup.fov)
+        intrinsic_matrix = self._top_down_camera_setup.get_intrinsic_matrix()
 
         rotation = pylot.simulation.utils.Rotation(0, 0, 0)
         for obj in msg.obj_trajectories:
