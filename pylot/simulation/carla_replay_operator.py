@@ -92,8 +92,9 @@ class CarlaReplayOperator(erdust.Operator):
     def __publish_hero_vehicle_data(self, timestamp, watermark_msg):
         vec_transform = pylot.simulation.utils.Transform(
             carla_transform=self._driving_vehicle.get_transform())
-        forward_speed = pylot.simulation.utils.get_speed(
-            self._driving_vehicle.get_velocity())
+        velocity_vector = pylot.simulation.utils.Vector3D(
+            carla_vector=self._driving_vehicle.get_velocity())
+        forward_speed = velocity_vector.magnitude()
         can_bus = pylot.simulation.utils.CanBus(vec_transform, forward_speed)
         self._can_bus_stream.send(erdust.Message(timestamp, can_bus))
         self._can_bus_stream.send(watermark_msg)

@@ -577,20 +577,6 @@ def labels_to_array(image):
     return to_bgra_array(image)[:, :, 2]
 
 
-def get_speed(velocity_vector):
-    """ Compute the speed of the vehicle in m/s.
-
-    Args:
-        vehicle: A velocity vector.
-
-    Returns:
-        The speed of the given vehicle as a float in m/s.
-    """
-    speed = math.sqrt(velocity_vector.x**2 + velocity_vector.y**2 +
-                      velocity_vector.z**2)
-    return speed
-
-
 def create_intrinsic_matrix(width, height, fov=90.0):
     # (Intrinsic) K Matrix
     k = np.identity(3)
