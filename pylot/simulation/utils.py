@@ -577,16 +577,7 @@ def labels_to_array(image):
     return to_bgra_array(image)[:, :, 2]
 
 
-def create_intrinsic_matrix(width, height, fov=90.0):
-    # (Intrinsic) K Matrix
-    k = np.identity(3)
-    k[0, 2] = width / 2.0
-    k[1, 2] = height / 2.0
-    k[0, 0] = k[1, 1] = width / (2.0 * math.tan(fov * math.pi / 360.0))
-    return k
-
-
-def depth_to_local_point_cloud(depth_frame, width, height, fov, max_depth=0.9):
+def depth_to_local_point_cloud(depth_frame, camera_setup, max_depth=0.9):
     """
     Convert a CARLA-encoded depth-map to a 2D array containing
     the 3D position (relative to the camera) of each pixel.
@@ -600,7 +591,8 @@ def depth_to_local_point_cloud(depth_frame, width, height, fov, max_depth=0.9):
     """
     far = 1000.0  # max depth in meters.
     normalized_depth = depth_frame
-    intrinsic_mat = create_intrinsic_matrix(width, height, fov)
+    intrinsic_mat = camera_setup.get_intrinsic_matrix()
+    width, height = camera_setup.width, camera_setup.height
     # 2d pixel coordinates
     pixel_length = width * height
     u_coord = repmat(np.r_[0:width:1], height, 1).reshape(pixel_length)
@@ -671,8 +663,7 @@ def lidar_to_camera_transform(transform):
     return transform * to_camera_transform
 
 
-def get_3d_world_position_with_depth_map(
-        x, y, depth_frame, width, height, fov, camera_transform):
+def get_3d_world_position_with_depth_map(x, y, depth_frame, camera_setup):
     """ Gets the 3D world position from pixel coordinates using a depth frame.
 
         Args:
@@ -688,12 +679,13 @@ def get_3d_world_position_with_depth_map(
             3D world location.
     """
     far = 1.0
-    point_cloud = depth_to_local_point_cloud(
-        depth_frame, width, height, fov, max_depth=far)
+    point_cloud = depth_to_local_point_cloud(depth_frame,
+                                             camera_setup,
+                                             max_depth=far)
     # Transform the points in 3D world coordinates.
-    to_world_transform = camera_to_unreal_transform(camera_transform)
+    to_world_transform = camera_setup.get_unreal_transform()
     point_cloud = to_world_transform.transform_points(point_cloud)
-    return point_cloud[y * width + x]
+    return point_cloud[y * camera_setup.width + x]
 
 
 def batch_get_3d_world_position_with_depth_map(
@@ -757,8 +749,7 @@ def lidar_point_cloud_to_camera_coordinates(point_cloud):
 
 
 
-def get_3d_world_position_with_point_cloud(
-        u, v, pc, camera_transform, width, height, fov):
+def get_3d_world_position_with_point_cloud(u, v, pc, camera_setup):
     """ Gets the 3D world position from pixel coordiantes using a Lidar
         point cloud.
 
@@ -773,7 +764,7 @@ def get_3d_world_position_with_point_cloud(
        Returns:
             3D world location or None if it could not be computed.
     """
-    intrinsic_mat = create_intrinsic_matrix(width, height, fov)
+    intrinsic_mat = camera_setup.get_intrinsic_matrix()
     # Project our 2D pixel location into 3D space, onto the z=1 plane.
     p3d = np.dot(inv(intrinsic_mat), np.array([[u], [v], [1.0]]))
     depth = find_point_depth(p3d[0], p3d[1], np.array(pc))
@@ -784,7 +775,7 @@ def get_3d_world_position_with_point_cloud(
             Location(x, y, z) for x, y, z in np.asarray(p3d.transpose())
         ]
         # Convert from camera to unreal coordinates.
-        to_world_transform = camera_to_unreal_transform(camera_transform)
+        to_world_transform = camera_setup.get_unreal_transform()
         point_cloud = to_world_transform.transform_points(p3d_locations)
         return point_cloud[0]
     else:
@@ -1227,20 +1218,15 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
     return bbox_state
 
 
-def get_traffic_light_det_objs(traffic_lights,
-                               camera_transform,
-                               depth_array,
-                               segmented_image,
-                               frame_width,
-                               frame_height,
-                               town_name,
-                               fov=90):
+def get_traffic_light_det_objs(traffic_lights, depth_array, segmented_image,
+        town_name, camera_setup):
     """ Get the traffic lights that are within the camera frame.
     Note: This method should be used with Carla 0.9.*
     """
     # Create the extrinsic and intrinsic matrices for the given camera.
-    extrinsic_matrix = camera_to_unreal_transform(camera_transform).matrix
-    intrinsic_matrix = create_intrinsic_matrix(frame_width, frame_height, fov)
+    extrinsic_matrix = camera_setup.get_unreal_transform().matrix
+    intrinsic_matrix = camera_setup.get_intrinsic_matrix()
+    camera_transform = camera_setup.get_transform()
 
     # Iterate over all the traffic lights, and figure out which ones are
     # facing us and are visible in the camera view.
@@ -1262,7 +1248,7 @@ def get_traffic_light_det_objs(traffic_lights,
             ]
             bounding_box = [(bb.x, bb.y, bb.z) for bb in bounding_box]
             thresholded_coordinates = get_bounding_box_in_camera_view(
-                bounding_box, frame_width, frame_height)
+                bounding_box, camera_setup.width, camera_setup.height)
             if not thresholded_coordinates:
                 continue
 
@@ -1286,9 +1272,8 @@ def get_traffic_light_det_objs(traffic_lights,
     return detected
 
 
-def get_speed_limit_det_objs(
-        speed_signs, vehicle_transform, camera_transform, depth_frame,
-        frame_width, frame_height, fov, segmented_frame):
+def get_speed_limit_det_objs(speed_signs, vehicle_transform, depth_frame,
+                             segmented_frame, camera_setup):
     """ Get the speed limit signs that are withing the camera frame.
 
     Args:
@@ -1306,8 +1291,8 @@ def get_speed_limit_det_objs(
     x_mids = [(bbox[0] + bbox[1]) // 2 for bbox in bboxes]
     y_mids = [(bbox[2] + bbox[3]) // 2 for bbox in bboxes]
     pos_3d = batch_get_3d_world_position_with_depth_map(
-        x_mids, y_mids, depth_frame, frame_width, frame_height,
-        fov, camera_transform)
+        x_mids, y_mids, depth_frame, camera_setup.width, camera_setup.height,
+        camera_setup.fov, camera_setup.get_transform())
     pos_and_bboxes = zip(pos_3d, bboxes)
     ts_bboxes = _match_bboxes_with_speed_signs(
         vehicle_transform, pos_and_bboxes, speed_signs)
@@ -1390,11 +1375,8 @@ def have_same_depth(x, y, z, depth_array, threshold):
 
 def get_traffic_stop_det_objs(
         traffic_stops,
-        camera_transform,
         depth_frame,
-        frame_width,
-        frame_height,
-        fov):
+        camera_setup):
     """ Get traffic stop lane markings that are withing the camera frame.
 
     Args:
@@ -1406,11 +1388,11 @@ def get_traffic_stop_det_objs(
         List of DetectedObjects.
     """
     det_objs = []
-    bgr_intrinsic = create_intrinsic_matrix(frame_width, frame_height, fov)
+    bgr_intrinsic = camera_setup.get_intrinsic_matrix()
     for transform, bbox in traffic_stops:
         bbox2d = _get_stop_markings_bbox(
-            bbox, depth_frame, camera_transform, bgr_intrinsic,
-            frame_width, frame_height)
+            bbox, depth_frame, camera_setup.get_transform(), bgr_intrinsic,
+            camera_setup.width, camera_setup.height)
         if bbox2d:
             det_objs.append(DetectedObject(bbox2d, 1.0, 'stop marking'))
     return det_objs

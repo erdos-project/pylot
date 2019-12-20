@@ -17,6 +17,7 @@ from pylot.simulation.utils import depth_to_array, labels_to_array,\
     to_bgra_array, Transform, TrafficLight
 from pylot.utils import bgra_to_bgr, bgr_to_rgb
 import pylot.simulation.utils
+from pylot.simulation.sensor_setup import DepthCameraSetup
 
 FLAGS = flags.FLAGS
 CARLA_IMAGE = None
@@ -110,17 +111,11 @@ def reset_frames():
     CARLA_IMAGE = None
 
 
-def get_traffic_light_objs(traffic_lights, camera_transform, depth_frame,
-                           segmented_frame, width, height, color, town_name):
+def get_traffic_light_objs(traffic_lights, camera_setup, depth_frame,
+                           segmented_frame, color, town_name):
     det_objs = pylot.simulation.utils.get_traffic_light_det_objs(
-        traffic_lights,
-        camera_transform,
-        depth_frame,
-        segmented_frame.as_numpy_array(),
-        width,
-        height,
-        town_name,
-        FLAGS.camera_fov)
+        traffic_lights, depth_frame, segmented_frame.as_numpy_array(),
+        town_name, camera_setup)
     # Overwrite traffic light color because we control it without refreshing
     # the agents.
     if color == carla.TrafficLightState.Yellow:
@@ -153,23 +148,24 @@ def log_bounding_boxes(carla_image, depth_frame, segmented_frame,
     _, world = get_world()
     town_name = world.get_map().name
 
+    camera_setup = DepthCameraSetup("depth_camera", FLAGS.frame_width,
+                                    FLAGS.camera_height, transform,
+                                    FLAGS.camera_fov)
     speed_limit_det_objs = []
     if speed_signs:
         speed_limit_det_objs = pylot.simulation.utils.get_speed_limit_det_objs(
-            speed_signs, transform, transform, depth_frame, FLAGS.frame_width,
-            FLAGS.frame_height, FLAGS.camera_fov, segmented_frame)
+            speed_signs, transform, depth_frame, segmented_frame, camera_setup)
 
     traffic_stop_det_objs = []
     if stop_signs:
         traffic_stop_det_objs = pylot.simulation.utils.get_traffic_stop_det_objs(
-            stop_signs, transform, depth_frame, FLAGS.frame_width,
-            FLAGS.frame_height, FLAGS.camera_fov)
+            stop_signs, depth_frame, camera_setup)
 
     traffic_light_det_objs = []
     if traffic_lights:
         traffic_light_det_objs = get_traffic_light_objs(
-            traffic_lights, transform, depth_frame, segmented_frame,
-            FLAGS.frame_width, FLAGS.frame_height, tl_color, town_name)
+            traffic_lights, camera_setup, depth_frame, segmented_frame,
+            tl_color, town_name)
 
     det_objs = (speed_limit_det_objs + traffic_stop_det_objs +
                 traffic_light_det_objs)

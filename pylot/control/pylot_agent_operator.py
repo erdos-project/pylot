@@ -14,6 +14,7 @@ from pylot.simulation.carla_utils import get_map
 from pylot.simulation.utils import get_3d_world_position_with_point_cloud,\
     get_3d_world_position_with_depth_map
 from pylot.utils import time_epoch_ms
+from pylot.simulation.sensor_setup import DepthCameraSetup
 
 INTERSECTION_SPEED_M_PER_SEC = 5
 
@@ -234,18 +235,19 @@ class PylotAgentOperator(erdust.Operator):
             The location in 3D world coordinates.
         """
         pos = None
+        # We need to transform the static setup of the camera relative to
+        # the position of the vehicle.
+        camera_setup = DepthCameraSetup(
+            self._bgr_camera_setup.name, self._bgr_camera_setup.width,
+            self._bgr_camera_setup.height,
+            vehicle_transform * self._bgr_camera_setup.transform,
+            self._bgr_camera_setup.fov)
         if depth_frame:
-            pos = get_3d_world_position_with_depth_map(
-                x, y, depth_frame, self._bgr_camera_setup.width,
-                self._bgr_camera_setup.height, self._bgr_camera_setup.fov,
-                vehicle_transform * self._bgr_camera_setup.transform)
+            pos = get_3d_world_position_with_depth_map(x, y, depth_frame,
+                                                       camera_setup)
         elif point_cloud is not None:
             pos = get_3d_world_position_with_point_cloud(
-                x, y, point_cloud,
-                vehicle_transform * self._bgr_camera_setup.transform,
-                self._bgr_camera_setup.width,
-                self._bgr_camera_setup.height,
-                self._bgr_camera_setup.fov)
+                x, y, point_cloud, camera_setup)
         if pos is None:
             self._logger.error(
                 'Could not find lidar point for {} {}'.format(x, y))

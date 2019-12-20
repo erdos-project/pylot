@@ -6,6 +6,7 @@ from pylot.perception.detection.utils import DetectedObject,\
     annotate_image_with_bboxes, save_image, visualize_image
 from pylot.perception.messages import DetectorMessage
 from pylot.simulation.utils import get_2d_bbox_from_3d_box
+from pylot.simulation.sensor_setup import DepthCameraSetup
 
 
 class PerfectDetectorOperator(erdust.Operator):
@@ -112,18 +113,23 @@ class PerfectDetectorOperator(erdust.Operator):
             depth_array,
             segmented_msg.frame.as_numpy_array())
 
+        # The camera setup sent with the image is relative to the car, we need
+        # to transform it relative to the world.
+        transformed_camera_setup = DepthCameraSetup(
+            depth_msg.camera_setup.name,
+            depth_msg.camera_setup.width,
+            depth_msg.camera_setup.height,
+            vehicle_transform * depth_msg.camera_setup.transform,
+            fov=depth_msg.camera_setup.fov)
+
+
         det_speed_limits = pylot.simulation.utils.get_speed_limit_det_objs(
             speed_limit_signs_msg.speed_signs, vehicle_transform,
-            vehicle_transform * depth_msg.camera_setup.transform,
-            depth_msg.frame, depth_msg.camera_setup.width,
-            depth_msg.camera_setup.height, depth_msg.camera_setup.fov,
-            segmented_msg.frame)
+            depth_msg.frame, segmented_msg.frame, transformed_camera_setup)
 
         det_stop_signs = pylot.simulation.utils.get_traffic_stop_det_objs(
-            stop_signs_msg.stop_signs,
-            vehicle_transform * depth_msg.camera_setup.transform,
-            depth_msg.frame, depth_msg.camera_setup.width,
-            depth_msg.camera_setup.height, depth_msg.camera_setup.fov)
+            stop_signs_msg.stop_signs, depth_msg.frame,
+            transformed_camera_setup)
 
         det_objs = det_obstacles + det_speed_limits + det_stop_signs
 

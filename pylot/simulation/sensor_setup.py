@@ -93,11 +93,20 @@ class CameraSetup(object):
         self.height = height
         self.transform = transform
         self.fov = fov
-        self.intrinsic_mat = pylot.simulation.utils.create_intrinsic_matrix(
+        self.intrinsic_mat = CameraSetup.__create_intrinsic_matrix(
             self.width, self.height, self.fov)
 
     def get_fov(self):
         return self.fov
+
+    @staticmethod
+    def __create_intrinsic_matrix(width, height, fov):
+        import numpy as np
+        k = np.identity(3)
+        k[0, 2] = width / 2.0
+        k[1, 2] = height / 2.0
+        k[0, 0] = k[1, 1] = width / (2.0 * np.tan(fov * np.pi / 360.0))
+        pass
 
     def get_intrinsic_matrix(self):
         return self.intrinsic_mat

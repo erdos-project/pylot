@@ -5,6 +5,7 @@ from pylot.perception.detection.utils import annotate_image_with_bboxes,\
     save_image, visualize_image
 from pylot.perception.messages import DetectorMessage
 from pylot.simulation.carla_utils import get_world
+from pylot.simulation.sensor_setup import DepthCameraSetup
 import pylot.simulation.utils
 
 
@@ -74,15 +75,19 @@ class PerfectTrafficLightDetectorOperator(erdust.Operator):
             traffic_light_msg.send(DetectorMessage([], 0, timestamp))
             return
 
-        det_traffic_lights = pylot.simulation.utils.get_traffic_light_det_objs(
-            traffic_light_msg.traffic_lights,
-            vehicle_transform * depth_msg.camera_setup.transform,
-            depth_msg.frame,
-            segmented_msg.frame.as_numpy_array(),
+        # The camera setup sent with the image is relative to the car, we need
+        # to transform it relative to the world to detect traffic lights.
+        transformed_camera_setup = DepthCameraSetup(
+            depth_msg.camera_setup.name,
             depth_msg.camera_setup.width,
             depth_msg.camera_setup.height,
-            self._town_name,
+            vehicle_transform * depth_msg.camera_setup.transform,
             fov=depth_msg.camera_setup.fov)
+
+        det_traffic_lights = pylot.simulation.utils.get_traffic_light_det_objs(
+            traffic_light_msg.traffic_lights, depth_msg.frame,
+            segmented_msg.frame.as_numpy_array(), self._town_name,
+            transformed_camera_setup)
 
         if (self._flags.visualize_ground_obstacles or
             self._flags.log_detector_output):

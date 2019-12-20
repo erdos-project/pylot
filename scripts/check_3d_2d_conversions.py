@@ -72,9 +72,15 @@ def on_lidar_msg(carla_pc):
 
     # Transform lidar points from lidar coordinates to camera coordinates.
     points = lidar_point_cloud_to_camera_coordinates(points)
+    camera_setup = CameraSetup("lidar_camera",
+                               "sensor.camera.depth",
+                               800,
+                               600,
+                               lidar_transform,
+                               fov=90.0)
     for (x, y) in pixels_to_check:
         pos3d_pc = get_3d_world_position_with_point_cloud(
-            x, y, points.tolist(), lidar_transform, 800, 600, 90.0)
+            x, y, points.tolist(), camera_setup)
         print("{} Computed using lidar {}".format((x, y), pos3d_pc))
 
     global lidar_pc
@@ -108,13 +114,11 @@ def on_depth_msg(carla_image):
     for (x, y) in pixels_to_check:
         print("{} Depth at pixel {}".format((x, y), depth_msg.frame[y][x]))
         pos3d_depth = get_3d_world_position_with_depth_map(
-            x, y, depth_msg.frame, depth_msg.camera_setup.width, depth_msg.camera_setup.height,
-            depth_msg.camera_setup.fov, depth_msg.camera_setup.transform)
+            x, y, depth_msg.frame, depth_msg.camera_setup)
         print("{} Computed using depth map {}".format((x, y), pos3d_depth))
 
     depth_point_cloud = pylot.simulation.utils.depth_to_local_point_cloud(
-        depth_msg.frame, depth_msg.camera_setup.width, depth_msg.camera_setup.height,
-        depth_msg.camera_setup.fov, max_depth=1.0)
+        depth_msg.frame, depth_msg.camera_setup, max_depth=1.0)
     # Transform the depth cloud to world coordinates.
     transform = camera_to_unreal_transform(depth_camera_transform)
     depth_point_cloud = transform.transform_points(depth_point_cloud)
