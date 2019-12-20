@@ -113,16 +113,17 @@ class PerfectDetectorOperator(erdust.Operator):
             segmented_msg.frame.as_numpy_array())
 
         det_speed_limits = pylot.simulation.utils.get_speed_limit_det_objs(
-            speed_limit_signs_msg.speed_signs,
-            vehicle_transform,
-            vehicle_transform * depth_msg.transform,
-            depth_msg.frame, depth_msg.width, depth_msg.height,
-            depth_msg.fov, segmented_msg.frame)
+            speed_limit_signs_msg.speed_signs, vehicle_transform,
+            vehicle_transform * depth_msg.camera_setup.transform,
+            depth_msg.frame, depth_msg.camera_setup.width,
+            depth_msg.camera_setup.height, depth_msg.camera_setup.fov,
+            segmented_msg.frame)
 
         det_stop_signs = pylot.simulation.utils.get_traffic_stop_det_objs(
             stop_signs_msg.stop_signs,
-            vehicle_transform * depth_msg.transform,
-            depth_msg.frame, depth_msg.width, depth_msg.height, depth_msg.fov)
+            vehicle_transform * depth_msg.camera_setup.transform,
+            depth_msg.frame, depth_msg.camera_setup.width,
+            depth_msg.camera_setup.height, depth_msg.camera_setup.fov)
 
         det_objs = det_obstacles + det_speed_limits + det_stop_signs
 

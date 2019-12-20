@@ -14,6 +14,7 @@ import anynet.anynet
 from anynet import preprocess
 
 from pylot.simulation.messages import DepthFrameMessage
+from pylot.simulation.sensor_setup import CameraSetup
 from pylot.utils import bgr_to_rgb, time_epoch_ms
 
 flags.DEFINE_string('depth_estimation_model_path', 'dependencies/anynet/',
@@ -119,5 +120,7 @@ class DepthEstimationOperator(erdust.Operator):
             plt.imshow(output, cmap='viridis')
             plt.show()
 
+        camera_setup = CameraSetup("depth_estimation", "estimation.anynet", 
+                depth.shape[1], depth.shape[0], self._transform, fov=self._fov)
         depth_estimation_stream.send(
-            DepthFrameMessage(depth, self._transform, self._fov, timestamp))
+            DepthFrameMessage(depth, camera_setup, timestamp))

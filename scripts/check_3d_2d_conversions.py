@@ -18,6 +18,7 @@ from pylot.simulation.utils import depth_to_array, to_bgra_array,\
      lidar_point_cloud_to_camera_coordinates,\
      Transform
 from matplotlib import pyplot as plt
+from pylot.simulation.sensor_setup import CameraSetup
 
 lidar_pc = None
 depth_pc = None
@@ -94,22 +95,26 @@ def on_depth_msg(carla_image):
 
     depth_camera_transform = Transform(carla_transform=carla_image.transform)
 
+    depth_frame_msg = depth_to_array(carla_image)
+    camera_setup = CameraSetup("depth_camera",
+                               "sensor.camera.depth",
+                               depth_frame_msg.shape[1],
+                               depth_frame_msg.shape[0],
+                               depth_camera_transform,
+                               fov=carla_image.fov)
     depth_msg = pylot.simulation.messages.DepthFrameMessage(
-        depth_to_array(carla_image),
-        depth_camera_transform,
-        carla_image.fov,
-        None)
+        depth_frame_msg, camera_setup, None)
 
     for (x, y) in pixels_to_check:
         print("{} Depth at pixel {}".format((x, y), depth_msg.frame[y][x]))
         pos3d_depth = get_3d_world_position_with_depth_map(
-            x, y, depth_msg.frame, depth_msg.width, depth_msg.height,
-            depth_msg.fov, depth_camera_transform)
+            x, y, depth_msg.frame, depth_msg.camera_setup.width, depth_msg.camera_setup.height,
+            depth_msg.camera_setup.fov, depth_msg.camera_setup.transform)
         print("{} Computed using depth map {}".format((x, y), pos3d_depth))
 
     depth_point_cloud = pylot.simulation.utils.depth_to_local_point_cloud(
-        depth_msg.frame, depth_msg.width, depth_msg.height,
-        depth_msg.fov, max_depth=1.0)
+        depth_msg.frame, depth_msg.camera_setup.width, depth_msg.camera_setup.height,
+        depth_msg.camera_setup.fov, max_depth=1.0)
     # Transform the depth cloud to world coordinates.
     transform = camera_to_unreal_transform(depth_camera_transform)
     depth_point_cloud = transform.transform_points(depth_point_cloud)

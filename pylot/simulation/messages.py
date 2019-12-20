@@ -38,31 +38,23 @@ class DepthFrameMessage(erdust.Message):
 
     Attributes:
         frame: A numpy array storing the frame.
-        transform: The simulation.utils.Transform of the camera.
-        width: The width of the frame.
-        height: The height of the frame.
-        fov: The field of view of the camera.
+        camera_setup: The camera setup used to generate the frame.
     """
-    def __init__(self, frame, transform, fov, timestamp):
+    def __init__(self, frame, camera_setup, timestamp):
         """ Initializes the depth frame messsage.
 
         Args:
             frame_array: A numpy array storing the depth frame.
-            transform: The simulation.utils.Transform of the camera.
-            fov: The field of view of the camera.
+            camera_setup: The camera setup used to generate this frame.
             timestamp: A erdos.timestamp.Timestamp of the message.
         """
         super(DepthFrameMessage, self).__init__(timestamp, None)
         self.frame = frame
-        self.transform = transform
-        self.width = frame.shape[1]
-        self.height = frame.shape[0]
-        self.fov = fov
+        self.camera_setup = camera_setup
 
     def __str__(self):
-        return 'DepthMessage(timestamp: {}, width: {}, '\
-            'height: {}, fov: {})'.format(
-                self.timestamp, self.width, self.height, self.fov)
+        return 'DepthMessage(timestamp: {}, camera_setup: {}'.format(
+                self.timestamp, self.camera_setup)
 
 
 class PointCloudMessage(erdust.Message):

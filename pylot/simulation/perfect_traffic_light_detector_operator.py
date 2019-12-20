@@ -76,13 +76,13 @@ class PerfectTrafficLightDetectorOperator(erdust.Operator):
 
         det_traffic_lights = pylot.simulation.utils.get_traffic_light_det_objs(
             traffic_light_msg.traffic_lights,
-            vehicle_transform * depth_msg.transform,
+            vehicle_transform * depth_msg.camera_setup.transform,
             depth_msg.frame,
             segmented_msg.frame.as_numpy_array(),
-            depth_msg.width,
-            depth_msg.height,
+            depth_msg.camera_setup.width,
+            depth_msg.camera_setup.height,
             self._town_name,
-            fov=depth_msg.fov)
+            fov=depth_msg.camera_setup.fov)
 
         if (self._flags.visualize_ground_obstacles or
             self._flags.log_detector_output):

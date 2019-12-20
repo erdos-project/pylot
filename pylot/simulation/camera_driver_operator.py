@@ -132,10 +132,7 @@ class CameraDriverOperator(erdust.Operator):
                 # Carla carla_image.transform returns the world transform, but
                 # we do not use it directly.
                 msg = pylot.simulation.messages.DepthFrameMessage(
-                    depth_to_array(carla_image),
-                    self._camera_setup.get_transform(),
-                    carla_image.fov,
-                    timestamp)
+                    depth_to_array(carla_image), self._camera_setup, timestamp)
             elif self._camera_setup.camera_type == \
                  'sensor.camera.semantic_segmentation':
                 frame = SegmentedFrame(labels_to_array(carla_image))
