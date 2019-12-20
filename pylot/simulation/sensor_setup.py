@@ -2,31 +2,50 @@ import pylot.simulation.utils
 from pylot.simulation.utils import Location, Rotation, Transform
 
 
-def create_rgb_camera_setup(
-        camera_name, camera_location, width, height, fov=90):
+def create_rgb_camera_setup(camera_name,
+                            camera_location,
+                            width,
+                            height,
+                            fov=90):
     rotation = Rotation(0, 0, 0)
     transform = Transform(camera_location, rotation)
     return RGBCameraSetup(camera_name, width, height, transform, fov)
 
 
-def create_depth_camera_setup(
-        camera_name_prefix, camera_location, width, height, fov=90):
+def create_depth_camera_setup(camera_name_prefix,
+                              camera_location,
+                              width,
+                              height,
+                              fov=90):
     rotation = Rotation(0, 0, 0)
     transform = Transform(camera_location, rotation)
-    return DepthCameraSetup(
-        camera_name_prefix + '_depth', width, height, transform, fov=fov)
+    return DepthCameraSetup(camera_name_prefix + '_depth',
+                            width,
+                            height,
+                            transform,
+                            fov=fov)
 
 
-def create_segmented_camera_setup(
-        camera_name_prefix, camera_location, width, height, fov=90):
+def create_segmented_camera_setup(camera_name_prefix,
+                                  camera_location,
+                                  width,
+                                  height,
+                                  fov=90):
     rotation = Rotation(0, 0, 0)
     transform = Transform(camera_location, rotation)
-    return SegmentedCameraSetup(
-        camera_name_prefix + '_segmented', width, height, transform, fov=fov)
+    return SegmentedCameraSetup(camera_name_prefix + '_segmented',
+                                width,
+                                height,
+                                transform,
+                                fov=fov)
 
 
-def create_left_right_camera_setups(
-        camera_name_prefix, location, width, height, camera_offset, fov=90):
+def create_left_right_camera_setups(camera_name_prefix,
+                                    location,
+                                    width,
+                                    height,
+                                    camera_offset,
+                                    fov=90):
     rotation = Rotation(0, 0, 0)
     left_loc = location + Location(0, -camera_offset, 0)
     right_loc = location + Location(0, camera_offset, 0)
@@ -67,13 +86,7 @@ def create_imu_setup(location):
 
 
 class CameraSetup(object):
-    def __init__(self,
-                 name,
-                 camera_type,
-                 width,
-                 height,
-                 transform,
-                 fov=90):
+    def __init__(self, name, camera_type, width, height, transform, fov=90):
         self.name = name
         self.camera_type = camera_type
         self.width = width
@@ -110,54 +123,27 @@ class CameraSetup(object):
 
 
 class RGBCameraSetup(CameraSetup):
-    def __init__(self,
-                 name,
-                 width,
-                 height,
-                 transform,
-                 fov=90):
-        super(RGBCameraSetup, self).__init__(
-            name, 'sensor.camera.rgb', width, height, transform, fov)
+    def __init__(self, name, width, height, transform, fov=90):
+        super(RGBCameraSetup, self).__init__(name, 'sensor.camera.rgb', width,
+                                             height, transform, fov)
 
 
 class DepthCameraSetup(CameraSetup):
-    def __init__(self,
-                 name,
-                 width,
-                 height,
-                 transform,
-                 fov=90):
-        super(DepthCameraSetup, self).__init__(
-            name, 'sensor.camera.depth', width, height, transform, fov)
+    def __init__(self, name, width, height, transform, fov=90):
+        super(DepthCameraSetup, self).__init__(name, 'sensor.camera.depth',
+                                               width, height, transform, fov)
 
 
 class SegmentedCameraSetup(CameraSetup):
-    def __init__(self,
-                 name,
-                 width,
-                 height,
-                 transform,
-                 fov=90):
-        super(SegmentedCameraSetup, self).__init__(
-            name,
-            'sensor.camera.semantic_segmentation',
-            width,
-            height,
-            transform,
-            fov)
+    def __init__(self, name, width, height, transform, fov=90):
+        super(SegmentedCameraSetup,
+              self).__init__(name, 'sensor.camera.semantic_segmentation',
+                             width, height, transform, fov)
 
 
 class LidarSetup(object):
-    def __init__(self,
-                 name,
-                 lidar_type,
-                 transform,
-                 range,
-                 rotation_frequency,
-                 channels,
-                 upper_fov,
-                 lower_fov,
-                 points_per_second):
+    def __init__(self, name, lidar_type, transform, range, rotation_frequency,
+                 channels, upper_fov, lower_fov, points_per_second):
         self.name = name
         self.lidar_type = lidar_type
         self.transform = transform
