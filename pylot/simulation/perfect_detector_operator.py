@@ -70,7 +70,7 @@ class PerfectDetectorOperator(erdust.Operator):
         self._segmented_imgs = deque()
         self._speed_limit_signs = deque()
         self._stop_signs = deque()
-        self._bgr_intrinsic = bgr_camera_setup.get_intrinsic()
+        self._bgr_intrinsic = bgr_camera_setup.get_intrinsic_matrix()
         self._bgr_transform = bgr_camera_setup.get_unreal_transform()
         self._bgr_img_size = (bgr_camera_setup.width, bgr_camera_setup.height)
         self._frame_cnt = 0

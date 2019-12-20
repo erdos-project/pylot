@@ -99,7 +99,7 @@ class CameraSetup(object):
     def get_fov(self):
         return self.fov
 
-    def get_intrinsic(self):
+    def get_intrinsic_matrix(self):
         return self.intrinsic_mat
 
     def get_name(self):

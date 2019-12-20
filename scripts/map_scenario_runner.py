@@ -165,7 +165,7 @@ def process_depth_images(msg,
             Transform(carla_transform=pedestrian.get_transform()),
             BoundingBox(pedestrian.bounding_box),
             depth_camera_setup.get_unreal_transform(),
-            depth_camera_setup.get_intrinsic(), resolution, 1.0, 3.0)
+            depth_camera_setup.get_intrinsic_matrix(), resolution, 1.0, 3.0)
         if bbox is not None:
             detected_pedestrians.append(bbox)
             if visualize:
