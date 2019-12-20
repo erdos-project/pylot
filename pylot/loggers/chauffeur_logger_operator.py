@@ -90,17 +90,17 @@ class ChauffeurLoggerOperator(erdust.Operator):
                                  3),
                                 dtype=np.uint8)
 
-        # Intrinsic matrix of the top down segmentation camera.
+        # Intrinsic and extrinsic matrix of the top down segmentation camera.
+        extrinsic_matrix = self._top_down_camera_setup.get_unreal_transform(
+        ).matrix
         intrinsic_matrix = self._top_down_camera_setup.get_intrinsic_matrix()
 
         rotation = pylot.simulation.utils.Rotation(0, 0, 0)
         for obj in msg.obj_trajectories:
             # Convert to screen points.
             screen_points = [
-                loc.to_camera_view(
-                    pylot.simulation.utils.camera_to_unreal_transform(
-                        self._top_down_camera_setup.transform).matrix,
-                    intrinsic_matrix) for loc in obj.trajectory
+                loc.to_camera_view(extrinsic_matrix, intrinsic_matrix)
+                for loc in obj.trajectory
             ]
 
             # Keep track of ground vehicle waypoints
@@ -135,10 +135,8 @@ class ChauffeurLoggerOperator(erdust.Operator):
 
         # Convert to screen points
         screen_waypoints = [
-            wp.to_camera_view(
-                pylot.simulation.utils.camera_to_unreal_transform(
-                    self._top_down_camera_setup.transform).matrix,
-                intrinsic_matrix) for wp in self._waypoints
+            wp.to_camera_view(extrinsic_matrix, intrinsic_matrix)
+            for wp in self._waypoints
         ]
 
         # Draw screen points

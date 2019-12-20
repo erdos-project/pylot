@@ -84,15 +84,15 @@ class TrackVisualizerOperator(erdust.Operator):
         cv2.waitKey(1)
 
     def _draw_trajectory_on_img(self, obj, img, predict):
-        # Intrinsic matrix of the top down segmentation camera.
+        # Intrinsic and extrinsic matrix of the top down segmentation camera.
+        extrinsic_matrix = self._top_down_camera_setup.get_unreal_transform(
+        ).matrix
         intrinsic_matrix = self._top_down_camera_setup.get_intrinsic_matrix()
 
         # Convert to screen points.
         screen_points = [
-            loc.to_camera_view(
-                pylot.simulation.utils.camera_to_unreal_transform(
-                    self._top_down_camera_setup.transform).matrix,
-                intrinsic_matrix) for loc in obj.trajectory
+            loc.to_camera_view(extrinsic_matrix, intrinsic_matrix)
+            for loc in obj.trajectory
         ]
         if predict:
             point_color = self._future_colors[obj.obj_class]

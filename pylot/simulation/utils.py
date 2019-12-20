@@ -621,20 +621,6 @@ def depth_to_local_point_cloud(depth_frame, camera_setup, max_depth=0.9):
     return locations
 
 
-def camera_to_unreal_transform(transform):
-    """
-    Takes in a Transform that occurs in unreal coordinates,
-    and converts it into a Transform that goes from camera
-    coordinates to unreal coordinates.
-    """
-    to_unreal_transform = Transform(matrix=np.array(
-        [[0, 0, 1, 0],
-         [1, 0, 0, 0],
-         [0, -1, 0, 0],
-         [0, 0, 0, 1]]))
-    return transform * to_unreal_transform
-
-
 def lidar_to_unreal_transform(transform):
     """
     Takes in a Transform that occurs in unreal coordinates,
@@ -688,8 +674,8 @@ def get_3d_world_position_with_depth_map(x, y, depth_frame, camera_setup):
     return point_cloud[y * camera_setup.width + x]
 
 
-def batch_get_3d_world_position_with_depth_map(
-        xs, ys, depth_frame, width, height, fov, camera_transform):
+def batch_get_3d_world_position_with_depth_map(xs, ys, depth_frame,
+                                               camera_setup):
     """ Gets the 3D world positions from pixel coordinates using a depth frame.
 
         Args:
@@ -707,11 +693,11 @@ def batch_get_3d_world_position_with_depth_map(
     assert len(xs) == len(ys)
     far = 1.0
     point_cloud = depth_to_local_point_cloud(
-        depth_frame, width, height, fov, max_depth=far)
+        depth_frame, camera_setup.width, camera_setup.height, camera_setup.fov, max_depth=far)
     # Transform the points in 3D world coordinates.
-    to_world_transform = camera_to_unreal_transform(camera_transform)
+    to_world_transform = camera_setup.get_unreal_transform()
     point_cloud = to_world_transform.transform_points(point_cloud)
-    return [point_cloud[ys[i] * width + xs[i]] for i in range(len(xs))]
+    return [point_cloud[ys[i] * camera_setup.width + xs[i]] for i in range(len(xs))]
 
 
 def find_point_depth(x, y, point_cloud):
@@ -1291,8 +1277,7 @@ def get_speed_limit_det_objs(speed_signs, vehicle_transform, depth_frame,
     x_mids = [(bbox[0] + bbox[1]) // 2 for bbox in bboxes]
     y_mids = [(bbox[2] + bbox[3]) // 2 for bbox in bboxes]
     pos_3d = batch_get_3d_world_position_with_depth_map(
-        x_mids, y_mids, depth_frame, camera_setup.width, camera_setup.height,
-        camera_setup.fov, camera_setup.get_transform())
+        x_mids, y_mids, depth_frame, camera_setup)
     pos_and_bboxes = zip(pos_3d, bboxes)
     ts_bboxes = _match_bboxes_with_speed_signs(
         vehicle_transform, pos_and_bboxes, speed_signs)

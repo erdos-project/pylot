@@ -95,6 +95,8 @@ class CameraSetup(object):
         self.fov = fov
         self.intrinsic_mat = CameraSetup.__create_intrinsic_matrix(
             self.width, self.height, self.fov)
+        self.unreal_transform = CameraSetup.__create_unreal_transform(
+            self.transform)
 
     def get_fov(self):
         return self.fov
@@ -108,6 +110,21 @@ class CameraSetup(object):
         k[0, 0] = k[1, 1] = width / (2.0 * np.tan(fov * np.pi / 360.0))
         pass
 
+    @staticmethod
+    def __create_unreal_transform(transform):
+        """
+        Takes in a Transform that occurs in unreal coordinates,
+        and converts it into a Transform that goes from camera
+        coordinates to unreal coordinates.
+        """
+        import numpy as np
+        to_unreal_transform = Transform(matrix=np.array(
+            [[0, 0, 1, 0],
+             [1, 0, 0, 0],
+             [0, -1, 0, 0],
+             [0, 0, 0, 1]]))
+        return transform * to_unreal_transform
+
     def get_intrinsic_matrix(self):
         return self.intrinsic_mat
 
@@ -118,8 +135,7 @@ class CameraSetup(object):
         return self.transform
 
     def get_unreal_transform(self):
-        return pylot.simulation.utils.camera_to_unreal_transform(
-            self.transform)
+        return self.unreal_transform
 
     def __repr__(self):
         return self.__str__()

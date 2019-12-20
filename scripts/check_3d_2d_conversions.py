@@ -12,7 +12,6 @@ from pylot.simulation.carla_utils import get_world
 import pylot.simulation.messages
 import pylot.simulation.utils
 from pylot.simulation.utils import depth_to_array, to_bgra_array,\
-     camera_to_unreal_transform,\
      get_3d_world_position_with_depth_map,\
      get_3d_world_position_with_point_cloud,\
      lidar_point_cloud_to_camera_coordinates,\
@@ -120,7 +119,7 @@ def on_depth_msg(carla_image):
     depth_point_cloud = pylot.simulation.utils.depth_to_local_point_cloud(
         depth_msg.frame, depth_msg.camera_setup, max_depth=1.0)
     # Transform the depth cloud to world coordinates.
-    transform = camera_to_unreal_transform(depth_camera_transform)
+    transform = camera_setup.get_unreal_transform()
     depth_point_cloud = transform.transform_points(depth_point_cloud)
 
     global depth_pc
