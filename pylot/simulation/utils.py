@@ -1210,7 +1210,7 @@ def get_traffic_light_det_objs(traffic_lights, depth_array, segmented_image,
     Note: This method should be used with Carla 0.9.*
     """
     # Create the extrinsic and intrinsic matrices for the given camera.
-    extrinsic_matrix = camera_setup.get_unreal_transform().matrix
+    extrinsic_matrix = camera_setup.get_extrinsic_matrix()
     intrinsic_matrix = camera_setup.get_intrinsic_matrix()
     camera_transform = camera_setup.get_transform()
 

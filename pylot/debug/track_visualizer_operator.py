@@ -85,8 +85,7 @@ class TrackVisualizerOperator(erdust.Operator):
 
     def _draw_trajectory_on_img(self, obj, img, predict):
         # Intrinsic and extrinsic matrix of the top down segmentation camera.
-        extrinsic_matrix = self._top_down_camera_setup.get_unreal_transform(
-        ).matrix
+        extrinsic_matrix = self._top_down_camera_setup.get_extrinsic_matrix()
         intrinsic_matrix = self._top_down_camera_setup.get_intrinsic_matrix()
 
         # Convert to screen points.

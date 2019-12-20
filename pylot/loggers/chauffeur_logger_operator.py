@@ -91,8 +91,7 @@ class ChauffeurLoggerOperator(erdust.Operator):
                                 dtype=np.uint8)
 
         # Intrinsic and extrinsic matrix of the top down segmentation camera.
-        extrinsic_matrix = self._top_down_camera_setup.get_unreal_transform(
-        ).matrix
+        extrinsic_matrix = self._top_down_camera_setup.get_extrinsic_matrix()
         intrinsic_matrix = self._top_down_camera_setup.get_intrinsic_matrix()
 
         rotation = pylot.simulation.utils.Rotation(0, 0, 0)

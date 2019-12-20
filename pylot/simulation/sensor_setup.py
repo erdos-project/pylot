@@ -128,6 +128,9 @@ class CameraSetup(object):
     def get_intrinsic_matrix(self):
         return self.intrinsic_mat
 
+    def get_extrinsic_matrix(self):
+        return self.unreal_transform.matrix
+
     def get_name(self):
         return self.name
 
