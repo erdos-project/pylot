@@ -574,8 +574,14 @@ class Obstacle(object):
         # for bicycles, motorcycles, cars and persons.
         if isinstance(actor, carla.Vehicle):
             self.label = 'vehicle'
+            self.segmentation_class = 10
         else:
             self.label = 'pedestrian'
+            self.segmentation_class = 4
+
+        # Thresholds to be used for detection of the obstacle.
+        self.__segmentation_threshold = 0.20
+        self.__depth_threshold = 5
 
     def distance(self, vehicle_transform):
         """ Returns the distance of the obstacle from the vehicle represented
@@ -605,6 +611,63 @@ class Obstacle(object):
             relative_vector *
             vehicle_transform.forward_vector.as_numpy_array())
         return distance
+
+    def to_camera_view(self, camera_setup, depth_frame, segmentation_frame):
+        """ Retrieves the 2D bounding box for the obstacle with respect to the
+        given camera setup.
+
+        Heuristically uses the depth frame and segmentation frame to figure out
+        if the obstacle is in view of the camera or not.
+
+        Args:
+            camera_setup: The CameraSetup instance, with respect to which the
+                obstacle needs to be viewed.
+            depth_frame: The DepthFrame to be used to compare the depth to the
+                distance of the obstacle from the sensor.
+            segmentation_frame: The SegmentationFrame to be used to compare
+                the segmentation class.
+
+        Returns:
+            A BoundingBox2D instance representing a rectangle over the obstacle
+            if the obstacle is deemed to be visible, None otherwise.
+        """
+        # Convert the bounding box of the object to the camera coordinates.
+        bb_coordinates = self.bounding_box.to_camera_view(
+            self.transform, camera_setup.get_extrinsic_matrix(),
+            camera_setup.get_intrinsic_matrix())
+
+        # Threshold the bounding box to be within the camera view.
+        bb_coordinates = [(bb.x, bb.y, bb.z) for bb in bb_coordinates]
+        thresholded_coordinates = get_bounding_box_in_camera_view(
+            bb_coordinates, camera_setup.width, camera_setup.height)
+        if not thresholded_coordinates:
+            return None
+
+        # Retrieve the bottom left and the top right points of the bounding box.
+        xmin, xmax, ymin, ymax = thresholded_coordinates
+
+        # Crop the segmented and depth image to the given bounding box.
+        cropped_image = segmented_image[ymin:ymax, xmin:xmax]
+        cropped_depth = depth_array[ymin:ymax, xmin:xmax]
+
+        # If the size of the bounding box is greater than 0, ensure that the
+        # bounding box contains more than a threshold of pixels corresponding
+        # to the required segmentation class.
+        if cropped_image.size > 0:
+            masked_image = np.zeros_like(cropped_image)
+            masked_image[np.where(
+                cropped_image == self.segmentation_class)] = 1
+            seg_threshold = self.__segmentation_threshold * masked_image.size
+            if np.sum(masked_image) >= seg_threshold:
+                # The bounding box contains the required number of pixels that
+                # belong to the required class. Ensure that the depth of the
+                # object is the depth in the image.
+                masked_depth = cropped_depth[np.where(masked_image == 1)]
+                mean_depth = np.mean(masked_depth) * 1000
+                depth = self.distance(camera_setup.get_transform())
+                if abs(depth - mean_depth) <= self.__depth_threshold:
+                    return xmin, xmax, ymin, ymax
+        return None
 
 
 def get_top_down_transform(transform, top_down_lateral_view):
@@ -875,78 +938,6 @@ def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
         x = [int(x) for x, _ in thresholded_points]
         y = [int(y) for _, y in thresholded_points]
         return min(x), max(x), min(y), max(y)
-
-
-def get_2d_bbox_from_3d_box(vehicle_transform,
-                            obj_transform,
-                            obj_bounding_box,
-                            rgb_transform,
-                            rgb_intrinsic,
-                            rgb_image_size,
-                            depth_array,
-                            segmented_image,
-                            segmentation_class,
-                            segmentation_threshold=0.20,
-                            depth_threshold=5):
-    """ Retrieves the 2D bounding box with respect to the camera view from the
-    given 3D bounding box.
-
-    Args:
-        vehicle_transform: The transform in world coordinates of the ego
-            vehicle.
-        obj_transform: The transform in world coordinates of the object.
-        obj_bounding_box: The bounding box in 3D coordinates of the object.
-        rgb_transform: The transform of the RGB camera respective to the
-            ego vehicle.
-        rgb_image_size: The (width, height) of the images produced by the
-            camera.
-        depth_array: The sensor data returned by the depth camera.
-        segmented_image: The sensor data returned by the semantic segmentation
-            camera.
-        segmentation_class: The segmentation class of the object.
-        segmentation_threshold: The amount of pixels that the given
-            segmentation class should occupy in the bounding box for a positive
-            detection. (default=0.20)
-        depth_threshold: The error to tolerate when comparing the calculated
-            depth to the object and the depth returned by the sensor.
-            (default=5 metres)
-    """
-    # Convert the bounding box of the object to the camera coordinates.
-    extrinsic_matrix = (vehicle_transform * rgb_transform).matrix
-    bb_coordinates = obj_bounding_box.to_camera_view(obj_transform,
-                                                     extrinsic_matrix,
-                                                     rgb_intrinsic)
-
-    # Threshold the bounding box to be within the camera view.
-    bb_coordinates = [(bb.x, bb.y, bb.z) for bb in bb_coordinates]
-    thresholded_coordinates = get_bounding_box_in_camera_view(
-        bb_coordinates, *rgb_image_size)
-    if not thresholded_coordinates:
-        return None
-
-    # Retrieve the bottom left and the top right points of the bounding
-    # box.
-    xmin, xmax, ymin, ymax = thresholded_coordinates
-
-    # Crop the segmented and depth image to the given bounding box.
-    cropped_image = segmented_image[ymin:ymax, xmin:xmax]
-    cropped_depth = depth_array[ymin:ymax, xmin:xmax]
-
-    # If the size of the bounding box is greater than 0, ensure that the
-    # bounding box contains more than a threshold of pixels corresponding
-    # to the required segmentation class.
-    if cropped_image.size > 0:
-        masked_image = np.zeros_like(cropped_image)
-        masked_image[np.where(cropped_image == segmentation_class)] = 1
-        if np.sum(masked_image) >= segmentation_threshold * masked_image.size:
-            # The bounding box contains the required number of pixels that
-            # belong to the required class. Ensure that the depth of the
-            # object is the depth in the image.
-            masked_depth = cropped_depth[np.where(masked_image == 1)]
-            mean_depth = np.mean(masked_depth) * 1000
-            if depth - depth_threshold <= mean_depth <= depth + depth_threshold:
-                return xmin, xmax, ymin, ymax
-    return None
 
 
 def transform_traffic_light_bboxes(light, points):

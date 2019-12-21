@@ -17,8 +17,8 @@ import pygame
 from miou_scenario_runner import setup_world, retrieve_actor, spawn_camera
 from miou_scenario_runner import cleanup_function
 
-from pylot.simulation.utils import get_2d_bbox_from_3d_box, Obstacle
-from pylot.simulation.utils import BoundingBox, CameraSetup, Transform
+from pylot.simulation.utils import BoundingBox, Transform, Obstacle
+from pylot.simulation.sensor_setup import DepthCameraSetup
 from pylot.perception.detection.utils import get_precision_recall_at_iou
 from pylot.perception.messages import SegmentedFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
@@ -196,21 +196,25 @@ def process_depth_images(msg,
                                         depth_camera_setup,
                                         None,
                                         encoding='carla')
+
+    # Transform the static camera setup with respect to the location of the
+    # vehicle in the world.
+    vehicle_transform = Transform(carla_transform=ego_vehicle.get_transform())
+    transformed_camera_setup = DepthCameraSetup(
+        depth_camera_setup.name,
+        depth_camera_setup.width,
+        depth_camera_setup.height,
+        vehicle_transform * depth_camera_setup.get_transform(),
+        fov=depth_camera_setup.get_fov())
+
     for pedestrian in ego_vehicle.get_world().get_actors().filter('walker.*'):
         obstacle = Obstacle(pedestrian)
-        vehicle_transform = Transform(carla_transform=ego_vehicle.get_transform())
         if obstacle.distance(vehicle_transform) > 125:
             bbox = None
         else:
-            bbox = get_2d_bbox_from_3d_box(vehicle_transform,
-                    obstacle.transform,
-                    obstacle.bounding_box,
-                    depth_camera_setup.get_unreal_transform(),
-                    depth_camera_setup.get_intrinsic_matrix(),
-                    resolution,
-                    depth_frame_msg.frame,
-                    semantic_image.frame,
-                    10)
+            bbox = obstacle.to_camera_view(transformed_camera_setup,
+                                           depth_frame_msg.frame,
+                                           semantic_image.frame)
         if bbox is not None:
             detected_pedestrians.append(bbox)
             if visualize:
@@ -291,8 +295,8 @@ def main(args):
     rgb_camera.listen(process_rgb_images)
     semantic_camera.listen(process_semantic_images)
 
-    depth_camera_setup = CameraSetup(
-        "depth_camera", 'sensor.camera.depth', width, height,
+    depth_camera_setup = DepthCameraSetup(
+        "depth_camera", width, height,
         Transform(carla_transform=camera_transform))
     depth_camera.listen(
         functools.partial(process_depth_images,

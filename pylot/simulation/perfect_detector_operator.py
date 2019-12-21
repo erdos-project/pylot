@@ -5,7 +5,6 @@ import pylot.utils
 from pylot.perception.detection.utils import DetectedObject,\
     annotate_image_with_bboxes, save_image, visualize_image
 from pylot.perception.messages import DetectorMessage
-from pylot.simulation.utils import get_2d_bbox_from_3d_box
 from pylot.simulation.sensor_setup import DepthCameraSetup
 
 
@@ -71,9 +70,7 @@ class PerfectDetectorOperator(erdust.Operator):
         self._segmented_imgs = deque()
         self._speed_limit_signs = deque()
         self._stop_signs = deque()
-        self._bgr_intrinsic = bgr_camera_setup.get_intrinsic_matrix()
-        self._bgr_transform = bgr_camera_setup.get_unreal_transform()
-        self._bgr_img_size = (bgr_camera_setup.width, bgr_camera_setup.height)
+        self._camera_setup = bgr_camera_setup
         self._frame_cnt = 0
 
     @staticmethod
@@ -194,29 +191,22 @@ class PerfectDetectorOperator(erdust.Operator):
         """
         det_objs = []
         for obstacle in obstacles:
-            if obstacle.label == 'pedestrian':
-                segmentation_class = 4
-            elif obstacle.label == 'vehicle':
-                segmentation_class = 10
-            else:
-                raise ValueError('Unexpected obstacle label {}'.format(
-                    obstacle.label))
+            # We have a static camera setup, need to transform it with respect
+            # to the location of the ego vehicle, before doing detection.
+            transformed_camera_setup = RGBCameraSetup(
+                self._camera_setup.name,
+                self._camera_setup.width,
+                self._camera_setup.height,
+                vehicle_transform * self._camera_setup.get_transform(),
+                fov=self._camera_setup.get_fov())
 
-            # Calculate the distance of the obstacle from the vehicle, and 
+            # Calculate the distance of the obstacle from the vehicle, and
             # convert to camera view if it is less than 125 metres away.
             if obstacle.distance(vehicle_transform) > 125:
                 bbox = None
             else:
-                bbox = get_2d_bbox_from_3d_box(
-                    vehicle_transform,
-                    obstacle.transform,
-                    obstacle.bounding_box,
-                    self._bgr_transform,
-                    self._bgr_intrinsic,
-                    self._bgr_img_size,
-                    depth_array,
-                    segmented_image,
-                    segmentation_class)
+                bbox = obstacle.to_camera_view(transformed_camera_setup,
+                                               depth_array, segmented_image)
             if bbox is not None:
                 det_objs.append(
                     DetectedObject(bbox, 1.0, obstacle.label, obstacle.id))
