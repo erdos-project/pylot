@@ -18,7 +18,6 @@ from miou_scenario_runner import setup_world, retrieve_actor, spawn_camera
 from miou_scenario_runner import cleanup_function
 
 from pylot.simulation.utils import get_2d_bbox_from_3d_box
-from pylot.simulation.utils import depth_to_array
 from pylot.simulation.utils import BoundingBox, CameraSetup, Transform
 from pylot.perception.detection.utils import get_precision_recall_at_iou
 
@@ -158,9 +157,13 @@ def process_depth_images(msg,
         bb_surface.set_colorkey((0, 0, 0))
 
     detected_pedestrians = []
+    depth_frame_msg = DepthFrameMessage(msg,
+                                        depth_camera_setup,
+                                        None,
+                                        encoding='carla')
     for pedestrian in ego_vehicle.get_world().get_actors().filter('walker.*'):
         bbox = get_2d_bbox_from_3d_box(
-            depth_to_array(msg),
+            depth_frame_msg.frame,
             Transform(carla_transform=ego_vehicle.get_transform()),
             Transform(carla_transform=pedestrian.get_transform()),
             BoundingBox(pedestrian.bounding_box),

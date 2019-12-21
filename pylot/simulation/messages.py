@@ -1,5 +1,7 @@
 import erdust
 
+from pylot.simulation.utils import to_bgra_array
+
 
 class FrameMessage(erdust.Message):
     """ Message class to be used to send camera frames.
@@ -39,22 +41,39 @@ class DepthFrameMessage(erdust.Message):
     Attributes:
         frame: A numpy array storing the frame.
         camera_setup: The camera setup used to generate the frame.
+        encoding: The encoding that the frame was received in.
     """
-    def __init__(self, frame, camera_setup, timestamp):
+
+    def __init__(self, frame, camera_setup, timestamp, encoding='carla'):
         """ Initializes the depth frame messsage.
 
         Args:
-            frame_array: A numpy array storing the depth frame.
+            frame: A numpy array storing the depth frame.
             camera_setup: The camera setup used to generate this frame.
             timestamp: A erdos.timestamp.Timestamp of the message.
+            encoding: 'carla' to convert a Carla depth image to internal
+            representation (default), otherwise no preprocessing.
         """
         super(DepthFrameMessage, self).__init__(timestamp, None)
-        self.frame = frame
         self.camera_setup = camera_setup
+        self.encoding = encoding
+        if self.encoding = 'carla':
+            # Convert an image containing CARLA encoded depth-map to a 2D 
+            # array containing the depth value of each pixel normalized
+            # between [0.0, 1.0]
+            import numpy as np
+            self.frame = to_bgra_array(frame)
+            self.frame = self.frame.astype(np.float32)
+            # Apply (R + G * 256 + B * 256 * 256) / (256 * 256 * 256 - 1).
+            self.frame = np.dot(self.frame[:, :, :3], [65536.0, 256.0, 1.0])
+            self.frame /= 16777215.0  # (256.0 * 256.0 * 256.0 - 1.0)
+        else:
+            self.frame = frame
 
     def __str__(self):
-        return 'DepthMessage(timestamp: {}, camera_setup: {}'.format(
-                self.timestamp, self.camera_setup)
+        return 'DepthMessage(timestamp: {}, camera_setup: {}'\
+                ', encoding: {}'.format(self.timestamp, self.camera_setup,
+                        self.encoding)
 
 
 class PointCloudMessage(erdust.Message):

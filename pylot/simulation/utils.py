@@ -549,19 +549,6 @@ def get_top_down_transform(transform, top_down_lateral_view):
     return Transform(top_down_location, Rotation(-90, 0, 0))
 
 
-def depth_to_array(image):
-    """
-    Convert an image containing CARLA encoded depth-map to a 2D array
-    containing the depth value of each pixel normalized between [0.0, 1.0].
-    """
-    array = to_bgra_array(image)
-    array = array.astype(np.float32)
-    # Apply (R + G * 256 + B * 256 * 256) / (256 * 256 * 256 - 1).
-    normalized_depth = np.dot(array[:, :, :3], [65536.0, 256.0, 1.0])
-    normalized_depth /= 16777215.0  # (256.0 * 256.0 * 256.0 - 1.0)
-    return normalized_depth
-
-
 def to_bgra_array(image):
     """Convert a CARLA raw image to a BGRA np array."""
     array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))

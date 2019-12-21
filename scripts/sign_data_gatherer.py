@@ -13,11 +13,11 @@ from pylot.perception.detection.utils import annotate_image_with_bboxes,\
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.simulation.carla_utils import convert_speed_limit_actors,\
     convert_traffic_light_actors, convert_traffic_stop_actors, get_world
-from pylot.simulation.utils import depth_to_array, \
-    to_bgra_array, Transform, TrafficLight
+from pylot.simulation.utils import to_bgra_array, Transform, TrafficLight
 from pylot.utils import bgra_to_bgr, bgr_to_rgb
 import pylot.simulation.utils
 from pylot.simulation.sensor_setup import DepthCameraSetup
+from pylot.simulation.messages import DepthFrameMessage
 
 FLAGS = flags.FLAGS
 CARLA_IMAGE = None
@@ -40,7 +40,14 @@ def on_camera_msg(image):
 
 def on_depth_msg(carla_image):
     global DEPTH_FRAME
-    DEPTH_FRAME = depth_to_array(carla_image)
+    transform = Transform(carla_transform=carla_image.transform)
+    camera_setup = DepthCameraSetup("depth_camera", FLAGS.frame_width,
+                                    FLAGS.camera_height, transform,
+                                    FLAGS.camera_fov)
+    DEPTH_FRAME = DepthFrameMessage(carla_image,
+                                    camera_setup,
+                                    int(carla_image.timestamp * 1000),
+                                    encoding='carla')
 
 
 def on_segmented_msg(carla_image):
@@ -148,23 +155,21 @@ def log_bounding_boxes(carla_image, depth_frame, segmented_frame,
     _, world = get_world()
     town_name = world.get_map().name
 
-    camera_setup = DepthCameraSetup("depth_camera", FLAGS.frame_width,
-                                    FLAGS.camera_height, transform,
-                                    FLAGS.camera_fov)
+    camera_setup = depth_frame.camera_setup
     speed_limit_det_objs = []
     if speed_signs:
         speed_limit_det_objs = pylot.simulation.utils.get_speed_limit_det_objs(
-            speed_signs, transform, depth_frame, segmented_frame, camera_setup)
+            speed_signs, transform, depth_frame.frame, segmented_frame, camera_setup)
 
     traffic_stop_det_objs = []
     if stop_signs:
         traffic_stop_det_objs = pylot.simulation.utils.get_traffic_stop_det_objs(
-            stop_signs, depth_frame, camera_setup)
+            stop_signs, depth_frame.frame, camera_setup)
 
     traffic_light_det_objs = []
     if traffic_lights:
         traffic_light_det_objs = get_traffic_light_objs(
-            traffic_lights, camera_setup, depth_frame, segmented_frame,
+            traffic_lights, camera_setup, depth_frame.frame, segmented_frame,
             tl_color, town_name)
 
     det_objs = (speed_limit_det_objs + traffic_stop_det_objs +

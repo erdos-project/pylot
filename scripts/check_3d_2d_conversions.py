@@ -11,7 +11,7 @@ import pylot.utils
 from pylot.simulation.carla_utils import get_world
 import pylot.simulation.messages
 import pylot.simulation.utils
-from pylot.simulation.utils import depth_to_array, to_bgra_array,\
+from pylot.simulation.utils import to_bgra_array,\
      get_3d_world_position_with_depth_map,\
      get_3d_world_position_with_point_cloud,\
      lidar_point_cloud_to_camera_coordinates,\
@@ -100,15 +100,14 @@ def on_depth_msg(carla_image):
 
     depth_camera_transform = Transform(carla_transform=carla_image.transform)
 
-    depth_frame_msg = depth_to_array(carla_image)
     camera_setup = CameraSetup("depth_camera",
                                "sensor.camera.depth",
-                               depth_frame_msg.shape[1],
-                               depth_frame_msg.shape[0],
+                               800,
+                               600,
                                depth_camera_transform,
-                               fov=carla_image.fov)
+                               fov=90.0)
     depth_msg = pylot.simulation.messages.DepthFrameMessage(
-        depth_frame_msg, camera_setup, None)
+        carla_image, camera_setup, None, encoding='carla')
 
     for (x, y) in pixels_to_check:
         print("{} Depth at pixel {}".format((x, y), depth_msg.frame[y][x]))
