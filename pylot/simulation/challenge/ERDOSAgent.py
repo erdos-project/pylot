@@ -289,7 +289,7 @@ class ERDOSAgent(AutonomousAgent):
                 # Send camera frames.
                 self._camera_streams[key].send(
                     pylot.simulation.messages.FrameMessage(
-                        bgra_to_bgr(val[1]), erdos_timestamp))
+                        bgra_to_bgr(val[1]), erdos_timestamp, encoding='BGR'))
                 #self._camera_streams[key].send(watermark)
             elif key == 'can_bus':
                 self.send_can_bus_reading(val[1], erdos_timestamp, watermark)
