@@ -549,13 +549,6 @@ def get_top_down_transform(transform, top_down_lateral_view):
     return Transform(top_down_location, Rotation(-90, 0, 0))
 
 
-def to_bgra_array(image):
-    """Convert a CARLA raw image to a BGRA np array."""
-    array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
-    array = np.reshape(array, (image.height, image.width, 4))
-    return array
-
-
 def depth_to_local_point_cloud(depth_frame, camera_setup, max_depth=0.9):
     """
     Convert a CARLA-encoded depth-map to a 2D array containing

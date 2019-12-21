@@ -7,12 +7,10 @@ import time
 
 import carla
 
-import pylot.utils
 from pylot.simulation.carla_utils import get_world
-import pylot.simulation.messages
+from pylot.simulation.messages import FrameMessage, DepthFrameMessage
 import pylot.simulation.utils
-from pylot.simulation.utils import to_bgra_array,\
-     get_3d_world_position_with_depth_map,\
+from pylot.simulation.utils import get_3d_world_position_with_depth_map,\
      get_3d_world_position_with_point_cloud,\
      lidar_point_cloud_to_camera_coordinates,\
      Transform
@@ -91,7 +89,7 @@ def on_camera_msg(carla_image):
     game_time = int(carla_image.timestamp * 1000)
     print("Received camera msg {}".format(game_time))
     global last_frame
-    last_frame = pylot.utils.bgra_to_bgr(to_bgra_array(carla_image))
+    last_frame = FrameMessage(carla_image, game_time, encoding='carla')
 
 
 def on_depth_msg(carla_image):
@@ -106,8 +104,10 @@ def on_depth_msg(carla_image):
                                600,
                                depth_camera_transform,
                                fov=90.0)
-    depth_msg = pylot.simulation.messages.DepthFrameMessage(
-        carla_image, camera_setup, None, encoding='carla')
+    depth_msg = DepthFrameMessage(carla_image,
+                                  camera_setup,
+                                  None,
+                                  encoding='carla')
 
     for (x, y) in pixels_to_check:
         print("{} Depth at pixel {}".format((x, y), depth_msg.frame[y][x]))
@@ -193,7 +193,7 @@ try:
     while lidar_pc is None or depth_pc is None or last_frame is None:
         time.sleep(0.2)
 
-    plt.imshow(last_frame)
+    plt.imshow(last_frame.frame)
     plt.show()
     # Sleep a bit to give time to inspect the image.
 finally:

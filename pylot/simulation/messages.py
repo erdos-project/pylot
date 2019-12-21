@@ -1,8 +1,5 @@
 import erdust
 
-from pylot.simulation.utils import to_bgra_array
-
-
 class FrameMessage(erdust.Message):
     """ Message class to be used to send camera frames.
 
@@ -13,21 +10,31 @@ class FrameMessage(erdust.Message):
         encoding: The encoding of the frame.
     """
     def __init__(self,
-                 frame_array,
+                 frame,
                  timestamp,
-                 encoding='BGR'):
+                 encoding='carla'):
         """ Initializes the frame messsage.
 
         Args:
-            frame_array: A numpy array storing the frame.
+            frame: The frame to be stored.
             timestamp: A erdos.timestamp.Timestamp of the message.
             encoding: The encoding of the message.
         """
         super(FrameMessage, self).__init__(timestamp, None)
-        self.frame = frame_array
-        self.width = frame_array.shape[1]
-        self.height = frame_array.shape[0]
-        self.encoding = 'BGR'
+        if encoding == 'carla':
+            # If the message is from Carla, we convert it to a BGR image 
+            # and store it as a frame with the BGR encoding.
+            _frame = np.frombuffer(frame.raw_data, dtype=np.dtype("uint8"))
+            _frame = np.reshape(_frame, (frame.height, frame.width, 4))
+            self.frame = _frame[:, :, :3]
+            self.encoding = 'BGR'
+        else:
+            # If the image is sourced from somewhere else, we do not process
+            # it and use the encoding provided.
+            self.frame = frame
+            self.encoding = encoding
+        self.width = self.frame.shape[1]
+        self.height = self.frame.shape[0]
 
     def __str__(self):
         return 'FrameMessage(timestamp: {}, width: {}, '\
@@ -62,8 +69,9 @@ class DepthFrameMessage(erdust.Message):
             # array containing the depth value of each pixel normalized
             # between [0.0, 1.0]
             import numpy as np
-            self.frame = to_bgra_array(frame)
-            self.frame = self.frame.astype(np.float32)
+            _frame = np.frombuffer(frame.raw_data, dtype=np.dtype("uint8"))
+            _frame = np.reshape(_frame, (frame.height, frame.width, 4))
+            self.frame = _frame.astype(np.float32)
             # Apply (R + G * 256 + B * 256 * 256) / (256 * 256 * 256 - 1).
             self.frame = np.dot(self.frame[:, :, :3], [65536.0, 256.0, 1.0])
             self.frame /= 16777215.0  # (256.0 * 256.0 * 256.0 - 1.0)

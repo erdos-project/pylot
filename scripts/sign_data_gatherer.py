@@ -13,11 +13,11 @@ from pylot.perception.detection.utils import annotate_image_with_bboxes,\
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.simulation.carla_utils import convert_speed_limit_actors,\
     convert_traffic_light_actors, convert_traffic_stop_actors, get_world
-from pylot.simulation.utils import to_bgra_array, Transform, TrafficLight
-from pylot.utils import bgra_to_bgr, bgr_to_rgb
+from pylot.simulation.utils import Transform, TrafficLight
+from pylot.utils import bgr_to_rgb
 import pylot.simulation.utils
 from pylot.simulation.sensor_setup import DepthCameraSetup
-from pylot.simulation.messages import DepthFrameMessage
+from pylot.simulation.messages import FrameMessage, DepthFrameMessage
 
 FLAGS = flags.FLAGS
 CARLA_IMAGE = None
@@ -35,7 +35,9 @@ flags.DEFINE_integer('camera_fov', 45, 'Camera fov')
 
 def on_camera_msg(image):
     global CARLA_IMAGE
-    CARLA_IMAGE = image
+    CARLA_IMAGE = FrameMessage(image,
+                               int(image.timestamp * 1000),
+                               encoding='carla')
 
 
 def on_depth_msg(carla_image):
@@ -148,7 +150,7 @@ def log_bounding_boxes(carla_image, depth_frame, segmented_frame,
     game_time = int(carla_image.timestamp * 1000)
     print("Processing game time {} in {} with weather {}".format(
         game_time, town, weather))
-    frame = bgra_to_bgr(to_bgra_array(carla_image))
+    frame = carla_image.frame
     # Copy the frame to ensure its on the heap.
     frame = copy.deepcopy(frame)
     transform = Transform(carla_transform=carla_image.transform)

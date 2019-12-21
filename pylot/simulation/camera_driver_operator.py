@@ -3,10 +3,8 @@ import threading
 import time
 
 from pylot.perception.messages import SegmentedFrameMessage
-import pylot.utils
 from pylot.simulation.carla_utils import get_world, set_synchronous_mode
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
-from pylot.simulation.utils import to_bgra_array
 
 
 class CameraDriverOperator(erdust.Operator):
@@ -123,9 +121,9 @@ class CameraDriverOperator(erdust.Operator):
 
             msg = None
             if self._camera_setup.camera_type == 'sensor.camera.rgb':
-                msg = pylot.simulation.messages.FrameMessage(
-                    pylot.utils.bgra_to_bgr(to_bgra_array(carla_image)),
-                    timestamp)
+                msg = pylot.simulation.messages.FrameMessage(carla_image,
+                                                             timestamp,
+                                                             encoding='carla')
             elif self._camera_setup.camera_type == 'sensor.camera.depth':
                 # Include the transform relative to the vehicle.
                 # Carla carla_image.transform returns the world transform, but
