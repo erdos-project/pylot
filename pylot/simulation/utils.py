@@ -621,20 +621,6 @@ def depth_to_local_point_cloud(depth_frame, camera_setup, max_depth=0.9):
     return locations
 
 
-def lidar_to_unreal_transform(transform):
-    """
-    Takes in a Transform that occurs in unreal coordinates,
-    and converts it into a Transform that goes from lidar
-    coordinates to unreal coordinates.
-    """
-    to_unreal_transform = Transform(matrix=np.array(
-        [[0, -1, 0, 0],
-         [-1, 0, 0, 0],
-         [0, 0, -1, 0],
-         [0, 0, 0, 1]]))
-    return transform * to_unreal_transform
-
-
 def lidar_to_camera_transform(transform):
     """
     Takes in a Transform that occurs in camera coordinates,

@@ -11,7 +11,7 @@ def create_rgb_camera_setup(camera_name,
     transform = Transform(camera_location, rotation)
     return RGBCameraSetup(camera_name, width, height, transform, fov)
 
-
+extrinsic_matrix()
 def create_depth_camera_setup(camera_name_prefix,
                               camera_location,
                               width,
@@ -181,6 +181,22 @@ class LidarSetup(object):
         self.upper_fov = upper_fov
         self.lower_fov = lower_fov
         self.points_per_second = points_per_second
+        self.unreal_transform = LidarSetup.__create_unreal_transform(
+            self.transform)
+
+    @staticmethod
+    def __create_unreal_transform(transform):
+        """
+        Takes in a Transform that occurs in camera coordinates,
+        and converts it into a Transform that goes from lidar
+        coordinates to camera coordinates.
+        """
+        to_camera_transform = Transform(matrix=np.array(
+            [[1, 0, 0, 0],
+             [0, 0, 1, 0],
+             [0, -1, 0, 0],
+             [0, 0, 0, 1]]))
+        return transform * to_camera_transform
 
     def get_name(self):
         return self.name
@@ -189,7 +205,7 @@ class LidarSetup(object):
         return self.transform
 
     def get_unreal_transform(self):
-        return pylot.simulation.utils.lidar_to_unreal_transform(self.transform)
+        return self.unreal_transform
 
     def __repr__(self):
         return self.__str__()
