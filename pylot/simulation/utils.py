@@ -549,8 +549,8 @@ class Obstacle(object):
         """ Initializes the Obstacle class with the given arguments.
 
         Args:
-           actor: The actor to initialize the obstacle with. (should be of type
-           carla.Vehicle or carla.Walker)
+            actor: The actor to initialize the obstacle with. (should be of
+            type carla.Vehicle or carla.Walker)
         """
         if not isinstance(actor, (carla.Vehicle, carla.Walker)):
             raise ValueError("The actor should be of type carla.Vehicle or "\
@@ -576,6 +576,35 @@ class Obstacle(object):
             self.label = 'vehicle'
         else:
             self.label = 'pedestrian'
+
+    def distance(self, vehicle_transform):
+        """ Returns the distance of the obstacle from the vehicle represented
+        by the vehicle transform.
+
+        The distance provides an estimate of the depth returned by the depth
+        camera sensor in Carla. As a result, the distance is defined as the
+        displacement of the obstacle along either the X or the Y axis.
+
+        Args:
+            vehicle_transform: The Pylot Transform of the vehicle to find the
+            distance of the obstacle from.
+
+        Returns:
+            The distance (in metres) of the obstacle from the vehicle.
+        """
+        import numpy as np
+
+        # Get the location of the vehicle and the obstacle as numpy arrays.
+        vehicle_location = vehicle_transform.location.as_numpy_array()
+        obstacle_location = self.transform.location.as_numpy_array()
+
+        # Calculate the vector from the vehicle to the obstacle.
+        # Scale it by the forward vector, and calculate the norm.
+        relative_vector = vehicle_location - obstacle_location
+        distance = np.linalg.norm(
+            relative_vector *
+            vehicle_transform.forward_vector.as_numpy_array())
+        return distance
 
 
 def get_top_down_transform(transform, top_down_lateral_view):
@@ -762,33 +791,6 @@ def get_3d_world_position_with_point_cloud(u, v, pc, camera_setup):
         return None
 
 
-def get_depth(vehicle_transform, obj_transform):
-    """ Retrieves the depth of the object in front of the vehicle.
-
-    This function aims to provide an estimate of the depth returned by the
-    depth camera sensor of the given object.
-
-    Args:
-        vehicle_transform: The transform of the ego vehicle in world
-            coordinates.
-        obj_transform: The transform of the object in the world coordinates.
-
-    Returns:
-        The depth of the object.
-    """
-    # Get location of the ego vehicle.
-    ego_vehicle_location = vehicle_transform.location.as_numpy_array()
-
-    # Get location of the other object.
-    obj_location = obj_transform.location.as_numpy_array()
-
-    # Calculate the vector from the ego vehicle to the object.
-    # Scale it by the forward vector, and calculate the norm.
-    relative_vector = ego_vehicle_location - obj_location
-    return np.linalg.norm(relative_vector *
-                          vehicle_transform.forward_vector.as_numpy_array())
-
-
 def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
     """ Creates the bounding box in the view of the camera image using the
     coordinates generated with respect to the camera transform.
@@ -885,8 +887,7 @@ def get_2d_bbox_from_3d_box(vehicle_transform,
                             segmented_image,
                             segmentation_class,
                             segmentation_threshold=0.20,
-                            depth_threshold=5,
-                            max_depth=125):
+                            depth_threshold=5):
     """ Retrieves the 2D bounding box with respect to the camera view from the
     given 3D bounding box.
 
@@ -909,15 +910,7 @@ def get_2d_bbox_from_3d_box(vehicle_transform,
         depth_threshold: The error to tolerate when comparing the calculated
             depth to the object and the depth returned by the sensor.
             (default=5 metres)
-        max_depth: The max depth of the object after which it is no longer
-            classified as a positive detection. (default = 125 metres)
     """
-    # Calculate the depth of the object from the given transforms.
-    # Return None if the object is farther than the threshold.
-    depth = get_depth(vehicle_transform, obj_transform)
-    if depth > max_depth:
-        return None
-
     # Convert the bounding box of the object to the camera coordinates.
     extrinsic_matrix = (vehicle_transform * rgb_transform).matrix
     bb_coordinates = obj_bounding_box.to_camera_view(obj_transform,

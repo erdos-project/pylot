@@ -17,14 +17,17 @@ import pygame
 from miou_scenario_runner import setup_world, retrieve_actor, spawn_camera
 from miou_scenario_runner import cleanup_function
 
-from pylot.simulation.utils import get_2d_bbox_from_3d_box
+from pylot.simulation.utils import get_2d_bbox_from_3d_box, Obstacle
 from pylot.simulation.utils import BoundingBox, CameraSetup, Transform
 from pylot.perception.detection.utils import get_precision_recall_at_iou
+from pylot.perception.messages import SegmentedFrameMessage
+from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 
 VEHICLE_DESTINATION = carla.Location(x=387.73 - 370, y=327.07, z=0.5)
 SAVED_DETECTIONS = collections.deque()
 CLEANUP_FUNCTION = None
 RGB_IMAGES = queue.Queue()
+SEMANTIC_IMAGES = queue.Queue()
 BB_COLOR = (248, 64, 24)
 
 
@@ -37,6 +40,20 @@ def process_rgb_images(rgb_image_msg):
     """
     global RGB_IMAGES
     RGB_IMAGES.put(rgb_image_msg)
+
+def process_semantic_images(semantic_image_msg):
+    """ The callback function for the semantic camera. Just saves the images
+    to the global queue to be retrieved by the other function for analysis.
+
+    Args:
+        semantic_image_msg: The semantic image sent by the sensor from the
+        simulation.
+    """
+    global SEMANTIC_IMAGES
+    SEMANTIC_IMAGES.put(
+        SegmentedFrameMessage(
+            SegmentedFrame(semantic_image_msg, encoding='carla'), 0,
+            timestamp))
 
 
 def retrieve_rgb_image(timestamp):
@@ -55,6 +72,21 @@ def retrieve_rgb_image(timestamp):
         if rgb_image_msg.timestamp == timestamp:
             return rgb_image_msg
 
+def retrieve_semantic_image(timestamp):
+    """ Retrieve the semantic image from the global queue that is populated by
+    the image messages from the sensor.
+
+    Args:
+        timestamp: The timestamp to retrieve the RGB image for.
+
+    Returns:
+        The image message from the queue with the same timestamp as the given
+        timestamp.
+    """
+    while True:
+        semantic_image_msg = SEMANTIC_IMAGES.get()
+        if semantic_image_msg.timestamp == timestamp:
+            return semantic_image_msg
 
 def draw_image(image, surface, blend=False):
     """ Draw the given image on the surface.
@@ -144,6 +176,9 @@ def process_depth_images(msg,
     # Get the RGB image corresponding to the given depth image timestamp.
     rgb_image = retrieve_rgb_image(msg.timestamp)
 
+    # Get the semantic image corresponding to the given depth image timestamp.
+    semantic_image = retrieve_semantic_image(msg.timestamp)
+
     # Visualize the image and the bounding boxes if needed.
     if visualize:
         draw_image(rgb_image, surface)
@@ -162,13 +197,20 @@ def process_depth_images(msg,
                                         None,
                                         encoding='carla')
     for pedestrian in ego_vehicle.get_world().get_actors().filter('walker.*'):
-        bbox = get_2d_bbox_from_3d_box(
-            depth_frame_msg.frame,
-            Transform(carla_transform=ego_vehicle.get_transform()),
-            Transform(carla_transform=pedestrian.get_transform()),
-            BoundingBox(pedestrian.bounding_box),
-            depth_camera_setup.get_unreal_transform(),
-            depth_camera_setup.get_intrinsic_matrix(), resolution, 1.0, 3.0)
+        obstacle = Obstacle(pedestrian)
+        vehicle_transform = Transform(carla_transform=ego_vehicle.get_transform())
+        if obstacle.distance(vehicle_transform) > 125:
+            bbox = None
+        else:
+            bbox = get_2d_bbox_from_3d_box(vehicle_transform,
+                    obstacle.transform,
+                    obstacle.bounding_box,
+                    depth_camera_setup.get_unreal_transform(),
+                    depth_camera_setup.get_intrinsic_matrix(),
+                    resolution,
+                    depth_frame_msg.frame,
+                    semantic_image.frame,
+                    10)
         if bbox is not None:
             detected_pedestrians.append(bbox)
             if visualize:
@@ -219,6 +261,10 @@ def main(args):
     rgb_camera = spawn_camera('sensor.camera.rgb', camera_transform,
                               ego_vehicle, *args.res.split('x'))
 
+    # Connect the Semantic segmentation camera to the vehicle.
+    semantic_camera = spawn_camera('sensor.camera.semantic_segmentation',
+            camera_transform, ego_vehicle, *args.res.split('x'))
+
     # Connect the depth camera to the vehicle.
     depth_camera = spawn_camera('sensor.camera.depth', camera_transform,
                                 ego_vehicle, *args.res.split('x'))
@@ -231,7 +277,7 @@ def main(args):
     global CLEANUP_FUNCTION
     CLEANUP_FUNCTION = functools.partial(cleanup_function,
                                          world=world,
-                                         cameras=[rgb_camera, depth_camera],
+                                         cameras=[rgb_camera, semantic_camera, depth_camera],
                                          csv_file=csv_file)
 
     # Create a PyGame surface for debugging purposes.
@@ -243,6 +289,7 @@ def main(args):
 
     # Register a callback function with the camera.
     rgb_camera.listen(process_rgb_images)
+    semantic_camera.listen(process_semantic_images)
 
     depth_camera_setup = CameraSetup(
         "depth_camera", 'sensor.camera.depth', width, height,

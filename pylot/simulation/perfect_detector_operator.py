@@ -201,16 +201,22 @@ class PerfectDetectorOperator(erdust.Operator):
             else:
                 raise ValueError('Unexpected obstacle label {}'.format(
                     obstacle.label))
-            bbox = get_2d_bbox_from_3d_box(
-                vehicle_transform,
-                obstacle.transform,
-                obstacle.bounding_box,
-                self._bgr_transform,
-                self._bgr_intrinsic,
-                self._bgr_img_size,
-                depth_array,
-                segmented_image,
-                segmentation_class)
+
+            # Calculate the distance of the obstacle from the vehicle, and 
+            # convert to camera view if it is less than 125 metres away.
+            if obstacle.distance(vehicle_transform) > 125:
+                bbox = None
+            else:
+                bbox = get_2d_bbox_from_3d_box(
+                    vehicle_transform,
+                    obstacle.transform,
+                    obstacle.bounding_box,
+                    self._bgr_transform,
+                    self._bgr_intrinsic,
+                    self._bgr_img_size,
+                    depth_array,
+                    segmented_image,
+                    segmentation_class)
             if bbox is not None:
                 det_objs.append(
                     DetectedObject(bbox, 1.0, obstacle.label, obstacle.id))
