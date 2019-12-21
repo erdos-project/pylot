@@ -5,6 +5,7 @@ import PIL.Image as Image
 from skimage import measure
 
 from pylot.utils import add_timestamp
+from pylot.simulation.utils import to_bgra_array
 
 # Semantic Labels
 CITYSCAPES_LABELS = {
@@ -49,7 +50,9 @@ class SegmentedFrame(object):
 
     def __init__(self, frame, encoding='carla'):
         if encoding == 'carla':
-            self._frame = frame
+            # Convert the array containing CARLA semantic segmentation labels
+            # to a 2D array containing the label of each pixel.
+            self._frame = to_bgra_array(frame)[:, :, 2]
         elif encoding == 'cityscapes':
             raise ValueError('Transformation from cityscapes to carla encoding'
                              ' is not yet implemented!')

@@ -569,14 +569,6 @@ def to_bgra_array(image):
     return array
 
 
-def labels_to_array(image):
-    """
-    Convert an image containing CARLA semantic segmentation labels to a 2D
-    array containing the label of each pixel.
-    """
-    return to_bgra_array(image)[:, :, 2]
-
-
 def depth_to_local_point_cloud(depth_frame, camera_setup, max_depth=0.9):
     """
     Convert a CARLA-encoded depth-map to a 2D array containing

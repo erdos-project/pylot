@@ -10,7 +10,6 @@ import cv2
 import carla
 
 from pylot.simulation.carla_utils import get_world
-from pylot.simulation.utils import labels_to_array
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 
 VEHICLE_DESTINATION = carla.Location(x=387.73 - 370, y=327.07, z=0.5)
@@ -165,7 +164,7 @@ def process_segmentation_images(msg,
         sys.exit(0)
 
     # Compute the segmentation mIOU.
-    frame = SegmentedFrame(labels_to_array(msg))
+    frame = SegmentedFrame(msg, encoding='carla')
     compute_and_log_miou(frame, msg.timestamp, csv)
 
     # Visualize the run.

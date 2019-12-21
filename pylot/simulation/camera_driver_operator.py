@@ -6,8 +6,7 @@ from pylot.perception.messages import SegmentedFrameMessage
 import pylot.utils
 from pylot.simulation.carla_utils import get_world, set_synchronous_mode
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
-from pylot.simulation.utils import depth_to_array, labels_to_array,\
-    to_bgra_array
+from pylot.simulation.utils import depth_to_array, to_bgra_array
 
 
 class CameraDriverOperator(erdust.Operator):
@@ -135,7 +134,7 @@ class CameraDriverOperator(erdust.Operator):
                     depth_to_array(carla_image), self._camera_setup, timestamp)
             elif self._camera_setup.camera_type == \
                  'sensor.camera.semantic_segmentation':
-                frame = SegmentedFrame(labels_to_array(carla_image))
+                frame = SegmentedFrame(carla_image, encoding='carla')
                 msg = SegmentedFrameMessage(frame, 0, timestamp)
                 # Send the message containing the frame.
             self._camera_stream.send(msg)

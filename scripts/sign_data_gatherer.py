@@ -13,7 +13,7 @@ from pylot.perception.detection.utils import annotate_image_with_bboxes,\
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.simulation.carla_utils import convert_speed_limit_actors,\
     convert_traffic_light_actors, convert_traffic_stop_actors, get_world
-from pylot.simulation.utils import depth_to_array, labels_to_array,\
+from pylot.simulation.utils import depth_to_array, \
     to_bgra_array, Transform, TrafficLight
 from pylot.utils import bgra_to_bgr, bgr_to_rgb
 import pylot.simulation.utils
@@ -45,7 +45,7 @@ def on_depth_msg(carla_image):
 
 def on_segmented_msg(carla_image):
     global SEGMENTED_FRAME
-    SEGMENTED_FRAME = SegmentedFrame(labels_to_array(carla_image))
+    SEGMENTED_FRAME = SegmentedFrame(carla_image, encoding='carla')
 
 
 def add_camera(world, transform, callback):
