@@ -9,8 +9,6 @@ from numpy.matlib import repmat
 from pylot.perception.detection.utils import DetectedObject,\
     DetectedSpeedLimit
 
-Obstacle = namedtuple(
-    'Obstacle', 'id, label, transform, bounding_box, forward_speed')
 SpeedLimitSign = namedtuple('SpeedLimitSign', 'transform, limit')
 StopSign = namedtuple('StopSign', 'transform, bounding_box')
 DetectedLane = namedtuple('DetectedLane', 'left_marking, right_marking')
@@ -1384,3 +1382,40 @@ class TrafficLight(object):
             self.state = TrafficLightColor.GREEN
         else:
             self.state = TrafficLightColor.OFF
+
+class Obstacle(object):
+    """ An Obstacle represents a dynamic object that we could encounter on the
+    road. This class provides helper functions to detect obstacles and provide
+    bounding boxes for them.
+    """
+     def __init__(self, actor):
+         """ Initializes the Obstacle class with the given arguments. 
+        
+        Args:
+           actor: The actor to initialize the obstacle with. (should be of type
+           carla.Vehicle or carla.Walker)
+        """
+        if not isinstance(actor, (carla.Vehicle, carla.Walker)):
+            raise ValueError("The actor should be of type carla.Vehicle or "\
+                    "carla.Walker to initialize the Obstacle class.")
+
+        # Retrieve the unique identifier of this actor in the simulation.
+        self.id = actor.id
+
+        # Convert the transform provided by the simulation to the Pylot class.
+        self.transform = Transform(carla_transform=actor.get_transform())
+
+        # Convert the bounding box from the simulation to the Pylot one.
+        self.bounding_box = BoundingBox(actor.bounding_box)
+        
+        # Get the speed of the obstacle.
+        velocity_vector = Vector3D(carla_vector=actor.get_velocity())
+        self.forward_speed = velocity_vector.magnitude()
+
+        # Get the blueprint of the actor.
+        # TODO (Sukrit): Move from vehicles and pedestrians to separate classes
+        # for bicycles, motorcycles, cars and persons.
+        if isinstance(actor, carla.Vehicle):
+            self.label = 'vehicle'
+        else:
+            self.label = 'pedestrian'

@@ -129,16 +129,7 @@ def convert_vehicle_actors(vec_actors):
     """
     vehicles = []
     for vec_actor in vec_actors:
-        transform = pylot.simulation.utils.Transform(
-            carla_transform=vec_actor.get_transform())
-        bounding_box = pylot.simulation.utils.BoundingBox(
-            vec_actor.bounding_box)
-        velocity_vector = pylot.simulation.utils.Vector3D(
-            carla_vector=vec_actor.get_velocity())
-        speed = velocity_vector.magnitude()
-        vehicle = pylot.simulation.utils.Obstacle(
-            vec_actor.id, 'vehicle', transform, bounding_box, speed)
-        vehicles.append(vehicle)
+        vehicles.append(pylot.simulation.utils.Obstacle(vec_actor))
     return vehicles
 
 
@@ -154,16 +145,7 @@ def convert_pedestrian_actors(pedestrian_actors):
     """
     pedestrians = []
     for ped_actor in pedestrian_actors:
-        transform = pylot.simulation.utils.Transform(
-            carla_transform=ped_actor.get_transform())
-        bounding_box = pylot.simulation.utils.BoundingBox(
-            ped_actor.bounding_box)
-        velocity_vector = pylot.simulation.utils.Vector3D(
-            carla_vector=ped_actor.get_velocity())
-        speed = velocity_vector.magnitude()
-        pedestrian = pylot.simulation.utils.Obstacle(
-            ped_actor.id, 'pedestrian', transform, bounding_box, speed)
-        pedestrians.append(pedestrian)
+        pedestrians.append(pylot.simulation.utils.Obstacle(ped_actor))
     return pedestrians
 
 
