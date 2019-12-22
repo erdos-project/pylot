@@ -84,33 +84,13 @@ def add_carla_bridge(control_stream):
 
 def add_obstacle_detection(camera_stream):
     obstacles_streams = []
-    if FLAGS.detector_ssd_mobilenet_v1:
+    for i in range(0, len(FLAGS.obstacle_detection_model_paths)):
         obstacles_streams += erdust.connect(
             DetectionOperator,
             [camera_stream],
             True,
-            'detector_ssd_mobilenet_v1',
-            FLAGS.detector_ssd_mobilenet_v1_model_path,
-            FLAGS,
-            log_file_name=FLAGS.log_file_name,
-            csv_file_name=FLAGS.csv_log_file_name)
-    if FLAGS.detector_frcnn_resnet101:
-        obstacles_streams += erdust.connect(
-            DetectionOperator,
-            [camera_stream],
-            True,
-            'detector_faster_rcnn_resnet101',
-            FLAGS.detector_frcnn_resnet101_model_path,
-            FLAGS,
-            log_file_name=FLAGS.log_file_name,
-            csv_file_name=FLAGS.csv_log_file_name)
-    if FLAGS.detector_ssd_resnet50_v1:
-        obstacles_streams += erdust.connect(
-            DetectionOperator,
-            [camera_stream],
-            True,
-            'detector_ssd_resnet50_v1',
-            FLAGS.detector_ssd_resnet50_v1_model_path,
+            FLAGS.obstacle_detection_model_names[i],
+            FLAGS.obstacle_detection_model_paths[i],
             FLAGS,
             log_file_name=FLAGS.log_file_name,
             csv_file_name=FLAGS.csv_log_file_name)

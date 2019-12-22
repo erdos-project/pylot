@@ -1,4 +1,5 @@
-import pylot.simulation.utils
+import numpy as np
+
 from pylot.simulation.utils import Location, Rotation, Transform
 
 
@@ -10,6 +11,7 @@ def create_rgb_camera_setup(camera_name,
     rotation = Rotation(0, 0, 0)
     transform = Transform(camera_location, rotation)
     return RGBCameraSetup(camera_name, width, height, transform, fov)
+
 
 def create_depth_camera_setup(camera_name_prefix,
                               camera_location,

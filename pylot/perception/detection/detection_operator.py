@@ -15,7 +15,7 @@ flags.DEFINE_float(
     'obstacle_detection_gpu_memory_fraction',
     0.3,
     'GPU memory fraction allocated to each obj detector operator')
-flags.DEFINE_float('detector_min_score_threshold', 0.5,
+flags.DEFINE_float('obstacle_detection_min_score_threshold', 0.5,
                    'Min score threshold for bounding box')
 flags.DEFINE_string('path_coco_labels', 'dependencies/models/coco.names',
                     'Path to the COCO labels')
@@ -135,7 +135,8 @@ class DetectionOperator(erdust.Operator):
         index = 0
         detected_objects = []
         while index < len(boxes) and index < len(scores):
-            if scores[index] >= self._flags.detector_min_score_threshold:
+            if scores[index] >= \
+               self._flags.obstacle_detection_min_score_threshold:
                 ymin = int(boxes[index][0] * height)
                 xmin = int(boxes[index][1] * width)
                 ymax = int(boxes[index][2] * height)

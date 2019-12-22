@@ -2,6 +2,7 @@ import erdust
 import threading
 import time
 
+import pylot.simulation.messages
 from pylot.perception.messages import SegmentedFrameMessage
 from pylot.simulation.carla_utils import get_world, set_synchronous_mode
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame

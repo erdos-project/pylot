@@ -1,4 +1,6 @@
 import erdust
+import numpy as np
+
 
 class FrameMessage(erdust.Message):
     """ Message class to be used to send camera frames.
@@ -22,7 +24,7 @@ class FrameMessage(erdust.Message):
         """
         super(FrameMessage, self).__init__(timestamp, None)
         if encoding == 'carla':
-            # If the message is from Carla, we convert it to a BGR image 
+            # If the message is from Carla, we convert it to a BGR image
             # and store it as a frame with the BGR encoding.
             _frame = np.frombuffer(frame.raw_data, dtype=np.dtype("uint8"))
             _frame = np.reshape(_frame, (frame.height, frame.width, 4))
@@ -64,8 +66,8 @@ class DepthFrameMessage(erdust.Message):
         super(DepthFrameMessage, self).__init__(timestamp, None)
         self.camera_setup = camera_setup
         self.encoding = encoding
-        if self.encoding = 'carla':
-            # Convert an image containing CARLA encoded depth-map to a 2D 
+        if self.encoding == 'carla':
+            # Convert an image containing CARLA encoded depth-map to a 2D
             # array containing the depth value of each pixel normalized
             # between [0.0, 1.0]
             import numpy as np
@@ -81,7 +83,7 @@ class DepthFrameMessage(erdust.Message):
     def __str__(self):
         return 'DepthMessage(timestamp: {}, camera_setup: {}'\
                 ', encoding: {}'.format(self.timestamp, self.camera_setup,
-                        self.encoding)
+                                        self.encoding)
 
 
 class PointCloudMessage(erdust.Message):

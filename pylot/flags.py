@@ -16,24 +16,12 @@ flags.DEFINE_bool('obstacle_detection', False,
                   'True to enable obstacle detection operator')
 flags.DEFINE_bool('perfect_obstacle_detection', False,
                   'True to enable perfect obstacle detection')
-flags.DEFINE_bool('detector_ssd_mobilenet_v1', False,
-                  'True to enable SSD mobilenet v1 detector')
-flags.DEFINE_string(
-    'detector_ssd_mobilenet_v1_model_path',
-    'dependencies/models/ssd_mobilenet_v1_coco_2018_01_28/frozen_inference_graph.pb',
-    'Path to the model')
-flags.DEFINE_bool('detector_frcnn_resnet101', False,
-                  'True to enable faster RCNN resnet101 detector')
-flags.DEFINE_string(
-    'detector_frcnn_resnet101_model_path',
-    'dependencies/models/faster_rcnn_resnet101_coco_2018_01_28/frozen_inference_graph.pb',
-    'Path to the model')
-flags.DEFINE_bool('detector_ssd_resnet50_v1', False,
-                  'True to enable SSD resnet50 v1 detector')
-flags.DEFINE_string(
-    'detector_ssd_resnet50_v1_model_path',
-    'dependencies/models/ssd_resnet50_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03/frozen_inference_graph.pb',
-    'Path to the model')
+flags.DEFINE_list('obstacle_detection_model_paths',
+                  'dependencies/models/ssd_resnet50_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03/frozen_inference_graph.pb',
+                  'Comma-separated list of model paths')
+flags.DEFINE_list('obstacle_detection_model_names',
+                  'ssd_resnet50_v1_fpn',
+                  'Comma-separated list of model names')
 flags.DEFINE_bool('obstacle_tracking', False,
                   'True to enable obstacle tracking operator')
 flags.DEFINE_bool('perfect_obstacle_tracking', False,
@@ -152,14 +140,14 @@ flags.DEFINE_integer('top_down_lateral_view', 20,
 
 # Flag validators.
 flags.register_multi_flags_validator(
-    ['obstacle_detection', 'detector_ssd_mobilenet_v1',
-     'detector_frcnn_resnet101', 'detector_ssd_resnet50_v1'],
+    ['obstacle_detection', 'obstacle_detection_model_paths',
+     'obstacle_detection_model_names'],
     lambda flags_dict: (not flags_dict['obstacle_detection'] or
                         (flags_dict['obstacle_detection'] and
-                         (flags_dict['detector_ssd_mobilenet_v1'] or
-                          flags_dict['detector_frcnn_resnet101'] or
-                          flags_dict['detector_ssd_resnet50_v1']))),
-    message='a detector must be active when --obstacle_detection is set')
+                         (len(flags_dict['obstacle_detection_model_paths']) ==
+                          len(flags_dict['obstacle_detection_model_names'])))),
+    message='--obstacle_detection_model_paths and '
+    '--obstacle_detection_model_names must have the same length')
 
 
 def ground_agent_validator(flags_dict):
