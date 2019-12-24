@@ -33,8 +33,6 @@ flags.DEFINE_string('carla_weather', 'ClearNoon', 'Carla Weather Presets')
 flags.DEFINE_integer(
     'carla_spawn_point_index', -1,
     'Index of spawn point where to place ego vehicle. -1 to randomly assign.')
-flags.DEFINE_bool('carla_auto_pilot', False,
-                  'Use auto pilot to drive the ego vehicle')
 
 
 class CarlaOperator(erdust.Operator):
@@ -165,7 +163,7 @@ class CarlaOperator(erdust.Operator):
         # If auto pilot is enabled for the ego vehicle we do not apply the
         # control, but we still want to tick in this method to ensure that
         # all operators finished work before the world ticks.
-        if not self._flags.carla_auto_pilot:
+        if self._flags.control_agent != 'carla_auto_pilot':
             # Transform the message to a carla control cmd.
             vec_control = carla.VehicleControl(throttle=msg.throttle,
                                                steer=msg.steer,
@@ -345,8 +343,8 @@ class CarlaOperator(erdust.Operator):
 
             driving_vehicle = self._world.try_spawn_actor(
                 v_blueprint, start_pose)
-        if self._flags.carla_auto_pilot:
-            driving_vehicle.set_autopilot(self._flags.carla_auto_pilot)
+        if self._flags.control_agent == 'carla_auto_pilot':
+            driving_vehicle.set_autopilot(True)
         return driving_vehicle
 
     def publish_world_data(self, msg):

@@ -208,7 +208,7 @@ def driver():
     # of which stream is slowest. Instead, We should synchronize on all output
     # streams, and we should ensure that even the operators without output
     # streams complete.
-    if FLAGS.carla_auto_pilot:
+    if FLAGS.control_agent == 'carla_auto_pilot':
         # We insert a synchronizing operator that sends back a command when
         # the low watermark progresses on all input stream.
         stream_to_sync_on = center_camera_stream
@@ -225,7 +225,9 @@ def driver():
             FLAGS)
         control_loop_stream.set(control_stream)
     else:
-        raise ValueError("Must be in auto pilot mode. Pass --carla_auto_pilot")
+        raise ValueError(
+            "Must be in auto pilot mode. Pass --control_agent=carla_auto_pilot"
+        )
 
 
 def main(argv):

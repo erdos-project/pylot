@@ -164,22 +164,22 @@ def add_control(center_camera_setup, can_bus_stream, obstacles_stream,
                 traffic_lights_stream, waypoints_stream, open_drive_stream,
                 point_cloud_stream, depth_camera_stream,
                 ground_obstacles_stream, ground_traffic_lights_stream):
-    if FLAGS.control_agent_operator == 'pylot':
+    if FLAGS.control_agent == 'pylot':
         control_stream = pylot.operator_creator.add_pylot_agent(
             can_bus_stream, waypoints_stream, traffic_lights_stream,
             obstacles_stream, point_cloud_stream, open_drive_stream,
             depth_camera_stream, center_camera_setup)
-    elif FLAGS.control_agent_operator == 'mpc':
+    elif FLAGS.control_agent == 'mpc':
         control_stream = pylot.operator_creator.add_mpc_agent(
             can_bus_stream, ground_obstacles_stream,
             ground_traffic_lights_stream, waypoints_stream)
-    elif FLAGS.control_agent_operator == 'ground':
+    elif FLAGS.control_agent == 'ground':
         control_stream = pylot.operator_creator.add_ground_agent(
             can_bus_stream, ground_obstacles_stream,
             ground_traffic_lights_stream, waypoints_stream)
     else:
-        raise ValueError('Unexpected control_agent_operator {}'.format(
-            FLAGS.control_agent_operator))
+        raise ValueError('Unexpected control_agent {}'.format(
+            FLAGS.control_agent))
     return control_stream
 
 
