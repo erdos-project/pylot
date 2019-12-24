@@ -38,8 +38,8 @@ class DetectionDecayOperator(erdust.Operator):
                 bboxes.append(det_obj.corners)
 
         # Remove the buffered bboxes that are too old.
-        while (len(self._ground_bboxes) > 0 and
-               game_time - self._ground_bboxes[0][0] >
+        while (len(self._ground_bboxes) > 0
+               and game_time - self._ground_bboxes[0][0] >
                self._flags.decay_max_latency):
             self._ground_bboxes.popleft()
 
@@ -51,8 +51,8 @@ class DetectionDecayOperator(erdust.Operator):
                 latency = game_time - old_game_time
                 precisions = []
                 for iou in self._iou_thresholds:
-                    (precision, _) = get_precision_recall_at_iou(
-                        bboxes, old_bboxes, iou)
+                    (precision,
+                     _) = get_precision_recall_at_iou(bboxes, old_bboxes, iou)
                     precisions.append(precision)
                 self._logger.info("Precision {}".format(precisions))
                 avg_precision = float(sum(precisions)) / len(precisions)
@@ -61,8 +61,8 @@ class DetectionDecayOperator(erdust.Operator):
                         latency, avg_precision))
                 self._csv_logger.info('{},{},{},{}'.format(
                     time_epoch_ms(), self._name, latency, avg_precision))
-                map_stream.send(erdust.Message(msg.timestamp,
-                                               (latency, avg_precision)))
+                map_stream.send(
+                    erdust.Message(msg.timestamp, (latency, avg_precision)))
 
         # Buffer the new bounding boxes.
         self._ground_bboxes.append((game_time, bboxes))

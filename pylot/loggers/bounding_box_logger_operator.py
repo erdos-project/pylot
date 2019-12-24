@@ -5,7 +5,6 @@ import os
 
 class BoundingBoxLoggerOperator(erdust.Operator):
     """ Logs bounding boxes of DetectedObjects received on a stream."""
-
     def __init__(self, obstacles_stream, name, flags, log_file_name=None):
         obstacles_stream.add_callback(self.on_detected_objs_msg)
         self._name = name

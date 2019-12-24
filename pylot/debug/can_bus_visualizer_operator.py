@@ -17,7 +17,6 @@ class CanBusVisualizerOperator(erdust.Operator):
     Attributes:
         _world: A handle to the world to draw the locations on.
     """
-
     def __init__(self, can_bus_stream, name, flags, log_file_name=None):
         """ Initializes the CanBusVisualizerOperator with the given
         parameters.
@@ -33,8 +32,7 @@ class CanBusVisualizerOperator(erdust.Operator):
         self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
         _, self._world = pylot.simulation.carla_utils.get_world(
-            self._flags.carla_host,
-            self._flags.carla_port,
+            self._flags.carla_host, self._flags.carla_port,
             self._flags.carla_timeout)
         if self._world is None:
             raise ValueError("Error connecting to the simulator.")
@@ -54,10 +52,10 @@ class CanBusVisualizerOperator(erdust.Operator):
             msg.timestamp, self._name))
         vehicle_transform = msg.data.transform
         # draw position
-        self._world.debug.draw_point(
-            carla.Location(x=vehicle_transform.location.x,
-                           y=vehicle_transform.location.y,
-                           z=vehicle_transform.location.z + 0.5),
-            size=0.2,
-            life_time=DEFAULT_VIS_TIME,
-            color=carla.Color(255, 0, 0))
+        self._world.debug.draw_point(carla.Location(
+            x=vehicle_transform.location.x,
+            y=vehicle_transform.location.y,
+            z=vehicle_transform.location.z + 0.5),
+                                     size=0.2,
+                                     life_time=DEFAULT_VIS_TIME,
+                                     color=carla.Color(255, 0, 0))

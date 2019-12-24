@@ -36,7 +36,6 @@ class BoundingBox(object):
         transform: The transform of the bounding box (rotation is (0, 0, 0))
         extent: The extent of the bounding box.
     """
-
     def __init__(self, carla_bb):
         """ Initializes the BoundingBox instance from the given
         carla.BoundingBox instance.
@@ -152,7 +151,6 @@ class Vector3D(object):
         y: The value of the second axis.
         z: The value of the third axis.
     """
-
     def __init__(self, x=None, y=None, z=None, carla_vector=None):
         """ Initializes the Vector3D instance from the given x, y and z values.
         Alternatively, pass in a carla_vector (carla.vector3D).
@@ -238,7 +236,6 @@ class Rotation(object):
         yaw:   Rotation about Z-axis.
         roll:  Rotation about X-axis.
     """
-
     def __init__(self, pitch=0, yaw=0, roll=0, carla_rotation=None):
         """ Initializes the Rotation instance with either the given pitch,
         roll and yaw values or from the carla.Rotation instance, if specified.
@@ -290,7 +287,6 @@ class Location(Vector3D):
         y: The value of the y-axis.
         z: The value of the z-axis.
     """
-
     def __init__(self, x=0, y=0, z=0, carla_location=None):
         """ Initializes the Location instance with either the given x, y, z
         values or from the carla.Location instance if specified.
@@ -397,8 +393,8 @@ class Transform(object):
 
             # Forward vector is retrieved from the matrix.
             self.forward_vector = Vector3D(self.matrix[0, 0],
-                                           self.matrix[1, 0],
-                                           self.matrix[2, 0])
+                                           self.matrix[1, 0], self.matrix[2,
+                                                                          0])
             pitch_r = math.asin(self.forward_vector.z)
             yaw_r = math.acos(self.forward_vector.x / math.cos(pitch_r))
             roll_r = math.asin(matrix[2, 1] / (-1 * math.cos(pitch_r)))
@@ -411,8 +407,8 @@ class Transform(object):
 
             # Forward vector is retrieved from the matrix.
             self.forward_vector = Vector3D(self.matrix[0, 0],
-                                           self.matrix[1, 0],
-                                           self.matrix[2, 0])
+                                           self.matrix[1, 0], self.matrix[2,
+                                                                          0])
 
     @staticmethod
     def _create_matrix(location, rotation):
@@ -544,7 +540,6 @@ class Obstacle(object):
     road. This class provides helper functions to detect obstacles and provide
     bounding boxes for them.
     """
-
     def __init__(self, actor):
         """ Initializes the Obstacle class with the given arguments.
 
@@ -728,10 +723,7 @@ def lidar_to_camera_transform(transform):
     coordinates to camera coordinates.
     """
     to_camera_transform = Transform(matrix=np.array(
-        [[1, 0, 0, 0],
-         [0, 0, 1, 0],
-         [0, -1, 0, 0],
-         [0, 0, 0, 1]]))
+        [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
     return transform * to_camera_transform
 
 
@@ -778,12 +770,17 @@ def batch_get_3d_world_position_with_depth_map(xs, ys, depth_frame,
     """
     assert len(xs) == len(ys)
     far = 1.0
-    point_cloud = depth_to_local_point_cloud(
-        depth_frame, camera_setup.width, camera_setup.height, camera_setup.fov, max_depth=far)
+    point_cloud = depth_to_local_point_cloud(depth_frame,
+                                             camera_setup.width,
+                                             camera_setup.height,
+                                             camera_setup.fov,
+                                             max_depth=far)
     # Transform the points in 3D world coordinates.
     to_world_transform = camera_setup.get_unreal_transform()
     point_cloud = to_world_transform.transform_points(point_cloud)
-    return [point_cloud[ys[i] * camera_setup.width + xs[i]] for i in range(len(xs))]
+    return [
+        point_cloud[ys[i] * camera_setup.width + xs[i]] for i in range(len(xs))
+    ]
 
 
 def find_point_depth(x, y, point_cloud):
@@ -810,15 +807,11 @@ def find_point_depth(x, y, point_cloud):
 def lidar_point_cloud_to_camera_coordinates(point_cloud):
     """ Transforms a point cloud from lidar to camera coordinates."""
     point_cloud = [Location(x, y, z) for x, y, z in np.asarray(point_cloud)]
-    identity_transform = Transform(
-        matrix=np.array([[1, 0, 0, 0],
-                         [0, 1, 0, 0],
-                         [0, 0, 1, 0],
-                         [0, 0, 0, 1]]))
+    identity_transform = Transform(matrix=np.array(
+        [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
     transform = lidar_to_camera_transform(identity_transform)
     transformed_points = transform.transform_points(point_cloud)
     return [[loc.x, loc.y, loc.z] for loc in transformed_points]
-
 
 
 def get_3d_world_position_with_point_cloud(u, v, pc, camera_setup):
@@ -949,7 +942,6 @@ def transform_traffic_light_bboxes(light, points):
         points: An array of length 4 representing the 4 points of the
             rectangle.
     """
-
     def rotate(yaw, location):
         """ Rotate a given 3D vector around the Z-axis. """
         rotation_matrix = np.identity(3)
@@ -1023,7 +1015,14 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
     elif town_name == 'Town03':
         for light in traffic_lights:
             if light.trigger_volume_extent.x > 2 or light.id in [
-                    66, 67, 68, 71, 72, 73, 75, 81,
+                    66,
+                    67,
+                    68,
+                    71,
+                    72,
+                    73,
+                    75,
+                    81,
             ]:
                 points = [
                     # Back Plane
@@ -1037,14 +1036,11 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
                     Location(x=-4.8, y=0.4, z=5.5),
                     Location(x=-4.8, y=0.4, z=6.5),
                     Location(x=-5.2, y=0.4, z=6.5),
-
                 ]
                 bbox_state.append(
-                    (transform_traffic_light_bboxes(light, points),
-                     light.state))
-                right_points = [
-                    point + Location(x=-3.0) for point in points
-                ]
+                    (transform_traffic_light_bboxes(light,
+                                                    points), light.state))
+                right_points = [point + Location(x=-3.0) for point in points]
                 bbox_state.append(
                     (transform_traffic_light_bboxes(light, right_points),
                      light.state))
@@ -1071,8 +1067,8 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
                     Location(x=-0.5, y=0.5, z=3),
                 ]
                 bbox_state.append(
-                    (transform_traffic_light_bboxes(light, points),
-                     light.state))
+                    (transform_traffic_light_bboxes(light,
+                                                    points), light.state))
     elif town_name == 'Town04':
         points = [
             # Back Plane
@@ -1104,8 +1100,7 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
         left_points = [point + Location(x=-5.5) for point in points]
         for light in traffic_lights:
             bbox_state.append(
-                (transform_traffic_light_bboxes(light, points),
-                 light.state))
+                (transform_traffic_light_bboxes(light, points), light.state))
             if light.trigger_volume_extent.x > 5:
                 # This is a traffic light with 4 signs, we need to come up with
                 # more bounding boxes.
@@ -1116,8 +1111,8 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
                     (transform_traffic_light_bboxes(light, right_points),
                      light.state))
                 bbox_state.append(
-                    (transform_traffic_light_bboxes(light, left_points),
-                     light.state))
+                    (transform_traffic_light_bboxes(light,
+                                                    left_points), light.state))
     elif town_name == 'Town05':
         points = [
             # Back Plane
@@ -1163,8 +1158,7 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
                                single_light.get_group_traffic_lights())
         for light in traffic_lights:
             bbox_state.append(
-                (transform_traffic_light_bboxes(light, points),
-                 light.state))
+                (transform_traffic_light_bboxes(light, points), light.state))
             if light.id not in single_light_ids:
                 # This is a traffids light with 4 signs, we need to come up
                 # with more bounding boxes.
@@ -1175,15 +1169,15 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
                     (transform_traffic_light_bboxes(light, right_points),
                      light.state))
                 bbox_state.append(
-                    (transform_traffic_light_bboxes(light, left_points),
-                     light.state))
+                    (transform_traffic_light_bboxes(light,
+                                                    left_points), light.state))
     else:
         raise ValueError('Could not find a town named {}'.format(town_name))
     return bbox_state
 
 
 def get_traffic_light_det_objs(traffic_lights, depth_array, segmented_image,
-        town_name, camera_setup):
+                               town_name, camera_setup):
     """ Get the traffic lights that are within the camera frame.
     Note: This method should be used with Carla 0.9.*
     """
@@ -1248,8 +1242,8 @@ def get_speed_limit_det_objs(speed_signs, vehicle_transform, depth_frame,
         segmented_frame: Segmented frame.
     """
     # Compute the bounding boxes.
-    bboxes = segmented_frame.get_traffic_sign_bounding_boxes(
-        min_width=8, min_height=9)
+    bboxes = segmented_frame.get_traffic_sign_bounding_boxes(min_width=8,
+                                                             min_height=9)
 
     # Get the positions of the bounding box centers.
     x_mids = [(bbox[0] + bbox[1]) // 2 for bbox in bboxes]
@@ -1257,11 +1251,13 @@ def get_speed_limit_det_objs(speed_signs, vehicle_transform, depth_frame,
     pos_3d = batch_get_3d_world_position_with_depth_map(
         x_mids, y_mids, depth_frame, camera_setup)
     pos_and_bboxes = zip(pos_3d, bboxes)
-    ts_bboxes = _match_bboxes_with_speed_signs(
-        vehicle_transform, pos_and_bboxes, speed_signs)
+    ts_bboxes = _match_bboxes_with_speed_signs(vehicle_transform,
+                                               pos_and_bboxes, speed_signs)
 
-    det_objs = [DetectedSpeedLimit(bbox, limit, 1.0, 'speed limit')
-                for (bbox, limit) in ts_bboxes]
+    det_objs = [
+        DetectedSpeedLimit(bbox, limit, 1.0, 'speed limit')
+        for (bbox, limit) in ts_bboxes
+    ]
     return det_objs
 
 
@@ -1285,18 +1281,13 @@ def _match_bboxes_with_speed_signs(vehicle_transform, pos_bboxes, speed_signs):
             yaw_diff += 360
         elif yaw_diff >= 360:
             yaw_diff -= 360
-        if best_dist < 5 ** 2 and yaw_diff > 30 and yaw_diff < 150:
+        if best_dist < 5**2 and yaw_diff > 30 and yaw_diff < 150:
             result.append((bbox, best_ts.limit))
     return result
 
 
-def _get_stop_markings_bbox(
-        bbox3d,
-        depth_frame,
-        camera_transform,
-        camera_intrinsic,
-        frame_width,
-        frame_height):
+def _get_stop_markings_bbox(bbox3d, depth_frame, camera_transform,
+                            camera_intrinsic, frame_width, frame_height):
     """ Gets a 2D stop marking bouding box from a 3D bounding box."""
     # Offset trigger_volume by -0.85 so that the top plane is on the ground.
     ext_z_value = bbox3d.extent.z - 0.85
@@ -1311,8 +1302,8 @@ def _get_stop_markings_bbox(
     for loc in bbox:
         loc_view = loc.to_camera_view(camera_transform.matrix,
                                       camera_intrinsic)
-        if (loc_view.z >= 0 and loc_view.x >= 0 and loc_view.y >= 0 and
-            loc_view.x < frame_width and loc_view.y < frame_height):
+        if (loc_view.z >= 0 and loc_view.x >= 0 and loc_view.y >= 0
+                and loc_view.x < frame_width and loc_view.y < frame_height):
             coords.append(loc_view)
     if len(coords) == 4:
         xmin = min(coords[0].x, coords[1].x, coords[2].x, coords[3].x)
@@ -1321,12 +1312,9 @@ def _get_stop_markings_bbox(
         ymax = max(coords[0].y, coords[1].y, coords[2].y, coords[3].y)
         # Check if the bbox is not obstructed and if it's sufficiently
         # big for the text to be readable.
-        if (ymax - ymin > 15 and
-            have_same_depth(int(coords[0].x),
-                            int(coords[0].y),
-                            coords[0].z,
-                            depth_frame,
-                            0.4)):
+        if (ymax - ymin > 15
+                and have_same_depth(int(coords[0].x), int(coords[0].y),
+                                    coords[0].z, depth_frame, 0.4)):
             return (int(xmin), int(xmax), int(ymin), int(ymax))
     return None
 
@@ -1336,10 +1324,7 @@ def have_same_depth(x, y, z, depth_array, threshold):
     return abs(depth_array[y][x] * 1000 - z) < threshold
 
 
-def get_traffic_stop_det_objs(
-        traffic_stops,
-        depth_frame,
-        camera_setup):
+def get_traffic_stop_det_objs(traffic_stops, depth_frame, camera_setup):
     """ Get traffic stop lane markings that are withing the camera frame.
 
     Args:
@@ -1353,9 +1338,10 @@ def get_traffic_stop_det_objs(
     det_objs = []
     bgr_intrinsic = camera_setup.get_intrinsic_matrix()
     for transform, bbox in traffic_stops:
-        bbox2d = _get_stop_markings_bbox(
-            bbox, depth_frame, camera_setup.get_transform(), bgr_intrinsic,
-            camera_setup.width, camera_setup.height)
+        bbox2d = _get_stop_markings_bbox(bbox, depth_frame,
+                                         camera_setup.get_transform(),
+                                         bgr_intrinsic, camera_setup.width,
+                                         camera_setup.height)
         if bbox2d:
             det_objs.append(DetectedObject(bbox2d, 1.0, 'stop marking'))
     return det_objs
@@ -1371,7 +1357,6 @@ class TrafficLight(object):
         trigger_volume_extent: The extent of the trigger volume of the light.
         state: The state of the light. (Green/Yellow/Red/Off)
     """
-
     def __init__(self, traffic_light):
         """ Initializes the TrafficLight instance with the given carla
         TrafficLight instance.

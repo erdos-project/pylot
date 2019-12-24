@@ -59,10 +59,9 @@ class PlanningOperator(erdust.Operator):
         # We're not running in challenge mode if no track flag is present.
         # Thus, we can directly get the map from the simulator.
         if not hasattr(self._flags, 'track'):
-            self._map = HDMap(get_map(self._flags.carla_host,
-                                      self._flags.carla_port,
-                                      self._flags.carla_timeout),
-                              log_file_name)
+            self._map = HDMap(
+                get_map(self._flags.carla_host, self._flags.carla_port,
+                        self._flags.carla_timeout), log_file_name)
             self._logger.info('Planner running in stand-alone mode')
             assert goal_location, 'Planner has not received a goal location'
             # Transform goal location to carla.Location
@@ -87,14 +86,15 @@ class PlanningOperator(erdust.Operator):
         self._cost_functions = [
             pylot.planning.cost_functions.cost_speed,
             pylot.planning.cost_functions.cost_lane_change,
-            pylot.planning.cost_functions.cost_inefficiency]
-        reach_speed_weight = 10 ** 5
-        reach_goal_weight = 10 ** 6
-        efficiency_weight = 10 ** 4
+            pylot.planning.cost_functions.cost_inefficiency
+        ]
+        reach_speed_weight = 10**5
+        reach_goal_weight = 10**6
+        efficiency_weight = 10**4
         # How important a cost function is.
-        self._function_weights = [reach_speed_weight,
-                                  reach_goal_weight,
-                                  efficiency_weight]
+        self._function_weights = [
+            reach_speed_weight, reach_goal_weight, efficiency_weight
+        ]
 
     @staticmethod
     def connect(can_bus_stream, open_drive_stream, global_trajectory_stream):
@@ -102,11 +102,10 @@ class PlanningOperator(erdust.Operator):
         return [waypoints_stream]
 
     def on_opendrive_map(self, msg):
-        self._logger.debug(
-            '@{}: received open drive message'.format(msg.timestamp))
+        self._logger.debug('@{}: received open drive message'.format(
+            msg.timestamp))
         self._logger.info('Planner running in scenario runner mode')
-        self._map = HDMap(carla.Map('map', msg.data),
-                          self._log_file_name)
+        self._map = HDMap(carla.Map('map', msg.data), self._log_file_name)
 
     def on_global_trajectory(self, msg):
         self._logger.debug('@{}: global trajectory has {} waypoints'.format(
@@ -125,11 +124,10 @@ class PlanningOperator(erdust.Operator):
             self._waypoints.append(waypoint_option[0])
 
     def on_can_bus_update(self, msg, waypoints_stream):
-        self._logger.debug(
-            '@{}: received can bus message'.format(msg.timestamp))
+        self._logger.debug('@{}: received can bus message'.format(
+            msg.timestamp))
         self._vehicle_transform = msg.data.transform
-        (next_waypoint_steer,
-         next_waypoint_speed) = self.__update_waypoints()
+        (next_waypoint_steer, next_waypoint_speed) = self.__update_waypoints()
 
         # Get vectors and angles to corresponding speed and steer waypoints.
         wp_steer_vector, wp_steer_angle = get_waypoint_vector_and_angle(
@@ -139,13 +137,12 @@ class PlanningOperator(erdust.Operator):
 
         target_speed = self.__get_target_speed(next_waypoint_steer)
 
-        output_msg = WaypointsMessage(
-            msg.timestamp,
-            waypoints=[next_waypoint_steer],
-            target_speed=target_speed,
-            wp_angle=wp_steer_angle,
-            wp_vector=wp_steer_vector,
-            wp_angle_speed=wp_speed_angle)
+        output_msg = WaypointsMessage(msg.timestamp,
+                                      waypoints=[next_waypoint_steer],
+                                      target_speed=target_speed,
+                                      wp_angle=wp_steer_angle,
+                                      wp_vector=wp_steer_vector,
+                                      wp_angle_speed=wp_speed_angle)
         waypoints_stream.send(output_msg)
 
     def __get_target_speed(self, waypoint):
@@ -179,9 +176,10 @@ class PlanningOperator(erdust.Operator):
             # to current vehicle location.
             self._waypoints = deque([self._vehicle_transform])
 
-        return (
-            self._waypoints[min(len(self._waypoints) - 1, self._wp_num_steer)],
-            self._waypoints[min(len(self._waypoints) - 1, self._wp_num_speed)])
+        return (self._waypoints[min(
+            len(self._waypoints) - 1,
+            self._wp_num_steer)], self._waypoints[min(
+                len(self._waypoints) - 1, self._wp_num_speed)])
 
     def __remove_completed_waypoints(self):
         """ Removes waypoints that the ego vehicle has already completed.
@@ -226,8 +224,8 @@ class PlanningOperator(erdust.Operator):
             state_cost = 0
             # Compute the cost of the trajectory.
             for i in range(len(self._cost_functions)):
-                cost_func = self._cost_functions[i](
-                    vehicle_info, predictions, trajectory_for_state)
+                cost_func = self._cost_functions[i](vehicle_info, predictions,
+                                                    trajectory_for_state)
                 state_cost += self._function_weights[i] * cost_func
             # Check if it's the best trajectory.
             if best_next_state is None or state_cost < min_state_cost:
@@ -235,8 +233,8 @@ class PlanningOperator(erdust.Operator):
                 min_state_cost = state_cost
         return best_next_state
 
-    def __generate_trajectory(
-            self, next_state, vehicle_transform, predictions):
+    def __generate_trajectory(self, next_state, vehicle_transform,
+                              predictions):
         # TODO(ionel): Implement.
         pass
 
@@ -247,28 +245,38 @@ class PlanningOperator(erdust.Operator):
         elif self._state == BehaviorPlannerState.KEEP_LANE:
             # 1) keep_lane -> prepare_lane_change_left
             # 2) keep_lane -> prepare_lane_change_right
-            return [BehaviorPlannerState.KEEP_LANE,
-                    BehaviorPlannerState.PREPARE_LANE_CHANGE_LEFT,
-                    BehaviorPlannerState.PREPARE_LANE_CHANGE_RIGHT]
+            return [
+                BehaviorPlannerState.KEEP_LANE,
+                BehaviorPlannerState.PREPARE_LANE_CHANGE_LEFT,
+                BehaviorPlannerState.PREPARE_LANE_CHANGE_RIGHT
+            ]
         elif self._state == BehaviorPlannerState.PREPARE_LANE_CHANGE_LEFT:
             # 1) prepare_lane_change_left -> keep_lane
             # 2) prepare_lane_change_left -> lange_change_left
-            return [BehaviorPlannerState.KEEP_LANE,
-                    BehaviorPlannerState.PREPARE_LANE_CHANGE_LEFT,
-                    BehaviorPlannerState.LANE_CHANGE_LEFT]
+            return [
+                BehaviorPlannerState.KEEP_LANE,
+                BehaviorPlannerState.PREPARE_LANE_CHANGE_LEFT,
+                BehaviorPlannerState.LANE_CHANGE_LEFT
+            ]
         elif self._state == BehaviorPlannerState.LANE_CHANGE_LEFT:
             # 1) lange_change_left -> keep_lane
-            return [BehaviorPlannerState.KEEP_LANE,
-                    BehaviorPlannerState.LANE_CHANGE_LEFT]
+            return [
+                BehaviorPlannerState.KEEP_LANE,
+                BehaviorPlannerState.LANE_CHANGE_LEFT
+            ]
         elif self._state == BehaviorPlannerState.PREPARE_LANE_CHANGE_RIGHT:
             # 1) prepare_lane_change_right -> keep_lane
             # 2) prepare_lane_change_right -> lange_change_right
-            return [BehaviorPlannerState.KEEP_LANE,
-                    BehaviorPlannerState.PREPARE_LANE_CHANGE_RIGHT,
-                    BehaviorPlannerState.LANE_CHANGE_RIGHT]
+            return [
+                BehaviorPlannerState.KEEP_LANE,
+                BehaviorPlannerState.PREPARE_LANE_CHANGE_RIGHT,
+                BehaviorPlannerState.LANE_CHANGE_RIGHT
+            ]
         elif self._state == BehaviorPlannerState.LANE_CHANGE_RIGHT:
             # 1) lane_change_right -> keep_lane
-            return [BehaviorPlannerState.KEEP_LANE,
-                    BehaviorPlannerState.LANE_CHANGE_RIGHT]
+            return [
+                BehaviorPlannerState.KEEP_LANE,
+                BehaviorPlannerState.LANE_CHANGE_RIGHT
+            ]
         else:
             raise ValueError('Unexpected vehicle state {}'.format(self._state))

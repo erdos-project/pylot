@@ -9,8 +9,7 @@ flags.DEFINE_bool('stop_for_traffic_lights', True,
                   'True to enable traffic light stopping')
 flags.DEFINE_bool('stop_for_pedestrians', True,
                   'True to enable pedestrian stopping')
-flags.DEFINE_bool('stop_for_vehicles', True,
-                  'True to enable vehicle stopping')
+flags.DEFINE_bool('stop_for_vehicles', True, 'True to enable vehicle stopping')
 # Agent stopping parameters.
 flags.DEFINE_integer('traffic_light_min_dist_thres', 5,
                      'Min distance threshold traffic light')
@@ -20,8 +19,7 @@ flags.DEFINE_float('traffic_light_angle_thres', 0.5,
                    'Traffic light angle threshold')
 flags.DEFINE_integer('vehicle_distance_thres', 15,
                      'Vehicle distance threshold')
-flags.DEFINE_float('vehicle_angle_thres', 0.4,
-                   'Vehicle angle threshold')
+flags.DEFINE_float('vehicle_angle_thres', 0.4, 'Vehicle angle threshold')
 flags.DEFINE_float('pedestrian_angle_hit_thres', 0.15,
                    'Pedestrian hit zone angle threshold')
 flags.DEFINE_integer('pedestrian_distance_emergency_thres', 12,

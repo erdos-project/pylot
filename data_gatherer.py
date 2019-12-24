@@ -20,14 +20,12 @@ flags.DEFINE_bool('log_left_right_cameras', False,
                   'Control whether we log left and right cameras.')
 flags.DEFINE_bool('log_depth_camera', False,
                   'True to enable depth camera logging')
-flags.DEFINE_bool('log_imu', False,
-                  'Enable logging of IMU measurements.')
+flags.DEFINE_bool('log_imu', False, 'Enable logging of IMU measurements.')
 flags.DEFINE_bool('log_lidar', False, 'True to enable lidar logging')
 flags.DEFINE_bool('log_obstacles', False,
                   'True to enable obstacle bounding box logging')
 flags.DEFINE_bool(
-    'log_traffic_lights',
-    False,
+    'log_traffic_lights', False,
     'True to enable traffic lights bounding box and camera logging')
 flags.DEFINE_bool('log_multiple_object_tracker', False,
                   'True to enable logging in the MOT format')
@@ -42,12 +40,9 @@ CENTER_CAMERA_LOCATION = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
 
 
 class SynchronizerOperator(erdust.Operator):
-    def __init__(self,
-                 wait_stream,
-                 control_stream,
-                 flags):
-        erdust.add_watermark_callback(
-            [wait_stream], [control_stream], self.on_watermark)
+    def __init__(self, wait_stream, control_stream, flags):
+        erdust.add_watermark_callback([wait_stream], [control_stream],
+                                      self.on_watermark)
         self._flags = flags
 
     @staticmethod
@@ -71,14 +66,10 @@ def driver():
 
     control_loop_stream = erdust.LoopStream()
     # Create carla operator.
-    (can_bus_stream,
-     ground_traffic_lights_stream,
-     ground_obstacles_stream,
-     ground_speed_limit_signs_stream,
-     ground_stop_signs_stream,
-     vehicle_id_stream,
-     open_drive_stream) = pylot.operator_creator.add_carla_bridge(
-         control_loop_stream)
+    (can_bus_stream, ground_traffic_lights_stream, ground_obstacles_stream,
+     ground_speed_limit_signs_stream, ground_stop_signs_stream,
+     vehicle_id_stream, open_drive_stream
+     ) = pylot.operator_creator.add_carla_bridge(control_loop_stream)
 
     # Add sensors.
     (center_camera_stream,
@@ -87,19 +78,18 @@ def driver():
     (depth_camera_stream,
      depth_camera_setup) = pylot.operator_creator.add_depth_camera(
          transform, vehicle_id_stream)
-    (segmented_stream, _) = pylot.operator_creator.add_segmented_camera(
-        transform, vehicle_id_stream)
+    (segmented_stream,
+     _) = pylot.operator_creator.add_segmented_camera(transform,
+                                                      vehicle_id_stream)
 
     if FLAGS.log_rgb_camera:
         pylot.operator_creator.add_camera_logging(
-            center_camera_stream,
-            'center_camera_logger_operator',
+            center_camera_stream, 'center_camera_logger_operator',
             'carla-center-')
 
     if FLAGS.log_segmented_camera:
         pylot.operator_creator.add_camera_logging(
-            segmented_stream,
-            'center_segmented_camera_logger_operator',
+            segmented_stream, 'center_segmented_camera_logger_operator',
             'carla-segmented-')
 
     if FLAGS.log_depth_camera:
@@ -107,8 +97,8 @@ def driver():
 
     imu_stream = None
     if FLAGS.log_imu:
-        (imu_stream, _) = pylot.operator_creator.add_imu(
-            transform, vehicle_id_stream)
+        (imu_stream,
+         _) = pylot.operator_creator.add_imu(transform, vehicle_id_stream)
         pylot.operator_creator.add_imu_logging(imu_stream)
 
     traffic_lights_stream = None
@@ -118,8 +108,7 @@ def driver():
              transform, vehicle_id_stream, 'traffic_light_camera', 45)
         pylot.operator_creator.add_camera_logging(
             traffic_light_camera_stream,
-            'traffic_light_camera_logger_operator',
-            'carla-traffic-light-')
+            'traffic_light_camera_logger_operator', 'carla-traffic-light-')
         (traffic_light_segmented_camera_stream, _) = \
             pylot.operator_creator.add_segmented_camera(
                 transform,
@@ -143,28 +132,23 @@ def driver():
          right_camera_stream) = pylot.operator_creator.add_left_right_cameras(
              transform, vehicle_id_stream)
         pylot.operator_creator.add_camera_logging(
-            left_camera_stream,
-            'left_camera_logger_operator', 'carla-left-')
+            left_camera_stream, 'left_camera_logger_operator', 'carla-left-')
         pylot.operator_creator.add_camera_logging(
-            right_camera_stream,
-            'right_camera_logger_operator', 'carla-right-')
+            right_camera_stream, 'right_camera_logger_operator',
+            'carla-right-')
 
     point_cloud_stream = None
     if FLAGS.log_lidar:
-        (point_cloud_stream, _) = pylot.operator_creator.add_lidar(
-            transform, vehicle_id_stream)
+        (point_cloud_stream,
+         _) = pylot.operator_creator.add_lidar(transform, vehicle_id_stream)
         pylot.operator_creator.add_lidar_logging(point_cloud_stream)
 
     obstacles_stream = None
     if FLAGS.log_obstacles:
         obstacles_stream = pylot.operator_creator.add_perfect_detector(
-            depth_camera_stream,
-            center_camera_stream,
-            segmented_stream,
-            can_bus_stream,
-            ground_obstacles_stream,
-            ground_speed_limit_signs_stream,
-            ground_stop_signs_stream,
+            depth_camera_stream, center_camera_stream, segmented_stream,
+            can_bus_stream, ground_obstacles_stream,
+            ground_speed_limit_signs_stream, ground_stop_signs_stream,
             rgb_camera_setup)
         pylot.operator_creator.add_bounding_box_logging(obstacles_stream)
 
@@ -209,25 +193,16 @@ def driver():
                     name='top_down_rgb_camera',
                     fov=90)
             pylot.operator_creator.add_chauffeur_logging(
-                vehicle_id_stream,
-                can_bus_stream,
-                obstacles_tracking_stream,
-                top_down_camera_stream,
-                top_down_segmented_stream,
+                vehicle_id_stream, can_bus_stream, obstacles_tracking_stream,
+                top_down_camera_stream, top_down_segmented_stream,
                 top_down_camera_setup)
 
     prediction_stream = None
     pylot.operator_creator.add_visualizers(
-        center_camera_stream,
-        depth_camera_stream,
-        point_cloud_stream,
-        segmented_stream,
-        imu_stream,
-        can_bus_stream,
-        top_down_segmented_stream,
-        obstacles_tracking_stream,
-        prediction_stream,
-        top_down_camera_setup)
+        center_camera_stream, depth_camera_stream, point_cloud_stream,
+        segmented_stream, imu_stream, can_bus_stream,
+        top_down_segmented_stream, obstacles_tracking_stream,
+        prediction_stream, top_down_camera_setup)
 
     # TODO: Hack! We synchronize on a single stream, based on a guesestimated
     # of which stream is slowest. Instead, We should synchronize on all output
@@ -243,7 +218,7 @@ def driver():
             stream_to_sync_on = traffic_lights_stream
         if obstacles_stream is not None:
             stream_to_sync_on = obstacles_stream
-        (control_stream,) = erdust.connect(
+        (control_stream, ) = erdust.connect(
             SynchronizerOperator,
             [stream_to_sync_on],
             False,  # Does not flow watermarks.

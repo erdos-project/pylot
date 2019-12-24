@@ -74,10 +74,8 @@ class LidarDriverOperator(erdust.Operator):
             # Include the transform relative to the vehicle.
             # Carla carla_pc.transform returns the world transform, but
             # we do not use it directly.
-            msg = PointCloudMessage(
-                points,
-                self._lidar_setup.get_transform(),
-                timestamp)
+            msg = PointCloudMessage(points, self._lidar_setup.get_transform(),
+                                    timestamp)
 
             self._lidar_stream.send(msg)
             # Note: The operator is set not to automatically propagate
@@ -95,8 +93,7 @@ class LidarDriverOperator(erdust.Operator):
 
         # Connect to the world. We connect here instead of in the constructor
         # to ensure we're connected to the latest world.
-        _, world = get_world(self._flags.carla_host,
-                             self._flags.carla_port,
+        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
                              self._flags.carla_timeout)
         if world is None:
             raise ValueError("There was an issue connecting to the simulator.")
@@ -119,13 +116,11 @@ class LidarDriverOperator(erdust.Operator):
 
         lidar_blueprint.set_attribute('channels',
                                       str(self._lidar_setup.channels))
-        lidar_blueprint.set_attribute('range',
-                                      str(self._lidar_setup.range))
+        lidar_blueprint.set_attribute('range', str(self._lidar_setup.range))
         lidar_blueprint.set_attribute('points_per_second',
                                       str(self._lidar_setup.points_per_second))
         lidar_blueprint.set_attribute(
-            'rotation_frequency',
-            str(self._lidar_setup.rotation_frequency))
+            'rotation_frequency', str(self._lidar_setup.rotation_frequency))
         lidar_blueprint.set_attribute('upper_fov',
                                       str(self._lidar_setup.upper_fov))
         lidar_blueprint.set_attribute('lower_fov',

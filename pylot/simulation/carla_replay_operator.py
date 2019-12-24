@@ -29,7 +29,6 @@ class CarlaReplayOperator(erdust.Operator):
         _client: A connection to the simulator.
         _world: A handle to the world running inside the simulation.
     """
-
     def __init__(self,
                  can_bus_stream,
                  ground_traffic_lights_stream,
@@ -65,12 +64,11 @@ class CarlaReplayOperator(erdust.Operator):
         ground_speed_limit_signs_stream = erdust.WriteStream()
         ground_stop_signs_stream = erdust.WriteStream()
         vehicle_id_stream = erdust.WriteStream()
-        return [can_bus_stream,
-                ground_traffic_lights_stream,
-                ground_obstacles_stream,
-                ground_speed_limit_signs_stream,
-                ground_stop_signs_stream,
-                vehicle_id_stream]
+        return [
+            can_bus_stream, ground_traffic_lights_stream,
+            ground_obstacles_stream, ground_speed_limit_signs_stream,
+            ground_stop_signs_stream, vehicle_id_stream
+        ]
 
     def on_world_tick(self, msg):
         """ Callback function that gets called when the world is ticked.
@@ -103,10 +101,7 @@ class CarlaReplayOperator(erdust.Operator):
         # Get all the actors in the simulation.
         actor_list = self._world.get_actors()
 
-        (vehicles,
-         pedestrians,
-         traffic_lights,
-         speed_limits,
+        (vehicles, pedestrians, traffic_lights, speed_limits,
          traffic_stops) = extract_data_in_pylot_format(actor_list)
 
         obstacles_msg = pylot.simulation.messages.GroundObstaclesMessage(
@@ -136,10 +131,11 @@ class CarlaReplayOperator(erdust.Operator):
 
         # Replayer time factor is only available in > 0.9.5.
         # self._client.set_replayer_time_factor(0.1)
-        print(self._client.replay_file(self._flags.carla_replay_file,
-                                       self._flags.carla_replay_start_time,
-                                       self._flags.carla_replay_duration,
-                                       self._flags.carla_replay_id))
+        print(
+            self._client.replay_file(self._flags.carla_replay_file,
+                                     self._flags.carla_replay_start_time,
+                                     self._flags.carla_replay_duration,
+                                     self._flags.carla_replay_id))
         # Sleep a bit to allow the server to start the replay.
         time.sleep(1)
         self._driving_vehicle = self._world.get_actors().find(

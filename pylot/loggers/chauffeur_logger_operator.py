@@ -25,15 +25,9 @@ TL_BBOX_LIFETIME_BUFFER = 0.1
 
 class ChauffeurLoggerOperator(erdust.Operator):
     """ Logs data in Chauffeur format. """
-
-    def __init__(self,
-                 vehicle_id_stream,
-                 can_bus_stream,
-                 obstacle_tracking_stream,
-                 top_down_camera_stream,
-                 top_down_segmentation_stream,
-                 name,
-                 flags,
+    def __init__(self, vehicle_id_stream, can_bus_stream,
+                 obstacle_tracking_stream, top_down_camera_stream,
+                 top_down_segmentation_stream, name, flags,
                  top_down_camera_setup):
         """ Initializes the operator with the given parameters.
 
@@ -66,28 +60,22 @@ class ChauffeurLoggerOperator(erdust.Operator):
         self._top_down_camera_setup = top_down_camera_setup
         # Get world to access traffic lights.
         _, self._world = pylot.simulation.carla_utils.get_world(
-            self._flags.carla_host,
-            self._flags.carla_port,
+            self._flags.carla_host, self._flags.carla_port,
             self._flags.carla_timeout)
         if self._world is None:
             raise ValueError('There was an issue connecting to the simulator.')
 
     @staticmethod
-    def connect(vehicle_id_stream,
-                can_bus_stream,
-                obstacle_tracking_stream,
-                top_down_camera_stream,
-                top_down_segmentation_stream):
+    def connect(vehicle_id_stream, can_bus_stream, obstacle_tracking_stream,
+                top_down_camera_stream, top_down_segmentation_stream):
         return []
 
     def on_tracking_update(self, msg):
         past_poses = np.zeros((self._top_down_camera_setup.height,
-                               self._top_down_camera_setup.width,
-                               3),
+                               self._top_down_camera_setup.width, 3),
                               dtype=np.uint8)
         future_poses = np.zeros((self._top_down_camera_setup.height,
-                                 self._top_down_camera_setup.width,
-                                 3),
+                                 self._top_down_camera_setup.width, 3),
                                 dtype=np.uint8)
 
         # Intrinsic and extrinsic matrix of the top down segmentation camera.
@@ -113,9 +101,8 @@ class ChauffeurLoggerOperator(erdust.Operator):
                     r = 3
                     if obj.obj_id == self._ground_vehicle_id:
                         r = 10
-                    cv2.circle(past_poses,
-                               (int(point.x), int(point.y)),
-                               r, (100, 100, 100), -1)
+                    cv2.circle(past_poses, (int(point.x), int(point.y)), r,
+                               (100, 100, 100), -1)
 
         # Transform to previous and back to current frame
         self._waypoints = [
@@ -140,25 +127,24 @@ class ChauffeurLoggerOperator(erdust.Operator):
 
         # Draw screen points
         for point in screen_waypoints:
-            cv2.circle(future_poses,
-                       (int(point.x), int(point.y)),
-                       10, (100, 100, 100), -1)
+            cv2.circle(future_poses, (int(point.x), int(point.y)), 10,
+                       (100, 100, 100), -1)
 
         # Log future screen points
         future_poses_img = Image.fromarray(future_poses)
         future_poses_img = future_poses_img.convert('RGB')
         file_name = os.path.join(
             self._flags.data_path,
-            'future_poses-{}.png'.format(
-                msg.timestamp.coordinates[0] - len(self._waypoints) * 100))
+            'future_poses-{}.png'.format(msg.timestamp.coordinates[0] -
+                                         len(self._waypoints) * 100))
         future_poses_img.save(file_name)
 
         # Log future poses
         waypoints = [str(wp) for wp in self._waypoints]
         file_name = os.path.join(
             self._flags.data_path,
-            'waypoints-{}.json'.format(
-                msg.timestamp.coordinates[0] - len(self._waypoints) * 100))
+            'waypoints-{}.json'.format(msg.timestamp.coordinates[0] -
+                                       len(self._waypoints) * 100))
         with open(file_name, 'w') as outfile:
             json.dump(waypoints, outfile)
 
@@ -174,8 +160,7 @@ class ChauffeurLoggerOperator(erdust.Operator):
         # Save the segmented channels
         msg.frame.save_per_class_masks(self._flags.data_path, msg.timestamp)
         file_name = os.path.join(
-            self._flags.data_path,
-            'top_down_segmentation-{}.png'.format(
+            self._flags.data_path, 'top_down_segmentation-{}.png'.format(
                 msg.timestamp.coordinates[0]))
         msg.frame.save(file_name)
 
@@ -242,10 +227,12 @@ class ChauffeurLoggerOperator(erdust.Operator):
                              color=bbox_color,
                              life_time=bbox_life_time)
 
-    def _get_traffic_light_channel_from_top_down_rgb(
-            self,
-            img,
-            tl_bbox_colors=[[200, 0, 0], [13, 0, 196], [5, 200, 0]]):
+    def _get_traffic_light_channel_from_top_down_rgb(self,
+                                                     img,
+                                                     tl_bbox_colors=[[
+                                                         200, 0, 0
+                                                     ], [13, 0,
+                                                         196], [5, 200, 0]]):
         """
         Returns a mask of the traffic light extent bounding boxes seen from a
         top-down view. The bounding boxes in the mask are colored differently
@@ -262,11 +249,11 @@ class ChauffeurLoggerOperator(erdust.Operator):
         if tl_bbox_colors is None:
             tl_bbox_colors = TL_STATE_TO_PIXEL_COLOR.values()
         h, w = img.shape[:2]
-        tl_mask = np.zeros((h+2, w+2), np.uint8)
+        tl_mask = np.zeros((h + 2, w + 2), np.uint8)
         # Grayscale values for different traffic light states
         vals = [33, 66, 99]
         for i, bbox_color in enumerate(tl_bbox_colors):
-            tl_mask_for_bbox_color = np.zeros((h+2, w+2), np.uint8)
+            tl_mask_for_bbox_color = np.zeros((h + 2, w + 2), np.uint8)
             # Using a tolerance of 20 to locate correct boxes.
             mask = np.all(abs(img - bbox_color) < 20, axis=2).astype(np.uint8)
             # Flood fill from (0, 0) corner.

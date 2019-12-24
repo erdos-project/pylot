@@ -3,18 +3,21 @@ import math
 
 from pylot.planning.utils import BehaviorPlannerState
 
-
-VehicleInfo = namedtuple("VehicleInfo", [
-    'next_speed',  # The next vehicle speed.
-    'target_speed',  # The target speed of the vehicle.
-    'goal_lane',  # The id of the goal lane.
-    'delta_s',  # Delta s distance to the goal location.
-    'speed_limit',  # Speed limit in the area.
+VehicleInfo = namedtuple(
+    "VehicleInfo",
+    [
+        'next_speed',  # The next vehicle speed.
+        'target_speed',  # The target speed of the vehicle.
+        'goal_lane',  # The id of the goal lane.
+        'delta_s',  # Delta s distance to the goal location.
+        'speed_limit',  # Speed limit in the area.
     ])
 
-Trajectory = namedtuple("Trajectory", [
-    'intended_lane',  # The id of the lane change to (i.e., next lane).
-    'final_lane',  # Resulting lane for the current behavior.
+Trajectory = namedtuple(
+    "Trajectory",
+    [
+        'intended_lane',  # The id of the lane change to (i.e., next lane).
+        'final_lane',  # Resulting lane for the current behavior.
     ])
 
 
@@ -49,8 +52,8 @@ def cost_speed(vehicle_info, predictions, trajectory):
         return (STOP_COST *
                 (vehicle_info.target_speed - vehicle_info.next_speed) /
                 vehicle_info.target_speed)
-    elif (vehicle_info.next_speed >= vehicle_info.target_speed and
-          vehicle_info.next_speed < vehicle_info.speed_limit):
+    elif (vehicle_info.next_speed >= vehicle_info.target_speed
+          and vehicle_info.next_speed < vehicle_info.speed_limit):
         # Cost linearly increases if we drive above target speed.
         return (vehicle_info.next_speed -
                 vehicle_info.target_speed) / BUFFER_SPEED
@@ -92,12 +95,11 @@ def cost_inefficiency(vehicle_info, predictions, trajectory):
     """
     # Cost becomes higher for trajectories with intended and final_lane
     # lane that have traffic slower than target_speed.
-    proposed_speed_intended = get_lane_speed(
-        predictions, trajectory.intended_lane)
+    proposed_speed_intended = get_lane_speed(predictions,
+                                             trajectory.intended_lane)
     if not proposed_speed_intended:
         proposed_speed_intended = vehicle_info.target_speed
-    proposed_speed_final = get_lane_speed(
-        predictions, trajectory.final_lane)
+    proposed_speed_final = get_lane_speed(predictions, trajectory.final_lane)
     if not proposed_speed_final:
         proposed_speed_final = vehicle_info.target_speed
     cost = (2.0 * vehicle_info.target_speed - proposed_speed_intended -

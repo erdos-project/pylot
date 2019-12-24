@@ -30,27 +30,22 @@ class MPCAgentOperator(erdust.Operator):
         ground_traffic_lights_stream.add_callback(
             self.on_traffic_lights_update)
         waypoints_stream.add_callback(self.on_waypoints_update)
-        erdust.add_watermark_callback(
-            [can_bus_stream,
-             ground_obstacles_stream,
-             ground_traffic_lights_stream,
-             waypoints_stream],
-            [control_stream],
-            self.on_watermark)
+        erdust.add_watermark_callback([
+            can_bus_stream, ground_obstacles_stream,
+            ground_traffic_lights_stream, waypoints_stream
+        ], [control_stream], self.on_watermark)
         self._name = name
         self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._csv_logger = erdust.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._flags = flags
         self._config = global_config
-        self._map = HDMap(get_map(self._flags.carla_host,
-                                  self._flags.carla_port,
-                                  self._flags.carla_timeout),
-                          log_file_name)
-        _, self._world = get_world(
-            self._flags.carla_host,
-            self._flags.carla_port,
-            self._flags.carla_timeout)
+        self._map = HDMap(
+            get_map(self._flags.carla_host, self._flags.carla_port,
+                    self._flags.carla_timeout), log_file_name)
+        _, self._world = get_world(self._flags.carla_host,
+                                   self._flags.carla_port,
+                                   self._flags.carla_timeout)
         self._pid = PID(p=flags.pid_p, i=flags.pid_i, d=flags.pid_d)
         self._can_bus_msgs = deque()
         self._obstacles_msgs = deque()
@@ -58,10 +53,8 @@ class MPCAgentOperator(erdust.Operator):
         self._waypoint_msgs = deque()
 
     @staticmethod
-    def connect(can_bus_stream,
-                ground_obstacles_stream,
-                ground_traffic_lights_stream,
-                waypoints_stream):
+    def connect(can_bus_stream, ground_obstacles_stream,
+                ground_traffic_lights_stream, waypoints_stream):
         control_stream = erdust.WriteStream()
         return [control_stream]
 
@@ -94,8 +87,8 @@ class MPCAgentOperator(erdust.Operator):
         wp_vector = waypoint_msg.wp_vector
         wp_angle_speed = waypoint_msg.wp_angle_speed
 
-        waypoints = deque(itertools.islice(
-            waypoint_msg.waypoints, 0, 50))  # only take 50 meters
+        waypoints = deque(itertools.islice(waypoint_msg.waypoints, 0,
+                                           50))  # only take 50 meters
 
         # Get ground obstacles info.
         obstacles = self._obstacles_msgs.popleft().obstacles
@@ -104,18 +97,13 @@ class MPCAgentOperator(erdust.Operator):
         traffic_lights = self._traffic_light_msgs.popleft().traffic_lights
 
         speed_factor, state = self.stop_for_agents(vehicle_transform.location,
-                                                   wp_angle,
-                                                   wp_vector,
-                                                   wp_angle_speed,
-                                                   obstacles,
+                                                   wp_angle, wp_vector,
+                                                   wp_angle_speed, obstacles,
                                                    traffic_lights)
 
-        control_msg = self.get_control_message(
-            waypoints,
-            vehicle_transform,
-            vehicle_speed,
-            speed_factor,
-            timestamp)
+        control_msg = self.get_control_message(waypoints, vehicle_transform,
+                                               vehicle_speed, speed_factor,
+                                               timestamp)
         self._logger.debug("Throttle: {}".format(control_msg.throttle))
         self._logger.debug("Steer: {}".format(control_msg.steer))
         self._logger.debug("Brake: {}".format(control_msg.brake))
@@ -123,13 +111,8 @@ class MPCAgentOperator(erdust.Operator):
 
         control_stream.send(control_msg)
 
-    def stop_for_agents(self,
-                        ego_vehicle_location,
-                        wp_angle,
-                        wp_vector,
-                        wp_angle_speed,
-                        obstacles,
-                        traffic_lights):
+    def stop_for_agents(self, ego_vehicle_location, wp_angle, wp_vector,
+                        wp_angle_speed, obstacles, traffic_lights):
         speed_factor = 1
         speed_factor_tl = 1
         speed_factor_p = 1
@@ -138,42 +121,30 @@ class MPCAgentOperator(erdust.Operator):
         for obstacle in obstacles:
             if obstacle.label == 'vehicle' and self._flags.stop_for_vehicles:
                 # Only brake for vehicles that are in ego vehicle's lane.
-                if self._map.are_on_same_lane(
-                        ego_vehicle_location,
-                        obstacle.transform.location):
+                if self._map.are_on_same_lane(ego_vehicle_location,
+                                              obstacle.transform.location):
                     new_speed_factor_v = pylot.control.utils.stop_vehicle(
-                        ego_vehicle_location,
-                        obstacle.transform.location,
-                        wp_vector,
-                        speed_factor_v,
-                        self._flags)
+                        ego_vehicle_location, obstacle.transform.location,
+                        wp_vector, speed_factor_v, self._flags)
                     speed_factor_v = min(speed_factor_v, new_speed_factor_v)
             if obstacle.label == 'pedestrian' and \
                self._flags.stop_for_pedestrians:
                 # Only brake for pedestrians that are on the road.
                 if self._map.is_on_lane(obstacle.transform.location):
                     new_speed_factor_p = pylot.control.utils.stop_pedestrian(
-                        ego_vehicle_location,
-                        obstacle.transform.location,
-                        wp_vector,
-                        speed_factor_p,
-                        self._flags)
+                        ego_vehicle_location, obstacle.transform.location,
+                        wp_vector, speed_factor_p, self._flags)
                     speed_factor_p = min(speed_factor_p, new_speed_factor_p)
 
         if self._flags.stop_for_traffic_lights:
             for tl in traffic_lights:
-                if (self._map.must_obbey_traffic_light(
-                        ego_vehicle_location, tl.transform.location) and
-                        self._is_traffic_light_visible(
+                if (self._map.must_obbey_traffic_light(ego_vehicle_location,
+                                                       tl.transform.location)
+                        and self._is_traffic_light_visible(
                             ego_vehicle_location, tl.transform.location)):
                     new_speed_factor_tl = pylot.control.utils.stop_traffic_light(
-                        ego_vehicle_location,
-                        tl.transform.location,
-                        tl.state,
-                        wp_vector,
-                        wp_angle,
-                        speed_factor_tl,
-                        self._flags)
+                        ego_vehicle_location, tl.transform.location, tl.state,
+                        wp_vector, wp_angle, speed_factor_tl, self._flags)
                     speed_factor_tl = min(speed_factor_tl, new_speed_factor_tl)
 
         speed_factor = min(speed_factor_tl, speed_factor_p, speed_factor_v)
@@ -225,12 +196,8 @@ class MPCAgentOperator(erdust.Operator):
         # initialize mpc controller
         self.mpc = ModelPredictiveController(config=self._config)
 
-    def get_control_message(self,
-                            waypoints,
-                            vehicle_transform,
-                            current_speed,
-                            speed_factor,
-                            timestamp):
+    def get_control_message(self, waypoints, vehicle_transform, current_speed,
+                            speed_factor, timestamp):
         ego_location = vehicle_transform.location.as_carla_location()
         ego_yaw = np.deg2rad(zero_to_2_pi(vehicle_transform.rotation.yaw))
 
@@ -260,9 +227,7 @@ class MPCAgentOperator(erdust.Operator):
 
     def _is_traffic_light_visible(self, ego_vehicle_location, tl_location):
         _, tl_dist = pylot.control.utils.get_world_vec_dist(
-            ego_vehicle_location.x,
-            ego_vehicle_location.y,
-            tl_location.x,
+            ego_vehicle_location.x, ego_vehicle_location.y, tl_location.x,
             tl_location.y)
         return tl_dist > self._flags.traffic_light_min_dist_thres
 
@@ -287,9 +252,9 @@ class MPCAgentOperator(erdust.Operator):
         """
         rad = steer / self._flags.steer_gain
         if rad > 0:
-            rad = min(rad, np.pi/2)
+            rad = min(rad, np.pi / 2)
         else:
-            rad = max(rad, -np.pi/2)
+            rad = max(rad, -np.pi / 2)
         return rad
 
     def __get_throttle_brake_without_factor(self, current_speed, target_speed):

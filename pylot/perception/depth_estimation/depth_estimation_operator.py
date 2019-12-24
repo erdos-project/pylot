@@ -38,8 +38,7 @@ class DepthEstimationOperator(erdust.Operator):
         right_camera_stream.add_callback(self.on_right_camera_msg)
         erdust.add_watermark_callback(
             [left_camera_stream, right_camera_stream],
-            [depth_estimation_stream],
-            self.compute_depth)
+            [depth_estimation_stream], self.compute_depth)
         self._name = name
         self._flags = flags
         self._left_imgs = {}
@@ -113,14 +112,19 @@ class DepthEstimationOperator(erdust.Operator):
         depth = preprocess.disp2depth(output)
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},"{}",{}'.format(
-            time_epoch_ms(), self._name, timestamp, runtime))
+        self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
+                                                     self._name, timestamp,
+                                                     runtime))
 
         if self._flags.visualize_depth_est:
             plt.imshow(output, cmap='viridis')
             plt.show()
 
-        camera_setup = CameraSetup("depth_estimation", "estimation.anynet", 
-                depth.shape[1], depth.shape[0], self._transform, fov=self._fov)
+        camera_setup = CameraSetup("depth_estimation",
+                                   "estimation.anynet",
+                                   depth.shape[1],
+                                   depth.shape[0],
+                                   self._transform,
+                                   fov=self._fov)
         depth_estimation_stream.send(
             DepthFrameMessage(depth, camera_setup, timestamp))

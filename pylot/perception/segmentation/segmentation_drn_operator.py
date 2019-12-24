@@ -14,15 +14,12 @@ from pylot.utils import add_timestamp, rgb_to_bgr, time_epoch_ms
 flags.DEFINE_string('segmentation_model_path',
                     'dependencies/models/drn_d_22_cityscapes.pth',
                     'Path to the model')
-flags.DEFINE_float(
-    'segmentation_drn_gpu_memory_fraction',
-    0.2,
-    'GPU memory fraction allocated to DRN segmentation')
+flags.DEFINE_float('segmentation_drn_gpu_memory_fraction', 0.2,
+                   'GPU memory fraction allocated to DRN segmentation')
 
 
 class SegmentationDRNOperator(erdust.Operator):
     """ Subscribes to a camera stream, and segments frames using DRN."""
-
     def __init__(self,
                  camera_stream,
                  segmented_stream,
@@ -30,8 +27,8 @@ class SegmentationDRNOperator(erdust.Operator):
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-        camera_stream.add_callback(
-            self.on_msg_camera_stream, [segmented_stream])
+        camera_stream.add_callback(self.on_msg_camera_stream,
+                                   [segmented_stream])
         self._name = name
         self._flags = flags
         self._logger = erdust.utils.setup_logging(name, log_file_name)
@@ -41,8 +38,10 @@ class SegmentationDRNOperator(erdust.Operator):
         classes = 19
         self._pallete = drn.segment.CITYSCAPE_PALETTE
         # TODO(ionel): Figure out how to set GPU memory fraction.
-        self._model = DRNSeg(
-            arch, classes, pretrained_model=None, pretrained=False)
+        self._model = DRNSeg(arch,
+                             classes,
+                             pretrained_model=None,
+                             pretrained=False)
         self._model.load_state_dict(
             torch.load(self._flags.segmentation_model_path))
         if torch.cuda.is_available():
@@ -61,8 +60,8 @@ class SegmentationDRNOperator(erdust.Operator):
             msg.timestamp, self._name))
         start_time = time.time()
         assert msg.encoding == 'BGR', 'Expects BGR frames'
-        image = torch.from_numpy(msg.frame.transpose([2, 0,
-                                                      1])).unsqueeze(0).float()
+        image = torch.from_numpy(msg.frame.transpose([2, 0, 1
+                                                      ])).unsqueeze(0).float()
         image_var = Variable(image, requires_grad=False, volatile=True)
 
         final = self._model(image_var)[0]
@@ -80,8 +79,9 @@ class SegmentationDRNOperator(erdust.Operator):
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},"{}",{}'.format(
-            time_epoch_ms(), self._name, msg.timestamp, runtime))
+        self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
+                                                     self._name, msg.timestamp,
+                                                     runtime))
 
         frame = SegmentedFrame(image_np, 'cityscapes')
         segmented_stream.send(

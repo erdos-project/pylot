@@ -17,7 +17,6 @@ class FusionOperator(erdust.Operator):
             boxes respectively. Note that camera position, orientation, and
             FOV must be identical for both.
     """
-
     def __init__(self,
                  can_bus_stream,
                  obstacles_stream,
@@ -55,21 +54,19 @@ class FusionOperator(erdust.Operator):
         fused_stream = erdust.WriteStream()
         return [fused_stream]
 
-    def __calc_object_positions(self,
-                                object_bounds,
-                                distances,
-                                car_position,
+    def __calc_object_positions(self, object_bounds, distances, car_position,
                                 car_orientation):
         object_positions = []
         for bounds in object_bounds:
             i_min, i_max, j_min, j_max = bounds
 
-            bounding_box_center = np.average(
-                [[i_min, i_max], [j_min, j_max]], axis=1)
+            bounding_box_center = np.average([[i_min, i_max], [j_min, j_max]],
+                                             axis=1)
 
             distance = np.median(distances[i_min:i_max, j_min:j_max])
-            vertical_angle, horizontal_angle = (self._camera_fov * (
-                bounding_box_center - distances.shape) / distances.shape)
+            vertical_angle, horizontal_angle = (
+                self._camera_fov * (bounding_box_center - distances.shape) /
+                distances.shape)
 
             horizontal_diagonal = distance * np.cos(vertical_angle)
 
@@ -99,22 +96,21 @@ class FusionOperator(erdust.Operator):
     def fuse(self):
         # Return if we don't have car position, distances or objects.
         start_time = time.time()
-        if min(map(len, [self._car_positions,
-                         self._distances,
-                         self._objects])) == 0:
+        if min(map(
+                len,
+            [self._car_positions, self._distances, self._objects])) == 0:
             return
         self.__discard_old_data()
         object_positions = self.__calc_object_positions(
-            self._objects[0][1],
-            self._distances[0][1],
+            self._objects[0][1], self._distances[0][1],
             self._car_positions[0][1][0],
             np.arccos(self._car_positions[0][1][1][0]))
         timestamp = self._objects[0][0]
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},{}'.format(
-            time_epoch_ms(), self._name, runtime))
+        self._csv_logger.info('{},{},{}'.format(time_epoch_ms(), self._name,
+                                                runtime))
 
         output_msg = ObjPositionsSpeedsMessage(object_positions, timestamp)
         self._fused_stream.send(output_msg)

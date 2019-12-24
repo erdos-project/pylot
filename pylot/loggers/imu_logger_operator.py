@@ -6,7 +6,6 @@ class IMULoggerOperator(erdust.Operator):
     """ Subscribes to IMU streams and logs IMU measurements. This will log
     every frame to preserve linearization when approximating jerk in smoothness
     evaluation metrics."""
-
     def __init__(self, imu_stream, name, flags, log_file_name=None):
         imu_stream.add_callback(self.on_imu_update)
         self._name = name

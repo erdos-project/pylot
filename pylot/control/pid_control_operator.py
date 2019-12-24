@@ -15,7 +15,6 @@ class PIDControlOperator(erdust.Operator):
     Args:
         _pid: The longitudinal PID controller.
     """
-
     def __init__(self,
                  waypoints_stream,
                  can_bus_stream,
@@ -134,11 +133,7 @@ class PIDControlOperator(erdust.Operator):
                 self._last_waypoint_msg.target_speed)
             steer = self._get_steering(self._last_waypoint_msg.waypoints[0])
         control_stream.send(
-            ControlMessage(steer,
-                           throttle,
-                           brake,
-                           False,
-                           False,
+            ControlMessage(steer, throttle, brake, False, False,
                            msg.timestamp))
 
     def on_waypoint(self, msg):

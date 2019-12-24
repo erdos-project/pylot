@@ -4,7 +4,6 @@ import pptk
 
 class LidarVisualizerOperator(erdust.Operator):
     """ Subscribes to point cloud streams and visualizes point clouds."""
-
     def __init__(self, point_cloud_stream, name, log_file_name=None):
         point_cloud_stream.add_callback(self.display_point_cloud)
         self._name = name

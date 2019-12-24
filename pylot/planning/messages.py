@@ -3,9 +3,14 @@ import erdust
 
 class WaypointsMessage(erdust.Message):
     """ This class represents a message to be used to send waypoints."""
-
-    def __init__(self, timestamp, waypoints=None, target_speed=0, wp_angle=0,
-                 wp_vector=0, wp_angle_speed=0, wp_vector_speed=0):
+    def __init__(self,
+                 timestamp,
+                 waypoints=None,
+                 target_speed=0,
+                 wp_angle=0,
+                 wp_vector=0,
+                 wp_angle_speed=0,
+                 wp_vector_speed=0):
         super(WaypointsMessage, self).__init__(timestamp, None)
         self.wp_angle = wp_angle
         self.wp_vector = wp_vector
@@ -22,7 +27,6 @@ class WaypointsMessage(erdust.Message):
 
 
 class BehaviorMessage(erdust.Message):
-
     def __init__(self,
                  timestamp,
                  target_lane_id,

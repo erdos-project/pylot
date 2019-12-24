@@ -3,7 +3,7 @@ import numpy as np
 import bisect
 
 global_config = {
-    'vehicle': { # configured for lincoln mkz
+    'vehicle': {  # configured for lincoln mkz
         'length': 4.93,
         'width': 1.86,
         'offset': 1.0,
@@ -40,7 +40,7 @@ def compute_curvature(vel, accel, yaw):
     ddx = accel * np.tan(yaw)
     dy = vel * np.tan(yaw)
     ddy = accel * np.tan(yaw)
-    return (ddy * dx - ddx * dy) / ((dx ** 2 + dy ** 2) ** (3 / 2))
+    return (ddy * dx - ddx * dy) / ((dx**2 + dy**2)**(3 / 2))
 
 
 def normalize_yaw(yaw_list):
@@ -64,7 +64,6 @@ class CubicSpline1D:
     """
     1-dimensional cubic spline class. For technical details see: http://mathworld.wolfram.com/CubicSpline.html
     """
-
     def __init__(self, x, y):
         """
         Construct the 1-dimensional cubic spline.
@@ -200,7 +199,6 @@ class CubicSpline2D:
     """
     2-dimensional cubic spline class. For technical details see: http://mathworld.wolfram.com/CubicSpline.html
     """
-
     def __init__(self, x, y, delta_s=1):
         """
         Construct the 2-dimensional cubic spline.
@@ -265,7 +263,7 @@ class CubicSpline2D:
         ddx = self.sx.calc_der2(s)
         dy = self.sy.calc_der1(s)
         ddy = self.sy.calc_der2(s)
-        k = (ddy * dx - ddx * dy) / ((dx ** 2 + dy ** 2) ** (3 / 2))
+        k = (ddy * dx - ddx * dy) / ((dx**2 + dy**2)**(3 / 2))
         return k
 
     def calc_yaw(self, s):
@@ -295,8 +293,7 @@ class CubicSpline2D:
         """
         dx = np.diff(x)
         dy = np.diff(y)
-        self.ds = [np.sqrt(idx ** 2 + idy ** 2)
-                   for (idx, idy) in zip(dx, dy)]
+        self.ds = [np.sqrt(idx**2 + idy**2) for (idx, idy) in zip(dx, dy)]
         s = [0]
         s.extend(np.cumsum(self.ds))
         s = np.unique(s)
@@ -335,8 +332,16 @@ class Vehicle:
 
 
 class Trajectory:
-    def __init__(self, t_list, s_list, x_list, y_list, k_list, vel_list,
-                 yaw_list, accel_list=None, steer_list=None):
+    def __init__(self,
+                 t_list,
+                 s_list,
+                 x_list,
+                 y_list,
+                 k_list,
+                 vel_list,
+                 yaw_list,
+                 accel_list=None,
+                 steer_list=None):
         self.t_list = list(t_list)  # Time [s]
         self.s_list = list(s_list)  # Arc distance list [m]
         self.x_list = list(x_list)  # X coordinate list [m]

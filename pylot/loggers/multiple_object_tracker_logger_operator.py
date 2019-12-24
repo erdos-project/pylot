@@ -4,7 +4,6 @@ import os
 
 class MultipleObjectTrackerLoggerOperator(erdust.Operator):
     """ Logs tracked obstacles in the MOT16 file format."""
-
     def __init__(self, obstacles_stream, name, flags, log_file_name=None):
         # Register a callback on obstacles data stream.
         obstacles_stream.add_callback(self.on_detected_objs_msg)

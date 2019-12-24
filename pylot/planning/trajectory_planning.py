@@ -40,8 +40,9 @@ def get_polynomial_func(coefficients):
     def f(x):
         total = 0.0
         for i, coef in enumerate(coefficients):
-            total += coef * x ** i
+            total += coef * x**i
         return total
+
     return f
 
 
@@ -75,8 +76,8 @@ def get_min_distance_to_any_obstacle(s_coeffs, d_coeffs, duration, obstacles):
     """
     min_dist = 100000000
     for obstacle in obstacles:
-        dist = get_min_future_obstacle_distance(
-            s_coeffs, d_coeffs, duration, obstacle)
+        dist = get_min_future_obstacle_distance(s_coeffs, d_coeffs, duration,
+                                                obstacle)
         min_dist = min(min_dist, dist)
     return min_dist
 
@@ -106,10 +107,8 @@ def get_min_future_obstacle_distance(s_coeffs, d_coeffs, duration, obstacle):
     return min_dist
 
 
-def jerk_minimizing_trajectory(
-        s_initial, v_initial, acc_initial,
-        s_final, v_final, acc_final,
-        duration):
+def jerk_minimizing_trajectory(s_initial, v_initial, acc_initial, s_final,
+                               v_final, acc_final, duration):
     """ Computes the jerk minimization trajectory.
 
     Args:
@@ -125,16 +124,15 @@ def jerk_minimizing_trajectory(
         polynomial:
         s(t) = a0 + a1 * t + a2 * t**2 + a3 * t**3 + a4 * t**4 + a5 * t**5
     """
-    matrix_a = np.array([
-        [duration**3, duration**4, duration**5],
-        [3 * duration**2, 4 * duration**3, 5 * duration**4],
-        [6 * duration, 12 * duration**2, 20 * duration**3]])
+    matrix_a = np.array([[duration**3, duration**4, duration**5],
+                         [3 * duration**2, 4 * duration**3, 5 * duration**4],
+                         [6 * duration, 12 * duration**2, 20 * duration**3]])
 
-    matrix_b = np.array([
-        [s_final - (s_initial + v_initial * duration + 0.5 * acc_initial * duration**2)],
-        [v_final - (v_initial + acc_initial * duration)],
-        [acc_final - acc_initial]
-    ])
+    matrix_b = np.array([[
+        s_final -
+        (s_initial + v_initial * duration + 0.5 * acc_initial * duration**2)
+    ], [v_final - (v_initial + acc_initial * duration)],
+                         [acc_final - acc_initial]])
 
     matrix_c = math.inv(matrix_a) * matrix_b
 
@@ -149,8 +147,10 @@ def jerk_minimizing_trajectory(
 
 def max_jerk_cost(s_coeffs, d_coeffs, duration):
     jerk_func = get_nth_derivative_for_polynomial(d_coeffs, 3)
-    max_jerk = max([jerk_func(duration * float(percentage) / 100.0)
-                    for percentage in range(100)],
+    max_jerk = max([
+        jerk_func(duration * float(percentage) / 100.0)
+        for percentage in range(100)
+    ],
                    key=abs)
     # Step function.
     if max_jerk > MAX_JERK_THRESHOLD:
@@ -172,8 +172,10 @@ def total_jerk_cost(s_coeffs, d_coeffs, duration):
 
 def max_acceleration_cost(s_coeffs, d_coeffs, duration):
     acc_func = get_nth_derivative_for_polynomial(s_coeffs, 3)
-    max_acc = max([acc_func(duration * float(percentage) / 100.0)
-                   for percentage in range(100)],
+    max_acc = max([
+        acc_func(duration * float(percentage) / 100.0)
+        for percentage in range(100)
+    ],
                   key=abs)
     # Step function.
     if max_acc > MAX_ACCELERATION_THRESHOLD:
@@ -246,22 +248,20 @@ WEIGHTED_COST_FUNCTIONS = [
 ]
 
 
-def find_best_trajectory(s_initial, v_s_initial, acc_s_initial,
-                         d_initial, v_d_initial, acc_d_initial,
-                         duration, goals):
+def find_best_trajectory(s_initial, v_s_initial, acc_s_initial, d_initial,
+                         v_d_initial, acc_d_initial, duration, goals):
     min_traj_cost = 10**9
     best_trajectory = None
     # 1) Generate trajectories.
     trajectories = []
-    for (s_final, v_s_final, acc_s_final,
-         d_final, v_d_final, acc_d_final) in goals:
-        s_coeffs = jerk_minimizing_trajectory(
-            s_initial, v_s_initial, acc_s_initial,
-            s_final, v_s_final, acc_s_final,
-            duration)
-        d_coeffs = jerk_minimizing_trajectory(
-            d_initial, v_d_initial, acc_d_initial,
-            d_final, v_d_final, acc_d_final, duration)
+    for (s_final, v_s_final, acc_s_final, d_final, v_d_final,
+         acc_d_final) in goals:
+        s_coeffs = jerk_minimizing_trajectory(s_initial, v_s_initial,
+                                              acc_s_initial, s_final,
+                                              v_s_final, acc_s_final, duration)
+        d_coeffs = jerk_minimizing_trajectory(d_initial, v_d_initial,
+                                              acc_d_initial, d_final,
+                                              v_d_final, acc_d_final, duration)
         trajectories.append((s_coeffs, d_coeffs, duration))
     # 2) Find the best trajectory.
     for (s_coeffs, d_coeffs, duration) in trajectories:

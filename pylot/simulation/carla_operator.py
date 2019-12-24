@@ -12,9 +12,7 @@ import pylot.simulation.messages
 from pylot.simulation.utils import Transform, Vector3D
 import pylot.simulation.utils
 
-flags.DEFINE_enum('carla_version',
-                  '0.9.6',
-                  ['0.9.5', '0.9.6'],
+flags.DEFINE_enum('carla_version', '0.9.6', ['0.9.5', '0.9.6'],
                   'Carla simulator version')
 flags.DEFINE_string('carla_host', 'localhost', 'Carla host.')
 flags.DEFINE_integer('carla_port', 2000, 'Carla port.')
@@ -25,9 +23,10 @@ flags.DEFINE_bool('carla_synchronous_mode', True,
 flags.DEFINE_integer('carla_town', 1, 'Sets which Carla town to use.')
 flags.DEFINE_integer('carla_fps', 10,
                      'Carla simulator FPS; do not set bellow 10.')
-flags.DEFINE_float('carla_step_frequency', -1,
-                   'Target frequency of sending control commands. -1 if '
-                   'commands should be applied as fast as possible.')
+flags.DEFINE_float(
+    'carla_step_frequency', -1,
+    'Target frequency of sending control commands. -1 if '
+    'commands should be applied as fast as possible.')
 flags.DEFINE_integer('carla_num_vehicles', 20, 'Carla num vehicles.')
 flags.DEFINE_integer('carla_num_pedestrians', 40, 'Carla num pedestrians.')
 flags.DEFINE_string('carla_weather', 'ClearNoon', 'Carla Weather Presets')
@@ -50,7 +49,6 @@ class CarlaOperator(erdust.Operator):
         _world: A handle to the world running inside the simulation.
         _vehicles: A list of identifiers of the vehicles inside the simulation.
     """
-
     def __init__(self,
                  control_stream,
                  can_bus_stream,
@@ -96,8 +94,8 @@ class CarlaOperator(erdust.Operator):
             raise ValueError('There was an issue connecting to the simulator.')
 
         if self._flags.carla_version == '0.9.6':
-            self._world = self._client.load_world(
-                'Town{:02d}'.format(self._flags.carla_town))
+            self._world = self._client.load_world('Town{:02d}'.format(
+                self._flags.carla_town))
         else:
             # TODO (Sukrit) :: ERDOS provides no way to retrieve handles to the
             # class objects to do garbage collection. Hence, objects from
@@ -108,7 +106,8 @@ class CarlaOperator(erdust.Operator):
         # Send open drive string.
         timestamp = erdust.Timestamp(coordinates=[sys.maxsize])
         self.open_drive_stream.send(
-            erdust.Message(timestamp, self._world.get_map().to_opendrive()))
+            erdust.Message(timestamp,
+                           self._world.get_map().to_opendrive()))
         self.open_drive_stream.send(erdust.WatermarkMessage(timestamp))
         # Set the weather.
         weather = get_weathers()[self._flags.carla_weather]
@@ -149,13 +148,11 @@ class CarlaOperator(erdust.Operator):
         ground_stop_signs_stream = erdust.WriteStream()
         vehicle_id_stream = erdust.WriteStream()
         open_drive_stream = erdust.WriteStream()
-        return [can_bus_stream,
-                ground_traffic_lights_stream,
-                ground_obstacles_stream,
-                ground_speed_limit_signs_stream,
-                ground_stop_signs_stream,
-                vehicle_id_stream,
-                open_drive_stream]
+        return [
+            can_bus_stream, ground_traffic_lights_stream,
+            ground_obstacles_stream, ground_speed_limit_signs_stream,
+            ground_stop_signs_stream, vehicle_id_stream, open_drive_stream
+        ]
 
     def on_control_msg(self, msg):
         """ Invoked when a ControlMessage is received.
@@ -163,19 +160,18 @@ class CarlaOperator(erdust.Operator):
         Args:
             msg: A control.messages.ControlMessage message.
         """
-        self._logger.debug(
-            '@{}: received control message'.format(msg.timestamp))
+        self._logger.debug('@{}: received control message'.format(
+            msg.timestamp))
         # If auto pilot is enabled for the ego vehicle we do not apply the
         # control, but we still want to tick in this method to ensure that
         # all operators finished work before the world ticks.
         if not self._flags.carla_auto_pilot:
             # Transform the message to a carla control cmd.
-            vec_control = carla.VehicleControl(
-                throttle=msg.throttle,
-                steer=msg.steer,
-                brake=msg.brake,
-                hand_brake=msg.hand_brake,
-                reverse=msg.reverse)
+            vec_control = carla.VehicleControl(throttle=msg.throttle,
+                                               steer=msg.steer,
+                                               brake=msg.brake,
+                                               hand_brake=msg.hand_brake,
+                                               reverse=msg.reverse)
             self._driving_vehicle.apply_control(vec_control)
         # Tick the world after the operator received a control command.
         # This usually indicates that all the operators have completed
@@ -184,8 +180,8 @@ class CarlaOperator(erdust.Operator):
         self._tick_simulator()
 
     def _tick_simulator(self):
-        if (not self._flags.carla_synchronous_mode or
-            self._flags.carla_step_frequency == -1):
+        if (not self._flags.carla_synchronous_mode
+                or self._flags.carla_step_frequency == -1):
             # Run as fast as possible.
             self._world.tick()
             return
@@ -193,9 +189,8 @@ class CarlaOperator(erdust.Operator):
         if time_until_tick > 0:
             time.sleep(time_until_tick)
         else:
-            self._logger.error(
-                'Cannot tick Carla at frequency {}'.format(
-                    self._flags.carla_step_frequency))
+            self._logger.error('Cannot tick Carla at frequency {}'.format(
+                self._flags.carla_step_frequency))
         self._tick_at += 1.0 / self._flags.carla_step_frequency
         self._world.tick()
 
@@ -248,9 +243,9 @@ class CarlaOperator(erdust.Operator):
             'controller.ai.walker')
         batch = []
         for ped_id in ped_ids:
-            batch.append(carla.command.SpawnActor(ped_controller_bp,
-                                                  carla.Transform(),
-                                                  ped_id))
+            batch.append(
+                carla.command.SpawnActor(ped_controller_bp, carla.Transform(),
+                                         ped_id))
         ped_control_ids = []
         for response in self._client.apply_batch_sync(batch, True):
             if response.error:
@@ -348,8 +343,8 @@ class CarlaOperator(erdust.Operator):
                     'Town does not have sufficient spawn points.'
                 start_pose = spawn_points[self._flags.carla_spawn_point_index]
 
-            driving_vehicle = self._world.try_spawn_actor(v_blueprint,
-                                                          start_pose)
+            driving_vehicle = self._world.try_spawn_actor(
+                v_blueprint, start_pose)
         if self._flags.carla_auto_pilot:
             driving_vehicle.set_autopilot(self._flags.carla_auto_pilot)
         return driving_vehicle
@@ -409,10 +404,7 @@ class CarlaOperator(erdust.Operator):
         # Get all the actors in the simulation.
         actor_list = self._world.get_actors()
 
-        (vehicles,
-         pedestrians,
-         traffic_lights,
-         speed_limits,
+        (vehicles, pedestrians, traffic_lights, speed_limits,
          traffic_stops) = extract_data_in_pylot_format(actor_list)
 
         # Send ground pedestrians and vehicles.

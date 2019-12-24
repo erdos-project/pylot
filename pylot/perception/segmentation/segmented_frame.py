@@ -25,19 +25,19 @@ CITYSCAPES_LABELS = {
 
 # Cityscapes palette.
 CITYSCAPES_CLASSES = {
-    0: [0, 0, 0],         # None
-    1: [70, 70, 70],      # Buildings
-    2: [190, 153, 153],   # Fences
-    3: [72, 0, 90],       # Other
-    4: [220, 20, 60],     # Pedestrians
-    5: [153, 153, 153],   # Poles
-    6: [157, 234, 50],    # RoadLines
-    7: [128, 64, 128],    # Roads
-    8: [244, 35, 232],    # Sidewalks
-    9: [107, 142, 35],    # Vegetation
-    10: [0, 0, 255],      # Vehicles
+    0: [0, 0, 0],  # None
+    1: [70, 70, 70],  # Buildings
+    2: [190, 153, 153],  # Fences
+    3: [72, 0, 90],  # Other
+    4: [220, 20, 60],  # Pedestrians
+    5: [153, 153, 153],  # Poles
+    6: [157, 234, 50],  # RoadLines
+    7: [128, 64, 128],  # Roads
+    8: [244, 35, 232],  # Sidewalks
+    9: [107, 142, 35],  # Vegetation
+    10: [0, 0, 255],  # Vehicles
     11: [102, 102, 156],  # Walls
-    12: [220, 220, 0]     # TrafficSigns
+    12: [220, 220, 0]  # TrafficSigns
 }
 # XXX(ionel): Note! These Carla cityscapes classes do not cover all
 # the classes from CITYSCAPES. Hence, we can't compare segmentation
@@ -46,7 +46,6 @@ CITYSCAPES_CLASSES = {
 
 class SegmentedFrame(object):
     """ Stores a semantically segmented frame."""
-
     def __init__(self, frame, encoding='carla'):
         if encoding == 'carla':
             # Convert the array containing CARLA semantic segmentation labels
@@ -121,9 +120,8 @@ class SegmentedFrame(object):
             if key == 0:
                 continue
             target = np.zeros((self._frame.shape[0], self._frame.shape[1], 3))
-            prediction = np.zeros((self._frame.shape[0],
-                                   self._frame.shape[1],
-                                   3))
+            prediction = np.zeros(
+                (self._frame.shape[0], self._frame.shape[1], 3))
             target[np.where(self._frame == value)] = 1
             prediction[np.where(other_frame._frame == value)] = 1
             intersection = np.logical_and(target, prediction)
@@ -185,9 +183,8 @@ class SegmentedFrame(object):
     def _get_traffic_sign_pixels(self):
         """ Returns a frame with the traffic sign pixels set to True."""
         # Shape is height, width
-        traffic_signs_frame = np.zeros((self._frame.shape[0],
-                                        self._frame.shape[1]),
-                                       dtype=np.bool)
+        traffic_signs_frame = np.zeros(
+            (self._frame.shape[0], self._frame.shape[1]), dtype=np.bool)
         # 12 is the key for TrafficSigns segmentation in Carla.
         # Apply mask to only select traffic signs and traffic lights.
         traffic_signs_frame[np.where(self._frame == 12)] = True

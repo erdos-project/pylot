@@ -5,8 +5,7 @@ import erdust
 from pylot.perception.messages import ObjTrajectory, ObjTrajectoriesMessage
 
 flags.DEFINE_integer(
-    'perfect_tracking_num_steps',
-    None,
+    'perfect_tracking_num_steps', None,
     'Limit on number of past steps returned by the perfect object tracker.')
 
 
@@ -14,7 +13,6 @@ class PerfectTrackerOperator(erdust.Operator):
     """Operator that gives past trajectories of other agents in the environment,
        i.e. their past (x,y,z) locations from an ego-vehicle perspective.
     """
-
     def __init__(self,
                  ground_obstacles_stream,
                  can_bus_stream,
@@ -25,10 +23,9 @@ class PerfectTrackerOperator(erdust.Operator):
         """Initializes the PerfectTracker Operator. """
         ground_obstacles_stream.add_callback(self.on_obstacles_update)
         can_bus_stream.add_callback(self.on_can_bus_update)
-        erdust.add_watermark_callback([ground_obstacles_stream,
-                                       can_bus_stream],
-                                      [ground_tracking_stream],
-                                      self.on_watermark)
+        erdust.add_watermark_callback(
+            [ground_obstacles_stream, can_bus_stream],
+            [ground_tracking_stream], self.on_watermark)
         self._name = name
         self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
@@ -39,12 +36,12 @@ class PerfectTrackerOperator(erdust.Operator):
         # Processed data. Key is actor id, value is deque containing the past
         # trajectory of the corresponding actor. Trajectory is stored in world
         # coordinates, for ease of transformation.
-        trajectory = lambda: deque(maxlen=self._flags.perfect_tracking_num_steps)
+        trajectory = lambda: deque(maxlen=self._flags.
+                                   perfect_tracking_num_steps)
         self._obstacles = defaultdict(trajectory)
 
     @staticmethod
-    def connect(ground_obstacles_stream,
-                can_bus_stream):
+    def connect(ground_obstacles_stream, can_bus_stream):
         ground_tracking_stream = erdust.WriteStream()
         return [ground_tracking_stream]
 
@@ -73,19 +70,18 @@ class PerfectTrackerOperator(erdust.Operator):
                     [v_transform.location])[0]
                 cur_obstacle_trajectory.append(new_location)
             obstacle_trajectories.append(
-                ObjTrajectory(obstacle.label,
-                              obstacle.id,
+                ObjTrajectory(obstacle.label, obstacle.id,
                               cur_obstacle_trajectory))
 
         output_msg = ObjTrajectoriesMessage(timestamp, obstacle_trajectories)
         ground_tracking_stream.send(output_msg)
 
     def on_obstacles_update(self, msg):
-        self._logger.debug(
-            '@{}: received obstacles message'.format(msg.timestamp))
+        self._logger.debug('@{}: received obstacles message'.format(
+            msg.timestamp))
         self._obstacles_raw_msgs.append(msg)
 
     def on_can_bus_update(self, msg):
-        self._logger.debug(
-            '@{}: received can bus message'.format(msg.timestamp))
+        self._logger.debug('@{}: received can bus message'.format(
+            msg.timestamp))
         self._can_bus_msgs.append(msg)

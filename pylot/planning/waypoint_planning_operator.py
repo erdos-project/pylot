@@ -31,10 +31,9 @@ class WaypointPlanningOperator(erdust.Operator):
         self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
         self._wp_index = 4  # use 5th waypoint for steering and speed
-        self._map = HDMap(get_map(self._flags.carla_host,
-                                  self._flags.carla_port,
-                                  self._flags.carla_timeout),
-                          log_file_name)
+        self._map = HDMap(
+            get_map(self._flags.carla_host, self._flags.carla_port,
+                    self._flags.carla_timeout), log_file_name)
         self._goal_location = carla.Location(*goal_location)
 
     @staticmethod
@@ -44,8 +43,8 @@ class WaypointPlanningOperator(erdust.Operator):
 
     def on_can_bus_update(self, msg, waypoints_stream):
         """ Recompute path to goal location and send WaypointsMessage."""
-        self._logger.debug(
-            '@{}: received can bus message'.format(msg.timestamp))
+        self._logger.debug('@{}: received can bus message'.format(
+            msg.timestamp))
         vehicle_transform = msg.data.transform
         waypoints = self._map.compute_waypoints(
             vehicle_transform.location.as_carla_location(),
@@ -57,16 +56,14 @@ class WaypointPlanningOperator(erdust.Operator):
             next_waypoint, vehicle_transform)
 
         head_waypoints = collections.deque(
-            itertools.islice(waypoints, 0, DEFAULT_NUM_WAYPOINTS)
-        )  # only take 50 meters
+            itertools.islice(waypoints, 0,
+                             DEFAULT_NUM_WAYPOINTS))  # only take 50 meters
 
-        output_msg = WaypointsMessage(
-            msg.timestamp,
-            waypoints=head_waypoints,
-            wp_angle=wp_steer_angle,
-            wp_vector=wp_steer_vector,
-            wp_angle_speed=wp_speed_angle
-        )
+        output_msg = WaypointsMessage(msg.timestamp,
+                                      waypoints=head_waypoints,
+                                      wp_angle=wp_steer_angle,
+                                      wp_vector=wp_steer_vector,
+                                      wp_angle_speed=wp_speed_angle)
         waypoints_stream.send(output_msg)
         self._logger.debug(
             'WaypointPlanningOperator sent output for timestamp {}'.format(

@@ -6,7 +6,6 @@ from pylot.utils import add_timestamp
 
 class CameraVisualizerOperator(erdust.Operator):
     """ Subscribes to camera streams, and visualizes frames."""
-
     def __init__(self, camera_stream, name, log_file_name=None):
         camera_stream.add_callback(self.display_frame)
         self._name = name

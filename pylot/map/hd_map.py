@@ -112,8 +112,8 @@ class HDMap(object):
             return False
 
         # XXX(ionel): Check logic.
-        if (abs(waypoint.transform.rotation.yaw -
-                transform.rotation.yaw) > 140):
+        if (abs(waypoint.transform.rotation.yaw - transform.rotation.yaw) >
+                140):
             return True
         else:
             return False
@@ -183,8 +183,8 @@ class HDMap(object):
 
         return True
 
-    def _must_obbey_european_traffic_light(
-            self, ego_transform, tl_locations, tl_max_dist_thresh):
+    def _must_obbey_european_traffic_light(self, ego_transform, tl_locations,
+                                           tl_max_dist_thresh):
         ego_loc = ego_transform.location.as_carla_location()
         ego_waypoint = self._map.get_waypoint(ego_loc,
                                               project_to_road=False,
@@ -195,19 +195,17 @@ class HDMap(object):
         # Iterate through traffic lights.
         for tl_loc in tl_locations:
             tl_waypoint = self._map.get_waypoint(tl_loc.as_carla_location())
-            if (tl_waypoint.road_id != ego_waypoint.road_id or
-                tl_waypoint.lane_id != ego_waypoint.lane_id):
+            if (tl_waypoint.road_id != ego_waypoint.road_id
+                    or tl_waypoint.lane_id != ego_waypoint.lane_id):
                 continue
-            if is_within_distance_ahead(
-                    ego_loc,
-                    tl_loc,
-                    ego_transform.rotation.yaw,
-                    tl_max_dist_thresh):
+            if is_within_distance_ahead(ego_loc, tl_loc,
+                                        ego_transform.rotation.yaw,
+                                        tl_max_dist_thresh):
                 return (True, tl_loc)
-        return (False,  None)
+        return (False, None)
 
-    def _must_obbey_american_traffic_light(
-            self, ego_transform, tl_locations, tl_max_dist_thresh):
+    def _must_obbey_american_traffic_light(self, ego_transform, tl_locations,
+                                           tl_max_dist_thresh):
         ego_loc = ego_transform.location.as_carla_location()
         ego_waypoint = self._map.get_waypoint(ego_loc,
                                               project_to_road=False,
@@ -219,15 +217,11 @@ class HDMap(object):
         min_angle = 25.0
         selected_tl_loc = None
         for tl_loc in tl_locations:
-            if is_within_distance_ahead(
-                    ego_loc,
-                    tl_loc,
-                    ego_transform.rotation.yaw,
-                    tl_max_dist_thresh):
+            if is_within_distance_ahead(ego_loc, tl_loc,
+                                        ego_transform.rotation.yaw,
+                                        tl_max_dist_thresh):
                 magnitude, angle = compute_magnitude_angle(
-                    tl_loc,
-                    ego_transform.location,
-                    ego_transform.rotation.yaw)
+                    tl_loc, ego_transform.location, ego_transform.rotation.yaw)
                 if magnitude < 60.0 and angle < min(25.0, min_angle):
                     min_angle = angle
                     selected_tl_loc = tl_loc
@@ -250,15 +244,15 @@ class HDMap(object):
             # Keep on moving left until we're outside the road or on the
             # oposite lane.
             left_lane_w = current_lane_w.get_left_lane()
-            if (left_lane_w.lane_type != carla.LaneType.Driving or
-                (current_lane_w.transform.rotation.yaw -
-                 left_lane_w.transform.rotation.yaw) > 170):
+            if (left_lane_w.lane_type != carla.LaneType.Driving
+                    or (current_lane_w.transform.rotation.yaw -
+                        left_lane_w.transform.rotation.yaw) > 170):
                 # If the left lane is drivable then we've reached the left hand
                 # side of a one way road. Alternatively, if the lane is rotated
                 # then the lane is on the other side of the road.
                 d0_location = current_lane_w
-                half_lane = carla.Location(
-                    0, - current_lane_w.lane_width / 2.0, 0)
+                half_lane = carla.Location(0, -current_lane_w.lane_width / 2.0,
+                                           0)
                 d0_location = current_lane_w.transform.transform(half_lane)
                 break
             current_lane_w = left_lane_w
@@ -276,8 +270,8 @@ class HDMap(object):
         pass
 
     def __get_distance(self, location1, location2):
-        return math.sqrt((location1.x - location2.x) ** 2 +
-                         (location1.y - location2.y) ** 2)
+        return math.sqrt((location1.x - location2.x)**2 +
+                         (location1.y - location2.y)**2)
 
     def compute_waypoints(self, source_loc, destination_loc):
         """ Computes waypoints between two locations.
@@ -290,17 +284,13 @@ class HDMap(object):
             destination_loc: Destination world location.
         """
         start_waypoint = self._map.get_waypoint(
-            source_loc,
-            project_to_road=True,
-            lane_type=carla.LaneType.Driving)
-        end_waypoint = self._map.get_waypoint(
-            destination_loc,
-            project_to_road=True,
-            lane_type=carla.LaneType.Driving)
+            source_loc, project_to_road=True, lane_type=carla.LaneType.Driving)
+        end_waypoint = self._map.get_waypoint(destination_loc,
+                                              project_to_road=True,
+                                              lane_type=carla.LaneType.Driving)
         assert start_waypoint and end_waypoint, 'Map could not find waypoints'
-        route = self._grp.trace_route(
-            start_waypoint.transform.location,
-            end_waypoint.transform.location)
+        route = self._grp.trace_route(start_waypoint.transform.location,
+                                      end_waypoint.transform.location)
         # TODO(ionel): The planner returns several options in intersections.
         # We always take the first one, but this is not correct.
         return deque([

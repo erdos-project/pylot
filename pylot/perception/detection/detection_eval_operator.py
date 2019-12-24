@@ -9,13 +9,11 @@ from pylot.utils import time_epoch_ms
 flags.DEFINE_enum('detection_metric', 'mAP', ['mAP', 'timely-mAP'],
                   'Detection evaluation metric')
 flags.DEFINE_bool(
-    'detection_eval_use_accuracy_model',
-    False,
+    'detection_eval_use_accuracy_model', False,
     'Enable to use a model for detection accuracy decay over time')
 
 
 class DetectionEvalOperator(erdust.Operator):
-
     def __init__(self,
                  obstacles_stream,
                  ground_obstacles_stream,
@@ -26,8 +24,7 @@ class DetectionEvalOperator(erdust.Operator):
         obstacles_stream.add_callback(self.on_obstacles)
         ground_obstacles_stream.add_callback(self.on_ground_obstacles)
         erdust.add_watermark_callback(
-            [obstacles_stream, ground_obstacles_stream],
-            [],
+            [obstacles_stream, ground_obstacles_stream], [],
             self.on_notification)
         self._name = name
         self._flags = flags
@@ -76,8 +73,8 @@ class DetectionEvalOperator(erdust.Operator):
                             precisions.append(precision)
                         avg_precision = (float(sum(precisions)) /
                                          len(precisions))
-                        self._logger.info('precision-IoU is: {}'.format(
-                            avg_precision))
+                        self._logger.info(
+                            'precision-IoU is: {}'.format(avg_precision))
                         self._csv_logger.info('{},{},{},{}'.format(
                             time_epoch_ms(), self._name, 'precision-IoU',
                             avg_precision))
@@ -125,15 +122,15 @@ class DetectionEvalOperator(erdust.Operator):
             return
         # Remove all detected obstacles that are below the watermark.
         index = 0
-        while (index < len(self._detected_obstacles) and
-               self._detected_obstacles[index][0] < watermark):
+        while (index < len(self._detected_obstacles)
+               and self._detected_obstacles[index][0] < watermark):
             index += 1
         if index > 0:
             self._detected_obstacles = self._detected_obstacles[index:]
         # Remove all the ground obstacles that are below the watermark.
         index = 0
-        while (index < len(self._ground_obstacles) and
-               self._ground_obstacles[index][0] < watermark):
+        while (index < len(self._ground_obstacles)
+               and self._ground_obstacles[index][0] < watermark):
             index += 1
         if index > 0:
             self._ground_obstacles = self._ground_obstacles[index:]

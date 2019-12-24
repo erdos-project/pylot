@@ -120,10 +120,7 @@ class CameraSetup(object):
         """
         import numpy as np
         to_unreal_transform = Transform(matrix=np.array(
-            [[0, 0, 1, 0],
-             [1, 0, 0, 0],
-             [0, -1, 0, 0],
-             [0, 0, 0, 1]]))
+            [[0, 0, 1, 0], [1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
         return transform * to_unreal_transform
 
     def get_intrinsic_matrix(self):
@@ -193,10 +190,7 @@ class LidarSetup(object):
         coordinates to camera coordinates.
         """
         to_camera_transform = Transform(matrix=np.array(
-            [[1, 0, 0, 0],
-             [0, 0, 1, 0],
-             [0, -1, 0, 0],
-             [0, 0, 0, 1]]))
+            [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
         return transform * to_camera_transform
 
     def get_name(self):

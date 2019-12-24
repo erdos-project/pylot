@@ -9,7 +9,6 @@ class DetectorMessage(erdust.Message):
         detected_objects: List of detected objects.
         runtime: Operator runtime (in ms).
     """
-
     def __init__(self, detected_objects, runtime, timestamp):
         """ Constructs the DetectorMessage with the given data and timestamp.
 
@@ -36,7 +35,6 @@ class SegmentedFrameMessage(erdust.Message):
         frame: The segmented frame in Cityscapes palette.
         runtime: The runtime of the operator that produced the segmented frame.
     """
-
     def __init__(self, frame, runtime, timestamp):
         """ Constructs the SegmentedFrameMessage with the given data and timestamp.
 
@@ -57,17 +55,17 @@ class SegmentedFrameMessage(erdust.Message):
 
 
 class ObjPositionSpeed(object):
-
-    def __init__(self,
-                 obj_id,
-                 x,
-                 y,
-                 speed_x,  # Speed on the x axis.
-                 speed_y,  # Speed on the y axis.
-                 sigma_x,  # Variance of the x position estimation.
-                 sigma_y,  # Variance of the y position estimation.
-                 sigma_speed_x,
-                 sigma_speed_y):
+    def __init__(
+        self,
+        obj_id,
+        x,
+        y,
+        speed_x,  # Speed on the x axis.
+        speed_y,  # Speed on the y axis.
+        sigma_x,  # Variance of the x position estimation.
+        sigma_y,  # Variance of the y position estimation.
+        sigma_speed_x,
+        sigma_speed_y):
         self.obj_id = obj_id
         self.x = x
         self.y = y
@@ -93,7 +91,6 @@ class ObjPositionsSpeedsMessage(erdust.Message):
     Attributes:
         obj_positions_speeds: The 2D positions and speeds of the objects.
     """
-
     def __init__(self, obj_positions_speeds, timestamp):
         """ Constructs the ObjPositionsSpeedsMessage with the given data and
         timestamp.
@@ -111,11 +108,7 @@ class ObjPositionsSpeedsMessage(erdust.Message):
 
 
 class ObjTrajectory(object):
-
-    def __init__(self,
-                 obj_class,
-                 obj_id,
-                 trajectory):
+    def __init__(self, obj_class, obj_id, trajectory):
         """Constructs the object trajectory using the given data.
 
         Args:
@@ -129,8 +122,7 @@ class ObjTrajectory(object):
         self.trajectory = trajectory
 
     def __str__(self):
-        return '{} {}, Trajectory {}'.format(self.obj_class,
-                                             self.obj_id,
+        return '{} {}, Trajectory {}'.format(self.obj_class, self.obj_id,
                                              self.trajectory)
 
 
@@ -138,7 +130,6 @@ class ObjTrajectoriesMessage(erdust.Message):
     """ This class represents a message to be used to send vehicle
         trajectory info.
     """
-
     def __init__(self, timestamp, obj_trajectories):
         """ Constructs the ObjTrajectoriesMessage with the given data and
         timestamp.
@@ -150,7 +141,7 @@ class ObjTrajectoriesMessage(erdust.Message):
         self.obj_trajectories = obj_trajectories
 
     def __str__(self):
-        trajectories_str = '\n'.join([str(traj)
-                                      for traj in self.obj_trajectories])
+        trajectories_str = '\n'.join(
+            [str(traj) for traj in self.obj_trajectories])
         return 'ObjTrajectoriesMessage(timestamp {}, trajectories: {})'.format(
             self.timestamp, trajectories_str)

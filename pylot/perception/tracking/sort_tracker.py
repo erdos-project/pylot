@@ -11,7 +11,8 @@ class MultiObjectSORTTracker(MultiObjectTracker):
         self.tracker = Sort()
 
     def reinitialize(self, frame, bboxes, confidence_scores):
-        detections = self.convert_detections_for_sort_alg(bboxes, confidence_scores)
+        detections = self.convert_detections_for_sort_alg(
+            bboxes, confidence_scores)
         self.tracker.update(detections)
 
     def track(self, frame):
@@ -29,9 +30,10 @@ class MultiObjectSORTTracker(MultiObjectTracker):
         # then append detection confidence score to the end, return n x 5 np array
         converted_detections = []
         for i in range(len(bboxes)):
-            x1, x2, y1, y2 = list(bboxes[i]) # comes from detected objects self.corners (see detection utils)
+            x1, x2, y1, y2 = list(
+                bboxes[i]
+            )  # comes from detected objects self.corners (see detection utils)
             score = confidence_scores[i]
             bbox = [x1, y1, x2, y2, score]
             converted_detections.append(bbox)
         return np.array(converted_detections)
-

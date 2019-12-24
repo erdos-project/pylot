@@ -8,7 +8,6 @@ import pylot.utils
 
 class CameraLoggerOperator(erdust.Operator):
     """ Logs camera frames."""
-
     def __init__(self,
                  camera_stream,
                  name,

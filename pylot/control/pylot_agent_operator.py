@@ -41,13 +41,10 @@ class PylotAgentOperator(erdust.Operator):
         lidar_stream.add_callback(self.on_lidar_update)
         open_drive_stream.add_callback(self.on_opendrive_map)
         depth_camera_stream.add_callback(self.on_depth_camera_update)
-        erdust.add_watermark_callback(
-            [can_bus_stream,
-             waypoints_stream,
-             traffic_lights_stream,
-             obstacles_stream],
-            [control_stream],
-            self.on_watermark)
+        erdust.add_watermark_callback([
+            can_bus_stream, waypoints_stream, traffic_lights_stream,
+            obstacles_stream
+        ], [control_stream], self.on_watermark)
         self._name = name
         self._flags = flags
         self._log_file_name = log_file_name
@@ -57,10 +54,9 @@ class PylotAgentOperator(erdust.Operator):
         self._bgr_camera_setup = bgr_camera_setup
         self._map = None
         if not hasattr(self._flags, 'track'):
-            self._map = HDMap(get_map(self._flags.carla_host,
-                                      self._flags.carla_port,
-                                      self._flags.carla_timeout),
-                              log_file_name)
+            self._map = HDMap(
+                get_map(self._flags.carla_host, self._flags.carla_port,
+                        self._flags.carla_timeout), log_file_name)
             self._logger.debug('Agent running using map')
         self._pid = PID(p=self._flags.pid_p,
                         i=self._flags.pid_i,
@@ -79,24 +75,14 @@ class PylotAgentOperator(erdust.Operator):
         self._num_control_override = 0
 
     @staticmethod
-    def connect(can_bus_stream,
-                waypoints_stream,
-                traffic_lights_stream,
-                obstacles_stream,
-                lidar_stream,
-                open_drive_stream,
+    def connect(can_bus_stream, waypoints_stream, traffic_lights_stream,
+                obstacles_stream, lidar_stream, open_drive_stream,
                 depth_camera_stream):
         control_stream = erdust.WriteStream()
         return [control_stream]
 
-    def compute_command(self,
-                        can_bus_msg,
-                        waypoint_msg,
-                        tl_msg,
-                        obstacles_msg,
-                        pc_msg,
-                        depth_msg,
-                        timestamp):
+    def compute_command(self, can_bus_msg, waypoint_msg, tl_msg, obstacles_msg,
+                        pc_msg, depth_msg, timestamp):
         start_time = time.time()
         vehicle_transform = can_bus_msg.data.transform
         # Vehicle sped in m/s
@@ -114,33 +100,30 @@ class PylotAgentOperator(erdust.Operator):
         if depth_msg:
             depth_frame = depth_msg.frame
 
-        traffic_lights = self.__transform_tl_output(
-            tl_msg, vehicle_transform, point_cloud, depth_frame)
+        traffic_lights = self.__transform_tl_output(tl_msg, vehicle_transform,
+                                                    point_cloud, depth_frame)
         game_time = timestamp.coordinates[0]
         if len(traffic_lights) > 0:
             self._last_traffic_light_game_time = game_time
-        (pedestrians, vehicles) = self.__transform_detector_output(
-            obstacles_msg, vehicle_transform, point_cloud, depth_frame)
+        (pedestrians,
+         vehicles) = self.__transform_detector_output(obstacles_msg,
+                                                      vehicle_transform,
+                                                      point_cloud, depth_frame)
 
         self._logger.debug('@{}: speed {} and location {}'.format(
             timestamp, vehicle_speed, vehicle_transform))
         self._logger.debug('@{}: pedestrians {}'.format(
             timestamp, pedestrians))
-        self._logger.debug('@{}: vehicles {}'.format(
-            timestamp, vehicles))
+        self._logger.debug('@{}: vehicles {}'.format(timestamp, vehicles))
 
-        speed_factor, _ = self.__stop_for_agents(
-            vehicle_transform.location,
-            wp_angle,
-            wp_vector,
-            vehicles,
-            pedestrians,
-            traffic_lights,
-            timestamp)
+        speed_factor, _ = self.__stop_for_agents(vehicle_transform.location,
+                                                 wp_angle, wp_vector, vehicles,
+                                                 pedestrians, traffic_lights,
+                                                 timestamp)
 
-        control_msg = self.get_control_message(
-            wp_angle, wp_angle_speed, speed_factor,
-            vehicle_speed, target_speed, timestamp)
+        control_msg = self.get_control_message(wp_angle, wp_angle_speed,
+                                               speed_factor, vehicle_speed,
+                                               target_speed, timestamp)
 
         if control_msg.throttle > 0.001:
             self._last_moving_time = game_time
@@ -154,13 +137,13 @@ class PylotAgentOperator(erdust.Operator):
         # Override control message if we haven't been moving for a while.
         if game_time - self._last_moving_time > 30000:
             self._num_control_override = 6
-            control_msg = ControlMessage(
-                0, 0.75, 0, False, False, timestamp)
+            control_msg = ControlMessage(0, 0.75, 0, False, False, timestamp)
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},"{}",{}'.format(
-            time_epoch_ms(), self._name, timestamp, runtime))
+        self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
+                                                     self._name, timestamp,
+                                                     runtime))
 
         return control_msg
 
@@ -180,12 +163,9 @@ class PylotAgentOperator(erdust.Operator):
         if len(self._depth_camera_msgs) > 0:
             depth_msg = self._depth_camera_msgs.popleft()
 
-        control_command_msg = self.compute_command(can_bus_msg,
-                                                   waypoint_msg,
-                                                   tl_msg,
-                                                   obstacles_msg,
-                                                   pc_msg,
-                                                   depth_msg,
+        control_command_msg = self.compute_command(can_bus_msg, waypoint_msg,
+                                                   tl_msg, obstacles_msg,
+                                                   pc_msg, depth_msg,
                                                    timestamp)
         control_stream.send(control_command_msg)
 
@@ -218,8 +198,8 @@ class PylotAgentOperator(erdust.Operator):
         self._logger.debug('@{}: depth camera update'.format(msg.timestamp))
         self._depth_camera_msgs.append(msg)
 
-    def __transform_to_3d(
-            self, x, y, vehicle_transform, point_cloud, depth_frame):
+    def __transform_to_3d(self, x, y, vehicle_transform, point_cloud,
+                          depth_frame):
         """ Transforms a camera view pixel location to 3d world location.
 
         Args:
@@ -249,12 +229,12 @@ class PylotAgentOperator(erdust.Operator):
             pos = get_3d_world_position_with_point_cloud(
                 x, y, point_cloud, camera_setup)
         if pos is None:
-            self._logger.error(
-                'Could not find lidar point for {} {}'.format(x, y))
+            self._logger.error('Could not find lidar point for {} {}'.format(
+                x, y))
         return pos
 
-    def __transform_tl_output(
-            self, tls, vehicle_transform, point_cloud, depth_frame):
+    def __transform_tl_output(self, tls, vehicle_transform, point_cloud,
+                              depth_frame):
         """ Transforms traffic light detected objects (i.e., bounding boxes) to
         world coordinates.
 
@@ -274,15 +254,15 @@ class PylotAgentOperator(erdust.Operator):
         for tl in tls.detected_objects:
             x = (tl.corners[0] + tl.corners[1]) / 2
             y = (tl.corners[2] + tl.corners[3]) / 2
-            location = self.__transform_to_3d(
-                x, y, vehicle_transform, point_cloud, depth_frame)
+            location = self.__transform_to_3d(x, y, vehicle_transform,
+                                              point_cloud, depth_frame)
             if location:
                 # The coordinates we're successfully transformed.
                 traffic_lights.append((location, tl.label))
         return traffic_lights
 
-    def __transform_detector_output(
-            self, obstacles_msg, vehicle_transform, point_cloud, depth_frame):
+    def __transform_detector_output(self, obstacles_msg, vehicle_transform,
+                                    point_cloud, depth_frame):
         """ Transforms detected objects (i.e., bounding boxes) to world
         coordinates.
 
@@ -304,34 +284,27 @@ class PylotAgentOperator(erdust.Operator):
             x = (detected_obj.corners[0] + detected_obj.corners[1]) / 2
             y = (detected_obj.corners[2] + detected_obj.corners[3]) / 2
             if detected_obj.label == 'person':
-                pos = self.__transform_to_3d(
-                    x, y, vehicle_transform, point_cloud, depth_frame)
+                pos = self.__transform_to_3d(x, y, vehicle_transform,
+                                             point_cloud, depth_frame)
                 if pos:
                     pedestrians.append(pos)
             elif (detected_obj.label in self._vehicle_labels):
-                pos = self.__transform_to_3d(
-                    x, y, vehicle_transform, point_cloud, depth_frame)
+                pos = self.__transform_to_3d(x, y, vehicle_transform,
+                                             point_cloud, depth_frame)
                 if pos:
                     vehicles.append(pos)
         return (pedestrians, vehicles)
 
-    def __stop_for_agents(self,
-                          ego_vehicle_location,
-                          wp_angle,
-                          wp_vector,
-                          vehicles,
-                          pedestrians,
-                          traffic_lights,
-                          timestamp):
+    def __stop_for_agents(self, ego_vehicle_location, wp_angle, wp_vector,
+                          vehicles, pedestrians, traffic_lights, timestamp):
         speed_factor = 1
         speed_factor_tl = 1
         speed_factor_p = 1
         speed_factor_v = 1
 
         for obs_vehicle_loc in vehicles:
-            if (not self._map or
-                self._map.are_on_same_lane(ego_vehicle_location,
-                                           obs_vehicle_loc)):
+            if (not self._map or self._map.are_on_same_lane(
+                    ego_vehicle_location, obs_vehicle_loc)):
                 self._logger.debug(
                     '@{}: ego {} and vehicle {} are on the same lane'.format(
                         timestamp, ego_vehicle_location, obs_vehicle_loc))
@@ -345,18 +318,14 @@ class PylotAgentOperator(erdust.Operator):
                             timestamp, obs_vehicle_loc, speed_factor_v))
 
         for obs_ped_loc in pedestrians:
-            if (not self._map or
-                self._map.are_on_same_lane(ego_vehicle_location,
-                                           obs_ped_loc)):
+            if (not self._map or self._map.are_on_same_lane(
+                    ego_vehicle_location, obs_ped_loc)):
                 self._logger.debug(
-                    '@{}: ego {} and pedestrian {} are on the same lane'.format(
-                        timestamp, ego_vehicle_location, obs_ped_loc))
+                    '@{}: ego {} and pedestrian {} are on the same lane'.
+                    format(timestamp, ego_vehicle_location, obs_ped_loc))
                 new_speed_factor_p = pylot.control.utils.stop_pedestrian(
-                    ego_vehicle_location,
-                    obs_ped_loc,
-                    wp_vector,
-                    speed_factor_p,
-                    self._flags)
+                    ego_vehicle_location, obs_ped_loc, wp_vector,
+                    speed_factor_p, self._flags)
                 if new_speed_factor_p < speed_factor_p:
                     speed_factor_p = new_speed_factor_p
                     self._logger.debug(
@@ -364,26 +333,20 @@ class PylotAgentOperator(erdust.Operator):
                             timestamp, obs_ped_loc, speed_factor_p))
 
         for tl in traffic_lights:
-            if (not self._map or
-                self._map.must_obbey_traffic_light(ego_vehicle_location,
-                                                   tl[0])):
+            if (not self._map or self._map.must_obbey_traffic_light(
+                    ego_vehicle_location, tl[0])):
                 self._logger.debug(
                     '@{}: ego is obbeying traffic light {}'.format(
                         timestamp, ego_vehicle_location, tl[0]))
                 tl_state = tl[1]
                 new_speed_factor_tl = pylot.control.utils.stop_traffic_light(
-                    ego_vehicle_location,
-                    tl[0],
-                    tl_state,
-                    wp_vector,
-                    wp_angle,
-                    speed_factor_tl,
-                    self._flags)
+                    ego_vehicle_location, tl[0], tl_state, wp_vector, wp_angle,
+                    speed_factor_tl, self._flags)
                 if new_speed_factor_tl < speed_factor_tl:
                     speed_factor_tl = new_speed_factor_tl
                     self._logger.debug(
-                        '@{}: traffic light {} reduced speed factor to {}'.format(
-                            timestamp, tl[0], speed_factor_tl))
+                        '@{}: traffic light {} reduced speed factor to {}'.
+                        format(timestamp, tl[0], speed_factor_tl))
 
         speed_factor = min(speed_factor_tl, speed_factor_p, speed_factor_v)
         state = {
@@ -414,10 +377,7 @@ class PylotAgentOperator(erdust.Operator):
             brake = 0
         return throttle, brake
 
-    def __get_throttle_brake(self,
-                             current_speed,
-                             target_speed,
-                             wp_angle_speed,
+    def __get_throttle_brake(self, current_speed, target_speed, wp_angle_speed,
                              speed_factor):
         # TODO(ionel): DO NOT HARDCODE VALUES!
         # Don't go to fast around corners
@@ -429,9 +389,8 @@ class PylotAgentOperator(erdust.Operator):
             target_speed_adjusted = 3 * speed_factor
         self._pid.target = target_speed_adjusted
         pid_gain = self._pid(feedback=current_speed)
-        throttle = min(
-            max(self._flags.default_throttle - 1.3 * pid_gain, 0),
-            self._flags.throttle_max)
+        throttle = min(max(self._flags.default_throttle - 1.3 * pid_gain, 0),
+                       self._flags.throttle_max)
 
         if pid_gain > 0.5:
             brake = min(0.35 * pid_gain * self._flags.brake_strength, 1)
@@ -443,6 +402,8 @@ class PylotAgentOperator(erdust.Operator):
                             current_speed, target_speed, timestamp):
         current_speed = max(current_speed, 0)
         steer = self.__get_steer(wp_angle)
-        throttle, brake = self.__get_throttle_brake(
-            current_speed, target_speed, wp_angle_speed, speed_factor)
+        throttle, brake = self.__get_throttle_brake(current_speed,
+                                                    target_speed,
+                                                    wp_angle_speed,
+                                                    speed_factor)
         return ControlMessage(steer, throttle, brake, False, False, timestamp)

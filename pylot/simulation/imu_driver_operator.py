@@ -68,13 +68,10 @@ class IMUDriverOperator(erdust.Operator):
             timestamp = erdust.Timestamp(coordinates=[game_time])
             watermark_msg = erdust.WatermarkMessage(timestamp)
 
-            msg = IMUMessage(
-                Transform(carla_transform=imu_msg.transform),
-                Vector3D(carla_vector=imu_msg.accelerometer),
-                Vector3D(carla_vector=imu_msg.gyroscope),
-                imu_msg.compass,
-                timestamp
-            )
+            msg = IMUMessage(Transform(carla_transform=imu_msg.transform),
+                             Vector3D(carla_vector=imu_msg.accelerometer),
+                             Vector3D(carla_vector=imu_msg.gyroscope),
+                             imu_msg.compass, timestamp)
             self._imu_stream.send(msg)
             # Note: The operator is set not to automatically propagate
             # watermark messages received on input streams. Thus, we can
@@ -91,8 +88,7 @@ class IMUDriverOperator(erdust.Operator):
 
         # Connect to the world. We connect here instead of in the constructor
         # to ensure we're connected to the latest world.
-        _, world = get_world(self._flags.carla_host,
-                             self._flags.carla_port,
+        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
                              self._flags.carla_timeout)
         if world is None:
             raise ValueError("There was an issue connecting to the simulator.")

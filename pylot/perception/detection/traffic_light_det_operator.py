@@ -18,8 +18,7 @@ flags.DEFINE_string(
 flags.DEFINE_float('traffic_light_det_min_score_threshold', 0.3,
                    'Min score threshold for bounding box')
 flags.DEFINE_float(
-    'traffic_light_det_gpu_memory_fraction',
-    0.3,
+    'traffic_light_det_gpu_memory_fraction', 0.3,
     'GPU memory fraction allocated to each traffic light detector')
 
 
@@ -44,14 +43,15 @@ class TrafficLightDetOperator(erdust.Operator):
         set_tf_loglevel(logging.ERROR)
         with self._detection_graph.as_default():
             od_graph_def = tf.compat.v1.GraphDef()
-            with tf.io.gfile.GFile(
-                    self._flags.traffic_light_det_model_path, 'rb') as fid:
+            with tf.io.gfile.GFile(self._flags.traffic_light_det_model_path,
+                                   'rb') as fid:
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name='')
 
         self._gpu_options = tf.compat.v1.GPUOptions(
-            per_process_gpu_memory_fraction=flags.traffic_light_det_gpu_memory_fraction)
+            per_process_gpu_memory_fraction=flags.
+            traffic_light_det_gpu_memory_fraction)
         # Create a TensorFlow session.
         self._tf_session = tf.compat.v1.Session(
             graph=self._detection_graph,
@@ -74,10 +74,12 @@ class TrafficLightDetOperator(erdust.Operator):
             4: TrafficLightColor.OFF
         }
         # The bounding box colors to use in the visualizer.
-        self._bbox_colors = {TrafficLightColor.GREEN: [0, 128, 0],
-                             TrafficLightColor.RED: [255, 0, 0],
-                             TrafficLightColor.YELLOW: [255, 255, 0],
-                             TrafficLightColor.OFF: [0, 0, 0]}
+        self._bbox_colors = {
+            TrafficLightColor.GREEN: [0, 128, 0],
+            TrafficLightColor.RED: [255, 0, 0],
+            TrafficLightColor.YELLOW: [255, 255, 0],
+            TrafficLightColor.OFF: [0, 0, 0]
+        }
 
     @staticmethod
     def connect(camera_stream):
@@ -102,35 +104,31 @@ class TrafficLightDetOperator(erdust.Operator):
             feed_dict={self._image_tensor: image_np_expanded})
 
         num_detections = int(num[0])
-        labels = [self._labels[label]
-                  for label in classes[0][:num_detections]]
+        labels = [self._labels[label] for label in classes[0][:num_detections]]
         boxes = boxes[0][:num_detections]
         scores = scores[0][:num_detections]
 
-        traffic_lights = self.__convert_to_detected_tl(
-            boxes, scores, labels, msg.height, msg.width)
+        traffic_lights = self.__convert_to_detected_tl(boxes, scores, labels,
+                                                       msg.height, msg.width)
 
         self._logger.debug('@{}: {} detected traffic lights {}'.format(
             msg.timestamp, self._name, traffic_lights))
 
-        if (self._flags.visualize_traffic_light_output or
-            self._flags.log_traffic_light_detector_output):
-            annotate_image_with_bboxes(msg.timestamp,
-                                       rgb_to_bgr(image_np),
-                                       traffic_lights,
-                                       self._bbox_colors)
+        if (self._flags.visualize_traffic_light_output
+                or self._flags.log_traffic_light_detector_output):
+            annotate_image_with_bboxes(msg.timestamp, rgb_to_bgr(image_np),
+                                       traffic_lights, self._bbox_colors)
             if self._flags.visualize_traffic_light_output:
                 visualize_image(self._name, rgb_to_bgr(image_np))
             if self._flags.log_traffic_light_detector_output:
-                save_image(image_np,
-                           msg.timestamp,
-                           self._flags.data_path,
+                save_image(image_np, msg.timestamp, self._flags.data_path,
                            'tl-detector-{}'.format(self._name))
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},"{}",{}'.format(
-            time_epoch_ms(), self._name, msg.timestamp, runtime))
+        self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
+                                                     self._name, msg.timestamp,
+                                                     runtime))
 
         traffic_lights_stream.send(
             DetectorMessage(traffic_lights, runtime, msg.timestamp))
@@ -139,7 +137,8 @@ class TrafficLightDetOperator(erdust.Operator):
         traffic_lights = []
         index = 0
         while index < len(boxes) and index < len(scores):
-            if scores[index] > self._flags.traffic_light_det_min_score_threshold:
+            if scores[
+                    index] > self._flags.traffic_light_det_min_score_threshold:
                 ymin = int(boxes[index][0] * height)
                 xmin = int(boxes[index][1] * width)
                 ymax = int(boxes[index][2] * height)

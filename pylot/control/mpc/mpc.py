@@ -66,8 +66,8 @@ class ModelPredictiveController:
             self._retrieve_imminent_reference()
 
         for _ in range(self.config['max_iteration']):
-            is_converged = self._iterative_control(
-                reference_state, reference_steer)
+            is_converged = self._iterative_control(reference_state,
+                                                   reference_steer)
             if is_converged:
                 break
 
@@ -93,10 +93,16 @@ class ModelPredictiveController:
 
         :return: None
         """
-        dx = [self.vehicle.x - x for x in self.reference.x_list[
-              self.path_index:self.path_index+self.config['index_horizon']]]
-        dy = [self.vehicle.y - y for y in self.reference.y_list[
-              self.path_index:self.path_index+self.config['index_horizon']]]
+        dx = [
+            self.vehicle.x - x
+            for x in self.reference.x_list[self.path_index:self.path_index +
+                                           self.config['index_horizon']]
+        ]
+        dy = [
+            self.vehicle.y - y
+            for y in self.reference.y_list[self.path_index:self.path_index +
+                                           self.config['index_horizon']]
+        ]
         dxy = [np.sqrt(x**2 + y**2) for x, y in zip(dx, dy)]
         self.path_index = np.argmin(dxy) + self.path_index
 
@@ -106,8 +112,9 @@ class ModelPredictiveController:
 
         :return: reference state and reference steer
         """
-        reference_state = np.zeros((self.num_state, self.config['horizon']+1))
-        reference_steer = np.zeros((1, self.config['horizon']+1))
+        reference_state = np.zeros(
+            (self.num_state, self.config['horizon'] + 1))
+        reference_steer = np.zeros((1, self.config['horizon'] + 1))
 
         arc_displacement = 0.0
         for t in range(self.config['horizon'] + 1):
@@ -161,12 +168,12 @@ class ModelPredictiveController:
 
         :return: predicted state at end of horizon
         """
-        predicted_state = np.zeros((self.num_state, self.config['horizon']+1))
+        predicted_state = np.zeros(
+            (self.num_state, self.config['horizon'] + 1))
         predicted_state[:, 0] = self.vehicle.get_state()
         state = predicted_state[:, 0]
-        for accel, steer, t in zip(self.horizon_accel,
-                                   self.horizon_steer,
-                                   range(1, self.config['horizon']+1)):
+        for accel, steer, t in zip(self.horizon_accel, self.horizon_steer,
+                                   range(1, self.config['horizon'] + 1)):
             state = self._step_state(state, accel, steer)
             predicted_state[:, t] = state
         return predicted_state
@@ -180,21 +187,15 @@ class ModelPredictiveController:
         :param steer: steer in radians
         :return: next state
         """
-        steer = np.clip(
-            steer,
-            self.vehicle.config['min_steer'],
-            self.vehicle.config['max_steer']
-        )
+        steer = np.clip(steer, self.vehicle.config['min_steer'],
+                        self.vehicle.config['max_steer'])
         state[0] = state[0] + state[2] * np.cos(state[3]) * self.delta_t
         state[1] = state[1] + state[2] * np.sin(state[3]) * self.delta_t
         state[2] = state[2] + accel * self.delta_t
         state[3] = state[3] + state[2] / self.vehicle.config['wheelbase'] * \
             np.tan(steer) * self.delta_t
-        state[2] = np.clip(
-            state[2],
-            self.vehicle.config['min_vel'],
-            self.vehicle.config['max_vel']
-        )
+        state[2] = np.clip(state[2], self.vehicle.config['min_vel'],
+                           self.vehicle.config['max_vel'])
         return state
 
     def _control(self, reference_state, predicted_state, reference_steer):
@@ -207,7 +208,7 @@ class ModelPredictiveController:
         :return:
         """
         # intialize problem
-        x = cvxpy.Variable((self.num_state, self.config['horizon']+1))
+        x = cvxpy.Variable((self.num_state, self.config['horizon'] + 1))
         u = cvxpy.Variable((self.num_input, self.config['horizon']))
         cost = constants.Constant(0.0)
         constraints = []
@@ -217,23 +218,24 @@ class ModelPredictiveController:
             cost += cvxpy.quad_form(u[:, t], self.config['R'])
 
             if t != 0:
-                cost += cvxpy.quad_form(
-                    reference_state[:, t] - x[:, t], self.config['Q'])
+                cost += cvxpy.quad_form(reference_state[:, t] - x[:, t],
+                                        self.config['Q'])
 
             matrix_a, matrix_b, matrix_c = self._linearized_model_matrix(
-                predicted_state[2, t],
-                predicted_state[3, t],
-                reference_steer[0, t]
-            )
-            constraints += [x[:, t + 1] ==
-                            matrix_a * x[:, t] + matrix_b * u[:, t] + matrix_c]
+                predicted_state[2, t], predicted_state[3, t],
+                reference_steer[0, t])
+            constraints += [
+                x[:,
+                  t + 1] == matrix_a * x[:, t] + matrix_b * u[:, t] + matrix_c
+            ]
 
             if t < (self.config['horizon'] - 1):
-                cost += cvxpy.quad_form(
-                    u[:, t + 1] - u[:, t], self.config['Rd'])
+                cost += cvxpy.quad_form(u[:, t + 1] - u[:, t],
+                                        self.config['Rd'])
                 constraints += [
                     cvxpy.abs(u[1, t + 1] - u[1, t]) <=
-                    self.vehicle.config['max_steer_speed'] * self.delta_t]
+                    self.vehicle.config['max_steer_speed'] * self.delta_t
+                ]
 
         # set the cost
         cost += cvxpy.quad_form(
@@ -302,10 +304,8 @@ class ModelPredictiveController:
         # constant matrix
         matrix_c = np.zeros(self.num_state)
         matrix_c[0] = self.delta_t * vel * np.sin(yaw) * yaw
-        matrix_c[1] = - self.delta_t * vel * np.cos(yaw) * yaw
+        matrix_c[1] = -self.delta_t * vel * np.cos(yaw) * yaw
         matrix_c[3] = - self.delta_t * vel * steer / \
             (self.vehicle.config['wheelbase'] * np.cos(steer)**2)
 
         return matrix_a, matrix_b, matrix_c
-
-

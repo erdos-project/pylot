@@ -48,16 +48,11 @@ class PerfectDetectorOperator(erdust.Operator):
         ground_stop_signs_stream.add_callback(self.on_stop_signs_update)
         # Register a completion watermark callback. The callback is invoked
         # after all the messages with a given timestamp have been received.
-        erdust.add_watermark_callback(
-            [depth_camera_stream,
-             center_camera_stream,
-             segmented_camera_stream,
-             can_bus_stream,
-             ground_obstacles_stream,
-             ground_speed_limit_signs_stream,
-             ground_stop_signs_stream],
-            [obstacles_stream],
-            self.on_watermark)
+        erdust.add_watermark_callback([
+            depth_camera_stream, center_camera_stream, segmented_camera_stream,
+            can_bus_stream, ground_obstacles_stream,
+            ground_speed_limit_signs_stream, ground_stop_signs_stream
+        ], [obstacles_stream], self.on_watermark)
 
         self._name = name
         self._logger = erdust.utils.setup_logging(name, log_file_name)
@@ -74,12 +69,9 @@ class PerfectDetectorOperator(erdust.Operator):
         self._frame_cnt = 0
 
     @staticmethod
-    def connect(depth_camera_stream,
-                center_camera_stream,
-                segmented_camera_stream,
-                can_bus_stream,
-                ground_obstacles_stream,
-                ground_speed_limit_signs_stream,
+    def connect(depth_camera_stream, center_camera_stream,
+                segmented_camera_stream, can_bus_stream,
+                ground_obstacles_stream, ground_speed_limit_signs_stream,
                 ground_stop_signs_stream):
         obstacles_stream = erdust.WriteStream()
         # Stream on which to output bounding boxes.
@@ -95,8 +87,8 @@ class PerfectDetectorOperator(erdust.Operator):
         speed_limit_signs_msg = self._speed_limit_signs.popleft()
         stop_signs_msg = self._stop_signs.popleft()
         self._frame_cnt += 1
-        if (hasattr(self._flags, 'log_every_nth_frame') and
-            self._frame_cnt % self._flags.log_every_nth_frame != 0):
+        if (hasattr(self._flags, 'log_every_nth_frame')
+                and self._frame_cnt % self._flags.log_every_nth_frame != 0):
             # There's no point to run the perfect detector if collecting
             # data, and only logging every nth frame.
             obstacles_stream.send(DetectorMessage([], 0, timestamp))
@@ -105,9 +97,7 @@ class PerfectDetectorOperator(erdust.Operator):
         vehicle_transform = can_bus_msg.data.transform
 
         det_obstacles = self.__get_obstacles(
-            obstacles_msg.obstacles,
-            vehicle_transform,
-            depth_array,
+            obstacles_msg.obstacles, vehicle_transform, depth_array,
             segmented_msg.frame.as_numpy_array())
 
         # The camera setup sent with the image is relative to the car, we need
@@ -118,7 +108,6 @@ class PerfectDetectorOperator(erdust.Operator):
             depth_msg.camera_setup.height,
             vehicle_transform * depth_msg.camera_setup.transform,
             fov=depth_msg.camera_setup.fov)
-
 
         det_speed_limits = pylot.simulation.utils.get_speed_limit_det_objs(
             speed_limit_signs_msg.speed_signs, vehicle_transform,
@@ -133,36 +122,35 @@ class PerfectDetectorOperator(erdust.Operator):
         # Send the detected obstacles.
         obstacles_stream.send(DetectorMessage(det_objs, 0, timestamp))
 
-        if (self._flags.visualize_ground_obstacles or
-            self._flags.log_detector_output):
-            annotate_image_with_bboxes(
-                bgr_msg.timestamp, bgr_msg.frame, det_objs)
+        if (self._flags.visualize_ground_obstacles
+                or self._flags.log_detector_output):
+            annotate_image_with_bboxes(bgr_msg.timestamp, bgr_msg.frame,
+                                       det_objs)
             if self._flags.visualize_ground_obstacles:
                 visualize_image(self.name, bgr_msg.frame)
             if self._flags.log_detector_output:
                 save_image(pylot.utils.bgr_to_rgb(bgr_msg.frame),
-                           bgr_msg.timestamp,
-                           self._flags.data_path,
+                           bgr_msg.timestamp, self._flags.data_path,
                            'perfect-detector')
 
     def on_can_bus_update(self, msg):
-        self._logger.debug(
-            '@{}: received can bus message'.format(msg.timestamp))
+        self._logger.debug('@{}: received can bus message'.format(
+            msg.timestamp))
         self._can_bus_msgs.append(msg)
 
     def on_speed_limit_signs_update(self, msg):
-        self._logger.debug(
-            '@{}: received ground speed limits update'.format(msg.timestamp))
+        self._logger.debug('@{}: received ground speed limits update'.format(
+            msg.timestamp))
         self._speed_limit_signs.append(msg)
 
     def on_stop_signs_update(self, msg):
-        self._logger.debug(
-            '@{}: received ground stop signs update'.format(msg.timestamp))
+        self._logger.debug('@{}: received ground stop signs update'.format(
+            msg.timestamp))
         self._stop_signs.append(msg)
 
     def on_obstacles_update(self, msg):
-        self._logger.debug(
-            '@{}: received ground obstacles update'.format(msg.timestamp))
+        self._logger.debug('@{}: received ground obstacles update'.format(
+            msg.timestamp))
         self._obstacles.append(msg)
 
     def on_depth_camera_update(self, msg):
@@ -174,8 +162,8 @@ class PerfectDetectorOperator(erdust.Operator):
         self._bgr_imgs.append(msg)
 
     def on_segmented_frame(self, msg):
-        self._logger.debug(
-            '@{}: received segmented frame'.format(msg.timestamp))
+        self._logger.debug('@{}: received segmented frame'.format(
+            msg.timestamp))
         self._segmented_imgs.append(msg)
 
     def __get_obstacles(self, obstacles, vehicle_transform, depth_array,

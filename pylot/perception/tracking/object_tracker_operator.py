@@ -36,8 +36,8 @@ class ObjectTrackerOperator(erdust.Operator):
             elif tracker_type == 'deep_sort':
                 from pylot.perception.tracking.deep_sort_tracker import\
                     MultiObjectDeepSORTTracker
-                self._tracker = MultiObjectDeepSORTTracker(self._flags,
-                                                           self._logger)
+                self._tracker = MultiObjectDeepSORTTracker(
+                    self._flags, self._logger)
             elif tracker_type == 'sort':
                 from pylot.perception.tracking.sort_tracker import\
                     MultiObjectSORTTracker
@@ -99,8 +99,8 @@ class ObjectTrackerOperator(erdust.Operator):
                 (timestamp, frame) = self._to_process.popleft()
                 assert timestamp == msg.timestamp
                 # Re-initialize trackers.
-                self.__initialize_trackers(
-                    frame, bboxes, msg.timestamp, confidence_scores)
+                self.__initialize_trackers(frame, bboxes, msg.timestamp,
+                                           confidence_scores)
                 self._logger.debug(
                     'Trackers have {} frames to catch-up'.format(
                         len(self._to_process)))
@@ -116,8 +116,8 @@ class ObjectTrackerOperator(erdust.Operator):
         max_confidence = 0
         max_corners = None
         for detected_obj in detected_objs:
-            if (detected_obj.label == 'person' and
-                detected_obj.confidence > max_confidence):
+            if (detected_obj.label == 'person'
+                    and detected_obj.confidence > max_confidence):
                 max_corners = detected_obj.corners
                 max_confidence = detected_obj.confidence
         if max_corners:
@@ -136,8 +136,8 @@ class ObjectTrackerOperator(erdust.Operator):
                 confidence_scores.append(detected_obj.confidence)
         return bboxes, ids, confidence_scores
 
-    def __initialize_trackers(
-            self, frame, bboxes, timestamp, confidence_scores):
+    def __initialize_trackers(self, frame, bboxes, timestamp,
+                              confidence_scores):
         self._ready_to_update = True
         self._ready_to_update_timestamp = timestamp
         self._logger.debug('Restarting trackers at frame {}'.format(timestamp))

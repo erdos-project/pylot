@@ -12,8 +12,7 @@ from pylot.perception.messages import DetectorMessage
 from pylot.utils import bgr_to_rgb, set_tf_loglevel, time_epoch_ms
 
 flags.DEFINE_float(
-    'obstacle_detection_gpu_memory_fraction',
-    0.3,
+    'obstacle_detection_gpu_memory_fraction', 0.3,
     'GPU memory fraction allocated to each obj detector operator')
 flags.DEFINE_float('obstacle_detection_min_score_threshold', 0.5,
                    'Min score threshold for bounding box')
@@ -49,7 +48,8 @@ class DetectionOperator(erdust.Operator):
                 tf.import_graph_def(od_graph_def, name='')
 
         self._gpu_options = tf.compat.v1.GPUOptions(
-            per_process_gpu_memory_fraction=flags.obstacle_detection_gpu_memory_fraction)
+            per_process_gpu_memory_fraction=flags.
+            obstacle_detection_gpu_memory_fraction)
         # Create a TensorFlow session.
         self._tf_session = tf.compat.v1.Session(
             graph=self._detection_graph,
@@ -111,22 +111,22 @@ class DetectionOperator(erdust.Operator):
         self._logger.debug('@{}: {} detected objects: {}'.format(
             msg.timestamp, self._name, detected_objects))
 
-        if (self._flags.visualize_detector_output or
-            self._flags.log_detector_output):
-            annotate_image_with_bboxes(
-                msg.timestamp, image_np, detected_objects, self._bbox_colors)
+        if (self._flags.visualize_detector_output
+                or self._flags.log_detector_output):
+            annotate_image_with_bboxes(msg.timestamp, image_np,
+                                       detected_objects, self._bbox_colors)
             if self._flags.visualize_detector_output:
                 visualize_image(self._name, image_np)
             if self._flags.log_detector_output:
-                save_image(bgr_to_rgb(image_np),
-                           msg.timestamp,
+                save_image(bgr_to_rgb(image_np), msg.timestamp,
                            self._flags.data_path,
                            'detector-{}'.format(self._name))
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},"{}",{}'.format(
-            time_epoch_ms(), self._name, msg.timestamp, runtime))
+        self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
+                                                     self._name, msg.timestamp,
+                                                     runtime))
         # Send out obstacles.
         obstacles_stream.send(
             DetectorMessage(detected_objects, runtime, msg.timestamp))

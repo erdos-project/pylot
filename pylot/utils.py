@@ -10,8 +10,12 @@ def add_timestamp(timestamp, image_np):
     txt_font = cv2.FONT_HERSHEY_SIMPLEX
     timestamp_txt = '{}'.format(timestamp)
     # Put timestamp text.
-    cv2.putText(image_np, timestamp_txt, (5, 15), txt_font, 0.5,
-                (0, 0, 0), thickness=1, lineType=cv2.LINE_AA)
+    cv2.putText(image_np,
+                timestamp_txt, (5, 15),
+                txt_font,
+                0.5, (0, 0, 0),
+                thickness=1,
+                lineType=cv2.LINE_AA)
 
 
 def bgra_to_bgr(image_np):
@@ -48,20 +52,21 @@ def compute_magnitude_angle(target_loc, cur_loc, orientation):
     Returns:
         Tuple of distance to the target and the angle
     """
-    target_vector = np.array([target_loc.x - cur_loc.x,
-                              target_loc.y - cur_loc.y])
+    target_vector = np.array(
+        [target_loc.x - cur_loc.x, target_loc.y - cur_loc.y])
     norm_target = np.linalg.norm(target_vector)
 
-    forward_vector = np.array([math.cos(math.radians(orientation)),
-                               math.sin(math.radians(orientation))])
+    forward_vector = np.array([
+        math.cos(math.radians(orientation)),
+        math.sin(math.radians(orientation))
+    ])
     d_angle = math.degrees(
         math.acos(np.dot(forward_vector, target_vector) / norm_target))
 
     return (norm_target, d_angle)
 
 
-def is_within_distance_ahead(
-        cur_loc, dst_loc, orientation, max_distance):
+def is_within_distance_ahead(cur_loc, dst_loc, orientation, max_distance):
     """
     Check if a location is within a distance in a given orientation.
 
@@ -73,19 +78,19 @@ def is_within_distance_ahead(
     Returns:
         True if other location is within max_distance.
     """
-    target_vector = np.array([dst_loc.x - cur_loc.x,
-                              dst_loc.y - cur_loc.y])
+    target_vector = np.array([dst_loc.x - cur_loc.x, dst_loc.y - cur_loc.y])
     norm_dst = np.linalg.norm(target_vector)
     # Return if the vector is too small.
     if norm_dst < 0.001:
         return True
     if norm_dst > max_distance:
         return False
-    forward_vector = np.array(
-        [math.cos(math.radians(orientation)),
-         math.sin(math.radians(orientation))])
-    d_angle = math.degrees(math.acos(
-        np.dot(forward_vector, target_vector) / norm_dst))
+    forward_vector = np.array([
+        math.cos(math.radians(orientation)),
+        math.sin(math.radians(orientation))
+    ])
+    d_angle = math.degrees(
+        math.acos(np.dot(forward_vector, target_vector) / norm_dst))
     return d_angle < 90.0
 
 

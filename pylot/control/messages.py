@@ -11,7 +11,6 @@ class ControlMessage(erdust.Message):
         hand_brake: Boolean controlling hand-brake engagement.
         reverse: Boolean controlling reverse gear engagement.
     """
-
     def __init__(self, steer, throttle, brake, hand_brake, reverse, timestamp):
         super(ControlMessage, self).__init__(timestamp, None)
         self.steer = steer

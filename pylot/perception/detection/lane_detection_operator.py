@@ -64,15 +64,17 @@ class LaneDetectionOperator(erdust.Operator):
         # criteria, or the gradient magnitude and direction are both with
         # the threshold values.
         combined = np.zeros_like(dir_binary)
-        combined[((grad_x == 1) & (grad_y == 1)) | ((mag_binary == 1) & (dir_binary == 1))] = 1
+        combined[((grad_x == 1) & (grad_y == 1)) | ((mag_binary == 1) &
+                                                    (dir_binary == 1))] = 1
 
         combined_binary = np.zeros_like(grad_x)
         combined_binary[(s_binary == 1) | (grad_x == 1)] = 1
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},"{}",{}'.format(
-            time_epoch_ms(), self._name, msg.timestamp, runtime))
+        self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
+                                                     self._name, msg.timestamp,
+                                                     runtime))
 
         if self._flags.visualize_lane_detection:
             add_timestamp(msg.timestamp, lines_edges)
@@ -106,9 +108,7 @@ class LaneDetectionOperator(erdust.Operator):
         imshape = image.shape
         # TODO(ionel): Do not hard code values! Figure out which region to
         # select.
-        vertices = np.array([[(0, imshape[0]),
-                              (375, 275),
-                              (425, 275),
+        vertices = np.array([[(0, imshape[0]), (375, 275), (425, 275),
                               (imshape[1], imshape[0])]],
                             dtype=np.int32)
 
@@ -164,8 +164,11 @@ class LaneDetectionOperator(erdust.Operator):
         binary[(scaled_sobel >= thresh_min) & (scaled_sobel <= thresh_max)] = 1
         return binary
 
-    def magnitude_threshold(
-            self, img, sobel_kernel=3, thresh_min=0, thresh_max=255):
+    def magnitude_threshold(self,
+                            img,
+                            sobel_kernel=3,
+                            thresh_min=0,
+                            thresh_max=255):
         gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
         sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=sobel_kernel)
         sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=sobel_kernel)
@@ -179,15 +182,19 @@ class LaneDetectionOperator(erdust.Operator):
         binary_output[(gradmag >= thresh_min) & (gradmag <= thresh_max)] = 1
         return binary_output
 
-    def direction_threshold(
-            self, img, sobel_kernel=3, thresh_min=0, thresh_max=np.pi/2):
+    def direction_threshold(self,
+                            img,
+                            sobel_kernel=3,
+                            thresh_min=0,
+                            thresh_max=np.pi / 2):
         gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
         sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=sobel_kernel)
         sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=sobel_kernel)
         # Take the absolute value of the gradient direction
         abs_grad_dir = np.arctan2(np.absolute(sobely), np.absolute(sobelx))
         binary_output = np.zeros_like(abs_grad_dir)
-        binary_output[(abs_grad_dir >= thresh_min) & (abs_grad_dir <= thresh_max)] = 1
+        binary_output[(abs_grad_dir >= thresh_min)
+                      & (abs_grad_dir <= thresh_max)] = 1
         return binary_output
 
     def extract_s_channel(self, img, thresh_min=170, thresh_max=255):

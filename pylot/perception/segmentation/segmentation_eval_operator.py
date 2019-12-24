@@ -7,13 +7,11 @@ from pylot.utils import time_epoch_ms
 flags.DEFINE_enum('segmentation_metric', 'mIoU', ['mIoU', 'timely-mIoU'],
                   'Segmentation evaluation metric')
 flags.DEFINE_bool(
-    'segmentation_eval_use_accuracy_model',
-    False,
+    'segmentation_eval_use_accuracy_model', False,
     'Enable to use a model for segmentation accuracy decay over time')
 
 
 class SegmentationEvalOperator(erdust.Operator):
-
     def __init__(self,
                  ground_segmented_stream,
                  segmented_stream,
@@ -48,7 +46,8 @@ class SegmentationEvalOperator(erdust.Operator):
             self._last_notification = timestamp.coordinates[0]
             return
         else:
-            self._sim_interval = timestamp.coordinates[0] - self._last_notification
+            self._sim_interval = timestamp.coordinates[
+                0] - self._last_notification
             self._last_notification = timestamp.coordinates[0]
 
         game_time = timestamp.coordinates[0]
@@ -115,8 +114,8 @@ class SegmentationEvalOperator(erdust.Operator):
             return base + self._sim_interval
 
     def __compute_mean_iou(self, ground_frame, segmented_frame):
-        (mean_iou, class_iou) = ground_frame.compute_semantic_iou(
-            segmented_frame)
+        (mean_iou,
+         class_iou) = ground_frame.compute_semantic_iou(segmented_frame)
         self._logger.info('IoU class scores: {}'.format(class_iou))
         self._logger.info('mean IoU score: {}'.format(mean_iou))
         self._csv_logger.info('{},{},{},{}'.format(
@@ -158,15 +157,15 @@ class SegmentationEvalOperator(erdust.Operator):
             return
         # Remove all segmentations that are below the watermark.
         index = 0
-        while (index < len(self._segmented_frames) and
-               self._segmented_frames[index][0] < watermark):
+        while (index < len(self._segmented_frames)
+               and self._segmented_frames[index][0] < watermark):
             index += 1
         if index > 0:
             self._segmented_frames = self._segmented_frames[index:]
         # Remove all the ground segmentations that are below the watermark.
         index = 0
-        while (index < len(self._ground_frames) and
-               self._ground_frames[index][0] < watermark):
+        while (index < len(self._ground_frames)
+               and self._ground_frames[index][0] < watermark):
             index += 1
         if index > 0:
             self._ground_frames = self._ground_frames[index:]

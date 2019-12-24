@@ -11,10 +11,7 @@ class FrameMessage(erdust.Message):
         height: The height of the frame.
         encoding: The encoding of the frame.
     """
-    def __init__(self,
-                 frame,
-                 timestamp,
-                 encoding='carla'):
+    def __init__(self, frame, timestamp, encoding='carla'):
         """ Initializes the frame messsage.
 
         Args:
@@ -52,7 +49,6 @@ class DepthFrameMessage(erdust.Message):
         camera_setup: The camera setup used to generate the frame.
         encoding: The encoding that the frame was received in.
     """
-
     def __init__(self, frame, camera_setup, timestamp, encoding='carla'):
         """ Initializes the depth frame messsage.
 
@@ -214,7 +210,6 @@ class DetectedLaneMessage(erdust.Message):
     Attributes:
         detected_lanes: A list of detected lanes locations.
     """
-
     def __init__(self, timestamp, detected_lanes):
         super(DetectedLaneMessage, self).__init__(timestamp, None)
         self.detected_lanes = detected_lanes

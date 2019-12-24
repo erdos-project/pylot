@@ -25,9 +25,8 @@ def get_xy_vector_dist(loc1, loc2):
 
 
 def get_waypoint_vector_and_angle(wp_transform, ego_transform):
-    wp_vector, wp_mag = get_xy_vector_dist(
-        wp_transform.location,
-        ego_transform.location)
+    wp_vector, wp_mag = get_xy_vector_dist(wp_transform.location,
+                                           ego_transform.location)
     if wp_mag > 0:
         wp_angle = get_angle(
             wp_vector,

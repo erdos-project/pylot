@@ -24,7 +24,6 @@ from pylot.planning.rrt_star.utils import start_target_to_space
 from pylot.planning.utils import get_waypoint_vector_and_angle
 from pylot.utils import is_within_distance_ahead
 
-
 DEFAULT_OBSTACLE_LENGTH = 3  # 3 meters from front to back
 DEFAULT_OBSTACLE_WIDTH = 2  # 2 meters from side to side
 DEFAULT_TARGET_LENGTH = 1  # 1.5 meters from front to back
@@ -41,7 +40,6 @@ class RRTStarPlanningOperator(erdust.Operator):
     agent (on the global trajectory stream), or computes waypoints using the
     HD Map.
     """
-
     def __init__(self,
                  can_bus_stream,
                  prediction_stream,
@@ -61,10 +59,8 @@ class RRTStarPlanningOperator(erdust.Operator):
         """
         can_bus_stream.add_callback(self.on_can_bus_update)
         prediction_stream.add_callback(self.on_prediction_update)
-        erdust.add_watermark_callback(
-            [can_bus_stream, prediction_stream],
-            [waypoints_stream],
-            self.on_watermark)
+        erdust.add_watermark_callback([can_bus_stream, prediction_stream],
+                                      [waypoints_stream], self.on_watermark)
         self._name = name
         self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._csv_logger = erdust.utils.setup_csv_logging(
@@ -88,13 +84,13 @@ class RRTStarPlanningOperator(erdust.Operator):
         return [waypoints_stream]
 
     def on_can_bus_update(self, msg):
-        self._logger.debug(
-            '@{}: received can bus message'.format(msg.timestamp))
+        self._logger.debug('@{}: received can bus message'.format(
+            msg.timestamp))
         self._can_bus_msgs.append(msg)
 
     def on_prediction_update(self, msg):
-        self._logger.debug(
-            '@{}: received prediction message'.format(msg.timestamp))
+        self._logger.debug('@{}: received prediction message'.format(
+            msg.timestamp))
         self._prediction_msgs.append(msg)
 
     def on_watermark(self, timestamp, waypoints_stream):
@@ -110,8 +106,7 @@ class RRTStarPlanningOperator(erdust.Operator):
         target_location = self._compute_target_location(vehicle_transform)
 
         # run rrt*
-        path, cost = self._run_rrt_star(vehicle_transform,
-                                        target_location,
+        path, cost = self._run_rrt_star(vehicle_transform, target_location,
                                         obstacle_map)
 
         # convert to waypoints if path found, else use default waypoints
@@ -126,35 +121,29 @@ class RRTStarPlanningOperator(erdust.Operator):
                     Transform(
                         location=Location(x=point[0], y=point[1], z=p_loc.z),
                         rotation=Rotation(),
-                    )
-                )
+                    ))
             waypoints = deque(path_transforms)
             waypoints.extend(
-                itertools.islice(
-                    self._waypoints,
-                    self._wp_index,
-                    len(self._waypoints)
-                )
+                itertools.islice(self._waypoints, self._wp_index,
+                                 len(self._waypoints))
             )  # add the remaining global route for future
         else:
             waypoints = self._waypoints
 
         # construct waypoints message
         waypoints = collections.deque(
-            itertools.islice(waypoints, 0, DEFAULT_NUM_WAYPOINTS)
-        )  # only take 50 meters
+            itertools.islice(waypoints, 0,
+                             DEFAULT_NUM_WAYPOINTS))  # only take 50 meters
         next_waypoint = waypoints[self._wp_index]
         wp_steer_speed_vector, wp_steer_speed_angle = \
             get_waypoint_vector_and_angle(
                 next_waypoint, vehicle_transform
             )
-        output_msg = WaypointsMessage(
-            timestamp,
-            waypoints=waypoints,
-            wp_angle=wp_steer_speed_angle,
-            wp_vector=wp_steer_speed_vector,
-            wp_angle_speed=wp_steer_speed_angle
-        )
+        output_msg = WaypointsMessage(timestamp,
+                                      waypoints=waypoints,
+                                      wp_angle=wp_steer_speed_angle,
+                                      wp_vector=wp_steer_speed_vector,
+                                      wp_angle_speed=wp_steer_speed_angle)
 
         # send waypoints message
         waypoints_stream.send(output_msg)
@@ -185,11 +174,12 @@ class RRTStarPlanningOperator(erdust.Operator):
                                             vehicle_transform.rotation.yaw,
                                             DEFAULT_DISTANCE_THRESHOLD):
                     # compute the obstacle origin and range of the obstacle
-                    obstacle_origin = (
-                        (location.x - DEFAULT_OBSTACLE_LENGTH / 2,
-                         location.y - DEFAULT_OBSTACLE_WIDTH / 2),
-                        (DEFAULT_OBSTACLE_LENGTH, DEFAULT_OBSTACLE_WIDTH)
-                    )
+                    obstacle_origin = ((location.x -
+                                        DEFAULT_OBSTACLE_LENGTH / 2,
+                                        location.y -
+                                        DEFAULT_OBSTACLE_WIDTH / 2),
+                                       (DEFAULT_OBSTACLE_LENGTH,
+                                        DEFAULT_OBSTACLE_WIDTH))
                     obs_id = str("{}_{}".format(prediction.id, time))
                     obstacle_map[obs_id] = obstacle_origin
                 time += 1
@@ -208,9 +198,7 @@ class RRTStarPlanningOperator(erdust.Operator):
         """
         ego_location = vehicle_transform.location.as_carla_location()
         self._waypoints = self._hd_map.compute_waypoints(
-            ego_location,
-            self._goal_location
-        )
+            ego_location, self._goal_location)
         target_waypoint = self._waypoints[self._wp_index]
         target_location = target_waypoint.location
         return target_location
@@ -235,13 +223,10 @@ class RRTStarPlanningOperator(erdust.Operator):
         """
         starting_state = (vehicle_transform.location.x,
                           vehicle_transform.location.y)
-        target_space = (
-            (target_location.x - DEFAULT_TARGET_LENGTH / 2,
-             target_location.y - DEFAULT_TARGET_WIDTH / 2),
-            (DEFAULT_TARGET_LENGTH, DEFAULT_TARGET_WIDTH)
-        )
-        state_space = start_target_to_space(starting_state,
-                                            target_space,
+        target_space = ((target_location.x - DEFAULT_TARGET_LENGTH / 2,
+                         target_location.y - DEFAULT_TARGET_WIDTH / 2),
+                        (DEFAULT_TARGET_LENGTH, DEFAULT_TARGET_WIDTH))
+        state_space = start_target_to_space(starting_state, target_space,
                                             DEFAULT_TARGET_LENGTH,
                                             DEFAULT_TARGET_WIDTH)
         path, cost = apply_rrt_star(state_space=state_space,

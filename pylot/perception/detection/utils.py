@@ -10,7 +10,6 @@ from skimage import measure
 
 from pylot.utils import add_timestamp
 
-
 GROUND_COLOR_MAP = {
     'pedestrian': [0, 128, 0],
     'vehicle': [128, 0, 0],
@@ -21,90 +20,32 @@ GROUND_COLOR_MAP = {
     'green traffic light': [0, 255, 0],
 }
 
-coco_bbox_color_list = np.array(
-        [
-            1.000, 1.000, 1.000,
-            0.850, 0.325, 0.098,
-            0.929, 0.694, 0.125,
-            0.494, 0.184, 0.556,
-            0.466, 0.674, 0.188,
-            0.301, 0.745, 0.933,
-            0.635, 0.078, 0.184,
-            0.300, 0.300, 0.300,
-            0.600, 0.600, 0.600,
-            1.000, 0.000, 0.000,
-            1.000, 0.500, 0.000,
-            0.749, 0.749, 0.000,
-            0.000, 1.000, 0.000,
-            0.000, 0.000, 1.000,
-            0.667, 0.000, 1.000,
-            0.333, 0.333, 0.000,
-            0.333, 0.667, 0.000,
-            0.333, 1.000, 0.000,
-            0.667, 0.333, 0.000,
-            0.667, 0.667, 0.000,
-            0.667, 1.000, 0.000,
-            1.000, 0.333, 0.000,
-            1.000, 0.667, 0.000,
-            1.000, 1.000, 0.000,
-            0.000, 0.333, 0.500,
-            0.000, 0.667, 0.500,
-            0.000, 1.000, 0.500,
-            0.333, 0.000, 0.500,
-            0.333, 0.333, 0.500,
-            0.333, 0.667, 0.500,
-            0.333, 1.000, 0.500,
-            0.667, 0.000, 0.500,
-            0.667, 0.333, 0.500,
-            0.667, 0.667, 0.500,
-            0.667, 1.000, 0.500,
-            1.000, 0.000, 0.500,
-            1.000, 0.333, 0.500,
-            1.000, 0.667, 0.500,
-            1.000, 1.000, 0.500,
-            0.000, 0.333, 1.000,
-            0.000, 0.667, 1.000,
-            0.000, 1.000, 1.000,
-            0.333, 0.000, 1.000,
-            0.333, 0.333, 1.000,
-            0.333, 0.667, 1.000,
-            0.333, 1.000, 1.000,
-            0.667, 0.000, 1.000,
-            0.667, 0.333, 1.000,
-            0.667, 0.667, 1.000,
-            0.667, 1.000, 1.000,
-            1.000, 0.000, 1.000,
-            1.000, 0.333, 1.000,
-            1.000, 0.667, 1.000,
-            0.167, 0.000, 0.000,
-            0.333, 0.000, 0.000,
-            0.500, 0.000, 0.000,
-            0.667, 0.000, 0.000,
-            0.833, 0.000, 0.000,
-            1.000, 0.000, 0.000,
-            0.000, 0.167, 0.000,
-            0.000, 0.333, 0.000,
-            0.000, 0.500, 0.000,
-            0.000, 0.667, 0.000,
-            0.000, 0.833, 0.000,
-            0.000, 1.000, 0.000,
-            0.000, 0.000, 0.167,
-            0.000, 0.000, 0.333,
-            0.000, 0.000, 0.500,
-            0.000, 0.000, 0.667,
-            0.000, 0.000, 0.833,
-            0.000, 0.000, 1.000,
-            0.000, 0.000, 0.000,
-            0.143, 0.143, 0.143,
-            0.286, 0.286, 0.286,
-            0.429, 0.429, 0.429,
-            0.571, 0.571, 0.571,
-            0.714, 0.714, 0.714,
-            0.857, 0.857, 0.857,
-            0.000, 0.447, 0.741,
-            0.50, 0.5, 0
-        ]
-    ).astype(np.float32)
+coco_bbox_color_list = np.array([
+    1.000, 1.000, 1.000, 0.850, 0.325, 0.098, 0.929, 0.694, 0.125, 0.494,
+    0.184, 0.556, 0.466, 0.674, 0.188, 0.301, 0.745, 0.933, 0.635, 0.078,
+    0.184, 0.300, 0.300, 0.300, 0.600, 0.600, 0.600, 1.000, 0.000, 0.000,
+    1.000, 0.500, 0.000, 0.749, 0.749, 0.000, 0.000, 1.000, 0.000, 0.000,
+    0.000, 1.000, 0.667, 0.000, 1.000, 0.333, 0.333, 0.000, 0.333, 0.667,
+    0.000, 0.333, 1.000, 0.000, 0.667, 0.333, 0.000, 0.667, 0.667, 0.000,
+    0.667, 1.000, 0.000, 1.000, 0.333, 0.000, 1.000, 0.667, 0.000, 1.000,
+    1.000, 0.000, 0.000, 0.333, 0.500, 0.000, 0.667, 0.500, 0.000, 1.000,
+    0.500, 0.333, 0.000, 0.500, 0.333, 0.333, 0.500, 0.333, 0.667, 0.500,
+    0.333, 1.000, 0.500, 0.667, 0.000, 0.500, 0.667, 0.333, 0.500, 0.667,
+    0.667, 0.500, 0.667, 1.000, 0.500, 1.000, 0.000, 0.500, 1.000, 0.333,
+    0.500, 1.000, 0.667, 0.500, 1.000, 1.000, 0.500, 0.000, 0.333, 1.000,
+    0.000, 0.667, 1.000, 0.000, 1.000, 1.000, 0.333, 0.000, 1.000, 0.333,
+    0.333, 1.000, 0.333, 0.667, 1.000, 0.333, 1.000, 1.000, 0.667, 0.000,
+    1.000, 0.667, 0.333, 1.000, 0.667, 0.667, 1.000, 0.667, 1.000, 1.000,
+    1.000, 0.000, 1.000, 1.000, 0.333, 1.000, 1.000, 0.667, 1.000, 0.167,
+    0.000, 0.000, 0.333, 0.000, 0.000, 0.500, 0.000, 0.000, 0.667, 0.000,
+    0.000, 0.833, 0.000, 0.000, 1.000, 0.000, 0.000, 0.000, 0.167, 0.000,
+    0.000, 0.333, 0.000, 0.000, 0.500, 0.000, 0.000, 0.667, 0.000, 0.000,
+    0.833, 0.000, 0.000, 1.000, 0.000, 0.000, 0.000, 0.167, 0.000, 0.000,
+    0.333, 0.000, 0.000, 0.500, 0.000, 0.000, 0.667, 0.000, 0.000, 0.833,
+    0.000, 0.000, 1.000, 0.000, 0.000, 0.000, 0.143, 0.143, 0.143, 0.286,
+    0.286, 0.286, 0.429, 0.429, 0.429, 0.571, 0.571, 0.571, 0.714, 0.714,
+    0.714, 0.857, 0.857, 0.857, 0.000, 0.447, 0.741, 0.50, 0.5, 0
+]).astype(np.float32)
 
 
 class TrafficLightColor(Enum):
@@ -144,8 +85,7 @@ class DetectedObject(object):
         (xmin, xmax, ymin, ymax) = self.corners
         if text is None:
             if self.obj_id != -1:
-                text = '{}{:.1f}, id:{}'.format(self.label, 
-                                                self.confidence, 
+                text = '{}{:.1f}, id:{}'.format(self.label, self.confidence,
                                                 self.obj_id)
             else:
                 text = '{}{:.1f}'.format(self.label, self.confidence)
@@ -154,11 +94,13 @@ class DetectedObject(object):
         # Show bounding box.
         cv2.rectangle(image_np, (xmin, ymin), (xmax, ymax), color, 2)
         # Show text.
-        cv2.rectangle(image_np,
-                      (xmin, ymin - txt_size[1] - 2),
+        cv2.rectangle(image_np, (xmin, ymin - txt_size[1] - 2),
                       (xmin + txt_size[0], ymin - 2), color, -1)
-        cv2.putText(image_np, text, (xmin, ymin - 2),
-                    txt_font, 0.5, (0, 0, 0), thickness=1,
+        cv2.putText(image_np,
+                    text, (xmin, ymin - 2),
+                    txt_font,
+                    0.5, (0, 0, 0),
+                    thickness=1,
                     lineType=cv2.LINE_AA)
 
     def get_bbox_label(self, ):
@@ -180,13 +122,13 @@ class DetectedSpeedLimit(DetectedObject):
 
     def visualize_on_img(self, image_np, bbox_color_map):
         text = '{} {} {:.1f}'.format(self.limit, self.label, self.confidence)
-        super(DetectedSpeedLimit, self).visualize_on_img(
-            image_np, bbox_color_map, text)
+        super(DetectedSpeedLimit,
+              self).visualize_on_img(image_np, bbox_color_map, text)
 
     def get_bbox_label(self, ):
         (xmin, xmax, ymin, ymax) = self.corners
-        return (self.label + ' ' + str(self.limit),
-                ((xmin, ymin), (xmax, ymax)))
+        return (self.label + ' ' + str(self.limit), ((xmin, ymin), (xmax,
+                                                                    ymax)))
 
     def __repr__(self):
         return self.__str__()
@@ -216,7 +158,7 @@ def compute_miou(bboxes1, bboxes2):
 
     union = (bboxes1_area + np.transpose(bboxes2_area)) - inter_area
 
-    return inter_area / (union+0.0001)
+    return inter_area / (union + 0.0001)
 
 
 def load_coco_labels(labels_path):
@@ -236,8 +178,8 @@ def load_coco_bbox_colors(coco_labels):
     # Transform to ints
     bbox_colors = [(bbox_color_list[_]).astype(np.uint8)
                    for _ in range(len(bbox_color_list))]
-    bbox_colors = np.array(bbox_colors, dtype=np.uint8).reshape(
-        len(bbox_colors), 1, 1, 3)
+    bbox_colors = np.array(bbox_colors,
+                           dtype=np.uint8).reshape(len(bbox_colors), 1, 1, 3)
 
     colors = {}
     for category, label in coco_labels.items():
@@ -308,7 +250,9 @@ def get_prediction_results(ground_truths, predictions, iou_threshold):
         # Sort the IOUs and match each box only once.
         ground_truths_matched, predictions_matched = set(), set()
         matched = []
-        for prediction, ground_truth, iou in sorted(ious, key=lambda x: x[-1], reverse=True):
+        for prediction, ground_truth, iou in sorted(ious,
+                                                    key=lambda x: x[-1],
+                                                    reverse=True):
             if ground_truth not in ground_truths_matched and prediction not in predictions_matched:
                 ground_truths_matched.add(ground_truth)
                 predictions_matched.add(prediction)
@@ -329,12 +273,14 @@ def get_precision_recall(true_positives, false_positives, false_negatives):
     if true_positives + false_positives == 0:
         precision = 0.0
     else:
-        precision = float(true_positives) / float(true_positives + false_positives)
+        precision = float(true_positives) / float(true_positives +
+                                                  false_positives)
 
     if true_positives + false_negatives == 0:
         recall = 0.0
     else:
-        recall = float(true_positives) / float(true_positives + false_negatives)
+        recall = float(true_positives) / float(true_positives +
+                                               false_negatives)
 
     return (precision, recall)
 
@@ -389,10 +335,8 @@ def visualize_no_colors_bboxes(op_name, timestamp, image_np, bboxes):
         (xmin, xmax, ymin, ymax) = corners
         color = [128, 0, 0]
         # Show bounding box.
-        cv2.rectangle(image_np,
-                      (int(xmin), int(ymin)), (int(xmax), int(ymax)),
-                      color,
-                      2)
+        cv2.rectangle(image_np, (int(xmin), int(ymin)), (int(xmax), int(ymax)),
+                      color, 2)
     cv2.imshow(op_name, image_np)
     cv2.waitKey(1)
 
@@ -406,10 +350,12 @@ def visualize_ground_bboxes(op_name, timestamp, image_np, det_objs):
     cv2.waitKey(1)
 
 
-def annotate_image_with_bboxes(
-        timestamp, image_np, detected_objs, bbox_color_map=GROUND_COLOR_MAP):
+def annotate_image_with_bboxes(timestamp,
+                               image_np,
+                               detected_objs,
+                               bbox_color_map=GROUND_COLOR_MAP):
     """ Adds bounding boxes to an image."""
-#    txt_font = cv2.FONT_HERSHEY_SIMPLEX
+    #    txt_font = cv2.FONT_HERSHEY_SIMPLEX
     add_timestamp(timestamp, image_np)
     for detected_obj in detected_objs:
         detected_obj.visualize_on_img(image_np, bbox_color_map)
@@ -424,16 +370,14 @@ def visualize_image(op_name, image_np):
 
 def save_image(image_np, timestamp, data_path, file_base):
     """ Write image to disk."""
-    file_name = '{}{}-{}.png'.format(
-        data_path,
-        file_base,
-        timestamp.coordinates[0])
+    file_name = '{}{}-{}.png'.format(data_path, file_base,
+                                     timestamp.coordinates[0])
     rgb_img = Image.fromarray(image_np)
     rgb_img.save(file_name)
 
 
-def visualize_bboxes(
-        op_name, timestamp, image_np, detected_objs, bbox_color_map):
+def visualize_bboxes(op_name, timestamp, image_np, detected_objs,
+                     bbox_color_map):
     """ Creates a cv2 window to visualize detected objects."""
     add_timestamp(timestamp, image_np)
     for detected_obj in detected_objs:

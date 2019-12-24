@@ -5,7 +5,6 @@ This code is adapted from: https://github.com/dixantmittal/fast-rrt-star
 """
 import numpy as np
 
-
 volume_of_unit_ball = {
     1: 2,
     2: 3.142,
@@ -181,7 +180,7 @@ def cartesian_distance(x, y):
     if y.ndim == 1:
         y = y.reshape(1, -1)
 
-    dist = np.sqrt(np.sum((y - x) ** 2, axis=1))
+    dist = np.sqrt(np.sum((y - x)**2, axis=1))
     return dist
 
 

@@ -10,7 +10,6 @@ class TrackVisualizerOperator(erdust.Operator):
     """ TrackVisualizerOperator visualizes the past and predicted future
         locations of agents on the top-down segmented image.
     """
-
     def __init__(self,
                  obstacle_tracking_stream,
                  prediction_stream,
@@ -32,19 +31,21 @@ class TrackVisualizerOperator(erdust.Operator):
         prediction_stream.add_callback(self.on_prediction_update)
         segmented_camera_stream.add_callback(
             self.on_top_down_segmentation_update)
-        erdust.add_watermark_callback(
-            [obstacle_tracking_stream,
-             prediction_stream,
-             segmented_camera_stream],
-            [],
-            self.on_watermark)
+        erdust.add_watermark_callback([
+            obstacle_tracking_stream, prediction_stream,
+            segmented_camera_stream
+        ], [], self.on_watermark)
         self._name = name
         self._logger = erdust.utils.setup_logging(name, log_file_name)
         self._flags = flags
-        self._past_colors = {'pedestrian': [255, 0, 0],
-                             'vehicle': [128, 128, 0]}
-        self._future_colors = {'pedestrian': [0, 0, 255],
-                               'vehicle': [0, 255, 0]}
+        self._past_colors = {
+            'pedestrian': [255, 0, 0],
+            'vehicle': [128, 128, 0]
+        }
+        self._future_colors = {
+            'pedestrian': [0, 0, 255],
+            'vehicle': [0, 255, 0]
+        }
         # Dictionaries to store incoming data.
         self._tracking_msgs = {}
         self._top_down_segmentation_msgs = {}
@@ -53,8 +54,7 @@ class TrackVisualizerOperator(erdust.Operator):
         self._top_down_camera_setup = top_down_camera_setup
 
     @staticmethod
-    def connect(obstacle_tracking_stream,
-                prediction_stream,
+    def connect(obstacle_tracking_stream, prediction_stream,
                 segmented_camera_stream):
         return []
 
@@ -102,7 +102,6 @@ class TrackVisualizerOperator(erdust.Operator):
         for point in screen_points:
             if (0 <= point.x <= self._flags.carla_camera_image_width) and \
                (0 <= point.y <= self._flags.carla_camera_image_height):
-                cv2.circle(img,
-                           (int(point.x), int(point.y)),
-                           3, point_color, -1)
+                cv2.circle(img, (int(point.x), int(point.y)), 3, point_color,
+                           -1)
         return img

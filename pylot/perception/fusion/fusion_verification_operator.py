@@ -22,8 +22,10 @@ class FusionVerificationOperator(erdust.Operator):
         vehicle_positions = []
         for obstacle in msg.obstacles:
             if obstacle.label == 'vehicle':
-                position = np.array([obstacle.transform.location.x,
-                                     obstacle.transform.location.y])
+                position = np.array([
+                    obstacle.transform.location.x,
+                    obstacle.transform.location.y
+                ])
                 vehicle_positions.append(position)
 
         self.vehicles.append((msg.timestamp, vehicle_positions))
