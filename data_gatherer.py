@@ -2,7 +2,6 @@ from absl import app
 from absl import flags
 import erdust
 
-from pylot.control.messages import ControlMessage
 import pylot.flags
 import pylot.operator_creator
 import pylot.simulation.utils
@@ -37,27 +36,6 @@ flags.DEFINE_bool('log_top_down_segmentation', False,
                   'True to enable logging of top down segmentation')
 
 CENTER_CAMERA_LOCATION = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
-
-
-class SynchronizerOperator(erdust.Operator):
-    def __init__(self, wait_stream, control_stream, flags):
-        erdust.add_watermark_callback([wait_stream], [control_stream],
-                                      self.on_watermark)
-        self._flags = flags
-
-    @staticmethod
-    def connect(wait_stream):
-        # Set no watermark on the output stream so that we do not
-        # close the watermark loop with the carla operator.
-        control_stream = erdust.WriteStream()
-        return [control_stream]
-
-    def on_watermark(self, timestamp, control_stream):
-        # The control message is ignored by the bridge operator because
-        # data gathering is conducted using auto pilot. Send default control
-        # message.
-        control_msg = ControlMessage(0, 0, 0, False, False, timestamp)
-        control_stream.send(control_msg)
 
 
 def driver():
@@ -204,7 +182,7 @@ def driver():
         top_down_segmented_stream, obstacles_tracking_stream,
         prediction_stream, top_down_camera_setup)
 
-    # TODO: Hack! We synchronize on a single stream, based on a guesestimated
+    # TODO: Hack! We synchronize on a single stream, based on a guesestimate
     # of which stream is slowest. Instead, We should synchronize on all output
     # streams, and we should ensure that even the operators without output
     # streams complete.
@@ -218,11 +196,8 @@ def driver():
             stream_to_sync_on = traffic_lights_stream
         if obstacles_stream is not None:
             stream_to_sync_on = obstacles_stream
-        (control_stream, ) = erdust.connect(
-            SynchronizerOperator,
-            [stream_to_sync_on],
-            False,  # Does not flow watermarks.
-            FLAGS)
+        control_stream = pylot.operator_creator.add_synchronizer(
+            stream_to_sync_on)
         control_loop_stream.set(control_stream)
     else:
         raise ValueError(

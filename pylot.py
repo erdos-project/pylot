@@ -177,6 +177,20 @@ def add_control(center_camera_setup, can_bus_stream, obstacles_stream,
         control_stream = pylot.operator_creator.add_ground_agent(
             can_bus_stream, ground_obstacles_stream,
             ground_traffic_lights_stream, waypoints_stream)
+    elif FLAGS.control_agent == 'carla_auto_pilot':
+        # TODO: Hack! We synchronize on a single stream, based on a
+        # guesestimate of which stream is slowest.
+        stream_to_sync_on = ground_obstacles_stream
+        if obstacles_stream is not None:
+            stream_to_sync_on = obstacles_stream
+        elif traffic_lights_stream is not None:
+            stream_to_sync_on = traffic_lights_stream
+        elif depth_camera_stream is not None:
+            stream_to_sync_on = depth_camera_stream
+        elif waypoints_stream is not None:
+            stream_to_sync_on = waypoints_stream
+        control_stream = pylot.operator_creator.add_synchronizer(
+            stream_to_sync_on)
     else:
         raise ValueError('Unexpected control_agent {}'.format(
             FLAGS.control_agent))
