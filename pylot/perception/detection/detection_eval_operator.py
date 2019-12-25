@@ -165,7 +165,7 @@ class DetectionEvalOperator(erdust.Operator):
 
     def on_ground_obstacles(self, msg):
         game_time = msg.timestamp.coordinates[0]
-        _, ped_bboxes, _ = self.__get_bboxes_by_category(msg.detected_objects)
+        _, ped_bboxes, _ = self.__get_bboxes_by_category(msg.obstacles)
         # Add the pedestrians to the ground obstacles buffer.
         self._ground_obstacles.append((game_time, ped_bboxes))
 

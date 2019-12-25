@@ -64,7 +64,7 @@ class PerfectTrafficLightDetectorOperator(erdust.Operator):
                 and self._frame_cnt % self._flags.log_every_nth_frame != 0):
             # There's no point to run the perfect detector if collecting
             # data, and only logging every nth frame.
-            traffic_light_msg.send(DetectorMessage([], 0, timestamp))
+            traffic_lights_stream.send(DetectorMessage([], 0, timestamp))
             return
 
         # The camera setup sent with the image is relative to the car, we need
@@ -86,7 +86,7 @@ class PerfectTrafficLightDetectorOperator(erdust.Operator):
             annotate_image_with_bboxes(bgr_msg.timestamp, bgr_msg.frame,
                                        det_traffic_lights)
             if self._flags.visualize_ground_obstacles:
-                visualize_image(self.name, bgr_msg.frame)
+                visualize_image(self._name, bgr_msg.frame)
             if self._flags.log_detector_output:
                 save_image(pylot.utils.bgr_to_rgb(bgr_msg.frame),
                            bgr_msg.timestamp, self._flags.data_path,

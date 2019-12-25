@@ -61,7 +61,7 @@ class PerfectTrackerOperator(erdust.Operator):
             self._obstacles[obstacle.id].append(obstacle)
             cur_obstacle_trajectory = []
             # Iterate through past frames of this obstacle.
-            for past_obstacle_loc in self._obstacle[obstacle.id]:
+            for past_obstacle_loc in self._obstacles[obstacle.id]:
                 # Get the location of the center of the obstacle's bounding
                 # box, in relation to the CanBus measurement.
                 v_transform = past_obstacle_loc.transform * \

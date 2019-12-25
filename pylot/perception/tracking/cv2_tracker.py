@@ -21,6 +21,6 @@ class MultiObjectCV2Tracker(MultiObjectTracker):
             return False, []
         tracked_objects = []
         for (xmin, ymin, w, h) in bboxes:
-            corners = ((xmin, xmin + w, ymin, ymin + h)
+            corners = (xmin, xmin + w, ymin, ymin + h)
             tracked_objects.append(DetectedObject(corners, "", 0))
         return True, tracked_objects

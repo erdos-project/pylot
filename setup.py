@@ -10,7 +10,6 @@ setup(
     keywords=("autonomous vehicles driving python"),
     packages=find_packages(),
     license="Apache 2.0",
-
     install_requires=[
         "absl-py",
         "cffi",
@@ -25,11 +24,9 @@ setup(
         "opencv-contrib-python>=4.1.0.25",
         "pid_controller",
         "pillow",
-        "pptk", # TODO(ionel): Fix pptk install (https://github.com/heremaps/pptk/issues/3)
+        "pptk",  # TODO(ionel): Fix pptk install (https://github.com/heremaps/pptk/issues/3)
         "tensorflow-gpu>=1.12",
         "protobuf",
-        "ray",
-        "rospkg",
         "scikit-image<0.15",
         "scipy==1.2.2",
         "setproctitle",

@@ -5,7 +5,7 @@ import pylot.utils
 from pylot.perception.detection.utils import DetectedObject,\
     annotate_image_with_bboxes, save_image, visualize_image
 from pylot.perception.messages import DetectorMessage
-from pylot.simulation.sensor_setup import DepthCameraSetup
+from pylot.simulation.sensor_setup import DepthCameraSetup, RGBCameraSetup
 
 
 class PerfectDetectorOperator(erdust.Operator):
@@ -93,12 +93,12 @@ class PerfectDetectorOperator(erdust.Operator):
             # data, and only logging every nth frame.
             obstacles_stream.send(DetectorMessage([], 0, timestamp))
             return
-        depth_array = depth_msg.frame
         vehicle_transform = can_bus_msg.data.transform
 
-        det_obstacles = self.__get_obstacles(
-            obstacles_msg.obstacles, vehicle_transform, depth_array,
-            segmented_msg.frame.as_numpy_array())
+        det_obstacles = self.__get_obstacles(obstacles_msg.obstacles,
+                                             vehicle_transform,
+                                             depth_msg.frame,
+                                             segmented_msg.frame)
 
         # The camera setup sent with the image is relative to the car, we need
         # to transform it relative to the world.
@@ -127,7 +127,7 @@ class PerfectDetectorOperator(erdust.Operator):
             annotate_image_with_bboxes(bgr_msg.timestamp, bgr_msg.frame,
                                        det_objs)
             if self._flags.visualize_ground_obstacles:
-                visualize_image(self.name, bgr_msg.frame)
+                visualize_image(self._name, bgr_msg.frame)
             if self._flags.log_detector_output:
                 save_image(pylot.utils.bgr_to_rgb(bgr_msg.frame),
                            bgr_msg.timestamp, self._flags.data_path,
@@ -167,15 +167,15 @@ class PerfectDetectorOperator(erdust.Operator):
         self._segmented_imgs.append(msg)
 
     def __get_obstacles(self, obstacles, vehicle_transform, depth_array,
-                        segmented_image):
+                        segmented_frame):
         """ Transforms obstacles into detected objects.
         Args:
             obstacles: List of pylot.simulation.util.Obstacle objects.
             vehicle_transform: Ego-vehicle transform.
-            depth_array: Depth frame taken at the time when obstacles were
-                         collected.
-            segmented_image: The segmentation frame taken at the time when
-                the pedestrians were collected.
+            depth_array: The depth array taken at the time when obstacles were
+                collected.
+            segmented_image: SegmentedFrame taken at the time when the
+                obstacles were collected.
         """
         det_objs = []
         for obstacle in obstacles:
@@ -194,7 +194,7 @@ class PerfectDetectorOperator(erdust.Operator):
                 bbox = None
             else:
                 bbox = obstacle.to_camera_view(transformed_camera_setup,
-                                               depth_array, segmented_image)
+                                               depth_array, segmented_frame)
             if bbox is not None:
                 det_objs.append(
                     DetectedObject(bbox, 1.0, obstacle.label, obstacle.id))

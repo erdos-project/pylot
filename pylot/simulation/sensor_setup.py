@@ -109,7 +109,7 @@ class CameraSetup(object):
         k[0, 2] = width / 2.0
         k[1, 2] = height / 2.0
         k[0, 0] = k[1, 1] = width / (2.0 * np.tan(fov * np.pi / 360.0))
-        pass
+        return k
 
     @staticmethod
     def __create_unreal_transform(transform):

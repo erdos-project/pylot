@@ -607,7 +607,7 @@ class Obstacle(object):
             vehicle_transform.forward_vector.as_numpy_array())
         return distance
 
-    def to_camera_view(self, camera_setup, depth_frame, segmentation_frame):
+    def to_camera_view(self, camera_setup, depth_array, segmented_frame):
         """ Retrieves the 2D bounding box for the obstacle with respect to the
         given camera setup.
 
@@ -617,9 +617,9 @@ class Obstacle(object):
         Args:
             camera_setup: The CameraSetup instance, with respect to which the
                 obstacle needs to be viewed.
-            depth_frame: The DepthFrame to be used to compare the depth to the
-                distance of the obstacle from the sensor.
-            segmentation_frame: The SegmentationFrame to be used to compare
+            depth_array: The depth frame array to be used to compare the depth
+                to the distance of the obstacle from the sensor.
+            segmented_frame: The SegmentedFrame to be used to compare
                 the segmentation class.
 
         Returns:
@@ -638,11 +638,12 @@ class Obstacle(object):
         if not thresholded_coordinates:
             return None
 
-        # Retrieve the bottom left and the top right points of the bounding box.
+        # Retrieve the bottom left and the top right points of the bounding
+        # box.
         xmin, xmax, ymin, ymax = thresholded_coordinates
 
         # Crop the segmented and depth image to the given bounding box.
-        cropped_image = segmented_image[ymin:ymax, xmin:xmax]
+        cropped_image = segmented_frame.as_numpy_array()[ymin:ymax, xmin:xmax]
         cropped_depth = depth_array[ymin:ymax, xmin:xmax]
 
         # If the size of the bounding box is greater than 0, ensure that the
@@ -771,9 +772,7 @@ def batch_get_3d_world_position_with_depth_map(xs, ys, depth_frame,
     assert len(xs) == len(ys)
     far = 1.0
     point_cloud = depth_to_local_point_cloud(depth_frame,
-                                             camera_setup.width,
-                                             camera_setup.height,
-                                             camera_setup.fov,
+                                             camera_setup,
                                              max_depth=far)
     # Transform the points in 3D world coordinates.
     to_world_transform = camera_setup.get_unreal_transform()
