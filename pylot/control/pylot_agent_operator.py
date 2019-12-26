@@ -93,11 +93,11 @@ class PylotAgentOperator(erdust.Operator):
         target_speed = waypoint_msg.target_speed
         # Transform point cloud to camera coordinates.
         point_cloud = None
-        if pc_msg:
+        if pc_msg is not None:
             point_cloud = pylot.simulation.utils.lidar_point_cloud_to_camera_coordinates(
                 pc_msg.point_cloud)
         depth_frame = None
-        if depth_msg:
+        if depth_msg is not None:
             depth_frame = depth_msg.frame
 
         traffic_lights = self.__transform_tl_output(tl_msg, vehicle_transform,
@@ -148,7 +148,7 @@ class PylotAgentOperator(erdust.Operator):
         return control_msg
 
     def on_watermark(self, timestamp, control_stream):
-        self._logger.debug('Received watermark {}'.format(timestamp))
+        self._logger.debug('@{}: received watermark'.format(timestamp))
         can_bus_msg = self._can_bus_msgs.popleft()
         waypoint_msg = self._waypoint_msgs.popleft()
         tl_msg = self._traffic_lights_msgs.popleft()
@@ -222,7 +222,7 @@ class PylotAgentOperator(erdust.Operator):
             self._bgr_camera_setup.height,
             vehicle_transform * self._bgr_camera_setup.transform,
             self._bgr_camera_setup.fov)
-        if depth_frame:
+        if depth_frame is not None:
             pos = get_3d_world_position_with_depth_map(x, y, depth_frame,
                                                        camera_setup)
         elif point_cloud is not None:
@@ -252,8 +252,8 @@ class PylotAgentOperator(erdust.Operator):
         """
         traffic_lights = []
         for tl in tls.detected_objects:
-            x = (tl.corners[0] + tl.corners[1]) / 2
-            y = (tl.corners[2] + tl.corners[3]) / 2
+            x = (tl.corners[0] + tl.corners[1]) // 2
+            y = (tl.corners[2] + tl.corners[3]) // 2
             location = self.__transform_to_3d(x, y, vehicle_transform,
                                               point_cloud, depth_frame)
             if location:
@@ -281,8 +281,8 @@ class PylotAgentOperator(erdust.Operator):
         vehicles = []
         pedestrians = []
         for detected_obj in obstacles_msg.detected_objects:
-            x = (detected_obj.corners[0] + detected_obj.corners[1]) / 2
-            y = (detected_obj.corners[2] + detected_obj.corners[3]) / 2
+            x = (detected_obj.corners[0] + detected_obj.corners[1]) // 2
+            y = (detected_obj.corners[2] + detected_obj.corners[3]) // 2
             if detected_obj.label == 'person':
                 pos = self.__transform_to_3d(x, y, vehicle_transform,
                                              point_cloud, depth_frame)

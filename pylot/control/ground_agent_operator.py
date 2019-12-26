@@ -51,7 +51,7 @@ class GroundAgentOperator(erdust.Operator):
         return [control_stream]
 
     def on_watermark(self, timestamp, control_stream):
-        self._logger.debug('Received watermark {}'.format(timestamp))
+        self._logger.debug('@{}: received watermark'.format(timestamp))
         # Get hero vehicle info.
         can_bus_msg = self._can_bus_msgs.popleft()
         vehicle_transform = can_bus_msg.data.transform
@@ -74,15 +74,23 @@ class GroundAgentOperator(erdust.Operator):
                                      vehicle_speed, timestamp))
 
     def on_waypoints_update(self, msg):
+        self._logger.debug('@{}: received waypoints message'.format(
+            msg.timestamp))
         self._waypoint_msgs.append(msg)
 
     def on_can_bus_update(self, msg):
+        self._logger.debug('@{}: received can bus message'.format(
+            msg.timestamp))
         self._can_bus_msgs.append(msg)
 
     def on_obstacles_update(self, msg):
+        self._logger.debug('@{}: received obstacles message'.format(
+            msg.timestamp))
         self._obstacle_msgs.append(msg)
 
     def on_traffic_lights_update(self, msg):
+        self._logger.debug('@{}: received traffic lights message'.format(
+            msg.timestamp))
         self._traffic_light_msgs.append(msg)
 
     def stop_for_agents(self, ego_vehicle_location, wp_angle, wp_vector,

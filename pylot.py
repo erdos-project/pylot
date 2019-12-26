@@ -155,7 +155,7 @@ def add_planning(can_bus_stream, prediction_stream, open_drive_stream,
 
 def add_control(center_camera_setup, can_bus_stream, obstacles_stream,
                 traffic_lights_stream, waypoints_stream, open_drive_stream,
-                point_cloud_stream, depth_camera_stream,
+                depth_camera_stream, point_cloud_stream,
                 ground_obstacles_stream, ground_traffic_lights_stream):
     if FLAGS.control_agent == 'pylot':
         control_stream = pylot.operator_creator.add_pylot_agent(
