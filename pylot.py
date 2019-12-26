@@ -17,17 +17,20 @@ def add_obstacle_detection(center_camera_stream, center_camera_setup,
                            ground_stop_signs_stream):
     obstacles_stream = None
     if FLAGS.obstacle_detection:
+        # TODO: Only returns the first obstacles stream.
         obstacles_stream = pylot.operator_creator.add_obstacle_detection(
             center_camera_stream)[0]
-        if FLAGS.evaluate_obstacle_detection:
-            pylot.operator_creator.add_detection_evaluation(
-                obstacles_stream, ground_obstacles_stream)
-    elif FLAGS.perfect_obstacle_detection:
-        obstacles_stream = pylot.operator_creator.add_perfect_detector(
+    if FLAGS.perfect_obstacle_detection or FLAGS.evaluate_obstacle_detection:
+        perfect_obstacles_stream = pylot.operator_creator.add_perfect_detector(
             depth_camera_stream, center_camera_stream, segmented_camera_stream,
             can_bus_stream, ground_obstacles_stream,
             ground_speed_limit_signs_stream, ground_stop_signs_stream,
             center_camera_setup)
+        if FLAGS.evaluate_obstacle_detection:
+            pylot.operator_creator.add_detection_evaluation(
+                obstacles_stream, perfect_obstacles_stream)
+        else:
+            obstacles_stream = perfect_obstacles_stream
     return obstacles_stream
 
 

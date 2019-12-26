@@ -291,14 +291,11 @@ def get_precision_recall_at_iou(ground_truths, predictions, iou_threshold):
     return get_precision_recall(true_pos, false_pos, false_neg)
 
 
-def get_pedestrian_mAP(ground_bboxes, detected_objs):
+def get_mAP(ground_bboxes, detected_objs):
     """Return mAP with IoU threshold of 0.5"""
-    # Select the pedestrians.
     confidence_bbox = []
     for detected_obj in detected_objs:
-        if detected_obj.label == 'person':
-            confidence_bbox.append(
-                (detected_obj.confidence, detected_obj.corners))
+        confidence_bbox.append((detected_obj.confidence, detected_obj.corners))
     # Sort bboxes descending by score.
     confidence_bbox.sort()
     confidence_bbox.reverse()

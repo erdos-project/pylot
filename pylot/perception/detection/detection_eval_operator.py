@@ -2,15 +2,11 @@ from absl import flags
 import erdust
 import heapq
 
-from pylot.perception.detection.utils import get_pedestrian_mAP,\
-    get_precision_recall_at_iou
+from pylot.perception.detection.utils import get_mAP
 from pylot.utils import time_epoch_ms
 
 flags.DEFINE_enum('detection_metric', 'mAP', ['mAP', 'timely-mAP'],
                   'Detection evaluation metric')
-flags.DEFINE_bool(
-    'detection_eval_use_accuracy_model', False,
-    'Enable to use a model for detection accuracy decay over time')
 
 
 class DetectionEvalOperator(erdust.Operator):
@@ -39,7 +35,6 @@ class DetectionEvalOperator(erdust.Operator):
         # Heap storing pairs of (ground/output time, game time).
         self._detector_start_end_times = []
         self._sim_interval = None
-        self._iou_thresholds = [0.1 * i for i in range(1, 10)]
 
     @staticmethod
     def connect(obstacles_stream, ground_obstacles_stream):
@@ -62,30 +57,13 @@ class DetectionEvalOperator(erdust.Operator):
                 # This is the closest ground bounding box to the end time.
                 heapq.heappop(self._detector_start_end_times)
                 end_bboxes = self.__get_ground_obstacles_at(end_time)
-                if self._flags.detection_eval_use_accuracy_model:
-                    # Not using the detector's outputs => get ground bboxes.
-                    start_bboxes = self.__get_ground_obstacles_at(start_time)
-                    if (len(start_bboxes) > 0 or len(end_bboxes) > 0):
-                        precisions = []
-                        for iou in self._iou_thresholds:
-                            (precision, _) = get_precision_recall_at_iou(
-                                end_bboxes, start_bboxes, iou)
-                            precisions.append(precision)
-                        avg_precision = (float(sum(precisions)) /
-                                         len(precisions))
-                        self._logger.info(
-                            'precision-IoU is: {}'.format(avg_precision))
-                        self._csv_logger.info('{},{},{},{}'.format(
-                            time_epoch_ms(), self._name, 'precision-IoU',
-                            avg_precision))
-                else:
-                    # Get detector output obstacles.
-                    det_objs = self.__get_obstacles_at(start_time)
-                    if (len(det_objs) > 0 or len(end_bboxes) > 0):
-                        mAP = get_pedestrian_mAP(end_bboxes, det_objs)
-                        self._logger.info('mAP is: {}'.format(mAP))
-                        self._csv_logger.info('{},{},{},{}'.format(
-                            time_epoch_ms(), self._name, 'mAP', mAP))
+                # Get detector output obstacles.
+                det_objs = self.__get_obstacles_at(start_time)
+                if (len(det_objs) > 0 or len(end_bboxes) > 0):
+                    mAP = get_mAP(end_bboxes, det_objs)
+                    self._logger.info('mAP is: {}'.format(mAP))
+                    self._csv_logger.info('{},{},{},{}'.format(
+                        time_epoch_ms(), self._name, 'mAP', mAP))
                 self._logger.debug('Computing accuracy for {} {}'.format(
                     end_time, start_time))
             else:
@@ -137,8 +115,10 @@ class DetectionEvalOperator(erdust.Operator):
 
     def on_obstacles(self, msg):
         game_time = msg.timestamp.coordinates[0]
-        _, ped_bboxes, _ = self.__get_bboxes_by_category(msg.detected_objects)
-        self._detected_obstacles.append((game_time, ped_bboxes))
+        vehicles_bboxes, ped_bboxes, _ = self.__get_bboxes_by_category(
+            msg.detected_objects)
+        self._detected_obstacles.append(
+            (game_time, vehicles_bboxes + ped_bboxes))
         # Two metrics: 1) mAP, and 2) timely-mAP
         if self._flags.detection_metric == 'mAP':
             # We will compare the bboxes with the ground truth at the same
@@ -148,26 +128,21 @@ class DetectionEvalOperator(erdust.Operator):
         elif self._flags.detection_metric == 'timely-mAP':
             # Ground bboxes time should be as close as possible to the time of
             # the obstacles + detector runtime.
-            ground_bboxes_time = game_time + msg.runtime
-            if self._flags.detection_eval_use_accuracy_model:
-                # Include the decay of detection with time if we do not want to
-                # use the accuracy of our models.
-                # TODO(ionel): We must pass model mAP to this method.
-                ground_bboxes_time += self.__mAP_to_latency(1)
-            ground_bboxes_time = self.__compute_closest_frame_time(
-                ground_bboxes_time)
+            ground_bboxes_time = self.__compute_closest_frame_time(game_time +
+                                                                   msg.runtime)
             # Round time to nearest frame.
             heapq.heappush(self._detector_start_end_times,
                            (ground_bboxes_time, game_time))
         else:
-            self._logger.fatal('Unexpected detection metric {}'.format(
+            raise ValueError('Unexpected detection metric {}'.format(
                 self._flags.detection_metric))
 
     def on_ground_obstacles(self, msg):
         game_time = msg.timestamp.coordinates[0]
-        _, ped_bboxes, _ = self.__get_bboxes_by_category(msg.obstacles)
-        # Add the pedestrians to the ground obstacles buffer.
-        self._ground_obstacles.append((game_time, ped_bboxes))
+        vehicles_bboxes, ped_bboxes, _ = self.__get_bboxes_by_category(
+            msg.detected_objects)
+        self._ground_obstacles.append(
+            (game_time, ped_bboxes + vehicles_bboxes))
 
     def __compute_closest_frame_time(self, time):
         base = int(time) / self._sim_interval * self._sim_interval
@@ -177,6 +152,7 @@ class DetectionEvalOperator(erdust.Operator):
             return base + self._sim_interval
 
     def __get_bboxes_by_category(self, det_objs):
+        """ Divides perception.detection.utils.DetectedObject by labels."""
         vehicles = []
         pedestrians = []
         traffic_lights = []
@@ -187,11 +163,7 @@ class DetectionEvalOperator(erdust.Operator):
                 pedestrians.append(det_obj.corners)
             elif det_obj.label == 'traffic_light':
                 traffic_lights.append(det_obj.corners)
+            else:
+                self._logger.warning('Unexpected label {}'.format(
+                    det_obj.label))
         return vehicles, pedestrians, traffic_lights
-
-    def __mAP_to_latency(self, mAP):
-        """ Function that gives a latency estimate of how much simulation
-        time must pass for a perfect detector to decay to mAP.
-        """
-        # TODO(ionel): Implement!
-        return 0

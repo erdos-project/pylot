@@ -200,6 +200,36 @@ flags.register_multi_flags_validator(
     ' depth, and single waypoint planning')
 
 
+def obstacle_detection_validator(flags_dict):
+    return (flags_dict['obstacle_detection'] is False
+            or flags_dict['perfect_obstacle_detection'] is False)
+
+
+flags.register_multi_flags_validator(
+    [
+        'obstacle_detection',
+        'perfect_obstacle_detection',
+    ],
+    obstacle_detection_validator,
+    message=
+    '--obstacle_detection and --perfect_obstacle_detection cannot be both True'
+)
+
+
+def obstacle_detection_eval_validator(flags_dict):
+    if flags_dict['evaluate_obstacle_detection']:
+        return flags_dict['obstacle_detection']
+    return True
+
+
+flags.register_multi_flags_validator(
+    ['obstacle_detection', 'evaluate_obstacle_detection'],
+    obstacle_detection_eval_validator,
+    message=
+    '--obstacle_detection must be True when --evaluate_obstacle_detection is True'
+)
+
+
 def obstacle_tracking_validator(flags_dict):
     if flags_dict['obstacle_tracking']:
         return (flags_dict['obstacle_detection']
