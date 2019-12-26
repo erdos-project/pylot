@@ -22,7 +22,9 @@ class SegmentationEvalOperator(erdust.Operator):
         ground_segmented_stream.add_callback(self.on_ground_segmented_frame)
         segmented_stream.add_callback(self.on_segmented_frame)
         # Register a watermark callback.
-        erdust.add_watermark_callback(self.on_notification)
+        erdust.add_watermark_callback(
+            [ground_segmented_stream, segmented_stream], [],
+            self.on_notification)
         self._name = name
         self._flags = flags
         self._logger = erdust.utils.setup_logging(name, log_file_name)

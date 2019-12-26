@@ -70,6 +70,8 @@ cd ../
 ###### Get DeepSORT and SORT tracker models
 git clone https://github.com/ICGog/nanonets_object_tracking.git
 git clone https://github.com/abewley/sort.git
+# Install sort's dependencies.
+pip3 install scipy filterpy==1.4.1 numba==0.38.1 scikit-image scikit-learn==0.19.1
 
 ###### Download the DaSiamRPN code ######
 git clone https://github.com/ICGog/DaSiamRPN.git

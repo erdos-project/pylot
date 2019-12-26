@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 
 from sort.sort import *
 from pylot.perception.detection.utils import DetectedObject

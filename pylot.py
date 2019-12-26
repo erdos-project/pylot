@@ -107,16 +107,6 @@ def add_segmentation(center_camera_stream, ground_segmented_stream):
     return segmented_stream
 
 
-def add_fusion(can_bus_stream, obstacles_stream, depth_stream):
-    if FLAGS.fusion:
-        if FLAGS.evaluate_fusion:
-            pylot.operator_creator.add_fusion(can_bus_stream, obstacles_stream,
-                                              depth_stream)
-        else:
-            pylot.operator_creator.add_fusion(can_bus_stream, obstacles_stream,
-                                              depth_stream)
-
-
 def add_depth(transform, vehicle_id_stream, depth_camera_stream,
               center_camera_setup):
     depth_stream = None
@@ -253,7 +243,10 @@ def driver():
     depth_stream = add_depth(transform, vehicle_id_stream, depth_camera_stream,
                              rgb_camera_setup)
 
-    add_fusion(can_bus_stream, obstacles_stream, depth_camera_stream)
+    if FLAGS.fusion:
+        pylot.operator_creator.add_fusion(can_bus_stream, obstacles_stream,
+                                          depth_stream,
+                                          ground_obstacles_stream)
 
     prediction_stream = add_prediction(obstacles_tracking_stream)
 
