@@ -202,6 +202,9 @@ class LidarSetup(object):
     def get_unreal_transform(self):
         return self.unreal_transform
 
+    def get_range_in_meters(self):
+        return self.range / 1000
+
     def __repr__(self):
         return self.__str__()
 

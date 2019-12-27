@@ -116,7 +116,12 @@ class LidarDriverOperator(erdust.Operator):
 
         lidar_blueprint.set_attribute('channels',
                                       str(self._lidar_setup.channels))
-        lidar_blueprint.set_attribute('range', str(self._lidar_setup.range))
+        if self._flags.carla_version == '0.9.7':
+            lidar_blueprint.set_attribute(
+                'range', str(self._lidar_setup.get_range_in_meters()))
+        else:
+            lidar_blueprint.set_attribute('range',
+                                          str(self._lidar_setup.range))
         lidar_blueprint.set_attribute('points_per_second',
                                       str(self._lidar_setup.points_per_second))
         lidar_blueprint.set_attribute(

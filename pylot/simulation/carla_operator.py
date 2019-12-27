@@ -12,7 +12,7 @@ import pylot.simulation.messages
 from pylot.simulation.utils import Transform, Vector3D
 import pylot.simulation.utils
 
-flags.DEFINE_enum('carla_version', '0.9.6', ['0.9.5', '0.9.6'],
+flags.DEFINE_enum('carla_version', '0.9.7', ['0.9.5', '0.9.6', '0.9.7'],
                   'Carla simulator version')
 flags.DEFINE_string('carla_host', 'localhost', 'Carla host.')
 flags.DEFINE_integer('carla_port', 2000, 'Carla port.')
@@ -91,16 +91,16 @@ class CarlaOperator(erdust.Operator):
         if self._client is None or self._world is None:
             raise ValueError('There was an issue connecting to the simulator.')
 
-        if self._flags.carla_version == '0.9.6':
-            self._world = self._client.load_world('Town{:02d}'.format(
-                self._flags.carla_town))
-        else:
+        if self._flags.carla_version == '0.9.5':
             # TODO (Sukrit) :: ERDOS provides no way to retrieve handles to the
             # class objects to do garbage collection. Hence, objects from
             # previous runs of the simulation may persist. We need to clean
             # them up right now. In future, move this logic to a seperate
             # destroy function.
             reset_world(self._world)
+        else:
+            self._world = self._client.load_world('Town{:02d}'.format(
+                self._flags.carla_town))
         # Send open drive string.
         timestamp = erdust.Timestamp(coordinates=[sys.maxsize])
         self.open_drive_stream.send(
@@ -123,7 +123,8 @@ class CarlaOperator(erdust.Operator):
         # the downstream operators.
         self._driving_vehicle = self._spawn_driving_vehicle()
 
-        if self._flags.carla_version == '0.9.6':
+        if (self._flags.carla_version == '0.9.6'
+                or self._flags.carla_version == '0.9.7'):
             # Pedestrians are do not move in versions older than 0.9.6.
             (self._pedestrians, ped_control_ids) = self._spawn_pedestrians(
                 self._flags.carla_num_pedestrians)
@@ -134,7 +135,8 @@ class CarlaOperator(erdust.Operator):
         self._tick_simulator()
 
         # Start pedestrians
-        if self._flags.carla_version == '0.9.6':
+        if (self._flags.carla_version == '0.9.6'
+                or self._flags.carla_version == '0.9.7'):
             self._start_pedestrians(ped_control_ids)
 
     @staticmethod

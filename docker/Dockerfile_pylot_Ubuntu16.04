@@ -29,12 +29,12 @@ RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/erdos
 RUN cd /home/erdos/workspace/erdos/ && ./install.sh
 
 # Install Tensorflow
-RUN pip install tensorflow-gpu==1.12
+RUN pip3 install tensorflow-gpu==1.12
 
 # Get the Pylot directory.
 RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/pylot.git
 # Install all the Python dependencies.
-RUN  cd /home/erdos/workspace/pylot/ && pip install -e ./
+RUN  cd /home/erdos/workspace/pylot/ && pip3 install -e ./
 # Get the Pylot models and code dependencies.
 RUN sudo apt-get update && sudo apt-get install -y wget
 RUN cd /home/erdos/workspace/pylot/ && ./install.sh docker
@@ -45,16 +45,11 @@ ENV SDL_VIDEODRIVER offscreen
 RUN sudo apt-get -y install ssh
 
 # Export PYTHONPATH
-RUN echo "export PYTHONPATH=/home/erdos/workspace/pylot/dependencies/:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.6/PythonAPI/carla/dist/carla-0.9.6-py2.7-linux-x86_64.egg:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.6/PythonAPI/carla/" >> ~/.bashrc
+RUN echo "export PYTHONPATH=/home/erdos/workspace/pylot/dependencies/:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.7/PythonAPI/carla/dist/carla-0.9.7-py3.5-linux-x86_64.egg:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.7/PythonAPI/carla/" >> ~/.bashrc
 
-RUN echo "export CARLA_0_8_4=/home/erdos/workspace/pylot/dependencies/:/home/erdos/workspace/pylot/dependencies/CARLA_0.8.4/PythonClient/" >> ~/.bashrc
+RUN echo "export CARLA_0_9_5=/home/erdos/workspace/pylot/dependencies/:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.5/PythonAPI/carla/dist/carla-0.9.5-py3.5-linux-x86_64.egg:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.5/PythonAPI/carla/" >> ~/.bashrc
 
-RUN echo "export CARLA_0_9_5=/home/erdos/workspace/pylot/dependencies/:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.5/PythonAPI/carla/dist/carla-0.9.5-py2.7-linux-x86_64.egg:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.5/PythonAPI/carla/" >> ~/.bashrc
-
-RUN echo "export CARLA_0_9_6=/home/erdos/workspace/pylot/dependencies/:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.6/PythonAPI/carla/dist/carla-0.9.6-py2.7-linux-x86_64.egg:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.6/PythonAPI/carla/" >> ~/.bashrc
-
-RUN echo "source /opt/ros/kinetic/setup.bash" >> ~/.bashrc
-
+RUN echo "export CARLA_0_9_7=/home/erdos/workspace/pylot/dependencies/:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.7/PythonAPI/carla/dist/carla-0.9.7-py3.5-linux-x86_64.egg:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.7/PythonAPI/carla/" >> ~/.bashrc
 
 # Expose the required ports.
 EXPOSE 2000 2001 2002
