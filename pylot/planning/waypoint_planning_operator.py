@@ -1,4 +1,3 @@
-import carla
 import collections
 import erdust
 import itertools
@@ -12,13 +11,6 @@ DEFAULT_NUM_WAYPOINTS = 50
 
 
 class WaypointPlanningOperator(erdust.Operator):
-    """ Planning operator for Carla 0.9.x.
-
-    IMPORTANT: Do not use with older Carla versions.
-    The operator either receives all the waypoints from the scenario runner
-    agent (on the global trajectory stream), or computes waypoints using the
-    HD Map.
-    """
     def __init__(self,
                  can_bus_stream,
                  waypoints_stream,
@@ -34,7 +26,7 @@ class WaypointPlanningOperator(erdust.Operator):
         self._map = HDMap(
             get_map(self._flags.carla_host, self._flags.carla_port,
                     self._flags.carla_timeout), log_file_name)
-        self._goal_location = carla.Location(*goal_location)
+        self._goal_location = goal_location
 
     @staticmethod
     def connect(can_bus_stream):

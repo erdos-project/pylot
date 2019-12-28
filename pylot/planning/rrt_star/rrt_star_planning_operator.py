@@ -33,13 +33,7 @@ DEFAULT_NUM_WAYPOINTS = 50  # 50 waypoints to plan for
 
 
 class RRTStarPlanningOperator(erdust.Operator):
-    """ RRTStar Planning operator for Carla 0.9.x.
-
-    IMPORTANT: Do not use with older Carla versions.
-    The operator either receives all the waypoints from the scenario runner
-    agent (on the global trajectory stream), or computes waypoints using the
-    HD Map.
-    """
+    """ RRTStar Planning operator for Carla 0.9.x."""
     def __init__(self,
                  can_bus_stream,
                  prediction_stream,
@@ -53,9 +47,9 @@ class RRTStarPlanningOperator(erdust.Operator):
         Initialize the RRT* planner. Setup logger and map attributes.
 
         Args:
-            name: name of the operator
-            flags: config flags
-            goal_location: global goal location for planner to route to
+            name: Name of the operator.
+            flags: Config flags.
+            goal_location: Global goal carla.Location for planner to route to.
         """
         can_bus_stream.add_callback(self.on_can_bus_update)
         prediction_stream.add_callback(self.on_prediction_update)
@@ -73,7 +67,7 @@ class RRTStarPlanningOperator(erdust.Operator):
                                   self._flags.carla_port,
                                   self._flags.carla_timeout)
         self._hd_map = HDMap(self._carla_map, log_file_name)
-        self._goal_location = carla.Location(*goal_location)
+        self._goal_location = goal_location
 
         self._can_bus_msgs = deque()
         self._prediction_msgs = deque()

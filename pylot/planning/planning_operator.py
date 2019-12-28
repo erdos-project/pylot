@@ -16,7 +16,6 @@ WAYPOINT_COMPLETION_THRESHOLD = 0.9
 class PlanningOperator(erdust.Operator):
     """ Planning operator for Carla 0.9.x.
 
-    IMPORTANT: Do not use with older Carla versions.
     The operator either receives all the waypoints from the scenario runner
     agent (on the global trajectory stream), or computes waypoints using the
     HD Map.
@@ -65,7 +64,7 @@ class PlanningOperator(erdust.Operator):
             self._logger.info('Planner running in stand-alone mode')
             assert goal_location, 'Planner has not received a goal location'
             # Transform goal location to carla.Location
-            self._goal_location = carla.Location(*goal_location)
+            self._goal_location = goal_location
             # Do not recompute waypoints upon each run.
             self._recompute_waypoints = True
         else:
@@ -79,23 +78,6 @@ class PlanningOperator(erdust.Operator):
                 self._wp_num_steer = 1
                 self._wp_num_speed = 1
 
-    def __initialize_behaviour_planner(self):
-        # State the planner is in.
-        self._state = BehaviorPlannerState.READY
-        # Cost functions. Output between 0 and 1.
-        self._cost_functions = [
-            pylot.planning.cost_functions.cost_speed,
-            pylot.planning.cost_functions.cost_lane_change,
-            pylot.planning.cost_functions.cost_inefficiency
-        ]
-        reach_speed_weight = 10**5
-        reach_goal_weight = 10**6
-        efficiency_weight = 10**4
-        # How important a cost function is.
-        self._function_weights = [
-            reach_speed_weight, reach_goal_weight, efficiency_weight
-        ]
-
     @staticmethod
     def connect(can_bus_stream, open_drive_stream, global_trajectory_stream):
         waypoints_stream = erdust.WriteStream()
@@ -104,7 +86,7 @@ class PlanningOperator(erdust.Operator):
     def on_opendrive_map(self, msg):
         self._logger.debug('@{}: received open drive message'.format(
             msg.timestamp))
-        self._logger.info('Planner running in scenario runner mode')
+        self._logger.info('Initializing HDMap from open drive stream')
         self._map = HDMap(carla.Map('map', msg.data), self._log_file_name)
 
     def on_global_trajectory(self, msg):
@@ -135,25 +117,13 @@ class PlanningOperator(erdust.Operator):
         wp_speed_vector, wp_speed_angle = get_waypoint_vector_and_angle(
             next_waypoint_speed, self._vehicle_transform)
 
-        target_speed = self.__get_target_speed(next_waypoint_steer)
-
         output_msg = WaypointsMessage(msg.timestamp,
                                       waypoints=[next_waypoint_steer],
-                                      target_speed=target_speed,
+                                      target_speed=self._flags.target_speed,
                                       wp_angle=wp_steer_angle,
                                       wp_vector=wp_steer_vector,
                                       wp_angle_speed=wp_speed_angle)
         waypoints_stream.send(output_msg)
-
-    def __get_target_speed(self, waypoint):
-        if get_distance(waypoint.location,
-                        self._vehicle_transform.location) > 0.08:
-            target_speed = self._flags.target_speed
-        else:
-            # We are reaching a waypoint; reduce the speed to half.
-            # TODO: Check if this is still necessary.
-            target_speed = self._flags.target_speed / 2
-        return target_speed
 
     def __update_waypoints(self):
         """ Updates the waypoints.
@@ -211,7 +181,24 @@ class PlanningOperator(erdust.Operator):
         if min_dist < WAYPOINT_COMPLETION_THRESHOLD:
             self._waypoints.popleft()
 
-    def best_transition(self, vehicle_transform, predictions):
+    def __initialize_behaviour_planner(self):
+        # State the planner is in.
+        self._state = BehaviorPlannerState.READY
+        # Cost functions. Output between 0 and 1.
+        self._cost_functions = [
+            pylot.planning.cost_functions.cost_speed,
+            pylot.planning.cost_functions.cost_lane_change,
+            pylot.planning.cost_functions.cost_inefficiency
+        ]
+        reach_speed_weight = 10**5
+        reach_goal_weight = 10**6
+        efficiency_weight = 10**4
+        # How important a cost function is.
+        self._function_weights = [
+            reach_speed_weight, reach_goal_weight, efficiency_weight
+        ]
+
+    def __best_transition(self, vehicle_transform, predictions):
         """ Computes most likely state transition from current state."""
         # Get possible next state machine states.
         possible_next_states = self.__successor_states()

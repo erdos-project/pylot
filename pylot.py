@@ -1,3 +1,4 @@
+import carla
 import erdust
 from absl import app, flags
 
@@ -6,6 +7,8 @@ import pylot.operator_creator
 import pylot.simulation.utils
 
 FLAGS = flags.FLAGS
+
+flags.DEFINE_list('goal_location', '234, 59, 39', 'Ego-vehicle goal location')
 
 CENTER_CAMERA_LOCATION = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
 
@@ -251,8 +254,9 @@ def driver():
     prediction_stream = add_prediction(obstacles_tracking_stream)
 
     # Add planning operators.
-    # TODO: Do not hardcode goal location.
-    goal_location = (234.269989014, 59.3300170898, 39.4306259155)
+    goal_location = carla.Location(float(FLAGS.goal_location[0]),
+                                   float(FLAGS.goal_location[0]),
+                                   float(FLAGS.goal_location[0]))
     # TODO: Set global_trajectory_stream.
     global_trajectory_stream = None
     waypoints_stream = add_planning(can_bus_stream, prediction_stream,
