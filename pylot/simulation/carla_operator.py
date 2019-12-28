@@ -56,6 +56,7 @@ class CarlaOperator(erdust.Operator):
                  ground_stop_signs_stream,
                  vehicle_id_stream,
                  open_drive_stream,
+                 global_trajectory_stream,
                  name,
                  flags,
                  log_file_name=None,
@@ -78,6 +79,7 @@ class CarlaOperator(erdust.Operator):
         self.ground_stop_signs_stream = ground_stop_signs_stream
         self.vehicle_id_stream = vehicle_id_stream
         self.open_drive_stream = open_drive_stream
+        self.global_trajectory_stream = global_trajectory_stream
 
         self._name = name
         self._flags = flags
@@ -102,11 +104,13 @@ class CarlaOperator(erdust.Operator):
             self._world = self._client.load_world('Town{:02d}'.format(
                 self._flags.carla_town))
         # Send open drive string.
-        timestamp = erdust.Timestamp(coordinates=[sys.maxsize])
+        top_timestamp = erdust.Timestamp(coordinates=[sys.maxsize])
         self.open_drive_stream.send(
-            erdust.Message(timestamp,
+            erdust.Message(top_timestamp,
                            self._world.get_map().to_opendrive()))
-        self.open_drive_stream.send(erdust.WatermarkMessage(timestamp))
+        top_watermark = erdust.WatermarkMessage(top_timestamp)
+        self.open_drive_stream.send(top_watermark)
+        self.global_trajectory_stream.send(top_watermark)
         # Set the weather.
         weather = get_weathers()[self._flags.carla_weather]
         self._logger.info('Setting the weather to {}'.format(
@@ -148,10 +152,12 @@ class CarlaOperator(erdust.Operator):
         ground_stop_signs_stream = erdust.WriteStream()
         vehicle_id_stream = erdust.WriteStream()
         open_drive_stream = erdust.WriteStream()
+        global_trajectory_stream = erdust.WriteStream()
         return [
             can_bus_stream, ground_traffic_lights_stream,
             ground_obstacles_stream, ground_speed_limit_signs_stream,
-            ground_stop_signs_stream, vehicle_id_stream, open_drive_stream
+            ground_stop_signs_stream, vehicle_id_stream, open_drive_stream,
+            global_trajectory_stream
         ]
 
     def on_control_msg(self, msg):

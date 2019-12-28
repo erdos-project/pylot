@@ -27,7 +27,6 @@ from pylot.perception.segmentation.segmentation_eval_operator import \
 from pylot.perception.segmentation.segmentation_decay_operator import \
     SegmentationDecayOperator
 # Planning operators.
-from pylot.planning.planning_operator import PlanningOperator
 from pylot.planning.rrt_star.rrt_star_planning_operator import \
     RRTStarPlanningOperator
 from pylot.planning.waypoint_planning_operator import WaypointPlanningOperator
@@ -229,13 +228,13 @@ def add_linear_prediction(tracking_stream):
     return prediction_stream
 
 
-def add_planning(can_bus_stream,
-                 open_drive_stream,
-                 global_trajectory_stream,
-                 goal_location,
-                 name='planning_operator'):
+def add_waypoint_planning(can_bus_stream,
+                          open_drive_stream,
+                          global_trajectory_stream,
+                          goal_location,
+                          name='waypoint_planning_operator'):
     [waypoints_stream] = erdust.connect(
-        PlanningOperator,
+        WaypointPlanningOperator,
         [can_bus_stream, open_drive_stream, global_trajectory_stream],
         True,
         name,
@@ -258,19 +257,6 @@ def add_rrt_start_planning(can_bus_stream,
                                         goal_location,
                                         log_file_name=FLAGS.log_file_name,
                                         csv_file_name=FLAGS.csv_log_file_name)
-    return waypoints_stream
-
-
-def add_waypoint_planning(can_bus_stream,
-                          goal_location,
-                          name='waypoints_planning_operator'):
-    [waypoints_stream] = erdust.connect(WaypointPlanningOperator,
-                                        [can_bus_stream],
-                                        True,
-                                        name,
-                                        FLAGS,
-                                        goal_location,
-                                        log_file_name=FLAGS.log_file_name)
     return waypoints_stream
 
 

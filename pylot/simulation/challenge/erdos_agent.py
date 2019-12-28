@@ -241,7 +241,7 @@ class ERDOSAgent(AutonomousAgent):
             pylot.operator_creator.add_traffic_light_detector(
                 self._camera_streams[TL_CAMERA_NAME])
 
-        self._waypoints_stream = pylot.operator_creator.add_planning(
+        self._waypoints_stream = pylot.operator_creator.add_waypoint_planning(
             self._can_bus_stream, self._open_drive_stream,
             self._global_trajectory_stream, None)
 

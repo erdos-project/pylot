@@ -58,8 +58,7 @@ flags.DEFINE_enum('prediction_type', 'linear', ['linear'],
 ######################################################################
 # Planning
 ######################################################################
-flags.DEFINE_enum('planning_type', 'single_waypoint',
-                  ['single_waypoint', 'multiple_waypoints', 'rrt_star'],
+flags.DEFINE_enum('planning_type', 'waypoint', ['waypoint', 'rrt_star'],
                   'Type of planning module to use')
 flags.DEFINE_bool('imu', False, 'True to enable the IMU sensor')
 
@@ -146,29 +145,41 @@ flags.register_multi_flags_validator(
     '--obstacle_detection_model_names must have the same length')
 
 
+def prediction_validator(flags_dict):
+    if flags_dict['prediction']:
+        return (flags_dict['obstacle_tracking']
+                or flags_dict['perfect_obstacle_tracking'])
+    return True
+
+
+flags.register_multi_flags_validator(
+    ['prediction', 'obstacle_tracking', 'perfect_obstacle_tracking'],
+    prediction_validator,
+    message=
+    'prediction requires --obstacle_tracking or --perfect_obstacle_tracking')
+
+
+def rrt_star_validator(flags_dict):
+    if flags_dict['planning_type'] == 'rrt_star':
+        return flags_dict['prediction']
+    return True
+
+
+flags.register_multi_flags_validator(['planning_type', 'prediction'],
+                                     rrt_star_validator,
+                                     message='rrt star requires --prediction')
+
+
 def ground_agent_validator(flags_dict):
     if flags_dict['control_agent'] == 'ground':
-        return flags_dict['planning_type'] == 'single_waypoint'
+        return flags_dict['planning_type'] == 'waypoint'
     return True
 
 
 flags.register_multi_flags_validator(
     ['planning_type', 'control_agent'],
     ground_agent_validator,
-    message='ground agent requires single_waypoint planning')
-
-
-def mpc_agent_validator(flags_dict):
-    if flags_dict['control_agent'] == 'mpc':
-        return (flags_dict['planning_type'] == 'multiple_waypoints'
-                or flags_dict['planning_type'] == 'rrt_star')
-    return True
-
-
-flags.register_multi_flags_validator(
-    ['planning_type', 'control_agent'],
-    mpc_agent_validator,
-    message='mpc agent requires multiple_waypoints or rrt_star planning')
+    message='ground agent requires waypoint planning')
 
 
 def pylot_agent_validator(flags_dict):
@@ -182,7 +193,7 @@ def pylot_agent_validator(flags_dict):
         # the agent depends on these components.
         has_depth = (flags_dict['depth_estimation']
                      or flags_dict['perfect_depth_estimation'])
-        has_planner = flags_dict['planning_type'] == 'single_waypoint'
+        has_planner = flags_dict['planning_type'] == 'waypoint'
         return (has_obstacle_detector and has_traffic_light_detector
                 and has_planner and has_depth)
     return True
@@ -197,7 +208,7 @@ flags.register_multi_flags_validator(
     ],
     pylot_agent_validator,
     message='pylot agent requires obstacle detection, traffic light detection,'
-    ' depth, and single waypoint planning')
+    ' depth, and waypoint planning')
 
 
 def obstacle_detection_validator(flags_dict):
