@@ -1,5 +1,5 @@
 import copy
-import erdust
+import erdos
 import numpy as np
 import threading
 import time
@@ -8,7 +8,7 @@ from pylot.simulation.carla_utils import get_world, set_synchronous_mode
 from pylot.simulation.messages import PointCloudMessage
 
 
-class LidarDriverOperator(erdust.Operator):
+class LidarDriverOperator(erdos.Operator):
     """ LidarDriverOperator publishes Lidar point clouds onto a stream.
 
     This operator attaches a vehicle at the required position with respect to
@@ -41,7 +41,7 @@ class LidarDriverOperator(erdust.Operator):
         self._lidar_stream = lidar_stream
         self._name = name
         self._flags = flags
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._lidar_setup = lidar_setup
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None
@@ -51,7 +51,7 @@ class LidarDriverOperator(erdust.Operator):
 
     @staticmethod
     def connect(ground_vehicle_id_stream):
-        lidar_stream = erdust.WriteStream()
+        lidar_stream = erdos.WriteStream()
         return [lidar_stream]
 
     def process_point_clouds(self, carla_pc):
@@ -63,8 +63,8 @@ class LidarDriverOperator(erdust.Operator):
         # Ensure that the code executes serially
         with self._lock:
             game_time = int(carla_pc.timestamp * 1000)
-            timestamp = erdust.Timestamp(coordinates=[game_time])
-            watermark_msg = erdust.WatermarkMessage(timestamp)
+            timestamp = erdos.Timestamp(coordinates=[game_time])
+            watermark_msg = erdos.WatermarkMessage(timestamp)
 
             # Transform the raw_data into a point cloud.
             points = np.frombuffer(carla_pc.raw_data, dtype=np.dtype('f4'))

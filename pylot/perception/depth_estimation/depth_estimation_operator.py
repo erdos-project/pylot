@@ -1,5 +1,5 @@
 from absl import flags
-import erdust
+import erdos
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -21,7 +21,7 @@ flags.DEFINE_string('depth_estimation_model_path', 'dependencies/anynet/',
                     'Path to AnyNet depth estimation model')
 
 
-class DepthEstimationOperator(erdust.Operator):
+class DepthEstimationOperator(erdos.Operator):
     """ Estimates depth using left and right cameras, and AnyNet."""
     def __init__(self,
                  left_camera_stream,
@@ -36,15 +36,15 @@ class DepthEstimationOperator(erdust.Operator):
 
         left_camera_stream.add_callback(self.on_left_camera_msg)
         right_camera_stream.add_callback(self.on_right_camera_msg)
-        erdust.add_watermark_callback(
+        erdos.add_watermark_callback(
             [left_camera_stream, right_camera_stream],
             [depth_estimation_stream], self.compute_depth)
         self._name = name
         self._flags = flags
         self._left_imgs = {}
         self._right_imgs = {}
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.utils.setup_csv_logging(
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._transform = transform
         self._fov = fov
@@ -71,7 +71,7 @@ class DepthEstimationOperator(erdust.Operator):
 
     @staticmethod
     def connect(left_camera_stream, right_camera_stream):
-        depth_estimation_stream = erdust.WriteStream()
+        depth_estimation_stream = erdos.WriteStream()
         return [depth_estimation_stream]
 
     def on_left_camera_msg(self, msg):

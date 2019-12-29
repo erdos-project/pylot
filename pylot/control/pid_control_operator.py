@@ -1,4 +1,4 @@
-import erdust
+import erdos
 import numpy as np
 import math
 from pid_controller.pid import PID
@@ -7,7 +7,7 @@ from pid_controller.pid import PID
 from pylot.control.messages import ControlMessage
 
 
-class PIDControlOperator(erdust.Operator):
+class PIDControlOperator(erdos.Operator):
     """ This class receives the vehicle identifier and low level waypoints
     from the local planner and sends out control commands to the vehicle
     being driven inside the simulation.
@@ -37,8 +37,8 @@ class PIDControlOperator(erdust.Operator):
         can_bus_stream.add_callback(self.on_can_bus_update, [control_stream])
         self._name = name
         self._flags = flags
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.utils.setup_csv_logging(
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._pid = PID(p=self._flags.pid_p,
                         i=self._flags.pid_i,
@@ -49,7 +49,7 @@ class PIDControlOperator(erdust.Operator):
 
     @staticmethod
     def connect(waypoints_stream, can_bus_stream):
-        control_stream = erdust.WriteStream()
+        control_stream = erdos.WriteStream()
         return [control_stream]
 
     def _get_throttle_brake(self, target_speed):

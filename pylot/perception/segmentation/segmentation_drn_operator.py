@@ -2,7 +2,7 @@ from absl import flags
 import cv2
 import drn.segment
 from drn.segment import DRNSeg
-import erdust
+import erdos
 from torch.autograd import Variable
 import time
 import torch
@@ -18,7 +18,7 @@ flags.DEFINE_float('segmentation_drn_gpu_memory_fraction', 0.2,
                    'GPU memory fraction allocated to DRN segmentation')
 
 
-class SegmentationDRNOperator(erdust.Operator):
+class SegmentationDRNOperator(erdos.Operator):
     """ Subscribes to a camera stream, and segments frames using DRN."""
     def __init__(self,
                  camera_stream,
@@ -31,8 +31,8 @@ class SegmentationDRNOperator(erdust.Operator):
                                    [segmented_stream])
         self._name = name
         self._flags = flags
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.utils.setup_csv_logging(
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         arch = "drn_d_22"
         classes = 19
@@ -49,7 +49,7 @@ class SegmentationDRNOperator(erdust.Operator):
 
     @staticmethod
     def connect(camera_stream):
-        segmented_stream = erdust.WriteStream()
+        segmented_stream = erdos.WriteStream()
         return [segmented_stream]
 
     def on_msg_camera_stream(self, msg, segmented_stream):

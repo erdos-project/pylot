@@ -1,7 +1,7 @@
 import carla
 from collections import deque
 import cv2
-import erdust
+import erdos
 import json
 import numpy as np
 import os
@@ -23,7 +23,7 @@ TL_LOGGING_RADIUS = 40
 TL_BBOX_LIFETIME_BUFFER = 0.1
 
 
-class ChauffeurLoggerOperator(erdust.Operator):
+class ChauffeurLoggerOperator(erdos.Operator):
     """ Logs data in Chauffeur format. """
     def __init__(self, vehicle_id_stream, can_bus_stream,
                  obstacle_tracking_stream, top_down_camera_stream,

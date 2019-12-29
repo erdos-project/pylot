@@ -1,9 +1,9 @@
-import erdust
+import erdos
 import json
 import os
 
 
-class TrajectoryLoggerOperator(erdust.Operator):
+class TrajectoryLoggerOperator(erdos.Operator):
     """ Logs tracked obstacle trajectories."""
     def __init__(self,
                  obstacle_tracking_stream,
@@ -12,7 +12,7 @@ class TrajectoryLoggerOperator(erdust.Operator):
                  log_file_name=None):
         obstacle_tracking_stream.add_callback(self.on_trajectories_msg)
         self._name = name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
         self._msg_cnt = 0
 

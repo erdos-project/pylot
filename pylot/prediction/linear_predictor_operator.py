@@ -1,5 +1,5 @@
 from absl import flags
-import erdust
+import erdos
 import numpy as np
 
 from pylot.prediction.messages import ObjPrediction, PredictionMessage
@@ -13,7 +13,7 @@ flags.DEFINE_integer(
     'Number of future steps outputted by the prediction module.')
 
 
-class LinearPredictorOperator(erdust.Operator):
+class LinearPredictorOperator(erdos.Operator):
     """Operator that takes in past (x,y) locations of agents, and fits a linear
     model to these locations.
     """
@@ -26,12 +26,12 @@ class LinearPredictorOperator(erdust.Operator):
         """Initializes the LinearPredictor Operator."""
         tracking_stream.add_callback(self.generate_predicted_trajectories,
                                      [linear_prediction_stream])
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
 
     @staticmethod
     def connect(tracking_stream):
-        linear_prediction_stream = erdust.WriteStream()
+        linear_prediction_stream = erdos.WriteStream()
         return [linear_prediction_stream]
 
     def generate_predicted_trajectories(self, msg, linear_prediction_stream):

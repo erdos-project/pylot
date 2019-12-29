@@ -1,4 +1,4 @@
-import erdust
+import erdos
 import threading
 import time
 
@@ -8,7 +8,7 @@ from pylot.simulation.carla_utils import get_world, set_synchronous_mode
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 
 
-class CameraDriverOperator(erdust.Operator):
+class CameraDriverOperator(erdos.Operator):
     """ Publishes images onto the desired stream from a camera.
 
     This operator attaches a vehicle at the required position with respect to
@@ -41,7 +41,7 @@ class CameraDriverOperator(erdust.Operator):
         self._camera_stream = camera_stream
         self._name = name
         self._flags = flags
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._camera_setup = camera_setup
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None
@@ -52,7 +52,7 @@ class CameraDriverOperator(erdust.Operator):
 
     @staticmethod
     def connect(ground_vehicle_id_stream):
-        camera_stream = erdust.WriteStream()
+        camera_stream = erdos.WriteStream()
         return [camera_stream]
 
     def run(self):
@@ -116,8 +116,8 @@ class CameraDriverOperator(erdust.Operator):
         # Ensure that the code executes serially
         with self._lock:
             game_time = int(carla_image.timestamp * 1000)
-            timestamp = erdust.Timestamp(coordinates=[game_time])
-            watermark_msg = erdust.WatermarkMessage(timestamp)
+            timestamp = erdos.Timestamp(coordinates=[game_time])
+            watermark_msg = erdos.WatermarkMessage(timestamp)
 
             msg = None
             if self._camera_setup.camera_type == 'sensor.camera.rgb':

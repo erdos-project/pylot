@@ -1,4 +1,4 @@
-import erdust
+import erdos
 
 
 class ObjPrediction(object):
@@ -14,7 +14,7 @@ class ObjPrediction(object):
             self.id, self.obj_class, self.probability, self.trajectory)
 
 
-class PredictionMessage(erdust.Message):
+class PredictionMessage(erdos.Message):
     def __init__(self, timestamp, predictions):
         super(PredictionMessage, self).__init__(timestamp, None)
         self.predictions = predictions

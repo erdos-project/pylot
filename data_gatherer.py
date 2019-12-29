@@ -1,6 +1,6 @@
 from absl import app
 from absl import flags
-import erdust
+import erdos
 
 import pylot.flags
 import pylot.operator_creator
@@ -42,7 +42,7 @@ def driver():
     transform = pylot.simulation.utils.Transform(
         CENTER_CAMERA_LOCATION, pylot.simulation.utils.Rotation(0, 0, 0))
 
-    control_loop_stream = erdust.LoopStream()
+    control_loop_stream = erdos.LoopStream()
     # Create carla operator.
     (can_bus_stream, ground_traffic_lights_stream, ground_obstacles_stream,
      ground_speed_limit_signs_stream, ground_stop_signs_stream,
@@ -206,7 +206,7 @@ def driver():
 
 
 def main(argv):
-    erdust.run(driver)
+    erdos.run(driver)
 
 
 if __name__ == '__main__':

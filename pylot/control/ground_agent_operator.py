@@ -1,5 +1,5 @@
 from collections import deque
-import erdust
+import erdos
 import math
 from pid_controller.pid import PID
 
@@ -10,7 +10,7 @@ from pylot.simulation.carla_utils import get_map
 import pylot.utils
 
 
-class GroundAgentOperator(erdust.Operator):
+class GroundAgentOperator(erdos.Operator):
     def __init__(self,
                  can_bus_stream,
                  ground_obstacles_stream,
@@ -26,13 +26,13 @@ class GroundAgentOperator(erdust.Operator):
         ground_traffic_lights_stream.add_callback(
             self.on_traffic_lights_update)
         waypoints_stream.add_callback(self.on_waypoints_update)
-        erdust.add_watermark_callback([
+        erdos.add_watermark_callback([
             can_bus_stream, ground_obstacles_stream,
             ground_traffic_lights_stream, waypoints_stream
         ], [control_stream], self.on_watermark)
         self._name = name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.utils.setup_csv_logging(
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._flags = flags
         self._map = HDMap(
@@ -47,7 +47,7 @@ class GroundAgentOperator(erdust.Operator):
     @staticmethod
     def connect(can_bus_stream, ground_obstacles_stream,
                 ground_traffic_lights_stream, waypoints_stream):
-        control_stream = erdust.WriteStream()
+        control_stream = erdos.WriteStream()
         return [control_stream]
 
     def on_watermark(self, timestamp, control_stream):

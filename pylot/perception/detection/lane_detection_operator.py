@@ -1,12 +1,12 @@
 import cv2
-import erdust
+import erdos
 import numpy as np
 import time
 
 from pylot.utils import add_timestamp, time_epoch_ms
 
 
-class LaneDetectionOperator(erdust.Operator):
+class LaneDetectionOperator(erdos.Operator):
     def __init__(self,
                  camera_stream,
                  detected_lanes_stream,
@@ -18,13 +18,13 @@ class LaneDetectionOperator(erdust.Operator):
                                    [detected_lanes_stream])
         self._name = name
         self._flags = flags
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.utils.setup_csv_logging(
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
 
     @staticmethod
     def connect(camera_stream):
-        detected_lanes_stream = erdust.WriteStream()
+        detected_lanes_stream = erdos.WriteStream()
         return [detected_lanes_stream]
 
     def on_msg_camera_stream(self, msg, detected_lanes_stream):
@@ -81,7 +81,7 @@ class LaneDetectionOperator(erdust.Operator):
             cv2.imshow(self._name, lines_edges)
             cv2.waitKey(1)
 
-        detected_lanes_stream.send(erdust.Message(msg.timestamp, image_np))
+        detected_lanes_stream.send(erdos.Message(msg.timestamp, image_np))
 
     def apply_canny(self, img):
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)

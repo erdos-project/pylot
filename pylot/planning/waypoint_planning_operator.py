@@ -1,6 +1,6 @@
 import carla
 import collections
-import erdust
+import erdos
 import itertools
 
 from pylot.map.hd_map import HDMap
@@ -15,7 +15,7 @@ DEFAULT_NUM_WAYPOINTS = 50
 WAYPOINT_COMPLETION_THRESHOLD = 0.9
 
 
-class WaypointPlanningOperator(erdust.Operator):
+class WaypointPlanningOperator(erdos.Operator):
     """ Planning operator for Carla 0.9.x.
 
     The operator either receives all the waypoints from the scenario runner
@@ -37,8 +37,8 @@ class WaypointPlanningOperator(erdust.Operator):
         global_trajectory_stream.add_callback(self.on_global_trajectory)
 
         self._log_file_name = log_file_name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.utils.setup_csv_logging(
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._flags = flags
         # Initialize the state of the behaviour planner.
@@ -82,7 +82,7 @@ class WaypointPlanningOperator(erdust.Operator):
 
     @staticmethod
     def connect(can_bus_stream, open_drive_stream, global_trajectory_stream):
-        waypoints_stream = erdust.WriteStream()
+        waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
 
     def on_opendrive_map(self, msg):

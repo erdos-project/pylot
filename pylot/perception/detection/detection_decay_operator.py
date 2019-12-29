@@ -1,11 +1,11 @@
 from collections import deque
-import erdust
+import erdos
 
 from pylot.perception.detection.utils import get_precision_recall_at_iou
 from pylot.utils import time_epoch_ms
 
 
-class DetectionDecayOperator(erdust.Operator):
+class DetectionDecayOperator(erdos.Operator):
     def __init__(self,
                  obstacles_stream,
                  map_stream,
@@ -15,8 +15,8 @@ class DetectionDecayOperator(erdust.Operator):
                  csv_file_name=None):
         obstacles_stream.add_callback(self.on_ground_obstacles, [map_stream])
         self._name = name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.utils.setup_csv_logging(
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._flags = flags
         self._ground_bboxes = deque()
@@ -24,7 +24,7 @@ class DetectionDecayOperator(erdust.Operator):
 
     @staticmethod
     def connect(obstacles_stream):
-        map_stream = erdust.WriteStream()
+        map_stream = erdos.WriteStream()
         return [map_stream]
 
     def on_ground_obstacles(self, msg, map_stream):
@@ -62,7 +62,7 @@ class DetectionDecayOperator(erdust.Operator):
                 self._csv_logger.info('{},{},{},{}'.format(
                     time_epoch_ms(), self._name, latency, avg_precision))
                 map_stream.send(
-                    erdust.Message(msg.timestamp, (latency, avg_precision)))
+                    erdos.Message(msg.timestamp, (latency, avg_precision)))
 
         # Buffer the new bounding boxes.
         self._ground_bboxes.append((game_time, bboxes))

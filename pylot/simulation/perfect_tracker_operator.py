@@ -1,6 +1,6 @@
 from absl import flags
 from collections import defaultdict, deque
-import erdust
+import erdos
 
 from pylot.perception.messages import ObjTrajectory, ObjTrajectoriesMessage
 
@@ -9,7 +9,7 @@ flags.DEFINE_integer(
     'Limit on number of past steps returned by the perfect object tracker.')
 
 
-class PerfectTrackerOperator(erdust.Operator):
+class PerfectTrackerOperator(erdos.Operator):
     """Operator that gives past trajectories of other agents in the environment,
        i.e. their past (x,y,z) locations from an ego-vehicle perspective.
     """
@@ -23,11 +23,11 @@ class PerfectTrackerOperator(erdust.Operator):
         """Initializes the PerfectTracker Operator. """
         ground_obstacles_stream.add_callback(self.on_obstacles_update)
         can_bus_stream.add_callback(self.on_can_bus_update)
-        erdust.add_watermark_callback(
+        erdos.add_watermark_callback(
             [ground_obstacles_stream, can_bus_stream],
             [ground_tracking_stream], self.on_watermark)
         self._name = name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
         # Queues of incoming data.
         self._obstacles_raw_msgs = deque()
@@ -42,7 +42,7 @@ class PerfectTrackerOperator(erdust.Operator):
 
     @staticmethod
     def connect(ground_obstacles_stream, can_bus_stream):
-        ground_tracking_stream = erdust.WriteStream()
+        ground_tracking_stream = erdos.WriteStream()
         return [ground_tracking_stream]
 
     def on_watermark(self, timestamp, ground_tracking_stream):

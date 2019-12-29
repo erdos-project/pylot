@@ -6,7 +6,7 @@ import carla
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 
-from erdust.utils import setup_logging
+from erdos.utils import setup_logging
 
 from pylot.simulation.utils import Transform
 from pylot.utils import compute_magnitude_angle, is_within_distance_ahead

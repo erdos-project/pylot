@@ -1,11 +1,11 @@
 from collections import deque
-import erdust
+import erdos
 import time
 
 from pylot.utils import time_epoch_ms
 
 
-class SegmentationDecayOperator(erdust.Operator):
+class SegmentationDecayOperator(erdos.Operator):
     """ Computes how much segmentation accuracy decreases over time.
 
     The operator subscribes to the Carla perfect segmented frames stream.
@@ -21,14 +21,14 @@ class SegmentationDecayOperator(erdust.Operator):
                                              [iou_stream])
         self._name = name
         self._flags = flags
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.utils.setup_csv_logging(
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._ground_frames = deque()
 
     @staticmethod
     def connect(ground_segmented_stream):
-        iou_stream = erdust.WriteStream()
+        iou_stream = erdos.WriteStream()
         return [iou_stream]
 
     def on_ground_segmented_frame(self, msg, iou_stream):
@@ -55,7 +55,7 @@ class SegmentationDecayOperator(erdust.Operator):
                 self._csv_logger.info('{},{},mIoU,{},{}'.format(
                     cur_time, self._name, time_diff, mean_iou))
                 iou_stream.send(
-                    erdust.Message(msg.timestamp, (time_diff, mean_iou)))
+                    erdos.Message(msg.timestamp, (time_diff, mean_iou)))
                 pedestrian_key = 4
                 if pedestrian_key in class_iou:
                     self._logger.info(

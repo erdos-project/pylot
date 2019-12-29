@@ -1,7 +1,7 @@
-import erdust
+import erdos
 
 
-class ControlMessage(erdust.Message):
+class ControlMessage(erdos.Message):
     """ This class represents a message to be used to send control commands.
 
     Attributes:

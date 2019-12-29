@@ -12,7 +12,7 @@ Planner steps:
 import carla
 import collections
 from collections import deque
-import erdust
+import erdos
 import itertools
 
 from pylot.map.hd_map import HDMap
@@ -32,7 +32,7 @@ DEFAULT_DISTANCE_THRESHOLD = 20  # 20 meters ahead of ego
 DEFAULT_NUM_WAYPOINTS = 50  # 50 waypoints to plan for
 
 
-class RRTStarPlanningOperator(erdust.Operator):
+class RRTStarPlanningOperator(erdos.Operator):
     """ RRTStar Planning operator for Carla 0.9.x."""
     def __init__(self,
                  can_bus_stream,
@@ -53,11 +53,11 @@ class RRTStarPlanningOperator(erdust.Operator):
         """
         can_bus_stream.add_callback(self.on_can_bus_update)
         prediction_stream.add_callback(self.on_prediction_update)
-        erdust.add_watermark_callback([can_bus_stream, prediction_stream],
+        erdos.add_watermark_callback([can_bus_stream, prediction_stream],
                                       [waypoints_stream], self.on_watermark)
         self._name = name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.utils.setup_csv_logging(
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._flags = flags
 
@@ -74,7 +74,7 @@ class RRTStarPlanningOperator(erdust.Operator):
 
     @staticmethod
     def connect(can_bus_stream, prediction_stream):
-        waypoints_stream = erdust.WriteStream()
+        waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
 
     def on_can_bus_update(self, msg):
@@ -141,7 +141,7 @@ class RRTStarPlanningOperator(erdust.Operator):
 
         # send waypoints message
         waypoints_stream.send(output_msg)
-        waypoints_stream.send(erdust.WatermarkMessage(timestamp))
+        waypoints_stream.send(erdos.WatermarkMessage(timestamp))
 
     def _build_obstacle_map(self, vehicle_transform):
         """

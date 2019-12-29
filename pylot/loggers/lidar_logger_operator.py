@@ -1,15 +1,15 @@
-import erdust
+import erdos
 import open3d as o3d
 import os
 
 
-class LidarLoggerOperator(erdust.Operator):
+class LidarLoggerOperator(erdos.Operator):
     """ Logs point cloud messages."""
 
     def __init__(self, lidar_stream, name, flags, log_file_name=None):
         lidar_stream.add_callback(self.on_lidar_frame)
         self._name = name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
         self._pc_msg_cnt = 0
 

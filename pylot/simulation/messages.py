@@ -1,8 +1,8 @@
-import erdust
+import erdos
 import numpy as np
 
 
-class FrameMessage(erdust.Message):
+class FrameMessage(erdos.Message):
     """ Message class to be used to send camera frames.
 
     Attributes:
@@ -41,7 +41,7 @@ class FrameMessage(erdust.Message):
                 self.timestamp, self.width, self.height, self.encoding)
 
 
-class DepthFrameMessage(erdust.Message):
+class DepthFrameMessage(erdos.Message):
     """ Message class to be used to send depth camera frames.
 
     Attributes:
@@ -82,7 +82,7 @@ class DepthFrameMessage(erdust.Message):
                                         self.encoding)
 
 
-class PointCloudMessage(erdust.Message):
+class PointCloudMessage(erdos.Message):
     """ Message class to be used to send point clouds.
 
     Attributes:
@@ -106,7 +106,7 @@ class PointCloudMessage(erdust.Message):
             self.timestamp, len(self.point_cloud))
 
 
-class IMUMessage(erdust.Message):
+class IMUMessage(erdos.Message):
     """ Message class to be used to send IMU measurements.
 
      Attributes:
@@ -141,7 +141,7 @@ class IMUMessage(erdust.Message):
                 self.compass)
 
 
-class GroundObstaclesMessage(erdust.Message):
+class GroundObstaclesMessage(erdos.Message):
     """ Message class used to send ground pedestrian and vehicle info.
 
     Attributes:
@@ -156,7 +156,7 @@ class GroundObstaclesMessage(erdust.Message):
             self.timestamp, self.obstacles)
 
 
-class GroundTrafficLightsMessage(erdust.Message):
+class GroundTrafficLightsMessage(erdos.Message):
     """ Message class to be used to send ground info about traffic lights actors.
 
     Attributes:
@@ -172,7 +172,7 @@ class GroundTrafficLightsMessage(erdust.Message):
                 self.timestamp, self.traffic_lights)
 
 
-class GroundSpeedSignsMessage(erdust.Message):
+class GroundSpeedSignsMessage(erdos.Message):
     """ Message class to be used to send ground info about speed limit actors.
 
     Attributes:
@@ -188,7 +188,7 @@ class GroundSpeedSignsMessage(erdust.Message):
                 self.timestamp, self.speed_signs)
 
 
-class GroundStopSignsMessage(erdust.Message):
+class GroundStopSignsMessage(erdos.Message):
     """ Message class to be used to send ground info about stop signs.
 
     Attributes:
@@ -204,7 +204,7 @@ class GroundStopSignsMessage(erdust.Message):
                 self.timestamp, self.stop_signs)
 
 
-class DetectedLaneMessage(erdust.Message):
+class DetectedLaneMessage(erdos.Message):
     """ Message class to be used to send group info about the lane.
 
     Attributes:

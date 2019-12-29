@@ -1,6 +1,6 @@
 from absl import flags
 import carla
-import erdust
+import erdos
 import random
 import sys
 import time
@@ -35,7 +35,7 @@ flags.DEFINE_integer(
     'Index of spawn point where to place ego vehicle. -1 to randomly assign.')
 
 
-class CarlaOperator(erdust.Operator):
+class CarlaOperator(erdos.Operator):
     """ CarlaOperator initializes and controls the simulation.
 
     This operator connects to the simulation, sets the required weather in the
@@ -83,8 +83,8 @@ class CarlaOperator(erdust.Operator):
 
         self._name = name
         self._flags = flags
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.utils.setup_csv_logging(
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         # Connect to CARLA and retrieve the world running.
         self._client, self._world = get_world(self._flags.carla_host,
@@ -104,11 +104,11 @@ class CarlaOperator(erdust.Operator):
             self._world = self._client.load_world('Town{:02d}'.format(
                 self._flags.carla_town))
         # Send open drive string.
-        top_timestamp = erdust.Timestamp(coordinates=[sys.maxsize])
+        top_timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
         self.open_drive_stream.send(
-            erdust.Message(top_timestamp,
+            erdos.Message(top_timestamp,
                            self._world.get_map().to_opendrive()))
-        top_watermark = erdust.WatermarkMessage(top_timestamp)
+        top_watermark = erdos.WatermarkMessage(top_timestamp)
         self.open_drive_stream.send(top_watermark)
         self.global_trajectory_stream.send(top_watermark)
         # Set the weather.
@@ -145,14 +145,14 @@ class CarlaOperator(erdust.Operator):
 
     @staticmethod
     def connect(control_stream):
-        can_bus_stream = erdust.WriteStream()
-        ground_traffic_lights_stream = erdust.WriteStream()
-        ground_obstacles_stream = erdust.WriteStream()
-        ground_speed_limit_signs_stream = erdust.WriteStream()
-        ground_stop_signs_stream = erdust.WriteStream()
-        vehicle_id_stream = erdust.WriteStream()
-        open_drive_stream = erdust.WriteStream()
-        global_trajectory_stream = erdust.WriteStream()
+        can_bus_stream = erdos.WriteStream()
+        ground_traffic_lights_stream = erdos.WriteStream()
+        ground_obstacles_stream = erdos.WriteStream()
+        ground_speed_limit_signs_stream = erdos.WriteStream()
+        ground_stop_signs_stream = erdos.WriteStream()
+        vehicle_id_stream = erdos.WriteStream()
+        open_drive_stream = erdos.WriteStream()
+        global_trajectory_stream = erdos.WriteStream()
         return [
             can_bus_stream, ground_traffic_lights_stream,
             ground_obstacles_stream, ground_speed_limit_signs_stream,
@@ -366,18 +366,18 @@ class CarlaOperator(erdust.Operator):
         game_time = int(msg.elapsed_seconds * 1000)
         self._logger.info('The world is at the timestamp {}'.format(game_time))
         # Create a timestamp and send a WatermarkMessage on the output stream.
-        timestamp = erdust.Timestamp(coordinates=[game_time])
-        watermark_msg = erdust.WatermarkMessage(timestamp)
+        timestamp = erdos.Timestamp(coordinates=[game_time])
+        watermark_msg = erdos.WatermarkMessage(timestamp)
         self.__publish_hero_vehicle_data(timestamp, watermark_msg)
         self.__publish_ground_actors_data(timestamp, watermark_msg)
 
     def run(self):
         # Register a callback function and a function that ticks the world.
         # TODO(ionel): We do not currently have a top message.
-        timestamp = erdust.Timestamp(coordinates=[sys.maxsize])
+        timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
         self.vehicle_id_stream.send(
-            erdust.Message(timestamp, self._driving_vehicle.id))
-        self.vehicle_id_stream.send(erdust.WatermarkMessage(timestamp))
+            erdos.Message(timestamp, self._driving_vehicle.id))
+        self.vehicle_id_stream.send(erdos.WatermarkMessage(timestamp))
 
         # XXX(ionel): Hack to fix a race condition. Driver operators
         # register a carla listen callback only after they've received
@@ -397,8 +397,8 @@ class CarlaOperator(erdust.Operator):
             carla_vector=self._driving_vehicle.get_velocity())
         forward_speed = velocity_vector.magnitude()
         can_bus = pylot.simulation.utils.CanBus(vec_transform, forward_speed)
-        self.can_bus_stream.send(erdust.Message(timestamp, can_bus))
-        self.can_bus_stream.send(erdust.WatermarkMessage(timestamp))
+        self.can_bus_stream.send(erdos.Message(timestamp, can_bus))
+        self.can_bus_stream.send(erdos.WatermarkMessage(timestamp))
 
         # Set the world simulation view with respect to the vehicle.
         v_pose = self._driving_vehicle.get_transform()
@@ -417,21 +417,21 @@ class CarlaOperator(erdust.Operator):
         self.ground_obstacles_stream.send(
             pylot.simulation.messages.GroundObstaclesMessage(
                 timestamp, vehicles + pedestrians))
-        self.ground_obstacles_stream.send(erdust.WatermarkMessage(timestamp))
+        self.ground_obstacles_stream.send(erdos.WatermarkMessage(timestamp))
         # Send ground traffic lights.
         self.ground_traffic_lights_stream.send(
             pylot.simulation.messages.GroundTrafficLightsMessage(
                 timestamp, traffic_lights))
         self.ground_traffic_lights_stream.send(
-            erdust.WatermarkMessage(timestamp))
+            erdos.WatermarkMessage(timestamp))
         # Send ground speed signs.
         self.ground_speed_limit_signs_stream.send(
             pylot.simulation.messages.GroundSpeedSignsMessage(
                 timestamp, speed_limits))
         self.ground_speed_limit_signs_stream.send(
-            erdust.WatermarkMessage(timestamp))
+            erdos.WatermarkMessage(timestamp))
         # Send stop signs.
         self.ground_stop_signs_stream.send(
             pylot.simulation.messages.GroundStopSignsMessage(
                 timestamp, traffic_stops))
-        self.ground_stop_signs_stream.send(erdust.WatermarkMessage(timestamp))
+        self.ground_stop_signs_stream.send(erdos.WatermarkMessage(timestamp))

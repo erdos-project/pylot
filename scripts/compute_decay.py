@@ -1,6 +1,6 @@
 from absl import app
 from absl import flags
-import erdust
+import erdos
 
 from pylot.control.messages import ControlMessage
 import pylot.flags
@@ -19,9 +19,9 @@ flags.DEFINE_integer('decay_max_latency', 400,
 CENTER_CAMERA_LOCATION = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
 
 
-class SynchronizerOperator(erdust.Operator):
+class SynchronizerOperator(erdos.Operator):
     def __init__(self, wait_stream, control_stream, flags):
-        erdust.add_watermark_callback([wait_stream], [control_stream],
+        erdos.add_watermark_callback([wait_stream], [control_stream],
                                       self.on_watermark)
         self._flags = flags
 
@@ -29,7 +29,7 @@ class SynchronizerOperator(erdust.Operator):
     def connect(wait_stream):
         # Set no watermark on the output stream so that we do not
         # close the watermark loop with the carla operator.
-        control_stream = erdust.WriteStream()
+        control_stream = erdos.WriteStream()
         return [control_stream]
 
     def on_watermark(self, timestamp, control_stream):
@@ -44,7 +44,7 @@ def driver():
     transform = pylot.simulation.utils.Transform(
         CENTER_CAMERA_LOCATION, pylot.simulation.utils.Rotation(0, 0, 0))
 
-    control_loop_stream = erdust.LoopStream()
+    control_loop_stream = erdos.LoopStream()
     # Create carla operator.
     (can_bus_stream, ground_traffic_lights_stream, ground_obstacles_stream,
      ground_speed_limit_signs_stream, ground_stop_signs_stream,
@@ -85,7 +85,7 @@ def driver():
         stream_to_sync_on = iou_stream
         if map_stream is not None:
             stream_to_sync_on = map_stream
-        (control_stream, ) = erdust.connect(
+        (control_stream, ) = erdos.connect(
             SynchronizerOperator,
             [stream_to_sync_on],
             False,  # Does not flow watermarks.
@@ -98,7 +98,7 @@ def driver():
 
 
 def main(argv):
-    erdust.run(driver)
+    erdos.run(driver)
 
 
 if __name__ == '__main__':

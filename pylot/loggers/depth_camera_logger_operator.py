@@ -1,9 +1,9 @@
-import erdust
+import erdos
 import os
 import pickle
 
 
-class DepthCameraLoggerOperator(erdust.Operator):
+class DepthCameraLoggerOperator(erdos.Operator):
     def __init__(self,
                  depth_camera_stream,
                  name,
@@ -12,7 +12,7 @@ class DepthCameraLoggerOperator(erdust.Operator):
                  log_file_name=None):
         depth_camera_stream.add_callback(self.on_depth_frame)
         self._name = name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
         self._depth_frame_cnt = 0
         self._filename_prefix = filename_prefix

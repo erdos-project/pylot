@@ -1,5 +1,5 @@
 from collections import deque
-import erdust
+import erdos
 import numpy as np
 import time
 
@@ -7,7 +7,7 @@ from pylot.perception.messages import ObjPositionsSpeedsMessage
 from pylot.utils import time_epoch_ms
 
 
-class FusionOperator(erdust.Operator):
+class FusionOperator(erdos.Operator):
     """Fusion Operator
 
     Args:
@@ -36,8 +36,8 @@ class FusionOperator(erdust.Operator):
         depth_camera_stream.add_callback(self.update_distances)
         self._fused_stream = fused_stream
         self._name = name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.utils.setup_csv_logging(
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._flags = flags
         self._segments = []
@@ -51,7 +51,7 @@ class FusionOperator(erdust.Operator):
 
     @staticmethod
     def connect(can_bus_stream, obstacles_stream, depth_camera_stream):
-        fused_stream = erdust.WriteStream()
+        fused_stream = erdos.WriteStream()
         return [fused_stream]
 
     def __calc_object_positions(self, object_bounds, distances, car_position,

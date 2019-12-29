@@ -1,5 +1,5 @@
 import carla
-import erdust
+import erdos
 
 # Pylot specific imports.
 import pylot.simulation.carla_utils
@@ -7,7 +7,7 @@ import pylot.simulation.carla_utils
 DEFAULT_VIS_TIME = 0.1
 
 
-class WaypointVisualizerOperator(erdust.Operator):
+class WaypointVisualizerOperator(erdos.Operator):
     """ WaypointVisualizerOperator visualizes the waypoints released by a
     global route planner.
 
@@ -31,7 +31,7 @@ class WaypointVisualizerOperator(erdust.Operator):
         """
         waypoints_stream.add_callback(self.on_wp_update)
         self._name = name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
         _, self._world = pylot.simulation.carla_utils.get_world(
             self._flags.carla_host, self._flags.carla_port,

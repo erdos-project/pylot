@@ -1,5 +1,5 @@
 from absl import flags
-import erdust
+import erdos
 import heapq
 
 from pylot.perception.detection.utils import get_mAP
@@ -9,7 +9,7 @@ flags.DEFINE_enum('detection_metric', 'mAP', ['mAP', 'timely-mAP'],
                   'Detection evaluation metric')
 
 
-class DetectionEvalOperator(erdust.Operator):
+class DetectionEvalOperator(erdos.Operator):
     def __init__(self,
                  obstacles_stream,
                  ground_obstacles_stream,
@@ -19,13 +19,13 @@ class DetectionEvalOperator(erdust.Operator):
                  csv_file_name=None):
         obstacles_stream.add_callback(self.on_obstacles)
         ground_obstacles_stream.add_callback(self.on_ground_obstacles)
-        erdust.add_watermark_callback(
+        erdos.add_watermark_callback(
             [obstacles_stream, ground_obstacles_stream], [],
             self.on_notification)
         self._name = name
         self._flags = flags
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.utils.setup_csv_logging(
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._last_notification = None
         # Buffer of detected obstacles.

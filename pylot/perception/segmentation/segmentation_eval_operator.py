@@ -1,5 +1,5 @@
 from absl import flags
-import erdust
+import erdos
 import heapq
 
 from pylot.utils import time_epoch_ms
@@ -11,7 +11,7 @@ flags.DEFINE_bool(
     'Enable to use a model for segmentation accuracy decay over time')
 
 
-class SegmentationEvalOperator(erdust.Operator):
+class SegmentationEvalOperator(erdos.Operator):
     def __init__(self,
                  ground_segmented_stream,
                  segmented_stream,
@@ -22,13 +22,13 @@ class SegmentationEvalOperator(erdust.Operator):
         ground_segmented_stream.add_callback(self.on_ground_segmented_frame)
         segmented_stream.add_callback(self.on_segmented_frame)
         # Register a watermark callback.
-        erdust.add_watermark_callback(
+        erdos.add_watermark_callback(
             [ground_segmented_stream, segmented_stream], [],
             self.on_notification)
         self._name = name
         self._flags = flags
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.utils.setup_csv_logging(
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         # Buffer of ground truth segmented frames.
         self._ground_frames = []

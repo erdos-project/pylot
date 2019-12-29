@@ -1,11 +1,11 @@
-import erdust
+import erdos
 
 from pylot.simulation.utils import DetectedLane, Location
 from pylot.simulation.messages import DetectedLaneMessage
 from pylot.simulation.carla_utils import get_world
 
 
-class PerfectLaneDetectionOperator(erdust.Operator):
+class PerfectLaneDetectionOperator(erdos.Operator):
     def __init__(self,
                  can_bus_stream,
                  detected_lane_stream,
@@ -25,7 +25,7 @@ class PerfectLaneDetectionOperator(erdust.Operator):
                                     [detected_lane_stream])
         self._name = name
         self._flags = flags
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._waypoint_precision = 0.05
         _, world = get_world(self._flags.carla_host, self._flags.carla_port,
                              self._flags.carla_timeout)
@@ -33,7 +33,7 @@ class PerfectLaneDetectionOperator(erdust.Operator):
 
     @staticmethod
     def connect(can_bus_stream):
-        detected_lane_stream = erdust.WriteStream()
+        detected_lane_stream = erdos.WriteStream()
         return [detected_lane_stream]
 
     def lateral_shift(self, transform, shift):

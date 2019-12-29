@@ -1,4 +1,4 @@
-import erdust
+import erdos
 import threading
 import time
 
@@ -7,7 +7,7 @@ from pylot.simulation.messages import IMUMessage
 from pylot.simulation.utils import Vector3D, Transform
 
 
-class IMUDriverOperator(erdust.Operator):
+class IMUDriverOperator(erdos.Operator):
     """ Publishes carla.IMUMeasurements (transform, acceleration, gyro and
     compass) from IMU (inertial measurement unit) sensor.
 
@@ -42,7 +42,7 @@ class IMUDriverOperator(erdust.Operator):
         # The operator does not pass watermarks by defaults.
         self._name = name
         self._flags = flags
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._imu_setup = imu_setup
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None
@@ -53,7 +53,7 @@ class IMUDriverOperator(erdust.Operator):
 
     @staticmethod
     def connect(ground_vehicle_id_stream):
-        imu_stream = erdust.WriteStream()
+        imu_stream = erdos.WriteStream()
         return [imu_stream]
 
     def process_imu(self, imu_msg):
@@ -65,8 +65,8 @@ class IMUDriverOperator(erdust.Operator):
         """
         with self._lock:
             game_time = int(imu_msg.timestamp * 1000)
-            timestamp = erdust.Timestamp(coordinates=[game_time])
-            watermark_msg = erdust.WatermarkMessage(timestamp)
+            timestamp = erdos.Timestamp(coordinates=[game_time])
+            watermark_msg = erdos.WatermarkMessage(timestamp)
 
             msg = IMUMessage(Transform(carla_transform=imu_msg.transform),
                              Vector3D(carla_vector=imu_msg.accelerometer),

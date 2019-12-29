@@ -1,7 +1,7 @@
-import erdust
+import erdos
 
 
-class DetectorMessage(erdust.Message):
+class DetectorMessage(erdos.Message):
     """ This class represents a detector output message to be sent by
     operators.
 
@@ -28,7 +28,7 @@ class DetectorMessage(erdust.Message):
                 self.timestamp, self.runtime, self.detected_objects)
 
 
-class SegmentedFrameMessage(erdust.Message):
+class SegmentedFrameMessage(erdos.Message):
     """ This class represents a message to be used to send segmented frames
 
     Attributes:
@@ -84,7 +84,7 @@ class ObjPositionSpeed(object):
                 self.sigma_speed_y)
 
 
-class ObjPositionsSpeedsMessage(erdust.Message):
+class ObjPositionsSpeedsMessage(erdos.Message):
     """ This class represents a message to be used to send vehicle position and
         speed info.
 
@@ -126,7 +126,7 @@ class ObjTrajectory(object):
                                              self.trajectory)
 
 
-class ObjTrajectoriesMessage(erdust.Message):
+class ObjTrajectoriesMessage(erdos.Message):
     """ This class represents a message to be used to send vehicle
         trajectory info.
     """

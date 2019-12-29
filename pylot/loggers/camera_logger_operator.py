@@ -1,4 +1,4 @@
-import erdust
+import erdos
 import numpy as np
 import os
 import PIL.Image as Image
@@ -6,7 +6,7 @@ import PIL.Image as Image
 import pylot.utils
 
 
-class CameraLoggerOperator(erdust.Operator):
+class CameraLoggerOperator(erdos.Operator):
     """ Logs camera frames."""
     def __init__(self,
                  camera_stream,
@@ -16,7 +16,7 @@ class CameraLoggerOperator(erdust.Operator):
                  log_file_name=None):
         camera_stream.add_callback(self.on_frame)
         self._name = name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
         self._frame_cnt = 0
         self._filename_prefix = filename_prefix

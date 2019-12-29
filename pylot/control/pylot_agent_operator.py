@@ -1,6 +1,6 @@
 import carla
 from collections import deque
-import erdust
+import erdos
 import math
 from pid_controller.pid import PID
 import time
@@ -19,7 +19,7 @@ from pylot.simulation.sensor_setup import DepthCameraSetup
 INTERSECTION_SPEED_M_PER_SEC = 5
 
 
-class PylotAgentOperator(erdust.Operator):
+class PylotAgentOperator(erdos.Operator):
     def __init__(self,
                  can_bus_stream,
                  waypoints_stream,
@@ -41,15 +41,15 @@ class PylotAgentOperator(erdust.Operator):
         lidar_stream.add_callback(self.on_lidar_update)
         open_drive_stream.add_callback(self.on_opendrive_map)
         depth_camera_stream.add_callback(self.on_depth_camera_update)
-        erdust.add_watermark_callback([
+        erdos.add_watermark_callback([
             can_bus_stream, waypoints_stream, traffic_lights_stream,
             obstacles_stream
         ], [control_stream], self.on_watermark)
         self._name = name
         self._flags = flags
         self._log_file_name = log_file_name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.utils.setup_csv_logging(
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._bgr_camera_setup = bgr_camera_setup
         self._map = None
@@ -78,7 +78,7 @@ class PylotAgentOperator(erdust.Operator):
     def connect(can_bus_stream, waypoints_stream, traffic_lights_stream,
                 obstacles_stream, lidar_stream, open_drive_stream,
                 depth_camera_stream):
-        control_stream = erdust.WriteStream()
+        control_stream = erdos.WriteStream()
         return [control_stream]
 
     def compute_command(self, can_bus_msg, waypoint_msg, tl_msg, obstacles_msg,

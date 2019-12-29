@@ -1,5 +1,5 @@
 from absl import flags
-import erdust
+import erdos
 import logging
 import numpy as np
 import tensorflow as tf
@@ -22,7 +22,7 @@ flags.DEFINE_float(
     'GPU memory fraction allocated to each traffic light detector')
 
 
-class TrafficLightDetOperator(erdust.Operator):
+class TrafficLightDetOperator(erdos.Operator):
     """ Subscribes to a camera stream, and runs a model for each frame."""
     def __init__(self,
                  camera_stream,
@@ -34,8 +34,8 @@ class TrafficLightDetOperator(erdust.Operator):
         # Register a callback on the camera input stream.
         camera_stream.add_callback(self.on_frame, [traffic_lights_stream])
         self._name = name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.utils.setup_csv_logging(
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._flags = flags
         self._detection_graph = tf.Graph()
@@ -83,7 +83,7 @@ class TrafficLightDetOperator(erdust.Operator):
 
     @staticmethod
     def connect(camera_stream):
-        traffic_lights_stream = erdust.WriteStream()
+        traffic_lights_stream = erdos.WriteStream()
         return [traffic_lights_stream]
 
     def on_frame(self, msg, traffic_lights_stream):

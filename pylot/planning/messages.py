@@ -1,7 +1,7 @@
-import erdust
+import erdos
 
 
-class WaypointsMessage(erdust.Message):
+class WaypointsMessage(erdos.Message):
     """ This class represents a message to be used to send waypoints."""
     def __init__(self,
                  timestamp,
@@ -26,7 +26,7 @@ class WaypointsMessage(erdust.Message):
                 self.wp_angle_speed, self.wp_vector_speed, self.waypoints)
 
 
-class BehaviorMessage(erdust.Message):
+class BehaviorMessage(erdos.Message):
     def __init__(self,
                  timestamp,
                  target_lane_id,

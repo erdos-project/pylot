@@ -1,12 +1,12 @@
 import cv2
-import erdust
+import erdos
 
 # Pylot specific imports.
 import pylot.utils
 import pylot.simulation.carla_utils
 
 
-class TrackVisualizerOperator(erdust.Operator):
+class TrackVisualizerOperator(erdos.Operator):
     """ TrackVisualizerOperator visualizes the past and predicted future
         locations of agents on the top-down segmented image.
     """
@@ -31,12 +31,12 @@ class TrackVisualizerOperator(erdust.Operator):
         prediction_stream.add_callback(self.on_prediction_update)
         segmented_camera_stream.add_callback(
             self.on_top_down_segmentation_update)
-        erdust.add_watermark_callback([
+        erdos.add_watermark_callback([
             obstacle_tracking_stream, prediction_stream,
             segmented_camera_stream
         ], [], self.on_watermark)
         self._name = name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
         self._past_colors = {
             'pedestrian': [255, 0, 0],

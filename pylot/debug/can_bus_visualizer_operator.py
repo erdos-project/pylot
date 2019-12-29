@@ -1,5 +1,5 @@
 import carla
-import erdust
+import erdos
 
 # Pylot specific imports.
 import pylot.utils
@@ -8,7 +8,7 @@ import pylot.simulation.carla_utils
 DEFAULT_VIS_TIME = 30000.0
 
 
-class CanBusVisualizerOperator(erdust.Operator):
+class CanBusVisualizerOperator(erdos.Operator):
     """ CanBusVisualizerOperator visualizes the CanBus locations.
 
     This operator listens on the `can_bus` feed and draws the locations on the
@@ -29,7 +29,7 @@ class CanBusVisualizerOperator(erdust.Operator):
         """
         can_bus_stream.add_callback(self.on_can_bus_update)
         self._name = name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
         _, self._world = pylot.simulation.carla_utils.get_world(
             self._flags.carla_host, self._flags.carla_port,

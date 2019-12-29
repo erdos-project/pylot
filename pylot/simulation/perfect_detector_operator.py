@@ -1,5 +1,5 @@
 from collections import deque
-import erdust
+import erdos
 
 import pylot.utils
 from pylot.perception.detection.utils import DetectedObject,\
@@ -8,7 +8,7 @@ from pylot.perception.messages import DetectorMessage
 from pylot.simulation.sensor_setup import DepthCameraSetup, RGBCameraSetup
 
 
-class PerfectDetectorOperator(erdust.Operator):
+class PerfectDetectorOperator(erdos.Operator):
     """ Operator that transforms information it receives from Carla into
     perfect bounding boxes.
 
@@ -48,14 +48,14 @@ class PerfectDetectorOperator(erdust.Operator):
         ground_stop_signs_stream.add_callback(self.on_stop_signs_update)
         # Register a completion watermark callback. The callback is invoked
         # after all the messages with a given timestamp have been received.
-        erdust.add_watermark_callback([
+        erdos.add_watermark_callback([
             depth_camera_stream, center_camera_stream, segmented_camera_stream,
             can_bus_stream, ground_obstacles_stream,
             ground_speed_limit_signs_stream, ground_stop_signs_stream
         ], [obstacles_stream], self.on_watermark)
 
         self._name = name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
         # Queues of incoming data.
         self._bgr_imgs = deque()
@@ -73,7 +73,7 @@ class PerfectDetectorOperator(erdust.Operator):
                 segmented_camera_stream, can_bus_stream,
                 ground_obstacles_stream, ground_speed_limit_signs_stream,
                 ground_stop_signs_stream):
-        obstacles_stream = erdust.WriteStream()
+        obstacles_stream = erdos.WriteStream()
         # Stream on which to output bounding boxes.
         return [obstacles_stream]
 

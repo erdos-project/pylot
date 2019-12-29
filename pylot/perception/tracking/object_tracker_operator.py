@@ -1,12 +1,12 @@
 from collections import deque
-import erdust
+import erdos
 import time
 
 from pylot.perception.detection.utils import visualize_image
 from pylot.utils import time_epoch_ms
 
 
-class ObjectTrackerOperator(erdust.Operator):
+class ObjectTrackerOperator(erdos.Operator):
     def __init__(self,
                  obstacles_stream,
                  camera_stream,
@@ -20,8 +20,8 @@ class ObjectTrackerOperator(erdust.Operator):
         camera_stream.add_callback(self.on_frame_msg)
         self._name = name
         self._flags = flags
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.utils.setup_csv_logging(
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._tracker_type = tracker_type
         try:
@@ -54,7 +54,7 @@ class ObjectTrackerOperator(erdust.Operator):
 
     @staticmethod
     def connect(obstacles_stream, camera_stream):
-        obstacle_tracking_stream = erdust.WriteStream()
+        obstacle_tracking_stream = erdos.WriteStream()
         return [obstacle_tracking_stream]
 
     def on_frame_msg(self, msg):

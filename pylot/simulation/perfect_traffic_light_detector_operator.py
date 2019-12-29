@@ -1,5 +1,5 @@
 from collections import deque
-import erdust
+import erdos
 
 from pylot.perception.detection.utils import annotate_image_with_bboxes,\
     save_image, visualize_image
@@ -9,7 +9,7 @@ from pylot.simulation.sensor_setup import DepthCameraSetup
 import pylot.simulation.utils
 
 
-class PerfectTrafficLightDetectorOperator(erdust.Operator):
+class PerfectTrafficLightDetectorOperator(erdos.Operator):
     def __init__(self,
                  ground_traffic_lights_stream,
                  tl_camera_stream,
@@ -25,12 +25,12 @@ class PerfectTrafficLightDetectorOperator(erdust.Operator):
         depth_camera_stream.add_callback(self.on_depth_camera_update)
         segmented_camera_stream.add_callback(self.on_segmented_frame)
         can_bus_stream.add_callback(self.on_can_bus_update)
-        erdust.add_watermark_callback([
+        erdos.add_watermark_callback([
             ground_traffic_lights_stream, tl_camera_stream,
             depth_camera_stream, segmented_camera_stream, can_bus_stream
         ], [traffic_lights_stream], self.on_watermark)
         self._name = name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
         _, world = get_world(self._flags.carla_host, self._flags.carla_port,
                              self._flags.carla_timeout)
@@ -48,7 +48,7 @@ class PerfectTrafficLightDetectorOperator(erdust.Operator):
     @staticmethod
     def connect(ground_traffic_lights_stream, tl_camera_stream,
                 depth_camera_stream, segmented_camera_stream, can_bus_stream):
-        traffic_lights_stream = erdust.WriteStream()
+        traffic_lights_stream = erdos.WriteStream()
         return [traffic_lights_stream]
 
     def on_watermark(self, timestamp, traffic_lights_stream):

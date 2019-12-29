@@ -1,9 +1,9 @@
 from collections import deque
-import erdust
+import erdos
 import numpy as np
 
 
-class FusionVerificationOperator(erdust.Operator):
+class FusionVerificationOperator(erdos.Operator):
     def __init__(self,
                  ground_obstacles_stream,
                  fusion_stream,
@@ -11,7 +11,7 @@ class FusionVerificationOperator(erdust.Operator):
                  log_file_name=None):
         ground_obstacles_stream.add_callback(self.on_obstacles_update)
         fusion_stream.add_callback(self.on_fusion_update)
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
         self.vehicles = deque()
 
     @staticmethod

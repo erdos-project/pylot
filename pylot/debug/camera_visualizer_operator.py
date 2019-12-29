@@ -1,15 +1,15 @@
-import erdust
+import erdos
 import cv2
 
 from pylot.utils import add_timestamp
 
 
-class CameraVisualizerOperator(erdust.Operator):
+class CameraVisualizerOperator(erdos.Operator):
     """ Subscribes to camera streams, and visualizes frames."""
     def __init__(self, camera_stream, name, log_file_name=None):
         camera_stream.add_callback(self.display_frame)
         self._name = name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
 
     @staticmethod
     def connect(camera_stream):

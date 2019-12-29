@@ -1,17 +1,17 @@
-import erdust
+import erdos
 
 from pylot.control.messages import ControlMessage
 
 
-class SynchronizerOperator(erdust.Operator):
+class SynchronizerOperator(erdos.Operator):
     def __init__(self, wait_stream, control_stream, flags):
-        erdust.add_watermark_callback([wait_stream], [control_stream],
+        erdos.add_watermark_callback([wait_stream], [control_stream],
                                       self.on_watermark)
         self._flags = flags
 
     @staticmethod
     def connect(wait_stream):
-        control_stream = erdust.WriteStream()
+        control_stream = erdos.WriteStream()
         return [control_stream]
 
     def on_watermark(self, timestamp, control_stream):

@@ -1,16 +1,16 @@
 import carla
-import erdust
+import erdos
 
 import pylot.utils
 import pylot.simulation.carla_utils
 
 
-class IMUVisualizerOperator(erdust.Operator):
+class IMUVisualizerOperator(erdos.Operator):
     """ Subscribes to IMU stream and visualizes forward linear acceleration."""
     def __init__(self, imu_stream, name, flags, log_file_name=None):
         imu_stream.add_callback(self.on_imu_update)
         self._name = name
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
         _, self._world = pylot.simulation.carla_utils.get_world(
             self._flags.carla_host, self._flags.carla_port,

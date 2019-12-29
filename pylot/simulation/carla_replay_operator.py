@@ -1,5 +1,5 @@
 from absl import flags
-import erdust
+import erdos
 import sys
 import threading
 import time
@@ -19,7 +19,7 @@ flags.DEFINE_integer('carla_replay_id', 0,
 flags.DEFINE_string('carla_replay_file', '', 'Path to the Carla log file')
 
 
-class CarlaReplayOperator(erdust.Operator):
+class CarlaReplayOperator(erdos.Operator):
     """ Replays a prior simulation from logs.
 
     The operator reads data from a log file, and publishes it on the ground
@@ -48,8 +48,8 @@ class CarlaReplayOperator(erdust.Operator):
         self._vehicle_id_stream = vehicle_id_stream
         self._name = name
         self._flags = flags
-        self._logger = erdust.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdust.utils.setup_csv_logging(
+        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._client = None
         self._world = None
@@ -58,12 +58,12 @@ class CarlaReplayOperator(erdust.Operator):
 
     @staticmethod
     def connect():
-        can_bus_stream = erdust.WriteStream()
-        ground_traffic_lights_stream = erdust.WriteStream()
-        ground_obstacles_stream = erdust.WriteStream()
-        ground_speed_limit_signs_stream = erdust.WriteStream()
-        ground_stop_signs_stream = erdust.WriteStream()
-        vehicle_id_stream = erdust.WriteStream()
+        can_bus_stream = erdos.WriteStream()
+        ground_traffic_lights_stream = erdos.WriteStream()
+        ground_obstacles_stream = erdos.WriteStream()
+        ground_speed_limit_signs_stream = erdos.WriteStream()
+        ground_stop_signs_stream = erdos.WriteStream()
+        vehicle_id_stream = erdos.WriteStream()
         return [
             can_bus_stream, ground_traffic_lights_stream,
             ground_obstacles_stream, ground_speed_limit_signs_stream,
@@ -80,8 +80,8 @@ class CarlaReplayOperator(erdust.Operator):
         """
         with self._lock:
             game_time = int(msg.elapsed_seconds * 1000)
-            timestamp = erdust.Timestamp(coordinates=[game_time])
-            watermark_msg = erdust.WatermarkMessage(timestamp)
+            timestamp = erdos.Timestamp(coordinates=[game_time])
+            watermark_msg = erdos.WatermarkMessage(timestamp)
             self.__publish_hero_vehicle_data(timestamp, watermark_msg)
             self.__publish_ground_actors_data(timestamp, watermark_msg)
             # XXX(ionel): Hack! Sleep a bit to not overlead the subscribers.
@@ -94,7 +94,7 @@ class CarlaReplayOperator(erdust.Operator):
             carla_vector=self._driving_vehicle.get_velocity())
         forward_speed = velocity_vector.magnitude()
         can_bus = pylot.simulation.utils.CanBus(vec_transform, forward_speed)
-        self._can_bus_stream.send(erdust.Message(timestamp, can_bus))
+        self._can_bus_stream.send(erdos.Message(timestamp, can_bus))
         self._can_bus_stream.send(watermark_msg)
 
     def __publish_ground_actors_data(self, timestamp, watermark_msg):
@@ -143,8 +143,8 @@ class CarlaReplayOperator(erdust.Operator):
         if self._driving_vehicle is None:
             raise ValueError("There was an issue finding the vehicle.")
         # TODO(ionel): We do not currently have a top message.
-        timestamp = erdust.Timestamp(coordinates=[sys.maxsize])
-        vehicle_id_msg = erdust.Message(timestamp, self._driving_vehicle.id)
+        timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
+        vehicle_id_msg = erdos.Message(timestamp, self._driving_vehicle.id)
         self._vehicle_id_stream.send(vehicle_id_msg)
-        self._vehicle_id_stream.send(erdust.WatermarkMessage(timestamp))
+        self._vehicle_id_stream.send(erdos.WatermarkMessage(timestamp))
         self._world.on_tick(self.on_world_tick)
