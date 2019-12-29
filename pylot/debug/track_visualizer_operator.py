@@ -75,28 +75,30 @@ class TrackVisualizerOperator(erdos.Operator):
         prediction_msg = self._prediction_msgs.pop()
 
         display_img = segmentation_msg.frame.as_cityscapes_palette()
-        for obj in tracking_msg.obj_trajectories:
-            self._draw_trajectory_on_img(obj, display_img, False)
-        for obj in prediction_msg.predictions:
-            display_img = self._draw_trajectory_on_img(obj, display_img, True)
+        for obstacle in tracking_msg.obstacle_trajectories:
+            self._draw_trajectory_on_img(obstacle, display_img, False)
+        for obstacle in prediction_msg.predictions:
+            display_img = self._draw_trajectory_on_img(obstacle, display_img,
+                                                       True)
         pylot.utils.add_timestamp(timestamp, display_img)
         cv2.imshow('img', display_img)
         cv2.waitKey(1)
 
-    def _draw_trajectory_on_img(self, obj, img, predict):
+    def _draw_trajectory_on_img(self, obstacle, img, predict):
         # Intrinsic and extrinsic matrix of the top down segmentation camera.
         extrinsic_matrix = self._top_down_camera_setup.get_extrinsic_matrix()
         intrinsic_matrix = self._top_down_camera_setup.get_intrinsic_matrix()
 
         # Convert to screen points.
         screen_points = [
-            loc.to_camera_view(extrinsic_matrix, intrinsic_matrix)
-            for loc in obj.trajectory
+            transform.location.to_camera_view(extrinsic_matrix,
+                                              intrinsic_matrix)
+            for transform in obstacle.trajectory
         ]
         if predict:
-            point_color = self._future_colors[obj.obj_class]
+            point_color = self._future_colors[obstacle.label]
         else:
-            point_color = self._past_colors[obj.obj_class]
+            point_color = self._past_colors[obstacle.label]
 
         # Draw trajectory points on segmented image.
         for point in screen_points:

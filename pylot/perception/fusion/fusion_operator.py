@@ -3,7 +3,7 @@ import erdos
 import numpy as np
 import time
 
-from pylot.perception.messages import ObjPositionsSpeedsMessage
+from pylot.perception.messages import ObstaclePositionsSpeedsMessage
 from pylot.utils import time_epoch_ms
 
 
@@ -32,7 +32,7 @@ class FusionOperator(erdos.Operator):
         self.obstacles_stream = obstacles_stream
         self.depth_camera_stream = depth_camera_stream
         can_bus_stream.add_callback(self.update_pos)
-        obstacles_stream.add_callback(self.update_objects)
+        obstacles_stream.add_callback(self.update_obstacles)
         depth_camera_stream.add_callback(self.update_distances)
         self._fused_stream = fused_stream
         self._name = name
@@ -41,23 +41,22 @@ class FusionOperator(erdos.Operator):
             name + '-csv', csv_file_name)
         self._flags = flags
         self._segments = []
-        self._objs = []
         self._rgbd_max_range = rgbd_max_range
         # TODO(ionel): Check fov is same as the camera fov.
         self._camera_fov = camera_fov
         self._car_positions = deque()
         self._distances = deque()
-        self._objects = deque()
+        self._obstacles = deque()
 
     @staticmethod
     def connect(can_bus_stream, obstacles_stream, depth_camera_stream):
         fused_stream = erdos.WriteStream()
         return [fused_stream]
 
-    def __calc_object_positions(self, object_bounds, distances, car_position,
-                                car_orientation):
-        object_positions = []
-        for bounds in object_bounds:
+    def __calc_obstacle_positions(self, obstacle_bounds, distances,
+                                  car_position, car_orientation):
+        obstacle_positions = []
+        for bounds in obstacle_bounds:
             i_min, i_max, j_min, j_max = bounds
 
             bounding_box_center = np.average([[i_min, i_max], [j_min, j_max]],
@@ -79,40 +78,42 @@ class FusionOperator(erdos.Operator):
             position_y = car_position[1] + forward_distance * np.sin(
                 car_orientation) - right_distance * np.cos(car_orientation)
 
-            object_positions.append([position_x, position_y])
+            obstacle_positions.append([position_x, position_y])
 
-        return object_positions
+        return obstacle_positions
 
     def __discard_old_data(self):
         """Discards stored data that are too old to be used for fusion"""
         oldest_timestamp = min([
             self._car_positions[-1][0], self._distances[-1][0],
-            self._objects[-1][0]
+            self._obstacles[-1][0]
         ])
-        for queue in [self._car_positions, self._distances, self._objects]:
+        for queue in [self._car_positions, self._distances, self._obstacles]:
             while queue[0][0] < oldest_timestamp:
                 queue.popleft()
 
     def fuse(self):
-        # Return if we don't have car position, distances or objects.
+        # Return if we don't have car position, distances or obstacles.
         start_time = time.time()
-        if min(map(
-                len,
-            [self._car_positions, self._distances, self._objects])) == 0:
+        if min(
+                map(len,
+                    [self._car_positions, self._distances, self._obstacles
+                     ])) == 0:
             return
         self.__discard_old_data()
-        object_positions = self.__calc_object_positions(
-            self._objects[0][1], self._distances[0][1],
+        obstacle_positions = self.__calc_obstacle_positions(
+            self._obstacles[0][1], self._distances[0][1],
             self._car_positions[0][1][0],
             np.arccos(self._car_positions[0][1][1][0]))
-        timestamp = self._objects[0][0]
+        timestamp = self._obstacles[0][0]
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},{}'.format(time_epoch_ms(), self._name,
                                                 runtime))
 
-        output_msg = ObjPositionsSpeedsMessage(object_positions, timestamp)
+        output_msg = ObstaclePositionsSpeedsMessage(obstacle_positions,
+                                                    timestamp)
         self._fused_stream.send(output_msg)
 
     def update_pos(self, msg):
@@ -124,16 +125,17 @@ class FusionOperator(erdos.Operator):
                         msg.data.transform.forward_vector.z))
         self._car_positions.append((msg.timestamp, vehicle_pos))
 
-    def update_objects(self, msg):
-        # Filter objects
-        self._logger.info("Received update objects")
+    def update_obstacles(self, msg):
+        # Filter obstacles
+        self._logger.info("Received update obstacles")
         vehicle_bounds = []
-        for detected_object in msg.detected_objects:
-            self._logger.info("%s received: %s ", self._name, detected_object)
+        for detected_obstacle in msg.detected_objects:
+            self._logger.info("%s received: %s ", self._name,
+                              detected_obstacle)
             # TODO(ionel): Deal with different types of labels.
-            if detected_object.label in {"truck", "car"}:
-                vehicle_bounds.append(detected_object.corners)
-        self._objects.append((msg.timestamp, vehicle_bounds))
+            if detected_obstacle.label in {"truck", "car"}:
+                vehicle_bounds.append(detected_obstacle.corners)
+        self._obstacles.append((msg.timestamp, vehicle_bounds))
 
     def update_distances(self, msg):
         self._distances.append((msg.timestamp, msg.frame))
@@ -144,6 +146,6 @@ class FusionOperator(erdos.Operator):
             obstacles_msg = self.obstacles_stream.read()
             depth_camera_msg = self.depth_camera_stream.read()
             self.update_pos(can_bus_msg)
-            self.update_objects(obstacles_msg)
+            self.update_obstacles(obstacles_msg)
             self.update_distances(depth_camera_msg)
             self.fuse()

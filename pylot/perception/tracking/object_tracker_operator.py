@@ -132,7 +132,7 @@ class ObjectTrackerOperator(erdos.Operator):
         for detected_obj in detector_objs:
             if detected_obj.label == 'person':
                 bboxes.append(detected_obj.corners)
-                ids.append(detected_obj.obj_id)
+                ids.append(detected_obj.id)
                 confidence_scores.append(detected_obj.confidence)
         return bboxes, ids, confidence_scores
 

@@ -124,7 +124,7 @@ def add_depth(transform, vehicle_id_stream, depth_camera_stream,
     return depth_stream
 
 
-def add_prediction(obstacles_tracking_stream):
+def add_prediction(can_bus_stream, obstacles_tracking_stream):
     prediction_stream = None
     if FLAGS.prediction:
         if FLAGS.prediction_type == 'linear':
@@ -133,6 +133,9 @@ def add_prediction(obstacles_tracking_stream):
         else:
             raise ValueError('Unexpected prediction_type {}'.format(
                 FLAGS.prediction_type))
+        if FLAGS.evaluate_prediction:
+            pylot.operator_creator.add_prediction_evaluation(
+                can_bus_stream, obstacles_tracking_stream, prediction_stream)
     return prediction_stream
 
 
@@ -248,7 +251,8 @@ def driver():
                                           depth_stream,
                                           ground_obstacles_stream)
 
-    prediction_stream = add_prediction(obstacles_tracking_stream)
+    prediction_stream = add_prediction(can_bus_stream,
+                                       obstacles_tracking_stream)
 
     # Add planning operators.
     goal_location = carla.Location(float(FLAGS.goal_location[0]),

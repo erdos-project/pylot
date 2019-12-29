@@ -54,7 +54,7 @@ class RRTStarPlanningOperator(erdos.Operator):
         can_bus_stream.add_callback(self.on_can_bus_update)
         prediction_stream.add_callback(self.on_prediction_update)
         erdos.add_watermark_callback([can_bus_stream, prediction_stream],
-                                      [waypoints_stream], self.on_watermark)
+                                     [waypoints_stream], self.on_watermark)
         self._name = name
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
@@ -162,15 +162,15 @@ class RRTStarPlanningOperator(erdos.Operator):
         for prediction in prediction_msg.predictions:
             time = 0
             # use all prediction times as potential obstacles
-            for location in prediction.trajectory:
+            for transform in prediction.trajectory:
                 if is_within_distance_ahead(vehicle_transform.location,
-                                            location,
+                                            transform.location,
                                             vehicle_transform.rotation.yaw,
                                             DEFAULT_DISTANCE_THRESHOLD):
                     # compute the obstacle origin and range of the obstacle
-                    obstacle_origin = ((location.x -
+                    obstacle_origin = ((transform.location.x -
                                         DEFAULT_OBSTACLE_LENGTH / 2,
-                                        location.y -
+                                        transform.location.y -
                                         DEFAULT_OBSTACLE_WIDTH / 2),
                                        (DEFAULT_OBSTACLE_LENGTH,
                                         DEFAULT_OBSTACLE_WIDTH))

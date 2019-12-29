@@ -83,23 +83,24 @@ class ChauffeurLoggerOperator(erdos.Operator):
         intrinsic_matrix = self._top_down_camera_setup.get_intrinsic_matrix()
 
         rotation = pylot.simulation.utils.Rotation(0, 0, 0)
-        for obj in msg.obj_trajectories:
+        for obstacle in msg.obstacle_trajectories:
             # Convert to screen points.
             screen_points = [
-                loc.to_camera_view(extrinsic_matrix, intrinsic_matrix)
-                for loc in obj.trajectory
+                transform.location.to_camera_view(extrinsic_matrix,
+                                                  intrinsic_matrix)
+                for transform in obstacle.trajectory
             ]
 
             # Keep track of ground vehicle waypoints
-            if obj.obj_id == self._ground_vehicle_id:
-                self._waypoints = obj.trajectory
+            if obstacle.id == self._ground_vehicle_id:
+                self._waypoints = obstacle.trajectory
 
             # Draw trajectory points on segmented image.
             for point in screen_points:
                 if (0 <= point.x <= self._flags.carla_camera_image_width) and \
                    (0 <= point.y <= self._flags.carla_camera_image_height):
                     r = 3
-                    if obj.obj_id == self._ground_vehicle_id:
+                    if obstacle.id == self._ground_vehicle_id:
                         r = 10
                     cv2.circle(past_poses, (int(point.x), int(point.y)), r,
                                (100, 100, 100), -1)
@@ -107,8 +108,8 @@ class ChauffeurLoggerOperator(erdos.Operator):
         # Transform to previous and back to current frame
         self._waypoints = [
             self._current_transform.transform_points(
-                self._previous_transform.inverse_transform_points([wp]))[0]
-            for wp in self._waypoints
+                self._previous_transform.inverse_transform_points(
+                    [wp.location]))[0] for wp in self._waypoints
         ]
 
         # Center first point at 0, 0

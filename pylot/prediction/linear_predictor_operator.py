@@ -1,16 +1,8 @@
-from absl import flags
 import erdos
 import numpy as np
 
-from pylot.prediction.messages import ObjPrediction, PredictionMessage
-from pylot.simulation.utils import Location
-
-flags.DEFINE_integer(
-    'prediction_num_past_steps', None,
-    'Number of past steps of each agent given to the prediction module.')
-flags.DEFINE_integer(
-    'prediction_num_future_steps', None,
-    'Number of future steps outputted by the prediction module.')
+from pylot.prediction.messages import ObstaclePrediction, PredictionMessage
+from pylot.simulation.utils import Location, Rotation, Transform
 
 
 class LinearPredictorOperator(erdos.Operator):
@@ -37,12 +29,12 @@ class LinearPredictorOperator(erdos.Operator):
     def generate_predicted_trajectories(self, msg, linear_prediction_stream):
         self._logger.debug('@{}: received trajectories message'.format(
             msg.timestamp))
-        obj_predictions_list = []
+        obstacle_predictions_list = []
 
-        for obj in msg.obj_trajectories:
+        for obstacle in msg.obstacle_trajectories:
             # Time step matrices used in regression.
             num_steps = min(self._flags.prediction_num_past_steps,
-                            len(obj.trajectory))
+                            len(obstacle.trajectory))
             ts = np.zeros((num_steps, 2))
             future_ts = np.zeros((self._flags.prediction_num_future_steps, 2))
             for t in range(num_steps):
@@ -54,21 +46,24 @@ class LinearPredictorOperator(erdos.Operator):
 
             xy = np.zeros((num_steps, 2))
             for t in range(num_steps):
-                location = obj.trajectory[-(t + 1)]  # t-th most recent step
-                xy[t][0] = location.x
-                xy[t][1] = location.y
+                # t-th most recent step
+                transform = obstacle.trajectory[-(t + 1)]
+                xy[t][0] = transform.location.x
+                xy[t][1] = transform.location.y
             linear_model_params = np.linalg.lstsq(ts, xy)[0]
             # Predict future steps and convert to list of locations.
             predict_array = np.matmul(future_ts, linear_model_params)
             predictions = []
             for t in range(self._flags.prediction_num_future_steps):
                 predictions.append(
-                    Location(x=predict_array[t][0], y=predict_array[t][1]))
-            obj_predictions_list.append(
-                ObjPrediction(
-                    obj.obj_class,
-                    obj.obj_id,
+                    Transform(location=Location(x=predict_array[t][0],
+                                                y=predict_array[t][1]),
+                              rotation=Rotation()))
+            obstacle_predictions_list.append(
+                ObstaclePrediction(
+                    obstacle.label,
+                    obstacle.id,
                     1.0,  # probability
                     predictions))
         linear_prediction_stream.send(
-            PredictionMessage(msg.timestamp, obj_predictions_list))
+            PredictionMessage(msg.timestamp, obstacle_predictions_list))

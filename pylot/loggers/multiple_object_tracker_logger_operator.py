@@ -32,8 +32,8 @@ class MultipleObjectTrackerLoggerOperator(erdos.Operator):
                 bbox_x, bbox_y = x1, y1
                 bbox_w, bbox_h = x2 - x1, y2 - y1
                 log_line = "{},{},{},{},{},{},{},{},{},{}\n".format(
-                    timestamp, det_obj.obj_id, bbox_x, bbox_y, bbox_w, bbox_h,
-                    1.0, -1, -1, -1)
+                    timestamp, det_obj.id, bbox_x, bbox_y, bbox_w, bbox_h, 1.0,
+                    -1, -1, -1)
                 lines.append(log_line)
 
         # Write the data, MOT16 style: https://motchallenge.net/instructions/

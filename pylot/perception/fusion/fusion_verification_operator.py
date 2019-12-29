@@ -36,7 +36,7 @@ class FusionVerificationOperator(erdos.Operator):
 
         truths = self.vehicles[0][1]
         min_errors = []
-        for prediction in msg.obj_positions:
+        for prediction in msg.obstacle_positions:
             min_error = float("inf")
             for truth in truths:
                 error = np.linalg.norm(prediction - truth)

@@ -322,6 +322,19 @@ class Location(Vector3D):
         """
         return (self - other).magnitude()
 
+    def l1_distance(self, other):
+        """ Calculates the L1 distance between the given point and the other
+        point.
+
+        Args:
+            other: The other Location instance to calculate the L1 distance to.
+
+        Returns:
+            The L1 distance between the two points.
+        """
+        return abs(self.x - other.x) + abs(self.y - other.y) + abs(self.z -
+                                                                   other.z)
+
     def as_carla_location(self):
         """ Retrieves the current location as an instance of carla.Location.
 

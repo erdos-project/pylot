@@ -6,7 +6,7 @@ class DetectorMessage(erdos.Message):
     operators.
 
     Attributes:
-        detected_objects: List of detected objects.
+        detected_objects: List of detected obstacles.
         runtime: Operator runtime (in ms).
     """
     def __init__(self, detected_objects, runtime, timestamp):
@@ -36,7 +36,7 @@ class SegmentedFrameMessage(erdos.Message):
         runtime: The runtime of the operator that produced the segmented frame.
     """
     def __init__(self, frame, runtime, timestamp):
-        """ Constructs the SegmentedFrameMessage with the given data and timestamp.
+        """ Constructs the SegmentedFrameMessage.
 
         Args:
             frame: The segmented frame.
@@ -54,94 +54,64 @@ class SegmentedFrameMessage(erdos.Message):
             'height: {})'.format(self.timestamp, self.width, self.height)
 
 
-class ObjPositionSpeed(object):
-    def __init__(
-        self,
-        obj_id,
-        x,
-        y,
-        speed_x,  # Speed on the x axis.
-        speed_y,  # Speed on the y axis.
-        sigma_x,  # Variance of the x position estimation.
-        sigma_y,  # Variance of the y position estimation.
-        sigma_speed_x,
-        sigma_speed_y):
-        self.obj_id = obj_id
-        self.x = x
-        self.y = y
-        self.speed_x = x
-        self.speed_y = y
-        self.sigma_x = sigma_x
-        self.sigma_y = sigma_y
-        self.sigma_speed_x = sigma_speed_x
-        self.sigma_speed_y = sigma_speed_y
-
-    def __str__(self):
-        return 'Object {} position ({}, {}), position variance ({}, {}), '\
-            'axis speed ({}, {}), speed variance ({}, {})'.format(
-                self.obj_id, self.x, self.y, self.sigma_x, self.sigma_y,
-                self.speed_x, self.speed_y, self.sigma_speed_x,
-                self.sigma_speed_y)
-
-
-class ObjPositionsSpeedsMessage(erdos.Message):
+class ObstaclePositionsSpeedsMessage(erdos.Message):
     """ This class represents a message to be used to send vehicle position and
         speed info.
 
     Attributes:
-        obj_positions_speeds: The 2D positions and speeds of the objects.
+        obstacle_positions_speeds: 2D positions and speeds of the obstacles.
     """
-    def __init__(self, obj_positions_speeds, timestamp):
-        """ Constructs the ObjPositionsSpeedsMessage with the given data and
-        timestamp.
+    def __init__(self, obstacle_positions_speeds, timestamp):
+        """ Constructs the ObstaclePositionsSpeedsMessage with the given data
+        and timestamp.
 
         Args:
-            obj_positions_speeds: A list of 2D object positions.
+            obstacle_positions_speeds: A list of 2D obstacle positions.
             timestamp: The timestamp of the message.
         """
-        super(ObjPositionsSpeedsMessage, self).__init__(timestamp, None)
-        self.obj_positions_speeds = obj_positions_speeds
+        super(ObstaclePositionsSpeedsMessage, self).__init__(timestamp, None)
+        self.obstacle_positions_speeds = obstacle_positions_speeds
 
     def __str__(self):
-        return 'ObjPositionsSpeedsMessage(timestamp {}, positions: {})'.format(
-            self.timestamp, self.obj_positions_speeds)
+        return 'ObstaclePositionsSpeedsMessage(timestamp {}, positions: {})'.format(
+            self.timestamp, self.obstacle_positions_speeds)
 
 
-class ObjTrajectory(object):
-    def __init__(self, obj_class, obj_id, trajectory):
-        """Constructs the object trajectory using the given data.
+class ObstacleTrajectory(object):
+    def __init__(self, label, id, trajectory):
+        """Constructs the obstacle trajectory using the given data.
 
         Args:
-            obj_class: String for the class of the object.
-            obj_id: ID of the object.
-            trajectory: List of past locations of the object.
+            label: String for the class of the obstacle.
+            id: ID of the obstacle.
+            trajectory: List of past pylot.util.simulation.Transforms.
         """
 
-        self.obj_class = obj_class
-        self.obj_id = obj_id
+        self.label = label
+        self.id = id
         self.trajectory = trajectory
 
     def __str__(self):
-        return '{} {}, Trajectory {}'.format(self.obj_class, self.obj_id,
+        return '{} {}, Trajectory {}'.format(self.label, self.id,
                                              self.trajectory)
 
 
-class ObjTrajectoriesMessage(erdos.Message):
+class ObstacleTrajectoriesMessage(erdos.Message):
     """ This class represents a message to be used to send vehicle
         trajectory info.
     """
-    def __init__(self, timestamp, obj_trajectories):
-        """ Constructs the ObjTrajectoriesMessage with the given data and
+    def __init__(self, timestamp, obstacle_trajectories):
+        """ Constructs the ObstacleTrajectoriesMessage with the given data and
         timestamp.
 
         Args:
-            obj_trajectories: A list of ObjTrajectory instances.
+            obstacle_trajectories: A list of ObstacleTrajectory instances.
         """
-        super(ObjTrajectoriesMessage, self).__init__(timestamp, None)
-        self.obj_trajectories = obj_trajectories
+        super(ObstacleTrajectoriesMessage, self).__init__(timestamp, None)
+        self.obstacle_trajectories = obstacle_trajectories
 
     def __str__(self):
         trajectories_str = '\n'.join(
-            [str(traj) for traj in self.obj_trajectories])
-        return 'ObjTrajectoriesMessage(timestamp {}, trajectories: {})'.format(
+            [str(traj) for traj in self.obstacle_trajectories])
+        return 'ObstacleTrajectoriesMessage(timestamp {}, trajectories: {})'.format(
             self.timestamp, trajectories_str)

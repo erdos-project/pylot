@@ -1,6 +1,8 @@
 from absl import flags
 
 import pylot.control.flags
+import pylot.prediction.flags
+import pylot.simulation.flags
 
 FLAGS = flags.FLAGS
 
@@ -112,6 +114,8 @@ flags.DEFINE_bool('visualize_top_down_tracker_output', False,
 # Accuracy evaluation flags.
 flags.DEFINE_bool('evaluate_obstacle_detection', False,
                   'True to enable object detection accuracy evaluation')
+flags.DEFINE_bool('evaluate_prediction', False,
+                  'True to enable prediction evaluation')
 flags.DEFINE_bool('evaluate_fusion', False, 'True to enable fusion evaluation')
 flags.DEFINE_bool('evaluate_segmentation', False,
                   'True to enable segmentation evaluation')
@@ -157,6 +161,18 @@ flags.register_multi_flags_validator(
     prediction_validator,
     message=
     'prediction requires --obstacle_tracking or --perfect_obstacle_tracking')
+
+flags.register_multi_flags_validator(
+    [
+        'evaluate_prediction', 'prediction_num_future_steps',
+        'perfect_tracking_num_steps'
+    ],
+    lambda flags_dict: (not flags_dict['evaluate_prediction'] or
+                        (flags_dict['evaluate_prediction'] and flags_dict[
+                            'prediction_num_future_steps'] <= flags_dict[
+                                'perfect_tracking_num_steps'])),
+    message='must track at least as many steps as we predict when'
+    ' --evaluate_prediction is enabled')
 
 
 def rrt_star_validator(flags_dict):

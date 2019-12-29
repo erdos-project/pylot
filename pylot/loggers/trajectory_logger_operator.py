@@ -26,7 +26,9 @@ class TrajectoryLoggerOperator(erdos.Operator):
         self._msg_cnt += 1
         if self._msg_cnt % self._flags.log_every_nth_frame != 0:
             return
-        trajectories = [str(trajectory) for trajectory in msg.obj_trajectories]
+        trajectories = [
+            str(trajectory) for trajectory in msg.obstacle_trajectories
+        ]
         timestamp = msg.timestamp.coordinates[0]
         # Write the trajectories.
         file_name = os.path.join(self._flags.data_path,

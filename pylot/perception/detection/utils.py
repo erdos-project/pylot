@@ -73,20 +73,20 @@ class DetectedObject(object):
         confidence: The confidence of the detection.
         label: The label of the detected object.
     """
-    def __init__(self, corners, confidence, label, obj_id=-1):
+    def __init__(self, corners, confidence, label, id=-1):
         self.corners = corners
         self.confidence = confidence
         self.label = label
-        self.obj_id = obj_id
+        self.id = id
 
     def visualize_on_img(self, image_np, bbox_color_map, text=None):
         """ Annotate the image with the bounding box of the obstacle."""
         txt_font = cv2.FONT_HERSHEY_SIMPLEX
         (xmin, xmax, ymin, ymax) = self.corners
         if text is None:
-            if self.obj_id != -1:
+            if self.id != -1:
                 text = '{}{:.1f}, id:{}'.format(self.label, self.confidence,
-                                                self.obj_id)
+                                                self.id)
             else:
                 text = '{}{:.1f}'.format(self.label, self.confidence)
         txt_size = cv2.getTextSize(text, txt_font, 0.5, 2)[0]
@@ -111,8 +111,8 @@ class DetectedObject(object):
         return self.__str__()
 
     def __str__(self):
-        return 'DetectedObject(obj_id: {}, label: {}, confidence: {}, bbox: {})'.format(
-            self.obj_id, self.label, self.confidence, self.corners)
+        return 'DetectedObject(id: {}, label: {}, confidence: {}, bbox: {})'.format(
+            self.id, self.label, self.confidence, self.corners)
 
 
 class DetectedSpeedLimit(DetectedObject):

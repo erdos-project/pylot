@@ -1,12 +1,9 @@
-from absl import flags
 from collections import defaultdict, deque
 import erdos
 
-from pylot.perception.messages import ObjTrajectory, ObjTrajectoriesMessage
-
-flags.DEFINE_integer(
-    'perfect_tracking_num_steps', None,
-    'Limit on number of past steps returned by the perfect object tracker.')
+from pylot.perception.messages import ObstacleTrajectory,\
+    ObstacleTrajectoriesMessage
+from pylot.simulation.utils import Rotation, Transform
 
 
 class PerfectTrackerOperator(erdos.Operator):
@@ -23,9 +20,9 @@ class PerfectTrackerOperator(erdos.Operator):
         """Initializes the PerfectTracker Operator. """
         ground_obstacles_stream.add_callback(self.on_obstacles_update)
         can_bus_stream.add_callback(self.on_can_bus_update)
-        erdos.add_watermark_callback(
-            [ground_obstacles_stream, can_bus_stream],
-            [ground_tracking_stream], self.on_watermark)
+        erdos.add_watermark_callback([ground_obstacles_stream, can_bus_stream],
+                                     [ground_tracking_stream],
+                                     self.on_watermark)
         self._name = name
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
@@ -68,12 +65,14 @@ class PerfectTrackerOperator(erdos.Operator):
                                 past_obstacle_loc.bounding_box.transform
                 new_location = can_bus_transform.inverse_transform_points(
                     [v_transform.location])[0]
-                cur_obstacle_trajectory.append(new_location)
+                cur_obstacle_trajectory.append(
+                    Transform(location=new_location, rotation=Rotation()))
             obstacle_trajectories.append(
-                ObjTrajectory(obstacle.label, obstacle.id,
-                              cur_obstacle_trajectory))
+                ObstacleTrajectory(obstacle.label, obstacle.id,
+                                   cur_obstacle_trajectory))
 
-        output_msg = ObjTrajectoriesMessage(timestamp, obstacle_trajectories)
+        output_msg = ObstacleTrajectoriesMessage(timestamp,
+                                                 obstacle_trajectories)
         ground_tracking_stream.send(output_msg)
 
     def on_obstacles_update(self, msg):
