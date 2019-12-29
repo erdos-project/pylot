@@ -9,7 +9,7 @@ class MultiObjectSORTTracker(MultiObjectTracker):
     def __init__(self, flags):
         self.tracker = Sort()
 
-    def reinitialize(self, frame, bboxes, confidence_scores):
+    def reinitialize(self, frame, bboxes, confidence_scores, ids):
         detections = self.convert_detections_for_sort_alg(
             bboxes, confidence_scores)
         self.tracker.update(detections)
@@ -20,8 +20,9 @@ class MultiObjectSORTTracker(MultiObjectTracker):
         for track in self.tracker.trackers:
             coords = track.predict()[0].tolist()
             # changing to xmin, xmax, ymin, ymax format
-            coords = (coords[0], coords[2], coords[1], coords[3])
-            tracked_objects.append(DetectedObject(coords, "", 0, track.id))
+            coords = (int(coords[0]), int(coords[2]), int(coords[1]),
+                      int(coords[3]))
+            tracked_objects.append(DetectedObject(coords, 0, "", track.id))
         return True, tracked_objects
 
     def convert_detections_for_sort_alg(self, bboxes, confidence_scores):

@@ -100,7 +100,7 @@ class ObjectTrackerOperator(erdos.Operator):
                 assert timestamp == msg.timestamp
                 # Re-initialize trackers.
                 self.__initialize_trackers(frame, bboxes, msg.timestamp,
-                                           confidence_scores)
+                                           confidence_scores, ids)
                 self._logger.debug(
                     'Trackers have {} frames to catch-up'.format(
                         len(self._to_process)))
@@ -137,11 +137,11 @@ class ObjectTrackerOperator(erdos.Operator):
         return bboxes, ids, confidence_scores
 
     def __initialize_trackers(self, frame, bboxes, timestamp,
-                              confidence_scores):
+                              confidence_scores, ids):
         self._ready_to_update = True
         self._ready_to_update_timestamp = timestamp
         self._logger.debug('Restarting trackers at frame {}'.format(timestamp))
-        self._tracker.reinitialize(frame, bboxes, confidence_scores)
+        self._tracker.reinitialize(frame, bboxes, confidence_scores, ids)
 
     def __track_bboxes_on_frame(self, frame, timestamp, catch_up):
         self._logger.debug('Processing frame {}'.format(timestamp))
@@ -156,6 +156,7 @@ class ObjectTrackerOperator(erdos.Operator):
         else:
             if self._flags.visualize_tracker_output and not catch_up:
                 for tracked_object in tracked_objects:
-                    # tracked objects have no label, draw black bbox for them ([0, 0, 0])
-                    tracked_object.visualize_on_img(frame, {"": [0, 0, 0]})
+                    # tracked objects have no label, draw white bbox for them.
+                    tracked_object.visualize_on_img(frame,
+                                                    {"": [255, 255, 255]})
                 visualize_image(self._name, frame)

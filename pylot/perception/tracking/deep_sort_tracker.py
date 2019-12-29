@@ -17,7 +17,7 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
             wt_path=flags.deep_sort_tracker_pedestrian_weights_path)
         self.tracker = None
 
-    def reinitialize(self, frame, bboxes, confidence_scores):
+    def reinitialize(self, frame, bboxes, confidence_scores, ids):
         # update tracker with new detections
         self.track(frame, confidence_scores=confidence_scores, bboxes=bboxes)
 
@@ -35,9 +35,10 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
                 # right coords).
                 bbox = track.to_tlbr()
                 # Converts to xmin, xmax, ymin, ymax format.
-                corners = (bbox[0], bbox[2], bbox[1], bbox[3])
+                corners = (int(bbox[0]), int(bbox[2]), int(bbox[1]),
+                           int(bbox[3]))
                 tracked_objects.append(
-                    DetectedObject(corners, "", 0, track.track_id))
+                    DetectedObject(corners, 0, "", track.track_id))
             return True, tracked_objects
         return False, []
 
