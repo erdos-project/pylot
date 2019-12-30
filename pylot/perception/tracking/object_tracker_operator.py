@@ -111,26 +111,13 @@ class ObjectTrackerOperator(erdos.Operator):
                     '@{}: received bboxes update, but no frame to process'.
                     format(msg.timestamp))
 
-    def __get_highest_confidence_pedestrian(self, obstacles):
-        max_confidence = 0
-        max_corners = None
-        for obstacle in obstacles:
-            if (obstacle.label == 'person'
-                    and obstacle.confidence > max_confidence):
-                max_corners = obstacle.corners
-                max_confidence = obstacle.confidence
-        if max_corners:
-            return [max_corners]
-        else:
-            return []
-
     def __get_pedestrians(self, obstacles):
         bboxes = []
         ids = []
         confidence_scores = []
         for obstacle in obstacles:
             if obstacle.label == 'person':
-                bboxes.append(obstacle.corners)
+                bboxes.append(obstacle.bounding_box)
                 ids.append(obstacle.id)
                 confidence_scores.append(obstacle.confidence)
         return bboxes, ids, confidence_scores

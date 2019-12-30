@@ -6,7 +6,8 @@ import numpy as np
 from numpy.linalg import inv
 from numpy.matlib import repmat
 
-from pylot.perception.detection.utils import DetectedObject, DetectedSpeedLimit
+from pylot.perception.detection.utils import BoundingBox2D, DetectedObject, \
+    DetectedSpeedLimit
 
 SpeedLimitSign = namedtuple('SpeedLimitSign', 'transform, limit')
 StopSign = namedtuple('StopSign', 'transform, bounding_box')
@@ -561,8 +562,8 @@ class Obstacle(object):
             type carla.Vehicle or carla.Walker)
         """
         if not isinstance(actor, (carla.Vehicle, carla.Walker)):
-            raise ValueError("The actor should be of type carla.Vehicle or "\
-                    "carla.Walker to initialize the Obstacle class.")
+            raise ValueError("The actor should be of type carla.Vehicle or "
+                             "carla.Walker to initialize the Obstacle class.")
 
         # Retrieve the unique identifier of this actor in the simulation.
         self.id = actor.id
@@ -646,18 +647,16 @@ class Obstacle(object):
 
         # Threshold the bounding box to be within the camera view.
         bb_coordinates = [(bb.x, bb.y, bb.z) for bb in bb_coordinates]
-        thresholded_coordinates = get_bounding_box_in_camera_view(
-            bb_coordinates, camera_setup.width, camera_setup.height)
-        if not thresholded_coordinates:
+        bbox_2d = get_bounding_box_in_camera_view(bb_coordinates,
+                                                  camera_setup.width,
+                                                  camera_setup.height)
+        if not bbox_2d:
             return None
-
-        # Retrieve the bottom left and the top right points of the bounding
-        # box.
-        xmin, xmax, ymin, ymax = thresholded_coordinates
-
         # Crop the segmented and depth image to the given bounding box.
-        cropped_image = segmented_frame.as_numpy_array()[ymin:ymax, xmin:xmax]
-        cropped_depth = depth_array[ymin:ymax, xmin:xmax]
+        cropped_image = segmented_frame.as_numpy_array()[
+            bbox_2d.y_min:bbox_2d.y_max, bbox_2d.x_min:bbox_2d.x_max]
+        cropped_depth = depth_array[bbox_2d.y_min:bbox_2d.y_max,
+                                    bbox_2d.x_min:bbox_2d.x_max]
 
         # If the size of the bounding box is greater than 0, ensure that the
         # bounding box contains more than a threshold of pixels corresponding
@@ -675,7 +674,7 @@ class Obstacle(object):
                 mean_depth = np.mean(masked_depth) * 1000
                 depth = self.distance(camera_setup.get_transform())
                 if abs(depth - mean_depth) <= self.__depth_threshold:
-                    return xmin, xmax, ymin, ymax
+                    return bbox_2d
         return None
 
 
@@ -870,9 +869,8 @@ def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
         image_height: The height of the image being published by the camera.
 
     Returns:
-        None, if the bounding box does not fall into the view of the camera.
-        (x1, x2, y1, y2) otherwise, which depict the bottom left and the top
-        right point of the bounding box.
+        None, if the bounding box does not fall into the view of the camera,
+        otherwise it returns a BoundingBox2D.
     """
     # Make sure that atleast 2 of the bounding box coordinates are in front.
     z_vals = [z for _, _, z in bb_coordinates if z >= 0]
@@ -942,7 +940,7 @@ def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
     else:
         x = [int(x) for x, _ in thresholded_points]
         y = [int(y) for _, y in thresholded_points]
-        return min(x), max(x), min(y), max(y)
+        return BoundingBox2D(min(x), max(x), min(y), max(y))
 
 
 def transform_traffic_light_bboxes(light, points):
@@ -1217,16 +1215,17 @@ def get_traffic_light_det_objs(traffic_lights, depth_array, segmented_image,
                 for loc in box
             ]
             bounding_box = [(bb.x, bb.y, bb.z) for bb in bounding_box]
-            thresholded_coordinates = get_bounding_box_in_camera_view(
-                bounding_box, camera_setup.width, camera_setup.height)
-            if not thresholded_coordinates:
+            bbox_2d = get_bounding_box_in_camera_view(bounding_box,
+                                                      camera_setup.width,
+                                                      camera_setup.height)
+            if not bbox_2d:
                 continue
 
-            xmin, xmax, ymin, ymax = thresholded_coordinates
-
             # Crop the segmented and depth image to the given bounding box.
-            cropped_image = segmented_image[ymin:ymax, xmin:xmax]
-            cropped_depth = depth_array[ymin:ymax, xmin:xmax]
+            cropped_image = segmented_image[bbox_2d.y_min:bbox_2d.y_max,
+                                            bbox_2d.x_min:bbox_2d.x_max]
+            cropped_depth = depth_array[bbox_2d.y_min:bbox_2d.y_max,
+                                        bbox_2d.x_min:bbox_2d.x_max]
 
             if cropped_image.size > 0:
                 masked_image = np.zeros_like(cropped_image)
@@ -1237,8 +1236,7 @@ def get_traffic_light_det_objs(traffic_lights, depth_array, segmented_image,
                     if abs(mean_depth -
                            bounding_box[0][-1]) <= 2 and mean_depth < 150:
                         detected.append(
-                            DetectedObject((xmin, xmax, ymin, ymax), 1.0,
-                                           color.get_label()))
+                            DetectedObject(bbox_2d, 1.0, color.get_label()))
     return detected
 
 
@@ -1350,12 +1348,12 @@ def get_traffic_stop_det_objs(traffic_stops, depth_frame, camera_setup):
     det_objs = []
     bgr_intrinsic = camera_setup.get_intrinsic_matrix()
     for transform, bbox in traffic_stops:
-        bbox2d = _get_stop_markings_bbox(bbox, depth_frame,
-                                         camera_setup.get_transform(),
-                                         bgr_intrinsic, camera_setup.width,
-                                         camera_setup.height)
-        if bbox2d:
-            det_objs.append(DetectedObject(bbox2d, 1.0, 'stop marking'))
+        bbox_2d = _get_stop_markings_bbox(bbox, depth_frame,
+                                          camera_setup.get_transform(),
+                                          bgr_intrinsic, camera_setup.width,
+                                          camera_setup.height)
+        if bbox_2d:
+            det_objs.append(DetectedObject(bbox_2d, 1.0, 'stop marking'))
     return det_objs
 
 

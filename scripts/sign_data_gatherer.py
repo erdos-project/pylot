@@ -161,7 +161,8 @@ def log_bounding_boxes(carla_image, depth_frame, segmented_frame,
     speed_limit_det_objs = []
     if speed_signs:
         speed_limit_det_objs = pylot.simulation.utils.get_speed_limit_det_objs(
-            speed_signs, transform, depth_frame.frame, segmented_frame, camera_setup)
+            speed_signs, transform, depth_frame.frame, segmented_frame,
+            camera_setup)
 
     traffic_stop_det_objs = []
     if stop_signs:
@@ -278,7 +279,6 @@ def log_obstacles(world, transforms_of_interest, traffic_lights, tl_color,
 
 def check_lights_opposite(light_a, light_b):
     """ Checks if the two given lights are opposite to each other or not. """
-
     def get_forward_vector(light):
         light_vector = light.get_transform().get_forward_vector()
         return [light_vector.x, light_vector.y, light_vector.z]
@@ -353,9 +353,7 @@ def log_traffic_lights(world):
     print("The total number of transforms were: {}".format(
         len(transforms_of_interest)))
 
-    traffic_lights = [
-        TrafficLight(light) for light in traffic_lights
-    ]
+    traffic_lights = [TrafficLight(light) for light in traffic_lights]
     for weather in find_weather_presets():
         change_weather(world, weather)
         time.sleep(1)
@@ -384,10 +382,9 @@ def log_speed_limits(world):
                 offset_loc, offset_rot)
             transform = speed_sign.transform * offset_trans
             location = transform.location.as_carla_location()
-            w = world_map.get_waypoint(
-                location,
-                project_to_road=True,
-                lane_type=carla.LaneType.Driving)
+            w = world_map.get_waypoint(location,
+                                       project_to_road=True,
+                                       lane_type=carla.LaneType.Driving)
             camera_transform = Transform(carla_transform=w.transform)
             camera_transform.location.z += 2.0
             transform = camera_transform.as_carla_transform()
@@ -419,10 +416,9 @@ def log_stop_signs(world):
                 offset_loc, offset_rot)
             transform = stop_sign.transform * offset_trans
             location = transform.location.as_carla_location()
-            w = world_map.get_waypoint(
-                location,
-                project_to_road=True,
-                lane_type=carla.LaneType.Driving)
+            w = world_map.get_waypoint(location,
+                                       project_to_road=True,
+                                       lane_type=carla.LaneType.Driving)
             camera_transform = Transform(carla_transform=w.transform)
             camera_transform.location.z += 2.0
             transform = camera_transform.as_carla_transform()

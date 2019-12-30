@@ -9,7 +9,7 @@ import torch
 from DaSiamRPN.code.net import SiamRPNvot
 from DaSiamRPN.code.run_SiamRPN import SiamRPN_init, SiamRPN_track
 
-from pylot.perception.detection.utils import DetectedObject
+from pylot.perception.detection.utils import BoundingBox2D, DetectedObject
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 flags.DEFINE_string('da_siam_rpn_model_path',
@@ -24,21 +24,18 @@ class SingleObjectDaSiamRPNTracker(object):
         self.bbox = bbox
         self.id = id
         self.missed_det_updates = 0
-        width = bbox[1] - bbox[0]
-        height = bbox[3] - bbox[2]
-        target_pos = np.array([(bbox[0] + bbox[1]) / 2.0,
-                               (bbox[2] + bbox[3]) / 2.0])
-        target_size = np.array([width, height])
+        target_pos = np.array(bbox.get_center_point())
+        target_size = np.array([bbox.get_width(), bbox.get_height()])
         self._tracker = SiamRPN_init(frame, target_pos, target_size, siam_net)
 
     def track(self, frame):
         self._tracker = SiamRPN_track(self._tracker, frame)
         target_pos = self._tracker['target_pos']
         target_sz = self._tracker['target_sz']
-        self.bbox = (int(target_pos[0] - target_sz[0] / 2.0),
-                     int(target_pos[0] + target_sz[0] / 2.0),
-                     int(target_pos[1] - target_sz[1] / 2.0),
-                     int(target_pos[1] + target_sz[1] / 2.0))
+        self.bbox = BoundingBox2D(int(target_pos[0] - target_sz[0] / 2.0),
+                                  int(target_pos[0] + target_sz[0] / 2.0),
+                                  int(target_pos[1] - target_sz[1] / 2.0),
+                                  int(target_pos[1] + target_sz[1] / 2.0))
         return DetectedObject(self.bbox, 0, "")
 
 
@@ -98,9 +95,10 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
                 tracker_bbox = tracker.bbox
                 # Get crops from frame
                 self._logger.debug(bbox, tracker_bbox)
-                bbox_crop = frame[bbox[2]:bbox[3], bbox[0]:bbox[1]]
-                tracker_bbox_crop = frame[tracker_bbox[2]:tracker_bbox[3],
-                                          tracker_bbox[0]:tracker_bbox[1]]
+                bbox_crop = frame[bbox.y_min:bbox.y_max, bbox.x_min:bbox.x_max]
+                tracker_bbox_crop = frame[
+                    tracker_bbox.y_min:tracker_bbox.y_max,
+                    tracker_bbox.x_min:tracker_bbox.x_max]
                 # Resize larger crop to same shape as smaller one
                 bbox_area = np.prod(bbox_crop.shape[:2])
                 tracker_bbox_area = np.prod(tracker_bbox_crop.shape[:2])

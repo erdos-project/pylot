@@ -35,7 +35,7 @@ class DetectionDecayOperator(erdos.Operator):
         # Select the pedestrian bounding boxes.
         for obstacle in msg.obstacles:
             if obstacle.label == 'pedestrian':
-                bboxes.append(obstacle.corners)
+                bboxes.append(obstacle.bounding_box)
 
         # Remove the buffered bboxes that are too old.
         while (len(self._ground_bboxes) > 0

@@ -30,7 +30,7 @@ class DetectionEvalOperator(erdos.Operator):
         self._last_notification = None
         # Buffer of detected obstacles.
         self._detected_obstacles = []
-        # Buffer of ground truth bboxes.
+        # Buffer of ground obstacles.
         self._ground_obstacles = []
         # Heap storing pairs of (ground/output time, game time).
         self._detector_start_end_times = []
@@ -56,18 +56,18 @@ class DetectionEvalOperator(erdos.Operator):
             if end_time <= game_time:
                 # This is the closest ground bounding box to the end time.
                 heapq.heappop(self._detector_start_end_times)
-                end_bboxes = self.__get_ground_obstacles_at(end_time)
+                ground_obstacles = self.__get_ground_obstacles_at(end_time)
                 # Get detector output obstacles.
                 obstacles = self.__get_obstacles_at(start_time)
-                if (len(obstacles) > 0 or len(end_bboxes) > 0):
-                    mAP = get_mAP(end_bboxes, obstacles)
+                if (len(obstacles) > 0 or len(ground_obstacles) > 0):
+                    mAP = get_mAP(ground_obstacles, obstacles)
                     self._logger.info('mAP is: {}'.format(mAP))
                     self._csv_logger.info('{},{},{},{}'.format(
                         time_epoch_ms(), self._name, 'mAP', mAP))
                 self._logger.debug('Computing accuracy for {} {}'.format(
                     end_time, start_time))
             else:
-                # The remaining entries require newer ground bboxes.
+                # The remaining entries require newer ground obstacles.
                 break
 
         self.__garbage_collect_obstacles()
@@ -115,34 +115,32 @@ class DetectionEvalOperator(erdos.Operator):
 
     def on_obstacles(self, msg):
         game_time = msg.timestamp.coordinates[0]
-        vehicles_bboxes, ped_bboxes, _ = self.__get_bboxes_by_category(
+        vehicles, pedestrians, _ = self.__get_obstacles_by_category(
             msg.obstacles)
-        self._detected_obstacles.append(
-            (game_time, vehicles_bboxes + ped_bboxes))
+        self._detected_obstacles.append((game_time, vehicles + pedestrians))
         # Two metrics: 1) mAP, and 2) timely-mAP
         if self._flags.detection_metric == 'mAP':
-            # We will compare the bboxes with the ground truth at the same
+            # We will compare the obstacles with the ground truth at the same
             # game time.
             heapq.heappush(self._detector_start_end_times,
                            (game_time, game_time))
         elif self._flags.detection_metric == 'timely-mAP':
-            # Ground bboxes time should be as close as possible to the time of
-            # the obstacles + detector runtime.
-            ground_bboxes_time = self.__compute_closest_frame_time(game_time +
-                                                                   msg.runtime)
+            # Ground obstacles time should be as close as possible to the time
+            # of the obstacles + detector runtime.
+            ground_obstacles_time = self.__compute_closest_frame_time(
+                game_time + msg.runtime)
             # Round time to nearest frame.
             heapq.heappush(self._detector_start_end_times,
-                           (ground_bboxes_time, game_time))
+                           (ground_obstacles_time, game_time))
         else:
             raise ValueError('Unexpected detection metric {}'.format(
                 self._flags.detection_metric))
 
     def on_ground_obstacles(self, msg):
         game_time = msg.timestamp.coordinates[0]
-        vehicles_bboxes, ped_bboxes, _ = self.__get_bboxes_by_category(
+        vehicles, pedestrians, _ = self.__get_obstacles_by_category(
             msg.obstacles)
-        self._ground_obstacles.append(
-            (game_time, ped_bboxes + vehicles_bboxes))
+        self._ground_obstacles.append((game_time, pedestrians + vehicles))
 
     def __compute_closest_frame_time(self, time):
         base = int(time) / self._sim_interval * self._sim_interval
@@ -151,18 +149,18 @@ class DetectionEvalOperator(erdos.Operator):
         else:
             return base + self._sim_interval
 
-    def __get_bboxes_by_category(self, obstacles):
+    def __get_obstacles_by_category(self, obstacles):
         """ Divides perception.detection.utils.DetectedObject by labels."""
         vehicles = []
         pedestrians = []
         traffic_lights = []
         for obstacle in obstacles:
             if obstacle.label == 'vehicle':
-                vehicles.append(obstacle.corners)
+                vehicles.append(obstacle)
             elif obstacle.label == 'pedestrian':
-                pedestrians.append(obstacle.corners)
+                pedestrians.append(obstacle)
             elif obstacle.label == 'traffic_light':
-                traffic_lights.append(obstacle.corners)
+                traffic_lights.append(obstacle)
             else:
                 self._logger.warning('Unexpected label {}'.format(
                     obstacle.label))

@@ -195,7 +195,6 @@ class PerfectDetectorOperator(erdos.Operator):
             else:
                 bbox = obstacle.to_camera_view(transformed_camera_setup,
                                                depth_array, segmented_frame)
-            if bbox is not None:
                 det_objs.append(
                     DetectedObject(bbox, 1.0, obstacle.label, obstacle.id))
         return det_objs

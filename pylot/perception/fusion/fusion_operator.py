@@ -53,16 +53,15 @@ class FusionOperator(erdos.Operator):
         fused_stream = erdos.WriteStream()
         return [fused_stream]
 
-    def __calc_obstacle_positions(self, obstacle_bounds, distances,
+    def __calc_obstacle_positions(self, obstacle_bboxes, distances,
                                   car_position, car_orientation):
         obstacle_positions = []
-        for bounds in obstacle_bounds:
-            i_min, i_max, j_min, j_max = bounds
+        for bbox in obstacle_bboxes:
+            bounding_box_center = np.average(
+                [[bbox.x_min, bbox.x_max], [bbox.y_min, bbox.y_max]], axis=1)
 
-            bounding_box_center = np.average([[i_min, i_max], [j_min, j_max]],
-                                             axis=1)
-
-            distance = np.median(distances[i_min:i_max, j_min:j_max])
+            distance = np.median(distances[bbox.x_min:bbox.x_max,
+                                           bbox.y_min:bbox.y_max])
             vertical_angle, horizontal_angle = (
                 self._camera_fov * (bounding_box_center - distances.shape) /
                 distances.shape)
@@ -133,7 +132,7 @@ class FusionOperator(erdos.Operator):
             self._logger.info("%s received: %s ", self._name, obstacle)
             # TODO(ionel): Deal with different types of labels.
             if obstacle.label in {"truck", "car"}:
-                vehicle_bounds.append(obstacle.corners)
+                vehicle_bounds.append(obstacle.bounding_box)
         self._obstacles.append((msg.timestamp, vehicle_bounds))
 
     def update_distances(self, msg):

@@ -65,16 +65,77 @@ class TrafficLightColor(Enum):
             return 'off traffic light'
 
 
+class BoundingBox2D(object):
+    """ Class that stores a 2D bounding box."""
+    def __init__(self, x_min, x_max, y_min, y_max):
+        self.x_min = x_min
+        self.x_max = x_max
+        self.y_min = y_min
+        self.y_max = y_max
+
+    def get_min_point(self):
+        return (self.x_min, self.y_min)
+
+    def get_max_point(self):
+        return (self.x_max, self.y_max)
+
+    def get_height(self):
+        return self.y_max - self.y_min
+
+    def get_width(self):
+        return self.x_max - self.x_min
+
+    def get_center_point(self):
+        return [(self.x_min + self.x_max) // 2, (self.y_min + self.y_max) // 2]
+
+    def as_width_height_bbox(self):
+        return [self.x_min, self.y_min, self.get_width(), self.get_height()]
+
+    def calculate_iou(self, other_bbox):
+        """Calculate the IoU of a single bounding box."""
+        if (other_bbox.x_min > other_bbox.x_max
+                or other_bbox.y_min > other_bbox.y_max):
+            raise AssertionError(
+                "Other bbox is malformed {}".format(other_bbox))
+
+        if self.x_min > self.x_max or self.y_min > self.y_max:
+            raise AssertionError("Bounding box is malformed {}".format(self))
+
+        if (self.x_max < other_bbox.x_min or other_bbox.x_max < self.x_min
+                or self.y_max < other_bbox.y_min
+                or other_bbox.y_max < self.y_min):
+            return 0.0
+
+        inter_x1 = max([self.x_min, other_bbox.x_min])
+        inter_x2 = min([self.x_max, other_bbox.x_max])
+
+        inter_y1 = max([self.y_min, other_bbox.y_min])
+        inter_y2 = min([self.y_max, other_bbox.y_max])
+
+        inter_area = (inter_x2 - inter_x1 + 1) * (inter_y2 - inter_y1 + 1)
+        gt_area = (self.x_max - self.x_min + 1) * (self.y_max - self.y_min + 1)
+        pred_area = (other_bbox.x_max - other_bbox.x_min +
+                     1) * (other_bbox.y_max - other_bbox.y_min + 1)
+        return float(inter_area) / (gt_area + pred_area - inter_area)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return 'BoundingBox2D(xmin: {}, xmax: {}, ymin: {}, ymax: {})'.format(
+            self.x_min, self.x_max, self.y_min, self.y_max)
+
+
 class DetectedObject(object):
     """ Class that stores info about a detected object.
 
     Attributes:
-        corners: The corners of the bounding box.
+        bounding_box: The BoundingBox2D of the obstacle.
         confidence: The confidence of the detection.
         label: The label of the detected object.
     """
-    def __init__(self, corners, confidence, label, id=-1):
-        self.corners = corners
+    def __init__(self, bounding_box, confidence, label, id=-1):
+        self.bounding_box = bounding_box
         self.confidence = confidence
         self.label = label
         self.id = id
@@ -82,7 +143,6 @@ class DetectedObject(object):
     def visualize_on_img(self, image_np, bbox_color_map, text=None):
         """ Annotate the image with the bounding box of the obstacle."""
         txt_font = cv2.FONT_HERSHEY_SIMPLEX
-        (xmin, xmax, ymin, ymax) = self.corners
         if text is None:
             if self.id != -1:
                 text = '{}{:.1f}, id:{}'.format(self.label, self.confidence,
@@ -92,32 +152,45 @@ class DetectedObject(object):
         txt_size = cv2.getTextSize(text, txt_font, 0.5, 2)[0]
         color = bbox_color_map[self.label]
         # Show bounding box.
-        cv2.rectangle(image_np, (xmin, ymin), (xmax, ymax), color, 2)
+        cv2.rectangle(image_np, self.bounding_box.get_min_point(),
+                      self.bounding_box.get_max_point(), color, 2)
         # Show text.
-        cv2.rectangle(image_np, (xmin, ymin - txt_size[1] - 2),
-                      (xmin + txt_size[0], ymin - 2), color, -1)
+        cv2.rectangle(image_np, (self.bounding_box.x_min,
+                                 self.bounding_box.y_min - txt_size[1] - 2),
+                      (self.bounding_box.x_min + txt_size[0],
+                       self.bounding_box.y_min - 2), color, -1)
         cv2.putText(image_np,
-                    text, (xmin, ymin - 2),
+                    text,
+                    (self.bounding_box.x_min, self.bounding_box.y_min - 2),
                     txt_font,
                     0.5, (0, 0, 0),
                     thickness=1,
                     lineType=cv2.LINE_AA)
 
-    def get_bbox_label(self, ):
-        (xmin, xmax, ymin, ymax) = self.corners
-        return (self.label, ((xmin, ymin), (xmax, ymax)))
+    def get_bbox_label(self):
+        return (self.label, (self.bounding_box.get_min_point(),
+                             self.bounding_box.get_max_point()))
+
+    def as_mot16_str(self, timestamp):
+        log_line = "{},{},{},{},{},{},{},{},{},{}\n".format(
+            timestamp, self.id, self.bounding_box.x_min,
+            self.bounding_box.y_min, self.bounding_box.get_width(),
+            self.bounding_box.get_height(), 1.0, -1, -1, -1)
+        return log_line
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return 'DetectedObject(id: {}, label: {}, confidence: {}, bbox: {})'.format(
-            self.id, self.label, self.confidence, self.corners)
+        return 'DetectedObject(id: {}, label: {}, confidence: {}, ' \
+            'bbox: {})'.format(
+                self.id, self.label, self.confidence, self.bounding_box)
 
 
 class DetectedSpeedLimit(DetectedObject):
-    def __init__(self, corners, limit, confidence, label):
-        super(DetectedSpeedLimit, self).__init__(corners, confidence, label)
+    def __init__(self, bounding_box, limit, confidence, label):
+        super(DetectedSpeedLimit, self).__init__(bounding_box, confidence,
+                                                 label)
         self.limit = limit
 
     def visualize_on_img(self, image_np, bbox_color_map):
@@ -125,10 +198,10 @@ class DetectedSpeedLimit(DetectedObject):
         super(DetectedSpeedLimit,
               self).visualize_on_img(image_np, bbox_color_map, text)
 
-    def get_bbox_label(self, ):
-        (xmin, xmax, ymin, ymax) = self.corners
-        return (self.label + ' ' + str(self.limit), ((xmin, ymin), (xmax,
-                                                                    ymax)))
+    def get_bbox_label(self):
+        return (self.label + ' ' + str(self.limit),
+                (self.bounding_box.get_min_point(),
+                 self.bounding_box.get_max_point()))
 
     def __repr__(self):
         return self.__str__()
@@ -136,7 +209,7 @@ class DetectedSpeedLimit(DetectedObject):
     def __str__(self):
         return 'DetectedSpeedLimit(label: {}, limit: {}, '\
             'confidence: {}, bbox: {})'.format(
-                self.label, self.limit, self.confidence, self.corners)
+                self.label, self.limit, self.confidence, self.bounding_box)
 
 
 def compute_miou(bboxes1, bboxes2):
@@ -187,34 +260,6 @@ def load_coco_bbox_colors(coco_labels):
     return colors
 
 
-def calculate_iou(ground_truth, prediction):
-    """Calculate the IoU of a single predicted ground truth box."""
-    x1_gt, x2_gt, y1_gt, y2_gt = ground_truth
-    x1_p, x2_p, y1_p, y2_p = prediction
-
-    if x1_p > x2_p or y1_p > y2_p:
-        raise AssertionError(
-            "Prediction box is malformed? {}".format(prediction))
-
-    if x1_gt > x2_gt or y1_gt > y2_gt:
-        raise AssertionError(
-            "Ground truth box is malformed? {}".format(ground_truth))
-
-    if x2_gt < x1_p or x2_p < x1_gt or y2_gt < y1_p or y2_p < y1_gt:
-        return 0.0
-
-    inter_x1 = max([x1_gt, x1_p])
-    inter_x2 = min([x2_gt, x2_p])
-
-    inter_y1 = max([y1_gt, y1_p])
-    inter_y2 = min([y2_gt, y2_p])
-
-    inter_area = (inter_x2 - inter_x1 + 1) * (inter_y2 - inter_y1 + 1)
-    gt_area = (x2_gt - x1_gt + 1) * (y2_gt - y1_gt + 1)
-    pred_area = (x2_p - x1_p + 1) * (y2_p - y1_p + 1)
-    return float(inter_area) / (gt_area + pred_area - inter_area)
-
-
 def get_prediction_results(ground_truths, predictions, iou_threshold):
     """Calculate the number of true positives, false positives and false
     negatives from the given ground truth and predictions."""
@@ -237,7 +282,7 @@ def get_prediction_results(ground_truths, predictions, iou_threshold):
     ious = []
     for i, prediction in enumerate(predictions):
         for j, ground_truth in enumerate(ground_truths):
-            iou = calculate_iou(prediction, ground_truth)
+            iou = prediction.calculate_iou(ground_truth)
             if iou > iou_threshold:
                 ious.append((i, j, iou))
 
@@ -253,7 +298,8 @@ def get_prediction_results(ground_truths, predictions, iou_threshold):
         for prediction, ground_truth, iou in sorted(ious,
                                                     key=lambda x: x[-1],
                                                     reverse=True):
-            if ground_truth not in ground_truths_matched and prediction not in predictions_matched:
+            if (ground_truth not in ground_truths_matched
+                    and prediction not in predictions_matched):
                 ground_truths_matched.add(ground_truth)
                 predictions_matched.add(prediction)
                 matched.append((prediction, ground_truth, iou))
@@ -291,11 +337,11 @@ def get_precision_recall_at_iou(ground_truths, predictions, iou_threshold):
     return get_precision_recall(true_pos, false_pos, false_neg)
 
 
-def get_mAP(ground_bboxes, detected_objs):
+def get_mAP(ground_obstacles, obstacles):
     """Return mAP with IoU threshold of 0.5"""
     confidence_bbox = []
-    for detected_obj in detected_objs:
-        confidence_bbox.append((detected_obj.confidence, detected_obj.corners))
+    for obstacle in obstacles:
+        confidence_bbox.append((obstacle.confidence, obstacle.bounding_box))
     # Sort bboxes descending by score.
     confidence_bbox.sort()
     confidence_bbox.reverse()
@@ -306,7 +352,7 @@ def get_mAP(ground_bboxes, detected_objs):
     while (len(detected_bboxes) > 0):
         # Get precision recall with 0.5 IoU threshold .
         precision, recall = get_precision_recall_at_iou(
-            ground_bboxes, detected_bboxes, 0.5)
+            ground_obstacles, detected_bboxes, 0.5)
         prec_rec.append((precision, recall))
         detected_bboxes.pop()
     # Append (0, 0) to also cover the area from first recall point to 0 recall.
@@ -324,18 +370,6 @@ def get_mAP(ground_bboxes, detected_objs):
             max_precision = max(max_precision, precision)
             last_recall = recall
     return avg_precision
-
-
-def visualize_no_colors_bboxes(op_name, timestamp, image_np, bboxes):
-    add_timestamp(timestamp, image_np)
-    for corners in bboxes:
-        (xmin, xmax, ymin, ymax) = corners
-        color = [128, 0, 0]
-        # Show bounding box.
-        cv2.rectangle(image_np, (int(xmin), int(ymin)), (int(xmax), int(ymax)),
-                      color, 2)
-    cv2.imshow(op_name, image_np)
-    cv2.waitKey(1)
 
 
 def visualize_ground_bboxes(op_name, timestamp, image_np, det_objs):

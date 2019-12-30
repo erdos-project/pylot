@@ -251,8 +251,7 @@ class PylotAgentOperator(erdos.Operator):
         """
         traffic_lights = []
         for tl in tls.obstacles:
-            x = (tl.corners[0] + tl.corners[1]) // 2
-            y = (tl.corners[2] + tl.corners[3]) // 2
+            x, y = tl.get_center_point()
             location = self.__transform_to_3d(x, y, vehicle_transform,
                                               point_cloud, depth_frame)
             if location:
@@ -279,8 +278,7 @@ class PylotAgentOperator(erdos.Operator):
         vehicles = []
         pedestrians = []
         for obstacle in obstacles_msg.obstacles:
-            x = (obstacle.corners[0] + obstacle.corners[1]) // 2
-            y = (obstacle.corners[2] + obstacle.corners[3]) // 2
+            x, y = obstacle.get_center_point()
             if obstacle.label == 'person':
                 pos = self.__transform_to_3d(x, y, vehicle_transform,
                                              point_cloud, depth_frame)

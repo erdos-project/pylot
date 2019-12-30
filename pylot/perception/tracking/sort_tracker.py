@@ -1,7 +1,7 @@
 import numpy as np
 
 from sort.sort import *
-from pylot.perception.detection.utils import DetectedObject
+from pylot.perception.detection.utils import BoundingBox2D, DetectedObject
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 
@@ -20,20 +20,18 @@ class MultiObjectSORTTracker(MultiObjectTracker):
         for track in self.tracker.trackers:
             coords = track.predict()[0].tolist()
             # changing to xmin, xmax, ymin, ymax format
-            coords = (int(coords[0]), int(coords[2]), int(coords[1]),
-                      int(coords[3]))
-            obstacles.append(DetectedObject(coords, 0, "", track.id))
+            bbox = BoundingBox2D(int(coords[0]), int(coords[2]),
+                                 int(coords[1]), int(coords[3]))
+            obstacles.append(DetectedObject(bbox, 0, "", track.id))
         return True, obstacles
 
     def convert_detections_for_sort_alg(self, bboxes, confidence_scores):
-        # for each bbox, convert from x, y, w, h to xmin, ymin, xmax, ymax (top-left and bottom-right)
-        # then append detection confidence score to the end, return n x 5 np array
         converted_detections = []
         for i in range(len(bboxes)):
-            x1, x2, y1, y2 = list(
-                bboxes[i]
-            )  # comes from detected objects self.corners (see detection utils)
             score = confidence_scores[i]
-            bbox = [x1, y1, x2, y2, score]
+            bbox = [
+                bboxes[i].x_min, bboxes[i].y_min, bboxes[i].x_max,
+                bboxes[i].y_max, score
+            ]
             converted_detections.append(bbox)
         return np.array(converted_detections)
