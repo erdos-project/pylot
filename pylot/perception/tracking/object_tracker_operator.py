@@ -77,12 +77,12 @@ class ObjectTrackerOperator(erdos.Operator):
                                                      runtime))
 
     def on_obstacles_msg(self, msg):
-        """ Invoked when detected objects are received on the stream."""
+        """ Invoked when obstacles are received on the stream."""
         self._logger.debug('@{}: {} received obstacles'.format(
             msg.timestamp, self._name))
         self._ready_to_update = False
         self._logger.debug("@{}: received {} bounding boxes".format(
-            msg.timestamp, len(msg.detected_objects)))
+            msg.timestamp, len(msg.obstacles)))
         # Remove frames that are older than the detector update.
         while len(self._to_process
                   ) > 0 and self._to_process[0][0] < msg.timestamp:
@@ -91,8 +91,7 @@ class ObjectTrackerOperator(erdos.Operator):
             self._to_process.popleft()
 
         # Track all pedestrians.
-        bboxes, ids, confidence_scores = self.__get_pedestrians(
-            msg.detected_objects)
+        bboxes, ids, confidence_scores = self.__get_pedestrians(msg.obstacles)
         if len(bboxes) > 0:
             if len(self._to_process) > 0:
                 # Found the frame corresponding to the bounding boxes.
@@ -112,28 +111,28 @@ class ObjectTrackerOperator(erdos.Operator):
                     '@{}: received bboxes update, but no frame to process'.
                     format(msg.timestamp))
 
-    def __get_highest_confidence_pedestrian(self, detected_objs):
+    def __get_highest_confidence_pedestrian(self, obstacles):
         max_confidence = 0
         max_corners = None
-        for detected_obj in detected_objs:
-            if (detected_obj.label == 'person'
-                    and detected_obj.confidence > max_confidence):
-                max_corners = detected_obj.corners
-                max_confidence = detected_obj.confidence
+        for obstacle in obstacles:
+            if (obstacle.label == 'person'
+                    and obstacle.confidence > max_confidence):
+                max_corners = obstacle.corners
+                max_confidence = obstacle.confidence
         if max_corners:
             return [max_corners]
         else:
             return []
 
-    def __get_pedestrians(self, detector_objs):
+    def __get_pedestrians(self, obstacles):
         bboxes = []
         ids = []
         confidence_scores = []
-        for detected_obj in detector_objs:
-            if detected_obj.label == 'person':
-                bboxes.append(detected_obj.corners)
-                ids.append(detected_obj.id)
-                confidence_scores.append(detected_obj.confidence)
+        for obstacle in obstacles:
+            if obstacle.label == 'person':
+                bboxes.append(obstacle.corners)
+                ids.append(obstacle.id)
+                confidence_scores.append(obstacle.confidence)
         return bboxes, ids, confidence_scores
 
     def __initialize_trackers(self, frame, bboxes, timestamp,
@@ -146,7 +145,7 @@ class ObjectTrackerOperator(erdos.Operator):
     def __track_bboxes_on_frame(self, frame, timestamp, catch_up):
         self._logger.debug('Processing frame {}'.format(timestamp))
         # Sequentually update state for each bounding box.
-        ok, tracked_objects = self._tracker.track(frame)
+        ok, tracked_obstacles = self._tracker.track(frame)
         if not ok:
             self._logger.error(
                 'Tracker failed at timestamp {} last ready_to_update at {}'.
@@ -155,8 +154,7 @@ class ObjectTrackerOperator(erdos.Operator):
             self._ready_to_update = False
         else:
             if self._flags.visualize_tracker_output and not catch_up:
-                for tracked_object in tracked_objects:
-                    # tracked objects have no label, draw white bbox for them.
-                    tracked_object.visualize_on_img(frame,
-                                                    {"": [255, 255, 255]})
+                for obstacle in tracked_obstacles:
+                    # tracked obstacles have no label, draw white bbox.
+                    obstacle.visualize_on_img(frame, {"": [255, 255, 255]})
                 visualize_image(self._name, frame)

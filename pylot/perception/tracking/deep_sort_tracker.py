@@ -27,7 +27,7 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
             self.tracker, detections_class = self._deepsort.run_deep_sort(
                 frame, confidence_scores, detections)
         if self.tracker:
-            tracked_objects = []
+            obstacles = []
             for track in self.tracker.tracks:
                 if not track.is_confirmed() or track.time_since_update > 1:
                     continue
@@ -37,15 +37,15 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
                 # Converts to xmin, xmax, ymin, ymax format.
                 corners = (int(bbox[0]), int(bbox[2]), int(bbox[1]),
                            int(bbox[3]))
-                tracked_objects.append(
-                    DetectedObject(corners, 0, "", track.track_id))
-            return True, tracked_objects
+                obstacles.append(DetectedObject(corners, 0, "",
+                                                track.track_id))
+            return True, obstacles
         return False, []
 
     def convert_detections_for_deepsort_alg(self, bboxes):
         converted_bboxes = []
         for bbox in bboxes:
-            # Comes from detected objects self.corners (see detection utils).
+            # Comes from obstacles self.corners (see detection utils).
             x1, x2, y1, y2 = bbox
             bbox_x, bbox_y = min(x1, x2), min(y1, y2)
             bbox_w, bbox_h = abs(x2 - x1), abs(y2 - y1)

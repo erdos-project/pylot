@@ -4,7 +4,7 @@ import erdos
 import pylot.utils
 from pylot.perception.detection.utils import DetectedObject,\
     annotate_image_with_bboxes, save_image, visualize_image
-from pylot.perception.messages import DetectorMessage
+from pylot.perception.messages import ObstaclesMessage
 from pylot.simulation.sensor_setup import DepthCameraSetup, RGBCameraSetup
 
 
@@ -36,7 +36,7 @@ class PerfectDetectorOperator(erdos.Operator):
         """ Initializes the operator.
 
         Args:
-            bgr_camera_setup: A simulation.sensor_setup.CameraSetup object
+            bgr_camera_setup: A simulation.sensor_setup.CameraSetup.
         """
         depth_camera_stream.add_callback(self.on_depth_camera_update)
         center_camera_stream.add_callback(self.on_bgr_camera_update)
@@ -91,7 +91,7 @@ class PerfectDetectorOperator(erdos.Operator):
                 and self._frame_cnt % self._flags.log_every_nth_frame != 0):
             # There's no point to run the perfect detector if collecting
             # data, and only logging every nth frame.
-            obstacles_stream.send(DetectorMessage([], 0, timestamp))
+            obstacles_stream.send(ObstaclesMessage([], 0, timestamp))
             return
         vehicle_transform = can_bus_msg.data.transform
 
@@ -120,7 +120,7 @@ class PerfectDetectorOperator(erdos.Operator):
         det_objs = det_obstacles + det_speed_limits + det_stop_signs
 
         # Send the detected obstacles.
-        obstacles_stream.send(DetectorMessage(det_objs, 0, timestamp))
+        obstacles_stream.send(ObstaclesMessage(det_objs, 0, timestamp))
 
         if (self._flags.visualize_ground_obstacles
                 or self._flags.log_detector_output):
@@ -168,9 +168,9 @@ class PerfectDetectorOperator(erdos.Operator):
 
     def __get_obstacles(self, obstacles, vehicle_transform, depth_array,
                         segmented_frame):
-        """ Transforms obstacles into detected objects.
+        """ Transforms obstacles into detected obstacles.
         Args:
-            obstacles: List of pylot.simulation.util.Obstacle objects.
+            obstacles: List of pylot.simulation.util.Obstacle.
             vehicle_transform: Ego-vehicle transform.
             depth_array: The depth array taken at the time when obstacles were
                 collected.

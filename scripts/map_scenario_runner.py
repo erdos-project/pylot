@@ -17,10 +17,10 @@ import pygame
 from miou_scenario_runner import setup_world, retrieve_actor, spawn_camera
 from miou_scenario_runner import cleanup_function
 
-from pylot.simulation.utils import BoundingBox, Transform, Obstacle
+from pylot.simulation.utils import Transform, Obstacle
 from pylot.simulation.sensor_setup import DepthCameraSetup
 from pylot.perception.detection.utils import get_precision_recall_at_iou
-from pylot.perception.messages import SegmentedFrameMessage
+from pylot.perception.messages import DepthFrameMessage, SegmentedFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 
 VEHICLE_DESTINATION = carla.Location(x=387.73 - 370, y=327.07, z=0.5)
@@ -40,6 +40,7 @@ def process_rgb_images(rgb_image_msg):
     """
     global RGB_IMAGES
     RGB_IMAGES.put(rgb_image_msg)
+
 
 def process_semantic_images(semantic_image_msg):
     """ The callback function for the semantic camera. Just saves the images
@@ -72,6 +73,7 @@ def retrieve_rgb_image(timestamp):
         if rgb_image_msg.timestamp == timestamp:
             return rgb_image_msg
 
+
 def retrieve_semantic_image(timestamp):
     """ Retrieve the semantic image from the global queue that is populated by
     the image messages from the sensor.
@@ -87,6 +89,7 @@ def retrieve_semantic_image(timestamp):
         semantic_image_msg = SEMANTIC_IMAGES.get()
         if semantic_image_msg.timestamp == timestamp:
             return semantic_image_msg
+
 
 def draw_image(image, surface, blend=False):
     """ Draw the given image on the surface.
@@ -126,7 +129,7 @@ def compute_and_log_map(current_pedestrians,
                         deadline=210,
                         base_iou=0.5,
                         step=0.05):
-    """ Computes the AP from the given IOU for the detected objects. Note that,
+    """ Computes the AP from the given IOU for the obstacles. Note that,
     since we use a perfect detector, our confidence values for each detection
     is 1.0 and so we can't vary the recall. Thus, we cannot calculate the
     area under the precision-recall curve, and default to using AP50 as our
@@ -183,8 +186,7 @@ def process_depth_images(msg,
     if visualize:
         draw_image(rgb_image, surface)
 
-    # Transform the pedestrians into the detected objects relative to the
-    # current frame.
+    # Transform pedestrians into obstacles relative to the current frame.
     bb_surface = None
     resolution = (depth_camera_setup.width, depth_camera_setup.height)
     if visualize:
@@ -227,7 +229,8 @@ def process_depth_images(msg,
         pygame.display.flip()
 
     # Compute the mAP.
-    print("We detected a total of {} pedestrians.".format(len(detected_pedestrians)))
+    print("We detected a total of {} pedestrians.".format(
+        len(detected_pedestrians)))
     compute_and_log_map(detected_pedestrians, msg.timestamp, csv)
 
     # Move the ego_vehicle according to the given speed.
@@ -267,7 +270,8 @@ def main(args):
 
     # Connect the Semantic segmentation camera to the vehicle.
     semantic_camera = spawn_camera('sensor.camera.semantic_segmentation',
-            camera_transform, ego_vehicle, *args.res.split('x'))
+                                   camera_transform, ego_vehicle,
+                                   *args.res.split('x'))
 
     # Connect the depth camera to the vehicle.
     depth_camera = spawn_camera('sensor.camera.depth', camera_transform,
@@ -279,10 +283,11 @@ def main(args):
 
     # Create the cleanup function.
     global CLEANUP_FUNCTION
-    CLEANUP_FUNCTION = functools.partial(cleanup_function,
-                                         world=world,
-                                         cameras=[rgb_camera, semantic_camera, depth_camera],
-                                         csv_file=csv_file)
+    CLEANUP_FUNCTION = functools.partial(
+        cleanup_function,
+        world=world,
+        cameras=[rgb_camera, semantic_camera, depth_camera],
+        csv_file=csv_file)
 
     # Create a PyGame surface for debugging purposes.
     width, height = map(int, args.res.split('x'))

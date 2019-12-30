@@ -8,12 +8,12 @@ import time
 from pylot.perception.detection.utils import DetectedObject,\
     load_coco_labels, load_coco_bbox_colors, annotate_image_with_bboxes,\
     save_image, visualize_image
-from pylot.perception.messages import DetectorMessage
+from pylot.perception.messages import ObstaclesMessage
 from pylot.utils import bgr_to_rgb, set_tf_loglevel, time_epoch_ms
 
 flags.DEFINE_float(
     'obstacle_detection_gpu_memory_fraction', 0.3,
-    'GPU memory fraction allocated to each obj detector operator')
+    'GPU memory fraction allocated to each obstacle detector operator')
 flags.DEFINE_float('obstacle_detection_min_score_threshold', 0.5,
                    'Min score threshold for bounding box')
 flags.DEFINE_string('path_coco_labels', 'dependencies/models/coco.names',
@@ -106,15 +106,15 @@ class DetectionOperator(erdos.Operator):
                 boxes.append(res_boxes[i])
                 scores.append(res_scores[i])
 
-        detected_objects = self.__convert_to_detected_objs(
-            boxes, scores, labels, msg.height, msg.width)
-        self._logger.debug('@{}: {} detected objects: {}'.format(
-            msg.timestamp, self._name, detected_objects))
+        obstacles = self.__convert_to_obstacles(boxes, scores, labels,
+                                                msg.height, msg.width)
+        self._logger.debug('@{}: {} obstacles: {}'.format(
+            msg.timestamp, self._name, obstacles))
 
         if (self._flags.visualize_detector_output
                 or self._flags.log_detector_output):
-            annotate_image_with_bboxes(msg.timestamp, image_np,
-                                       detected_objects, self._bbox_colors)
+            annotate_image_with_bboxes(msg.timestamp, image_np, obstacles,
+                                       self._bbox_colors)
             if self._flags.visualize_detector_output:
                 visualize_image(self._name, image_np)
             if self._flags.log_detector_output:
@@ -129,11 +129,11 @@ class DetectionOperator(erdos.Operator):
                                                      runtime))
         # Send out obstacles.
         obstacles_stream.send(
-            DetectorMessage(detected_objects, runtime, msg.timestamp))
+            ObstaclesMessage(obstacles, runtime, msg.timestamp))
 
-    def __convert_to_detected_objs(self, boxes, scores, labels, height, width):
+    def __convert_to_obstacles(self, boxes, scores, labels, height, width):
         index = 0
-        detected_objects = []
+        obstacles = []
         while index < len(boxes) and index < len(scores):
             if scores[index] >= \
                self._flags.obstacle_detection_min_score_threshold:
@@ -142,7 +142,7 @@ class DetectionOperator(erdos.Operator):
                 ymax = int(boxes[index][2] * height)
                 xmax = int(boxes[index][3] * width)
                 corners = (xmin, xmax, ymin, ymax)
-                detected_objects.append(
+                obstacles.append(
                     DetectedObject(corners, scores[index], labels[index]))
             index += 1
-        return detected_objects
+        return obstacles

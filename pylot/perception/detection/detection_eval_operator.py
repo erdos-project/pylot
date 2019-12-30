@@ -58,9 +58,9 @@ class DetectionEvalOperator(erdos.Operator):
                 heapq.heappop(self._detector_start_end_times)
                 end_bboxes = self.__get_ground_obstacles_at(end_time)
                 # Get detector output obstacles.
-                det_objs = self.__get_obstacles_at(start_time)
-                if (len(det_objs) > 0 or len(end_bboxes) > 0):
-                    mAP = get_mAP(end_bboxes, det_objs)
+                obstacles = self.__get_obstacles_at(start_time)
+                if (len(obstacles) > 0 or len(end_bboxes) > 0):
+                    mAP = get_mAP(end_bboxes, obstacles)
                     self._logger.info('mAP is: {}'.format(mAP))
                     self._csv_logger.info('{},{},{},{}'.format(
                         time_epoch_ms(), self._name, 'mAP', mAP))
@@ -116,7 +116,7 @@ class DetectionEvalOperator(erdos.Operator):
     def on_obstacles(self, msg):
         game_time = msg.timestamp.coordinates[0]
         vehicles_bboxes, ped_bboxes, _ = self.__get_bboxes_by_category(
-            msg.detected_objects)
+            msg.obstacles)
         self._detected_obstacles.append(
             (game_time, vehicles_bboxes + ped_bboxes))
         # Two metrics: 1) mAP, and 2) timely-mAP
@@ -140,7 +140,7 @@ class DetectionEvalOperator(erdos.Operator):
     def on_ground_obstacles(self, msg):
         game_time = msg.timestamp.coordinates[0]
         vehicles_bboxes, ped_bboxes, _ = self.__get_bboxes_by_category(
-            msg.detected_objects)
+            msg.obstacles)
         self._ground_obstacles.append(
             (game_time, ped_bboxes + vehicles_bboxes))
 
@@ -151,19 +151,19 @@ class DetectionEvalOperator(erdos.Operator):
         else:
             return base + self._sim_interval
 
-    def __get_bboxes_by_category(self, det_objs):
+    def __get_bboxes_by_category(self, obstacles):
         """ Divides perception.detection.utils.DetectedObject by labels."""
         vehicles = []
         pedestrians = []
         traffic_lights = []
-        for det_obj in det_objs:
-            if det_obj.label == 'vehicle':
-                vehicles.append(det_obj.corners)
-            elif det_obj.label == 'pedestrian':
-                pedestrians.append(det_obj.corners)
-            elif det_obj.label == 'traffic_light':
-                traffic_lights.append(det_obj.corners)
+        for obstacle in obstacles:
+            if obstacle.label == 'vehicle':
+                vehicles.append(obstacle.corners)
+            elif obstacle.label == 'pedestrian':
+                pedestrians.append(obstacle.corners)
+            elif obstacle.label == 'traffic_light':
+                traffic_lights.append(obstacle.corners)
             else:
                 self._logger.warning('Unexpected label {}'.format(
-                    det_obj.label))
+                    obstacle.label))
         return vehicles, pedestrians, traffic_lights

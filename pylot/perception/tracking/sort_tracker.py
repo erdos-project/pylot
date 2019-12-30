@@ -16,14 +16,14 @@ class MultiObjectSORTTracker(MultiObjectTracker):
 
     def track(self, frame):
         # each track in tracks has format ([xmin, ymin, xmax, ymax], id)
-        tracked_objects = []
+        obstacles = []
         for track in self.tracker.trackers:
             coords = track.predict()[0].tolist()
             # changing to xmin, xmax, ymin, ymax format
             coords = (int(coords[0]), int(coords[2]), int(coords[1]),
                       int(coords[3]))
-            tracked_objects.append(DetectedObject(coords, 0, "", track.id))
-        return True, tracked_objects
+            obstacles.append(DetectedObject(coords, 0, "", track.id))
+        return True, obstacles
 
     def convert_detections_for_sort_alg(self, bboxes, confidence_scores):
         # for each bbox, convert from x, y, w, h to xmin, ymin, xmax, ymax (top-left and bottom-right)

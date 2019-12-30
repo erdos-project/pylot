@@ -4,9 +4,9 @@ import os
 
 
 class BoundingBoxLoggerOperator(erdos.Operator):
-    """ Logs bounding boxes of DetectedObjects received on a stream."""
+    """ Logs bounding boxes of obstacles received on a stream."""
     def __init__(self, obstacles_stream, name, flags, log_file_name=None):
-        obstacles_stream.add_callback(self.on_detected_objs_msg)
+        obstacles_stream.add_callback(self.on_obstacles_msg)
         self._name = name
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
@@ -16,14 +16,14 @@ class BoundingBoxLoggerOperator(erdos.Operator):
     def connect(obstacles_stream):
         return []
 
-    def on_detected_objs_msg(self, msg):
+    def on_obstacles_msg(self, msg):
         """ Invoked upon the receipt of a message on the obstacles stream."""
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))
         self._msg_cnt += 1
         if self._msg_cnt % self._flags.log_every_nth_frame != 0:
             return
-        bboxes = [det_obj.get_bbox_label() for det_obj in msg.detected_objects]
+        bboxes = [obstacle.get_bbox_label() for obstacle in msg.obstacles]
         timestamp = msg.timestamp.coordinates[0]
         # Write the bounding boxes.
         file_name = os.path.join(self._flags.data_path,

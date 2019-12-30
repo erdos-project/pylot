@@ -19,8 +19,8 @@ class MultiObjectCV2Tracker(MultiObjectTracker):
         ok, bboxes = self._tracker.update(frame)
         if not ok:
             return False, []
-        tracked_objects = []
+        obstacles = []
         for (xmin, ymin, w, h) in bboxes:
             corners = (xmin, xmin + w, ymin, ymin + h)
-            tracked_objects.append(DetectedObject(corners, "", 0))
-        return True, tracked_objects
+            obstacles.append(DetectedObject(corners, "", 0))
+        return True, obstacles

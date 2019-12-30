@@ -1,31 +1,30 @@
 import erdos
 
 
-class DetectorMessage(erdos.Message):
+class ObstaclesMessage(erdos.Message):
     """ This class represents a detector output message to be sent by
     operators.
 
     Attributes:
-        detected_objects: List of detected obstacles.
+        obstacles: List of detected obstacles.
         runtime: Operator runtime (in ms).
     """
-    def __init__(self, detected_objects, runtime, timestamp):
-        """ Constructs the DetectorMessage with the given data and timestamp.
+    def __init__(self, obstacles, runtime, timestamp):
+        """ Constructs the ObstaclesMessage with the given data and timestamp.
 
         Args:
-            detected_objects: List of perception.detection.utils.DetectedObject
-                objects.
+            obstacles: List of perception.detection.utils.DetectedObject.
             runtime: Detector operator runtime.
             timestamp: The timestamp of the message.
         """
-        super(DetectorMessage, self).__init__(timestamp, None)
-        self.detected_objects = detected_objects
+        super(ObstaclesMessage, self).__init__(timestamp, None)
+        self.obstacles = obstacles
         self.runtime = runtime
 
     def __str__(self):
-        return 'DetectorMessage(timestamp: {}, runtime: {}, '\
-            'detected_objects: {})'.format(
-                self.timestamp, self.runtime, self.detected_objects)
+        return 'ObstaclesMessage(timestamp: {}, runtime: {}, '\
+            'obstacles: {})'.format(
+                self.timestamp, self.runtime, self.obstacles)
 
 
 class SegmentedFrameMessage(erdos.Message):

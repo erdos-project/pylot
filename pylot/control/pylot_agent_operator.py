@@ -235,11 +235,10 @@ class PylotAgentOperator(erdos.Operator):
 
     def __transform_tl_output(self, tls, vehicle_transform, point_cloud,
                               depth_frame):
-        """ Transforms traffic light detected objects (i.e., bounding boxes) to
-        world coordinates.
+        """ Transforms traffic light bounding boxes to world coordinates.
 
         Args:
-            tls: A list of detected objects for traffic lights.
+            tls: A list of traffic light detected obstacles.
             vehicle_transform: The transform of the ego vehicle.
             point_cloud: The Lidar point cloud. Must be taken captured at the
                          same time as the frame on which the traffic lights
@@ -251,7 +250,7 @@ class PylotAgentOperator(erdos.Operator):
             A list of traffic light locations.
         """
         traffic_lights = []
-        for tl in tls.detected_objects:
+        for tl in tls.obstacles:
             x = (tl.corners[0] + tl.corners[1]) // 2
             y = (tl.corners[2] + tl.corners[3]) // 2
             location = self.__transform_to_3d(x, y, vehicle_transform,
@@ -263,14 +262,13 @@ class PylotAgentOperator(erdos.Operator):
 
     def __transform_detector_output(self, obstacles_msg, vehicle_transform,
                                     point_cloud, depth_frame):
-        """ Transforms detected objects (i.e., bounding boxes) to world
-        coordinates.
+        """ Transforms detected obstacles to world coordinates.
 
         Args:
-            obstacles_msg: A list of detected objects.
+            obstacles_msg: A list of detected obstacles.
             vehicle_transform: The transform of the ego vehicle.
             point_cloud: The Lidar point cloud. Must be taken captured at the
-                         same time as the frame on which the objects were
+                         same time as the frame on which the obstacles were
                          detected.
             depth_frame: The depth frame captured at the same time as the RGB
                          frame used in detection.
@@ -280,15 +278,15 @@ class PylotAgentOperator(erdos.Operator):
         """
         vehicles = []
         pedestrians = []
-        for detected_obj in obstacles_msg.detected_objects:
-            x = (detected_obj.corners[0] + detected_obj.corners[1]) // 2
-            y = (detected_obj.corners[2] + detected_obj.corners[3]) // 2
-            if detected_obj.label == 'person':
+        for obstacle in obstacles_msg.obstacles:
+            x = (obstacle.corners[0] + obstacle.corners[1]) // 2
+            y = (obstacle.corners[2] + obstacle.corners[3]) // 2
+            if obstacle.label == 'person':
                 pos = self.__transform_to_3d(x, y, vehicle_transform,
                                              point_cloud, depth_frame)
                 if pos:
                     pedestrians.append(pos)
-            elif (detected_obj.label in self._vehicle_labels):
+            elif (obstacle.label in self._vehicle_labels):
                 pos = self.__transform_to_3d(x, y, vehicle_transform,
                                              point_cloud, depth_frame)
                 if pos:

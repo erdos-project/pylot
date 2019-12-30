@@ -24,16 +24,16 @@ class MultipleObjectTrackerLoggerOperator(erdos.Operator):
             return
         timestamp = msg.timestamp.coordinates[0]
         lines = []
-        for det_obj in msg.detected_objects:
-            label, bbox_corners = det_obj.get_bbox_label()
+        for obstacle in msg.obstacles:
+            label, bbox_corners = obstacle.get_bbox_label()
             # TODO: Log vehicles as well.
             if label in {"pedestrian", "vehicle"}:
                 (x1, y1), (x2, y2) = bbox_corners
                 bbox_x, bbox_y = x1, y1
                 bbox_w, bbox_h = x2 - x1, y2 - y1
                 log_line = "{},{},{},{},{},{},{},{},{},{}\n".format(
-                    timestamp, det_obj.id, bbox_x, bbox_y, bbox_w, bbox_h, 1.0,
-                    -1, -1, -1)
+                    timestamp, obstacle.id, bbox_x, bbox_y, bbox_w, bbox_h,
+                    1.0, -1, -1, -1)
                 lines.append(log_line)
 
         # Write the data, MOT16 style: https://motchallenge.net/instructions/

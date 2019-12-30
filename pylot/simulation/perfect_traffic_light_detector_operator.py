@@ -3,7 +3,7 @@ import erdos
 
 from pylot.perception.detection.utils import annotate_image_with_bboxes,\
     save_image, visualize_image
-from pylot.perception.messages import DetectorMessage
+from pylot.perception.messages import ObstaclesMessage
 from pylot.simulation.carla_utils import get_world
 from pylot.simulation.sensor_setup import DepthCameraSetup
 import pylot.simulation.utils
@@ -64,7 +64,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
                 and self._frame_cnt % self._flags.log_every_nth_frame != 0):
             # There's no point to run the perfect detector if collecting
             # data, and only logging every nth frame.
-            traffic_lights_stream.send(DetectorMessage([], 0, timestamp))
+            traffic_lights_stream.send(ObstaclesMessage([], 0, timestamp))
             return
 
         # The camera setup sent with the image is relative to the car, we need
@@ -94,7 +94,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
 
         # Send the detected traffic lights.
         traffic_lights_stream.send(
-            DetectorMessage(det_traffic_lights, 0, timestamp))
+            ObstaclesMessage(det_traffic_lights, 0, timestamp))
 
     def on_can_bus_update(self, msg):
         self._logger.debug('@{}: received can bus message'.format(

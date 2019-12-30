@@ -7,7 +7,7 @@ import time
 
 from pylot.perception.detection.utils import DetectedObject,\
     TrafficLightColor, annotate_image_with_bboxes, save_image, visualize_image
-from pylot.perception.messages import DetectorMessage
+from pylot.perception.messages import ObstaclesMessage
 from pylot.utils import bgr_to_rgb, rgb_to_bgr, set_tf_loglevel, \
     time_epoch_ms
 
@@ -131,7 +131,7 @@ class TrafficLightDetOperator(erdos.Operator):
                                                      runtime))
 
         traffic_lights_stream.send(
-            DetectorMessage(traffic_lights, runtime, msg.timestamp))
+            ObstaclesMessage(traffic_lights, runtime, msg.timestamp))
 
     def __convert_to_detected_tl(self, boxes, scores, labels, height, width):
         traffic_lights = []
