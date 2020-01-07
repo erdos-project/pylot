@@ -71,6 +71,13 @@ def compute_magnitude_angle(target_loc, cur_loc, orientation):
     return (norm_target, d_angle)
 
 
+def get_distance(loc1, loc2):
+    """ Computes the Euclidian distance between two 2D points."""
+    x_diff = loc1.x - loc2.x
+    y_diff = loc1.y - loc2.y
+    return math.sqrt(x_diff**2 + y_diff**2)
+
+
 def is_within_distance_ahead(cur_loc, dst_loc, orientation, max_distance):
     """
     Check if a location is within a distance in a given orientation.

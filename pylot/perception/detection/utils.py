@@ -6,7 +6,6 @@ try:
     import queue as queue
 except ImportError:
     import Queue as queue
-from skimage import measure
 
 from pylot.utils import add_timestamp
 
@@ -49,6 +48,7 @@ coco_bbox_color_list = np.array([
 
 
 class TrafficLightColor(Enum):
+    """ Enum to represent the states of a traffic light."""
     RED = 1
     YELLOW = 2
     GREEN = 3
@@ -126,13 +126,13 @@ class BoundingBox2D(object):
             self.x_min, self.x_max, self.y_min, self.y_max)
 
 
-class DetectedObject(object):
-    """ Class that stores info about a detected object.
+class DetectedObstacle(object):
+    """ Class that stores info about a detected obstacle.
 
     Attributes:
         bounding_box: The BoundingBox2D of the obstacle.
         confidence: The confidence of the detection.
-        label: The label of the detected object.
+        label: The label of the detected obstacle.
     """
     def __init__(self, bounding_box, confidence, label, id=-1):
         self.bounding_box = bounding_box
@@ -182,12 +182,12 @@ class DetectedObject(object):
         return self.__str__()
 
     def __str__(self):
-        return 'DetectedObject(id: {}, label: {}, confidence: {}, ' \
+        return 'DetectedObstacle(id: {}, label: {}, confidence: {}, ' \
             'bbox: {})'.format(
                 self.id, self.label, self.confidence, self.bounding_box)
 
 
-class DetectedSpeedLimit(DetectedObject):
+class DetectedSpeedLimit(DetectedObstacle):
     def __init__(self, bounding_box, limit, confidence, label):
         super(DetectedSpeedLimit, self).__init__(bounding_box, confidence,
                                                  label)
@@ -212,29 +212,12 @@ class DetectedSpeedLimit(DetectedObject):
                 self.label, self.limit, self.confidence, self.bounding_box)
 
 
-def compute_miou(bboxes1, bboxes2):
-    """ Compute mIoU for two lists of bounding boxes."""
-    bboxes1, bboxes2 = np.array(bboxes1), np.array(bboxes2)
-    x11, x12, y11, y12 = np.split(bboxes1, 4, axis=1)
-    x21, y21, x22, y22 = np.split(bboxes2, 4, axis=1)
-
-    xI1 = np.maximum(x11, np.transpose(x21))
-    xI2 = np.minimum(x12, np.transpose(x22))
-
-    yI1 = np.maximum(y11, np.transpose(y21))
-    yI2 = np.minimum(y12, np.transpose(y22))
-
-    inter_area = np.maximum((xI2 - xI1), 0) * np.maximum((yI2 - yI1), 0)
-
-    bboxes1_area = (x12 - x11) * (y12 - y11)
-    bboxes2_area = (x22 - x21) * (y22 - y21)
-
-    union = (bboxes1_area + np.transpose(bboxes2_area)) - inter_area
-
-    return inter_area / (union + 0.0001)
-
-
 def load_coco_labels(labels_path):
+    """ Creates a map from index to label.
+
+    Args:
+        labels_path: Path to a file containing a label on each line.
+    """
     labels_map = {}
     with open(labels_path) as labels_file:
         labels = labels_file.read().splitlines()
@@ -246,6 +229,7 @@ def load_coco_labels(labels_path):
 
 
 def load_coco_bbox_colors(coco_labels):
+    """ Returns a map from label to color."""
     # Transform to RGB values.
     bbox_color_list = coco_bbox_color_list.reshape((-1, 3)) * 255
     # Transform to ints
@@ -372,24 +356,15 @@ def get_mAP(ground_obstacles, obstacles):
     return avg_precision
 
 
-def visualize_ground_bboxes(op_name, timestamp, image_np, det_objs):
-    """ Creates a cv2 window to visualize detected objects."""
-    add_timestamp(timestamp, image_np)
-    for det_obj in det_objs:
-        det_obj.visualize_on_img(image_np, GROUND_COLOR_MAP)
-    cv2.imshow(op_name, image_np)
-    cv2.waitKey(1)
-
-
 def annotate_image_with_bboxes(timestamp,
                                image_np,
-                               detected_objs,
+                               detected_obstacles,
                                bbox_color_map=GROUND_COLOR_MAP):
     """ Adds bounding boxes to an image."""
     #    txt_font = cv2.FONT_HERSHEY_SIMPLEX
     add_timestamp(timestamp, image_np)
-    for detected_obj in detected_objs:
-        detected_obj.visualize_on_img(image_np, bbox_color_map)
+    for obstacle in detected_obstacles:
+        obstacle.visualize_on_img(image_np, bbox_color_map)
     return image_np
 
 
@@ -406,13 +381,3 @@ def save_image(image_np, timestamp, data_path, file_base):
                                      timestamp.coordinates[0])
     rgb_img = Image.fromarray(image_np)
     rgb_img.save(file_name)
-
-
-def visualize_bboxes(op_name, timestamp, image_np, detected_objs,
-                     bbox_color_map):
-    """ Creates a cv2 window to visualize detected objects."""
-    add_timestamp(timestamp, image_np)
-    for detected_obj in detected_objs:
-        detected_obj.visualize_on_img(image_np, bbox_color_map)
-    cv2.imshow(op_name, image_np)
-    cv2.waitKey(1)

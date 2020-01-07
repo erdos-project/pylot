@@ -6,7 +6,7 @@ import numpy as np
 from numpy.linalg import inv
 from numpy.matlib import repmat
 
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObject, \
+from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle, \
     DetectedSpeedLimit
 
 SpeedLimitSign = namedtuple('SpeedLimitSign', 'transform, limit')
@@ -77,14 +77,14 @@ class BoundingBox(object):
                              actor_transform.rotation.as_carla_rotation(),
                              life_time=time_between_frames / 1000.0)
 
-    def to_camera_view(self, object_transform, extrinsic_matrix,
+    def to_camera_view(self, obstacle_transform, extrinsic_matrix,
                        intrinsic_matrix):
-        """ Converts the coordinates of the bounding box for the given object
+        """ Converts the coordinates of the bounding box for the given obstacle
         to the coordinates in the view of the camera.
 
         This method retrieves the extent of the bounding box, transforms them
         to coordinates relative to the bounding box origin, then converts those
-        to coordinates relative to the object.
+        to coordinates relative to the obstacle.
 
         These coordinates are then considered to be in the world coordinate
         system, which is mapped into the camera view. A negative z-value
@@ -94,7 +94,7 @@ class BoundingBox(object):
         size of the camera image.
 
         Args:
-            object_transform: The transform of the object that the bounding
+            obstacle_transform: The transform of the obstacle that the bounding
                 box is associated with.
             extrinsic_matrix: The extrinsic matrix of the camera.
             intrinsic_matrix: The intrinsic matrix of the camera.
@@ -122,9 +122,9 @@ class BoundingBox(object):
         bbox = self.transform.transform_points(bbox)
 
         # Convert the bounding box relative to the world.
-        bbox = object_transform.transform_points(bbox)
+        bbox = obstacle_transform.transform_points(bbox)
 
-        # Object's transform is relative to the world. Thus, the bbox contains
+        # Obstacle's transform is relative to the world. Thus, the bbox contains
         # the 3D bounding box vertices relative to the world.
         camera_coordinates = []
         for vertex in bbox:
@@ -550,7 +550,7 @@ class Transform(object):
 
 
 class Obstacle(object):
-    """ An Obstacle represents a dynamic object that we could encounter on the
+    """ An Obstacle represents a dynamic obstacle that we could encounter on the
     road. This class provides helper functions to detect obstacles and provide
     bounding boxes for them.
     """
@@ -640,7 +640,7 @@ class Obstacle(object):
             A BoundingBox2D instance representing a rectangle over the obstacle
             if the obstacle is deemed to be visible, None otherwise.
         """
-        # Convert the bounding box of the object to the camera coordinates.
+        # Convert the bounding box of the obstacle to the camera coordinates.
         bb_coordinates = self.bounding_box.to_camera_view(
             self.transform, camera_setup.get_extrinsic_matrix(),
             camera_setup.get_intrinsic_matrix())
@@ -669,7 +669,7 @@ class Obstacle(object):
             if np.sum(masked_image) >= seg_threshold:
                 # The bounding box contains the required number of pixels that
                 # belong to the required class. Ensure that the depth of the
-                # object is the depth in the image.
+                # obstacle is the depth in the image.
                 masked_depth = cropped_depth[np.where(masked_image == 1)]
                 mean_depth = np.mean(masked_depth) * 1000
                 depth = self.distance(camera_setup.get_transform())
@@ -1186,8 +1186,8 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
     return bbox_state
 
 
-def get_traffic_light_det_objs(traffic_lights, depth_array, segmented_image,
-                               town_name, camera_setup):
+def get_traffic_lights_obstacles(traffic_lights, depth_array, segmented_image,
+                                 town_name, camera_setup):
     """ Get the traffic lights that are within the camera frame.
     Note: This method should be used with Carla 0.9.*
     """
@@ -1208,7 +1208,7 @@ def get_traffic_light_det_objs(traffic_lights, depth_array, segmented_image,
                                                town_name)
 
         # Convert the returned bounding boxes to 2D and check if the
-        # light is occluded. If not, add it to the detected object list.
+        # light is occluded. If not, add it to the detected obstacle list.
         for box, color in bboxes:
             bounding_box = [
                 loc.to_camera_view(extrinsic_matrix, intrinsic_matrix)
@@ -1236,12 +1236,12 @@ def get_traffic_light_det_objs(traffic_lights, depth_array, segmented_image,
                     if abs(mean_depth -
                            bounding_box[0][-1]) <= 2 and mean_depth < 150:
                         detected.append(
-                            DetectedObject(bbox_2d, 1.0, color.get_label()))
+                            DetectedObstacle(bbox_2d, 1.0, color.get_label()))
     return detected
 
 
-def get_speed_limit_det_objs(speed_signs, vehicle_transform, depth_frame,
-                             segmented_frame, camera_setup):
+def get_detected_speed_limits(speed_signs, vehicle_transform, depth_frame,
+                              segmented_frame, camera_setup):
     """ Get the speed limit signs that are withing the camera frame.
 
     Args:
@@ -1264,11 +1264,11 @@ def get_speed_limit_det_objs(speed_signs, vehicle_transform, depth_frame,
     ts_bboxes = _match_bboxes_with_speed_signs(vehicle_transform,
                                                pos_and_bboxes, speed_signs)
 
-    det_objs = [
+    det_obstacles = [
         DetectedSpeedLimit(bbox, limit, 1.0, 'speed limit')
         for (bbox, limit) in ts_bboxes
     ]
-    return det_objs
+    return det_obstacles
 
 
 def _match_bboxes_with_speed_signs(vehicle_transform, pos_bboxes, speed_signs):
@@ -1334,7 +1334,7 @@ def have_same_depth(x, y, z, depth_array, threshold):
     return abs(depth_array[y][x] * 1000 - z) < threshold
 
 
-def get_traffic_stop_det_objs(traffic_stops, depth_frame, camera_setup):
+def get_detected_traffic_stops(traffic_stops, depth_frame, camera_setup):
     """ Get traffic stop lane markings that are withing the camera frame.
 
     Args:
@@ -1343,9 +1343,9 @@ def get_traffic_stop_det_objs(traffic_stops, depth_frame, camera_setup):
         fov: Camera field of view.
 
     Returns:
-        List of DetectedObjects.
+        List of DetectedObstacles.
     """
-    det_objs = []
+    det_obstacles = []
     bgr_intrinsic = camera_setup.get_intrinsic_matrix()
     for transform, bbox in traffic_stops:
         bbox_2d = _get_stop_markings_bbox(bbox, depth_frame,
@@ -1353,8 +1353,9 @@ def get_traffic_stop_det_objs(traffic_stops, depth_frame, camera_setup):
                                           bgr_intrinsic, camera_setup.width,
                                           camera_setup.height)
         if bbox_2d:
-            det_objs.append(DetectedObject(bbox_2d, 1.0, 'stop marking'))
-    return det_objs
+            det_obstacles.append(DetectedObstacle(bbox_2d, 1.0,
+                                                  'stop marking'))
+    return det_obstacles
 
 
 class TrafficLight(object):

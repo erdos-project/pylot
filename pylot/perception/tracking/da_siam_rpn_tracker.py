@@ -9,7 +9,7 @@ import torch
 from DaSiamRPN.code.net import SiamRPNvot
 from DaSiamRPN.code.run_SiamRPN import SiamRPN_init, SiamRPN_track
 
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObject
+from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 flags.DEFINE_string('da_siam_rpn_model_path',
@@ -36,7 +36,7 @@ class SingleObjectDaSiamRPNTracker(object):
                                   int(target_pos[0] + target_sz[0] / 2.0),
                                   int(target_pos[1] - target_sz[1] / 2.0),
                                   int(target_pos[1] + target_sz[1] / 2.0))
-        return DetectedObject(self.bbox, 0, "")
+        return DetectedObstacle(self.bbox, 0, "")
 
 
 class MultiObjectDaSiamRPNTracker(MultiObjectTracker):

@@ -1,7 +1,8 @@
 import erdos
 import numpy as np
 
-from pylot.prediction.messages import ObstaclePrediction, PredictionMessage
+from pylot.prediction.messages import PredictionMessage
+from pylot.prediction.utils import ObstaclePrediction
 from pylot.simulation.utils import Location, Rotation, Transform
 
 

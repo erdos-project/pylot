@@ -53,8 +53,7 @@ def process_semantic_images(semantic_image_msg):
     global SEMANTIC_IMAGES
     SEMANTIC_IMAGES.put(
         SegmentedFrameMessage(
-            SegmentedFrame(semantic_image_msg, encoding='carla'), 0,
-            timestamp))
+            SegmentedFrame(semantic_image_msg, encoding='carla'), timestamp))
 
 
 def retrieve_rgb_image(timestamp):

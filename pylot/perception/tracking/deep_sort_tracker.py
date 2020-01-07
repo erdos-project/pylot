@@ -1,7 +1,7 @@
 from absl import flags
 
 from nanonets_object_tracking.deepsort import deepsort_rbc
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObject
+from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 flags.DEFINE_string(
@@ -36,7 +36,7 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
                 bbox = track.to_tlbr()
                 # Converts to xmin, xmax, ymin, ymax format.
                 obstacles.append(
-                    DetectedObject(
+                    DetectedObstacle(
                         BoundingBox2D(int(bbox[0]), int(bbox[2]), int(bbox[1]),
                                       int(bbox[3])), 0, "", track.track_id))
             return True, obstacles

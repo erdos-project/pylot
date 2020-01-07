@@ -85,4 +85,4 @@ class SegmentationDRNOperator(erdos.Operator):
 
         frame = SegmentedFrame(image_np, 'cityscapes')
         segmented_stream.send(
-            SegmentedFrameMessage(frame, runtime, msg.timestamp))
+            SegmentedFrameMessage(frame, msg.timestamp, runtime))

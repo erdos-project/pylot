@@ -7,7 +7,7 @@ MAX_ACCELERATION_THRESHOLD = 10  # m/s/s
 MAX_JERK_THRESHOLD = 10  # m/s/s/s
 
 
-class ObstaclePrediction(object):
+class PlanningObstaclePrediction(object):
     """
     Non-ego obstacles move with constant acceleration.
     """

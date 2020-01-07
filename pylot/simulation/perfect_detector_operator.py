@@ -2,7 +2,7 @@ from collections import deque
 import erdos
 
 import pylot.utils
-from pylot.perception.detection.utils import DetectedObject,\
+from pylot.perception.detection.utils import DetectedObstacle,\
     annotate_image_with_bboxes, save_image, visualize_image
 from pylot.perception.messages import ObstaclesMessage
 from pylot.simulation.sensor_setup import DepthCameraSetup, RGBCameraSetup
@@ -87,11 +87,11 @@ class PerfectDetectorOperator(erdos.Operator):
         speed_limit_signs_msg = self._speed_limit_signs.popleft()
         stop_signs_msg = self._stop_signs.popleft()
         self._frame_cnt += 1
-        if (hasattr(self._flags, 'log_every_nth_frame')
-                and self._frame_cnt % self._flags.log_every_nth_frame != 0):
+        if (hasattr(self._flags, 'log_every_nth_message')
+                and self._frame_cnt % self._flags.log_every_nth_message != 0):
             # There's no point to run the perfect detector if collecting
             # data, and only logging every nth frame.
-            obstacles_stream.send(ObstaclesMessage([], 0, timestamp))
+            obstacles_stream.send(ObstaclesMessage([], timestamp))
             return
         vehicle_transform = can_bus_msg.data.transform
 
@@ -109,23 +109,23 @@ class PerfectDetectorOperator(erdos.Operator):
             vehicle_transform * depth_msg.camera_setup.transform,
             fov=depth_msg.camera_setup.fov)
 
-        det_speed_limits = pylot.simulation.utils.get_speed_limit_det_objs(
+        det_speed_limits = pylot.simulation.utils.get_detected_speed_limits(
             speed_limit_signs_msg.speed_signs, vehicle_transform,
             depth_msg.frame, segmented_msg.frame, transformed_camera_setup)
 
-        det_stop_signs = pylot.simulation.utils.get_traffic_stop_det_objs(
+        det_stop_signs = pylot.simulation.utils.get_detected_traffic_stops(
             stop_signs_msg.stop_signs, depth_msg.frame,
             transformed_camera_setup)
 
-        det_objs = det_obstacles + det_speed_limits + det_stop_signs
+        det_obstacles = det_obstacles + det_speed_limits + det_stop_signs
 
         # Send the detected obstacles.
-        obstacles_stream.send(ObstaclesMessage(det_objs, 0, timestamp))
+        obstacles_stream.send(ObstaclesMessage(det_obstacles, timestamp))
 
         if (self._flags.visualize_ground_obstacles
                 or self._flags.log_detector_output):
             annotate_image_with_bboxes(bgr_msg.timestamp, bgr_msg.frame,
-                                       det_objs)
+                                       det_obstacles)
             if self._flags.visualize_ground_obstacles:
                 visualize_image(self._name, bgr_msg.frame)
             if self._flags.log_detector_output:
@@ -177,7 +177,7 @@ class PerfectDetectorOperator(erdos.Operator):
             segmented_image: SegmentedFrame taken at the time when the
                 obstacles were collected.
         """
-        det_objs = []
+        det_obstacles = []
         for obstacle in obstacles:
             # We have a static camera setup, need to transform it with respect
             # to the location of the ego vehicle, before doing detection.
@@ -195,6 +195,6 @@ class PerfectDetectorOperator(erdos.Operator):
             else:
                 bbox = obstacle.to_camera_view(transformed_camera_setup,
                                                depth_array, segmented_frame)
-                det_objs.append(
-                    DetectedObject(bbox, 1.0, obstacle.label, obstacle.id))
-        return det_objs
+                det_obstacles.append(
+                    DetectedObstacle(bbox, 1.0, obstacle.label, obstacle.id))
+        return det_obstacles

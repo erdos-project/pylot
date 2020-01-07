@@ -1,5 +1,4 @@
 from collections import deque
-import math
 
 import carla
 # Import Planner from Carla codebase
@@ -9,7 +8,8 @@ from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 from erdos.utils import setup_logging
 
 from pylot.simulation.utils import Transform
-from pylot.utils import compute_magnitude_angle, is_within_distance_ahead
+from pylot.utils import compute_magnitude_angle, get_distance, \
+    is_within_distance_ahead
 
 
 class HDMap(object):
@@ -273,7 +273,7 @@ class HDMap(object):
 
         # TODO(ionel): Handle the case when the road id changes -> s resets.
         # TODO(ionel): Handle case when the center lane is bidirectional.
-        return waypoint.s, self.__get_distance(location, d0_location)
+        return waypoint.s, get_distance(location, d0_location)
 
     def get_left_lane(self, location):
         # TODO(ionel): Implement!
@@ -282,10 +282,6 @@ class HDMap(object):
     def get_right_lane(self, location):
         # TODO(ionel): Implement!
         raise NotImplementedError
-
-    def __get_distance(self, location1, location2):
-        return math.sqrt((location1.x - location2.x)**2 +
-                         (location1.y - location2.y)**2)
 
     def compute_waypoints(self, source_loc, destination_loc):
         """ Computes waypoints between two locations.

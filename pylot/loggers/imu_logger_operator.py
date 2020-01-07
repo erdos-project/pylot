@@ -28,7 +28,7 @@ class IMULoggerOperator(erdos.Operator):
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))
         self._msg_cnt += 1
-        if self._msg_cnt % self._flags.log_every_nth_frame != 0:
+        if self._msg_cnt % self._flags.log_every_nth_message != 0:
             return
         assert len(msg.timestamp.coordinates) == 1
         timestamp = msg.timestamp.coordinates[0]

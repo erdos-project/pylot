@@ -8,7 +8,6 @@ import os
 import PIL.Image as Image
 
 # Pylot specific imports.
-from pylot.planning.utils import get_distance
 import pylot.utils
 import pylot.simulation.carla_utils
 
@@ -200,7 +199,7 @@ class ChauffeurLoggerOperator(erdos.Operator):
         for tl_actor in tl_actors:
             x = self._current_transform.location
             y = tl_actor.get_transform().location
-            dist = get_distance(x, y)
+            dist = pylot.utils.get_distance(x, y)
             if dist <= TL_LOGGING_RADIUS:
                 self._draw_trigger_volume(self._world, tl_actor)
 

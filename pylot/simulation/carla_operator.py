@@ -107,7 +107,7 @@ class CarlaOperator(erdos.Operator):
         top_timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
         self.open_drive_stream.send(
             erdos.Message(top_timestamp,
-                           self._world.get_map().to_opendrive()))
+                          self._world.get_map().to_opendrive()))
         top_watermark = erdos.WatermarkMessage(top_timestamp)
         self.open_drive_stream.send(top_watermark)
         self.global_trajectory_stream.send(top_watermark)

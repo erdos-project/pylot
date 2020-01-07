@@ -9,8 +9,8 @@ import pylot.simulation.utils
 FLAGS = flags.FLAGS
 
 # Flags that control what data is recorded.
-flags.DEFINE_integer('log_every_nth_frame', 1,
-                     'Control how often the script logs frames')
+flags.DEFINE_integer('log_every_nth_message', 1,
+                     'Control how often the script logs messages')
 flags.DEFINE_bool('log_rgb_camera', False,
                   'True to enable center camera RGB logging')
 flags.DEFINE_bool('log_segmented_camera', False,

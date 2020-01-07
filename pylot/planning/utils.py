@@ -35,10 +35,3 @@ def get_waypoint_vector_and_angle(wp_transform, ego_transform):
         wp_angle = 0
 
     return wp_vector, wp_angle
-
-
-def get_distance(loc1, loc2):
-    """ Computes the Euclidian distance between two 2D points."""
-    x_diff = loc1.x - loc2.x
-    y_diff = loc1.y - loc2.y
-    return math.sqrt(x_diff**2 + y_diff**2)

@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 import time
 
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObject,\
+from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle,\
     TrafficLightColor, annotate_image_with_bboxes, save_image, visualize_image
 from pylot.perception.messages import ObstaclesMessage
 from pylot.utils import bgr_to_rgb, rgb_to_bgr, set_tf_loglevel, \
@@ -131,7 +131,7 @@ class TrafficLightDetOperator(erdos.Operator):
                                                      runtime))
 
         traffic_lights_stream.send(
-            ObstaclesMessage(traffic_lights, runtime, msg.timestamp))
+            ObstaclesMessage(traffic_lights, msg.timestamp, runtime))
 
     def __convert_to_detected_tl(self, boxes, scores, labels, height, width):
         traffic_lights = []
@@ -146,6 +146,6 @@ class TrafficLightDetOperator(erdos.Operator):
                     int(boxes[index][2] * height)  # y_max
                 )
                 traffic_lights.append(
-                    DetectedObject(bbox, scores[index], labels[index]))
+                    DetectedObstacle(bbox, scores[index], labels[index]))
             index += 1
         return traffic_lights

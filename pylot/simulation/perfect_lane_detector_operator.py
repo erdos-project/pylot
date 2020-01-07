@@ -6,6 +6,7 @@ from pylot.simulation.carla_utils import get_world
 
 
 class PerfectLaneDetectionOperator(erdos.Operator):
+    """ Operator that uses the Carla world to perfectly detect lanes."""
     def __init__(self,
                  can_bus_stream,
                  detected_lane_stream,
@@ -36,7 +37,7 @@ class PerfectLaneDetectionOperator(erdos.Operator):
         detected_lane_stream = erdos.WriteStream()
         return [detected_lane_stream]
 
-    def lateral_shift(self, transform, shift):
+    def _lateral_shift(self, transform, shift):
         transform.rotation.yaw += 90
         shifted = transform.location + shift * transform.get_forward_vector()
         return Location(carla_location=shifted)
@@ -64,11 +65,11 @@ class PerfectLaneDetectionOperator(erdos.Operator):
 
         # Get the left and right markings of the lane and send it as a message.
         left_markings = [
-            self.lateral_shift(w.transform, -w.lane_width * 0.5)
+            self._lateral_shift(w.transform, -w.lane_width * 0.5)
             for w in lane_waypoints
         ]
         right_markings = [
-            self.lateral_shift(w.transform, w.lane_width * 0.5)
+            self._lateral_shift(w.transform, w.lane_width * 0.5)
             for w in lane_waypoints
         ]
 

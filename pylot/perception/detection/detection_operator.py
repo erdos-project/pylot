@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 import time
 
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObject,\
+from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle,\
     load_coco_labels, load_coco_bbox_colors, annotate_image_with_bboxes,\
     save_image, visualize_image
 from pylot.perception.messages import ObstaclesMessage
@@ -129,7 +129,7 @@ class DetectionOperator(erdos.Operator):
                                                      runtime))
         # Send out obstacles.
         obstacles_stream.send(
-            ObstaclesMessage(obstacles, runtime, msg.timestamp))
+            ObstaclesMessage(obstacles, msg.timestamp, runtime))
 
     def __convert_to_obstacles(self, boxes, scores, labels, height, width):
         index = 0
@@ -138,7 +138,7 @@ class DetectionOperator(erdos.Operator):
             if scores[index] >= \
                self._flags.obstacle_detection_min_score_threshold:
                 obstacles.append(
-                    DetectedObject(
+                    DetectedObstacle(
                         BoundingBox2D(int(boxes[index][1] * width),
                                       int(boxes[index][3] * width),
                                       int(boxes[index][0] * height),

@@ -1,6 +1,6 @@
 import cv2
 
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObject
+from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 
@@ -22,6 +22,6 @@ class MultiObjectCV2Tracker(MultiObjectTracker):
         obstacles = []
         for (xmin, ymin, w, h) in bboxes:
             obstacles.append(
-                DetectedObject(BoundingBox2D(xmin, xmin + w, ymin, ymin + h),
-                               "", 0))
+                DetectedObstacle(BoundingBox2D(xmin, xmin + w, ymin, ymin + h),
+                                 "", 0))
         return True, obstacles

@@ -1,7 +1,7 @@
 import numpy as np
 
 from sort.sort import *
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObject
+from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 
@@ -22,7 +22,7 @@ class MultiObjectSORTTracker(MultiObjectTracker):
             # changing to xmin, xmax, ymin, ymax format
             bbox = BoundingBox2D(int(coords[0]), int(coords[2]),
                                  int(coords[1]), int(coords[3]))
-            obstacles.append(DetectedObject(bbox, 0, "", track.id))
+            obstacles.append(DetectedObstacle(bbox, 0, "", track.id))
         return True, obstacles
 
     def convert_detections_for_sort_alg(self, bboxes, confidence_scores):

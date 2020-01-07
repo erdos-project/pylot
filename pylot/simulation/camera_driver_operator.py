@@ -136,7 +136,7 @@ class CameraDriverOperator(erdos.Operator):
             elif self._camera_setup.camera_type == \
                  'sensor.camera.semantic_segmentation':
                 frame = SegmentedFrame(carla_image, encoding='carla')
-                msg = SegmentedFrameMessage(frame, 0, timestamp)
+                msg = SegmentedFrameMessage(frame, timestamp)
                 # Send the message containing the frame.
             self._camera_stream.send(msg)
             # Note: The operator is set not to automatically propagate

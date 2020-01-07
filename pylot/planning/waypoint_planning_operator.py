@@ -6,8 +6,8 @@ import itertools
 from pylot.map.hd_map import HDMap
 import pylot.planning.cost_functions
 from pylot.planning.messages import WaypointsMessage
-from pylot.planning.utils import get_distance,\
-    get_waypoint_vector_and_angle, BehaviorPlannerState
+from pylot.planning.utils import get_waypoint_vector_and_angle, \
+    BehaviorPlannerState
 from pylot.simulation.carla_utils import get_map
 import pylot.utils
 
@@ -170,8 +170,8 @@ class WaypointPlanningOperator(erdos.Operator):
             # XXX(ionel): We only check the first 10 waypoints.
             if index > 10:
                 break
-            dist = get_distance(waypoint.location,
-                                self._vehicle_transform.location)
+            dist = pylot.utils.get_distance(waypoint.location,
+                                            self._vehicle_transform.location)
             if dist < min_dist:
                 min_dist = dist
                 min_index = index
