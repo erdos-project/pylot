@@ -44,6 +44,7 @@ class SegmentationEvalOperator(erdos.Operator):
         return []
 
     def on_notification(self, timestamp):
+        assert len(timestamp.coordinates) == 1
         if not self._last_notification:
             self._last_notification = timestamp.coordinates[0]
             return

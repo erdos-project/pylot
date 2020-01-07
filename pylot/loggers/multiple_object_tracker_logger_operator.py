@@ -22,6 +22,7 @@ class MultipleObjectTrackerLoggerOperator(erdos.Operator):
         self._msg_cnt += 1
         if self._msg_cnt % self._flags.log_every_nth_frame != 0:
             return
+        assert len(msg.timestamp.coordinates) == 1
         timestamp = msg.timestamp.coordinates[0]
         lines = []
         for obstacle in msg.obstacles:

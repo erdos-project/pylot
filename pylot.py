@@ -10,20 +10,42 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_list('goal_location', '234, 59, 39', 'Ego-vehicle goal location')
 
+# The location of the center camera relative to the ego-vehicle.
 CENTER_CAMERA_LOCATION = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
 
 
-def add_obstacle_detection(center_camera_stream, center_camera_setup,
-                           depth_camera_stream, segmented_camera_stream,
-                           can_bus_stream, ground_obstacles_stream,
-                           ground_speed_limit_signs_stream,
-                           ground_stop_signs_stream):
+def add_obstacle_detection(center_camera_stream,
+                           center_camera_setup=None,
+                           can_bus_stream=None,
+                           depth_camera_stream=None,
+                           segmented_camera_stream=None,
+                           ground_obstacles_stream=None,
+                           ground_speed_limit_signs_stream=None,
+                           ground_stop_signs_stream=None):
+    """ Adds operators for obstacle detection.
+
+    Depending on how flags are set, the operators are either perfect or using
+    trained models.
+
+    Args:
+        center_camera_stream: A stream on which BGR frames are published.
+    Returns:
+        A stream on which obstacles are published.
+    """
     obstacles_stream = None
     if FLAGS.obstacle_detection:
         # TODO: Only returns the first obstacles stream.
-        obstacles_stream = pylot.operator_creator.add_obstacle_detection(
-            center_camera_stream)[0]
+        obstacles_streams = pylot.operator_creator.add_obstacle_detection(
+            center_camera_stream)
+        assert len(obstacles_streams) == 1
+        obstacles_stream = obstacles_streams[0]
     if FLAGS.perfect_obstacle_detection or FLAGS.evaluate_obstacle_detection:
+        assert (center_camera_setup is not None and can_bus_stream is not None
+                and depth_camera_stream is not None
+                and segmented_camera_stream is not None
+                and ground_obstacles_stream is not None
+                and ground_speed_limit_signs_stream is not None
+                and ground_stop_signs_stream is not None)
         perfect_obstacles_stream = pylot.operator_creator.add_perfect_detector(
             depth_camera_stream, center_camera_stream, segmented_camera_stream,
             can_bus_stream, ground_obstacles_stream,
@@ -37,24 +59,42 @@ def add_obstacle_detection(center_camera_stream, center_camera_setup,
     return obstacles_stream
 
 
-def add_traffic_light_detection(transform, vehicle_id_stream, can_bus_stream,
-                                ground_traffic_lights_stream):
+def add_traffic_light_detection(tl_transform,
+                                vehicle_id_stream,
+                                can_bus_stream=None,
+                                ground_traffic_lights_stream=None):
+    """ Adds traffic light detection operators.
+
+    Depending on how flags are set, the function adds a perfect traffic light
+    detector or a detector that uses a trained model. The detector uses a
+    camera with a narrow fov.
+
+    Args:
+        tl_transform: A pylot.utils.Transform of the camera relative to
+             the ego vehicle.
+        vehicle_id_stream: A stream on which the Carla ego-vehicle id is
+             published.
+    Returns:
+        A stream on which traffic lights are published.
+    """
     (tl_camera_stream,
      tl_camera_setup) = pylot.operator_creator.add_rgb_camera(
-         transform, vehicle_id_stream, 'traffic_light_camera', 45)
+         tl_transform, vehicle_id_stream, 'traffic_light_camera', 45)
 
     traffic_lights_stream = None
     if FLAGS.traffic_light_detection:
         traffic_lights_stream = \
             pylot.operator_creator.add_traffic_light_detector(tl_camera_stream)
     elif FLAGS.perfect_traffic_light_detection:
+        assert (can_bus_stream is not None
+                and ground_traffic_lights_stream is not None)
         # Add segmented and depth cameras with fov 45. These cameras are needed
         # by the perfect traffic light detector.
         (tl_depth_camera_stream, _) = pylot.operator_creator.add_depth_camera(
-            transform, vehicle_id_stream, 'traffic_light_depth_camera', 45)
+            tl_transform, vehicle_id_stream, 'traffic_light_depth_camera', 45)
         (tl_segmented_camera_stream, _) = \
             pylot.operator_creator.add_segmented_camera(
-                transform,
+                tl_transform,
                 vehicle_id_stream,
                 'traffic_light_segmented_camera',
                 45)
@@ -69,19 +109,43 @@ def add_traffic_light_detection(transform, vehicle_id_stream, can_bus_stream,
     return traffic_lights_stream
 
 
-def add_lane_detection(center_camera_stream, can_bus_stream):
+def add_lane_detection(center_camera_stream, can_bus_stream=None):
+    """ Adds operators for lane detection.
+
+    Depending on how flags are set, the operators are using ground information
+    (i.e., perfect) or are using only sensor data.
+
+    Args:
+        A stream on which BGR frames are published.
+    Returns:
+        A stream on which lanes are published.
+    """
     lane_detection_stream = None
     if FLAGS.lane_detection:
         lane_detection_stream = pylot.operator_creator.add_lane_detection(
             center_camera_stream)
     elif FLAGS.perfect_lane_detection:
+        assert can_bus_stream is not None
         lane_detection_stream = \
             pylot.operator_creator.add_perfect_lane_detector(can_bus_stream)
     return lane_detection_stream
 
 
-def add_obstacle_tracking(center_camera_stream, obstacles_stream,
-                          can_bus_stream, ground_obstacles_stream):
+def add_obstacle_tracking(center_camera_stream,
+                          obstacles_stream,
+                          can_bus_stream=None,
+                          ground_obstacles_stream=None):
+    """ Adds operators for obstacle tracking.
+
+    Depending on how flags are set, the operators either use ground information
+    or sensor data and outputs from obstacle detection operators.
+
+    Args:
+        center_camera_stream: A stream on which BGR frames are published.
+        obstacles_stream: A stream on which obstacles are published.
+    Returns:
+        A stream on which tracked obstacles are published.
+    """
     obstacles_tracking_stream = None
     if FLAGS.obstacle_tracking:
         obstacles_tracking_stream = \
@@ -89,6 +153,8 @@ def add_obstacle_tracking(center_camera_stream, obstacles_stream,
                 obstacles_stream,
                 center_camera_stream)
     elif FLAGS.perfect_obstacle_tracking:
+        assert (can_bus_stream is not None
+                and ground_obstacles_stream is not None)
         # TODO: The perfect tracker returns ego-vehicle (x,y,z) coordinates,
         # while our existing trackers use camera coordinates. Fix!
         obstacles_tracking_stream = \
@@ -97,21 +163,34 @@ def add_obstacle_tracking(center_camera_stream, obstacles_stream,
     return obstacles_tracking_stream
 
 
-def add_segmentation(center_camera_stream, ground_segmented_stream):
+def add_segmentation(center_camera_stream, ground_segmented_stream=None):
+    """ Adds operators for pixel semantic segmentation.
+
+    Depending on how flags are set, the returned stream is either the perfectly
+    sematically segmented ground camera, or a stream output from an operator
+    that uses a trained model.
+
+    Args:
+        center_camera_stream: A stream on which BGR frames are published.
+    Returns:
+        A stream on which semanically segmented frames are published
+    """
     segmented_stream = None
     if FLAGS.segmentation:
         segmented_stream = pylot.operator_creator.add_segmentation(
             center_camera_stream)
         if FLAGS.evaluate_segmentation:
+            assert ground_segmented_stream is not None
             pylot.operator_creator.add_segmentation_evaluation(
                 ground_segmented_stream, segmented_stream)
     elif FLAGS.perfect_segmentation:
+        assert ground_segmented_stream is not None
         return ground_segmented_stream
     return segmented_stream
 
 
-def add_depth(transform, vehicle_id_stream, depth_camera_stream,
-              center_camera_setup):
+def add_depth(transform, vehicle_id_stream, center_camera_setup,
+              depth_camera_stream):
     depth_stream = None
     if FLAGS.depth_estimation:
         (left_camera_stream,
@@ -124,7 +203,14 @@ def add_depth(transform, vehicle_id_stream, depth_camera_stream,
     return depth_stream
 
 
-def add_prediction(can_bus_stream, obstacles_tracking_stream):
+def add_prediction(obstacles_tracking_stream, can_bus_stream=None):
+    """ Adds prediction operators.
+
+    Args:
+        obstacles_tracking_stream: A stream of tracked obstacles.
+    Returns:
+        A stream on which obstacle predictions are published.
+    """
     prediction_stream = None
     if FLAGS.prediction:
         if FLAGS.prediction_type == 'linear':
@@ -134,14 +220,32 @@ def add_prediction(can_bus_stream, obstacles_tracking_stream):
             raise ValueError('Unexpected prediction_type {}'.format(
                 FLAGS.prediction_type))
         if FLAGS.evaluate_prediction:
+            assert can_bus_stream is not None
             pylot.operator_creator.add_prediction_evaluation(
                 can_bus_stream, obstacles_tracking_stream, prediction_stream)
     return prediction_stream
 
 
-def add_planning(can_bus_stream, prediction_stream, open_drive_stream,
-                 global_trajectory_stream, goal_location):
+def add_planning(goal_location,
+                 can_bus_stream,
+                 prediction_stream,
+                 open_drive_stream=None,
+                 global_trajectory_stream=None):
+    """ Adds planning operators.
+
+    Args:
+        goal_location: A carla.Location representing the destination.
+        can_bus_stream: A stream of ego-vehicle CanBus messages.
+        prediction_stream: A stream of obstacles prediction messages.
+        open_drive_stream: A stream on which open drive string representations
+            are published. Operators can construct HDMaps out of the open drive
+            strings.
+    Returns:
+        A stream on which waypoints are published.
+    """
     if FLAGS.planning_type == 'waypoint':
+        assert (open_drive_stream is not None
+                and global_trajectory_stream is not None)
         waypoints_stream = pylot.operator_creator.add_waypoint_planning(
             can_bus_stream, open_drive_stream, global_trajectory_stream,
             goal_location)
@@ -225,8 +329,8 @@ def driver():
          _) = pylot.operator_creator.add_imu(transform, vehicle_id_stream)
 
     obstacles_stream = add_obstacle_detection(
-        center_camera_stream, rgb_camera_setup, depth_camera_stream,
-        ground_segmented_stream, can_bus_stream, ground_obstacles_stream,
+        center_camera_stream, rgb_camera_setup, can_bus_stream,
+        depth_camera_stream, ground_segmented_stream, ground_obstacles_stream,
         ground_speed_limit_signs_stream, ground_stop_signs_stream)
     traffic_lights_stream = add_traffic_light_detection(
         transform, vehicle_id_stream, can_bus_stream,
@@ -243,24 +347,24 @@ def driver():
     segmented_stream = add_segmentation(center_camera_stream,
                                         ground_segmented_stream)
 
-    depth_stream = add_depth(transform, vehicle_id_stream, depth_camera_stream,
-                             rgb_camera_setup)
+    depth_stream = add_depth(transform, vehicle_id_stream, rgb_camera_setup,
+                             depth_camera_stream)
 
     if FLAGS.fusion:
         pylot.operator_creator.add_fusion(can_bus_stream, obstacles_stream,
                                           depth_stream,
                                           ground_obstacles_stream)
 
-    prediction_stream = add_prediction(can_bus_stream,
-                                       obstacles_tracking_stream)
+    prediction_stream = add_prediction(obstacles_tracking_stream,
+                                       can_bus_stream)
 
     # Add planning operators.
     goal_location = carla.Location(float(FLAGS.goal_location[0]),
-                                   float(FLAGS.goal_location[0]),
-                                   float(FLAGS.goal_location[0]))
-    waypoints_stream = add_planning(can_bus_stream, prediction_stream,
-                                    open_drive_stream,
-                                    global_trajectory_stream, goal_location)
+                                   float(FLAGS.goal_location[1]),
+                                   float(FLAGS.goal_location[2]))
+    waypoints_stream = add_planning(goal_location, can_bus_stream,
+                                    prediction_stream, open_drive_stream,
+                                    global_trajectory_stream)
 
     # TODO: Merge depth camera stream and point cloud stream.
     # Add the behaviour planning and control operator.

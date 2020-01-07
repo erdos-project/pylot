@@ -54,6 +54,7 @@ class WaypointVisualizerOperator(erdos.Operator):
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))
         for waypoint in msg.waypoints:
+            # Adds 0.5 to z to ensure that the point is above the road surface.
             loc = carla.Location(waypoint.location.x, waypoint.location.y,
                                  waypoint.location.z + 0.5)
             self._world.debug.draw_point(loc,

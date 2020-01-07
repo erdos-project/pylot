@@ -24,6 +24,7 @@ class BoundingBoxLoggerOperator(erdos.Operator):
         if self._msg_cnt % self._flags.log_every_nth_frame != 0:
             return
         bboxes = [obstacle.get_bbox_label() for obstacle in msg.obstacles]
+        assert len(msg.timestamp.coordinates) == 1
         timestamp = msg.timestamp.coordinates[0]
         # Write the bounding boxes.
         file_name = os.path.join(self._flags.data_path,

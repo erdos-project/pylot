@@ -39,6 +39,7 @@ class CameraLoggerOperator(erdos.Operator):
         else:
             raise ValueError('{} unexpected frame encoding {}'.format(
                 self._name, msg.encoding))
+        assert len(msg.timestamp.coordinates) == 1
         file_name = os.path.join(
             self._flags.data_path,
             self._filename_prefix + str(msg.timestamp.coordinates[0]) + '.png')

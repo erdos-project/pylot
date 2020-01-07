@@ -162,6 +162,7 @@ class SegmentedFrame(object):
 
     def save_per_class_masks(self, data_path, timestamp):
         masks = self.get_per_class_masks()
+        assert len(timestamp.coordinates) == 1
         for k, v in CITYSCAPES_LABELS.items():
             file_name = os.path.join(
                 data_path, '{}-{}.png'.format(v, timestamp.coordinates[0]))

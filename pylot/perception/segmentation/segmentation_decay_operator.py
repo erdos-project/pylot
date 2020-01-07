@@ -32,6 +32,7 @@ class SegmentationDecayOperator(erdos.Operator):
         return [iou_stream]
 
     def on_ground_segmented_frame(self, msg, iou_stream):
+        assert len(msg.timestamp.coordinates) == 1
         start_time = time.time()
         # We don't fully transform it to cityscapes palette to avoid
         # introducing extra latency.

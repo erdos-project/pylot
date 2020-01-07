@@ -11,6 +11,7 @@ class IMULoggerOperator(erdos.Operator):
         self._name = name
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
+        self._msg_cnt = 0
 
     @staticmethod
     def connect(imu_stream):
@@ -26,17 +27,17 @@ class IMULoggerOperator(erdos.Operator):
         """
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))
-        transform = msg.transform
-        acceleration = msg.acceleration
-        gyro = msg.gyro
-        compass = msg.compass
+        self._msg_cnt += 1
+        if self._msg_cnt % self._flags.log_every_nth_frame != 0:
+            return
+        assert len(msg.timestamp.coordinates) == 1
         timestamp = msg.timestamp.coordinates[0]
         file_name = '{}imu-{}.json'.format(self._flags.data_path, timestamp)
         measurements = {
-            "transform": str(transform),
-            "acceleration": str(acceleration),
-            "gyro": str(gyro),
-            "compass": str(compass),
+            "transform": str(msg.transform),
+            "acceleration": str(msg.acceleration),
+            "gyro": str(msg.gyro),
+            "compass": str(msg.compass),
             "timestamp": str(timestamp)
         }
         with open(file_name, 'w') as outfile:

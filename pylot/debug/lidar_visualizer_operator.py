@@ -8,7 +8,6 @@ class LidarVisualizerOperator(erdos.Operator):
         point_cloud_stream.add_callback(self.display_point_cloud)
         self._name = name
         self._logger = erdos.utils.setup_logging(name, log_file_name)
-        self._cnt = 0
 
     @staticmethod
     def connect(point_cloud_stream):
@@ -17,8 +16,4 @@ class LidarVisualizerOperator(erdos.Operator):
     def display_point_cloud(self, msg):
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))
-        #        filename = './carla-point-cloud{}.ply'.format(self._cnt)
         pptk.viewer(msg.point_cloud)
-        # pcd = open3d.PointCloud()
-        # pcd.points = open3d.Vector3dVector(msg.point_cloud)
-        # open3d.draw_geometries([pcd])

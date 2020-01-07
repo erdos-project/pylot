@@ -5,7 +5,6 @@ import os
 
 class LidarLoggerOperator(erdos.Operator):
     """ Logs point cloud messages."""
-
     def __init__(self, lidar_stream, name, flags, log_file_name=None):
         lidar_stream.add_callback(self.on_lidar_frame)
         self._name = name
@@ -23,6 +22,7 @@ class LidarLoggerOperator(erdos.Operator):
         self._pc_msg_cnt += 1
         if self._pc_msg_cnt % self._flags.log_every_nth_frame != 0:
             return
+        assert len(msg.timestamp.coordinates) == 1
         # Write the lidar information.
         file_name = os.path.join(
             self._flags.data_path,

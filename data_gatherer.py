@@ -35,6 +35,7 @@ flags.DEFINE_bool('log_chauffeur', False,
 flags.DEFINE_bool('log_top_down_segmentation', False,
                   'True to enable logging of top down segmentation')
 
+# The location of the center camera relative to the ego-vehicle.
 CENTER_CAMERA_LOCATION = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
 
 

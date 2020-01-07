@@ -30,6 +30,7 @@ class DetectionDecayOperator(erdos.Operator):
     def on_ground_obstacles(self, msg, map_stream):
         # Ignore the first several seconds of the simulation because the car is
         # not moving at the beginning.
+        assert len(msg.timestamp.coordinates) == 1
         game_time = msg.timestamp.coordinates[0]
         bboxes = []
         # Select the pedestrian bounding boxes.

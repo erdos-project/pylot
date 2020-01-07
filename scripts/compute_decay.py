@@ -16,13 +16,14 @@ flags.DEFINE_bool('compute_segmentation_decay', False,
 flags.DEFINE_integer('decay_max_latency', 400,
                      'Max latency to evaluate in ground truth experiments')
 
+# The location of the center camera relative to the ego-vehicle.
 CENTER_CAMERA_LOCATION = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
 
 
 class SynchronizerOperator(erdos.Operator):
     def __init__(self, wait_stream, control_stream, flags):
         erdos.add_watermark_callback([wait_stream], [control_stream],
-                                      self.on_watermark)
+                                     self.on_watermark)
         self._flags = flags
 
     @staticmethod
@@ -41,6 +42,7 @@ class SynchronizerOperator(erdos.Operator):
 
 
 def driver():
+    """ Computes ground obstacle detection and segmentation decay."""
     transform = pylot.simulation.utils.Transform(
         CENTER_CAMERA_LOCATION, pylot.simulation.utils.Rotation(0, 0, 0))
 
@@ -51,7 +53,7 @@ def driver():
      vehicle_id_stream, open_drive_stream, global_trajectory_stream
      ) = pylot.operator_creator.add_carla_bridge(control_loop_stream)
 
-    # Add sensors.
+    # Add camera sensors.
     (center_camera_stream,
      rgb_camera_setup) = pylot.operator_creator.add_rgb_camera(
          transform, vehicle_id_stream)

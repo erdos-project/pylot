@@ -17,8 +17,9 @@ class ObstaclePrediction(object):
         self.trajectory = trajectory
 
     def __str__(self):
-        return 'Prediction for obstacle {}, label {}, probability {}, trajectory {}'.format(
-            self.id, self.label, self.probability, self.trajectory)
+        return ('Prediction for obstacle {}, label {}, probability {}, '
+                'trajectory {}'.format(self.id, self.label, self.probability,
+                                       self.trajectory))
 
 
 class PredictionMessage(erdos.Message):

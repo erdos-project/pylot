@@ -22,7 +22,6 @@ class HDMap(object):
                 1.0  # Distance between waypoints
             ))
         self._grp.setup()
-
         self._logger = setup_logging('hd_map', log_file_name)
 
     def get_closest_lane_waypoint(self, location):
@@ -58,6 +57,7 @@ class HDMap(object):
             return waypoint.is_intersection
 
     def is_on_lane(self, location):
+        """ Returns True if the location is on a lane."""
         waypoint = self._map.get_waypoint(location.as_carla_location(),
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Driving)
@@ -102,6 +102,7 @@ class HDMap(object):
         return False
 
     def is_on_opposite_lane(self, transform):
+        """ Returns True if the transform is on the opposite lane."""
         waypoint = self._map.get_waypoint(
             transform.location.as_carla_location(),
             project_to_road=False,
@@ -132,6 +133,18 @@ class HDMap(object):
         return not waypoint
 
     def distance_to_intersection(self, location, max_distance_to_check=30):
+        """ Computes the distance (in meters) from location to an intersection.
+
+        The method starts from location, moves forward until it reaches an
+        intersection or exceeds max_distance_to_check.
+
+        Args:
+            location: The starting location.
+            max_distance_to_check: Max distance to move forward (in meters).
+        Returns:
+            The distance in meters, or None if there's no intersection within
+            max_distance_to_check.
+        """
         waypoint = self._map.get_waypoint(location.as_carla_location(),
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Any)
@@ -151,6 +164,7 @@ class HDMap(object):
         return None
 
     def is_on_bidirectional_lane(self, location):
+        """ Returns True if the lane is bidirectional."""
         waypoint = self._map.get_waypoint(
             location.as_carla_location(),
             project_to_road=False,
@@ -263,11 +277,11 @@ class HDMap(object):
 
     def get_left_lane(self, location):
         # TODO(ionel): Implement!
-        pass
+        raise NotImplementedError
 
     def get_right_lane(self, location):
         # TODO(ionel): Implement!
-        pass
+        raise NotImplementedError
 
     def __get_distance(self, location1, location2):
         return math.sqrt((location1.x - location2.x)**2 +

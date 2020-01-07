@@ -401,6 +401,7 @@ def visualize_image(op_name, image_np):
 
 def save_image(image_np, timestamp, data_path, file_base):
     """ Write image to disk."""
+    assert len(timestamp.coordinates) == 1
     file_name = '{}{}-{}.png'.format(data_path, file_base,
                                      timestamp.coordinates[0])
     rgb_img = Image.fromarray(image_np)

@@ -1,9 +1,7 @@
 import cv2
 import erdos
 
-# Pylot specific imports.
 import pylot.utils
-import pylot.simulation.carla_utils
 
 
 class TrackVisualizerOperator(erdos.Operator):
@@ -50,7 +48,6 @@ class TrackVisualizerOperator(erdos.Operator):
         self._tracking_msgs = {}
         self._top_down_segmentation_msgs = {}
         self._prediction_msgs = {}
-        # Get top-down camera.
         self._top_down_camera_setup = top_down_camera_setup
 
     @staticmethod

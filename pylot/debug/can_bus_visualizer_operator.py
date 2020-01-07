@@ -51,7 +51,8 @@ class CanBusVisualizerOperator(erdos.Operator):
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))
         vehicle_transform = msg.data.transform
-        # draw position
+        # Draw position. We add 0.5 to z to ensure that the point is above the
+        # road surface.
         self._world.debug.draw_point(carla.Location(
             x=vehicle_transform.location.x,
             y=vehicle_transform.location.y,

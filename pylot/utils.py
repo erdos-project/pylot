@@ -7,6 +7,7 @@ import time
 
 
 def add_timestamp(timestamp, image_np):
+    """ Adds a timestamp text to an image np array."""
     txt_font = cv2.FONT_HERSHEY_SIMPLEX
     timestamp_txt = '{}'.format(timestamp)
     # Put timestamp text.
@@ -23,19 +24,23 @@ def bgra_to_bgr(image_np):
 
 
 def bgra_to_rgb(image_np):
+    """ Converts a bgra np array to a rgb np array."""
     image_np = image_np[:, :, :3]
     image_np = image_np[:, :, ::-1]
 
 
 def bgr_to_rgb(image_np):
+    """ Converts a bgr np array to a rgb np array."""
     return image_np[:, :, ::-1]
 
 
 def rgb_to_bgr(image_np):
+    """ Converts a rgb np array to a bgr np array."""
     return image_np[:, :, ::-1]
 
 
 def time_epoch_ms():
+    """ Get current time in milliseconds."""
     return int(time.time() * 1000)
 
 

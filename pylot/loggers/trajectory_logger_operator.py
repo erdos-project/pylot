@@ -29,6 +29,7 @@ class TrajectoryLoggerOperator(erdos.Operator):
         trajectories = [
             str(trajectory) for trajectory in msg.obstacle_trajectories
         ]
+        assert len(msg.timestamp.coordinates) == 1
         timestamp = msg.timestamp.coordinates[0]
         # Write the trajectories.
         file_name = os.path.join(self._flags.data_path,

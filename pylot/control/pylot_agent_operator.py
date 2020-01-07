@@ -102,6 +102,7 @@ class PylotAgentOperator(erdos.Operator):
 
         traffic_lights = self.__transform_tl_output(tl_msg, vehicle_transform,
                                                     point_cloud, depth_frame)
+        assert len(timestamp.coordinates) == 1
         game_time = timestamp.coordinates[0]
         if len(traffic_lights) > 0:
             self._last_traffic_light_game_time = game_time

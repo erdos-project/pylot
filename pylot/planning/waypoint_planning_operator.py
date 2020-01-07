@@ -228,7 +228,7 @@ class WaypointPlanningOperator(erdos.Operator):
     def __generate_trajectory(self, next_state, vehicle_transform,
                               predictions):
         # TODO(ionel): Implement.
-        pass
+        raise NotImplementedError
 
     def __successor_states(self):
         """ Returns possible state transitions from current state."""

@@ -826,7 +826,7 @@ def lidar_point_cloud_to_camera_coordinates(point_cloud):
 
 
 def get_3d_world_position_with_point_cloud(u, v, pc, camera_setup):
-    """ Gets the 3D world position from pixel coordiantes using a Lidar
+    """ Gets the 3D world position from pixel coordinates using a Lidar
         point cloud.
 
         Args:

@@ -41,6 +41,7 @@ class DetectionEvalOperator(erdos.Operator):
         return []
 
     def on_notification(self, timestamp):
+        assert len(timestamp.coordinates) == 1
         game_time = timestamp.coordinates[0]
         if not self._last_notification:
             self._last_notification = game_time
