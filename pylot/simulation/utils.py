@@ -7,8 +7,8 @@ from numpy.matlib import repmat
 
 import pylot.utils
 from pylot.utils import Location, Transform
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle, \
-    DetectedSpeedLimit
+from pylot.perception.detection.utils import BoundingBox2D, BoundingBox3D, \
+    DetectedObstacle, DetectedSpeedLimit
 
 SpeedLimitSign = namedtuple('SpeedLimitSign', 'transform, limit')
 StopSign = namedtuple('StopSign', 'transform, bounding_box')
@@ -18,6 +18,9 @@ LocationGeo = namedtuple('LocationGeo', 'latitude, longitude, altitude')
 
 class CanBus(object):
     def __init__(self, transform, forward_speed):
+        if not isinstance(transform, Transform):
+            raise ValueError(
+                'transform should be of type pylot.utils.Transform')
         self.transform = transform
         # Forward speed in m/s.
         self.forward_speed = forward_speed
@@ -28,121 +31,6 @@ class CanBus(object):
     def __str__(self):
         return "CanBus(transform: {}, forward speed: {})".format(
             self.transform, self.forward_speed)
-
-
-class BoundingBox(object):
-    """ The Pylot version of the carla.BoundingBox instance that defines helper
-    functions needed in Pylot, and makes the class serializable.
-
-    Attributes:
-        transform: The transform of the bounding box (rotation is (0, 0, 0))
-        extent: The extent of the bounding box.
-    """
-    def __init__(self, carla_bb):
-        """ Initializes the BoundingBox instance from the given
-        carla.BoundingBox instance.
-
-        Args:
-            carla_bb: The carla.BoundingBox instance to initialize from.
-        """
-        loc = Location.from_carla_location(carla_bb.location)
-        self.transform = Transform(loc, pylot.utils.Rotation())
-        self.extent = pylot.utils.Vector3D(carla_bb.extent.x,
-                                           carla_bb.extent.y,
-                                           carla_bb.extent.z)
-
-    def as_carla_bounding_box(self):
-        """ Retrieves the current BoundingBox as an instance of
-        carla.BoundingBox
-
-        Returns:
-            A carla.BoundingBox instance that represents the current bounding
-            box.
-        """
-        bb_loc = self.transform.location.as_carla_location()
-        bb_extent = self.extent.as_carla_vector()
-        return carla.BoundingBox(bb_loc, bb_extent)
-
-    def visualize(self, world, actor_transform, time_between_frames=100):
-        """ Visualize the given bounding box on the world.
-
-        Args:
-            world: The world instance to visualize the bounding box on.
-            actor_transform: The current transform of the actor that the
-                bounding box is of.
-            time_between_frames: Time in ms to show the bounding box for.
-        """
-        bb = self.as_carla_bounding_box()
-        bb.location += actor_transform.location()
-        world.debug.draw_box(bb,
-                             actor_transform.rotation.as_carla_rotation(),
-                             life_time=time_between_frames / 1000.0)
-
-    def to_camera_view(self, obstacle_transform, extrinsic_matrix,
-                       intrinsic_matrix):
-        """ Converts the coordinates of the bounding box for the given obstacle
-        to the coordinates in the view of the camera.
-
-        This method retrieves the extent of the bounding box, transforms them
-        to coordinates relative to the bounding box origin, then converts those
-        to coordinates relative to the obstacle.
-
-        These coordinates are then considered to be in the world coordinate
-        system, which is mapped into the camera view. A negative z-value
-        signifies that the bounding box is behind the camera plane.
-
-        Note that this function does not cap the coordinates to be within the
-        size of the camera image.
-
-        Args:
-            obstacle_transform: The transform of the obstacle that the bounding
-                box is associated with.
-            extrinsic_matrix: The extrinsic matrix of the camera.
-            intrinsic_matrix: The intrinsic matrix of the camera.
-
-        Returns:
-            A list of 8 Location instances specifying the 8 corners of the
-            bounding box.
-        """
-        # Retrieve the eight coordinates of the bounding box with respect to
-        # the origin of the bounding box.
-        import numpy as np
-        extent = self.extent
-        bbox = np.array([
-            Location(x=+extent.x, y=+extent.y, z=-extent.z),
-            Location(x=-extent.x, y=+extent.y, z=-extent.z),
-            Location(x=-extent.x, y=-extent.y, z=-extent.z),
-            Location(x=+extent.x, y=-extent.y, z=-extent.z),
-            Location(x=+extent.x, y=+extent.y, z=+extent.z),
-            Location(x=-extent.x, y=+extent.y, z=+extent.z),
-            Location(x=-extent.x, y=-extent.y, z=+extent.z),
-            Location(x=+extent.x, y=-extent.y, z=+extent.z),
-        ])
-
-        # Transform the vertices with respect to the bounding box transform.
-        bbox = self.transform.transform_points(bbox)
-
-        # Convert the bounding box relative to the world.
-        bbox = obstacle_transform.transform_points(bbox)
-
-        # Obstacle's transform is relative to the world. Thus, the bbox contains
-        # the 3D bounding box vertices relative to the world.
-        camera_coordinates = []
-        for vertex in bbox:
-            location_2D = vertex.to_camera_view(extrinsic_matrix,
-                                                intrinsic_matrix)
-
-            # Add the points to the image.
-            camera_coordinates.append(location_2D)
-
-        return camera_coordinates
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        return "BoundingBox(transform: {}, extent: {})".format(
-            self.transform, self.extent)
 
 
 class Obstacle(object):
@@ -168,7 +56,8 @@ class Obstacle(object):
         self.transform = Transform.from_carla_transform(actor.get_transform())
 
         # Convert the bounding box from the simulation to the Pylot one.
-        self.bounding_box = BoundingBox(actor.bounding_box)
+        self.bounding_box = BoundingBox3D.from_carla_bounding_box(
+            actor.bounding_box)
 
         # Get the speed of the obstacle.
         velocity_vector = pylot.utils.Vector3D.from_carla_vector(

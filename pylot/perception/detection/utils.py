@@ -7,7 +7,7 @@ try:
 except ImportError:
     import Queue as queue
 
-from pylot.utils import add_timestamp
+import pylot.utils
 
 GROUND_COLOR_MAP = {
     'pedestrian': [0, 128, 0],
@@ -124,6 +124,122 @@ class BoundingBox2D(object):
     def __str__(self):
         return 'BoundingBox2D(xmin: {}, xmax: {}, ymin: {}, ymax: {})'.format(
             self.x_min, self.x_max, self.y_min, self.y_max)
+
+
+class BoundingBox3D(object):
+    """ The Pylot version of the carla.BoundingBox instance that defines helper
+    functions needed in Pylot, and makes the class serializable.
+
+    Attributes:
+        transform: The transform of the bounding box (rotation is (0, 0, 0))
+        extent: The extent of the bounding box.
+    """
+    def __init__(self, transform, extent):
+        self.transform = transform
+        self.extent = extent
+
+    @classmethod
+    def from_carla_bounding_box(cls, bbox):
+        """ Creates a BoundingBox3D from a carla.BoundingBox."""
+        transform = pylot.utils.Transform(
+            pylot.utils.Location.from_carla_location(bbox.location),
+            pylot.utils.Rotation())
+        extent = pylot.utils.Vector3D.from_carla_vector(bbox.extent)
+        return cls(transform, extent)
+
+    def as_carla_bounding_box(self):
+        """ Retrieves the current BoundingBox3D as an instance of
+        carla.BoundingBox
+
+        Returns:
+            A carla.BoundingBox instance that represents the current bounding
+            box.
+        """
+        import carla
+        bb_loc = self.transform.location.as_carla_location()
+        bb_extent = self.extent.as_carla_vector()
+        return carla.BoundingBox(bb_loc, bb_extent)
+
+    def visualize(self, world, actor_transform, time_between_frames=100):
+        """ Visualize the given bounding box on the world.
+
+        Args:
+            world: The world instance to visualize the bounding box on.
+            actor_transform: The current transform of the actor that the
+                bounding box is of.
+            time_between_frames: Time in ms to show the bounding box for.
+        """
+        bb = self.as_carla_bounding_box()
+        bb.location += actor_transform.location()
+        world.debug.draw_box(bb,
+                             actor_transform.rotation.as_carla_rotation(),
+                             life_time=time_between_frames / 1000.0)
+
+    def to_camera_view(self, obstacle_transform, extrinsic_matrix,
+                       intrinsic_matrix):
+        """ Converts the coordinates of the bounding box for the given obstacle
+        to the coordinates in the view of the camera.
+
+        This method retrieves the extent of the bounding box, transforms them
+        to coordinates relative to the bounding box origin, then converts those
+        to coordinates relative to the obstacle.
+
+        These coordinates are then considered to be in the world coordinate
+        system, which is mapped into the camera view. A negative z-value
+        signifies that the bounding box is behind the camera plane.
+
+        Note that this function does not cap the coordinates to be within the
+        size of the camera image.
+
+        Args:
+            obstacle_transform: The transform of the obstacle that the bounding
+                box is associated with.
+            extrinsic_matrix: The extrinsic matrix of the camera.
+            intrinsic_matrix: The intrinsic matrix of the camera.
+
+        Returns:
+            A list of 8 Location instances specifying the 8 corners of the
+            bounding box.
+        """
+        # Retrieve the eight coordinates of the bounding box with respect to
+        # the origin of the bounding box.
+        import numpy as np
+        extent = self.extent
+        bbox = np.array([
+            pylot.utils.Location(x=+extent.x, y=+extent.y, z=-extent.z),
+            pylot.utils.Location(x=-extent.x, y=+extent.y, z=-extent.z),
+            pylot.utils.Location(x=-extent.x, y=-extent.y, z=-extent.z),
+            pylot.utils.Location(x=+extent.x, y=-extent.y, z=-extent.z),
+            pylot.utils.Location(x=+extent.x, y=+extent.y, z=+extent.z),
+            pylot.utils.Location(x=-extent.x, y=+extent.y, z=+extent.z),
+            pylot.utils.Location(x=-extent.x, y=-extent.y, z=+extent.z),
+            pylot.utils.Location(x=+extent.x, y=-extent.y, z=+extent.z),
+        ])
+
+        # Transform the vertices with respect to the bounding box transform.
+        bbox = self.transform.transform_points(bbox)
+
+        # Convert the bounding box relative to the world.
+        bbox = obstacle_transform.transform_points(bbox)
+
+        # Obstacle's transform is relative to the world. Thus, the bbox
+        # contains the 3D bounding box vertices relative to the world.
+        camera_coordinates = []
+        for vertex in bbox:
+            location_2D = vertex.to_camera_view(extrinsic_matrix,
+                                                intrinsic_matrix)
+
+            # Add the points to the image.
+            camera_coordinates.append(location_2D)
+
+        return camera_coordinates
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return "BoundingBox3D(transform: {}, extent: {})".format(
+            self.transform, self.extent)
 
 
 class DetectedObstacle(object):
@@ -362,7 +478,7 @@ def annotate_image_with_bboxes(timestamp,
                                bbox_color_map=GROUND_COLOR_MAP):
     """ Adds bounding boxes to an image."""
     #    txt_font = cv2.FONT_HERSHEY_SIMPLEX
-    add_timestamp(timestamp, image_np)
+    pylot.utils.add_timestamp(timestamp, image_np)
     for obstacle in detected_obstacles:
         obstacle.visualize_on_img(image_np, bbox_color_map)
     return image_np

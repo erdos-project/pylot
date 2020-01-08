@@ -1,6 +1,7 @@
 import re
 import carla
 
+import pylot.perception.detection.utils
 import pylot.simulation.utils
 import pylot.utils
 from pylot.perception.detection.traffic_light import TrafficLight
@@ -201,9 +202,8 @@ def convert_traffic_stop_actors(traffic_stop_actors):
             ts_actor.get_transform())
         world_trigger_volume = ts_actor.get_transform().transform(
             ts_actor.trigger_volume.location)
-        bbox = pylot.simulation.utils.BoundingBox(
-            carla.BoundingBox(world_trigger_volume,
-                              ts_actor.trigger_volume.extent))
+        bbox = pylot.perception.detection.utils.BoundingBox3D(
+            world_trigger_volume, ts_actor.trigger_volume.extent)
         stop_sign = pylot.simulation.utils.StopSign(transform, bbox)
         stop_signs.append(stop_sign)
     return stop_signs
