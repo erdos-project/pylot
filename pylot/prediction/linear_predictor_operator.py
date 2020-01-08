@@ -3,7 +3,7 @@ import numpy as np
 
 from pylot.prediction.messages import PredictionMessage
 from pylot.prediction.utils import ObstaclePrediction
-from pylot.simulation.utils import Location, Rotation, Transform
+from pylot.utils import Location, Rotation, Transform
 
 
 class LinearPredictorOperator(erdos.Operator):

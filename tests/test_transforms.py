@@ -4,7 +4,7 @@ from collections import namedtuple
 import numpy as np
 
 import carla
-from pylot.simulation.utils import Location, Rotation
+from pylot.utils import Location, Rotation
 
 ## Location Tests
 
@@ -30,8 +30,7 @@ def test_location_creation(x, y, z):
 def test_location_from_carla(x, y, z):
     """ Test that the Location is initialized correctly from a carla.Location
     instance """
-    carla_loc = carla.Location(x, y, z)
-    location = Location(carla_location=carla_loc)
+    location = Location.from_carla_location(carla.Location(x, y, z))
     assert np.isclose(location.x, x), "X values are not the same."
     assert np.isclose(location.y, y), "Y values are not the same."
     assert np.isclose(location.z, z), "Z values are not the same."
@@ -43,7 +42,7 @@ def test_negative_location_from_carla():
     DummyType = namedtuple("DummyType", "x, y, z")
     dummy_instance = DummyType(10, 20, 30)
     with pytest.raises(ValueError):
-        Location(carla_location=dummy_instance)
+        Location.from_carla_location(dummy_instance)
 
 
 @pytest.mark.parametrize("point_a, point_b, expected",
@@ -145,7 +144,7 @@ def test_rotation_from_carla(pitch, yaw, roll):
     """ Test that the Rotation is initialized correctly from a carla.Rotation
     instance """
     carla_rotation = carla.Rotation(pitch, yaw, roll)
-    rotation = Rotation(carla_rotation=carla_rotation)
+    rotation = Rotation.from_carla_rotation(carla_rotation)
     assert np.isclose(rotation.pitch, pitch), "pitch values are not the same."
     assert np.isclose(rotation.yaw, yaw), "yaw values are not the same."
     assert np.isclose(rotation.roll, roll), "roll values are not the same."
@@ -157,7 +156,7 @@ def test_negative_rotation_from_carla():
     DummyType = namedtuple("DummyType", "pitch, yaw, roll")
     dummy_instance = DummyType(10, 20, 30)
     with pytest.raises(ValueError):
-        Rotation(carla_rotation=dummy_instance)
+        Rotation.from_carla_rotation(dummy_instance)
 
 
 def test_as_carla_rotation():

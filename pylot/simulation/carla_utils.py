@@ -2,6 +2,7 @@ import re
 import carla
 
 import pylot.simulation.utils
+import pylot.utils
 from pylot.perception.detection.traffic_light import TrafficLight
 
 
@@ -176,8 +177,8 @@ def convert_speed_limit_actors(speed_limit_actors):
     """
     speed_limits = []
     for ts_actor in speed_limit_actors:
-        transform = pylot.simulation.utils.Transform(
-            carla_transform=ts_actor.get_transform())
+        transform = pylot.utils.Transform.from_carla_transform(
+            ts_actor.get_transform())
         speed_limit = int(ts_actor.type_id.split('.')[-1])
         speed_sign = pylot.simulation.utils.SpeedLimitSign(
             transform, speed_limit)
@@ -196,8 +197,8 @@ def convert_traffic_stop_actors(traffic_stop_actors):
     """
     stop_signs = []
     for ts_actor in traffic_stop_actors:
-        transform = pylot.simulation.utils.Transform(
-            carla_transform=ts_actor.get_transform())
+        transform = pylot.utils.Transform.from_carla_transform(
+            ts_actor.get_transform())
         world_trigger_volume = ts_actor.get_transform().transform(
             ts_actor.trigger_volume.location)
         bbox = pylot.simulation.utils.BoundingBox(

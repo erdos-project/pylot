@@ -4,7 +4,7 @@ import time
 
 from pylot.simulation.carla_utils import get_world, set_synchronous_mode
 from pylot.simulation.messages import IMUMessage
-from pylot.simulation.utils import Vector3D, Transform
+from pylot.utils import Transform, Vector3D
 
 
 class IMUDriverOperator(erdos.Operator):
@@ -68,9 +68,9 @@ class IMUDriverOperator(erdos.Operator):
             timestamp = erdos.Timestamp(coordinates=[game_time])
             watermark_msg = erdos.WatermarkMessage(timestamp)
 
-            msg = IMUMessage(Transform(carla_transform=imu_msg.transform),
-                             Vector3D(carla_vector=imu_msg.accelerometer),
-                             Vector3D(carla_vector=imu_msg.gyroscope),
+            msg = IMUMessage(Transform.from_carla_transform(imu_msg.transform),
+                             Vector3D.from_carla_vector(imu_msg.accelerometer),
+                             Vector3D.from_carla_vector(imu_msg.gyroscope),
                              imu_msg.compass, timestamp)
             self._imu_stream.send(msg)
             # Note: The operator is set not to automatically propagate

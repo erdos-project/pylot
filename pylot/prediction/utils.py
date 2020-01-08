@@ -5,8 +5,8 @@ class ObstaclePrediction(object):
         label: The label of the obstacle.
         id: The id of the obstacle.
         probability: The probability of the prediction.
-        trajectory: The prediction as a list of
-                    pylot.simulation.utils.Transforms."""
+        trajectory: The prediction as a list of pylot.utils.Transforms.
+    """
     def __init__(self, label, id, probability, trajectory):
         self.label = label
         self.id = id

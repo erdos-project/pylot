@@ -7,9 +7,7 @@ from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 
 from erdos.utils import setup_logging
 
-from pylot.simulation.utils import Transform
-from pylot.utils import compute_magnitude_angle, get_distance, \
-    is_within_distance_ahead
+import pylot.utils
 
 
 class HDMap(object):
@@ -28,7 +26,7 @@ class HDMap(object):
         """ Returns the road closest waypoint to location.
 
         Args:
-            location: Location in world coordinates.
+            location: pylot.utils.Location in world coordinates.
 
         Returns:
             A waypoint or None if no waypoint is found.
@@ -42,7 +40,7 @@ class HDMap(object):
         """ Returns True if the location is in an intersection.
 
         Args:
-            location: Location in world coordinates.
+            location: pylot.utils.Location in world coordinates.
         """
         waypoint = self._map.get_waypoint(location.as_carla_location(),
                                           project_to_road=False,
@@ -72,8 +70,8 @@ class HDMap(object):
         """ Returns True if the two locations are on the same lane.
 
         Args:
-            location1: Location in world coordinates.
-            location1: Location in world coordinates.
+            location1: pylot.utils.Location in world coordinates.
+            location1: pylot.utils.Location in world coordinates.
         """
         waypoint1 = self._map.get_waypoint(location1.as_carla_location(),
                                            project_to_road=False,
@@ -123,7 +121,7 @@ class HDMap(object):
         """ Returns True if the location is at a stop sign.
 
         Args:
-            location: Location in world coordinates.
+            location: pylot.utils.Location in world coordinates.
         """
         # TODO(ionel): This method doesn't work yet because the opendrive do
         # not contained waypoints annotated as stops.
@@ -175,8 +173,10 @@ class HDMap(object):
         """ Returns True if the ego vehicle must obbey the traffic light.
 
         Args:
-            ego_location: Location of the ego vehicle in world coordinates.
-            tl_location: Location of the traffic light in world coordinates.
+            ego_location: pylot.utils.Location of the ego vehicle in world
+                coordinates.
+            tl_location: pylot.utils.Location of the traffic light in world
+                coordinates.
         """
         waypoint = self._map.get_waypoint(ego_location.as_carla_location(),
                                           project_to_road=False,
@@ -212,9 +212,9 @@ class HDMap(object):
             if (tl_waypoint.road_id != ego_waypoint.road_id
                     or tl_waypoint.lane_id != ego_waypoint.lane_id):
                 continue
-            if is_within_distance_ahead(ego_loc, tl_loc,
-                                        ego_transform.rotation.yaw,
-                                        tl_max_dist_thresh):
+            if pylot.utils.is_within_distance_ahead(ego_loc, tl_loc,
+                                                    ego_transform.rotation.yaw,
+                                                    tl_max_dist_thresh):
                 return (True, tl_loc)
         return (False, None)
 
@@ -231,10 +231,10 @@ class HDMap(object):
         min_angle = 25.0
         selected_tl_loc = None
         for tl_loc in tl_locations:
-            if is_within_distance_ahead(ego_loc, tl_loc,
-                                        ego_transform.rotation.yaw,
-                                        tl_max_dist_thresh):
-                magnitude, angle = compute_magnitude_angle(
+            if pylot.utils.is_within_distance_ahead(ego_loc, tl_loc,
+                                                    ego_transform.rotation.yaw,
+                                                    tl_max_dist_thresh):
+                magnitude, angle = pylot.utils.compute_magnitude_angle(
                     tl_loc, ego_transform.location, ego_transform.rotation.yaw)
                 if magnitude < 60.0 and angle < min(25.0, min_angle):
                     min_angle = angle
@@ -273,7 +273,7 @@ class HDMap(object):
 
         # TODO(ionel): Handle the case when the road id changes -> s resets.
         # TODO(ionel): Handle case when the center lane is bidirectional.
-        return waypoint.s, get_distance(location, d0_location)
+        return waypoint.s, pylot.utils.get_distance(location, d0_location)
 
     def get_left_lane(self, location):
         # TODO(ionel): Implement!
@@ -304,6 +304,6 @@ class HDMap(object):
         # TODO(ionel): The planner returns several options in intersections.
         # We always take the first one, but this is not correct.
         return deque([
-            Transform(carla_transform=waypoint[0].transform)
+            pylot.utils.Transform.from_carla_transform(waypoint[0].transform)
             for waypoint in route
         ])

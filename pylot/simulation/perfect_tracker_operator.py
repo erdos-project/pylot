@@ -3,7 +3,7 @@ import erdos
 
 from pylot.perception.messages import ObstacleTrajectory,\
     ObstacleTrajectoriesMessage
-from pylot.simulation.utils import Rotation, Transform
+import pylot.utils
 
 
 class PerfectTrackerOperator(erdos.Operator):
@@ -66,7 +66,8 @@ class PerfectTrackerOperator(erdos.Operator):
                 new_location = can_bus_transform.inverse_transform_points(
                     [v_transform.location])[0]
                 cur_obstacle_trajectory.append(
-                    Transform(location=new_location, rotation=Rotation()))
+                    pylot.utils.Transform(location=new_location,
+                                          rotation=pylot.utils.Rotation()))
             obstacle_trajectories.append(
                 ObstacleTrajectory(obstacle.label, obstacle.id,
                                    cur_obstacle_trajectory))

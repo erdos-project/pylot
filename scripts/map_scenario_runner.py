@@ -17,11 +17,12 @@ import pygame
 from miou_scenario_runner import setup_world, retrieve_actor, spawn_camera
 from miou_scenario_runner import cleanup_function
 
-from pylot.simulation.utils import Transform, Obstacle
+from pylot.simulation.utils import Obstacle
 from pylot.simulation.sensor_setup import DepthCameraSetup
 from pylot.perception.detection.utils import get_precision_recall_at_iou
 from pylot.perception.messages import DepthFrameMessage, SegmentedFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
+from pylot.utils import Transform
 
 VEHICLE_DESTINATION = carla.Location(x=387.73 - 370, y=327.07, z=0.5)
 SAVED_DETECTIONS = collections.deque()
@@ -200,7 +201,8 @@ def process_depth_images(msg,
 
     # Transform the static camera setup with respect to the location of the
     # vehicle in the world.
-    vehicle_transform = Transform(carla_transform=ego_vehicle.get_transform())
+    vehicle_transform = Transform.from_carla_transform(
+        ego_vehicle.get_transform())
     transformed_camera_setup = DepthCameraSetup(
         depth_camera_setup.name,
         depth_camera_setup.width,
@@ -301,7 +303,7 @@ def main(args):
 
     depth_camera_setup = DepthCameraSetup(
         "depth_camera", width, height,
-        Transform(carla_transform=camera_transform))
+        Transform.from_carla_transform(camera_transform))
     depth_camera.listen(
         functools.partial(process_depth_images,
                           depth_camera_setup=depth_camera_setup,

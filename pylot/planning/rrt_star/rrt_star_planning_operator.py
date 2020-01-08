@@ -17,12 +17,11 @@ import itertools
 
 from pylot.map.hd_map import HDMap
 from pylot.planning.messages import WaypointsMessage
-from pylot.simulation.utils import Transform, Location, Rotation
 from pylot.simulation.carla_utils import get_map
 from pylot.planning.rrt_star.rrt_star import apply_rrt_star
 from pylot.planning.rrt_star.utils import start_target_to_space
 from pylot.planning.utils import get_waypoint_vector_and_angle
-from pylot.utils import is_within_distance_ahead
+from pylot.utils import is_within_distance_ahead, Location, Rotation, Transform
 
 DEFAULT_OBSTACLE_LENGTH = 3  # 3 meters from front to back
 DEFAULT_OBSTACLE_WIDTH = 2  # 2 meters from side to side
@@ -148,7 +147,8 @@ class RRTStarPlanningOperator(erdos.Operator):
         Construct an obstacle map given vehicle_transform.
 
         Args:
-            vehicle_transform: Transform of vehicle from can_bus stream
+            vehicle_transform: pylot.utils.Transform of vehicle from can_bus
+                stream
 
         Returns:
             an obstacle map that maps
@@ -185,7 +185,8 @@ class RRTStarPlanningOperator(erdos.Operator):
         RRT* search to plan for.
 
         Args:
-            vehicle_transform: Transform of vehicle from can_bus stream
+            vehicle_transform: pylot.utils.Transform of vehicle from can_bus
+                stream
 
         Returns:
             target location
@@ -204,7 +205,8 @@ class RRTStarPlanningOperator(erdos.Operator):
         and obstacle_map.
 
         Args:
-            vehicle_transform: Transform of vehicle from can_bus stream
+            vehicle_transform: pylot.utils.Transform of vehicle from can_bus
+                stream
             target_location: Location target
             obstacle_map: an obstacle map that maps
                 {id_time: (obstacle_origin, obstacle_range)}

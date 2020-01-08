@@ -9,7 +9,6 @@ import pylot.utils
 from pylot.simulation.carla_utils import extract_data_in_pylot_format,\
     get_weathers, get_world, reset_world, set_synchronous_mode
 import pylot.simulation.messages
-from pylot.simulation.utils import Transform, Vector3D
 import pylot.simulation.utils
 
 flags.DEFINE_enum('carla_version', '0.9.7', ['0.9.5', '0.9.6', '0.9.7'],
@@ -391,10 +390,10 @@ class CarlaOperator(erdos.Operator):
         self._tick_simulator()
 
     def __publish_hero_vehicle_data(self, timestamp, watermark_msg):
-        vec_transform = Transform(
-            carla_transform=self._driving_vehicle.get_transform())
-        velocity_vector = Vector3D(
-            carla_vector=self._driving_vehicle.get_velocity())
+        vec_transform = pylot.utils.Transform.from_carla_transform(
+            self._driving_vehicle.get_transform())
+        velocity_vector = pylot.utils.Vector3D.from_carla_vector(
+            self._driving_vehicle.get_velocity())
         forward_speed = velocity_vector.magnitude()
         can_bus = pylot.simulation.utils.CanBus(vec_transform, forward_speed)
         self.can_bus_stream.send(erdos.Message(timestamp, can_bus))

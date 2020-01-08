@@ -12,8 +12,8 @@ from pylot.simulation.messages import FrameMessage, DepthFrameMessage
 import pylot.simulation.utils
 from pylot.simulation.utils import get_3d_world_position_with_depth_map,\
      get_3d_world_position_with_point_cloud,\
-     lidar_point_cloud_to_camera_coordinates,\
-     Transform
+     lidar_point_cloud_to_camera_coordinates
+import pylot.utils
 from matplotlib import pyplot as plt
 from pylot.simulation.sensor_setup import CameraSetup
 
@@ -33,9 +33,8 @@ target_vehicle_transform = carla.Transform(
     carla.Location(242, 131.239990234, 0),
     carla.Rotation(pitch=0, yaw=0, roll=0))
 
-print ("Target Vehicle Location:", target_vehicle_transform.location.x,
-                                   target_vehicle_transform.location.y,
-                                   target_vehicle_transform.location.z)
+print("Target Vehicle Location:", target_vehicle_transform.location.x,
+      target_vehicle_transform.location.y, target_vehicle_transform.location.z)
 
 # target_vehicle_transform = carla.Transform(
 #     carla.Location(20, 2, 0),
@@ -45,17 +44,15 @@ print ("Target Vehicle Location:", target_vehicle_transform.location.x,
 sensor_transform = carla.Transform(
     carla.Location(237.699996948, 132.239990234, 1.32062494755),
     carla.Rotation(pitch=0, yaw=0, roll=0))
-print ("Our Location:", sensor_transform.location.x,
-                        sensor_transform.location.y,
-                        sensor_transform.location.z)
+print("Our Location:", sensor_transform.location.x,
+      sensor_transform.location.y, sensor_transform.location.z)
 
 # sensor_transform = carla.Transform(
 #     carla.Location(2, 8, 1.4),
 #     carla.Rotation(pitch=0, yaw=0, roll=0))
 
-vehicle_transform = pylot.simulation.utils.Transform(
-    pylot.simulation.utils.Location(0, 0, 0),
-    pylot.simulation.utils.Rotation(pitch=0, yaw=0, roll=0))
+vehicle_transform = pylot.utils.Transform(pylot.utils.Location(0, 0, 0),
+                                          pylot.utils.Rotation())
 
 
 def on_lidar_msg(carla_pc):
@@ -65,7 +62,8 @@ def on_lidar_msg(carla_pc):
     points = copy.deepcopy(points)
     points = np.reshape(points, (int(points.shape[0] / 3), 3))
 
-    lidar_transform = Transform(carla_transform=carla_pc.transform)
+    lidar_transform = pylot.utils.Transform.from_carla_transform(
+        carla_pc.transform)
 
     # Transform lidar points from lidar coordinates to camera coordinates.
     points = lidar_point_cloud_to_camera_coordinates(points)
@@ -82,6 +80,8 @@ def on_lidar_msg(carla_pc):
 
     global lidar_pc
     lidar_pc = points.tolist()
+
+
 #    pptk.viewer(points)
 
 
@@ -96,7 +96,8 @@ def on_depth_msg(carla_image):
     game_time = int(carla_image.timestamp * 1000)
     print("Received depth camera msg {}".format(game_time))
 
-    depth_camera_transform = Transform(carla_transform=carla_image.transform)
+    depth_camera_transform = pylot.utils.Transform.from_carla_transform(
+        carla_image.transform)
 
     camera_setup = CameraSetup("depth_camera",
                                "sensor.camera.depth",
@@ -123,12 +124,14 @@ def on_depth_msg(carla_image):
 
     global depth_pc
     depth_pc = depth_point_cloud
+
+
 #    pptk.viewer(depth_point_cloud)
 
 
 def add_lidar(world, transform, callback):
     lidar_blueprint = world.get_blueprint_library().find(
-       'sensor.lidar.ray_cast')
+        'sensor.lidar.ray_cast')
     lidar_blueprint.set_attribute('channels', '32')
     lidar_blueprint.set_attribute('range', '5000')
     lidar_blueprint.set_attribute('points_per_second', '500000')
@@ -142,8 +145,7 @@ def add_lidar(world, transform, callback):
 
 
 def add_depth_camera(world, transform, callback):
-    depth_blueprint = world.get_blueprint_library().find(
-        'sensor.camera.depth')
+    depth_blueprint = world.get_blueprint_library().find('sensor.camera.depth')
     depth_blueprint.set_attribute('image_size_x', '800')
     depth_blueprint.set_attribute('image_size_y', '600')
     depth_camera = world.spawn_actor(depth_blueprint, transform)
@@ -153,8 +155,7 @@ def add_depth_camera(world, transform, callback):
 
 
 def add_camera(world, transform, callback):
-    camera_blueprint = world.get_blueprint_library().find(
-        'sensor.camera.rgb')
+    camera_blueprint = world.get_blueprint_library().find('sensor.camera.rgb')
     camera_blueprint.set_attribute('image_size_x', '800')
     camera_blueprint.set_attribute('image_size_y', '600')
     camera = world.spawn_actor(camera_blueprint, transform)
@@ -175,7 +176,6 @@ client, world = get_world()
 settings = world.get_settings()
 settings.synchronous_mode = True
 world.apply_settings(settings)
-
 
 print("Adding sensors")
 target_vehicle = add_vehicle(world, target_vehicle_transform)

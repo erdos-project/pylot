@@ -14,11 +14,10 @@ from pylot.perception.detection.utils import annotate_image_with_bboxes, \
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.simulation.carla_utils import convert_speed_limit_actors,\
     convert_traffic_light_actors, convert_traffic_stop_actors, get_world
-from pylot.simulation.utils import Transform
-from pylot.utils import bgr_to_rgb
 import pylot.simulation.utils
 from pylot.simulation.sensor_setup import DepthCameraSetup
 from pylot.simulation.messages import FrameMessage, DepthFrameMessage
+import pylot.utils
 
 FLAGS = flags.FLAGS
 CARLA_IMAGE = None
@@ -43,7 +42,8 @@ def on_camera_msg(image):
 
 def on_depth_msg(carla_image):
     global DEPTH_FRAME
-    transform = Transform(carla_transform=carla_image.transform)
+    transform = pylot.utils.Transform.from_carla_transform(
+        carla_image.transform)
     camera_setup = DepthCameraSetup("depth_camera", FLAGS.frame_width,
                                     FLAGS.camera_height, transform,
                                     FLAGS.camera_fov)
@@ -154,7 +154,8 @@ def log_bounding_boxes(carla_image, depth_frame, segmented_frame,
     frame = carla_image.frame
     # Copy the frame to ensure its on the heap.
     frame = copy.deepcopy(frame)
-    transform = Transform(carla_transform=carla_image.transform)
+    transform = pylot.utils.Transform.from_carla_transform(
+        carla_image.transform)
     _, world = get_world()
     town_name = world.get_map().name
 
@@ -179,7 +180,7 @@ def log_bounding_boxes(carla_image, depth_frame, segmented_frame,
     det_obstacles = (speed_limit_det_obstacles + traffic_stop_det_obstacles +
                      traffic_light_det_obstacles)
     # Log the frame.
-    rgb_frame = bgr_to_rgb(frame)
+    rgb_frame = pylot.utils.bgr_to_rgb(frame)
     file_name = '{}signs-{}_{}_{}.png'.format(FLAGS.data_path, game_time,
                                               weather, town)
     rgb_img = Image.fromarray(np.uint8(rgb_frame))
@@ -187,7 +188,7 @@ def log_bounding_boxes(carla_image, depth_frame, segmented_frame,
 
     if FLAGS.log_bbox_images:
         annotate_image_with_bboxes(game_time, frame, det_obstacles)
-        rgb_frame = bgr_to_rgb(frame)
+        rgb_frame = pylot.utils.bgr_to_rgb(frame)
         file_name = '{}annotated-signs-{}_{}_{}.png'.format(
             FLAGS.data_path, game_time, weather, town)
         rgb_img = Image.fromarray(np.uint8(rgb_frame))
@@ -306,19 +307,16 @@ def log_traffic_lights(world):
             # Traffic lights have different coordinate systems, hence
             # we need to offset y, instead of x and add that to the trigger
             # volume location.
-            offset_loc = pylot.simulation.utils.Location(
+            offset_loc = pylot.utils.Location(
                 x=light.trigger_volume.location.x,
                 y=light.trigger_volume.location.y + offset,
                 z=light.trigger_volume.location.z)
-            offset_rot = pylot.simulation.utils.Rotation(pitch=0,
-                                                         yaw=0,
-                                                         roll=0)
-            offset_trans = pylot.simulation.utils.Transform(
-                offset_loc, offset_rot)
+            offset_trans = pylot.utils.Transform(offset_loc,
+                                                 pylot.utils.Rotation())
 
             # Transform the offset relative to the traffic light.
-            transform = Transform(
-                carla_transform=light.get_transform()) * offset_trans
+            transform = pylot.utils.Transform.from_carla_transform(
+                light.get_transform()) * offset_trans
             location = transform.location.as_carla_location()
 
             # Get the waypoint nearest to the transform.
@@ -326,7 +324,8 @@ def log_traffic_lights(world):
                                        project_to_road=True,
                                        lane_type=carla.LaneType.Driving)
             w_rotation = w.transform.rotation
-            camera_transform = Transform(carla_transform=w.transform)
+            camera_transform = pylot.utils.Transform.from_carla_transform(
+                w.transform)
             camera_transform.location.z += 2.0
             transform = camera_transform.as_carla_transform()
             transforms_of_interest.append(transform)
@@ -335,8 +334,8 @@ def log_traffic_lights(world):
             wp_right = w.get_right_lane()
             while wp_right and wp_right.lane_type == carla.LaneType.Driving \
                     and w_rotation == wp_right.transform.rotation:
-                camera_transform = Transform(
-                    carla_transform=wp_right.transform)
+                camera_transform = pylot.utils.Transform.from_carla_transform(
+                    wp_right.transform)
                 camera_transform.location.z += 2.0
                 transform = camera_transform.as_carla_transform()
                 transforms_of_interest.append(transform)
@@ -346,7 +345,8 @@ def log_traffic_lights(world):
             wp_left = w.get_left_lane()
             while wp_left and wp_left.lane_type == carla.LaneType.Driving and \
                     w_rotation == wp_left.transform.rotation:
-                camera_transform = Transform(carla_transform=wp_left.transform)
+                camera_transform = pylot.utils.Transform.from_carla_transform(
+                    wp_left.transform)
                 camera_transform.location.z += 2.0
                 transform = camera_transform.as_carla_transform()
                 transforms_of_interest.append(transform)
@@ -378,18 +378,16 @@ def log_speed_limits(world):
         for offset in range(10, 25, 5):
             # Speed signs have different coordinate systems, hence
             # we need to offset y, instead of x.
-            offset_loc = pylot.simulation.utils.Location(x=0, y=offset, z=0)
-            offset_rot = pylot.simulation.utils.Rotation(pitch=0,
-                                                         yaw=0,
-                                                         roll=0)
-            offset_trans = pylot.simulation.utils.Transform(
-                offset_loc, offset_rot)
+            offset_loc = pylot.utils.Location(x=0, y=offset, z=0)
+            offset_trans = pylot.utils.Transform(offset_loc,
+                                                 pylot.utils.Rotation())
             transform = speed_sign.transform * offset_trans
             location = transform.location.as_carla_location()
             w = world_map.get_waypoint(location,
                                        project_to_road=True,
                                        lane_type=carla.LaneType.Driving)
-            camera_transform = Transform(carla_transform=w.transform)
+            camera_transform = pylot.utils.Transform.from_carla_transform(
+                w.transform)
             camera_transform.location.z += 2.0
             transform = camera_transform.as_carla_transform()
             transforms_of_interest.append(transform)
@@ -412,18 +410,16 @@ def log_stop_signs(world):
     # Add transforms that are close to stop signs.
     for stop_sign in traffic_stops:
         for offset in range(10, 25, 5):
-            offset_loc = pylot.simulation.utils.Location(x=-offset, y=0, z=0)
-            offset_rot = pylot.simulation.utils.Rotation(pitch=0,
-                                                         yaw=0,
-                                                         roll=0)
-            offset_trans = pylot.simulation.utils.Transform(
-                offset_loc, offset_rot)
+            offset_loc = pylot.utils.Location(x=-offset, y=0, z=0)
+            offset_trans = pylot.utils.Transform(offset_loc,
+                                                 pylot.utils.Rotation())
             transform = stop_sign.transform * offset_trans
             location = transform.location.as_carla_location()
             w = world_map.get_waypoint(location,
                                        project_to_road=True,
                                        lane_type=carla.LaneType.Driving)
-            camera_transform = Transform(carla_transform=w.transform)
+            camera_transform = pylot.utils.Transform.from_carla_transform(
+                w.transform)
             camera_transform.location.z += 2.0
             transform = camera_transform.as_carla_transform()
             transforms_of_interest.append(transform)

@@ -5,13 +5,14 @@ import erdos
 import pylot.flags
 import pylot.operator_creator
 import pylot.simulation.utils
+import pylot.utils
 
 FLAGS = flags.FLAGS
 
 flags.DEFINE_list('goal_location', '234, 59, 39', 'Ego-vehicle goal location')
 
 # The location of the center camera relative to the ego-vehicle.
-CENTER_CAMERA_LOCATION = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
+CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
 
 
 def add_obstacle_detection(center_camera_stream,
@@ -298,8 +299,8 @@ def add_control(center_camera_setup, can_bus_stream, obstacles_stream,
 
 
 def driver():
-    transform = pylot.simulation.utils.Transform(
-        CENTER_CAMERA_LOCATION, pylot.simulation.utils.Rotation(0, 0, 0))
+    transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
+                                      pylot.utils.Rotation())
 
     control_loop_stream = erdos.LoopStream()
     # Create carla operator.

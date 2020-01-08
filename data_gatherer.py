@@ -5,6 +5,7 @@ import erdos
 import pylot.flags
 import pylot.operator_creator
 import pylot.simulation.utils
+import pylot.utils
 
 FLAGS = flags.FLAGS
 
@@ -36,12 +37,12 @@ flags.DEFINE_bool('log_top_down_segmentation', False,
                   'True to enable logging of top down segmentation')
 
 # The location of the center camera relative to the ego-vehicle.
-CENTER_CAMERA_LOCATION = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
+CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
 
 
 def driver():
-    transform = pylot.simulation.utils.Transform(
-        CENTER_CAMERA_LOCATION, pylot.simulation.utils.Rotation(0, 0, 0))
+    transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
+                                      pylot.utils.Rotation())
 
     control_loop_stream = erdos.LoopStream()
     # Create carla operator.

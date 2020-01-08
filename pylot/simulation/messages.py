@@ -111,9 +111,9 @@ class IMUMessage(erdos.Message):
 
      Attributes:
         transform: simulation.utils.Transform of the IMU.
-        acceleration: simulation.utils.Vector3D linear acceleration
+        acceleration: utils.Vector3D linear acceleration
             measurement in m/s^2
-        gyro: simulation.utils.Vector3D angular velocity measurement in rad/sec
+        gyro: utils.Vector3D angular velocity measurement in rad/sec
         compass: float orientation measurement w.r.t North direction
             ((0, -1, 0) in Unreal) in radians
     """
@@ -121,10 +121,9 @@ class IMUMessage(erdos.Message):
         """ Initializes the IMU messsage.
          Args:
             transform: The simulation.utils.Transform of the IMU.
-            acceleration: simulation.utils.Vector3D linear acceleration
+            acceleration: utils.Vector3D linear acceleration
                 measurement in m/s^2
-            gyro: simulation.utils.Vector3D angular velocity measurement in
-                rad/sec
+            gyro: utils.Vector3D angular velocity measurement in rad/sec
             compass: float orientation measurement w.r.t North direction
                 ((0, -1, 0) in Unreal) in radians
         """

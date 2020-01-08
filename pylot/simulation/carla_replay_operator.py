@@ -88,10 +88,10 @@ class CarlaReplayOperator(erdos.Operator):
             time.sleep(0.2)
 
     def __publish_hero_vehicle_data(self, timestamp, watermark_msg):
-        vec_transform = pylot.simulation.utils.Transform(
-            carla_transform=self._driving_vehicle.get_transform())
-        velocity_vector = pylot.simulation.utils.Vector3D(
-            carla_vector=self._driving_vehicle.get_velocity())
+        vec_transform = pylot.utils.Transform.from_carla_transform(
+            self._driving_vehicle.get_transform())
+        velocity_vector = pylot.utils.Vector3D.from_carla_vector(
+            self._driving_vehicle.get_velocity())
         forward_speed = velocity_vector.magnitude()
         can_bus = pylot.simulation.utils.CanBus(vec_transform, forward_speed)
         self._can_bus_stream.send(erdos.Message(timestamp, can_bus))

@@ -1,8 +1,9 @@
 import erdos
 
-from pylot.simulation.utils import DetectedLane, Location
+from pylot.simulation.utils import DetectedLane
 from pylot.simulation.messages import DetectedLaneMessage
 from pylot.simulation.carla_utils import get_world
+import pylot.utils
 
 
 class PerfectLaneDetectionOperator(erdos.Operator):
@@ -40,7 +41,7 @@ class PerfectLaneDetectionOperator(erdos.Operator):
     def _lateral_shift(self, transform, shift):
         transform.rotation.yaw += 90
         shifted = transform.location + shift * transform.get_forward_vector()
-        return Location(carla_location=shifted)
+        return pylot.utils.Location.from_carla_location(shifted)
 
     def on_position_update(self, can_bus_msg, detected_lane_stream):
         """ Invoked on the receipt of an update to the position of the vehicle.

@@ -1,8 +1,7 @@
-import carla
 import numpy as np
 
 from pylot.perception.detection.utils import TrafficLightColor
-import pylot.simulation.utils
+import pylot.utils
 
 
 class TrafficLight(object):
@@ -21,18 +20,22 @@ class TrafficLight(object):
         self.trigger_volume_extent = trigger_volume_extent
         self.state = state
 
-    def from_carla_actor(traffic_light):
+    @classmethod
+    def from_carla_actor(cls, traffic_light):
         """ Creates a TrafficLight from a carla traffic light actor.
 
         Args:
             traffic_light: The carla.TrafficLight instance to initialize this
                 instance with.
         """
+        import carla
+        if not isinstance(traffic_light, carla.TrafficLight):
+            raise ValueError('The traffic light must be a carla.TrafficLight')
         # Retrieve the Transform of the TrafficLight.
-        transform = pylot.simulation.utils.Transform(
-            carla_transform=traffic_light.get_transform())
+        transform = pylot.utils.Transform.from_carla_transform(
+            traffic_light.get_transform())
         # Retrieve the Trigger Volume of the TrafficLight.
-        trigger_volume_extent = pylot.simulation.utils.Vector3D(
+        trigger_volume_extent = pylot.utils.Vector3D(
             traffic_light.trigger_volume.extent.x,
             traffic_light.trigger_volume.extent.y,
             traffic_light.trigger_volume.extent.z)
@@ -44,8 +47,7 @@ class TrafficLight(object):
             state = TrafficLightColor.YELLOW
         elif traffic_light_state == carla.TrafficLightState.Green:
             state = TrafficLightColor.GREEN
-        return TrafficLight(traffic_light.id, transform, trigger_volume_extent,
-                            state)
+        return cls(traffic_light.id, transform, trigger_volume_extent, state)
 
     def is_traffic_light_visible(self,
                                  camera_transform,
@@ -99,9 +101,9 @@ class TrafficLight(object):
             location_vector = np.array([[location.x], [location.y],
                                         [location.z]])
             transformed = np.dot(rotation_matrix, location_vector)
-            return pylot.simulation.utils.Location(x=transformed[0, 0],
-                                                   y=transformed[1, 0],
-                                                   z=transformed[2, 0])
+            return pylot.utils.Location(x=transformed[0, 0],
+                                        y=transformed[1, 0],
+                                        z=transformed[2, 0])
 
         transformed_points = [
             rotate(np.radians(self.transform.rotation.yaw), point)

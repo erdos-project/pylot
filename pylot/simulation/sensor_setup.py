@@ -1,6 +1,6 @@
 import numpy as np
 
-from pylot.simulation.utils import Location, Rotation, Transform
+from pylot.utils import Location, Rotation, Transform
 
 
 def create_rgb_camera_setup(camera_name,
@@ -8,8 +8,7 @@ def create_rgb_camera_setup(camera_name,
                             width,
                             height,
                             fov=90):
-    rotation = Rotation(0, 0, 0)
-    transform = Transform(camera_location, rotation)
+    transform = Transform(camera_location, Rotation())
     return RGBCameraSetup(camera_name, width, height, transform, fov)
 
 
@@ -18,8 +17,7 @@ def create_depth_camera_setup(camera_name_prefix,
                               width,
                               height,
                               fov=90):
-    rotation = Rotation(0, 0, 0)
-    transform = Transform(camera_location, rotation)
+    transform = Transform(camera_location, Rotation())
     return DepthCameraSetup(camera_name_prefix + '_depth',
                             width,
                             height,
@@ -32,8 +30,7 @@ def create_segmented_camera_setup(camera_name_prefix,
                                   width,
                                   height,
                                   fov=90):
-    rotation = Rotation(0, 0, 0)
-    transform = Transform(camera_location, rotation)
+    transform = Transform(camera_location, Rotation())
     return SegmentedCameraSetup(camera_name_prefix + '_segmented',
                                 width,
                                 height,
@@ -47,7 +44,7 @@ def create_left_right_camera_setups(camera_name_prefix,
                                     height,
                                     camera_offset,
                                     fov=90):
-    rotation = Rotation(0, 0, 0)
+    rotation = Rotation()
     left_loc = location + Location(0, -camera_offset, 0)
     right_loc = location + Location(0, camera_offset, 0)
     left_transform = Transform(left_loc, rotation)
@@ -66,7 +63,7 @@ def create_left_right_camera_setups(camera_name_prefix,
 
 
 def create_center_lidar_setup(location):
-    rotation = Rotation(0, 0, 0)
+    rotation = Rotation()
     # Place the lidar in the same position as the camera.
     lidar_transform = Transform(location, rotation)
     return LidarSetup(
@@ -82,8 +79,7 @@ def create_center_lidar_setup(location):
 
 
 def create_imu_setup(location):
-    return IMUSetup(name='imu',
-                    transform=Transform(location, Rotation(0, 0, 0)))
+    return IMUSetup(name='imu', transform=Transform(location, Rotation()))
 
 
 class CameraSetup(object):

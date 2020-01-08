@@ -82,7 +82,7 @@ class ChauffeurLoggerOperator(erdos.Operator):
         extrinsic_matrix = self._top_down_camera_setup.get_extrinsic_matrix()
         intrinsic_matrix = self._top_down_camera_setup.get_intrinsic_matrix()
 
-        rotation = pylot.simulation.utils.Rotation(0, 0, 0)
+        rotation = pylot.utils.Rotation()
         for obstacle in msg.obstacle_trajectories:
             # Convert to screen points.
             screen_points = [
@@ -113,8 +113,7 @@ class ChauffeurLoggerOperator(erdos.Operator):
         ]
 
         # Center first point at 0, 0
-        center_transform = pylot.simulation.utils.Transform(
-            self._waypoints[0], rotation)
+        center_transform = pylot.utils.Transform(self._waypoints[0], rotation)
         self._waypoints = [
             center_transform.inverse_transform_points([wp])[0]
             for wp in self._waypoints

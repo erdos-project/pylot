@@ -5,7 +5,7 @@ import erdos
 from pylot.control.messages import ControlMessage
 import pylot.flags
 import pylot.operator_creator
-import pylot.simulation.utils
+import pylot.utils
 
 FLAGS = flags.FLAGS
 
@@ -17,7 +17,7 @@ flags.DEFINE_integer('decay_max_latency', 400,
                      'Max latency to evaluate in ground truth experiments')
 
 # The location of the center camera relative to the ego-vehicle.
-CENTER_CAMERA_LOCATION = pylot.simulation.utils.Location(1.5, 0.0, 1.4)
+CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
 
 
 class SynchronizerOperator(erdos.Operator):
@@ -43,8 +43,8 @@ class SynchronizerOperator(erdos.Operator):
 
 def driver():
     """ Computes ground obstacle detection and segmentation decay."""
-    transform = pylot.simulation.utils.Transform(
-        CENTER_CAMERA_LOCATION, pylot.simulation.utils.Rotation(0, 0, 0))
+    transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
+                                      pylot.utils.Rotation())
 
     control_loop_stream = erdos.LoopStream()
     # Create carla operator.

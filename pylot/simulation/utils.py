@@ -1,11 +1,12 @@
 import carla
 from collections import namedtuple
 from operator import attrgetter
-import math
 import numpy as np
 from numpy.linalg import inv
 from numpy.matlib import repmat
 
+import pylot.utils
+from pylot.utils import Location, Transform
 from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle, \
     DetectedSpeedLimit
 
@@ -44,11 +45,11 @@ class BoundingBox(object):
         Args:
             carla_bb: The carla.BoundingBox instance to initialize from.
         """
-        loc = Location(carla_location=carla_bb.location)
-        rot = Rotation(0, 0, 0)
-        self.transform = Transform(loc, rot)
-        self.extent = Vector3D(carla_bb.extent.x, carla_bb.extent.y,
-                               carla_bb.extent.z)
+        loc = Location.from_carla_location(carla_bb.location)
+        self.transform = Transform(loc, pylot.utils.Rotation())
+        self.extent = pylot.utils.Vector3D(carla_bb.extent.x,
+                                           carla_bb.extent.y,
+                                           carla_bb.extent.z)
 
     def as_carla_bounding_box(self):
         """ Retrieves the current BoundingBox as an instance of
@@ -144,411 +145,6 @@ class BoundingBox(object):
             self.transform, self.extent)
 
 
-class Vector3D(object):
-    """ Represents a 3D vector and provides useful helper functions.
-
-    Attributes:
-        x: The value of the first axis.
-        y: The value of the second axis.
-        z: The value of the third axis.
-    """
-    def __init__(self, x=None, y=None, z=None, carla_vector=None):
-        """ Initializes the Vector3D instance from the given x, y and z values.
-        Alternatively, pass in a carla_vector (carla.vector3D).
-
-        Args:
-            x: The value of the first axis.
-            y: The value of the second axis.
-            z: The value of the third axis.
-            carla_vector: carla.vector3D
-        """
-        if carla_vector is not None:
-            x = carla_vector.x
-            y = carla_vector.y
-            z = carla_vector.z
-        self.x, self.y, self.z = x, y, z
-
-    def __add__(self, other):
-        """ Adds the two vectors together and returns the result. """
-        return type(self)(x=self.x + other.x,
-                          y=self.y + other.y,
-                          z=self.z + other.z)
-
-    def __sub__(self, other):
-        """ Subtracts the other vector from self and returns the result. """
-        return type(self)(x=self.x - other.x,
-                          y=self.y - other.y,
-                          z=self.z - other.z)
-
-    def as_numpy_array(self):
-        """ Retrieves the given vector as a numpy array. """
-        import numpy as np
-        return np.array([self.x, self.y, self.z])
-
-    def as_carla_vector(self):
-        """ Retrieves the given vector as an instance of carla.Vector3D. """
-        return carla.Vector3D(self.x, self.y, self.z)
-
-    def magnitude(self):
-        """ Returns the magnitude of the Vector3D instance. """
-        import numpy as np
-        return np.linalg.norm(self.as_numpy_array())
-
-    def to_camera_view(self, extrinsic_matrix, intrinsic_matrix):
-        """ Converts the given 3D vector to the view of the camera using
-        the extrinsic and the intrinsic matrix.
-
-        Args:
-            extrinsic_matrix: The extrinsic matrix of the camera.
-            intrinsic_matrix: The intrinsic matrix of the camera.
-
-        Returns:
-            An instance with the coordinates converted to the camera view.
-        """
-        import numpy as np
-        position_vector = np.array([[self.x], [self.y], [self.z], [1.0]])
-
-        # Transform the points to the camera in 3D.
-        transformed_3D_pos = np.dot(np.linalg.inv(extrinsic_matrix),
-                                    position_vector)
-
-        # Transform the points to 2D.
-        position_2D = np.dot(intrinsic_matrix, transformed_3D_pos[:3])
-
-        # Normalize the 2D points.
-        location_2D = type(self)(float(position_2D[0] / position_2D[2]),
-                                 float(position_2D[1] / position_2D[2]),
-                                 position_2D[2])
-        return location_2D
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        return 'Vector3D(x={}, y={}, z={})'.format(self.x, self.y, self.z)
-
-
-class Rotation(object):
-    """ The Pylot version of the carla.Rotation instance that defines helper
-    functions needed in Pylot, and makes the class serializable.
-
-    Attributes:
-        pitch: Rotation about Y-axis.
-        yaw:   Rotation about Z-axis.
-        roll:  Rotation about X-axis.
-    """
-    def __init__(self, pitch=0, yaw=0, roll=0, carla_rotation=None):
-        """ Initializes the Rotation instance with either the given pitch,
-        roll and yaw values or from the carla.Rotation instance, if specified.
-
-        The carla.Rotation instance, if provided, takes precedence over the
-        pitch, roll, yaw values provided in the constructor.
-
-        Args:
-            pitch: Rotation about Y-axis.
-            yaw:   Rotation about Z-axis.
-            roll:  Rotation about X-axis.
-            carla_rotation: The carla.Rotation instance to instantiate this
-                Rotation instance from.
-        """
-        if carla_rotation is not None:
-            if not isinstance(carla_rotation, carla.Rotation):
-                raise ValueError(
-                    "carla_rotation should be of type carla.Rotation")
-            self.pitch = carla_rotation.pitch
-            self.yaw = carla_rotation.yaw
-            self.roll = carla_rotation.roll
-        else:
-            self.pitch = pitch
-            self.yaw = yaw
-            self.roll = roll
-
-    def as_carla_rotation(self):
-        """ Retrieves the current rotation as an instance of carla.Rotation.
-
-        Returns:
-            A carla.Rotation instance representing the current rotation.
-        """
-        return carla.Rotation(self.pitch, self.yaw, self.roll)
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        return 'Rotation(pitch={}, yaw={}, roll={})'.format(
-            self.pitch, self.yaw, self.roll)
-
-
-class Location(Vector3D):
-    """ The Pylot version of the carla.Location instance that defines helper
-    functions needed in Pylot, and makes the class serializable.
-
-    Attributes:
-        x: The value of the x-axis.
-        y: The value of the y-axis.
-        z: The value of the z-axis.
-    """
-    def __init__(self, x=0, y=0, z=0, carla_location=None):
-        """ Initializes the Location instance with either the given x, y, z
-        values or from the carla.Location instance if specified.
-
-        The carla.Location instance, if provided, takes precedence over the
-        x, y, z values provided in the constructor.
-
-        Args:
-            x: The value of the x-axis.
-            y: The value of the y-axis.
-            z: The value of the z-axis.
-            carla_location: The carla.Location instance to instantiate this
-                Location instance from.
-        """
-        if carla_location is not None:
-            if not isinstance(carla_location, carla.Location):
-                raise ValueError(
-                    "carla_location should be of type carla.Location")
-            super(Location, self).__init__(carla_location.x, carla_location.y,
-                                           carla_location.z)
-        else:
-            super(Location, self).__init__(x, y, z)
-
-    def distance(self, other):
-        """ Calculates the Euclidean distance between the given point and the
-        other point.
-
-        Args:
-            other: The other Location instance to calculate the distance to.
-
-        Returns:
-            The Euclidean distance between the two points.
-        """
-        return (self - other).magnitude()
-
-    def l1_distance(self, other):
-        """ Calculates the L1 distance between the given point and the other
-        point.
-
-        Args:
-            other: The other Location instance to calculate the L1 distance to.
-
-        Returns:
-            The L1 distance between the two points.
-        """
-        return abs(self.x - other.x) + abs(self.y - other.y) + abs(self.z -
-                                                                   other.z)
-
-    def as_carla_location(self):
-        """ Retrieves the current location as an instance of carla.Location.
-
-        Returns:
-            A carla.Location instance representing the current location.
-        """
-        return carla.Location(self.x, self.y, self.z)
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        return 'Location(x={}, y={}, z={})'.format(self.x, self.y, self.z)
-
-
-class Transform(object):
-    """ The Pylot version of the carla.Transform instance that defines helper
-    functions needed in Pylot, and makes the class serializable.
-
-    Attributes:
-        location: The location of the object represented by the transform.
-        rotation: The rotation of the object represented by the transform.
-        matrix: The transformation matrix used to convert points in the 3D
-            coordinate space with respect to the location and rotation of the
-            given object.
-    """
-
-    # Rotations are applied in the order: Roll (X), Pitch (Y), Yaw (Z).
-    # A 90-degree "Roll" maps the positive Z-axis to the positive Y-axis.
-    # A 90-degree "Pitch" maps the positive X-axis to the positive Z-axis.
-    # A 90-degree "Yaw" maps the positive X-axis to the positive Y-axis.
-
-    def __init__(self,
-                 location=None,
-                 rotation=None,
-                 forward_vector=None,
-                 matrix=None,
-                 carla_transform=None):
-        """ Instantiates a Transform object with either the given location
-        and rotation, or using the given matrix.
-
-        Rotation is assumed in degrees.
-
-        First precedence is for carla_transform and then for matrix.
-
-        Args:
-            location: The location of the object represented by the transform.
-            rotation: The rotation of the object represented by the transform.
-            forward_vector: The forward vector of the object represented by
-                the transform.
-            matrix: The transformation matrix used to convert points in the
-                3D coordinate space with respect to the object.
-            carla_transform: The carla.Transform to use to initialize the
-                transform instance.
-        """
-        if carla_transform:
-            self.location = Location(carla_location=carla_transform.location)
-            self.rotation = Rotation(carla_transform.rotation.pitch,
-                                     carla_transform.rotation.yaw,
-                                     carla_transform.rotation.roll)
-            fwd_vec = carla_transform.get_forward_vector()
-            self.forward_vector = Vector3D(fwd_vec.x, fwd_vec.y, fwd_vec.z)
-            self.matrix = Transform._create_matrix(self.location,
-                                                   self.rotation)
-        elif matrix is not None:
-            import numpy as np
-            self.matrix = matrix
-            self.location = Location(matrix[0, 3], matrix[1, 3], matrix[2, 3])
-
-            # Forward vector is retrieved from the matrix.
-            self.forward_vector = Vector3D(self.matrix[0, 0],
-                                           self.matrix[1, 0], self.matrix[2,
-                                                                          0])
-            pitch_r = math.asin(self.forward_vector.z)
-            yaw_r = math.acos(self.forward_vector.x / math.cos(pitch_r))
-            roll_r = math.asin(matrix[2, 1] / (-1 * math.cos(pitch_r)))
-            self.rotation = Rotation(math.degrees(pitch_r),
-                                     math.degrees(yaw_r), math.degrees(roll_r))
-        else:
-            self.location, self.rotation = location, rotation
-            self.matrix = Transform._create_matrix(self.location,
-                                                   self.rotation)
-
-            # Forward vector is retrieved from the matrix.
-            self.forward_vector = Vector3D(self.matrix[0, 0],
-                                           self.matrix[1, 0], self.matrix[2,
-                                                                          0])
-
-    @staticmethod
-    def _create_matrix(location, rotation):
-        """ Creates a transformation matrix to convert points in the 3D world
-        coordinate space with respect to the object.
-
-        Use the transform_points function to transpose a given set of points
-        with respect to the object.
-
-        Args:
-            location: The location of the object represented by the transform.
-            rotation: The rotation of the object represented by the transform.
-        Returns:
-            a 4x4 numpy matrix which represents the transformation matrix.
-        """
-        matrix = np.matrix(np.identity(4))
-        cy = math.cos(np.radians(rotation.yaw))
-        sy = math.sin(np.radians(rotation.yaw))
-        cr = math.cos(np.radians(rotation.roll))
-        sr = math.sin(np.radians(rotation.roll))
-        cp = math.cos(np.radians(rotation.pitch))
-        sp = math.sin(np.radians(rotation.pitch))
-        matrix[0, 3] = location.x
-        matrix[1, 3] = location.y
-        matrix[2, 3] = location.z
-        matrix[0, 0] = (cp * cy)
-        matrix[0, 1] = (cy * sp * sr - sy * cr)
-        matrix[0, 2] = -1 * (cy * sp * cr + sy * sr)
-        matrix[1, 0] = (sy * cp)
-        matrix[1, 1] = (sy * sp * sr + cy * cr)
-        matrix[1, 2] = (cy * sr - sy * sp * cr)
-        matrix[2, 0] = (sp)
-        matrix[2, 1] = -1 * (cp * sr)
-        matrix[2, 2] = (cp * cr)
-        return matrix
-
-    def __transform(self, points, matrix):
-        """ Internal function to transform the points according to the
-        given matrix. This function either converts the points from
-        coordinate space relative to the transform to the world coordinate
-        space (using self.matrix), or from world coordinate space to the
-        space relative to the transform (using inv(self.matrix))
-
-        Args:
-            points: Points in the format [Location, ... Location]
-            matrix: The matrix of the transformation to apply.
-
-        Returns:
-            Transformed points in the format [Location, ... Location]
-        """
-        # Retrieve the locations as numpy arrays.
-        points = np.matrix([loc.as_numpy_array() for loc in points])
-
-        # Needed format: [[X0,..Xn],[Y0,..Yn],[Z0,..Zn]].
-        # So let's transpose the point matrix.
-        points = points.transpose()
-
-        # Add 1s row: [[X0..,Xn],[Y0..,Yn],[Z0..,Zn],[1,..1]]
-        points = np.append(points, np.ones((1, points.shape[1])), axis=0)
-
-        # Point transformation (depends on the given matrix)
-        points = np.dot(matrix, points)
-
-        # Get all but the last row in array form.
-        points = np.asarray(points[0:3].transpose())
-
-        return [Location(x, y, z) for x, y, z in points]
-
-    def transform_points(self, points):
-        """ Transforms the given set of locations (specified in the coordinate
-        space of the current transform) to be in the world coordinate space.
-
-        For example, if the transform is at location (3, 0, 0) and the
-        location passed to the argument is (10, 0, 0), this function will
-        return (13, 0, 0) i.e. the location of the argument in the world
-        coordinate space.
-
-        Args:
-            points: Points in the format [Location,..Location]
-
-        Returns:
-            Transformed points in the format [Location,..Location]
-        """
-        return self.__transform(points, self.matrix)
-
-    def inverse_transform_points(self, points):
-        """ Transforms the given set of locations (specified in world
-        coordinate space) to be relative to the given transform.
-
-        For example, if the transform is at location (3, 0, 0) and the
-        location passed to the argument is (10, 0, 0), this function will
-        return (7, 0, 0) i.e. the location of the argument relative to the
-        given transform.
-
-        Args:
-            points: Points in the format [Location, ... Location]
-
-        Returns:
-            Transformed points in the format [Location, ... Location]
-        """
-        return self.__transform(points, np.linalg.inv(self.matrix))
-
-    def as_carla_transform(self):
-        """ Convert the transform to a carla.Transform instance.
-
-        Returns:
-            A carla.Transform instance representing the current Transform.
-        """
-        return carla.Transform(
-            carla.Location(self.location.x, self.location.y, self.location.z),
-            carla.Rotation(pitch=self.rotation.pitch,
-                           yaw=self.rotation.yaw,
-                           roll=self.rotation.roll))
-
-    def __mul__(self, other):
-        new_matrix = np.dot(self.matrix, other.matrix)
-        return Transform(matrix=new_matrix)
-
-    def __str__(self):
-        if self.location:
-            return "Transform(location: {}, rotation: {})".format(
-                self.location, self.rotation)
-        else:
-            return "Transform({})".format(str(self.matrix))
-
-
 class Obstacle(object):
     """ An Obstacle represents a dynamic obstacle that we could encounter on the
     road. This class provides helper functions to detect obstacles and provide
@@ -569,13 +165,14 @@ class Obstacle(object):
         self.id = actor.id
 
         # Convert the transform provided by the simulation to the Pylot class.
-        self.transform = Transform(carla_transform=actor.get_transform())
+        self.transform = Transform.from_carla_transform(actor.get_transform())
 
         # Convert the bounding box from the simulation to the Pylot one.
         self.bounding_box = BoundingBox(actor.bounding_box)
 
         # Get the speed of the obstacle.
-        velocity_vector = Vector3D(carla_vector=actor.get_velocity())
+        velocity_vector = pylot.utils.Vector3D.from_carla_vector(
+            actor.get_velocity())
         self.forward_speed = velocity_vector.magnitude()
 
         # Get the blueprint of the actor.
@@ -682,7 +279,7 @@ def get_top_down_transform(transform, top_down_lateral_view):
     # Height calculation relies on the fact that the camera's FOV is 90.
     top_down_location = (transform.location +
                          Location(0, 0, top_down_lateral_view))
-    return Transform(top_down_location, Rotation(-90, 0, 0))
+    return Transform(top_down_location, pylot.utils.Rotation(-90, 0, 0))
 
 
 def depth_to_local_point_cloud(depth_frame, camera_setup, max_depth=0.9):

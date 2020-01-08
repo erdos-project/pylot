@@ -7,7 +7,8 @@ import pylot.flags
 import pylot.operator_creator
 import pylot.simulation.messages
 from pylot.simulation.sensor_setup import RGBCameraSetup
-from pylot.simulation.utils import CanBus, Location, Rotation, Transform
+from pylot.simulation.utils import CanBus
+import pylot.utils
 
 from srunner.challenge.autoagents.autonomous_agent import AutonomousAgent,\
     Track
@@ -16,7 +17,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_integer('track', 3, 'Track to execute')
 
-CENTER_CAMERA_LOCATION = Location(1.5, 0.0, 1.4)
+CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
 CENTER_CAMERA_NAME = 'center_camera'
 TL_CAMERA_NAME = 'traffic_lights_camera'
 LEFT_CAMERA_NAME = 'left_camera'
@@ -38,11 +39,11 @@ class ERDOSAgent(AutonomousAgent):
         else:
             raise ValueError('Unexpected track {}'.format(FLAGS.track))
         self._logger = erdos.utils.setup_logging('erdos_agent',
-                                                  FLAGS.log_file_name)
+                                                 FLAGS.log_file_name)
         self._camera_setups = create_camera_setups(self.track)
         # Set the lidar in the same position as the center camera.
-        self._lidar_transform = Transform(CENTER_CAMERA_LOCATION,
-                                          Rotation(0, 0, 0))
+        self._lidar_transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
+                                                      pylot.utils.Rotation())
         self._waypoints = None
         self._sent_open_drive_data = False
         self._open_drive_data = None
@@ -182,11 +183,11 @@ class ERDOSAgent(AutonomousAgent):
     def send_can_bus_msg(self, data, timestamp):
         # The can bus dict contains other fields as well, but we don't use
         # them yet.
-        vehicle_transform = Transform(carla_transform=data['transform'])
+        vehicle_transform = pylot.utils.Transform.from_carla_transform(
+            data['transform'])
         forward_speed = data['speed']
         self._can_bus_stream.send(
-            erdos.Message(timestamp, CanBus(vehicle_transform,
-                                             forward_speed)))
+            erdos.Message(timestamp, CanBus(vehicle_transform, forward_speed)))
         self._can_bus_stream.send(erdos.WatermarkMessage(timestamp))
 
     def send_lidar_msg(self, data, transform, timestamp):
@@ -201,10 +202,10 @@ class ERDOSAgent(AutonomousAgent):
         if self._waypoints is None:
             # Gets global waypoints from the agent.
             self._waypoints = self._global_plan_world_coord
-            data = [(Transform(carla_transform=transform), road_option)
+            data = [(pylot.utils.Transform.from_carla_transform(transform),
+                     road_option)
                     for (transform, road_option) in self._waypoints]
-            self._global_trajectory_stream.send(erdos.Message(
-                timestamp, data))
+            self._global_trajectory_stream.send(erdos.Message(timestamp, data))
             self._global_trajectory_stream.send(
                 erdos.WatermarkMessage(
                     erdos.Timestamp(coordinates=[sys.maxsize])))
@@ -261,7 +262,8 @@ class ERDOSAgent(AutonomousAgent):
 def create_camera_setups(track):
     """Creates different camera setups depending on the track."""
     camera_setups = {}
-    transform = Transform(CENTER_CAMERA_LOCATION, Rotation(0, 0, 0))
+    transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
+                                      pylot.utils.Rotation())
     center_camera_setup = RGBCameraSetup(CENTER_CAMERA_NAME,
                                          FLAGS.carla_camera_image_width,
                                          FLAGS.carla_camera_image_height,
@@ -276,18 +278,18 @@ def create_camera_setups(track):
     right_camera_setup = None
     # Add left and right cameras if we don't have access to lidar.
     if track == Track.CAMERAS:
-        left_location = CENTER_CAMERA_LOCATION + Location(
+        left_location = CENTER_CAMERA_LOCATION + pylot.utils.Location(
             0, -FLAGS.offset_left_right_cameras, 0)
         left_camera_setup = RGBCameraSetup(
             LEFT_CAMERA_NAME, FLAGS.carla_camera_image_width,
             FLAGS.carla_camera_image_height,
-            Transform(left_location, Rotation(0, 0, 0)), 90)
+            pylot.utils.Transform(left_location, pylot.utils.Rotation()), 90)
         camera_setups[LEFT_CAMERA_NAME] = left_camera_setup
-        right_location = CENTER_CAMERA_LOCATION + Location(
+        right_location = CENTER_CAMERA_LOCATION + pylot.utils.Location(
             0, FLAGS.offset_left_right_cameras, 0)
         right_camera_setup = RGBCameraSetup(
             RIGHT_CAMERA_NAME, FLAGS.carla_camera_image_width,
             FLAGS.carla_camera_image_height,
-            Transform(right_location, Rotation(0, 0, 0)), 90)
+            pylot.utils.Transform(right_location, pylot.utils.Rotation()), 90)
         camera_setups[RIGHT_CAMERA_NAME] = right_camera_setup
     return camera_setups
