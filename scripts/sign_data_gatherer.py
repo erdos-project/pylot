@@ -8,12 +8,13 @@ import PIL.Image as Image
 import time
 import re
 
+from pylot.perception.detection.traffic_light import TrafficLight
 from pylot.perception.detection.utils import annotate_image_with_bboxes, \
     visualize_image
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.simulation.carla_utils import convert_speed_limit_actors,\
     convert_traffic_light_actors, convert_traffic_stop_actors, get_world
-from pylot.simulation.utils import Transform, TrafficLight
+from pylot.simulation.utils import Transform
 from pylot.utils import bgr_to_rgb
 import pylot.simulation.utils
 from pylot.simulation.sensor_setup import DepthCameraSetup
@@ -354,7 +355,9 @@ def log_traffic_lights(world):
     print("The total number of transforms were: {}".format(
         len(transforms_of_interest)))
 
-    traffic_lights = [TrafficLight(light) for light in traffic_lights]
+    traffic_lights = [
+        TrafficLight.from_carla_actor(light) for light in traffic_lights
+    ]
     for weather in find_weather_presets():
         change_weather(world, weather)
         time.sleep(1)

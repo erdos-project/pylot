@@ -943,65 +943,6 @@ def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
         return BoundingBox2D(min(x), max(x), min(y), max(y))
 
 
-def transform_traffic_light_bboxes(light, points):
-    """ Transforms the bounding box specified in the points relative to the
-    light.
-
-    Args:
-        light: TrafficLight object representing the light.
-        points: An array of length 4 representing the 4 points of the
-            rectangle.
-    """
-    def rotate(yaw, location):
-        """ Rotate a given 3D vector around the Z-axis. """
-        rotation_matrix = np.identity(3)
-        rotation_matrix[0, 0] = np.cos(yaw)
-        rotation_matrix[0, 1] = -np.sin(yaw)
-        rotation_matrix[1, 0] = np.sin(yaw)
-        rotation_matrix[1, 1] = np.cos(yaw)
-        location_vector = np.array([[location.x], [location.y], [location.z]])
-        transformed = np.dot(rotation_matrix, location_vector)
-        return Location(x=transformed[0, 0],
-                        y=transformed[1, 0],
-                        z=transformed[2, 0])
-
-    transformed_points = [
-        rotate(np.radians(light.transform.rotation.yaw), point)
-        for point in points
-    ]
-    base_relative_points = [
-        light.transform.location + point for point in transformed_points
-    ]
-    return base_relative_points
-
-
-def is_traffic_light_visible(camera_transform,
-                             tl,
-                             town_name=None,
-                             distance_threshold=70):
-    # We dot product the forward vectors (i.e., orientation).
-    # Note: we have to rotate the traffic light forward vector
-    # so that it's pointing out from the traffic light in the
-    # opposite direction in which the ligth is beamed.
-    prod = np.dot([
-        tl.transform.forward_vector.y, -tl.transform.forward_vector.x,
-        tl.transform.forward_vector.z
-    ], [
-        camera_transform.forward_vector.x, camera_transform.forward_vector.y,
-        camera_transform.forward_vector.z
-    ])
-    if tl.transform.location.distance(
-            camera_transform.location) > distance_threshold:
-        return prod > 0.4
-
-    if town_name is None:
-        return prod > -0.80
-    else:
-        if town_name == 'Town01' or town_name == 'Town02':
-            return prod > 0.3
-        return prod > -0.80
-
-
 def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
     bbox_state = []
     # Carla has differing placemnts for different towns.
@@ -1021,7 +962,7 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
         ]
         for light in traffic_lights:
             bbox_state.append(
-                (transform_traffic_light_bboxes(light, points), light.state))
+                (light.relative_to_traffic_light(points), light.state))
     elif town_name == 'Town03':
         for light in traffic_lights:
             if light.trigger_volume_extent.x > 2 or light.id in [
@@ -1048,18 +989,17 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
                     Location(x=-5.2, y=0.4, z=6.5),
                 ]
                 bbox_state.append(
-                    (transform_traffic_light_bboxes(light,
-                                                    points), light.state))
+                    (light.relative_to_traffic_light(points), light.state))
                 right_points = [point + Location(x=-3.0) for point in points]
                 bbox_state.append(
-                    (transform_traffic_light_bboxes(light, right_points),
+                    (light.relative_to_traffic_light(right_points),
                      light.state))
                 if light.id not in [51, 52, 53]:
                     left_points = [
                         point + Location(x=-6.5) for point in points
                     ]
                     bbox_state.append(
-                        (transform_traffic_light_bboxes(light, left_points),
+                        (light.relative_to_traffic_light(left_points),
                          light.state))
 
             else:
@@ -1077,8 +1017,7 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
                     Location(x=-0.5, y=0.5, z=3),
                 ]
                 bbox_state.append(
-                    (transform_traffic_light_bboxes(light,
-                                                    points), light.state))
+                    (light.relative_to_traffic_light(points), light.state))
     elif town_name == 'Town04':
         points = [
             # Back Plane
@@ -1110,19 +1049,19 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
         left_points = [point + Location(x=-5.5) for point in points]
         for light in traffic_lights:
             bbox_state.append(
-                (transform_traffic_light_bboxes(light, points), light.state))
+                (light.relative_to_traffic_light(points), light.state))
             if light.trigger_volume_extent.x > 5:
                 # This is a traffic light with 4 signs, we need to come up with
                 # more bounding boxes.
                 bbox_state.append(
-                    (transform_traffic_light_bboxes(light, middle_points),
+                    (light.relative_to_traffic_light(middle_points),
                      light.state))
                 bbox_state.append(
-                    (transform_traffic_light_bboxes(light, right_points),
+                    (light.relative_to_traffic_light(right_points),
                      light.state))
                 bbox_state.append(
-                    (transform_traffic_light_bboxes(light,
-                                                    left_points), light.state))
+                    (light.relative_to_traffic_light(left_points),
+                     light.state))
     elif town_name == 'Town05':
         points = [
             # Back Plane
@@ -1168,19 +1107,19 @@ def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
                                single_light.get_group_traffic_lights())
         for light in traffic_lights:
             bbox_state.append(
-                (transform_traffic_light_bboxes(light, points), light.state))
+                (light.relative_to_traffic_light(points), light.state))
             if light.id not in single_light_ids:
                 # This is a traffids light with 4 signs, we need to come up
                 # with more bounding boxes.
                 bbox_state.append(
-                    (transform_traffic_light_bboxes(light, middle_points),
+                    (light.relative_to_traffic_light(middle_points),
                      light.state))
                 bbox_state.append(
-                    (transform_traffic_light_bboxes(light, right_points),
+                    (light.relative_to_traffic_light(right_points),
                      light.state))
                 bbox_state.append(
-                    (transform_traffic_light_bboxes(light,
-                                                    left_points), light.state))
+                    (light.relative_to_traffic_light(left_points),
+                     light.state))
     else:
         raise ValueError('Could not find a town named {}'.format(town_name))
     return bbox_state
@@ -1201,7 +1140,7 @@ def get_traffic_lights_obstacles(traffic_lights, depth_array, segmented_image,
     detected = []
     for light in traffic_lights:
 
-        if not is_traffic_light_visible(camera_transform, light, town_name):
+        if not light.is_traffic_light_visible(camera_transform, town_name):
             continue
 
         bboxes = get_traffic_lights_bbox_state(camera_transform, [light],
@@ -1356,47 +1295,3 @@ def get_detected_traffic_stops(traffic_stops, depth_frame, camera_setup):
             det_obstacles.append(DetectedObstacle(bbox_2d, 1.0,
                                                   'stop marking'))
     return det_obstacles
-
-
-class TrafficLight(object):
-    """ The Pylot version of a carla TrafficLight that defines helper
-    functions needed in Pylot, and makes the class serializable.
-
-    Args:
-        id: The identifier of the TrafficLight.
-        transform: The transform of the TrafficLight.
-        trigger_volume_extent: The extent of the trigger volume of the light.
-        state: The state of the light. (Green/Yellow/Red/Off)
-    """
-    def __init__(self, traffic_light):
-        """ Initializes the TrafficLight instance with the given carla
-        TrafficLight instance.
-
-        Args:
-            traffic_light: The carla.TrafficLight instance to initialize this
-                instance with.
-        """
-        # Retrieve the ID of the TrafficLight.
-        self.id = traffic_light.id
-
-        # Retrieve the Transform of the TrafficLight.
-        self.transform = Transform(
-            carla_transform=traffic_light.get_transform())
-
-        # Retrieve the Trigger Volume of the TrafficLight.
-        self.trigger_volume_extent = Vector3D(
-            traffic_light.trigger_volume.extent.x,
-            traffic_light.trigger_volume.extent.y,
-            traffic_light.trigger_volume.extent.z)
-
-        # Retrieve the State of the TrafficLight (Red/Yellow/Green)
-        from pylot.perception.detection.utils import TrafficLightColor
-        traffic_light_state = traffic_light.get_state()
-        if traffic_light_state == carla.TrafficLightState.Red:
-            self.state = TrafficLightColor.RED
-        elif traffic_light_state == carla.TrafficLightState.Yellow:
-            self.state = TrafficLightColor.YELLOW
-        elif traffic_light_state == carla.TrafficLightState.Green:
-            self.state = TrafficLightColor.GREEN
-        else:
-            self.state = TrafficLightColor.OFF

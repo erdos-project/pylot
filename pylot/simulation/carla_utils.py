@@ -2,6 +2,7 @@ import re
 import carla
 
 import pylot.simulation.utils
+from pylot.perception.detection.traffic_light import TrafficLight
 
 
 def get_world(host="localhost", port=2000, timeout=10):
@@ -156,12 +157,11 @@ def convert_traffic_light_actors(tl_actors):
         tl_actors: A list of Carla traffic light actors.
 
     Returns:
-        A list of Pylot TrafficLights.
+        A list of  pylot.perception.detection.traffic_light.TrafficLights.
     """
     traffic_lights = []
     for tl_actor in tl_actors:
-        traffic_light = pylot.simulation.utils.TrafficLight(tl_actor)
-        traffic_lights.append(traffic_light)
+        traffic_lights.append(TrafficLight.from_carla_actor(tl_actor))
     return traffic_lights
 
 
