@@ -1,6 +1,5 @@
 import carla
 from collections import namedtuple
-from operator import attrgetter
 import numpy as np
 from numpy.linalg import inv
 from numpy.matlib import repmat
@@ -12,7 +11,6 @@ from pylot.perception.detection.utils import BoundingBox2D, BoundingBox3D, \
 
 SpeedLimitSign = namedtuple('SpeedLimitSign', 'transform, limit')
 StopSign = namedtuple('StopSign', 'transform, bounding_box')
-DetectedLane = namedtuple('DetectedLane', 'left_marking, right_marking')
 LocationGeo = namedtuple('LocationGeo', 'latitude, longitude, altitude')
 
 
@@ -429,188 +427,6 @@ def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
         return BoundingBox2D(min(x), max(x), min(y), max(y))
 
 
-def get_traffic_lights_bbox_state(camera_transform, traffic_lights, town_name):
-    bbox_state = []
-    # Carla has differing placemnts for different towns.
-    if town_name == 'Town01' or town_name == 'Town02':
-        points = [
-            # Back Plane
-            Location(x=-0.5, y=-0.1, z=2),
-            Location(x=+0.1, y=-0.1, z=2),
-            Location(x=+0.1, y=-0.1, z=3),
-            Location(x=-0.5, y=-0.1, z=3),
-
-            # Front Plane
-            Location(x=-0.5, y=0.5, z=2),
-            Location(x=+0.1, y=0.5, z=2),
-            Location(x=+0.1, y=0.5, z=3),
-            Location(x=-0.5, y=0.5, z=3),
-        ]
-        for light in traffic_lights:
-            bbox_state.append(
-                (light.relative_to_traffic_light(points), light.state))
-    elif town_name == 'Town03':
-        for light in traffic_lights:
-            if light.trigger_volume_extent.x > 2 or light.id in [
-                    66,
-                    67,
-                    68,
-                    71,
-                    72,
-                    73,
-                    75,
-                    81,
-            ]:
-                points = [
-                    # Back Plane
-                    Location(x=-5.2, y=-0.2, z=5.5),
-                    Location(x=-4.8, y=-0.2, z=5.5),
-                    Location(x=-4.8, y=-0.2, z=6.5),
-                    Location(x=-5.2, y=-0.2, z=6.5),
-
-                    # Front Plane
-                    Location(x=-5.2, y=0.4, z=5.5),
-                    Location(x=-4.8, y=0.4, z=5.5),
-                    Location(x=-4.8, y=0.4, z=6.5),
-                    Location(x=-5.2, y=0.4, z=6.5),
-                ]
-                bbox_state.append(
-                    (light.relative_to_traffic_light(points), light.state))
-                right_points = [point + Location(x=-3.0) for point in points]
-                bbox_state.append(
-                    (light.relative_to_traffic_light(right_points),
-                     light.state))
-                if light.id not in [51, 52, 53]:
-                    left_points = [
-                        point + Location(x=-6.5) for point in points
-                    ]
-                    bbox_state.append(
-                        (light.relative_to_traffic_light(left_points),
-                         light.state))
-
-            else:
-                points = [
-                    # Back Plane
-                    Location(x=-0.5, y=-0.1, z=2),
-                    Location(x=+0.1, y=-0.1, z=2),
-                    Location(x=+0.1, y=-0.1, z=3),
-                    Location(x=-0.5, y=-0.1, z=3),
-
-                    # Front Plane
-                    Location(x=-0.5, y=0.5, z=2),
-                    Location(x=+0.1, y=0.5, z=2),
-                    Location(x=+0.1, y=0.5, z=3),
-                    Location(x=-0.5, y=0.5, z=3),
-                ]
-                bbox_state.append(
-                    (light.relative_to_traffic_light(points), light.state))
-    elif town_name == 'Town04':
-        points = [
-            # Back Plane
-            Location(x=-5.2, y=-0.2, z=5.5),
-            Location(x=-4.8, y=-0.2, z=5.5),
-            Location(x=-4.8, y=-0.2, z=6.5),
-            Location(x=-5.2, y=-0.2, z=6.5),
-
-            # Front Plane
-            Location(x=-5.2, y=0.4, z=5.5),
-            Location(x=-4.8, y=0.4, z=5.5),
-            Location(x=-4.8, y=0.4, z=6.5),
-            Location(x=-5.2, y=0.4, z=6.5),
-        ]
-        middle_points = [  # Light in the middle of the pole.
-            # Back Plane
-            Location(x=-0.5, y=-0.1, z=2.5),
-            Location(x=+0.1, y=-0.1, z=2.5),
-            Location(x=+0.1, y=-0.1, z=3.5),
-            Location(x=-0.5, y=-0.1, z=3.5),
-
-            # Front Plane
-            Location(x=-0.5, y=0.5, z=2.5),
-            Location(x=+0.1, y=0.5, z=2.5),
-            Location(x=+0.1, y=0.5, z=3.5),
-            Location(x=-0.5, y=0.5, z=3.5),
-        ]
-        right_points = [point + Location(x=-3.0) for point in points]
-        left_points = [point + Location(x=-5.5) for point in points]
-        for light in traffic_lights:
-            bbox_state.append(
-                (light.relative_to_traffic_light(points), light.state))
-            if light.trigger_volume_extent.x > 5:
-                # This is a traffic light with 4 signs, we need to come up with
-                # more bounding boxes.
-                bbox_state.append(
-                    (light.relative_to_traffic_light(middle_points),
-                     light.state))
-                bbox_state.append(
-                    (light.relative_to_traffic_light(right_points),
-                     light.state))
-                bbox_state.append(
-                    (light.relative_to_traffic_light(left_points),
-                     light.state))
-    elif town_name == 'Town05':
-        points = [
-            # Back Plane
-            Location(x=-5.2, y=-0.2, z=5.5),
-            Location(x=-4.8, y=-0.2, z=5.5),
-            Location(x=-4.8, y=-0.2, z=6.5),
-            Location(x=-5.2, y=-0.2, z=6.5),
-
-            # Front Plane
-            Location(x=-5.2, y=0.4, z=5.5),
-            Location(x=-4.8, y=0.4, z=5.5),
-            Location(x=-4.8, y=0.4, z=6.5),
-            Location(x=-5.2, y=0.4, z=6.5),
-        ]
-        middle_points = [  # Light in the middle of the pole.
-            # Back Plane
-            Location(x=-0.4, y=-0.1, z=2.55),
-            Location(x=+0.2, y=-0.1, z=2.55),
-            Location(x=+0.2, y=-0.1, z=3.55),
-            Location(x=-0.4, y=-0.1, z=3.55),
-
-            # Front Plane
-            Location(x=-0.4, y=0.5, z=2.55),
-            Location(x=+0.2, y=0.5, z=2.55),
-            Location(x=+0.2, y=0.5, z=3.55),
-            Location(x=-0.5, y=0.5, z=3.55),
-        ]
-        right_points = [point + Location(x=-3.0) for point in points]
-        left_points = [point + Location(x=-5.5) for point in points]
-
-        # Town05 randomizes the identifiers for the traffic light at each
-        # reload of the world. We cannot depend on static identifiers for
-        # figuring out which lights only have a single traffic light.
-        single_light = filter(lambda light: light.trigger_volume_extent.x < 2,
-                              traffic_lights)
-        if len(single_light) != 1:
-            raise ValueError(
-                "Expected a single traffic light with a trigger "
-                "volume less than 2 in Town05. Received {}".format(
-                    len(single_light)))
-        single_light = single_light[0]
-        single_light_ids = map(attrgetter('id'),
-                               single_light.get_group_traffic_lights())
-        for light in traffic_lights:
-            bbox_state.append(
-                (light.relative_to_traffic_light(points), light.state))
-            if light.id not in single_light_ids:
-                # This is a traffids light with 4 signs, we need to come up
-                # with more bounding boxes.
-                bbox_state.append(
-                    (light.relative_to_traffic_light(middle_points),
-                     light.state))
-                bbox_state.append(
-                    (light.relative_to_traffic_light(right_points),
-                     light.state))
-                bbox_state.append(
-                    (light.relative_to_traffic_light(left_points),
-                     light.state))
-    else:
-        raise ValueError('Could not find a town named {}'.format(town_name))
-    return bbox_state
-
-
 def get_traffic_lights_obstacles(traffic_lights, depth_array, segmented_image,
                                  town_name, camera_setup):
     """ Get the traffic lights that are within the camera frame.
@@ -625,12 +441,10 @@ def get_traffic_lights_obstacles(traffic_lights, depth_array, segmented_image,
     # facing us and are visible in the camera view.
     detected = []
     for light in traffic_lights:
-
         if not light.is_traffic_light_visible(camera_transform, town_name):
             continue
 
-        bboxes = get_traffic_lights_bbox_state(camera_transform, [light],
-                                               town_name)
+        bboxes = light.get_bbox_state(town_name)
 
         # Convert the returned bounding boxes to 2D and check if the
         # light is occluded. If not, add it to the detected obstacle list.

@@ -328,6 +328,19 @@ class DetectedSpeedLimit(DetectedObstacle):
                 self.label, self.limit, self.confidence, self.bounding_box)
 
 
+class DetectedLane(object):
+    def __init__(self, left_marking, right_marking):
+        self.left_marking = left_marking
+        self.right_marking = right_marking
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return 'DetectedLane(left_marking: {}, right_marking: {})'.format(
+            self.left_marking, self.right_marking)
+
+
 def load_coco_labels(labels_path):
     """ Creates a map from index to label.
 

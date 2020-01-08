@@ -1,6 +1,6 @@
 import erdos
 
-from pylot.simulation.utils import DetectedLane
+from pylot.perception.detection.utils import DetectedLane
 from pylot.simulation.messages import DetectedLaneMessage
 from pylot.simulation.carla_utils import get_world
 import pylot.utils
