@@ -137,6 +137,32 @@ class Vector3D(object):
         return 'Vector3D(x={}, y={}, z={})'.format(self.x, self.y, self.z)
 
 
+class Vector2D(object):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def get_closest_point_in_point_cloud(self, point_cloud):
+        """ Finds the closest depth normalized point cloud point."""
+        if len(point_cloud) == 0:
+            return None
+        # Select only points that are in front.
+        point_cloud = point_cloud[np.where(point_cloud[:, 2] > 0.0)]
+        # Select x and y.
+        pc_xy = point_cloud[:, 0:2]
+        # Select z
+        pc_z = point_cloud[:, 2]
+        # Divize x, y by z
+        normalized_pc = pc_xy / pc_z[:, None]
+        xy = np.array([self.x, self.y]).transpose()
+        # Compute distance
+        dist = np.sum((normalized_pc - xy)**2, axis=1)
+        # Select index of the closest point.
+        closest_index = np.argmin(dist)
+        # Return the closest point.
+        return tuple(point_cloud[closest_index])
+
+
 class Location(Vector3D):
     """ The Pylot version of the carla.Location instance that defines helper
     functions needed in Pylot, and makes the class serializable.

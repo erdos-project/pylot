@@ -230,27 +230,6 @@ def camera_pixels_to_locations(coordinates, depth_frame, camera_setup):
     return [point_cloud[y * camera_setup.width + x] for x, y in coordinates]
 
 
-def find_point_depth(x, y, point_cloud):
-    """ Finds the closest depth normalized point cloud point to x, y."""
-    if len(point_cloud) == 0:
-        return None
-    # Select only points that are in front.
-    point_cloud = point_cloud[np.where(point_cloud[:, 2] > 0.0)]
-    # Select x and y.
-    pc_xy = point_cloud[:, 0:2]
-    # Select z
-    pc_z = point_cloud[:, 2]
-    # Divize x, y by z
-    normalized_pc = pc_xy / pc_z[:, None]
-    xy = np.array([x, y]).transpose()
-    # Compute distance
-    dist = np.sum((normalized_pc - xy)**2, axis=1)
-    # Select index of the closest point.
-    closest_index = np.argmin(dist)
-    # Return the closest point.
-    return tuple(point_cloud[closest_index])
-
-
 def lidar_point_cloud_to_camera_coordinates(point_cloud):
     """ Transforms a point cloud from lidar to camera coordinates."""
     point_cloud = [Location(x, y, z) for x, y, z in np.asarray(point_cloud)]
@@ -265,30 +244,27 @@ def lidar_point_cloud_to_camera_coordinates(point_cloud):
     return [[loc.x, loc.y, loc.z] for loc in transformed_points]
 
 
-def get_3d_world_position_with_point_cloud(u, v, pc, camera_setup):
+def get_3d_world_position_with_point_cloud(x, y, pc, camera_setup):
     """ Gets the 3D world position from pixel coordinates using a Lidar
         point cloud.
 
         Args:
-            u: Pixel x coordinate.
-            v: Pixel y coordinate.
+            x: Pixel x coordinate.
+            y: Pixel y coordinate.
             pc: Point cloud in camera coordinates.
-            camera_transform: Camera transform relative to the world.
-            width: frame width
-            height: frame height
-            fov: camera field of view
        Returns:
-            3D world location or None if it could not be computed.
+            3D world location or None if all point clouds are behind.
     """
     intrinsic_mat = camera_setup.get_intrinsic_matrix()
     # Project our 2D pixel location into 3D space, onto the z=1 plane.
-    p3d = np.dot(inv(intrinsic_mat), np.array([[u], [v], [1.0]]))
-    depth = find_point_depth(p3d[0], p3d[1], np.array(pc))
-    if depth:
+    p3d = np.dot(inv(intrinsic_mat), np.array([[x], [y], [1.0]]))
+    pixel = pylot.utils.Vector2D(p3d[0], p3d[1])
+    location = pixel.get_closest_point_in_point_cloud(np.array(pc))
+    if location is not None:
         # Normalize our point to have the same depth as our closest point.
-        p3d *= np.array([depth[2]])
+        p3d *= np.array([location[2]])
         p3d_locations = [
-            Location(x, y, z) for x, y, z in np.asarray(p3d.transpose())
+            Location(px, py, pz) for px, py, pz in np.asarray(p3d.transpose())
         ]
         # Convert from camera to unreal coordinates.
         to_world_transform = camera_setup.get_unreal_transform()
@@ -327,15 +303,14 @@ def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
 
     def threshold(p1, p2):
         points = []
-
         # If the points are themselves within the image, add them to the
         # set of thresholded points.
-        if p1[0] >= 0 and p1[0] < image_width and p1[1] >= 0 and p1[
-                1] < image_height:
+        if (p1.x >= 0 and p1.x < image_width and p1.y >= 0
+                and p1.y < image_height):
             points.append(p1)
 
-        if p2[0] >= 0 and p2[0] < image_width and p2[1] >= 0 and p2[
-                1] < image_height:
+        if (p2.x >= 0 and p2.x < image_width and p2.y >= 0
+                and p2.y < image_height):
             points.append(p2)
 
         # Compute the intersection of the line segment formed by p1 -- p2
@@ -354,26 +329,26 @@ def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
     # Go over each of the segments of the bounding box and threshold it to
     # be inside the image.
     thresholded_points = []
-
-    points_2D = [(int(x), int(y)) for x, y, _ in bb_coordinates]
-
+    points = [
+        pylot.utils.Vector2D(int(x), int(y)) for x, y, _ in bb_coordinates
+    ]
     # Bottom plane thresholded.
-    thresholded_points.extend(threshold(points_2D[0], points_2D[1]))
-    thresholded_points.extend(threshold(points_2D[1], points_2D[2]))
-    thresholded_points.extend(threshold(points_2D[2], points_2D[3]))
-    thresholded_points.extend(threshold(points_2D[3], points_2D[0]))
+    thresholded_points.extend(threshold(points[0], points[1]))
+    thresholded_points.extend(threshold(points[1], points[2]))
+    thresholded_points.extend(threshold(points[2], points[3]))
+    thresholded_points.extend(threshold(points[3], points[0]))
 
     # Top plane thresholded.
-    thresholded_points.extend(threshold(points_2D[4], points_2D[5]))
-    thresholded_points.extend(threshold(points_2D[5], points_2D[6]))
-    thresholded_points.extend(threshold(points_2D[6], points_2D[7]))
-    thresholded_points.extend(threshold(points_2D[7], points_2D[4]))
+    thresholded_points.extend(threshold(points[4], points[5]))
+    thresholded_points.extend(threshold(points[5], points[6]))
+    thresholded_points.extend(threshold(points[6], points[7]))
+    thresholded_points.extend(threshold(points[7], points[4]))
 
     # Remaining segments thresholded.
-    thresholded_points.extend(threshold(points_2D[0], points_2D[4]))
-    thresholded_points.extend(threshold(points_2D[1], points_2D[5]))
-    thresholded_points.extend(threshold(points_2D[2], points_2D[6]))
-    thresholded_points.extend(threshold(points_2D[3], points_2D[7]))
+    thresholded_points.extend(threshold(points[0], points[4]))
+    thresholded_points.extend(threshold(points[1], points[5]))
+    thresholded_points.extend(threshold(points[2], points[6]))
+    thresholded_points.extend(threshold(points[3], points[7]))
 
     if len(thresholded_points) == 0:
         return None
