@@ -10,7 +10,7 @@ import carla
 from pylot.simulation.carla_utils import get_world
 from pylot.simulation.messages import FrameMessage, DepthFrameMessage
 import pylot.simulation.utils
-from pylot.simulation.utils import get_3d_world_position_with_depth_map,\
+from pylot.simulation.utils import camera_pixel_to_location, \
      get_3d_world_position_with_point_cloud,\
      lidar_point_cloud_to_camera_coordinates
 import pylot.utils
@@ -112,8 +112,8 @@ def on_depth_msg(carla_image):
 
     for (x, y) in pixels_to_check:
         print("{} Depth at pixel {}".format((x, y), depth_msg.frame[y][x]))
-        pos3d_depth = get_3d_world_position_with_depth_map(
-            x, y, depth_msg.frame, depth_msg.camera_setup)
+        pos3d_depth = camera_pixel_to_location(x, y, depth_msg.frame,
+                                               depth_msg.camera_setup)
         print("{} Computed using depth map {}".format((x, y), pos3d_depth))
 
     depth_point_cloud = pylot.simulation.utils.depth_to_local_point_cloud(

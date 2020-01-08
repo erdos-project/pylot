@@ -7,7 +7,6 @@ import pylot.flags
 import pylot.operator_creator
 import pylot.simulation.messages
 from pylot.simulation.sensor_setup import RGBCameraSetup
-from pylot.simulation.utils import CanBus
 import pylot.utils
 
 from srunner.challenge.autoagents.autonomous_agent import AutonomousAgent,\
@@ -187,7 +186,9 @@ class ERDOSAgent(AutonomousAgent):
             data['transform'])
         forward_speed = data['speed']
         self._can_bus_stream.send(
-            erdos.Message(timestamp, CanBus(vehicle_transform, forward_speed)))
+            erdos.Message(timestamp,
+                          pylot.utils.CanBus(vehicle_transform,
+                                             forward_speed)))
         self._can_bus_stream.send(erdos.WatermarkMessage(timestamp))
 
     def send_lidar_msg(self, data, transform, timestamp):

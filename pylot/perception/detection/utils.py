@@ -68,6 +68,7 @@ class TrafficLightColor(Enum):
 class BoundingBox2D(object):
     """ Class that stores a 2D bounding box."""
     def __init__(self, x_min, x_max, y_min, y_max):
+        assert x_min < x_max and y_min < y_max
         self.x_min = x_min
         self.x_max = x_max
         self.y_min = y_min

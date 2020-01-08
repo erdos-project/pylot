@@ -9,7 +9,6 @@ import pylot.utils
 from pylot.simulation.carla_utils import extract_data_in_pylot_format,\
     get_weathers, get_world, reset_world, set_synchronous_mode
 import pylot.simulation.messages
-import pylot.simulation.utils
 
 flags.DEFINE_enum('carla_version', '0.9.7', ['0.9.5', '0.9.6', '0.9.7'],
                   'Carla simulator version')
@@ -395,7 +394,7 @@ class CarlaOperator(erdos.Operator):
         velocity_vector = pylot.utils.Vector3D.from_carla_vector(
             self._driving_vehicle.get_velocity())
         forward_speed = velocity_vector.magnitude()
-        can_bus = pylot.simulation.utils.CanBus(vec_transform, forward_speed)
+        can_bus = pylot.utils.CanBus(vec_transform, forward_speed)
         self.can_bus_stream.send(erdos.Message(timestamp, can_bus))
         self.can_bus_stream.send(erdos.WatermarkMessage(timestamp))
 

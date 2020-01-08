@@ -399,6 +399,23 @@ class Transform(object):
             return "Transform({})".format(str(self.matrix))
 
 
+class CanBus(object):
+    def __init__(self, transform, forward_speed):
+        if not isinstance(transform, Transform):
+            raise ValueError(
+                'transform should be of type pylot.utils.Transform')
+        self.transform = transform
+        # Forward speed in m/s.
+        self.forward_speed = forward_speed
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return "CanBus(transform: {}, forward speed: {})".format(
+            self.transform, self.forward_speed)
+
+
 def add_timestamp(timestamp, image_np):
     """ Adds a timestamp text to an image np array."""
     txt_font = cv2.FONT_HERSHEY_SIMPLEX

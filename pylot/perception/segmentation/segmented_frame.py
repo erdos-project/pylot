@@ -5,6 +5,7 @@ import PIL.Image as Image
 from skimage import measure
 
 from pylot.utils import add_timestamp
+from pylot.perception.detection.utils import BoundingBox2D
 
 # Semantic Labels
 CITYSCAPES_LABELS = {
@@ -91,7 +92,7 @@ class SegmentedFrame(object):
             y_max = region.bbox[2]
             # Filter the bboxes that are extremely small.
             if x_max - x_min > min_width and y_max - y_min > min_height:
-                bboxes.append((x_min, x_max, y_min, y_max))
+                bboxes.append(BoundingBox2D(x_min, x_max, y_min, y_max))
         return bboxes
 
     def get_per_class_masks(self):

@@ -175,7 +175,7 @@ class GroundSpeedSignsMessage(erdos.Message):
     """ Message class to be used to send ground info about speed limit actors.
 
     Attributes:
-        speed_signs: A list of simulation.utils.SpeedLimitSign tuples.
+        speed_signs: A list of simulation.carla_utils.SpeedLimitSign tuples.
     """
     def __init__(self, timestamp, speed_signs):
         super(GroundSpeedSignsMessage, self).__init__(timestamp, None)

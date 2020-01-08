@@ -1,5 +1,4 @@
 import carla
-from collections import namedtuple
 import numpy as np
 from numpy.linalg import inv
 from numpy.matlib import repmat
@@ -8,27 +7,6 @@ import pylot.utils
 from pylot.utils import Location, Transform
 from pylot.perception.detection.utils import BoundingBox2D, BoundingBox3D, \
     DetectedObstacle, DetectedSpeedLimit
-
-SpeedLimitSign = namedtuple('SpeedLimitSign', 'transform, limit')
-StopSign = namedtuple('StopSign', 'transform, bounding_box')
-LocationGeo = namedtuple('LocationGeo', 'latitude, longitude, altitude')
-
-
-class CanBus(object):
-    def __init__(self, transform, forward_speed):
-        if not isinstance(transform, Transform):
-            raise ValueError(
-                'transform should be of type pylot.utils.Transform')
-        self.transform = transform
-        # Forward speed in m/s.
-        self.forward_speed = forward_speed
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        return "CanBus(transform: {}, forward speed: {})".format(
-            self.transform, self.forward_speed)
 
 
 class Obstacle(object):
@@ -213,69 +191,43 @@ def depth_to_local_point_cloud(depth_frame, camera_setup, max_depth=0.9):
     return locations
 
 
-def lidar_to_camera_transform(transform):
-    """
-    Takes in a Transform that occurs in camera coordinates,
-    and converts it into a Transform that goes from lidar
-    coordinates to camera coordinates.
-    """
-    to_camera_transform = Transform(matrix=np.array(
-        [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
-    return transform * to_camera_transform
-
-
-def get_3d_world_position_with_depth_map(x, y, depth_frame, camera_setup):
-    """ Gets the 3D world position from pixel coordinates using a depth frame.
+def camera_pixel_to_location(x, y, depth_frame, camera_setup):
+    """ Gets the 3D world location from pixel coordinates using a depth frame.
 
         Args:
             x: Pixel x coordinate.
             y: Pixel y coordinate.
             depth_frame: Normalized depth frame.
-            width: frame width
-            height: frame height
-            fov: camera field of view
-            camera_transform: Camera transform relative to the world.
 
        Returns:
             3D world location.
     """
-    far = 1.0
     point_cloud = depth_to_local_point_cloud(depth_frame,
                                              camera_setup,
-                                             max_depth=far)
+                                             max_depth=1.0)
     # Transform the points in 3D world coordinates.
     to_world_transform = camera_setup.get_unreal_transform()
     point_cloud = to_world_transform.transform_points(point_cloud)
     return point_cloud[y * camera_setup.width + x]
 
 
-def batch_get_3d_world_position_with_depth_map(xs, ys, depth_frame,
-                                               camera_setup):
-    """ Gets the 3D world positions from pixel coordinates using a depth frame.
+def camera_pixels_to_locations(coordinates, depth_frame, camera_setup):
+    """ Gets the 3D world locations from pixel coordinates using a depth frame.
 
         Args:
-            xs: List of pixel x coordinate.
-            ys: List of pixel y coordinate.
+            coordinates: List of (x, y) pixel coordinates.
             depth_frame: Normalized depth frame.
-            width: frame width
-            height: frame height
-            fov: camera field of view
-            camera_transform: Camera transform relative to the world.
 
        Returns:
             List of 3D world locations.
     """
-    assert len(xs) == len(ys)
-    far = 1.0
     point_cloud = depth_to_local_point_cloud(depth_frame,
                                              camera_setup,
-                                             max_depth=far)
+                                             max_depth=1.0)
     # Transform the points in 3D world coordinates.
     to_world_transform = camera_setup.get_unreal_transform()
     point_cloud = to_world_transform.transform_points(point_cloud)
-    return [
-        point_cloud[ys[i] * camera_setup.width + xs[i]] for i in range(len(xs))
-    ]
+    return [point_cloud[y * camera_setup.width + x] for x, y in coordinates]
 
 
 def find_point_depth(x, y, point_cloud):
@@ -304,7 +256,11 @@ def lidar_point_cloud_to_camera_coordinates(point_cloud):
     point_cloud = [Location(x, y, z) for x, y, z in np.asarray(point_cloud)]
     identity_transform = Transform(matrix=np.array(
         [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
-    transform = lidar_to_camera_transform(identity_transform)
+    # Converts a transform that occurs in camera coordinates into a transform
+    # that goes from lidar coordinates to camera coordinates.
+    to_camera_transform = Transform(matrix=np.array(
+        [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
+    transform = identity_transform * to_camera_transform
     transformed_points = transform.transform_points(point_cloud)
     return [[loc.x, loc.y, loc.z] for loc in transformed_points]
 
@@ -486,91 +442,48 @@ def get_detected_speed_limits(speed_signs, vehicle_transform, depth_frame,
     Args:
         speed_signs: List of speed limit signs in the world.
         vehicle_transform: Ego-vehicle transform in world coordinates.
-        camera_transform: Camera transform in world coordinates.
-        fov: Camera field of view.
-        segmented_frame: Segmented frame.
+
+    Returns:
+        A list of pylot.perception.detection.DetectedSpeedLimit
     """
-    # Compute the bounding boxes.
-    bboxes = segmented_frame.get_traffic_sign_bounding_boxes(min_width=8,
-                                                             min_height=9)
+    def match_bboxes_with_speed_signs(vehicle_transform, loc_bboxes,
+                                      speed_signs):
+        result = []
+        for location, bbox in loc_bboxes:
+            best_ts = None
+            best_dist = 1000000
+            for ts in speed_signs:
+                dist = location.distance(ts.transform.location)
+                if dist < best_dist:
+                    best_dist = dist
+                    best_ts = ts
+            if not best_ts:
+                continue
+            # Check that the sign is facing the ego vehicle.
+            yaw_diff = (best_ts.transform.rotation.yaw -
+                        vehicle_transform.rotation.yaw)
+            if yaw_diff < 0:
+                yaw_diff += 360
+            elif yaw_diff >= 360:
+                yaw_diff -= 360
+            if best_dist < 5**2 and yaw_diff > 30 and yaw_diff < 150:
+                result.append(
+                    DetectedSpeedLimit(bbox, best_ts.limit, 1.0,
+                                       'speed limit'))
+        return result
 
-    # Get the positions of the bounding box centers.
-    x_mids = [(bbox[0] + bbox[1]) // 2 for bbox in bboxes]
-    y_mids = [(bbox[2] + bbox[3]) // 2 for bbox in bboxes]
-    pos_3d = batch_get_3d_world_position_with_depth_map(
-        x_mids, y_mids, depth_frame, camera_setup)
-    pos_and_bboxes = zip(pos_3d, bboxes)
-    ts_bboxes = _match_bboxes_with_speed_signs(vehicle_transform,
-                                               pos_and_bboxes, speed_signs)
-
-    det_obstacles = [
-        DetectedSpeedLimit(bbox, limit, 1.0, 'speed limit')
-        for (bbox, limit) in ts_bboxes
-    ]
-    return det_obstacles
-
-
-def _match_bboxes_with_speed_signs(vehicle_transform, pos_bboxes, speed_signs):
-    result = []
-    for pos, bbox in pos_bboxes:
-        best_ts = None
-        best_dist = 1000000
-        for ts in speed_signs:
-            dist = ((pos.x - ts.transform.location.x)**2 +
-                    (pos.y - ts.transform.location.y)**2)
-            if (dist < best_dist):
-                best_dist = dist
-                best_ts = ts
-        if not best_ts:
-            continue
-        # Check that the sign is facing the ego vehicle.
-        yaw_diff = (best_ts.transform.rotation.yaw -
-                    vehicle_transform.rotation.yaw)
-        if yaw_diff < 0:
-            yaw_diff += 360
-        elif yaw_diff >= 360:
-            yaw_diff -= 360
-        if best_dist < 5**2 and yaw_diff > 30 and yaw_diff < 150:
-            result.append((bbox, best_ts.limit))
-    return result
-
-
-def _get_stop_markings_bbox(bbox3d, depth_frame, camera_transform,
-                            camera_intrinsic, frame_width, frame_height):
-    """ Gets a 2D stop marking bouding box from a 3D bounding box."""
-    # Offset trigger_volume by -0.85 so that the top plane is on the ground.
-    ext_z_value = bbox3d.extent.z - 0.85
-    ext = [
-        Location(x=+bbox3d.extent.x, y=+bbox3d.extent.y, z=ext_z_value),
-        Location(x=+bbox3d.extent.x, y=-bbox3d.extent.y, z=ext_z_value),
-        Location(x=-bbox3d.extent.x, y=+bbox3d.extent.y, z=ext_z_value),
-        Location(x=-bbox3d.extent.x, y=-bbox3d.extent.y, z=ext_z_value),
-    ]
-    bbox = bbox3d.transform.transform_points(ext)
-    coords = []
-    for loc in bbox:
-        loc_view = loc.to_camera_view(camera_transform.matrix,
-                                      camera_intrinsic)
-        if (loc_view.z >= 0 and loc_view.x >= 0 and loc_view.y >= 0
-                and loc_view.x < frame_width and loc_view.y < frame_height):
-            coords.append(loc_view)
-    if len(coords) == 4:
-        xmin = min(coords[0].x, coords[1].x, coords[2].x, coords[3].x)
-        xmax = max(coords[0].x, coords[1].x, coords[2].x, coords[3].x)
-        ymin = min(coords[0].y, coords[1].y, coords[2].y, coords[3].y)
-        ymax = max(coords[0].y, coords[1].y, coords[2].y, coords[3].y)
-        # Check if the bbox is not obstructed and if it's sufficiently
-        # big for the text to be readable.
-        if (ymax - ymin > 15
-                and have_same_depth(int(coords[0].x), int(coords[0].y),
-                                    coords[0].z, depth_frame, 0.4)):
-            return (int(xmin), int(xmax), int(ymin), int(ymax))
-    return None
-
-
-def have_same_depth(x, y, z, depth_array, threshold):
-    x, y = int(x), int(y)
-    return abs(depth_array[y][x] * 1000 - z) < threshold
+    # Compute the 2D bounding boxes.
+    bboxes_2d = segmented_frame.get_traffic_sign_bounding_boxes(min_width=8,
+                                                                min_height=9)
+    # Transform the centers of 2D bounding boxes to 3D locations.
+    coordinates = [bbox.get_center_point() for bbox in bboxes_2d]
+    locations = camera_pixels_to_locations(coordinates, depth_frame,
+                                           camera_setup)
+    loc_and_bboxes = zip(locations, bboxes_2d)
+    det_speed_limits = match_bboxes_with_speed_signs(vehicle_transform,
+                                                     loc_and_bboxes,
+                                                     speed_signs)
+    return det_speed_limits
 
 
 def get_detected_traffic_stops(traffic_stops, depth_frame, camera_setup):
@@ -579,19 +492,52 @@ def get_detected_traffic_stops(traffic_stops, depth_frame, camera_setup):
     Args:
         traffic_stops: List of traffic stop actors in the world.
         camera_transform: Camera transform in world coordinates.
-        fov: Camera field of view.
 
     Returns:
         List of DetectedObstacles.
     """
+    def have_same_depth(x, y, z, depth_array, threshold):
+        x, y = int(x), int(y)
+        return abs(depth_array[y][x] * 1000 - z) < threshold
+
+    def get_stop_markings_bbox(bbox3d, depth_frame, camera_setup):
+        """ Gets a 2D stop marking bounding box from a 3D bounding box."""
+        # Move trigger_volume by -0.85 so that the top plane is on the ground.
+        ext_z_value = bbox3d.extent.z - 0.85
+        ext = [
+            Location(x=+bbox3d.extent.x, y=+bbox3d.extent.y, z=ext_z_value),
+            Location(x=+bbox3d.extent.x, y=-bbox3d.extent.y, z=ext_z_value),
+            Location(x=-bbox3d.extent.x, y=+bbox3d.extent.y, z=ext_z_value),
+            Location(x=-bbox3d.extent.x, y=-bbox3d.extent.y, z=ext_z_value),
+        ]
+        bbox = bbox3d.transform.transform_points(ext)
+        camera_transform = camera_setup.get_transform()
+        coords = []
+        for loc in bbox:
+            loc_view = loc.to_camera_view(camera_transform.matrix,
+                                          camera_setup.get_intrinsic_matrix())
+            if (loc_view.z >= 0 and loc_view.x >= 0 and loc_view.y >= 0
+                    and loc_view.x < camera_setup.width
+                    and loc_view.y < camera_setup.height):
+                coords.append(loc_view)
+        if len(coords) == 4:
+            xmin = min(coords[0].x, coords[1].x, coords[2].x, coords[3].x)
+            xmax = max(coords[0].x, coords[1].x, coords[2].x, coords[3].x)
+            ymin = min(coords[0].y, coords[1].y, coords[2].y, coords[3].y)
+            ymax = max(coords[0].y, coords[1].y, coords[2].y, coords[3].y)
+            # Check if the bbox is not obstructed and if it's sufficiently
+            # big for the text to be readable.
+            if (ymax - ymin > 15
+                    and have_same_depth(int(coords[0].x), int(coords[0].y),
+                                        coords[0].z, depth_frame, 0.4)):
+                return BoundingBox2D(int(xmin), int(xmax), int(ymin),
+                                     int(ymax))
+        return None
+
     det_obstacles = []
-    bgr_intrinsic = camera_setup.get_intrinsic_matrix()
     for transform, bbox in traffic_stops:
-        bbox_2d = _get_stop_markings_bbox(bbox, depth_frame,
-                                          camera_setup.get_transform(),
-                                          bgr_intrinsic, camera_setup.width,
-                                          camera_setup.height)
-        if bbox_2d:
+        bbox_2d = get_stop_markings_bbox(bbox, depth_frame, camera_setup)
+        if bbox_2d is not None:
             det_obstacles.append(DetectedObstacle(bbox_2d, 1.0,
                                                   'stop marking'))
     return det_obstacles

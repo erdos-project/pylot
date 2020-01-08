@@ -1,10 +1,18 @@
-import re
 import carla
+from collections import namedtuple
+import re
 
 import pylot.perception.detection.utils
 import pylot.simulation.utils
 import pylot.utils
 from pylot.perception.detection.traffic_light import TrafficLight
+
+# Type used to send info about speed limit signs from Carla.
+SpeedLimitSign = namedtuple('SpeedLimitSign', 'transform, limit')
+# Type used to send info about stop signs from Carla.
+StopSign = namedtuple('StopSign', 'transform, bounding_box')
+# Type used to send location info from Carla.
+LocationGeo = namedtuple('LocationGeo', 'latitude, longitude, altitude')
 
 
 def get_world(host="localhost", port=2000, timeout=10):
@@ -174,15 +182,14 @@ def convert_speed_limit_actors(speed_limit_actors):
         speed_limit_actors: A list of Carla speed limit actors.
 
     Returns:
-        A list of Pylot SpeedLimitSigns.
+        A list of SpeedLimitSigns.
     """
     speed_limits = []
     for ts_actor in speed_limit_actors:
         transform = pylot.utils.Transform.from_carla_transform(
             ts_actor.get_transform())
         speed_limit = int(ts_actor.type_id.split('.')[-1])
-        speed_sign = pylot.simulation.utils.SpeedLimitSign(
-            transform, speed_limit)
+        speed_sign = SpeedLimitSign(transform, speed_limit)
         speed_limits.append(speed_sign)
     return speed_limits
 
@@ -204,8 +211,7 @@ def convert_traffic_stop_actors(traffic_stop_actors):
             ts_actor.trigger_volume.location)
         bbox = pylot.perception.detection.utils.BoundingBox3D(
             world_trigger_volume, ts_actor.trigger_volume.extent)
-        stop_sign = pylot.simulation.utils.StopSign(transform, bbox)
-        stop_signs.append(stop_sign)
+        stop_signs.append(StopSign(transform, bbox))
     return stop_signs
 
 

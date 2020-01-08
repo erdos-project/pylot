@@ -12,7 +12,7 @@ import pylot.simulation.utils
 from pylot.map.hd_map import HDMap
 from pylot.simulation.carla_utils import get_map
 from pylot.simulation.utils import get_3d_world_position_with_point_cloud,\
-    get_3d_world_position_with_depth_map
+    camera_pixel_to_location
 from pylot.utils import time_epoch_ms
 from pylot.simulation.sensor_setup import DepthCameraSetup
 
@@ -224,8 +224,7 @@ class PylotAgentOperator(erdos.Operator):
             vehicle_transform * self._bgr_camera_setup.transform,
             self._bgr_camera_setup.fov)
         if depth_frame is not None:
-            pos = get_3d_world_position_with_depth_map(x, y, depth_frame,
-                                                       camera_setup)
+            pos = camera_pixel_to_location(x, y, depth_frame, camera_setup)
         elif point_cloud is not None:
             pos = get_3d_world_position_with_point_cloud(
                 x, y, point_cloud, camera_setup)
