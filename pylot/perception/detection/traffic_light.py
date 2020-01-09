@@ -1,6 +1,8 @@
 import numpy as np
 
-from pylot.perception.detection.utils import TrafficLightColor
+from pylot.perception.detection.utils import DetectedObstacle, \
+    TrafficLightColor
+import pylot.simulation.utils
 import pylot.utils
 
 
@@ -83,7 +85,55 @@ class TrafficLight(object):
                 return prod > 0.3
         return prod > -0.80
 
-    def relative_to_traffic_light(self, points):
+    def get_all_detected_traffic_light_boxes(self, town_name, depth_frame,
+                                             segmented_image):
+        """ Returns DetectedObstacles for all boxes of a traffic light.
+
+        Args:
+            town_name: The name of the town in which the traffic light is.
+            depth_frame: A pylot.utils.DepthFrame
+            segmented_image: A segmented image used to refine the bboxes.
+        Returns:
+            A list of DetectedObstacles.
+        """
+        detected = []
+        bboxes = self._get_bboxes(town_name)
+        # Convert the returned bounding boxes to 2D and check if the
+        # light is occluded. If not, add it to the detected obstacle list.
+        for bbox in bboxes:
+            bounding_box = [
+                loc.to_camera_view(
+                    depth_frame.camera_setup.get_extrinsic_matrix(),
+                    depth_frame.camera_setup.get_intrinsic_matrix())
+                for loc in bbox
+            ]
+            bounding_box = [(bb.x, bb.y, bb.z) for bb in bounding_box]
+            bbox_2d = pylot.simulation.utils.get_bounding_box_in_camera_view(
+                bounding_box, depth_frame.camera_setup.width,
+                depth_frame.camera_setup.height)
+            if not bbox_2d:
+                continue
+
+            # Crop the segmented and depth image to the given bounding box.
+            cropped_image = segmented_image[bbox_2d.y_min:bbox_2d.y_max,
+                                            bbox_2d.x_min:bbox_2d.x_max]
+            cropped_depth = depth_frame.frame[bbox_2d.y_min:bbox_2d.y_max,
+                                              bbox_2d.x_min:bbox_2d.x_max]
+
+            if cropped_image.size > 0:
+                masked_image = np.zeros_like(cropped_image)
+                masked_image[np.where(cropped_image == 12)] = 1
+                if np.sum(masked_image) >= 0.20 * masked_image.size:
+                    masked_depth = cropped_depth[np.where(masked_image == 1)]
+                    mean_depth = np.mean(masked_depth) * 1000
+                    if abs(mean_depth -
+                           bounding_box[0][-1]) <= 2 and mean_depth < 150:
+                        detected.append(
+                            DetectedObstacle(bbox_2d, 1.0,
+                                             self.state.get_label()))
+        return detected
+
+    def _relative_to_traffic_light(self, points):
         """ Transforms the bounding box specified in the points relative to the
         light.
 
@@ -114,20 +164,20 @@ class TrafficLight(object):
         ]
         return base_relative_points
 
-    def get_bbox_state(self, town_name):
+    def _get_bboxes(self, town_name):
         if town_name == 'Town01' or town_name == 'Town02':
-            return self._get_bbox_state_town1_or_2()
+            return self._get_bboxes_for_town1_or_2()
         elif town_name == 'Town03':
-            return self._get_bbox_state_town3()
+            return self._get_bboxes_for_town3()
         elif town_name == 'Town04':
-            return self._get_bbox_state_town4()
+            return self._get_bboxes_for_town4()
         elif town_name == 'Town05':
-            return self._get_bbox_state_town5()
+            return self._get_bboxes_for_town5()
         else:
             raise ValueError(
                 'Could not find a town named {}'.format(town_name))
 
-    def _get_bbox_state_town1_or_2(self):
+    def _get_bboxes_for_town1_or_2(self):
         points = [
             # Back Plane
             pylot.utils.Location(x=-0.5, y=-0.1, z=2),
@@ -140,10 +190,10 @@ class TrafficLight(object):
             pylot.utils.Location(x=+0.1, y=0.5, z=3),
             pylot.utils.Location(x=-0.5, y=0.5, z=3),
         ]
-        return [(self.relative_to_traffic_light(points), self.state)]
+        return [self._relative_to_traffic_light(points)]
 
-    def _get_bbox_state_town3(self):
-        bbox_state = []
+    def _get_bboxes_for_town3(self):
+        bboxes = []
         if (self.trigger_volume_extent.x > 2 or self.id in [
                 66,
                 67,
@@ -166,19 +216,16 @@ class TrafficLight(object):
                 pylot.utils.Location(x=-4.8, y=0.4, z=6.5),
                 pylot.utils.Location(x=-5.2, y=0.4, z=6.5),
             ]
-            bbox_state.append(
-                (self.relative_to_traffic_light(points), self.state))
+            bboxes.append(self._relative_to_traffic_light(points))
             right_points = [
                 point + pylot.utils.Location(x=-3.0) for point in points
             ]
-            bbox_state.append(
-                (self.relative_to_traffic_light(right_points), self.state))
+            bboxes.append(self._relative_to_traffic_light(right_points))
             if self.id not in [51, 52, 53]:
                 left_points = [
                     point + pylot.utils.Location(x=-6.5) for point in points
                 ]
-                bbox_state.append(
-                    (self.relative_to_traffic_light(left_points), self.state))
+                bboxes.append(self._relative_to_traffic_light(left_points))
         else:
             points = [
                 # Back Plane
@@ -192,13 +239,12 @@ class TrafficLight(object):
                 pylot.utils.Location(x=+0.1, y=0.5, z=3),
                 pylot.utils.Location(x=-0.5, y=0.5, z=3),
             ]
-            bbox_state.append(
-                (self.relative_to_traffic_light(points), self.state))
+            bboxes.append(self._relative_to_traffic_light(points))
 
-        return bbox_state
+        return bboxes
 
-    def _get_bbox_state_town4(self):
-        bbox_state = []
+    def _get_bboxes_for_town4(self):
+        bboxes = []
         points = [
             # Back Plane
             pylot.utils.Location(x=-5.2, y=-0.2, z=5.5),
@@ -211,38 +257,35 @@ class TrafficLight(object):
             pylot.utils.Location(x=-4.8, y=0.4, z=6.5),
             pylot.utils.Location(x=-5.2, y=0.4, z=6.5),
         ]
-        middle_points = [  # Light in the middle of the pole.
-            # Back Plane
-            pylot.utils.Location(x=-0.5, y=-0.1, z=2.5),
-            pylot.utils.Location(x=+0.1, y=-0.1, z=2.5),
-            pylot.utils.Location(x=+0.1, y=-0.1, z=3.5),
-            pylot.utils.Location(x=-0.5, y=-0.1, z=3.5),
-            # Front Plane
-            pylot.utils.Location(x=-0.5, y=0.5, z=2.5),
-            pylot.utils.Location(x=+0.1, y=0.5, z=2.5),
-            pylot.utils.Location(x=+0.1, y=0.5, z=3.5),
-            pylot.utils.Location(x=-0.5, y=0.5, z=3.5),
-        ]
-        right_points = [
-            point + pylot.utils.Location(x=-3.0) for point in points
-        ]
-        left_points = [
-            point + pylot.utils.Location(x=-5.5) for point in points
-        ]
-        bbox_state.append((self.relative_to_traffic_light(points), self.state))
+        bboxes.append(self._relative_to_traffic_light(points))
         if self.trigger_volume_extent.x > 5:
             # This is a traffic light with 4 signs, we need to come up with
             # more bounding boxes.
-            bbox_state.append(
-                (self.relative_to_traffic_light(middle_points), self.state))
-            bbox_state.append(
-                (self.relative_to_traffic_light(right_points), self.state))
-            bbox_state.append(
-                (self.relative_to_traffic_light(left_points), self.state))
-        return bbox_state
+            middle_points = [  # Light in the middle of the pole.
+                # Back Plane
+                pylot.utils.Location(x=-0.5, y=-0.1, z=2.5),
+                pylot.utils.Location(x=+0.1, y=-0.1, z=2.5),
+                pylot.utils.Location(x=+0.1, y=-0.1, z=3.5),
+                pylot.utils.Location(x=-0.5, y=-0.1, z=3.5),
+                # Front Plane
+                pylot.utils.Location(x=-0.5, y=0.5, z=2.5),
+                pylot.utils.Location(x=+0.1, y=0.5, z=2.5),
+                pylot.utils.Location(x=+0.1, y=0.5, z=3.5),
+                pylot.utils.Location(x=-0.5, y=0.5, z=3.5),
+            ]
+            right_points = [
+                point + pylot.utils.Location(x=-3.0) for point in points
+            ]
+            left_points = [
+                point + pylot.utils.Location(x=-5.5) for point in points
+            ]
+            bboxes.append(self._relative_to_traffic_light(middle_points))
+            bboxes.append(self._relative_to_traffic_light(right_points))
+            bboxes.append(self._relative_to_traffic_light(left_points))
+        return bboxes
 
-    def _get_bbox_state_town5(self):
-        bbox_state = []
+    def _get_bboxes_for_town5(self):
+        bboxes = []
         points = [
             # Back Plane
             pylot.utils.Location(x=-5.2, y=-0.2, z=5.5),
@@ -255,37 +298,33 @@ class TrafficLight(object):
             pylot.utils.Location(x=-4.8, y=0.4, z=6.5),
             pylot.utils.Location(x=-5.2, y=0.4, z=6.5),
         ]
-        middle_points = [  # Light in the middle of the pole.
-            # Back Plane
-            pylot.utils.Location(x=-0.4, y=-0.1, z=2.55),
-            pylot.utils.Location(x=+0.2, y=-0.1, z=2.55),
-            pylot.utils.Location(x=+0.2, y=-0.1, z=3.55),
-            pylot.utils.Location(x=-0.4, y=-0.1, z=3.55),
-            # Front Plane
-            pylot.utils.Location(x=-0.4, y=0.5, z=2.55),
-            pylot.utils.Location(x=+0.2, y=0.5, z=2.55),
-            pylot.utils.Location(x=+0.2, y=0.5, z=3.55),
-            pylot.utils.Location(x=-0.5, y=0.5, z=3.55),
-        ]
-        right_points = [
-            point + pylot.utils.Location(x=-3.0) for point in points
-        ]
-        left_points = [
-            point + pylot.utils.Location(x=-5.5) for point in points
-        ]
-
         # Town05 randomizes the identifiers for the traffic light at each
         # reload of the world. We cannot depend on static identifiers for
         # figuring out which lights only have a single traffic light.
-        bbox_state.append((self.relative_to_traffic_light(points), self.state))
+        bboxes.append(self._relative_to_traffic_light(points))
         # There's a traffic light with extent.x < 2, which only has one box.
         if self.trigger_volume_extent.x >= 2:
             # This is a traffids light with 4 signs, we need to come up
             # with more bounding boxes.
-            bbox_state.append(
-                (self.relative_to_traffic_light(middle_points), self.state))
-            bbox_state.append(
-                (self.relative_to_traffic_light(right_points), self.state))
-            bbox_state.append(
-                (self.relative_to_traffic_light(left_points), self.state))
-        return bbox_state
+            middle_points = [  # Light in the middle of the pole.
+                # Back Plane
+                pylot.utils.Location(x=-0.4, y=-0.1, z=2.55),
+                pylot.utils.Location(x=+0.2, y=-0.1, z=2.55),
+                pylot.utils.Location(x=+0.2, y=-0.1, z=3.55),
+                pylot.utils.Location(x=-0.4, y=-0.1, z=3.55),
+                # Front Plane
+                pylot.utils.Location(x=-0.4, y=0.5, z=2.55),
+                pylot.utils.Location(x=+0.2, y=0.5, z=2.55),
+                pylot.utils.Location(x=+0.2, y=0.5, z=3.55),
+                pylot.utils.Location(x=-0.5, y=0.5, z=3.55),
+            ]
+            right_points = [
+                point + pylot.utils.Location(x=-3.0) for point in points
+            ]
+            left_points = [
+                point + pylot.utils.Location(x=-5.5) for point in points
+            ]
+            bboxes.append(self._relative_to_traffic_light(middle_points))
+            bboxes.append(self._relative_to_traffic_light(right_points))
+            bboxes.append(self._relative_to_traffic_light(left_points))
+        return bboxes

@@ -277,50 +277,16 @@ def get_traffic_lights_obstacles(traffic_lights, depth_frame, segmented_image,
     """ Get the traffic lights that are within the camera frame.
     Note: This method should be used with Carla 0.9.*
     """
-    # Create the extrinsic and intrinsic matrices for the given camera.
-    extrinsic_matrix = depth_frame.camera_setup.get_extrinsic_matrix()
-    intrinsic_matrix = depth_frame.camera_setup.get_intrinsic_matrix()
     camera_transform = depth_frame.camera_setup.get_transform()
-
     # Iterate over all the traffic lights, and figure out which ones are
     # facing us and are visible in the camera view.
     detected = []
     for light in traffic_lights:
         if not light.is_traffic_light_visible(camera_transform, town_name):
             continue
-
-        bboxes = light.get_bbox_state(town_name)
-
-        # Convert the returned bounding boxes to 2D and check if the
-        # light is occluded. If not, add it to the detected obstacle list.
-        for box, color in bboxes:
-            bounding_box = [
-                loc.to_camera_view(extrinsic_matrix, intrinsic_matrix)
-                for loc in box
-            ]
-            bounding_box = [(bb.x, bb.y, bb.z) for bb in bounding_box]
-            bbox_2d = get_bounding_box_in_camera_view(
-                bounding_box, depth_frame.camera_setup.width,
-                depth_frame.camera_setup.height)
-            if not bbox_2d:
-                continue
-
-            # Crop the segmented and depth image to the given bounding box.
-            cropped_image = segmented_image[bbox_2d.y_min:bbox_2d.y_max,
-                                            bbox_2d.x_min:bbox_2d.x_max]
-            cropped_depth = depth_frame.frame[bbox_2d.y_min:bbox_2d.y_max,
-                                              bbox_2d.x_min:bbox_2d.x_max]
-
-            if cropped_image.size > 0:
-                masked_image = np.zeros_like(cropped_image)
-                masked_image[np.where(cropped_image == 12)] = 1
-                if np.sum(masked_image) >= 0.20 * masked_image.size:
-                    masked_depth = cropped_depth[np.where(masked_image == 1)]
-                    mean_depth = np.mean(masked_depth) * 1000
-                    if abs(mean_depth -
-                           bounding_box[0][-1]) <= 2 and mean_depth < 150:
-                        detected.append(
-                            DetectedObstacle(bbox_2d, 1.0, color.get_label()))
+        detected.extend(
+            light.get_all_detected_traffic_light_boxes(town_name, depth_frame,
+                                                       segmented_image))
     return detected
 
 
