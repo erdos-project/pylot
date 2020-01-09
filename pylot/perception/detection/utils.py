@@ -87,7 +87,8 @@ class BoundingBox2D(object):
         return self.x_max - self.x_min
 
     def get_center_point(self):
-        return [(self.x_min + self.x_max) // 2, (self.y_min + self.y_max) // 2]
+        return pylot.utils.Vector2D((self.x_min + self.x_max) // 2,
+                                    (self.y_min + self.y_max) // 2)
 
     def as_width_height_bbox(self):
         return [self.x_min, self.y_min, self.get_width(), self.get_height()]

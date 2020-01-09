@@ -134,6 +134,11 @@ class CameraSetup(object):
     def get_unreal_transform(self):
         return self.unreal_transform
 
+    def set_transform(self, transform):
+        self.transform = transform
+        self.unreal_transform = CameraSetup.__create_unreal_transform(
+            self.transform)
+
     def __repr__(self):
         return self.__str__()
 

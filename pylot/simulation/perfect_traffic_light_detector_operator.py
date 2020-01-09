@@ -79,7 +79,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
 
         # The camera setup sent with the image is relative to the car, we need
         # to transform it relative to the world to detect traffic lights.
-        depth_msg.frame.camera_setup.transform = (
+        depth_msg.frame.camera_setup.set_transform(
             vehicle_transform * depth_msg.frame.camera_setup.transform)
 
         det_traffic_lights = pylot.simulation.utils.get_traffic_lights_obstacles(

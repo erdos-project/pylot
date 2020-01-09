@@ -12,8 +12,7 @@ import pylot.simulation.utils
 from pylot.map.hd_map import HDMap
 from pylot.simulation.carla_utils import get_map
 from pylot.simulation.utils import get_3d_world_position_with_point_cloud
-from pylot.utils import time_epoch_ms, Vector2D
-from pylot.simulation.sensor_setup import DepthCameraSetup
+from pylot.utils import time_epoch_ms
 
 INTERSECTION_SPEED_M_PER_SEC = 5
 
@@ -100,7 +99,7 @@ class PylotAgentOperator(erdos.Operator):
             depth_frame = depth_msg.frame
             # We need to transform the static setup of the camera relative to
             # the position of the vehicle.
-            depth_frame.camera_setup.transform = (
+            depth_frame.camera_setup.set_transform(
                 vehicle_transform * depth_frame.camera_setup.transform)
 
         traffic_lights = self.__transform_tl_output(tl_msg, point_cloud,

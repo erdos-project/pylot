@@ -24,7 +24,8 @@ class SingleObjectDaSiamRPNTracker(object):
         self.bbox = bbox
         self.id = id
         self.missed_det_updates = 0
-        target_pos = np.array(bbox.get_center_point())
+        center_point = bbox.get_center_point()
+        target_pos = np.array([center_point.x, center_point.y])
         target_size = np.array([bbox.get_width(), bbox.get_height()])
         self._tracker = SiamRPN_init(frame, target_pos, target_size, siam_net)
 

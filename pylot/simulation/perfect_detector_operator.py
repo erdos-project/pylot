@@ -102,7 +102,7 @@ class PerfectDetectorOperator(erdos.Operator):
 
         # The camera setup sent with the image is relative to the car, we need
         # to transform it relative to the world.
-        depth_msg.frame.camera_setup.transform = (
+        depth_msg.frame.camera_setup.set_transform(
             vehicle_transform * depth_msg.frame.camera_setup.transform)
 
         det_speed_limits = pylot.simulation.utils.get_detected_speed_limits(
@@ -190,6 +190,8 @@ class PerfectDetectorOperator(erdos.Operator):
             else:
                 bbox = obstacle.to_camera_view(transformed_camera_setup,
                                                depth_array, segmented_frame)
-                det_obstacles.append(
-                    DetectedObstacle(bbox, 1.0, obstacle.label, obstacle.id))
+                if bbox:
+                    det_obstacles.append(
+                        DetectedObstacle(bbox, 1.0, obstacle.label,
+                                         obstacle.id))
         return det_obstacles

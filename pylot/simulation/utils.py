@@ -369,10 +369,7 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
     bboxes_2d = segmented_frame.get_traffic_sign_bounding_boxes(min_width=8,
                                                                 min_height=9)
     # Transform the centers of 2D bounding boxes to 3D locations.
-    coordinates = []
-    for bbox in bboxes_2d:
-        x, y = bbox.get_center_point()
-        coordinates.append(pylot.utils.Vector2D(x, y))
+    coordinates = [bbox.get_center_point() for bbox in bboxes_2d]
     locations = depth_frame.get_pixel_locations(coordinates)
     loc_and_bboxes = zip(locations, bboxes_2d)
     det_speed_limits = match_bboxes_with_speed_signs(
