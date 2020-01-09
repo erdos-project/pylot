@@ -47,10 +47,10 @@ def on_depth_msg(carla_image):
     camera_setup = DepthCameraSetup("depth_camera", FLAGS.frame_width,
                                     FLAGS.camera_height, transform,
                                     FLAGS.camera_fov)
-    DEPTH_FRAME = DepthFrameMessage(carla_image,
-                                    camera_setup,
-                                    int(carla_image.timestamp * 1000),
-                                    encoding='carla')
+
+    DEPTH_FRAME = DepthFrameMessage(
+        pylot.utils.DepthFrame.from_carla_frame(carla_image, camera_setup),
+        int(carla_image.timestamp * 1000))
 
 
 def on_segmented_msg(carla_image):
@@ -121,11 +121,11 @@ def reset_frames():
     CARLA_IMAGE = None
 
 
-def get_traffic_light_objs(traffic_lights, camera_setup, depth_frame,
-                           segmented_frame, color, town_name):
+def get_traffic_light_objs(traffic_lights, depth_frame, segmented_frame, color,
+                           town_name):
     det_obstacles = pylot.simulation.utils.get_traffic_lights_obstacles(
         traffic_lights, depth_frame, segmented_frame.as_numpy_array(),
-        town_name, camera_setup)
+        town_name)
     # Overwrite traffic light color because we control it without refreshing
     # the agents.
     if color == carla.TrafficLightState.Yellow:
@@ -145,37 +145,32 @@ def get_traffic_light_objs(traffic_lights, camera_setup, depth_frame,
     return det_obstacles
 
 
-def log_bounding_boxes(carla_image, depth_frame, segmented_frame,
-                       traffic_lights, tl_color, speed_signs, stop_signs,
-                       weather, town):
+def log_bounding_boxes(carla_image, depth_msg, segmented_frame, traffic_lights,
+                       tl_color, speed_signs, stop_signs, weather, town):
     game_time = int(carla_image.timestamp * 1000)
     print("Processing game time {} in {} with weather {}".format(
         game_time, town, weather))
     frame = carla_image.frame
     # Copy the frame to ensure its on the heap.
     frame = copy.deepcopy(frame)
-    transform = pylot.utils.Transform.from_carla_transform(
-        carla_image.transform)
     _, world = get_world()
     town_name = world.get_map().name
 
-    camera_setup = depth_frame.camera_setup
     speed_limit_det_obstacles = []
     if speed_signs:
         speed_limit_det_obstacles = pylot.simulation.utils.get_detected_speed_limits(
-            speed_signs, transform, depth_frame.frame, segmented_frame,
-            camera_setup)
+            speed_signs, depth_msg.frame, segmented_frame)
 
     traffic_stop_det_obstacles = []
     if stop_signs:
         traffic_stop_det_obstacles = pylot.simulation.utils.get_detected_traffic_stops(
-            stop_signs, depth_frame.frame, camera_setup)
+            stop_signs, depth_msg.frame)
 
     traffic_light_det_obstacles = []
     if traffic_lights:
         traffic_light_det_obstacles = get_traffic_light_objs(
-            traffic_lights, camera_setup, depth_frame.frame, segmented_frame,
-            tl_color, town_name)
+            traffic_lights, depth_msg.frame, segmented_frame, tl_color,
+            town_name)
 
     det_obstacles = (speed_limit_det_obstacles + traffic_stop_det_obstacles +
                      traffic_light_det_obstacles)

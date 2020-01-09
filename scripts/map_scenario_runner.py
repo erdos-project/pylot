@@ -22,7 +22,7 @@ from pylot.simulation.sensor_setup import DepthCameraSetup
 from pylot.perception.detection.utils import get_precision_recall_at_iou
 from pylot.perception.messages import DepthFrameMessage, SegmentedFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
-from pylot.utils import Transform
+from pylot.utils import DepthFrame, Transform
 
 VEHICLE_DESTINATION = carla.Location(x=387.73 - 370, y=327.07, z=0.5)
 SAVED_DETECTIONS = collections.deque()
@@ -194,10 +194,8 @@ def process_depth_images(msg,
         bb_surface.set_colorkey((0, 0, 0))
 
     detected_pedestrians = []
-    depth_frame_msg = DepthFrameMessage(msg,
-                                        depth_camera_setup,
-                                        None,
-                                        encoding='carla')
+    depth_frame = DepthFrame.from_carla_frame(msg, depth_camera_setup)
+    depth_frame_msg = DepthFrameMessage(depth_frame, None)
 
     # Transform the static camera setup with respect to the location of the
     # vehicle in the world.

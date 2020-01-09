@@ -11,9 +11,8 @@ import pylot.control.utils
 import pylot.simulation.utils
 from pylot.map.hd_map import HDMap
 from pylot.simulation.carla_utils import get_map
-from pylot.simulation.utils import get_3d_world_position_with_point_cloud,\
-    camera_pixel_to_location
-from pylot.utils import time_epoch_ms
+from pylot.simulation.utils import get_3d_world_position_with_point_cloud
+from pylot.utils import time_epoch_ms, Vector2D
 from pylot.simulation.sensor_setup import DepthCameraSetup
 
 INTERSECTION_SPEED_M_PER_SEC = 5
@@ -99,16 +98,19 @@ class PylotAgentOperator(erdos.Operator):
         depth_frame = None
         if depth_msg is not None:
             depth_frame = depth_msg.frame
+            # We need to transform the static setup of the camera relative to
+            # the position of the vehicle.
+            depth_frame.camera_setup.transform = (
+                vehicle_transform * depth_frame.camera_setup.transform)
 
-        traffic_lights = self.__transform_tl_output(tl_msg, vehicle_transform,
-                                                    point_cloud, depth_frame)
+        traffic_lights = self.__transform_tl_output(tl_msg, point_cloud,
+                                                    depth_frame)
         assert len(timestamp.coordinates) == 1
         game_time = timestamp.coordinates[0]
         if len(traffic_lights) > 0:
             self._last_traffic_light_game_time = game_time
         (pedestrians,
          vehicles) = self.__transform_detector_output(obstacles_msg,
-                                                      vehicle_transform,
                                                       point_cloud, depth_frame)
 
         self._logger.debug('@{}: speed {} and location {}'.format(
@@ -199,78 +201,63 @@ class PylotAgentOperator(erdos.Operator):
         self._logger.debug('@{}: depth camera update'.format(msg.timestamp))
         self._depth_camera_msgs.append(msg)
 
-    def __transform_to_3d(self, x, y, vehicle_transform, point_cloud,
-                          depth_frame):
+    def __transform_to_3d(self, pixel, point_cloud, depth_frame):
         """ Transforms a camera view pixel location to 3d world location.
 
         Args:
             x: The x-axis pixel.
             y: The y-axis pixel.
-            vehicle_transform: The transform of the ego vehicle.
             point_cloud: A lidar point cloud.
-            depth_frame: A depth frame.
+            depth_frame: A pylot.utils.DepthFrame.
 
         Note: It is sufficient to pass either a point cloud or a depth frame.
 
         Returns:
             The location in 3D world coordinates.
         """
-        pos = None
-        # We need to transform the static setup of the camera relative to
-        # the position of the vehicle.
-        camera_setup = DepthCameraSetup(
-            self._bgr_camera_setup.name, self._bgr_camera_setup.width,
-            self._bgr_camera_setup.height,
-            vehicle_transform * self._bgr_camera_setup.transform,
-            self._bgr_camera_setup.fov)
+        location = None
         if depth_frame is not None:
-            pos = camera_pixel_to_location(x, y, depth_frame, camera_setup)
+            location = depth_frame.get_pixel_locations([pixel])[0]
         elif point_cloud is not None:
-            pos = get_3d_world_position_with_point_cloud(
-                x, y, point_cloud, camera_setup)
-        if pos is None:
-            self._logger.error('Could not find lidar point for {} {}'.format(
-                x, y))
-        return pos
+            location = get_3d_world_position_with_point_cloud(
+                pixel.x, pixel.y, point_cloud, depth_frame.camera_setup)
+        if location is None:
+            self._logger.error(
+                'Could not find lidar point for {}'.format(pixel))
+        return location
 
-    def __transform_tl_output(self, tls, vehicle_transform, point_cloud,
-                              depth_frame):
+    def __transform_tl_output(self, tls, point_cloud, depth_frame):
         """ Transforms traffic light bounding boxes to world coordinates.
 
         Args:
             tls: A list of traffic light detected obstacles.
-            vehicle_transform: The transform of the ego vehicle.
             point_cloud: The Lidar point cloud. Must be taken captured at the
                          same time as the frame on which the traffic lights
                          were detected.
-            depth_frame: The depth frame captured at the same time as the RGB
-                         frame used in detection.
+            depth_frame: A pylot.utils.DepthFrame recorded at the same time as
+                the RGB frame used in detection.
 
         Returns:
             A list of traffic light locations.
         """
         traffic_lights = []
         for tl in tls.obstacles:
-            x, y = tl.get_center_point()
-            location = self.__transform_to_3d(x, y, vehicle_transform,
+            location = self.__transform_to_3d(tl.get_center_point(),
                                               point_cloud, depth_frame)
-            if location:
-                # The coordinates we're successfully transformed.
-                traffic_lights.append((location, tl.label))
+            traffic_lights.append((location, tl.label))
         return traffic_lights
 
-    def __transform_detector_output(self, obstacles_msg, vehicle_transform,
-                                    point_cloud, depth_frame):
+    def __transform_detector_output(self, obstacles_msg, point_cloud,
+                                    depth_frame):
         """ Transforms detected obstacles to world coordinates.
 
         Args:
             obstacles_msg: A list of detected obstacles.
-            vehicle_transform: The transform of the ego vehicle.
             point_cloud: The Lidar point cloud. Must be taken captured at the
                          same time as the frame on which the obstacles were
                          detected.
-            depth_frame: The depth frame captured at the same time as the RGB
-                         frame used in detection.
+            depth_frame: A pylot.utils.DepthFrame recorded at the same time as
+                the RGB frame used in detection.
 
         Returns:
             A list of 3D world locations.
@@ -278,17 +265,14 @@ class PylotAgentOperator(erdos.Operator):
         vehicles = []
         pedestrians = []
         for obstacle in obstacles_msg.obstacles:
-            x, y = obstacle.get_center_point()
             if obstacle.label == 'person':
-                pos = self.__transform_to_3d(x, y, vehicle_transform,
-                                             point_cloud, depth_frame)
-                if pos:
-                    pedestrians.append(pos)
+                location = self.__transform_to_3d(obstacle.get_center_point(),
+                                                  point_cloud, depth_frame)
+                pedestrians.append(location)
             elif (obstacle.label in self._vehicle_labels):
-                pos = self.__transform_to_3d(x, y, vehicle_transform,
-                                             point_cloud, depth_frame)
-                if pos:
-                    vehicles.append(pos)
+                location = self.__transform_to_3d(obstacle.get_center_point(),
+                                                  point_cloud, depth_frame)
+                vehicles.append(location)
         return (pedestrians, vehicles)
 
     def __stop_for_agents(self, ego_vehicle_location, wp_angle, wp_vector,

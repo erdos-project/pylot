@@ -32,6 +32,6 @@ class DepthCameraLoggerOperator(erdos.Operator):
         file_name = os.path.join(
             self._flags.data_path,
             self._filename_prefix + str(msg.timestamp.coordinates[0]) + '.pkl')
-        pickle.dump(msg.frame,
+        pickle.dump(msg.frame.as_numpy_array(),
                     open(file_name, 'wb'),
                     protocol=pickle.HIGHEST_PROTOCOL)

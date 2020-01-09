@@ -5,7 +5,7 @@ import pylot.utils
 from pylot.perception.detection.utils import DetectedObstacle,\
     annotate_image_with_bboxes, save_image, visualize_image
 from pylot.perception.messages import ObstaclesMessage
-from pylot.simulation.sensor_setup import DepthCameraSetup, RGBCameraSetup
+from pylot.simulation.sensor_setup import RGBCameraSetup
 
 
 class PerfectDetectorOperator(erdos.Operator):
@@ -15,7 +15,7 @@ class PerfectDetectorOperator(erdos.Operator):
     Attributes:
         _bgr_imgs: Buffer of received ground BGR image messages.
         _can_bus_msgs: Buffer of received ground can bus messages.
-        _depth_imgs: Buffer of received depth image messages.
+        _depth_frame_msgs: Buffer of received depth frame messages.
         _pedestrians: Buffer of pedestrian messages received from Carla.
         _vehicles: Buffer of pedestrian messages received from Carla.
         _segmented_imgs: Buffer of segmented frame msgs received from Carla.
@@ -60,7 +60,7 @@ class PerfectDetectorOperator(erdos.Operator):
         # Queues of incoming data.
         self._bgr_imgs = deque()
         self._can_bus_msgs = deque()
-        self._depth_imgs = deque()
+        self._depth_frame_msgs = deque()
         self._obstacles = deque()
         self._segmented_imgs = deque()
         self._speed_limit_signs = deque()
@@ -79,7 +79,7 @@ class PerfectDetectorOperator(erdos.Operator):
 
     def on_watermark(self, timestamp, obstacles_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
-        depth_msg = self._depth_imgs.popleft()
+        depth_msg = self._depth_frame_msgs.popleft()
         bgr_msg = self._bgr_imgs.popleft()
         segmented_msg = self._segmented_imgs.popleft()
         can_bus_msg = self._can_bus_msgs.popleft()
@@ -97,25 +97,20 @@ class PerfectDetectorOperator(erdos.Operator):
 
         det_obstacles = self.__get_obstacles(obstacles_msg.obstacles,
                                              vehicle_transform,
-                                             depth_msg.frame,
+                                             depth_msg.frame.as_numpy_array(),
                                              segmented_msg.frame)
 
         # The camera setup sent with the image is relative to the car, we need
         # to transform it relative to the world.
-        transformed_camera_setup = DepthCameraSetup(
-            depth_msg.camera_setup.name,
-            depth_msg.camera_setup.width,
-            depth_msg.camera_setup.height,
-            vehicle_transform * depth_msg.camera_setup.transform,
-            fov=depth_msg.camera_setup.fov)
+        depth_msg.frame.camera_setup.transform = (
+            vehicle_transform * depth_msg.frame.camera_setup.transform)
 
         det_speed_limits = pylot.simulation.utils.get_detected_speed_limits(
-            speed_limit_signs_msg.speed_signs, vehicle_transform,
-            depth_msg.frame, segmented_msg.frame, transformed_camera_setup)
+            speed_limit_signs_msg.speed_signs, depth_msg.frame,
+            segmented_msg.frame)
 
         det_stop_signs = pylot.simulation.utils.get_detected_traffic_stops(
-            stop_signs_msg.stop_signs, depth_msg.frame,
-            transformed_camera_setup)
+            stop_signs_msg.stop_signs, depth_msg.frame)
 
         det_obstacles = det_obstacles + det_speed_limits + det_stop_signs
 
@@ -155,7 +150,7 @@ class PerfectDetectorOperator(erdos.Operator):
 
     def on_depth_camera_update(self, msg):
         self._logger.debug('@{}: received depth frame'.format(msg.timestamp))
-        self._depth_imgs.append(msg)
+        self._depth_frame_msgs.append(msg)
 
     def on_bgr_camera_update(self, msg):
         self._logger.debug('@{}: received BGR frame'.format(msg.timestamp))

@@ -1,6 +1,8 @@
 import erdos
 import numpy as np
 
+import pylot.utils
+
 
 class FrameMessage(erdos.Message):
     """ Message class to be used to send camera frames.
@@ -45,41 +47,23 @@ class DepthFrameMessage(erdos.Message):
     """ Message class to be used to send depth camera frames.
 
     Attributes:
-        frame: A numpy array storing the frame.
-        camera_setup: The camera setup used to generate the frame.
-        encoding: The encoding that the frame was received in.
+        frame: A pylot.utils.DepthFrame.
     """
-    def __init__(self, frame, camera_setup, timestamp, encoding='carla'):
+    def __init__(self, frame, timestamp):
         """ Initializes the depth frame messsage.
 
         Args:
-            frame: A numpy array storing the depth frame.
-            camera_setup: The camera setup used to generate this frame.
+            frame: A pylot.utils.DepthFrame.
             timestamp: A erdos.timestamp.Timestamp of the message.
-            encoding: 'carla' to convert a Carla depth image to internal
-            representation (default), otherwise no preprocessing.
         """
         super(DepthFrameMessage, self).__init__(timestamp, None)
-        self.camera_setup = camera_setup
-        self.encoding = encoding
-        if self.encoding == 'carla':
-            # Convert an image containing CARLA encoded depth-map to a 2D
-            # array containing the depth value of each pixel normalized
-            # between [0.0, 1.0]
-            import numpy as np
-            _frame = np.frombuffer(frame.raw_data, dtype=np.dtype("uint8"))
-            _frame = np.reshape(_frame, (frame.height, frame.width, 4))
-            self.frame = _frame.astype(np.float32)
-            # Apply (R + G * 256 + B * 256 * 256) / (256 * 256 * 256 - 1).
-            self.frame = np.dot(self.frame[:, :, :3], [65536.0, 256.0, 1.0])
-            self.frame /= 16777215.0  # (256.0 * 256.0 * 256.0 - 1.0)
-        else:
-            self.frame = frame
+        if not isinstance(frame, pylot.utils.DepthFrame):
+            raise ValueError('frame should be of type pylot.utils.DepthFrame')
+        self.frame = frame
 
     def __str__(self):
-        return 'DepthMessage(timestamp: {}, camera_setup: {}'\
-                ', encoding: {}'.format(self.timestamp, self.camera_setup,
-                                        self.encoding)
+        return 'DepthMessage(timestamp: {}, depth_frame: {})'.format(
+            self.timestamp, self.frame)
 
 
 class PointCloudMessage(erdos.Message):

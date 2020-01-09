@@ -136,7 +136,7 @@ class FusionOperator(erdos.Operator):
         self._obstacles.append((msg.timestamp, vehicle_bounds))
 
     def update_distances(self, msg):
-        self._distances.append((msg.timestamp, msg.frame))
+        self._distances.append((msg.timestamp, msg.frame.as_numpy_array()))
 
     def run(self):
         while True:

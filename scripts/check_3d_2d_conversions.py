@@ -1,4 +1,5 @@
-# Checks methods for getting 3d world locations from depth map and from point cloud.
+# Checks methods for getting 3d world locations from depth map and from point
+# cloud.
 
 import copy
 import numpy as np
@@ -8,10 +9,9 @@ import time
 import carla
 
 from pylot.simulation.carla_utils import get_world
-from pylot.simulation.messages import FrameMessage, DepthFrameMessage
+from pylot.simulation.messages import FrameMessage
 import pylot.simulation.utils
-from pylot.simulation.utils import camera_pixel_to_location, \
-     get_3d_world_position_with_point_cloud,\
+from pylot.simulation.utils import get_3d_world_position_with_point_cloud,\
      lidar_point_cloud_to_camera_coordinates
 import pylot.utils
 from matplotlib import pyplot as plt
@@ -80,9 +80,7 @@ def on_lidar_msg(carla_pc):
 
     global lidar_pc
     lidar_pc = points.tolist()
-
-
-#    pptk.viewer(points)
+    # pptk.viewer(points)
 
 
 def on_camera_msg(carla_image):
@@ -105,28 +103,18 @@ def on_depth_msg(carla_image):
                                600,
                                depth_camera_transform,
                                fov=90.0)
-    depth_msg = DepthFrameMessage(carla_image,
-                                  camera_setup,
-                                  None,
-                                  encoding='carla')
+    depth_frame = pylot.utils.DepthFrame.from_carla_frame(
+        carla_image, camera_setup)
 
     for (x, y) in pixels_to_check:
-        print("{} Depth at pixel {}".format((x, y), depth_msg.frame[y][x]))
-        pos3d_depth = camera_pixel_to_location(x, y, depth_msg.frame,
-                                               depth_msg.camera_setup)
+        print("{} Depth at pixel {}".format((x, y), depth_frame.frame[y][x]))
+        pos3d_depth = depth_frame.get_pixel_locations(
+            [pylot.utils.Vector2D(x, y)])[0]
         print("{} Computed using depth map {}".format((x, y), pos3d_depth))
 
-    depth_point_cloud = pylot.simulation.utils.depth_to_local_point_cloud(
-        depth_msg.frame, depth_msg.camera_setup, max_depth=1.0)
-    # Transform the depth cloud to world coordinates.
-    transform = camera_setup.get_unreal_transform()
-    depth_point_cloud = transform.transform_points(depth_point_cloud)
-
     global depth_pc
-    depth_pc = depth_point_cloud
-
-
-#    pptk.viewer(depth_point_cloud)
+    depth_pc = depth_frame.as_point_cloud()
+    # pptk.viewer(depth_pc)
 
 
 def add_lidar(world, transform, callback):

@@ -5,7 +5,6 @@ from pylot.perception.detection.utils import annotate_image_with_bboxes,\
     save_image, visualize_image
 from pylot.perception.messages import ObstaclesMessage
 from pylot.simulation.carla_utils import get_world
-from pylot.simulation.sensor_setup import DepthCameraSetup
 import pylot.simulation.utils
 
 
@@ -17,7 +16,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         _town_name: Name of the Carla town.
         _traffic_lights: Buffer of ground traffic lights messages.
         _bgr_imgs: Buffer of ground camera messages.
-        _depth_imgs: Buffer of ground camera depth messages.
+        _depth_frame_msgs: Buffer of ground camera depth messages.
         _segmented_imgs: Buffer of ground segmented messages.
         _can_bus_msgs: Buffer of can bus messages.
     """
@@ -51,7 +50,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
 
         self._traffic_lights = deque()
         self._bgr_imgs = deque()
-        self._depth_imgs = deque()
+        self._depth_frame_msgs = deque()
         self._segmented_imgs = deque()
         self._can_bus_msgs = deque()
         self._frame_cnt = 0
@@ -66,7 +65,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         traffic_light_msg = self._traffic_lights.popleft()
         bgr_msg = self._bgr_imgs.popleft()
-        depth_msg = self._depth_imgs.popleft()
+        depth_msg = self._depth_frame_msgs.popleft()
         segmented_msg = self._segmented_imgs.popleft()
         can_bus_msg = self._can_bus_msgs.popleft()
         vehicle_transform = can_bus_msg.data.transform
@@ -80,17 +79,12 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
 
         # The camera setup sent with the image is relative to the car, we need
         # to transform it relative to the world to detect traffic lights.
-        transformed_camera_setup = DepthCameraSetup(
-            depth_msg.camera_setup.name,
-            depth_msg.camera_setup.width,
-            depth_msg.camera_setup.height,
-            vehicle_transform * depth_msg.camera_setup.transform,
-            fov=depth_msg.camera_setup.fov)
+        depth_msg.frame.camera_setup.transform = (
+            vehicle_transform * depth_msg.frame.camera_setup.transform)
 
         det_traffic_lights = pylot.simulation.utils.get_traffic_lights_obstacles(
             traffic_light_msg.traffic_lights, depth_msg.frame,
-            segmented_msg.frame.as_numpy_array(), self._town_name,
-            transformed_camera_setup)
+            segmented_msg.frame.as_numpy_array(), self._town_name)
 
         if (self._flags.visualize_ground_obstacles
                 or self._flags.log_detector_output):
@@ -123,7 +117,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
 
     def on_depth_camera_update(self, msg):
         self._logger.debug('@{}: received depth frame'.format(msg.timestamp))
-        self._depth_imgs.append(msg)
+        self._depth_frame_msgs.append(msg)
 
     def on_segmented_frame(self, msg):
         self._logger.debug('@{}: received segmented frame'.format(

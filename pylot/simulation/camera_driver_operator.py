@@ -6,6 +6,7 @@ import pylot.simulation.messages
 from pylot.perception.messages import SegmentedFrameMessage
 from pylot.simulation.carla_utils import get_world, set_synchronous_mode
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
+from pylot.utils import DepthFrame
 
 
 class CameraDriverOperator(erdos.Operator):
@@ -128,11 +129,10 @@ class CameraDriverOperator(erdos.Operator):
                 # Include the transform relative to the vehicle.
                 # Carla carla_image.transform returns the world transform, but
                 # we do not use it directly.
+                depth_frame = DepthFrame.from_carla_frame(
+                    carla_image, self._camera_setup)
                 msg = pylot.simulation.messages.DepthFrameMessage(
-                    carla_image,
-                    self._camera_setup,
-                    timestamp,
-                    encoding='carla')
+                    depth_frame, timestamp)
             elif self._camera_setup.camera_type == \
                  'sensor.camera.semantic_segmentation':
                 frame = SegmentedFrame(carla_image, encoding='carla')

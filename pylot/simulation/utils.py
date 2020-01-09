@@ -1,7 +1,6 @@
 import carla
 import numpy as np
 from numpy.linalg import inv
-from numpy.matlib import repmat
 
 import pylot.utils
 from pylot.utils import Location, Transform
@@ -147,89 +146,6 @@ def get_top_down_transform(transform, top_down_lateral_view):
     return Transform(top_down_location, pylot.utils.Rotation(-90, 0, 0))
 
 
-def depth_to_local_point_cloud(depth_frame, camera_setup, max_depth=0.9):
-    """
-    Convert a CARLA-encoded depth-map to a 2D array containing
-    the 3D position (relative to the camera) of each pixel.
-    "max_depth" is used to omit the points that are far enough.
-
-    Args:
-        depth_frame: the normalized depth frame
-        width: frame width
-        height: frame height
-        fov: camera field of view
-    """
-    far = 1000.0  # max depth in meters.
-    normalized_depth = depth_frame
-    intrinsic_mat = camera_setup.get_intrinsic_matrix()
-    width, height = camera_setup.width, camera_setup.height
-    # 2d pixel coordinates
-    pixel_length = width * height
-    u_coord = repmat(np.r_[0:width:1], height, 1).reshape(pixel_length)
-    v_coord = repmat(np.c_[0:height:1], 1, width).reshape(pixel_length)
-    normalized_depth = np.reshape(normalized_depth, pixel_length)
-
-    # Search for pixels where the depth is greater than max_depth to
-    # delete them
-    max_depth_indexes = np.where(normalized_depth > max_depth)
-    normalized_depth = np.delete(normalized_depth, max_depth_indexes)
-    u_coord = np.delete(u_coord, max_depth_indexes)
-    v_coord = np.delete(v_coord, max_depth_indexes)
-
-    # p2d = [u,v,1]
-    p2d = np.array([u_coord, v_coord, np.ones_like(u_coord)])
-
-    # P = [X,Y,Z]
-    p3d = np.dot(inv(intrinsic_mat), p2d)
-    p3d *= normalized_depth * far
-
-    # [[X1,Y1,Z1],[X2,Y2,Z2], ... [Xn,Yn,Zn]]
-    # Return the points as location,
-    locations = [
-        Location(x, y, z) for x, y, z in np.asarray(np.transpose(p3d))
-    ]
-    return locations
-
-
-def camera_pixel_to_location(x, y, depth_frame, camera_setup):
-    """ Gets the 3D world location from pixel coordinates using a depth frame.
-
-        Args:
-            x: Pixel x coordinate.
-            y: Pixel y coordinate.
-            depth_frame: Normalized depth frame.
-
-       Returns:
-            3D world location.
-    """
-    point_cloud = depth_to_local_point_cloud(depth_frame,
-                                             camera_setup,
-                                             max_depth=1.0)
-    # Transform the points in 3D world coordinates.
-    to_world_transform = camera_setup.get_unreal_transform()
-    point_cloud = to_world_transform.transform_points(point_cloud)
-    return point_cloud[y * camera_setup.width + x]
-
-
-def camera_pixels_to_locations(coordinates, depth_frame, camera_setup):
-    """ Gets the 3D world locations from pixel coordinates using a depth frame.
-
-        Args:
-            coordinates: List of (x, y) pixel coordinates.
-            depth_frame: Normalized depth frame.
-
-       Returns:
-            List of 3D world locations.
-    """
-    point_cloud = depth_to_local_point_cloud(depth_frame,
-                                             camera_setup,
-                                             max_depth=1.0)
-    # Transform the points in 3D world coordinates.
-    to_world_transform = camera_setup.get_unreal_transform()
-    point_cloud = to_world_transform.transform_points(point_cloud)
-    return [point_cloud[y * camera_setup.width + x] for x, y in coordinates]
-
-
 def lidar_point_cloud_to_camera_coordinates(point_cloud):
     """ Transforms a point cloud from lidar to camera coordinates."""
     point_cloud = [Location(x, y, z) for x, y, z in np.asarray(point_cloud)]
@@ -305,12 +221,12 @@ def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
         points = []
         # If the points are themselves within the image, add them to the
         # set of thresholded points.
-        if (p1.x >= 0 and p1.x < image_width and p1.y >= 0
-                and p1.y < image_height):
+        if (p1[0] >= 0 and p1[0] < image_width and p1[1] >= 0
+                and p1[1] < image_height):
             points.append(p1)
 
-        if (p2.x >= 0 and p2.x < image_width and p2.y >= 0
-                and p2.y < image_height):
+        if (p2[0] >= 0 and p2[0] < image_width and p2[1] >= 0
+                and p2[1] < image_height):
             points.append(p2)
 
         # Compute the intersection of the line segment formed by p1 -- p2
@@ -329,9 +245,7 @@ def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
     # Go over each of the segments of the bounding box and threshold it to
     # be inside the image.
     thresholded_points = []
-    points = [
-        pylot.utils.Vector2D(int(x), int(y)) for x, y, _ in bb_coordinates
-    ]
+    points = [(int(x), int(y)) for x, y, _ in bb_coordinates]
     # Bottom plane thresholded.
     thresholded_points.extend(threshold(points[0], points[1]))
     thresholded_points.extend(threshold(points[1], points[2]))
@@ -358,15 +272,15 @@ def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
         return BoundingBox2D(min(x), max(x), min(y), max(y))
 
 
-def get_traffic_lights_obstacles(traffic_lights, depth_array, segmented_image,
-                                 town_name, camera_setup):
+def get_traffic_lights_obstacles(traffic_lights, depth_frame, segmented_image,
+                                 town_name):
     """ Get the traffic lights that are within the camera frame.
     Note: This method should be used with Carla 0.9.*
     """
     # Create the extrinsic and intrinsic matrices for the given camera.
-    extrinsic_matrix = camera_setup.get_extrinsic_matrix()
-    intrinsic_matrix = camera_setup.get_intrinsic_matrix()
-    camera_transform = camera_setup.get_transform()
+    extrinsic_matrix = depth_frame.camera_setup.get_extrinsic_matrix()
+    intrinsic_matrix = depth_frame.camera_setup.get_intrinsic_matrix()
+    camera_transform = depth_frame.camera_setup.get_transform()
 
     # Iterate over all the traffic lights, and figure out which ones are
     # facing us and are visible in the camera view.
@@ -385,17 +299,17 @@ def get_traffic_lights_obstacles(traffic_lights, depth_array, segmented_image,
                 for loc in box
             ]
             bounding_box = [(bb.x, bb.y, bb.z) for bb in bounding_box]
-            bbox_2d = get_bounding_box_in_camera_view(bounding_box,
-                                                      camera_setup.width,
-                                                      camera_setup.height)
+            bbox_2d = get_bounding_box_in_camera_view(
+                bounding_box, depth_frame.camera_setup.width,
+                depth_frame.camera_setup.height)
             if not bbox_2d:
                 continue
 
             # Crop the segmented and depth image to the given bounding box.
             cropped_image = segmented_image[bbox_2d.y_min:bbox_2d.y_max,
                                             bbox_2d.x_min:bbox_2d.x_max]
-            cropped_depth = depth_array[bbox_2d.y_min:bbox_2d.y_max,
-                                        bbox_2d.x_min:bbox_2d.x_max]
+            cropped_depth = depth_frame.frame[bbox_2d.y_min:bbox_2d.y_max,
+                                              bbox_2d.x_min:bbox_2d.x_max]
 
             if cropped_image.size > 0:
                 masked_image = np.zeros_like(cropped_image)
@@ -410,18 +324,19 @@ def get_traffic_lights_obstacles(traffic_lights, depth_array, segmented_image,
     return detected
 
 
-def get_detected_speed_limits(speed_signs, vehicle_transform, depth_frame,
-                              segmented_frame, camera_setup):
+def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
     """ Get the speed limit signs that are withing the camera frame.
 
     Args:
         speed_signs: List of speed limit signs in the world.
-        vehicle_transform: Ego-vehicle transform in world coordinates.
+        depth_frame: A pylot.utils.DepthFrame, with a camera_setup relative to
+            the world.
+        segmented_frame: pylot.perception.segmentation.SegmentedFrame
 
     Returns:
         A list of pylot.perception.detection.DetectedSpeedLimit
     """
-    def match_bboxes_with_speed_signs(vehicle_transform, loc_bboxes,
+    def match_bboxes_with_speed_signs(camera_transform, loc_bboxes,
                                       speed_signs):
         result = []
         for location, bbox in loc_bboxes:
@@ -436,7 +351,7 @@ def get_detected_speed_limits(speed_signs, vehicle_transform, depth_frame,
                 continue
             # Check that the sign is facing the ego vehicle.
             yaw_diff = (best_ts.transform.rotation.yaw -
-                        vehicle_transform.rotation.yaw)
+                        camera_transform.rotation.yaw)
             if yaw_diff < 0:
                 yaw_diff += 360
             elif yaw_diff >= 360:
@@ -447,35 +362,36 @@ def get_detected_speed_limits(speed_signs, vehicle_transform, depth_frame,
                                        'speed limit'))
         return result
 
+    if not isinstance(depth_frame, pylot.utils.DepthFrame):
+        raise ValueError(
+            'depth_frame should be of type pylot.utils.DepthFrame')
     # Compute the 2D bounding boxes.
     bboxes_2d = segmented_frame.get_traffic_sign_bounding_boxes(min_width=8,
                                                                 min_height=9)
     # Transform the centers of 2D bounding boxes to 3D locations.
-    coordinates = [bbox.get_center_point() for bbox in bboxes_2d]
-    locations = camera_pixels_to_locations(coordinates, depth_frame,
-                                           camera_setup)
+    coordinates = []
+    for bbox in bboxes_2d:
+        x, y = bbox.get_center_point()
+        coordinates.append(pylot.utils.Vector2D(x, y))
+    locations = depth_frame.get_pixel_locations(coordinates)
     loc_and_bboxes = zip(locations, bboxes_2d)
-    det_speed_limits = match_bboxes_with_speed_signs(vehicle_transform,
-                                                     loc_and_bboxes,
-                                                     speed_signs)
+    det_speed_limits = match_bboxes_with_speed_signs(
+        depth_frame.camera_setup.transform, loc_and_bboxes, speed_signs)
     return det_speed_limits
 
 
-def get_detected_traffic_stops(traffic_stops, depth_frame, camera_setup):
+def get_detected_traffic_stops(traffic_stops, depth_frame):
     """ Get traffic stop lane markings that are withing the camera frame.
 
     Args:
         traffic_stops: List of traffic stop actors in the world.
-        camera_transform: Camera transform in world coordinates.
+        depth_frame: A pylot.utils.DepthFrame, with a camera_setup relative to
+            the world.
 
     Returns:
         List of DetectedObstacles.
     """
-    def have_same_depth(x, y, z, depth_array, threshold):
-        x, y = int(x), int(y)
-        return abs(depth_array[y][x] * 1000 - z) < threshold
-
-    def get_stop_markings_bbox(bbox3d, depth_frame, camera_setup):
+    def get_stop_markings_bbox(bbox3d, depth_frame):
         """ Gets a 2D stop marking bounding box from a 3D bounding box."""
         # Move trigger_volume by -0.85 so that the top plane is on the ground.
         ext_z_value = bbox3d.extent.z - 0.85
@@ -486,14 +402,15 @@ def get_detected_traffic_stops(traffic_stops, depth_frame, camera_setup):
             Location(x=-bbox3d.extent.x, y=-bbox3d.extent.y, z=ext_z_value),
         ]
         bbox = bbox3d.transform.transform_points(ext)
-        camera_transform = camera_setup.get_transform()
+        camera_transform = depth_frame.camera_setup.get_transform()
         coords = []
         for loc in bbox:
-            loc_view = loc.to_camera_view(camera_transform.matrix,
-                                          camera_setup.get_intrinsic_matrix())
+            loc_view = loc.to_camera_view(
+                camera_transform.matrix,
+                depth_frame.camera_setup.get_intrinsic_matrix())
             if (loc_view.z >= 0 and loc_view.x >= 0 and loc_view.y >= 0
-                    and loc_view.x < camera_setup.width
-                    and loc_view.y < camera_setup.height):
+                    and loc_view.x < depth_frame.camera_setup.width
+                    and loc_view.y < depth_frame.camera_setup.height):
                 coords.append(loc_view)
         if len(coords) == 4:
             xmin = min(coords[0].x, coords[1].x, coords[2].x, coords[3].x)
@@ -502,16 +419,18 @@ def get_detected_traffic_stops(traffic_stops, depth_frame, camera_setup):
             ymax = max(coords[0].y, coords[1].y, coords[2].y, coords[3].y)
             # Check if the bbox is not obstructed and if it's sufficiently
             # big for the text to be readable.
-            if (ymax - ymin > 15
-                    and have_same_depth(int(coords[0].x), int(coords[0].y),
-                                        coords[0].z, depth_frame, 0.4)):
+            if (ymax - ymin > 15 and depth_frame.pixel_has_same_depth(
+                    int(coords[0].x), int(coords[0].y), coords[0].z, 0.4)):
                 return BoundingBox2D(int(xmin), int(xmax), int(ymin),
                                      int(ymax))
         return None
 
+    if not isinstance(depth_frame, pylot.utils.DepthFrame):
+        raise ValueError(
+            'depth_frame should be of type pylot.utils.DepthFrame')
     det_obstacles = []
     for transform, bbox in traffic_stops:
-        bbox_2d = get_stop_markings_bbox(bbox, depth_frame, camera_setup)
+        bbox_2d = get_stop_markings_bbox(bbox, depth_frame)
         if bbox_2d is not None:
             det_obstacles.append(DetectedObstacle(bbox_2d, 1.0,
                                                   'stop marking'))

@@ -15,7 +15,7 @@ from anynet import preprocess
 
 from pylot.simulation.messages import DepthFrameMessage
 from pylot.simulation.sensor_setup import CameraSetup
-from pylot.utils import bgr_to_rgb, time_epoch_ms
+from pylot.utils import DepthFrame, bgr_to_rgb, time_epoch_ms
 
 flags.DEFINE_string('depth_estimation_model_path', 'dependencies/anynet/',
                     'Path to AnyNet depth estimation model')
@@ -36,9 +36,9 @@ class DepthEstimationOperator(erdos.Operator):
 
         left_camera_stream.add_callback(self.on_left_camera_msg)
         right_camera_stream.add_callback(self.on_right_camera_msg)
-        erdos.add_watermark_callback(
-            [left_camera_stream, right_camera_stream],
-            [depth_estimation_stream], self.compute_depth)
+        erdos.add_watermark_callback([left_camera_stream, right_camera_stream],
+                                     [depth_estimation_stream],
+                                     self.compute_depth)
         self._name = name
         self._flags = flags
         self._left_imgs = {}
@@ -127,4 +127,4 @@ class DepthEstimationOperator(erdos.Operator):
                                    self._transform,
                                    fov=self._fov)
         depth_estimation_stream.send(
-            DepthFrameMessage(depth, camera_setup, timestamp))
+            DepthFrameMessage(DepthFrame(depth, camera_setup), timestamp))
