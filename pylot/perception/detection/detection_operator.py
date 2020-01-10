@@ -6,10 +6,9 @@ import tensorflow as tf
 import time
 
 from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle,\
-    load_coco_labels, load_coco_bbox_colors, annotate_image_with_bboxes,\
-    save_image, visualize_image
+    load_coco_labels, load_coco_bbox_colors
 from pylot.perception.messages import ObstaclesMessage
-from pylot.utils import bgr_to_rgb, set_tf_loglevel, time_epoch_ms
+from pylot.utils import set_tf_loglevel, time_epoch_ms
 
 flags.DEFINE_float(
     'obstacle_detection_gpu_memory_fraction', 0.3,
@@ -79,11 +78,10 @@ class DetectionOperator(erdos.Operator):
             msg.timestamp, self._name))
         start_time = time.time()
         # The models expect BGR images.
-        assert msg.encoding == 'BGR', 'Expects BGR frames'
-        image_np = msg.frame
+        assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
         # Expand dimensions since the model expects images to have
         # shape: [1, None, None, 3]
-        image_np_expanded = np.expand_dims(image_np, axis=0)
+        image_np_expanded = np.expand_dims(msg.frame.frame, axis=0)
         (boxes, scores, classes, num_detections) = self._tf_session.run(
             [
                 self._detection_boxes, self._detection_scores,
@@ -107,20 +105,21 @@ class DetectionOperator(erdos.Operator):
                 scores.append(res_scores[i])
 
         obstacles = self.__convert_to_obstacles(boxes, scores, labels,
-                                                msg.height, msg.width)
+                                                msg.frame.height,
+                                                msg.frame.width)
         self._logger.debug('@{}: {} obstacles: {}'.format(
             msg.timestamp, self._name, obstacles))
 
         if (self._flags.visualize_detector_output
                 or self._flags.log_detector_output):
-            annotate_image_with_bboxes(msg.timestamp, image_np, obstacles,
-                                       self._bbox_colors)
+            msg.frame.annotate_with_bounding_boxes(msg.timestamp, obstacles,
+                                                   self._bbox_colors)
             if self._flags.visualize_detector_output:
-                visualize_image(self._name, image_np)
+                msg.frame.visualize(self._name)
             if self._flags.log_detector_output:
-                save_image(bgr_to_rgb(image_np), msg.timestamp,
-                           self._flags.data_path,
-                           'detector-{}'.format(self._name))
+                msg.frame.save(msg.timestamp.coordinates[0],
+                               self._flags.data_path,
+                               'detector-{}'.format(self._name))
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000

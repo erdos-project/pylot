@@ -17,11 +17,11 @@ import pygame
 from miou_scenario_runner import setup_world, retrieve_actor, spawn_camera
 from miou_scenario_runner import cleanup_function
 
-from pylot.simulation.utils import Obstacle
-from pylot.simulation.sensor_setup import DepthCameraSetup
 from pylot.perception.detection.utils import get_precision_recall_at_iou
-from pylot.perception.messages import DepthFrameMessage, SegmentedFrameMessage
+from pylot.perception.messages import DepthFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
+from pylot.simulation.sensor_setup import DepthCameraSetup
+from pylot.simulation.utils import Obstacle
 from pylot.utils import DepthFrame, Transform
 
 VEHICLE_DESTINATION = carla.Location(x=387.73 - 370, y=327.07, z=0.5)
@@ -52,9 +52,7 @@ def process_semantic_images(semantic_image_msg):
         simulation.
     """
     global SEMANTIC_IMAGES
-    SEMANTIC_IMAGES.put(
-        SegmentedFrameMessage(
-            SegmentedFrame(semantic_image_msg, encoding='carla'), timestamp))
+    SEMANTIC_IMAGES.put(semantic_image_msg)
 
 
 def retrieve_rgb_image(timestamp):
@@ -88,7 +86,8 @@ def retrieve_semantic_image(timestamp):
     while True:
         semantic_image_msg = SEMANTIC_IMAGES.get()
         if semantic_image_msg.timestamp == timestamp:
-            return semantic_image_msg
+            return SegmentedFrame.from_carla_image(
+                semantic_image_msg).as_cityscapes_palette()
 
 
 def draw_image(image, surface, blend=False):

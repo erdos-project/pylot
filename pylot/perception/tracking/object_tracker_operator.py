@@ -2,7 +2,6 @@ from collections import deque
 import erdos
 import time
 
-from pylot.perception.detection.utils import visualize_image
 from pylot.utils import time_epoch_ms
 
 
@@ -62,14 +61,14 @@ class ObjectTrackerOperator(erdos.Operator):
         self._logger.debug('@{}: {} received frame'.format(
             msg.timestamp, self._name))
         start_time = time.time()
-        assert msg.encoding == 'BGR', 'Expects BGR frames'
-        frame = msg.frame
+        assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
+        camera_frame = msg.frame
         # Store frames so that they can be re-processed once we receive the
         # next update from the detector.
-        self._to_process.append((msg.timestamp, frame))
+        self._to_process.append((msg.timestamp, camera_frame))
         # Track if we have a tracker ready to accept new frames.
         if self._ready_to_update:
-            self.__track_bboxes_on_frame(frame, msg.timestamp, False)
+            self.__track_bboxes_on_frame(camera_frame, msg.timestamp, False)
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
@@ -95,17 +94,18 @@ class ObjectTrackerOperator(erdos.Operator):
         if len(bboxes) > 0:
             if len(self._to_process) > 0:
                 # Found the frame corresponding to the bounding boxes.
-                (timestamp, frame) = self._to_process.popleft()
+                (timestamp, camera_frame) = self._to_process.popleft()
                 assert timestamp == msg.timestamp
                 # Re-initialize trackers.
-                self.__initialize_trackers(frame, bboxes, msg.timestamp,
+                self.__initialize_trackers(camera_frame, bboxes, msg.timestamp,
                                            confidence_scores, ids)
                 self._logger.debug(
                     'Trackers have {} frames to catch-up'.format(
                         len(self._to_process)))
-                for (timestamp, frame) in self._to_process:
+                for (timestamp, camera_frame) in self._to_process:
                     if self._ready_to_update:
-                        self.__track_bboxes_on_frame(frame, timestamp, True)
+                        self.__track_bboxes_on_frame(camera_frame, timestamp,
+                                                     True)
             else:
                 self._logger.debug(
                     '@{}: received bboxes update, but no frame to process'.
@@ -122,17 +122,18 @@ class ObjectTrackerOperator(erdos.Operator):
                 confidence_scores.append(obstacle.confidence)
         return bboxes, ids, confidence_scores
 
-    def __initialize_trackers(self, frame, bboxes, timestamp,
+    def __initialize_trackers(self, camera_frame, bboxes, timestamp,
                               confidence_scores, ids):
         self._ready_to_update = True
         self._ready_to_update_timestamp = timestamp
         self._logger.debug('Restarting trackers at frame {}'.format(timestamp))
-        self._tracker.reinitialize(frame, bboxes, confidence_scores, ids)
+        self._tracker.reinitialize(camera_frame.frame, bboxes,
+                                   confidence_scores, ids)
 
-    def __track_bboxes_on_frame(self, frame, timestamp, catch_up):
+    def __track_bboxes_on_frame(self, camera_frame, timestamp, catch_up):
         self._logger.debug('Processing frame {}'.format(timestamp))
         # Sequentually update state for each bounding box.
-        ok, tracked_obstacles = self._tracker.track(frame)
+        ok, tracked_obstacles = self._tracker.track(camera_frame.frame)
         if not ok:
             self._logger.error(
                 'Tracker failed at timestamp {} last ready_to_update at {}'.
@@ -141,7 +142,7 @@ class ObjectTrackerOperator(erdos.Operator):
             self._ready_to_update = False
         else:
             if self._flags.visualize_tracker_output and not catch_up:
-                for obstacle in tracked_obstacles:
-                    # tracked obstacles have no label, draw white bbox.
-                    obstacle.visualize_on_img(frame, {"": [255, 255, 255]})
-                visualize_image(self._name, frame)
+                # tracked obstacles have no label, draw white bbox.
+                camera_frame.annotate_with_bounding_boxes(
+                    timestamp, tracked_obstacles, {"": [255, 255, 255]})
+                camera_frame.visualize(self._name)

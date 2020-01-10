@@ -4,8 +4,8 @@ import os
 import PIL.Image as Image
 from skimage import measure
 
-from pylot.utils import add_timestamp
 from pylot.perception.detection.utils import BoundingBox2D
+from pylot.utils import add_timestamp
 
 # Semantic Labels
 CITYSCAPES_LABELS = {
@@ -47,14 +47,10 @@ CITYSCAPES_CLASSES = {
 
 class SegmentedFrame(object):
     """ Stores a semantically segmented frame."""
-    def __init__(self, frame, encoding='carla'):
+    def __init__(self, frame, encoding):
         if encoding == 'carla':
-            # Convert the array containing CARLA semantic segmentation labels
-            # to a 2D array containing the label of each pixel.
-            import numpy as np
-            __frame = np.frombuffer(frame.raw_data, dtype=np.dtype("uint8"))
-            __frame = np.reshape(__frame, (frame.height, frame.width, 4))
-            self._frame = __frame[:, :, 2]
+            self._frame = frame
+            self.encoding = encoding
         elif encoding == 'cityscapes':
             raise ValueError('Transformation from cityscapes to carla encoding'
                              ' is not yet implemented!')
@@ -63,16 +59,32 @@ class SegmentedFrame(object):
                 'Unexpected encoding {} for segmented frame'.format(encoding))
         self._class_masks = None
 
+    @classmethod
+    def from_carla_image(cls, carla_image):
+        # Convert the array containing CARLA semantic segmentation labels
+        # to a 2D array containing the label of each pixel.
+        import numpy as np
+        import carla
+        if not isinstance(carla_image, carla.Image):
+            raise ValueError('carla_image should be of type carla.Image')
+        __frame = np.frombuffer(carla_image.raw_data, dtype=np.dtype("uint8"))
+        __frame = np.reshape(__frame,
+                             (carla_image.height, carla_image.width, 4))
+        return cls(__frame[:, :, 2], 'carla')
+
     def as_cityscapes_palette(self):
         """ Transforms the frame to the Carla cityscapes pallete.
 
         Note: this conversion is slow.
         """
-        result = np.zeros((self._frame.shape[0], self._frame.shape[1], 3),
-                          dtype=np.uint8)
-        for key, value in CITYSCAPES_CLASSES.items():
-            result[np.where(self._frame == key)] = value
-        return result
+        if self.encoding == 'cityscapes':
+            return self._frame
+        else:
+            result = np.zeros((self._frame.shape[0], self._frame.shape[1], 3),
+                              dtype=np.uint8)
+            for key, value in CITYSCAPES_CLASSES.items():
+                result[np.where(self._frame == key)] = value
+            return result
 
     def as_numpy_array(self):
         return self._frame
@@ -171,14 +183,16 @@ class SegmentedFrame(object):
             img = img.convert('RGB')
             img.save(file_name)
 
-    def save(self, file_name):
+    def save(self, timestamp, data_path, file_base):
+        file_name = os.path.join(data_path,
+                                 '{}-{}.png'.format(file_base, timestamp))
         img = Image.fromarray(self.as_cityscapes_palette())
         img.save(file_name)
 
     def visualize(self, window_name, timestamp=None):
         cityscapes_frame = self.as_cityscapes_palette()
         if timestamp is not None:
-            add_timestamp(timestamp, cityscapes_frame)
+            add_timestamp(cityscapes_frame, timestamp)
         cv2.imshow(window_name, cityscapes_frame)
         cv2.waitKey(1)
 

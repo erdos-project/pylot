@@ -1,7 +1,4 @@
 import erdos
-import cv2
-
-from pylot.utils import add_timestamp
 
 
 class CameraVisualizerOperator(erdos.Operator):
@@ -18,9 +15,4 @@ class CameraVisualizerOperator(erdos.Operator):
     def display_frame(self, msg):
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))
-        if msg.encoding == 'segmented':
-            msg.frame.visualize(self._name, msg.timestamp)
-        else:
-            add_timestamp(msg.timestamp, msg.frame)
-            cv2.imshow(self._name, msg.frame)
-            cv2.waitKey(1)
+        msg.frame.visualize(self._name, msg.timestamp)

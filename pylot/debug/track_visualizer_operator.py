@@ -77,7 +77,7 @@ class TrackVisualizerOperator(erdos.Operator):
         for obstacle in prediction_msg.predictions:
             display_img = self._draw_trajectory_on_img(obstacle, display_img,
                                                        True)
-        pylot.utils.add_timestamp(timestamp, display_img)
+        pylot.utils.add_timestamp(display_img, timestamp)
         cv2.imshow('img', display_img)
         cv2.waitKey(1)
 

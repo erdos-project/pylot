@@ -160,10 +160,8 @@ class ChauffeurLoggerOperator(erdos.Operator):
         assert len(msg.timestamp.coordinates) == 1
         # Save the segmented channels
         msg.frame.save_per_class_masks(self._flags.data_path, msg.timestamp)
-        file_name = os.path.join(
-            self._flags.data_path, 'top_down_segmentation-{}.png'.format(
-                msg.timestamp.coordinates[0]))
-        msg.frame.save(file_name)
+        msg.frame.save(msg.timestamp.coordinates[0], self._flags.data_path,
+                       'top_down_segmentation')
 
     def on_ground_vehicle_id_update(self, msg):
         self._ground_vehicle_id = msg.data

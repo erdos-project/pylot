@@ -1,7 +1,6 @@
 import cv2
 from enum import Enum
 import numpy as np
-import PIL.Image as Image
 try:
     import queue as queue
 except ImportError:
@@ -485,30 +484,3 @@ def get_mAP(ground_obstacles, obstacles):
             max_precision = max(max_precision, precision)
             last_recall = recall
     return avg_precision
-
-
-def annotate_image_with_bboxes(timestamp,
-                               image_np,
-                               detected_obstacles,
-                               bbox_color_map=GROUND_COLOR_MAP):
-    """ Adds bounding boxes to an image."""
-    #    txt_font = cv2.FONT_HERSHEY_SIMPLEX
-    pylot.utils.add_timestamp(timestamp, image_np)
-    for obstacle in detected_obstacles:
-        obstacle.visualize_on_img(image_np, bbox_color_map)
-    return image_np
-
-
-def visualize_image(op_name, image_np):
-    """ Creates a cv2 window to visualize the image."""
-    cv2.imshow(op_name, image_np)
-    cv2.waitKey(1)
-
-
-def save_image(image_np, timestamp, data_path, file_base):
-    """ Write image to disk."""
-    assert len(timestamp.coordinates) == 1
-    file_name = '{}{}-{}.png'.format(data_path, file_base,
-                                     timestamp.coordinates[0])
-    rgb_img = Image.fromarray(image_np)
-    rgb_img.save(file_name)

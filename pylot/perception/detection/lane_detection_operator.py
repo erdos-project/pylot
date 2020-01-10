@@ -31,8 +31,8 @@ class LaneDetectionOperator(erdos.Operator):
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))
         start_time = time.time()
-        assert msg.encoding == 'BGR', 'Expects BGR frames'
-        image_np = msg.frame
+        assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
+        image_np = msg.frame.frame
 
         # TODO(ionel): Implement lane detection.
         edges = self.apply_canny(image_np)
@@ -77,7 +77,7 @@ class LaneDetectionOperator(erdos.Operator):
                                                      runtime))
 
         if self._flags.visualize_lane_detection:
-            add_timestamp(msg.timestamp, lines_edges)
+            add_timestamp(lines_edges, msg.timestamp)
             cv2.imshow(self._name, lines_edges)
             cv2.waitKey(1)
 

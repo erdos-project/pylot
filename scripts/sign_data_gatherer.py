@@ -1,7 +1,6 @@
 from absl import app
 from absl import flags
 import carla
-import copy
 import json
 import numpy as np
 import PIL.Image as Image
@@ -9,14 +8,12 @@ import time
 import re
 
 from pylot.perception.detection.traffic_light import TrafficLight
-from pylot.perception.detection.utils import annotate_image_with_bboxes, \
-    visualize_image
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.simulation.carla_utils import convert_speed_limit_actors,\
     convert_traffic_light_actors, convert_traffic_stop_actors, get_world
 import pylot.simulation.utils
 from pylot.simulation.sensor_setup import DepthCameraSetup
-from pylot.simulation.messages import FrameMessage, DepthFrameMessage
+from pylot.simulation.messages import DepthFrameMessage
 import pylot.utils
 
 FLAGS = flags.FLAGS
@@ -35,9 +32,7 @@ flags.DEFINE_integer('camera_fov', 45, 'Camera fov')
 
 def on_camera_msg(image):
     global CARLA_IMAGE
-    CARLA_IMAGE = FrameMessage(image,
-                               int(image.timestamp * 1000),
-                               encoding='carla')
+    CARLA_IMAGE = image
 
 
 def on_depth_msg(carla_image):
@@ -150,9 +145,7 @@ def log_bounding_boxes(carla_image, depth_msg, segmented_frame, traffic_lights,
     game_time = int(carla_image.timestamp * 1000)
     print("Processing game time {} in {} with weather {}".format(
         game_time, town, weather))
-    frame = carla_image.frame
-    # Copy the frame to ensure its on the heap.
-    frame = copy.deepcopy(frame)
+    frame = pylot.utils.CameraFrame.from_carla_frame(carla_image)
     _, world = get_world()
     town_name = world.get_map().name
 
@@ -175,18 +168,16 @@ def log_bounding_boxes(carla_image, depth_msg, segmented_frame, traffic_lights,
     det_obstacles = (speed_limit_det_obstacles + traffic_stop_det_obstacles +
                      traffic_light_det_obstacles)
     # Log the frame.
-    rgb_frame = pylot.utils.bgr_to_rgb(frame)
     file_name = '{}signs-{}_{}_{}.png'.format(FLAGS.data_path, game_time,
                                               weather, town)
-    rgb_img = Image.fromarray(np.uint8(rgb_frame))
+    rgb_img = Image.fromarray(frame.as_rgb_numpy_array())
     rgb_img.save(file_name)
 
     if FLAGS.log_bbox_images:
-        annotate_image_with_bboxes(game_time, frame, det_obstacles)
-        rgb_frame = pylot.utils.bgr_to_rgb(frame)
+        frame.annotate_with_bounding_boxes(game_time, det_obstacles)
         file_name = '{}annotated-signs-{}_{}_{}.png'.format(
             FLAGS.data_path, game_time, weather, town)
-        rgb_img = Image.fromarray(np.uint8(rgb_frame))
+        rgb_img = Image.fromarray(frame.as_rgb_numpy_array())
         rgb_img.save(file_name)
 
     # Log the bounding boxes.
@@ -197,9 +188,8 @@ def log_bounding_boxes(carla_image, depth_msg, segmented_frame, traffic_lights,
         json.dump(bboxes, outfile)
 
     if FLAGS.visualize_bboxes:
-        annotated_image = annotate_image_with_bboxes(game_time, frame,
-                                                     det_obstacles)
-        visualize_image('bboxes', annotated_image)
+        frame.annotate_with_bounding_boxes(game_time, det_obstacles)
+        frame.visualize('bboxes')
 
 
 def change_traffic_light_colors(world, color):

@@ -1,9 +1,4 @@
 import erdos
-import numpy as np
-import os
-import PIL.Image as Image
-
-import pylot.utils
 
 
 class CameraLoggerOperator(erdos.Operator):
@@ -31,17 +26,5 @@ class CameraLoggerOperator(erdos.Operator):
         self._frame_cnt += 1
         if self._frame_cnt % self._flags.log_every_nth_message != 0:
             return
-        # Write the image.
-        if msg.encoding == 'BGR':
-            frame = pylot.utils.bgr_to_rgb(msg.frame)
-        elif msg.encoding == 'segmented':
-            frame = msg.frame.as_cityscapes_palette()
-        else:
-            raise ValueError('{} unexpected frame encoding {}'.format(
-                self._name, msg.encoding))
-        assert len(msg.timestamp.coordinates) == 1
-        file_name = os.path.join(
-            self._flags.data_path,
-            self._filename_prefix + str(msg.timestamp.coordinates[0]) + '.png')
-        img = Image.fromarray(np.uint8(frame))
-        img.save(file_name)
+        msg.frame.save(msg.timestamp.coordinates[0], self._flags.data_path,
+                       self._filename_prefix)

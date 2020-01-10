@@ -1,5 +1,4 @@
 import erdos
-import numpy as np
 
 import pylot.utils
 
@@ -9,38 +8,22 @@ class FrameMessage(erdos.Message):
 
     Attributes:
         frame: A numpy array storing the frame.
-        width: The width of the frame.
-        height: The height of the frame.
-        encoding: The encoding of the frame.
     """
-    def __init__(self, frame, timestamp, encoding='carla'):
+    def __init__(self, frame, timestamp):
         """ Initializes the frame messsage.
 
         Args:
             frame: The frame to be stored.
             timestamp: A erdos.timestamp.Timestamp of the message.
-            encoding: The encoding of the message.
         """
         super(FrameMessage, self).__init__(timestamp, None)
-        if encoding == 'carla':
-            # If the message is from Carla, we convert it to a BGR image
-            # and store it as a frame with the BGR encoding.
-            _frame = np.frombuffer(frame.raw_data, dtype=np.dtype("uint8"))
-            _frame = np.reshape(_frame, (frame.height, frame.width, 4))
-            self.frame = _frame[:, :, :3]
-            self.encoding = 'BGR'
-        else:
-            # If the image is sourced from somewhere else, we do not process
-            # it and use the encoding provided.
-            self.frame = frame
-            self.encoding = encoding
-        self.width = self.frame.shape[1]
-        self.height = self.frame.shape[0]
+        if not isinstance(frame, pylot.utils.CameraFrame):
+            raise ValueError('frame should be of type pylot.utils.CameraFrame')
+        self.frame = frame
 
     def __str__(self):
-        return 'FrameMessage(timestamp: {}, width: {}, '\
-            'height: {}, encoding: {})'.format(
-                self.timestamp, self.width, self.height, self.encoding)
+        return 'FrameMessage(timestamp: {}, frame: {})'.format(
+            self.timestamp, self.frame)
 
 
 class DepthFrameMessage(erdos.Message):

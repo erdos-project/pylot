@@ -1,5 +1,4 @@
 from absl import flags
-import cv2
 import drn.segment
 from drn.segment import DRNSeg
 import erdos
@@ -9,7 +8,7 @@ import torch
 
 from pylot.perception.messages import SegmentedFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
-from pylot.utils import add_timestamp, rgb_to_bgr, time_epoch_ms
+from pylot.utils import time_epoch_ms
 
 flags.DEFINE_string('segmentation_model_path',
                     'dependencies/models/drn_d_22_cityscapes.pth',
@@ -59,30 +58,25 @@ class SegmentationDRNOperator(erdos.Operator):
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))
         start_time = time.time()
-        assert msg.encoding == 'BGR', 'Expects BGR frames'
-        image = torch.from_numpy(msg.frame.transpose([2, 0, 1
-                                                      ])).unsqueeze(0).float()
+        assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
+        image = torch.from_numpy(msg.frame.frame.transpose(
+            [2, 0, 1])).unsqueeze(0).float()
         image_var = Variable(image, requires_grad=False, volatile=True)
 
         final = self._model(image_var)[0]
         _, pred = torch.max(final, 1)
 
         pred = pred.cpu().data.numpy()[0]
-        image_np = self._pallete[pred.squeeze()]
         # After we apply the pallete, the image is in RGB format
-        image_np = rgb_to_bgr(image_np)
-
-        if self._flags.visualize_segmentation_output:
-            add_timestamp(msg.timestamp, image_np)
-            cv2.imshow(self._name, image_np)
-            cv2.waitKey(1)
+        image_np = self._pallete[pred.squeeze()]
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
                                                      self._name, msg.timestamp,
                                                      runtime))
-
         frame = SegmentedFrame(image_np, 'cityscapes')
+        if self._flags.visualize_segmentation_output:
+            frame.visualize(self._name, msg.timestamp)
         segmented_stream.send(
             SegmentedFrameMessage(frame, msg.timestamp, runtime))

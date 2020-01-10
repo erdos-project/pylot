@@ -1,12 +1,12 @@
 from __future__ import print_function
 from time import sleep
-import csv
-import sys
 import argparse
-import functools
 import collections
+import csv
+import functools
+import os
+import sys
 
-import cv2
 import carla
 
 from pylot.simulation.carla_utils import get_world
@@ -17,7 +17,10 @@ SAVED_FRAMES = collections.deque()
 CLEANUP_FUNCTION = None
 
 
-def spawn_camera(camera_bp, transform, ego_vehicle, width='1280',
+def spawn_camera(camera_bp,
+                 transform,
+                 ego_vehicle,
+                 width='1280',
                  height='720'):
     """ Spawns the camera with the provided blueprint, and attaches it to the
     given ego_vehicle at the transform.
@@ -49,7 +52,7 @@ def retrieve_actor(world, bp_regex, role_name):
 
     Args:
         world: The instance of the simulator to retrieve the actors from.
-        bp_regex: The blueprint of the actor to be retrieved from the simulator.
+        bp_regex: The blueprint of the actor to be retrieved from the Carla.
         role_name: The name of the actor to be retrieved.
 
     Returns:
@@ -108,16 +111,6 @@ def setup_world(host, port, delta):
     return world
 
 
-def save_frame(file_name, frame):
-    """ Saves the given frame at the given file name.
-
-    Args:
-        file_name: The file name to save the segmented image to.
-        frame: The segmented frame to save.
-    """
-    cv2.imwrite(file_name, frame.as_cityscapes_palette())
-
-
 def compute_and_log_miou(current_frame, current_timestamp, csv, deadline=210):
     """ Computes the mIOU for the given frame relative to the previous frames
     and logs it to the given csv file.
@@ -150,11 +143,7 @@ def compute_and_log_miou(current_frame, current_timestamp, csv, deadline=210):
                 [time_diff * 1000, "Pedestrian", class_iou[pedestrian_key]])
 
 
-def process_segmentation_images(msg,
-                                ego_vehicle,
-                                speed,
-                                csv,
-                                dump=False):
+def process_segmentation_images(msg, ego_vehicle, speed, csv, dump=False):
     print("Received a message for the time: {}".format(msg.timestamp))
 
     # If we are in distance to the destination, stop and exit with success.
@@ -164,12 +153,12 @@ def process_segmentation_images(msg,
         sys.exit(0)
 
     # Compute the segmentation mIOU.
-    frame = SegmentedFrame(msg, encoding='carla')
+    frame = SegmentedFrame.from_carla_image(msg)
     compute_and_log_miou(frame, msg.timestamp, csv)
 
     # Visualize the run.
     if dump:
-        save_frame("./_out/seg{}.png".format(int(msg.timestamp * 1000)), frame)
+        frame.save(int(msg.timestamp * 1000), './_out/', 'seg')
 
     # Move the ego_vehicle according to the given speed.
     ego_vehicle.set_velocity(carla.Vector3D(x=-speed))
@@ -227,11 +216,10 @@ def main(args):
 
     # Create the cleanup function.
     global CLEANUP_FUNCTION
-    CLEANUP_FUNCTION = functools.partial(
-        cleanup_function,
-        world=world,
-        cameras=[segmentation_camera],
-        csv_file=csv_file)
+    CLEANUP_FUNCTION = functools.partial(cleanup_function,
+                                         world=world,
+                                         cameras=[segmentation_camera],
+                                         csv_file=csv_file)
 
     # Register a callback function with the camera.
     segmentation_camera.listen(

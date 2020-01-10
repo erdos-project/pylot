@@ -1,9 +1,7 @@
 from collections import deque
 import erdos
 
-import pylot.utils
-from pylot.perception.detection.utils import DetectedObstacle,\
-    annotate_image_with_bboxes, save_image, visualize_image
+from pylot.perception.detection.utils import DetectedObstacle
 from pylot.perception.messages import ObstaclesMessage
 from pylot.simulation.sensor_setup import RGBCameraSetup
 
@@ -119,14 +117,13 @@ class PerfectDetectorOperator(erdos.Operator):
 
         if (self._flags.visualize_ground_obstacles
                 or self._flags.log_detector_output):
-            annotate_image_with_bboxes(bgr_msg.timestamp, bgr_msg.frame,
-                                       det_obstacles)
+            bgr_msg.frame.annotate_with_bounding_boxes(bgr_msg.timestamp,
+                                                       det_obstacles)
             if self._flags.visualize_ground_obstacles:
-                visualize_image(self._name, bgr_msg.frame)
+                bgr_msg.frame.visualize(self._name)
             if self._flags.log_detector_output:
-                save_image(pylot.utils.bgr_to_rgb(bgr_msg.frame),
-                           bgr_msg.timestamp, self._flags.data_path,
-                           'perfect-detector')
+                bgr_msg.frame.save(bgr_msg.timestamp.coordinates[0],
+                                   self._flags.data_path, 'perfect-detector')
 
     def on_can_bus_update(self, msg):
         self._logger.debug('@{}: received can bus message'.format(

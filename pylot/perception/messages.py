@@ -1,5 +1,7 @@
 import erdos
 
+from pylot.perception.segmentation.segmented_frame import SegmentedFrame
+
 
 class ObstaclesMessage(erdos.Message):
     """ This class represents a detector output message to be sent by
@@ -45,13 +47,14 @@ class SegmentedFrameMessage(erdos.Message):
             timestamp: The timestamp of the message.
         """
         super(SegmentedFrameMessage, self).__init__(timestamp, None)
+        if not isinstance(frame, SegmentedFrame):
+            raise ValueError('frame should be of type SegmentedFrame')
         self.frame = frame
         self.runtime = runtime
-        self.encoding = 'segmented'
 
     def __str__(self):
-        return 'SegmentedFrameMessage(timestamp {}, width: {}, '\
-            'height: {})'.format(self.timestamp, self.width, self.height)
+        return 'SegmentedFrameMessage(timestamp {}, frame: {})'.format(
+            self.timestamp, self.frame)
 
 
 class ObstaclePositionsSpeedsMessage(erdos.Message):

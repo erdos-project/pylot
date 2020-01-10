@@ -5,11 +5,10 @@ import numpy as np
 import tensorflow as tf
 import time
 
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle,\
-    TrafficLightColor, annotate_image_with_bboxes, save_image, visualize_image
+from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle, \
+    TrafficLightColor
 from pylot.perception.messages import ObstaclesMessage
-from pylot.utils import bgr_to_rgb, rgb_to_bgr, set_tf_loglevel, \
-    time_epoch_ms
+from pylot.utils import set_tf_loglevel, time_epoch_ms
 
 flags.DEFINE_string(
     'traffic_light_det_model_path',
@@ -91,11 +90,11 @@ class TrafficLightDetOperator(erdos.Operator):
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))
         start_time = time.time()
-        assert msg.encoding == 'BGR', 'Expects BGR frames'
-        image_np = bgr_to_rgb(msg.frame)
+        assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
         # Expand dimensions since the model expects images to have
         # shape: [1, None, None, 3]
-        image_np_expanded = np.expand_dims(image_np, axis=0)
+        image_np_expanded = np.expand_dims(msg.frame.as_rgb_numpy_array(),
+                                           axis=0)
         (boxes, scores, classes, num) = self._tf_session.run(
             [
                 self._detection_boxes, self._detection_scores,
@@ -109,20 +108,23 @@ class TrafficLightDetOperator(erdos.Operator):
         scores = scores[0][:num_detections]
 
         traffic_lights = self.__convert_to_detected_tl(boxes, scores, labels,
-                                                       msg.height, msg.width)
+                                                       msg.frame.height,
+                                                       msg.frame.width)
 
         self._logger.debug('@{}: {} detected traffic lights {}'.format(
             msg.timestamp, self._name, traffic_lights))
 
         if (self._flags.visualize_traffic_light_output
                 or self._flags.log_traffic_light_detector_output):
-            annotate_image_with_bboxes(msg.timestamp, rgb_to_bgr(image_np),
-                                       traffic_lights, self._bbox_colors)
+            msg.frame.annotate_with_bounding_boxes(msg.timestamp,
+                                                   traffic_lights,
+                                                   self._bbox_colors)
             if self._flags.visualize_traffic_light_output:
-                visualize_image(self._name, rgb_to_bgr(image_np))
+                msg.frame.visualize(self._name)
             if self._flags.log_traffic_light_detector_output:
-                save_image(image_np, msg.timestamp, self._flags.data_path,
-                           'tl-detector-{}'.format(self._name))
+                msg.frame.save(msg.timestamp.coordinates[0],
+                               self._flags.data_path,
+                               'tl-detector-{}'.format(self._name))
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000

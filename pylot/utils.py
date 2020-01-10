@@ -1,12 +1,14 @@
 import copy
 import cv2
-import logging
 import math
 import numpy as np
 from numpy.linalg import inv
 from numpy.matlib import repmat
 import os
+import PIL.Image as Image
 import time
+
+import pylot.perception.detection.utils
 
 
 class Rotation(object):
@@ -490,6 +492,79 @@ class CanBus(object):
             self.transform, self.forward_speed)
 
 
+class CameraFrame(object):
+    def __init__(self, frame, encoding):
+        self.frame = frame
+        if encoding != 'BGR' and encoding != 'RGB':
+            raise ValueError('Unsupported encoding {}'.format(encoding))
+        self.encoding = encoding
+        self.width = self.frame.shape[1]
+        self.height = self.frame.shape[0]
+
+    @classmethod
+    def from_carla_frame(cls, carla_frame):
+        # Convert it to a BGR image and store it as a frame with the BGR
+        # encoding.
+        import carla
+        if not isinstance(carla_frame, carla.Image):
+            raise ValueError('carla_frame should be of type carla.Image')
+        _frame = np.frombuffer(carla_frame.raw_data, dtype=np.dtype("uint8"))
+        _frame = np.reshape(_frame, (carla_frame.height, carla_frame.width, 4))
+        return cls(_frame[:, :, :3], 'BGR')
+
+    def as_numpy_array(self):
+        return self.frame.astype(np.uint8)
+
+    def as_bgr_numpy_array(self):
+        if self.encoding == 'RGB':
+            return self.frame[:, :, ::-1]
+        else:
+            return self.frame
+
+    def as_rgb_numpy_array(self):
+        if self.encoding == 'BGR':
+            return self.frame[:, :, ::-1]
+        else:
+            return self.frame
+
+    def annotate_with_bounding_boxes(
+        self,
+        timestamp,
+        detected_obstacles,
+        bbox_color_map=pylot.perception.detection.utils.GROUND_COLOR_MAP):
+        add_timestamp(self.frame, timestamp)
+        for obstacle in detected_obstacles:
+            obstacle.visualize_on_img(self.frame, bbox_color_map)
+
+    def visualize(self, window_name, timestamp=None):
+        """ Creates a cv2 window to visualize the camera frame."""
+        if self.encoding != 'BGR':
+            image_np = self.as_bgr_numpy_array()
+        else:
+            image_np = self.frame
+        if timestamp is not None:
+            add_timestamp(image_np, timestamp)
+        cv2.imshow(window_name, image_np)
+        cv2.waitKey(1)
+
+    def save(self, timestamp, data_path, file_base):
+        if self.encoding != 'RGB':
+            image_np = self.as_rgb_numpy_array()
+        else:
+            image_np = self.frame
+        file_name = os.path.join(data_path,
+                                 '{}-{}.png'.format(file_base, timestamp))
+        img = Image.fromarray(image_np)
+        img.save(file_name)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return 'CameraFrame(width: {}, height: {}, encoding: {})'.format(
+            self.width, self.height, self.encoding)
+
+
 class DepthFrame(object):
     def __init__(self, frame, camera_setup):
         """ Initializes a depth frame.
@@ -661,7 +736,7 @@ class PointCloud(object):
             self.transform, len(self.points))
 
 
-def add_timestamp(timestamp, image_np):
+def add_timestamp(image_np, timestamp):
     """ Adds a timestamp text to an image np array."""
     txt_font = cv2.FONT_HERSHEY_SIMPLEX
     timestamp_txt = '{}'.format(timestamp)
@@ -674,26 +749,6 @@ def add_timestamp(timestamp, image_np):
                 lineType=cv2.LINE_AA)
 
 
-def bgra_to_bgr(image_np):
-    return image_np[:, :, :3]
-
-
-def bgra_to_rgb(image_np):
-    """ Converts a bgra np array to a rgb np array."""
-    image_np = image_np[:, :, :3]
-    image_np = image_np[:, :, ::-1]
-
-
-def bgr_to_rgb(image_np):
-    """ Converts a bgr np array to a rgb np array."""
-    return image_np[:, :, ::-1]
-
-
-def rgb_to_bgr(image_np):
-    """ Converts a rgb np array to a bgr np array."""
-    return image_np[:, :, ::-1]
-
-
 def time_epoch_ms():
     """ Get current time in milliseconds."""
     return int(time.time() * 1000)
@@ -701,6 +756,8 @@ def time_epoch_ms():
 
 def set_tf_loglevel(level):
     """ To be used to suppress TensorFlow logging."""
+    import logging
+    import os
     if level >= logging.FATAL:
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     if level >= logging.ERROR:

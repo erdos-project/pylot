@@ -6,7 +6,7 @@ import pylot.simulation.messages
 from pylot.perception.messages import SegmentedFrameMessage
 from pylot.simulation.carla_utils import get_world, set_synchronous_mode
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
-from pylot.utils import DepthFrame
+from pylot.utils import CameraFrame, DepthFrame
 
 
 class CameraDriverOperator(erdos.Operator):
@@ -122,21 +122,19 @@ class CameraDriverOperator(erdos.Operator):
 
             msg = None
             if self._camera_setup.camera_type == 'sensor.camera.rgb':
-                msg = pylot.simulation.messages.FrameMessage(carla_image,
-                                                             timestamp,
-                                                             encoding='carla')
+                msg = pylot.simulation.messages.FrameMessage(
+                    CameraFrame.from_carla_frame(carla_image), timestamp)
             elif self._camera_setup.camera_type == 'sensor.camera.depth':
                 # Include the transform relative to the vehicle.
                 # Carla carla_image.transform returns the world transform, but
                 # we do not use it directly.
-                depth_frame = DepthFrame.from_carla_frame(
-                    carla_image, self._camera_setup)
                 msg = pylot.simulation.messages.DepthFrameMessage(
-                    depth_frame, timestamp)
+                    DepthFrame.from_carla_frame(carla_image,
+                                                self._camera_setup), timestamp)
             elif self._camera_setup.camera_type == \
                  'sensor.camera.semantic_segmentation':
-                frame = SegmentedFrame(carla_image, encoding='carla')
-                msg = SegmentedFrameMessage(frame, timestamp)
+                msg = SegmentedFrameMessage(
+                    SegmentedFrame.from_carla_image(carla_image), timestamp)
                 # Send the message containing the frame.
             self._camera_stream.send(msg)
             # Note: The operator is set not to automatically propagate

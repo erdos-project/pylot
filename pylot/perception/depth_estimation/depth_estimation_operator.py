@@ -1,7 +1,6 @@
 from absl import flags
 import erdos
 import matplotlib.pyplot as plt
-import numpy as np
 import os
 import time
 import torch
@@ -15,7 +14,7 @@ from anynet import preprocess
 
 from pylot.simulation.messages import DepthFrameMessage
 from pylot.simulation.sensor_setup import CameraSetup
-from pylot.utils import DepthFrame, bgr_to_rgb, time_epoch_ms
+from pylot.utils import DepthFrame, time_epoch_ms
 
 flags.DEFINE_string('depth_estimation_model_path', 'dependencies/anynet/',
                     'Path to AnyNet depth estimation model')
@@ -77,7 +76,7 @@ class DepthEstimationOperator(erdos.Operator):
     def on_left_camera_msg(self, msg):
         self._logger.debug('@{}: {} received left camera message'.format(
             msg.timestamp, self._name))
-        img = bgr_to_rgb(msg.frame).astype(np.uint8)
+        img = msg.frame.as_rgb_numpy_array()
         img = preprocess.crop(img)
         processed = preprocess.get_transform(augment=False)
         img = processed(img)
@@ -86,7 +85,7 @@ class DepthEstimationOperator(erdos.Operator):
     def on_right_camera_msg(self, msg):
         self._logger.debug('@{}: {} received right camera message'.format(
             msg.timestamp, self._name))
-        img = bgr_to_rgb(msg.frame).astype(np.uint8)
+        img = msg.frame.as_rgb_numpy_array()
         img = preprocess.crop(img)
         processed = preprocess.get_transform(augment=False)
         img = processed(img)
