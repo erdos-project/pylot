@@ -170,8 +170,7 @@ class WaypointPlanningOperator(erdos.Operator):
             # XXX(ionel): We only check the first 10 waypoints.
             if index > 10:
                 break
-            dist = pylot.utils.get_distance(waypoint.location,
-                                            self._vehicle_transform.location)
+            dist = waypoint.location.distance(self._vehicle_transform.location)
             if dist < min_dist:
                 min_dist = dist
                 min_index = index

@@ -10,8 +10,7 @@ import time
 
 
 class Rotation(object):
-    """ The Pylot version of the carla.Rotation instance that defines helper
-    functions needed in Pylot, and makes the class serializable.
+    """ Used to represent the rotation of an actor or obstacle.
 
     Attributes:
         pitch: Rotation about Y-axis.
@@ -141,6 +140,7 @@ class Vector3D(object):
 
 
 class Vector2D(object):
+    """ Represents a 2D vector and provides helper functions."""
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -161,8 +161,7 @@ class Vector2D(object):
 
 
 class Location(Vector3D):
-    """ The Pylot version of the carla.Location instance that defines helper
-    functions needed in Pylot, and makes the class serializable.
+    """ Stores a 3D location, and provides useful helper methods.
 
     Attributes:
         x: The value of the x-axis.
@@ -222,6 +221,55 @@ class Location(Vector3D):
         import carla
         return carla.Location(self.x, self.y, self.z)
 
+    def is_within_distance_ahead(self, dst_loc, max_distance):
+        """
+        Check if a location is within a distance.
+
+        Args:
+            dst_loc: The location to compute distance for.
+            max_distance: Maximum allowed distance.
+        Returns:
+            True if other location is within max_distance.
+        """
+        target_vector = np.array([dst_loc.x - self.x, dst_loc.y - self.y])
+        norm_dst = np.linalg.norm(target_vector)
+        # Return if the vector is too small.
+        if norm_dst < 0.001:
+            return True
+        if norm_dst > max_distance:
+            return False
+        forward_vector = np.array([
+            math.cos(math.radians(self.rotation.yaw)),
+            math.sin(math.radians(self.rotation.yaw))
+        ])
+        d_angle = math.degrees(
+            math.acos(np.dot(forward_vector, target_vector) / norm_dst))
+        return d_angle < 90.0
+
+    def compute_magnitude_angle(self, target_loc):
+        """
+        Computes relative angle and distance between the location and  a target
+        location.
+
+        Args:
+            target_loc: Location of the target.
+
+        Returns:
+            Tuple of distance to the target and the angle
+        """
+        target_vector = np.array(
+            [target_loc.x - self.x, target_loc.y - self.y])
+        norm_target = np.linalg.norm(target_vector)
+
+        forward_vector = np.array([
+            math.cos(math.radians(self.rotation.yaw)),
+            math.sin(math.radians(self.rotation.yaw))
+        ])
+        d_angle = math.degrees(
+            math.acos(np.dot(forward_vector, target_vector) / norm_target))
+
+        return (norm_target, d_angle)
+
     def __repr__(self):
         return self.__str__()
 
@@ -230,8 +278,10 @@ class Location(Vector3D):
 
 
 class Transform(object):
-    """ The Pylot version of the carla.Transform instance that defines helper
-    functions needed in Pylot, and makes the class serializable.
+    """ A class that stores the location and rotation of an obstacle.
+
+    It can be created from a carla.Transform, defines helper functions needed
+    in Pylot, and makes the carla.Transform serializable.
 
     Attributes:
         location: The location of the object represented by the transform.
@@ -423,6 +473,7 @@ class Transform(object):
 
 
 class CanBus(object):
+    """ Class used to wrap ego-vehicle information."""
     def __init__(self, transform, forward_speed):
         if not isinstance(transform, Transform):
             raise ValueError(
@@ -646,68 +697,6 @@ def rgb_to_bgr(image_np):
 def time_epoch_ms():
     """ Get current time in milliseconds."""
     return int(time.time() * 1000)
-
-
-def compute_magnitude_angle(target_loc, cur_loc, orientation):
-    """
-    Computes relative angle and distance between a target and a current
-    location.
-
-    Args:
-        target_loc: Location of the target.
-        cur_loc: Location of the reference object.
-        orientation: Orientation of the reference object
-
-    Returns:
-        Tuple of distance to the target and the angle
-    """
-    target_vector = np.array(
-        [target_loc.x - cur_loc.x, target_loc.y - cur_loc.y])
-    norm_target = np.linalg.norm(target_vector)
-
-    forward_vector = np.array([
-        math.cos(math.radians(orientation)),
-        math.sin(math.radians(orientation))
-    ])
-    d_angle = math.degrees(
-        math.acos(np.dot(forward_vector, target_vector) / norm_target))
-
-    return (norm_target, d_angle)
-
-
-def get_distance(loc1, loc2):
-    """ Computes the Euclidian distance between two 2D points."""
-    x_diff = loc1.x - loc2.x
-    y_diff = loc1.y - loc2.y
-    return math.sqrt(x_diff**2 + y_diff**2)
-
-
-def is_within_distance_ahead(cur_loc, dst_loc, orientation, max_distance):
-    """
-    Check if a location is within a distance in a given orientation.
-
-    Args:
-        cur_loc: The current location.
-        dst_loc: The location to compute distance for.
-        orientation: Orientation of the reference object.
-        max_distance: Maximum allowed distance.
-    Returns:
-        True if other location is within max_distance.
-    """
-    target_vector = np.array([dst_loc.x - cur_loc.x, dst_loc.y - cur_loc.y])
-    norm_dst = np.linalg.norm(target_vector)
-    # Return if the vector is too small.
-    if norm_dst < 0.001:
-        return True
-    if norm_dst > max_distance:
-        return False
-    forward_vector = np.array([
-        math.cos(math.radians(orientation)),
-        math.sin(math.radians(orientation))
-    ])
-    d_angle = math.degrees(
-        math.acos(np.dot(forward_vector, target_vector) / norm_dst))
-    return d_angle < 90.0
 
 
 def set_tf_loglevel(level):

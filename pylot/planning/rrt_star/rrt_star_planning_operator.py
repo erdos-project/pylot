@@ -21,7 +21,7 @@ from pylot.simulation.carla_utils import get_map
 from pylot.planning.rrt_star.rrt_star import apply_rrt_star
 from pylot.planning.rrt_star.utils import start_target_to_space
 from pylot.planning.utils import get_waypoint_vector_and_angle
-from pylot.utils import is_within_distance_ahead, Location, Rotation, Transform
+from pylot.utils import Location, Rotation, Transform
 
 DEFAULT_OBSTACLE_LENGTH = 3  # 3 meters from front to back
 DEFAULT_OBSTACLE_WIDTH = 2  # 2 meters from side to side
@@ -163,10 +163,8 @@ class RRTStarPlanningOperator(erdos.Operator):
             time = 0
             # use all prediction times as potential obstacles
             for transform in prediction.trajectory:
-                if is_within_distance_ahead(vehicle_transform.location,
-                                            transform.location,
-                                            vehicle_transform.rotation.yaw,
-                                            DEFAULT_DISTANCE_THRESHOLD):
+                if vehicle_transform.location.is_within_distance_ahead(
+                        transform.location, DEFAULT_DISTANCE_THRESHOLD):
                     # compute the obstacle origin and range of the obstacle
                     obstacle_origin = ((transform.location.x -
                                         DEFAULT_OBSTACLE_LENGTH / 2,

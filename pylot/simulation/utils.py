@@ -1,9 +1,7 @@
 import carla
 import numpy as np
-from numpy.linalg import inv
 
 import pylot.utils
-from pylot.utils import Location, Transform
 from pylot.perception.detection.utils import BoundingBox2D, BoundingBox3D, \
     DetectedObstacle, DetectedSpeedLimit
 
@@ -28,7 +26,8 @@ class Obstacle(object):
         self.id = actor.id
 
         # Convert the transform provided by the simulation to the Pylot class.
-        self.transform = Transform.from_carla_transform(actor.get_transform())
+        self.transform = pylot.utils.Transform.from_carla_transform(
+            actor.get_transform())
 
         # Convert the bounding box from the simulation to the Pylot one.
         self.bounding_box = BoundingBox3D.from_carla_bounding_box(
@@ -62,8 +61,8 @@ class Obstacle(object):
         displacement of the obstacle along either the X or the Y axis.
 
         Args:
-            vehicle_transform: The Pylot Transform of the vehicle to find the
-            distance of the obstacle from.
+            vehicle_transform: The pylot.utils.Transform of the vehicle to find
+            the distance of the obstacle from.
 
         Returns:
             The distance (in metres) of the obstacle from the vehicle.
@@ -142,8 +141,9 @@ class Obstacle(object):
 def get_top_down_transform(transform, top_down_lateral_view):
     # Height calculation relies on the fact that the camera's FOV is 90.
     top_down_location = (transform.location +
-                         Location(0, 0, top_down_lateral_view))
-    return Transform(top_down_location, pylot.utils.Rotation(-90, 0, 0))
+                         pylot.utils.Location(0, 0, top_down_lateral_view))
+    return pylot.utils.Transform(top_down_location,
+                                 pylot.utils.Rotation(-90, 0, 0))
 
 
 def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
@@ -315,10 +315,18 @@ def get_detected_traffic_stops(traffic_stops, depth_frame):
         # Move trigger_volume by -0.85 so that the top plane is on the ground.
         ext_z_value = bbox3d.extent.z - 0.85
         ext = [
-            Location(x=+bbox3d.extent.x, y=+bbox3d.extent.y, z=ext_z_value),
-            Location(x=+bbox3d.extent.x, y=-bbox3d.extent.y, z=ext_z_value),
-            Location(x=-bbox3d.extent.x, y=+bbox3d.extent.y, z=ext_z_value),
-            Location(x=-bbox3d.extent.x, y=-bbox3d.extent.y, z=ext_z_value),
+            pylot.utils.Location(x=+bbox3d.extent.x,
+                                 y=+bbox3d.extent.y,
+                                 z=ext_z_value),
+            pylot.utils.Location(x=+bbox3d.extent.x,
+                                 y=-bbox3d.extent.y,
+                                 z=ext_z_value),
+            pylot.utils.Location(x=-bbox3d.extent.x,
+                                 y=+bbox3d.extent.y,
+                                 z=ext_z_value),
+            pylot.utils.Location(x=-bbox3d.extent.x,
+                                 y=-bbox3d.extent.y,
+                                 z=ext_z_value),
         ]
         bbox = bbox3d.transform.transform_points(ext)
         camera_transform = depth_frame.camera_setup.get_transform()

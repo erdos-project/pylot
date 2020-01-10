@@ -72,7 +72,7 @@ class PointCloudMessage(erdos.Message):
     Attributes:
         point_cloud: A pylot.utils.PointCloud.
     """
-    def __init__(self, point_cloud, transform, timestamp):
+    def __init__(self, point_cloud, timestamp):
         """ Initializes the point cloud messsage.
 
         Args:
@@ -185,19 +185,3 @@ class GroundStopSignsMessage(erdos.Message):
         return 'GroundStopSignsMessage(timestamp: {}, '\
             'stop signs: {})'.format(
                 self.timestamp, self.stop_signs)
-
-
-class DetectedLaneMessage(erdos.Message):
-    """ Message class to be used to send group info about the lane.
-
-    Attributes:
-        detected_lanes: A list of detected lanes locations.
-    """
-    def __init__(self, timestamp, detected_lanes):
-        super(DetectedLaneMessage, self).__init__(timestamp, None)
-        self.detected_lanes = detected_lanes
-
-    def __str__(self):
-        return 'DetectedLaneMessage(timestamp: {}, '\
-                'detected_lanes: {})'.format(
-                    self.timestamp, self.detected_lanes)

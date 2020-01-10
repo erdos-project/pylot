@@ -212,9 +212,7 @@ class HDMap(object):
             if (tl_waypoint.road_id != ego_waypoint.road_id
                     or tl_waypoint.lane_id != ego_waypoint.lane_id):
                 continue
-            if pylot.utils.is_within_distance_ahead(ego_loc, tl_loc,
-                                                    ego_transform.rotation.yaw,
-                                                    tl_max_dist_thresh):
+            if ego_loc.is_within_distance_ahead(tl_loc, tl_max_dist_thresh):
                 return (True, tl_loc)
         return (False, None)
 
@@ -231,11 +229,10 @@ class HDMap(object):
         min_angle = 25.0
         selected_tl_loc = None
         for tl_loc in tl_locations:
-            if pylot.utils.is_within_distance_ahead(ego_loc, tl_loc,
-                                                    ego_transform.rotation.yaw,
-                                                    tl_max_dist_thresh):
-                magnitude, angle = pylot.utils.compute_magnitude_angle(
-                    tl_loc, ego_transform.location, ego_transform.rotation.yaw)
+            if ego_transform.location.is_within_distance_ahead(
+                    tl_loc, tl_max_dist_thresh):
+                magnitude, angle = ego_transform.location.compute_magnitude_angle(
+                    tl_loc)
                 if magnitude < 60.0 and angle < min(25.0, min_angle):
                     min_angle = angle
                     selected_tl_loc = tl_loc
@@ -273,7 +270,7 @@ class HDMap(object):
 
         # TODO(ionel): Handle the case when the road id changes -> s resets.
         # TODO(ionel): Handle case when the center lane is bidirectional.
-        return waypoint.s, pylot.utils.get_distance(location, d0_location)
+        return waypoint.s, location.distance(d0_location)
 
     def get_left_lane(self, location):
         # TODO(ionel): Implement!

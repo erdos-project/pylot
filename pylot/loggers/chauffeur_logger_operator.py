@@ -196,9 +196,8 @@ class ChauffeurLoggerOperator(erdos.Operator):
         # Draw traffic light bboxes within TL_LOGGING_RADIUS meters from car
         tl_actors = self._world.get_actors().filter('traffic.traffic_light*')
         for tl_actor in tl_actors:
-            x = self._current_transform.location
-            y = tl_actor.get_transform().location
-            dist = pylot.utils.get_distance(x, y)
+            dist = self._current_transform.location.distance(
+                tl_actor.get_transform().location)
             if dist <= TL_LOGGING_RADIUS:
                 self._draw_trigger_volume(self._world, tl_actor)
 
