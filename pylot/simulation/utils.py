@@ -146,50 +146,6 @@ def get_top_down_transform(transform, top_down_lateral_view):
     return Transform(top_down_location, pylot.utils.Rotation(-90, 0, 0))
 
 
-def lidar_point_cloud_to_camera_coordinates(point_cloud):
-    """ Transforms a point cloud from lidar to camera coordinates."""
-    point_cloud = [Location(x, y, z) for x, y, z in np.asarray(point_cloud)]
-    identity_transform = Transform(matrix=np.array(
-        [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
-    # Converts a transform that occurs in camera coordinates into a transform
-    # that goes from lidar coordinates to camera coordinates.
-    to_camera_transform = Transform(matrix=np.array(
-        [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
-    transform = identity_transform * to_camera_transform
-    transformed_points = transform.transform_points(point_cloud)
-    return [[loc.x, loc.y, loc.z] for loc in transformed_points]
-
-
-def get_3d_world_position_with_point_cloud(x, y, pc, camera_setup):
-    """ Gets the 3D world position from pixel coordinates using a Lidar
-        point cloud.
-
-        Args:
-            x: Pixel x coordinate.
-            y: Pixel y coordinate.
-            pc: Point cloud in camera coordinates.
-       Returns:
-            3D world location or None if all point clouds are behind.
-    """
-    intrinsic_mat = camera_setup.get_intrinsic_matrix()
-    # Project our 2D pixel location into 3D space, onto the z=1 plane.
-    p3d = np.dot(inv(intrinsic_mat), np.array([[x], [y], [1.0]]))
-    pixel = pylot.utils.Vector2D(p3d[0], p3d[1])
-    location = pixel.get_closest_point_in_point_cloud(np.array(pc))
-    if location is not None:
-        # Normalize our point to have the same depth as our closest point.
-        p3d *= np.array([location[2]])
-        p3d_locations = [
-            Location(px, py, pz) for px, py, pz in np.asarray(p3d.transpose())
-        ]
-        # Convert from camera to unreal coordinates.
-        to_world_transform = camera_setup.get_unreal_transform()
-        point_cloud = to_world_transform.transform_points(p3d_locations)
-        return point_cloud[0]
-    else:
-        return None
-
-
 def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
     """ Creates the bounding box in the view of the camera image using the
     coordinates generated with respect to the camera transform.

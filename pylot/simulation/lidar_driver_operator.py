@@ -6,6 +6,7 @@ import time
 
 from pylot.simulation.carla_utils import get_world, set_synchronous_mode
 from pylot.simulation.messages import PointCloudMessage
+from pylot.utils import PointCloud
 
 
 class LidarDriverOperator(erdos.Operator):
@@ -66,16 +67,12 @@ class LidarDriverOperator(erdos.Operator):
             timestamp = erdos.Timestamp(coordinates=[game_time])
             watermark_msg = erdos.WatermarkMessage(timestamp)
 
-            # Transform the raw_data into a point cloud.
-            points = np.frombuffer(carla_pc.raw_data, dtype=np.dtype('f4'))
-            points = copy.deepcopy(points)
-            points = np.reshape(points, (int(points.shape[0] / 3), 3))
-
             # Include the transform relative to the vehicle.
             # Carla carla_pc.transform returns the world transform, but
             # we do not use it directly.
-            msg = PointCloudMessage(points, self._lidar_setup.get_transform(),
-                                    timestamp)
+            msg = PointCloudMessage(
+                PointCloud.from_carla_point_cloud(
+                    carla_pc, self._lidar_setup.get_transform()), timestamp)
 
             self._lidar_stream.send(msg)
             # Note: The operator is set not to automatically propagate

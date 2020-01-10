@@ -28,5 +28,5 @@ class LidarLoggerOperator(erdos.Operator):
             self._flags.data_path,
             'carla-lidar-{}.ply'.format(msg.timestamp.coordinates[0]))
         pcd = o3d.PointCloud()
-        pcd.points = o3d.Vector3dVector(msg.point_cloud)
+        pcd.points = o3d.Vector3dVector(msg.point_cloud.points)
         o3d.write_point_cloud(file_name, pcd)

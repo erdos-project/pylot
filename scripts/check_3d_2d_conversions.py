@@ -1,18 +1,11 @@
 # Checks methods for getting 3d world locations from depth map and from point
 # cloud.
-
-import copy
-import numpy as np
+import carla
 import pptk
 import time
 
-import carla
-
 from pylot.simulation.carla_utils import get_world
 from pylot.simulation.messages import FrameMessage
-import pylot.simulation.utils
-from pylot.simulation.utils import get_3d_world_position_with_point_cloud,\
-     lidar_point_cloud_to_camera_coordinates
 import pylot.utils
 from matplotlib import pyplot as plt
 from pylot.simulation.sensor_setup import CameraSetup
@@ -58,15 +51,10 @@ vehicle_transform = pylot.utils.Transform(pylot.utils.Location(0, 0, 0),
 def on_lidar_msg(carla_pc):
     game_time = int(carla_pc.timestamp * 1000)
     print("Received lidar msg {}".format(game_time))
-    points = np.frombuffer(carla_pc.raw_data, dtype=np.dtype('f4'))
-    points = copy.deepcopy(points)
-    points = np.reshape(points, (int(points.shape[0] / 3), 3))
-
     lidar_transform = pylot.utils.Transform.from_carla_transform(
         carla_pc.transform)
-
-    # Transform lidar points from lidar coordinates to camera coordinates.
-    points = lidar_point_cloud_to_camera_coordinates(points)
+    point_cloud = pylot.utils.PointCloud.from_carla_point_cloud(
+        carla_pc, lidar_transform)
     camera_setup = CameraSetup("lidar_camera",
                                "sensor.camera.depth",
                                800,
@@ -74,13 +62,13 @@ def on_lidar_msg(carla_pc):
                                lidar_transform,
                                fov=90.0)
     for (x, y) in pixels_to_check:
-        pos3d_pc = get_3d_world_position_with_point_cloud(
-            x, y, points.tolist(), camera_setup)
-        print("{} Computed using lidar {}".format((x, y), pos3d_pc))
+        pixel = pylot.utils.Vector2D(x, y)
+        location = point_cloud.get_pixel_location(pixel, camera_setup)
+        print("{} Computed using lidar {}".format((x, y), location))
 
     global lidar_pc
-    lidar_pc = points.tolist()
-    # pptk.viewer(points)
+    lidar_pc = point_cloud
+    # pptk.viewer(point_cloud.points)
 
 
 def on_camera_msg(carla_image):

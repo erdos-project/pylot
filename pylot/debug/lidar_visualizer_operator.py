@@ -16,4 +16,4 @@ class LidarVisualizerOperator(erdos.Operator):
     def display_point_cloud(self, msg):
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))
-        pptk.viewer(msg.point_cloud)
+        pptk.viewer(msg.point_cloud.points)

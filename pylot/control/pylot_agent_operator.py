@@ -11,7 +11,6 @@ import pylot.control.utils
 import pylot.simulation.utils
 from pylot.map.hd_map import HDMap
 from pylot.simulation.carla_utils import get_map
-from pylot.simulation.utils import get_3d_world_position_with_point_cloud
 from pylot.utils import time_epoch_ms
 
 INTERSECTION_SPEED_M_PER_SEC = 5
@@ -92,8 +91,7 @@ class PylotAgentOperator(erdos.Operator):
         # Transform point cloud to camera coordinates.
         point_cloud = None
         if pc_msg is not None:
-            point_cloud = pylot.simulation.utils.lidar_point_cloud_to_camera_coordinates(
-                pc_msg.point_cloud)
+            point_cloud = pc_msg.point_cloud
         depth_frame = None
         if depth_msg is not None:
             depth_frame = depth_msg.frame
@@ -218,8 +216,8 @@ class PylotAgentOperator(erdos.Operator):
         if depth_frame is not None:
             location = depth_frame.get_pixel_locations([pixel])[0]
         elif point_cloud is not None:
-            location = get_3d_world_position_with_point_cloud(
-                pixel.x, pixel.y, point_cloud, depth_frame.camera_setup)
+            location = point_cloud.get_pixel_location(pixel,
+                                                      depth_frame.camera_setup)
         if location is None:
             self._logger.error(
                 'Could not find lidar point for {}'.format(pixel))

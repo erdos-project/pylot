@@ -70,24 +70,24 @@ class PointCloudMessage(erdos.Message):
     """ Message class to be used to send point clouds.
 
     Attributes:
-        point_cloud: A numpy array storing the point cloud.
-        transform: The simulation.utils.Transform of the Lidar.
+        point_cloud: A pylot.utils.PointCloud.
     """
     def __init__(self, point_cloud, transform, timestamp):
         """ Initializes the point cloud messsage.
 
         Args:
-            point_cloud: A numpy array storing the point cloud.
-            transform: The simulation.utils.Transform of the Lidar.
+            point_cloud: A pylot.utils.PointCloud.
             timestamp: A erdos.timestamp.Timestamp of the message.
         """
         super(PointCloudMessage, self).__init__(timestamp, None)
+        if not isinstance(point_cloud, pylot.utils.PointCloud):
+            raise ValueError(
+                'point_cloud should be of type pylot.utils.PointCloud')
         self.point_cloud = point_cloud
-        self.transform = transform
 
     def __str__(self):
-        return 'PointCloudMessage(timestamp: {}, num point clouds: {})'.format(
-            self.timestamp, len(self.point_cloud))
+        return 'PointCloudMessage(timestamp: {}, point cloud: {})'.format(
+            self.timestamp, self.point_cloud)
 
 
 class IMUMessage(erdos.Message):
