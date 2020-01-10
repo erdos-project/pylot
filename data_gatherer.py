@@ -73,7 +73,9 @@ def driver():
             'carla-segmented-')
 
     if FLAGS.log_depth_camera:
-        pylot.operator_creator.add_depth_camera_logging(depth_camera_stream)
+        pylot.operator_creator.add_camera_logging(
+            depth_camera_stream, 'depth_camera_logger_operator',
+            'carla-depth-')
 
     imu_stream = None
     if FLAGS.log_imu:

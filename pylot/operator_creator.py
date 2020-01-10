@@ -43,8 +43,6 @@ from pylot.loggers.bounding_box_logger_operator import \
     BoundingBoxLoggerOperator
 from pylot.loggers.camera_logger_operator import CameraLoggerOperator
 from pylot.loggers.chauffeur_logger_operator import ChauffeurLoggerOperator
-from pylot.loggers.depth_camera_logger_operator import \
-    DepthCameraLoggerOperator
 from pylot.loggers.imu_logger_operator import IMULoggerOperator
 from pylot.loggers.lidar_logger_operator import LidarLoggerOperator
 from pylot.loggers.multiple_object_tracker_logger_operator import \
@@ -462,17 +460,6 @@ def add_bounding_box_logging(obstacles_stream,
 
 def add_camera_logging(stream, name, filename_prefix):
     erdos.connect(CameraLoggerOperator, [stream],
-                  True,
-                  name,
-                  FLAGS,
-                  filename_prefix,
-                  log_file_name=FLAGS.log_file_name)
-
-
-def add_depth_camera_logging(depth_camera_stream,
-                             name='depth_camera_logger_operator',
-                             filename_prefix='carla-depth-'):
-    erdos.connect(DepthCameraLoggerOperator, [depth_camera_stream],
                   True,
                   name,
                   FLAGS,

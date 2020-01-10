@@ -5,6 +5,7 @@ import numpy as np
 from numpy.linalg import inv
 from numpy.matlib import repmat
 import os
+import pickle
 import PIL.Image as Image
 import time
 
@@ -639,6 +640,13 @@ class DepthFrame(object):
             point_cloud[pixel.y * self.camera_setup.width + pixel.x]
             for pixel in pixels
         ]
+
+    def save(self, timestamp, data_path, file_base):
+        file_name = os.path.join(data_path,
+                                 '{}-{}.pkl'.format(file_base, timestamp))
+        pickle.dump(self.as_numpy_array(),
+                    open(file_name, 'wb'),
+                    protocol=pickle.HIGHEST_PROTOCOL)
 
     def __repr__(self):
         return self.__str__()
