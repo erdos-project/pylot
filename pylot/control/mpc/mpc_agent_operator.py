@@ -10,7 +10,7 @@ from pylot.control.mpc.mpc import ModelPredictiveController
 from pylot.control.mpc.utils import zero_to_2_pi, global_config, CubicSpline2D
 import pylot.control.utils
 from pylot.map.hd_map import HDMap
-from pylot.simulation.carla_utils import get_map, get_world
+from pylot.simulation.utils import get_map, get_world
 import pylot.utils
 
 

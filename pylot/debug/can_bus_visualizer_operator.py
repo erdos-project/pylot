@@ -3,7 +3,7 @@ import erdos
 
 # Pylot specific imports.
 import pylot.utils
-import pylot.simulation.carla_utils
+import pylot.simulation.utils
 
 DEFAULT_VIS_TIME = 30000.0
 
@@ -31,7 +31,7 @@ class CanBusVisualizerOperator(erdos.Operator):
         self._name = name
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
-        _, self._world = pylot.simulation.carla_utils.get_world(
+        _, self._world = pylot.simulation.utils.get_world(
             self._flags.carla_host, self._flags.carla_port,
             self._flags.carla_timeout)
         if self._world is None:

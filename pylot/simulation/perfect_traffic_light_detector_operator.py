@@ -2,8 +2,7 @@ from collections import deque
 import erdos
 
 from pylot.perception.messages import ObstaclesMessage
-from pylot.simulation.carla_utils import get_world
-from pylot.simulation.utils import get_traffic_lights_obstacles
+from pylot.simulation.utils import get_world, get_traffic_lights_obstacles
 
 
 class PerfectTrafficLightDetectorOperator(erdos.Operator):

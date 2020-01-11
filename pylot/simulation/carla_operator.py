@@ -6,7 +6,7 @@ import sys
 import time
 
 import pylot.utils
-from pylot.simulation.carla_utils import extract_data_in_pylot_format,\
+from pylot.simulation.utils import extract_data_in_pylot_format,\
     get_weathers, get_world, reset_world, set_synchronous_mode
 import pylot.simulation.messages
 

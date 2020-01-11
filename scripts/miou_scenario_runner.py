@@ -9,7 +9,7 @@ import sys
 
 import carla
 
-from pylot.simulation.carla_utils import get_world
+from pylot.simulation.utils import get_world
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 
 VEHICLE_DESTINATION = carla.Location(x=387.73 - 370, y=327.07, z=0.5)

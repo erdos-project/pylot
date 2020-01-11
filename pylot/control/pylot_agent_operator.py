@@ -10,7 +10,7 @@ from pylot.control.messages import ControlMessage
 import pylot.control.utils
 import pylot.simulation.utils
 from pylot.map.hd_map import HDMap
-from pylot.simulation.carla_utils import get_map
+from pylot.simulation.utils import get_map
 from pylot.utils import time_epoch_ms
 
 INTERSECTION_SPEED_M_PER_SEC = 5

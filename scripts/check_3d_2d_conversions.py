@@ -7,7 +7,7 @@ import time
 from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.messages import FrameMessage
 from pylot.perception.point_cloud import PointCloud
-from pylot.simulation.carla_utils import get_world
+from pylot.simulation.utils import get_world
 import pylot.utils
 from matplotlib import pyplot as plt
 from pylot.simulation.sensor_setup import CameraSetup

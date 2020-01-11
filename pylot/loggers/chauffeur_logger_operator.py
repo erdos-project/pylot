@@ -9,7 +9,7 @@ import PIL.Image as Image
 
 # Pylot specific imports.
 import pylot.utils
-import pylot.simulation.carla_utils
+import pylot.simulation.utils
 
 TL_STATE_TO_PIXEL_COLOR = {
     carla.TrafficLightState.Red: [255, 1, 1],
@@ -58,7 +58,7 @@ class ChauffeurLoggerOperator(erdos.Operator):
 
         self._top_down_camera_setup = top_down_camera_setup
         # Get world to access traffic lights.
-        _, self._world = pylot.simulation.carla_utils.get_world(
+        _, self._world = pylot.simulation.utils.get_world(
             self._flags.carla_host, self._flags.carla_port,
             self._flags.carla_timeout)
         if self._world is None:

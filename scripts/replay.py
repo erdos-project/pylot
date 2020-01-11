@@ -5,7 +5,7 @@ import time
 import carla
 
 import pylot.flags
-from pylot.simulation.carla_utils import get_world
+from pylot.simulation.utils import get_world
 
 FLAGS = flags.FLAGS
 
@@ -19,16 +19,15 @@ def process_images(carla_image):
 
 
 def main(argv):
-    client, world = get_world(FLAGS.carla_host,
-                              FLAGS.carla_port,
+    client, world = get_world(FLAGS.carla_host, FLAGS.carla_port,
                               FLAGS.carla_timeout)
 
     # Replayer time factor is only available in > 0.9.5.
     client.set_replayer_time_factor(0.1)
-    print(client.replay_file(FLAGS.carla_replay_file,
-                             FLAGS.carla_replay_start_time,
-                             FLAGS.carla_replay_duration,
-                             FLAGS.carla_replay_id))
+    print(
+        client.replay_file(FLAGS.carla_replay_file,
+                           FLAGS.carla_replay_start_time,
+                           FLAGS.carla_replay_duration, FLAGS.carla_replay_id))
     # Sleep a bit to allow the server to start the replay.
     time.sleep(1)
     vehicle = world.get_actors().find(FLAGS.carla_replay_id)
@@ -45,9 +44,7 @@ def main(argv):
     transform = carla.Transform(carla.Location(2.0, 0.0, 1.4),
                                 carla.Rotation(pitch=0, yaw=0, roll=0))
 
-    camera = world.spawn_actor(camera_blueprint,
-                               transform,
-                               attach_to=vehicle)
+    camera = world.spawn_actor(camera_blueprint, transform, attach_to=vehicle)
 
     # Register the callback on the camera.
     camera.listen(process_images)

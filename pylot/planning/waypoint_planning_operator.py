@@ -8,7 +8,7 @@ import pylot.planning.cost_functions
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.utils import get_waypoint_vector_and_angle, \
     BehaviorPlannerState
-from pylot.simulation.carla_utils import get_map
+from pylot.simulation.utils import get_map
 import pylot.utils
 
 DEFAULT_NUM_WAYPOINTS = 50

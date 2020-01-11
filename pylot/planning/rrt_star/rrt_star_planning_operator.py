@@ -17,10 +17,10 @@ import itertools
 
 from pylot.map.hd_map import HDMap
 from pylot.planning.messages import WaypointsMessage
-from pylot.simulation.carla_utils import get_map
 from pylot.planning.rrt_star.rrt_star import apply_rrt_star
 from pylot.planning.rrt_star.utils import start_target_to_space
 from pylot.planning.utils import get_waypoint_vector_and_angle
+from pylot.simulation.utils import get_map
 from pylot.utils import Location, Rotation, Transform
 
 DEFAULT_OBSTACLE_LENGTH = 3  # 3 meters from front to back

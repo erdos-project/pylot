@@ -4,7 +4,7 @@ import time
 
 from pylot.perception.messages import FrameMessage, DepthFrameMessage, \
     SegmentedFrameMessage
-from pylot.simulation.carla_utils import get_world, set_synchronous_mode
+from pylot.simulation.utils import get_world, set_synchronous_mode
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.depth_frame import DepthFrame

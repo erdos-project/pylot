@@ -12,7 +12,7 @@ from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.detection.traffic_light import TrafficLight
 from pylot.perception.messages import DepthFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
-from pylot.simulation.carla_utils import convert_speed_limit_actors,\
+from pylot.simulation.utils import convert_speed_limit_actors,\
     convert_traffic_light_actors, convert_traffic_stop_actors, get_world
 import pylot.simulation.utils
 from pylot.simulation.sensor_setup import DepthCameraSetup

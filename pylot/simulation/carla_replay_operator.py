@@ -5,8 +5,7 @@ import threading
 import time
 
 import pylot.utils
-from pylot.simulation.carla_utils import get_world,\
-    extract_data_in_pylot_format
+from pylot.simulation.utils import get_world, extract_data_in_pylot_format
 import pylot.simulation.messages
 import pylot.simulation.utils
 
