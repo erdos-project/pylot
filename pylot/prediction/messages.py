@@ -8,7 +8,7 @@ class PredictionMessage(erdos.Message):
 
         Args:
             timestamp: The timestamp of the message.
-            predictions: A list of pylot.prediction.utils.ObstaclePredictions.
+            predictions: A list of prediction.obstacle_prediction.ObstaclePredictions.
         """
         super(PredictionMessage, self).__init__(timestamp, None)
         self.predictions = predictions

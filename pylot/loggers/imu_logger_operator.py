@@ -22,7 +22,7 @@ class IMULoggerOperator(erdos.Operator):
         IMU message to be logged.
 
         Args:
-            msg: A message of type `pylot.simulation.messages.IMUMessage` to
+            msg: A message of type `pylot.perception.messages.IMUMessage` to
                 be logged.
         """
         self._logger.debug('@{}: {} received message'.format(

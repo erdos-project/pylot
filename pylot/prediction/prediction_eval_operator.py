@@ -1,9 +1,9 @@
 from collections import deque
 import erdos
 
-from pylot.perception.messages import ObstacleTrajectory
+from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 from pylot.prediction.messages import PredictionMessage
-from pylot.prediction.utils import ObstaclePrediction
+from pylot.prediction.obstacle_prediction import ObstaclePrediction
 from pylot.utils import time_epoch_ms
 
 

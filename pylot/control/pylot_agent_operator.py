@@ -205,7 +205,7 @@ class PylotAgentOperator(erdos.Operator):
             x: The x-axis pixel.
             y: The y-axis pixel.
             point_cloud: A lidar point cloud.
-            depth_frame: A pylot.utils.DepthFrame.
+            depth_frame: A pylot.perception.depth_frame.DepthFrame.
 
         Note: It is sufficient to pass either a point cloud or a depth frame.
 
@@ -231,8 +231,8 @@ class PylotAgentOperator(erdos.Operator):
             point_cloud: The Lidar point cloud. Must be taken captured at the
                          same time as the frame on which the traffic lights
                          were detected.
-            depth_frame: A pylot.utils.DepthFrame recorded at the same time as
-                the RGB frame used in detection.
+            depth_frame: A pylot.perception.depth_frame.DepthFrame recorded at
+                the same time as the RGB frame used in detection.
 
         Returns:
             A list of traffic light locations.
@@ -253,8 +253,8 @@ class PylotAgentOperator(erdos.Operator):
             point_cloud: The Lidar point cloud. Must be taken captured at the
                          same time as the frame on which the obstacles were
                          detected.
-            depth_frame: A pylot.utils.DepthFrame recorded at the same time as
-                the RGB frame used in detection.
+            depth_frame: A pylot.perception.depth_frame.DepthFrame recorded at
+                the same time as the RGB frame used in detection.
 
         Returns:
             A list of 3D world locations.

@@ -91,7 +91,7 @@ class TrafficLight(object):
 
         Args:
             town_name: The name of the town in which the traffic light is.
-            depth_frame: A pylot.utils.DepthFrame
+            depth_frame: A pylot.perception.depth_frame.DepthFrame
             segmented_image: A segmented image used to refine the bboxes.
         Returns:
             A list of DetectedObstacles.

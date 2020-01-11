@@ -4,8 +4,10 @@ import carla
 import pptk
 import time
 
+from pylot.perception.depth_frame import DepthFrame
+from pylot.perception.messages import FrameMessage
+from pylot.perception.point_cloud import PointCloud
 from pylot.simulation.carla_utils import get_world
-from pylot.simulation.messages import FrameMessage
 import pylot.utils
 from matplotlib import pyplot as plt
 from pylot.simulation.sensor_setup import CameraSetup
@@ -53,8 +55,7 @@ def on_lidar_msg(carla_pc):
     print("Received lidar msg {}".format(game_time))
     lidar_transform = pylot.utils.Transform.from_carla_transform(
         carla_pc.transform)
-    point_cloud = pylot.utils.PointCloud.from_carla_point_cloud(
-        carla_pc, lidar_transform)
+    point_cloud = PointCloud.from_carla_point_cloud(carla_pc, lidar_transform)
     camera_setup = CameraSetup("lidar_camera",
                                "sensor.camera.depth",
                                800,
@@ -91,8 +92,7 @@ def on_depth_msg(carla_image):
                                600,
                                depth_camera_transform,
                                fov=90.0)
-    depth_frame = pylot.utils.DepthFrame.from_carla_frame(
-        carla_image, camera_setup)
+    depth_frame = DepthFrame.from_carla_frame(carla_image, camera_setup)
 
     for (x, y) in pixels_to_check:
         print("{} Depth at pixel {}".format((x, y), depth_frame.frame[y][x]))

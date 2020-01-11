@@ -2,6 +2,7 @@ import carla
 import numpy as np
 
 import pylot.utils
+from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.detection.utils import BoundingBox2D, BoundingBox3D, \
     DetectedObstacle, DetectedSpeedLimit
 
@@ -251,8 +252,8 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
 
     Args:
         speed_signs: List of speed limit signs in the world.
-        depth_frame: A pylot.utils.DepthFrame, with a camera_setup relative to
-            the world.
+        depth_frame: A pylot.perception.depth_frame.DepthFrame, with a
+            camera_setup relative to the world.
         segmented_frame: pylot.perception.segmentation.SegmentedFrame
 
     Returns:
@@ -284,9 +285,9 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
                                        'speed limit'))
         return result
 
-    if not isinstance(depth_frame, pylot.utils.DepthFrame):
+    if not isinstance(depth_frame, DepthFrame):
         raise ValueError(
-            'depth_frame should be of type pylot.utils.DepthFrame')
+            'depth_frame should be of type perception.depth_frame.DepthFrame')
     # Compute the 2D bounding boxes.
     bboxes_2d = segmented_frame.get_traffic_sign_bounding_boxes(min_width=8,
                                                                 min_height=9)
@@ -304,8 +305,8 @@ def get_detected_traffic_stops(traffic_stops, depth_frame):
 
     Args:
         traffic_stops: List of traffic stop actors in the world.
-        depth_frame: A pylot.utils.DepthFrame, with a camera_setup relative to
-            the world.
+        depth_frame: A pylot.perception.depth_frame.DepthFrame, with a
+            camera_setup relative to the world.
 
     Returns:
         List of DetectedObstacles.
@@ -352,9 +353,9 @@ def get_detected_traffic_stops(traffic_stops, depth_frame):
                                      int(ymax))
         return None
 
-    if not isinstance(depth_frame, pylot.utils.DepthFrame):
+    if not isinstance(depth_frame, DepthFrame):
         raise ValueError(
-            'depth_frame should be of type pylot.utils.DepthFrame')
+            'depth_frame should be of type perception.depth_frame.DepthFrame')
     det_obstacles = []
     for transform, bbox in traffic_stops:
         bbox_2d = get_stop_markings_bbox(bbox, depth_frame)

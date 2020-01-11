@@ -1,12 +1,10 @@
-import copy
 import erdos
-import numpy as np
 import threading
 import time
 
+from pylot.perception.messages import PointCloudMessage
+from pylot.perception.point_cloud import PointCloud
 from pylot.simulation.carla_utils import get_world, set_synchronous_mode
-from pylot.simulation.messages import PointCloudMessage
-from pylot.utils import PointCloud
 
 
 class LidarDriverOperator(erdos.Operator):

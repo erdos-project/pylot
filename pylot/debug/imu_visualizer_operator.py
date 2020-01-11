@@ -27,7 +27,7 @@ class IMUVisualizerOperator(erdos.Operator):
         message to be drawn on the screen. Draws forward linear acceleration.
 
         Args:
-            msg: A message of type `pylot.simulation.messages.IMUMessage` to
+            msg: A message of type `pylot.perception.messages.IMUMessage` to
                 be drawn on the screen.
         """
         self._logger.debug('@{}: {} received message'.format(

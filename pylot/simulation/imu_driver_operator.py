@@ -2,8 +2,8 @@ import erdos
 import threading
 import time
 
+from pylot.perception.messages import IMUMessage
 from pylot.simulation.carla_utils import get_world, set_synchronous_mode
-from pylot.simulation.messages import IMUMessage
 from pylot.utils import Transform, Vector3D
 
 

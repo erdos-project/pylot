@@ -17,12 +17,13 @@ import pygame
 from miou_scenario_runner import setup_world, retrieve_actor, spawn_camera
 from miou_scenario_runner import cleanup_function
 
+from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.detection.utils import get_precision_recall_at_iou
 from pylot.perception.messages import DepthFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.simulation.sensor_setup import DepthCameraSetup
 from pylot.simulation.utils import Obstacle
-from pylot.utils import DepthFrame, Transform
+from pylot.utils import Transform
 
 VEHICLE_DESTINATION = carla.Location(x=387.73 - 370, y=327.07, z=0.5)
 SAVED_DETECTIONS = collections.deque()

@@ -3,7 +3,8 @@ import erdos
 import numpy as np
 import time
 
-from pylot.utils import CameraFrame, time_epoch_ms
+from pylot.utils import time_epoch_ms
+from pylot.perception.camera_frame import CameraFrame
 
 
 class LaneDetectionOperator(erdos.Operator):

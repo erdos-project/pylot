@@ -7,13 +7,15 @@ import PIL.Image as Image
 import time
 import re
 
+from pylot.perception.camera_frame import CameraFrame
+from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.detection.traffic_light import TrafficLight
+from pylot.perception.messages import DepthFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.simulation.carla_utils import convert_speed_limit_actors,\
     convert_traffic_light_actors, convert_traffic_stop_actors, get_world
 import pylot.simulation.utils
 from pylot.simulation.sensor_setup import DepthCameraSetup
-from pylot.simulation.messages import DepthFrameMessage
 import pylot.utils
 
 FLAGS = flags.FLAGS
@@ -44,7 +46,7 @@ def on_depth_msg(carla_image):
                                     FLAGS.camera_fov)
 
     DEPTH_FRAME = DepthFrameMessage(
-        pylot.utils.DepthFrame.from_carla_frame(carla_image, camera_setup),
+        DepthFrame.from_carla_frame(carla_image, camera_setup),
         int(carla_image.timestamp * 1000))
 
 
@@ -145,7 +147,7 @@ def log_bounding_boxes(carla_image, depth_msg, segmented_frame, traffic_lights,
     game_time = int(carla_image.timestamp * 1000)
     print("Processing game time {} in {} with weather {}".format(
         game_time, town, weather))
-    frame = pylot.utils.CameraFrame.from_carla_frame(carla_image)
+    frame = CameraFrame.from_carla_frame(carla_image)
     _, world = get_world()
     town_name = world.get_map().name
 

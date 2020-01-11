@@ -13,8 +13,11 @@ class ControlMessage(erdos.Message):
     """
     def __init__(self, steer, throttle, brake, hand_brake, reverse, timestamp):
         super(ControlMessage, self).__init__(timestamp, None)
+        assert steer >= -1 and steer <= 1, 'Steer angle must be in [-1, 1]'
         self.steer = steer
+        assert throttle >= 0 and throttle <= 1, 'Throttle must be in [0, 1]'
         self.throttle = throttle
+        assert brake >= 0 and brake <= 1, 'Brake must be in [0, 1]'
         self.brake = brake
         self.hand_brake = hand_brake
         self.reverse = reverse

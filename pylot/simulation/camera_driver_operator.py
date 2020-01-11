@@ -2,11 +2,12 @@ import erdos
 import threading
 import time
 
-import pylot.simulation.messages
-from pylot.perception.messages import SegmentedFrameMessage
+from pylot.perception.messages import FrameMessage, DepthFrameMessage, \
+    SegmentedFrameMessage
 from pylot.simulation.carla_utils import get_world, set_synchronous_mode
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
-from pylot.utils import CameraFrame, DepthFrame
+from pylot.perception.camera_frame import CameraFrame
+from pylot.perception.depth_frame import DepthFrame
 
 
 class CameraDriverOperator(erdos.Operator):
@@ -122,13 +123,13 @@ class CameraDriverOperator(erdos.Operator):
 
             msg = None
             if self._camera_setup.camera_type == 'sensor.camera.rgb':
-                msg = pylot.simulation.messages.FrameMessage(
-                    CameraFrame.from_carla_frame(carla_image), timestamp)
+                msg = FrameMessage(CameraFrame.from_carla_frame(carla_image),
+                                   timestamp)
             elif self._camera_setup.camera_type == 'sensor.camera.depth':
                 # Include the transform relative to the vehicle.
                 # Carla carla_image.transform returns the world transform, but
                 # we do not use it directly.
-                msg = pylot.simulation.messages.DepthFrameMessage(
+                msg = DepthFrameMessage(
                     DepthFrame.from_carla_frame(carla_image,
                                                 self._camera_setup), timestamp)
             elif self._camera_setup.camera_type == \

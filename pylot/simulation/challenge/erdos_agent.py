@@ -5,9 +5,10 @@ import sys
 
 import pylot.flags
 import pylot.operator_creator
-import pylot.simulation.messages
+import pylot.perception.messages
 from pylot.simulation.sensor_setup import RGBCameraSetup
 import pylot.utils
+from pylot.perception.point_cloud import PointCloud
 
 from srunner.challenge.autoagents.autonomous_agent import AutonomousAgent,\
     Track
@@ -138,7 +139,7 @@ class ERDOSAgent(AutonomousAgent):
             # print("{} {} {}".format(key, val[0], type(val[1])))
             if key in self._camera_streams:
                 self._camera_streams[key].send(
-                    pylot.simulation.messages.FrameMessage(
+                    pylot.perception.messages.FrameMessage(
                         val[1], erdos_timestamp))
                 self._camera_streams[key].send(
                     erdos.WatermarkMessage(erdos_timestamp))
@@ -192,8 +193,9 @@ class ERDOSAgent(AutonomousAgent):
         self._can_bus_stream.send(erdos.WatermarkMessage(timestamp))
 
     def send_lidar_msg(self, data, transform, timestamp):
-        msg = pylot.simulation.messages.PointCloudMessage(
-            pylot.utils.PointCloud(data, transform), timestamp=timestamp)
+        msg = pylot.perception.messages.PointCloudMessage(PointCloud(
+            data, transform),
+                                                          timestamp=timestamp)
         self._point_cloud_stream.send(msg)
         self._point_cloud_stream.send(erdos.WatermarkMessage(timestamp))
 

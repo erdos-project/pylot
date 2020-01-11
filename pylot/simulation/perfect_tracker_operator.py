@@ -1,8 +1,8 @@
 from collections import defaultdict, deque
 import erdos
 
-from pylot.perception.messages import ObstacleTrajectory,\
-    ObstacleTrajectoriesMessage
+from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
+from pylot.perception.messages import ObstacleTrajectoriesMessage
 import pylot.utils
 
 
