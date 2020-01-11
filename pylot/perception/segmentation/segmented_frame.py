@@ -51,9 +51,8 @@ class SegmentedFrame(object):
         if encoding == 'carla':
             self._frame = frame
             self.encoding = encoding
-        elif encoding == 'cityscapes':
-            raise ValueError('Transformation from cityscapes to carla encoding'
-                             ' is not yet implemented!')
+            self.width = frame.shape[1]
+            self.height = frame.shape[0]
         else:
             raise ValueError(
                 'Unexpected encoding {} for segmented frame'.format(encoding))
@@ -191,10 +190,15 @@ class SegmentedFrame(object):
 
     def visualize(self, window_name, timestamp=None):
         cityscapes_frame = self.as_cityscapes_palette()
+        # Convert to BGR
+        cityscapes_frame = cityscapes_frame[:, :, ::-1]
         if timestamp is not None:
             add_timestamp(cityscapes_frame, timestamp)
         cv2.imshow(window_name, cityscapes_frame)
         cv2.waitKey(1)
+
+    def draw_point(self, point, color):
+        cv2.circle(self._frame, (int(point.x), int(point.y)), 3, color, -1)
 
     def _get_traffic_sign_pixels(self):
         """ Returns a frame with the traffic sign pixels set to True."""

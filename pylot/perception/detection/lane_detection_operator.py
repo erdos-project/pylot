@@ -3,7 +3,7 @@ import erdos
 import numpy as np
 import time
 
-from pylot.utils import add_timestamp, time_epoch_ms
+from pylot.utils import CameraFrame, time_epoch_ms
 
 
 class LaneDetectionOperator(erdos.Operator):
@@ -77,9 +77,8 @@ class LaneDetectionOperator(erdos.Operator):
                                                      runtime))
 
         if self._flags.visualize_lane_detection:
-            add_timestamp(lines_edges, msg.timestamp)
-            cv2.imshow(self._name, lines_edges)
-            cv2.waitKey(1)
+            frame = CameraFrame(lines_edges, 'BGR')
+            frame.visualize(self._name, msg.timestamp)
 
         detected_lanes_stream.send(erdos.Message(msg.timestamp, image_np))
 

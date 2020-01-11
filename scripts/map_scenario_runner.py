@@ -86,8 +86,7 @@ def retrieve_semantic_image(timestamp):
     while True:
         semantic_image_msg = SEMANTIC_IMAGES.get()
         if semantic_image_msg.timestamp == timestamp:
-            return SegmentedFrame.from_carla_image(
-                semantic_image_msg).as_cityscapes_palette()
+            return SegmentedFrame.from_carla_image(semantic_image_msg)
 
 
 def draw_image(image, surface, blend=False):

@@ -1,7 +1,4 @@
-import cv2
 import erdos
-
-import pylot.utils
 
 
 class TrackVisualizerOperator(erdos.Operator):
@@ -71,17 +68,15 @@ class TrackVisualizerOperator(erdos.Operator):
         segmentation_msg = self._top_down_segmentation_msgs.pop()
         prediction_msg = self._prediction_msgs.pop()
 
-        display_img = segmentation_msg.frame.as_cityscapes_palette()
         for obstacle in tracking_msg.obstacle_trajectories:
-            self._draw_trajectory_on_img(obstacle, display_img, False)
+            self._draw_trajectory_on_img(obstacle, segmentation_msg.frame,
+                                         False)
         for obstacle in prediction_msg.predictions:
-            display_img = self._draw_trajectory_on_img(obstacle, display_img,
-                                                       True)
-        pylot.utils.add_timestamp(display_img, timestamp)
-        cv2.imshow('img', display_img)
-        cv2.waitKey(1)
+            self._draw_trajectory_on_img(obstacle, segmentation_msg.frame,
+                                         True)
+        segmentation_msg.frame.visualize('track_visualizer', timestamp)
 
-    def _draw_trajectory_on_img(self, obstacle, img, predict):
+    def _draw_trajectory_on_img(self, obstacle, segmented_frame, predict):
         # Intrinsic and extrinsic matrix of the top down segmentation camera.
         extrinsic_matrix = self._top_down_camera_setup.get_extrinsic_matrix()
         intrinsic_matrix = self._top_down_camera_setup.get_intrinsic_matrix()
@@ -99,8 +94,6 @@ class TrackVisualizerOperator(erdos.Operator):
 
         # Draw trajectory points on segmented image.
         for point in screen_points:
-            if (0 <= point.x <= self._flags.carla_camera_image_width) and \
-               (0 <= point.y <= self._flags.carla_camera_image_height):
-                cv2.circle(img, (int(point.x), int(point.y)), 3, point_color,
-                           -1)
-        return img
+            if (0 <= point.x <= segmented_frame.width) and \
+               (0 <= point.y <= segmented_frame.height):
+                segmented_frame.draw_point(point, point_color)
