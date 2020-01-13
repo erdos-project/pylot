@@ -83,11 +83,11 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
             traffic_light_msg.traffic_lights, depth_msg.frame,
             segmented_msg.frame, self._town_name)
 
-        if (self._flags.visualize_ground_obstacles
+        if (self._flags.visualize_detected_traffic_lights
                 or self._flags.log_detector_output):
             bgr_msg.frame.annotate_with_bounding_boxes(bgr_msg.timestamp,
                                                        det_traffic_lights)
-            if self._flags.visualize_ground_obstacles:
+            if self._flags.visualize_detected_traffic_lights:
                 bgr_msg.frame.visualize(self._name)
             if self._flags.log_detector_output:
                 bgr_msg.frame.save(bgr_msg.timestamp.coordinates[0],

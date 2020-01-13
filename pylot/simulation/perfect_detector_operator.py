@@ -115,11 +115,11 @@ class PerfectDetectorOperator(erdos.Operator):
         # Send the detected obstacles.
         obstacles_stream.send(ObstaclesMessage(det_obstacles, timestamp))
 
-        if (self._flags.visualize_ground_obstacles
+        if (self._flags.visualize_detected_obstacles
                 or self._flags.log_detector_output):
             bgr_msg.frame.annotate_with_bounding_boxes(bgr_msg.timestamp,
                                                        det_obstacles)
-            if self._flags.visualize_ground_obstacles:
+            if self._flags.visualize_detected_obstacles:
                 bgr_msg.frame.visualize(self._name)
             if self._flags.log_detector_output:
                 bgr_msg.frame.save(bgr_msg.timestamp.coordinates[0],

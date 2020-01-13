@@ -513,10 +513,10 @@ def add_trajectory_logging(obstacles_tracking_stream,
                   log_file_name=FLAGS.log_file_name)
 
 
-def add_visualizers(camera_stream, depth_camera_stream, point_cloud_stream,
-                    segmented_stream, imu_stream, can_bus_stream,
-                    top_down_segmented_stream, obstacle_tracking_stream,
-                    prediction_stream, top_down_camera_setup):
+def add_sensor_visualizers(camera_stream, depth_camera_stream,
+                           point_cloud_stream, segmented_stream, imu_stream,
+                           can_bus_stream):
+    """ Adds operators for visualizing sensors streams. """
     if FLAGS.visualize_rgb_camera:
         add_camera_visualizer(camera_stream, 'rgb_camera')
     if FLAGS.visualize_depth_camera:
@@ -524,19 +524,11 @@ def add_visualizers(camera_stream, depth_camera_stream, point_cloud_stream,
     if FLAGS.visualize_imu:
         add_imu_visualizer(imu_stream)
     if FLAGS.visualize_can_bus:
-        add_can_bus_visualize(can_bus_stream)
+        add_can_bus_visualizer(can_bus_stream)
     if FLAGS.visualize_lidar:
         add_lidar_visualizer(point_cloud_stream)
     if FLAGS.visualize_segmentation:
         add_camera_visualizer(segmented_stream, 'segmented_camera')
-    if FLAGS.visualize_top_down_segmentation:
-        add_camera_visualizer(top_down_segmented_stream,
-                              'top_down_segmented_camera')
-    if FLAGS.visualize_top_down_tracker_output:
-        add_top_down_tracking_visualizer(obstacle_tracking_stream,
-                                         prediction_stream,
-                                         top_down_segmented_stream,
-                                         top_down_camera_setup)
 
 
 def add_lidar_visualizer(point_cloud_stream, name='lidar_visualizer_operator'):
@@ -561,7 +553,7 @@ def add_imu_visualizer(imu_stream, name='imu_visualizer_operator'):
                   log_file_name=FLAGS.log_file_name)
 
 
-def add_can_bus_visualize(can_bus_stream, name='can_bus_visualizer_operator'):
+def add_can_bus_visualizer(can_bus_stream, name='can_bus_visualizer_operator'):
     erdos.connect(CanBusVisualizerOperator, [can_bus_stream],
                   True,
                   name,
@@ -569,12 +561,21 @@ def add_can_bus_visualize(can_bus_stream, name='can_bus_visualizer_operator'):
                   log_file_name=FLAGS.log_file_name)
 
 
-def add_top_down_tracking_visualizer(
-    obstacle_tracking_stream,
-    prediction_stream,
-    top_down_segmented_camera_stream,
-    top_down_camera_setup,
-    name='top_down_tracking_visualizer_operator'):
+def add_prediction_visualizer(obstacle_tracking_stream,
+                              prediction_stream,
+                              vehicle_id_stream,
+                              camera_transform,
+                              name='top_down_tracking_visualizer_operator'):
+    top_down_transform = pylot.simulation.utils.get_top_down_transform(
+        camera_transform, FLAGS.top_down_lateral_view)
+    (top_down_segmented_camera_stream,
+     top_down_segmented_camera_setup) = \
+        pylot.operator_creator.add_segmented_camera(
+            top_down_transform,
+            vehicle_id_stream,
+            name='top_down_segmented_camera',
+            fov=90)
+
     erdos.connect(TrackVisualizerOperator, [
         obstacle_tracking_stream, prediction_stream,
         top_down_segmented_camera_stream
@@ -582,7 +583,7 @@ def add_top_down_tracking_visualizer(
                   True,
                   name,
                   FLAGS,
-                  top_down_camera_setup,
+                  top_down_segmented_camera_setup,
                   log_file_name=FLAGS.log_file_name)
 
 

@@ -114,12 +114,12 @@ class TrafficLightDetOperator(erdos.Operator):
         self._logger.debug('@{}: {} detected traffic lights {}'.format(
             msg.timestamp, self._name, traffic_lights))
 
-        if (self._flags.visualize_traffic_light_output
+        if (self._flags.visualize_detected_traffic_lights
                 or self._flags.log_traffic_light_detector_output):
             msg.frame.annotate_with_bounding_boxes(msg.timestamp,
                                                    traffic_lights,
                                                    self._bbox_colors)
-            if self._flags.visualize_traffic_light_output:
+            if self._flags.visualize_detected_traffic_lights:
                 msg.frame.visualize(self._name)
             if self._flags.log_traffic_light_detector_output:
                 msg.frame.save(msg.timestamp.coordinates[0],

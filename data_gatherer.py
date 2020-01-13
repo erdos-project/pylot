@@ -179,12 +179,11 @@ def driver():
                 top_down_camera_stream, top_down_segmented_stream,
                 top_down_camera_setup)
 
-    prediction_stream = None
-    pylot.operator_creator.add_visualizers(
-        center_camera_stream, depth_camera_stream, point_cloud_stream,
-        segmented_stream, imu_stream, can_bus_stream,
-        top_down_segmented_stream, obstacles_tracking_stream,
-        prediction_stream, top_down_camera_setup)
+    pylot.operator_creator.add_sensor_visualizers(center_camera_stream,
+                                                  depth_camera_stream,
+                                                  point_cloud_stream,
+                                                  segmented_stream, imu_stream,
+                                                  can_bus_stream)
 
     # TODO: Hack! We synchronize on a single stream, based on a guesestimate
     # of which stream is slowest. Instead, We should synchronize on all output

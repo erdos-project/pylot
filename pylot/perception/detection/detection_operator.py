@@ -112,11 +112,11 @@ class DetectionOperator(erdos.Operator):
         self._logger.debug('@{}: {} obstacles: {}'.format(
             msg.timestamp, self._name, obstacles))
 
-        if (self._flags.visualize_detector_output
+        if (self._flags.visualize_detected_obstacles
                 or self._flags.log_detector_output):
             msg.frame.annotate_with_bounding_boxes(msg.timestamp, obstacles,
                                                    self._bbox_colors)
-            if self._flags.visualize_detector_output:
+            if self._flags.visualize_detected_obstacles:
                 msg.frame.visualize(self._name)
             if self._flags.log_detector_output:
                 msg.frame.save(msg.timestamp.coordinates[0],

@@ -15,6 +15,8 @@ flags.DEFINE_string('segmentation_model_path',
                     'Path to the model')
 flags.DEFINE_float('segmentation_drn_gpu_memory_fraction', 0.2,
                    'GPU memory fraction allocated to DRN segmentation')
+flags.DEFINE_bool('visualize_segmentation_output', False,
+                  'True to enable visualization of segmentation output')
 
 
 class SegmentationDRNOperator(erdos.Operator):

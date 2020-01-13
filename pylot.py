@@ -204,7 +204,10 @@ def add_depth(transform, vehicle_id_stream, center_camera_setup,
     return depth_stream
 
 
-def add_prediction(obstacles_tracking_stream, can_bus_stream=None):
+def add_prediction(obstacles_tracking_stream,
+                   vehicle_id_stream,
+                   camera_transform,
+                   can_bus_stream=None):
     """ Adds prediction operators.
 
     Args:
@@ -224,6 +227,10 @@ def add_prediction(obstacles_tracking_stream, can_bus_stream=None):
             assert can_bus_stream is not None
             pylot.operator_creator.add_prediction_evaluation(
                 can_bus_stream, obstacles_tracking_stream, prediction_stream)
+        if FLAGS.visualize_prediction:
+            pylot.operator_creator.add_top_down_tracking_visualizer(
+                obstacles_tracking_stream, prediction_stream,
+                vehicle_id_stream, camera_transform)
     return prediction_stream
 
 
@@ -357,6 +364,7 @@ def driver():
                                           ground_obstacles_stream)
 
     prediction_stream = add_prediction(obstacles_tracking_stream,
+                                       vehicle_id_stream, transform,
                                        can_bus_stream)
 
     # Add planning operators.
@@ -377,24 +385,11 @@ def driver():
                                  ground_traffic_lights_stream)
     control_loop_stream.set(control_stream)
 
-    top_down_segmented_stream = None
-    top_down_segmented_camera_setup = None
-    if FLAGS.visualize_top_down_segmentation:
-        top_down_transform = pylot.simulation.utils.get_top_down_transform(
-            transform, FLAGS.top_down_lateral_view)
-        (top_down_segmented_stream,
-         top_down_segmented_camera_setup) = \
-            pylot.operator_creator.add_segmented_camera(
-                top_down_transform,
-                vehicle_id_stream,
-                name='top_down_segmented_camera',
-                fov=90)
-
-    pylot.operator_creator.add_visualizers(
-        center_camera_stream, depth_camera_stream, point_cloud_stream,
-        segmented_stream, imu_stream, can_bus_stream,
-        top_down_segmented_stream, obstacles_tracking_stream,
-        prediction_stream, top_down_segmented_camera_setup)
+    pylot.operator_creator.add_sensor_visualizers(center_camera_stream,
+                                                  depth_camera_stream,
+                                                  point_cloud_stream,
+                                                  segmented_stream, imu_stream,
+                                                  can_bus_stream)
 
 
 def main(argv):

@@ -72,44 +72,31 @@ flags.DEFINE_enum('control_agent', 'carla_auto_pilot',
                   'Control agent operator to use to drive')
 
 ######################################################################
-# Carla flags
+# Sensor visualizing flags
 ######################################################################
-flags.DEFINE_integer('carla_camera_image_width', 1920,
-                     'Carla camera image width')
-flags.DEFINE_integer('carla_camera_image_height', 1080,
-                     'Carla camera image height')
-
-# Visualizing operators
+flags.DEFINE_bool('visualize_rgb_camera', False,
+                  'True to enable RGB camera sensor visualizer')
 flags.DEFINE_bool('visualize_depth_camera', False,
-                  'True to enable depth camera video operator')
+                  'True to enable depth camera sensor visualizer')
+flags.DEFINE_bool('visualize_segmentation', False,
+                  'True to enable segmented carmera sensor visualizer')
 flags.DEFINE_bool('visualize_lidar', False,
                   'True to enable CARLA Lidar visualizer operator')
-flags.DEFINE_bool('visualize_depth_estimation', False,
-                  'True to enable depth estimation visualization')
-flags.DEFINE_bool('visualize_rgb_camera', False,
-                  'True to enable RGB camera video operator')
 flags.DEFINE_bool('visualize_imu', False,
                   'True to enable CARLA IMU visualizer operator')
-flags.DEFINE_bool('visualize_segmentation', False,
-                  'True to enable CARLA segmented video operator')
-flags.DEFINE_bool('visualize_ground_obstacles', False,
-                  'True to enable visualization of ground obstacles')
-flags.DEFINE_bool('visualize_tracker_output', False,
-                  'True to enable visualization of tracker output')
-flags.DEFINE_bool('visualize_segmentation_output', False,
-                  'True to enable visualization of segmentation output')
-flags.DEFINE_bool('visualize_detector_output', False,
-                  'True to enable visualization of detector output')
-flags.DEFINE_bool('visualize_traffic_light_output', False,
-                  'True to enable visualization of traffic light output')
-flags.DEFINE_bool('visualize_lane_detection', False,
-                  'True to visualize lane detection')
-flags.DEFINE_bool('visualize_waypoints', False, 'True to visualize waypoints')
 flags.DEFINE_bool('visualize_can_bus', False, 'True to visualize can bus.')
-flags.DEFINE_bool('visualize_top_down_segmentation', False,
-                  'True to visualize top-down segmentation')
-flags.DEFINE_bool('visualize_top_down_tracker_output', False,
-                  'True to enable visualization of top-down tracker output')
+
+######################################################################
+# Visualizing flags for components.
+######################################################################
+flags.DEFINE_bool('visualize_detected_obstacles', False,
+                  'True to enable visualization of detected obstacles')
+flags.DEFINE_bool('visualize_detected_traffic_lights', False,
+                  'True to enable visualization of detected traffic lights')
+flags.DEFINE_bool('visualize_waypoints', False,
+                  'True to enable visualization of waypoing planning')
+flags.DEFINE_bool('visualize_prediction', False,
+                  'True to enable visualization of prediction output')
 
 # Accuracy evaluation flags.
 flags.DEFINE_bool('evaluate_obstacle_detection', False,
@@ -128,12 +115,6 @@ flags.DEFINE_bool('log_detector_output', False,
                   'Enable recording of bbox annotated detector images')
 flags.DEFINE_bool('log_traffic_light_detector_output', False,
                   'Enable recording of bbox annotated tl detector images')
-
-# Other flags
-flags.DEFINE_integer(
-    'top_down_lateral_view', 20,
-    'Distance in meters to the left and right of the '
-    'ego-vehicle that the top-down camera shows.')
 
 # Flag validators.
 flags.register_multi_flags_validator(

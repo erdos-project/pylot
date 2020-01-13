@@ -1,3 +1,4 @@
+from absl import flags
 import cv2
 import erdos
 import numpy as np
@@ -5,6 +6,9 @@ import time
 
 from pylot.utils import time_epoch_ms
 from pylot.perception.camera_frame import CameraFrame
+
+flags.DEFINE_bool('visualize_lane_detection', False,
+                  'True to visualize lane detection')
 
 
 class LaneDetectionOperator(erdos.Operator):
