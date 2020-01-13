@@ -136,7 +136,7 @@ class CameraDriverOperator(erdos.Operator):
                  'sensor.camera.semantic_segmentation':
                 msg = SegmentedFrameMessage(
                     SegmentedFrame.from_carla_image(carla_image), timestamp)
-                # Send the message containing the frame.
+            # Send the message containing the frame.
             self._camera_stream.send(msg)
             # Note: The operator is set not to automatically propagate
             # watermark messages received on input streams. Thus, we can

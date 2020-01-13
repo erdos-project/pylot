@@ -2,7 +2,7 @@ import erdos
 
 
 class GroundObstaclesMessage(erdos.Message):
-    """ Message class used to send ground pedestrian and vehicle info.
+    """ Message class used to send pedestrian and vehicle info.
 
     Attributes:
         obstacles: A list of simulation.utils.Obstacle tuples.
@@ -17,10 +17,10 @@ class GroundObstaclesMessage(erdos.Message):
 
 
 class GroundTrafficLightsMessage(erdos.Message):
-    """ Message class to be used to send ground info about traffic lights actors.
+    """ Message class to be used to send info about traffic lights actors.
 
     Attributes:
-        traffic_lights: A list of simulation.utils.TrafficLight tuples.
+        traffic_lights: A list of perception.detection.traffic_light.TrafficLight.
     """
     def __init__(self, timestamp, traffic_lights):
         super(GroundTrafficLightsMessage, self).__init__(timestamp, None)
@@ -33,10 +33,10 @@ class GroundTrafficLightsMessage(erdos.Message):
 
 
 class GroundSpeedSignsMessage(erdos.Message):
-    """ Message class to be used to send ground info about speed limit actors.
+    """ Message class to be used to send info about speed limit actors.
 
     Attributes:
-        speed_signs: A list of simulation.utils.SpeedLimitSign tuples.
+        speed_signs: A list of perception.detection.speed_limit_sign.SpeedLimitSign.
     """
     def __init__(self, timestamp, speed_signs):
         super(GroundSpeedSignsMessage, self).__init__(timestamp, None)
@@ -49,10 +49,10 @@ class GroundSpeedSignsMessage(erdos.Message):
 
 
 class GroundStopSignsMessage(erdos.Message):
-    """ Message class to be used to send ground info about stop signs.
+    """ Message class to be used to send info about stop signs.
 
     Attributes:
-        stop_signs: A list of stop marking transforms.
+        stop_signs: A list of perception.detection.stop_sign.StopSign.
     """
     def __init__(self, timestamp, stop_signs):
         super(GroundStopSignsMessage, self).__init__(timestamp, None)

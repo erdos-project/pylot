@@ -14,7 +14,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         _traffic_lights: Buffer of ground traffic lights messages.
         _bgr_msgs: Buffer of ground camera messages.
         _depth_frame_msgs: Buffer of ground camera depth messages.
-        _segmented_imgs: Buffer of ground segmented messages.
+        _segmented_msgs: Buffer of ground segmented messages.
         _can_bus_msgs: Buffer of can bus messages.
     """
     def __init__(self,
@@ -48,7 +48,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         self._traffic_lights = deque()
         self._bgr_msgs = deque()
         self._depth_frame_msgs = deque()
-        self._segmented_imgs = deque()
+        self._segmented_msgs = deque()
         self._can_bus_msgs = deque()
         self._frame_cnt = 0
 
@@ -63,7 +63,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         traffic_light_msg = self._traffic_lights.popleft()
         bgr_msg = self._bgr_msgs.popleft()
         depth_msg = self._depth_frame_msgs.popleft()
-        segmented_msg = self._segmented_imgs.popleft()
+        segmented_msg = self._segmented_msgs.popleft()
         can_bus_msg = self._can_bus_msgs.popleft()
         vehicle_transform = can_bus_msg.data.transform
         self._frame_cnt += 1
@@ -81,7 +81,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
 
         det_traffic_lights = get_traffic_lights_obstacles(
             traffic_light_msg.traffic_lights, depth_msg.frame,
-            segmented_msg.frame.as_numpy_array(), self._town_name)
+            segmented_msg.frame, self._town_name)
 
         if (self._flags.visualize_ground_obstacles
                 or self._flags.log_detector_output):
@@ -118,4 +118,4 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
     def on_segmented_frame(self, msg):
         self._logger.debug('@{}: received segmented frame'.format(
             msg.timestamp))
-        self._segmented_imgs.append(msg)
+        self._segmented_msgs.append(msg)

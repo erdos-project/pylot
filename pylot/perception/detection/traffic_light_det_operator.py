@@ -5,8 +5,8 @@ import numpy as np
 import tensorflow as tf
 import time
 
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle, \
-    TrafficLightColor
+from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
+from pylot.perception.detection.traffic_light import TrafficLightColor
 from pylot.perception.messages import ObstaclesMessage
 from pylot.utils import set_tf_loglevel, time_epoch_ms
 
@@ -137,8 +137,7 @@ class TrafficLightDetOperator(erdos.Operator):
 
     def __convert_to_detected_tl(self, boxes, scores, labels, height, width):
         traffic_lights = []
-        index = 0
-        while index < len(boxes) and index < len(scores):
+        for index in range(len(scores)):
             if scores[
                     index] > self._flags.traffic_light_det_min_score_threshold:
                 bbox = BoundingBox2D(
@@ -149,5 +148,4 @@ class TrafficLightDetOperator(erdos.Operator):
                 )
                 traffic_lights.append(
                     DetectedObstacle(bbox, scores[index], labels[index]))
-            index += 1
         return traffic_lights

@@ -1,5 +1,4 @@
 import cv2
-from enum import Enum
 import numpy as np
 try:
     import queue as queue
@@ -44,24 +43,6 @@ coco_bbox_color_list = np.array([
     0.286, 0.286, 0.429, 0.429, 0.429, 0.571, 0.571, 0.571, 0.714, 0.714,
     0.714, 0.857, 0.857, 0.857, 0.000, 0.447, 0.741, 0.50, 0.5, 0
 ]).astype(np.float32)
-
-
-class TrafficLightColor(Enum):
-    """ Enum to represent the states of a traffic light."""
-    RED = 1
-    YELLOW = 2
-    GREEN = 3
-    OFF = 4
-
-    def get_label(self):
-        if self.value == 1:
-            return 'red traffic light'
-        elif self.value == 2:
-            return 'yellow traffic light'
-        elif self.value == 3:
-            return 'green traffic light'
-        else:
-            return 'off traffic light'
 
 
 class BoundingBox2D(object):
@@ -340,6 +321,88 @@ class DetectedLane(object):
     def __str__(self):
         return 'DetectedLane(left_marking: {}, right_marking: {})'.format(
             self.left_marking, self.right_marking)
+
+
+def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
+    """ Creates the bounding box in the view of the camera image using the
+    coordinates generated with respect to the camera transform.
+
+    Args:
+        bb_coordinates: 8 pylot.util.Location coordinates of the bounding box
+            relative to the camera transform.
+        image_width: The width of the image being published by the camera.
+        image_height: The height of the image being published by the camera.
+
+    Returns:
+        None, if the bounding box does not fall into the view of the camera,
+        otherwise it returns a BoundingBox2D.
+    """
+    # Make sure that atleast 2 of the bounding box coordinates are in front.
+    z_vals = [loc.z for loc in bb_coordinates if loc.z >= 0]
+    if len(z_vals) < 2:
+        return None
+
+    # Create the thresholding line segments of the camera view.
+    from shapely.geometry import LineString
+    left = LineString(((0, 0), (0, image_height)))
+    bottom = LineString(((0, image_height), (image_width, image_height)))
+    right = LineString(((image_width, image_height), (image_width, 0)))
+    top = LineString(((image_width, 0), (0, 0)))
+    camera_thresholds = [left, bottom, right, top]
+
+    def threshold(p1, p2):
+        points = []
+        # If the points are themselves within the image, add them to the
+        # set of thresholded points.
+        if (p1[0] >= 0 and p1[0] < image_width and p1[1] >= 0
+                and p1[1] < image_height):
+            points.append(p1)
+
+        if (p2[0] >= 0 and p2[0] < image_width and p2[1] >= 0
+                and p2[1] < image_height):
+            points.append(p2)
+
+        # Compute the intersection of the line segment formed by p1 -- p2
+        # with all the thresholds of the camera image.
+        p12 = LineString((p1, p2))
+        for camera_threshold in camera_thresholds:
+            p = p12.intersection(camera_threshold)
+            if not p.is_empty:
+                if p.geom_type == 'Point':
+                    points.append((p.x, p.y))
+                elif p.geom_type == 'LineString':
+                    for coord in p.coords:
+                        points.append((coord[0], coord[1]))
+        return points
+
+    # Go over each of the segments of the bounding box and threshold it to
+    # be inside the image.
+    thresholded_points = []
+    points = [(int(loc.x), int(loc.y)) for loc in bb_coordinates]
+    # Bottom plane thresholded.
+    thresholded_points.extend(threshold(points[0], points[1]))
+    thresholded_points.extend(threshold(points[1], points[2]))
+    thresholded_points.extend(threshold(points[2], points[3]))
+    thresholded_points.extend(threshold(points[3], points[0]))
+
+    # Top plane thresholded.
+    thresholded_points.extend(threshold(points[4], points[5]))
+    thresholded_points.extend(threshold(points[5], points[6]))
+    thresholded_points.extend(threshold(points[6], points[7]))
+    thresholded_points.extend(threshold(points[7], points[4]))
+
+    # Remaining segments thresholded.
+    thresholded_points.extend(threshold(points[0], points[4]))
+    thresholded_points.extend(threshold(points[1], points[5]))
+    thresholded_points.extend(threshold(points[2], points[6]))
+    thresholded_points.extend(threshold(points[3], points[7]))
+
+    if len(thresholded_points) == 0:
+        return None
+    else:
+        x = [int(x) for x, _ in thresholded_points]
+        y = [int(y) for _, y in thresholded_points]
+        return BoundingBox2D(min(x), max(x), min(y), max(y))
 
 
 def load_coco_labels(labels_path):

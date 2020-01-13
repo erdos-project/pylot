@@ -83,17 +83,18 @@ def create_imu_setup(location):
 
 
 class CameraSetup(object):
+    """ A helper class storing infromation about the setup of a camera."""
     def __init__(self, name, camera_type, width, height, transform, fov=90):
         self.name = name
         self.camera_type = camera_type
         self.width = width
         self.height = height
-        self.transform = transform
+        self._transform = transform
         self.fov = fov
-        self.intrinsic_mat = CameraSetup.__create_intrinsic_matrix(
+        self._intrinsic_mat = CameraSetup.__create_intrinsic_matrix(
             self.width, self.height, self.fov)
-        self.unreal_transform = CameraSetup.__create_unreal_transform(
-            self.transform)
+        self._unreal_transform = CameraSetup.__create_unreal_transform(
+            self._transform)
 
     def get_fov(self):
         return self.fov
@@ -120,24 +121,24 @@ class CameraSetup(object):
         return transform * to_unreal_transform
 
     def get_intrinsic_matrix(self):
-        return self.intrinsic_mat
+        return self._intrinsic_mat
 
     def get_extrinsic_matrix(self):
-        return self.unreal_transform.matrix
+        return self._unreal_transform.matrix
 
     def get_name(self):
         return self.name
 
-    def get_transform(self):
-        return self.transform
-
     def get_unreal_transform(self):
-        return self.unreal_transform
+        return self._unreal_transform
+
+    def get_transform(self):
+        return self._transform
 
     def set_transform(self, transform):
-        self.transform = transform
-        self.unreal_transform = CameraSetup.__create_unreal_transform(
-            self.transform)
+        self._transform = transform
+        self._unreal_transform = CameraSetup.__create_unreal_transform(
+            self._transform)
 
     def __repr__(self):
         return self.__str__()
@@ -146,7 +147,9 @@ class CameraSetup(object):
         return 'CameraSetup(name: {}, type: {}, width: {}, height: {}, '\
             'transform: {}, fov: {}'.format(
                 self.name, self.camera_type, self.width, self.height,
-                self.transform, self.fov)
+                self._transform, self.fov)
+
+    transform = property(get_transform, set_transform)
 
 
 class RGBCameraSetup(CameraSetup):
@@ -169,19 +172,20 @@ class SegmentedCameraSetup(CameraSetup):
 
 
 class LidarSetup(object):
+    """ A helper class storing infromation about the setup of a Lidar."""
     def __init__(self, name, lidar_type, transform, range, rotation_frequency,
                  channels, upper_fov, lower_fov, points_per_second):
         self.name = name
         self.lidar_type = lidar_type
-        self.transform = transform
+        self._transform = transform
         self.range = range
         self.rotation_frequency = rotation_frequency
         self.channels = channels
         self.upper_fov = upper_fov
         self.lower_fov = lower_fov
         self.points_per_second = points_per_second
-        self.unreal_transform = LidarSetup.__create_unreal_transform(
-            self.transform)
+        self._unreal_transform = LidarSetup.__create_unreal_transform(
+            self._transform)
 
     @staticmethod
     def __create_unreal_transform(transform):
@@ -198,10 +202,15 @@ class LidarSetup(object):
         return self.name
 
     def get_transform(self):
-        return self.transform
+        return self._transform
+
+    def set_transform(self, transform):
+        self._transform = transform
+        self._unreal_transform = LidarSetup.__create_unreal_transform(
+            self._transform)
 
     def get_unreal_transform(self):
-        return self.unreal_transform
+        return self._unreal_transform
 
     def get_range_in_meters(self):
         return self.range / 1000
@@ -213,9 +222,11 @@ class LidarSetup(object):
         return 'LidarSetup(name: {}, type: {}, transform: {}, range: {}, '\
             'rotation freq: {}, channels: {}, upper_fov: {}, lower_fov: {}, '\
             'points_per_second: {}'.format(
-                self.name, self.lidar_type, self.transform, self.range,
+                self.name, self.lidar_type, self._transform, self.range,
                 self.rotation_frequency, self.channels, self.upper_fov,
                 self.lower_fov, self.points_per_second)
+
+    transform = property(get_transform, set_transform)
 
 
 class IMUSetup(object):

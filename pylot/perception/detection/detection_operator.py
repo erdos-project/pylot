@@ -94,7 +94,6 @@ class DetectionOperator(erdos.Operator):
         res_boxes = boxes[0][:num_detections]
         res_scores = scores[0][:num_detections]
 
-        # TODO(ionel): BIG HACK TO FILTER OUT UNKNOWN CLASSES!
         boxes = []
         scores = []
         labels = []
@@ -103,6 +102,9 @@ class DetectionOperator(erdos.Operator):
                 labels.append(self._coco_labels[res_classes[i]])
                 boxes.append(res_boxes[i])
                 scores.append(res_scores[i])
+            else:
+                self._logger.warning('Filtering unknown class: {}'.format(
+                    res_classes[i]))
 
         obstacles = self.__convert_to_obstacles(boxes, scores, labels,
                                                 msg.frame.height,
@@ -131,9 +133,8 @@ class DetectionOperator(erdos.Operator):
             ObstaclesMessage(obstacles, msg.timestamp, runtime))
 
     def __convert_to_obstacles(self, boxes, scores, labels, height, width):
-        index = 0
         obstacles = []
-        while index < len(boxes) and index < len(scores):
+        for index in range(len(scores)):
             if scores[index] >= \
                self._flags.obstacle_detection_min_score_threshold:
                 obstacles.append(
@@ -143,5 +144,4 @@ class DetectionOperator(erdos.Operator):
                                       int(boxes[index][0] * height),
                                       int(boxes[index][2] * height)),
                         scores[index], labels[index]))
-            index += 1
         return obstacles

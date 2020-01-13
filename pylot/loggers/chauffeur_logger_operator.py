@@ -44,18 +44,12 @@ class ChauffeurLoggerOperator(erdos.Operator):
             self.on_top_down_segmentation_update)
         self._flags = flags
         self._buffer_length = 10
-
         self._ground_vehicle_id = None
         self._waypoints = None
         # Holds history of global transforms at each timestep.
         self._global_transforms = deque(maxlen=self._buffer_length)
         self._current_transform = None
         self._previous_transform = None
-
-        # Queues of incoming data.
-        self._track_count = 0
-        self._frame_count = 0
-
         self._top_down_camera_setup = top_down_camera_setup
         # Get world to access traffic lights.
         _, self._world = pylot.simulation.utils.get_world(

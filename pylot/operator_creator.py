@@ -484,11 +484,14 @@ def add_imu_logging(imu_stream, name='imu_logger_operator'):
                   log_file_name=FLAGS.log_file_name)
 
 
-def add_lidar_logging(point_cloud_stream, name='lidar_logger_operator'):
+def add_lidar_logging(point_cloud_stream,
+                      name='lidar_logger_operator',
+                      filename_prefix='carla-lidar-'):
     erdos.connect(LidarLoggerOperator, [point_cloud_stream],
                   True,
                   name,
                   FLAGS,
+                  filename_prefix,
                   log_file_name=FLAGS.log_file_name)
 
 

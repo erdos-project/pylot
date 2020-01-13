@@ -2,8 +2,8 @@ from absl import flags
 import drn.segment
 from drn.segment import DRNSeg
 import erdos
-from torch.autograd import Variable
 import time
+from torch.autograd import Variable
 import torch
 
 from pylot.perception.messages import SegmentedFrameMessage

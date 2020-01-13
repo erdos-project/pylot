@@ -1,9 +1,27 @@
+from enum import Enum
 import numpy as np
 
 from pylot.perception.detection.utils import DetectedObstacle, \
-    TrafficLightColor
-import pylot.simulation.utils
+    get_bounding_box_in_camera_view
 import pylot.utils
+
+
+class TrafficLightColor(Enum):
+    """ Enum to represent the states of a traffic light."""
+    RED = 1
+    YELLOW = 2
+    GREEN = 3
+    OFF = 4
+
+    def get_label(self):
+        if self.value == 1:
+            return 'red traffic light'
+        elif self.value == 2:
+            return 'yellow traffic light'
+        elif self.value == 3:
+            return 'green traffic light'
+        else:
+            return 'off traffic light'
 
 
 class TrafficLight(object):
@@ -92,7 +110,7 @@ class TrafficLight(object):
         Args:
             town_name: The name of the town in which the traffic light is.
             depth_frame: A pylot.perception.depth_frame.DepthFrame
-            segmented_image: A segmented image used to refine the bboxes.
+            segmented_image: A segmented image np array used to refine the bboxes.
         Returns:
             A list of DetectedObstacles.
         """
@@ -107,8 +125,7 @@ class TrafficLight(object):
                     depth_frame.camera_setup.get_intrinsic_matrix())
                 for loc in bbox
             ]
-            bounding_box = [(bb.x, bb.y, bb.z) for bb in bounding_box]
-            bbox_2d = pylot.simulation.utils.get_bounding_box_in_camera_view(
+            bbox_2d = get_bounding_box_in_camera_view(
                 bounding_box, depth_frame.camera_setup.width,
                 depth_frame.camera_setup.height)
             if not bbox_2d:
@@ -127,7 +144,7 @@ class TrafficLight(object):
                     masked_depth = cropped_depth[np.where(masked_image == 1)]
                     mean_depth = np.mean(masked_depth) * 1000
                     if abs(mean_depth -
-                           bounding_box[0][-1]) <= 2 and mean_depth < 150:
+                           bounding_box[0].z) <= 2 and mean_depth < 150:
                         detected.append(
                             DetectedObstacle(bbox_2d, 1.0,
                                              self.state.get_label()))

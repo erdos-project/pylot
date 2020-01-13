@@ -197,8 +197,8 @@ class SegmentedFrame(object):
         cv2.imshow(window_name, cityscapes_frame)
         cv2.waitKey(1)
 
-    def draw_point(self, point, color):
-        cv2.circle(self._frame, (int(point.x), int(point.y)), 3, color, -1)
+    def draw_point(self, point, color, r=3):
+        cv2.circle(self._frame, (int(point.x), int(point.y)), r, color, -1)
 
     def _get_traffic_sign_pixels(self):
         """ Returns a frame with the traffic sign pixels set to True."""

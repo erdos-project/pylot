@@ -3,7 +3,7 @@ import erdos
 
 from pylot.perception.detection.utils import DetectedObstacle
 from pylot.perception.messages import ObstaclesMessage
-from pylot.simulation.sensor_setup import RGBCameraSetup
+import pylot.simulation.utils
 
 
 class PerfectDetectorOperator(erdos.Operator):
@@ -93,15 +93,15 @@ class PerfectDetectorOperator(erdos.Operator):
             return
         vehicle_transform = can_bus_msg.data.transform
 
-        det_obstacles = self.__get_obstacles(obstacles_msg.obstacles,
-                                             vehicle_transform,
-                                             depth_msg.frame.as_numpy_array(),
-                                             segmented_msg.frame)
-
         # The camera setup sent with the image is relative to the car, we need
         # to transform it relative to the world.
         depth_msg.frame.camera_setup.set_transform(
             vehicle_transform * depth_msg.frame.camera_setup.transform)
+
+        det_obstacles = self.__get_obstacles(obstacles_msg.obstacles,
+                                             vehicle_transform,
+                                             depth_msg.frame,
+                                             segmented_msg.frame)
 
         det_speed_limits = pylot.simulation.utils.get_detected_speed_limits(
             speed_limit_signs_msg.speed_signs, depth_msg.frame,
@@ -158,35 +158,26 @@ class PerfectDetectorOperator(erdos.Operator):
             msg.timestamp))
         self._segmented_imgs.append(msg)
 
-    def __get_obstacles(self, obstacles, vehicle_transform, depth_array,
+    def __get_obstacles(self, obstacles, vehicle_transform, depth_frame,
                         segmented_frame):
         """ Transforms obstacles into detected obstacles.
+
         Args:
-            obstacles: List of pylot.simulation.util.Obstacle.
-            vehicle_transform: Ego-vehicle transform.
-            depth_array: The depth array taken at the time when obstacles were
-                collected.
-            segmented_image: SegmentedFrame taken at the time when the
-                obstacles were collected.
+            obstacles: List of pylot.perception.detection.obstacle.Obstacle.
+            vehicle_transform: The transform of the ego vehicle.
+            depth_frame: perception.depth_frame.DepthFrame taken at the
+                time when obstacles were collected.
+            segmented_frame: perception.segmentation.segmented_frame.SegmentedFrame
+                taken at the time when the obstacles were collected.
         """
         det_obstacles = []
         for obstacle in obstacles:
-            # We have a static camera setup, need to transform it with respect
-            # to the location of the ego vehicle, before doing detection.
-            transformed_camera_setup = RGBCameraSetup(
-                self._camera_setup.name,
-                self._camera_setup.width,
-                self._camera_setup.height,
-                vehicle_transform * self._camera_setup.get_transform(),
-                fov=self._camera_setup.get_fov())
-
             # Calculate the distance of the obstacle from the vehicle, and
             # convert to camera view if it is less than 125 metres away.
             if obstacle.distance(vehicle_transform) > 125:
                 bbox = None
             else:
-                bbox = obstacle.to_camera_view(transformed_camera_setup,
-                                               depth_array, segmented_frame)
+                bbox = obstacle.to_camera_view(depth_frame, segmented_frame)
                 if bbox:
                     det_obstacles.append(
                         DetectedObstacle(bbox, 1.0, obstacle.label,

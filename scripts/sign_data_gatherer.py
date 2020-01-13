@@ -9,11 +9,12 @@ import re
 
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.depth_frame import DepthFrame
+from pylot.perception.detection.speed_limit_sign import SpeedLimitSign
+from pylot.perception.detection.stop_sign import StopSign
 from pylot.perception.detection.traffic_light import TrafficLight
 from pylot.perception.messages import DepthFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
-from pylot.simulation.utils import convert_speed_limit_actors,\
-    convert_traffic_light_actors, convert_traffic_stop_actors, get_world
+from pylot.simulation.utils import get_world
 import pylot.simulation.utils
 from pylot.simulation.sensor_setup import DepthCameraSetup
 import pylot.utils
@@ -121,8 +122,7 @@ def reset_frames():
 def get_traffic_light_objs(traffic_lights, depth_frame, segmented_frame, color,
                            town_name):
     det_obstacles = pylot.simulation.utils.get_traffic_lights_obstacles(
-        traffic_lights, depth_frame, segmented_frame.as_numpy_array(),
-        town_name)
+        traffic_lights, depth_frame, segmented_frame, town_name)
     # Overwrite traffic light color because we control it without refreshing
     # the agents.
     if color == carla.TrafficLightState.Yellow:
@@ -235,11 +235,18 @@ def test_traffic_light_colors(world, color):
 def get_actors(world):
     actor_list = world.get_actors()
     tl_actors = actor_list.filter('traffic.traffic_light*')
-    traffic_lights = convert_traffic_light_actors(tl_actors)
+    traffic_lights = [
+        TrafficLight.from_carla_actor(tl_actor) for tl_actor in tl_actors
+    ]
     traffic_stop_actors = actor_list.filter('traffic.stop')
-    traffic_stops = convert_traffic_stop_actors(traffic_stop_actors)
+    traffic_stops = [
+        StopSign.from_carla_actor(ts_actor) for ts_actor in traffic_stop_actors
+    ]
     speed_limit_actors = actor_list.filter('traffic.speed_limit*')
-    speed_signs = convert_speed_limit_actors(speed_limit_actors)
+    speed_signs = [
+        SpeedLimitSign.from_carla_actor(ts_actor)
+        for ts_actor in speed_limit_actors
+    ]
     return (tl_actors, traffic_lights, traffic_stops, speed_signs)
 
 

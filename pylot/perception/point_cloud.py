@@ -1,6 +1,8 @@
 import copy
 import numpy as np
 from numpy.linalg import inv
+import open3d as o3d
+import os
 
 from pylot.utils import Location, Transform, Vector2D
 
@@ -85,6 +87,13 @@ class PointCloud(object):
         return Location(fwd_points[closest_index][0],
                         fwd_points[closest_index][1],
                         fwd_points[closest_index][2])
+
+    def save(self, timestamp, data_path, file_base):
+        file_name = os.path.join(data_path,
+                                 '{}-{}.ply'.format(file_base, timestamp))
+        pcd = o3d.PointCloud()
+        pcd.points = o3d.Vector3dVector(self.points)
+        o3d.write_point_cloud(file_name, pcd)
 
     def __repr__(self):
         return self.__str__()

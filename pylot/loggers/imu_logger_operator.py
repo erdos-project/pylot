@@ -1,5 +1,6 @@
 import erdos
 import json
+import os
 
 
 class IMULoggerOperator(erdos.Operator):
@@ -32,7 +33,8 @@ class IMULoggerOperator(erdos.Operator):
             return
         assert len(msg.timestamp.coordinates) == 1
         timestamp = msg.timestamp.coordinates[0]
-        file_name = '{}imu-{}.json'.format(self._flags.data_path, timestamp)
+        file_name = os.path.join(self._flags.data_path,
+                                 'imu-{}.json'.format(timestamp))
         measurements = {
             "transform": str(msg.transform),
             "acceleration": str(msg.acceleration),

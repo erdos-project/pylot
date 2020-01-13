@@ -1,7 +1,7 @@
 import math
 import numpy as np
 
-from pylot.perception.detection.utils import TrafficLightColor
+from pylot.perception.detection.traffic_light import TrafficLightColor
 
 
 def get_world_vec_dist(x_dst, y_dst, x_src, y_src):
