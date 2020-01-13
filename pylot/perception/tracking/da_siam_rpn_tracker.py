@@ -20,24 +20,41 @@ MAX_TRACKER_AGE = 5
 
 
 class SingleObjectDaSiamRPNTracker(object):
-    def __init__(self, frame, bbox, siam_net, id=-1):
-        self.bbox = bbox
-        self.id = id
+    def __init__(self, frame, obstacle, siam_net):
+        """ Construct a single obstacle tracker.
+
+        Args:
+            frame: perception.camera_frame.CameraFrame to track in.
+            obstacle: perception.detection.utils.DetectedObstacle.
+        """
+        self.obstacle = obstacle
         self.missed_det_updates = 0
-        center_point = bbox.get_center_point()
+        center_point = obstacle.bounding_box.get_center_point()
         target_pos = np.array([center_point.x, center_point.y])
-        target_size = np.array([bbox.get_width(), bbox.get_height()])
-        self._tracker = SiamRPN_init(frame, target_pos, target_size, siam_net)
+        target_size = np.array([
+            obstacle.bounding_box.get_width(),
+            obstacle.bounding_box.get_height()
+        ])
+        self._tracker = SiamRPN_init(frame.frame, target_pos, target_size,
+                                     siam_net)
 
     def track(self, frame):
-        self._tracker = SiamRPN_track(self._tracker, frame)
+        """ Tracks obstacles in a frame.
+
+        Args:
+            frame: perception.camera_frame.CameraFrame to track in.
+        """
+        self._tracker = SiamRPN_track(self._tracker, frame.frame)
         target_pos = self._tracker['target_pos']
         target_sz = self._tracker['target_sz']
-        self.bbox = BoundingBox2D(int(target_pos[0] - target_sz[0] / 2.0),
-                                  int(target_pos[0] + target_sz[0] / 2.0),
-                                  int(target_pos[1] - target_sz[1] / 2.0),
-                                  int(target_pos[1] + target_sz[1] / 2.0))
-        return DetectedObstacle(self.bbox, 0, "")
+        self.obstacle.bounding_box = BoundingBox2D(
+            int(target_pos[0] - target_sz[0] / 2.0),
+            int(target_pos[0] + target_sz[0] / 2.0),
+            int(target_pos[1] - target_sz[1] / 2.0),
+            int(target_pos[1] + target_sz[1] / 2.0))
+        return DetectedObstacle(self.obstacle.bounding_box,
+                                self.obstacle.confidence, self.obstacle.label,
+                                self.obstacle.id)
 
 
 class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
@@ -50,53 +67,62 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
             flags.da_siam_rpn_model_path))
         self._siam_net.eval().cuda()
 
-    def reinitialize(self, frame, bboxes, confidence_scores, ids):
-        # Create a tracker for each bbox.
-        self._trackers = []
-        for bbox in bboxes:
-            self._trackers.append(
-                SingleObjectDaSiamRPNTracker(frame, bbox, self._siam_net))
+    def reinitialize(self, frame, obstacles):
+        """ Reinitializes a multiple obstacle tracker.
 
-    def reinitialize_new(self, frame, bboxes, confidence_scores, ids):
+        Args:
+            frame: perception.camera_frame.CameraFrame to reinitialize with.
+            obstacles: List of perception.detection.utils.DetectedObstacle.
+        """
+        # Create a tracker for each obstacle.
+        self._trackers = [
+            SingleObjectDaSiamRPNTracker(frame, obstacle, self._siam_net)
+            for obstacle in obstacles
+        ]
+
+    def reinitialize_new(self, frame, obstacles):
         # Create matrix of similarities between detection and tracker bboxes.
-        cost_matrix = self._create_hungarian_cost_matrix(frame, bboxes)
+        cost_matrix = self._create_hungarian_cost_matrix(
+            frame.frame, obstacles)
         # Run sklearn linear assignment (Hungarian Algo) with matrix
         assignments = linear_assignment(cost_matrix)
 
         updated_trackers = []
         # Add matched trackers to updated_trackers
-        for bbox_idx, tracker_idx in assignments:
+        for obstacle_idx, tracker_idx in assignments:
+            obstacles[obstacle_idx].id = self._trackers[tracker_idx].obj_id
             updated_trackers.append(
-                SingleObjectDaSiamRPNTracker(
-                    frame, bboxes[bbox_idx], self._siam_net,
-                    self._trackers[tracker_idx].obj_id))
+                SingleObjectDaSiamRPNTracker(frame, obstacles[obstacle_idx],
+                                             self._siam_net))
         # Add 1 to age of any unmatched trackers, filter old ones
-        if len(self._trackers) > len(bboxes):
+        if len(self._trackers) > len(obstacles):
             for i, tracker in enumerate(self._trackers):
                 if i not in assignments[:, 1]:
                     tracker.missed_det_updates += 1
                     if tracker.missed_det_updates < MAX_TRACKER_AGE:
                         updated_trackers.append(tracker)
         # Create new trackers for new bboxes
-        elif len(bboxes) > len(self._trackers):
-            for i, bbox in enumerate(bboxes):
+        elif len(obstacles) > len(self._trackers):
+            for i, obstacle in enumerate(obstacles):
                 if i not in assignments[:, 0]:
                     updated_trackers.append(
-                        SingleObjectDaSiamRPNTracker(frame, bbox,
-                                                     self._siam_net, ids[i]))
+                        SingleObjectDaSiamRPNTracker(frame, obstacle,
+                                                     self._siam_net))
 
         self._trackers = updated_trackers
 
-    def _create_hungarian_cost_matrix(self, frame, bboxes):
+    def _create_hungarian_cost_matrix(self, frame, obstacles):
         # Create cost matrix with shape (num_bboxes, num_trackers)
         cost_matrix = [[0 for _ in range(len(self._trackers))]
-                       for __ in range(len(bboxes))]
-        for i, bbox in enumerate(bboxes):
+                       for __ in range(len(obstacles))]
+        for i, obstacle in enumerate(obstacles):
             for j, tracker in enumerate(self._trackers):
-                tracker_bbox = tracker.bbox
+                obstacle_bbox = obstacle.bounding_box
+                tracker_bbox = tracker.obstacle.bounding_box
                 # Get crops from frame
-                self._logger.debug(bbox, tracker_bbox)
-                bbox_crop = frame[bbox.y_min:bbox.y_max, bbox.x_min:bbox.x_max]
+                self._logger.debug(obstacle_bbox, tracker_bbox)
+                bbox_crop = frame[obstacle_bbox.y_min:obstacle_bbox.y_max,
+                                  obstacle_bbox.x_min:obstacle_bbox.x_max]
                 tracker_bbox_crop = frame[
                     tracker_bbox.y_min:tracker_bbox.y_max,
                     tracker_bbox.x_min:tracker_bbox.x_max]

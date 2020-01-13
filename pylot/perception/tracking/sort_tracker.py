@@ -9,12 +9,22 @@ class MultiObjectSORTTracker(MultiObjectTracker):
     def __init__(self, flags):
         self.tracker = Sort()
 
-    def reinitialize(self, frame, bboxes, confidence_scores, ids):
-        detections = self.convert_detections_for_sort_alg(
-            bboxes, confidence_scores)
+    def reinitialize(self, frame, obstacles):
+        """ Reinitializes a multiple obstacle tracker.
+
+        Args:
+            frame: perception.camera_frame.CameraFrame to reinitialize with.
+            obstacles: List of perception.detection.utils.DetectedObstacle.
+        """
+        detections = self.convert_detections_for_sort_alg(obstacles)
         self.tracker.update(detections)
 
     def track(self, frame):
+        """ Tracks obstacles in a frame.
+
+        Args:
+            frame: perception.camera_frame.CameraFrame to track in.
+        """
         # each track in tracks has format ([xmin, ymin, xmax, ymax], id)
         obstacles = []
         for track in self.tracker.trackers:
@@ -25,13 +35,13 @@ class MultiObjectSORTTracker(MultiObjectTracker):
             obstacles.append(DetectedObstacle(bbox, 0, "", track.id))
         return True, obstacles
 
-    def convert_detections_for_sort_alg(self, bboxes, confidence_scores):
+    def convert_detections_for_sort_alg(self, obstacles):
         converted_detections = []
-        for i in range(len(bboxes)):
-            score = confidence_scores[i]
+        for obstacle in obstacles:
             bbox = [
-                bboxes[i].x_min, bboxes[i].y_min, bboxes[i].x_max,
-                bboxes[i].y_max, score
+                obstacle.bounding_box.x_min, obstacle.bounding_box.y_min,
+                obstacle.bounding_box.x_max, obstacle.bounding_box.y_max,
+                obstacle.confidence
             ]
             converted_detections.append(bbox)
         return np.array(converted_detections)

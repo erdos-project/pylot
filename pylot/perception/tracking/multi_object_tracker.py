@@ -2,8 +2,19 @@ class MultiObjectTracker(object):
     def __init__(self):
         self._trackers = []
 
-    def reinitialize(self, frame, bboxes, confidence_scores):
+    def reinitialize(self, frame, obstacles):
+        """ Reinitializes a multiple obstacle tracker.
+
+        Args:
+            frame: perception.camera_frame.CameraFrame to reinitialize with.
+            obstacles: List of perception.detection.utils.DetectedObstacle.
+        """
         pass
 
     def track(self, frame):
+        """ Tracks obstacles in a frame.
+
+        Args:
+            frame: perception.camera_frame.CameraFrame to track in.
+        """
         return True, [tracker.track(frame) for tracker in self._trackers]

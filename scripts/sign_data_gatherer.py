@@ -119,8 +119,8 @@ def reset_frames():
     CARLA_IMAGE = None
 
 
-def get_traffic_light_objs(traffic_lights, depth_frame, segmented_frame, color,
-                           town_name):
+def get_traffic_light_obstacles(traffic_lights, depth_frame, segmented_frame,
+                                color, town_name):
     det_obstacles = pylot.simulation.utils.get_traffic_lights_obstacles(
         traffic_lights, depth_frame, segmented_frame, town_name)
     # Overwrite traffic light color because we control it without refreshing
@@ -163,7 +163,7 @@ def log_bounding_boxes(carla_image, depth_msg, segmented_frame, traffic_lights,
 
     traffic_light_det_obstacles = []
     if traffic_lights:
-        traffic_light_det_obstacles = get_traffic_light_objs(
+        traffic_light_det_obstacles = get_traffic_light_obstacles(
             traffic_lights, depth_msg.frame, segmented_frame, tl_color,
             town_name)
 

@@ -17,15 +17,30 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
             wt_path=flags.deep_sort_tracker_pedestrian_weights_path)
         self.tracker = None
 
-    def reinitialize(self, frame, bboxes, confidence_scores, ids):
-        # update tracker with new detections
-        self.track(frame, confidence_scores=confidence_scores, bboxes=bboxes)
+    def reinitialize(self, frame, obstacles):
+        """ Reinitializes a multiple obstacle tracker.
 
-    def track(self, frame, confidence_scores=None, bboxes=None):
-        if bboxes:
-            detections = self.convert_detections_for_deepsort_alg(bboxes)
+        Args:
+            frame: perception.camera_frame.CameraFrame to reinitialize with.
+            obstacles: List of perception.detection.utils.DetectedObstacle.
+        """
+        # update tracker with new detections
+        self.track(frame, obstacles)
+
+    def track(self, frame, obstacles=None):
+        """ Tracks obstacles in a frame.
+
+        Args:
+            frame: perception.camera_frame.CameraFrame to track in.
+        """
+        if obstacles:
+            bboxes = [
+                obstacle.bounding_box.as_width_height_bbox()
+                for obstacle in obstacles
+            ]
+            confidence_scores = [obstacle.confidence for obstacle in obstacles]
             self.tracker, detections_class = self._deepsort.run_deep_sort(
-                frame, confidence_scores, detections)
+                frame.frame, confidence_scores, bboxes)
         if self.tracker:
             obstacles = []
             for track in self.tracker.tracks:
@@ -41,9 +56,3 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
                                       int(bbox[3])), 0, "", track.track_id))
             return True, obstacles
         return False, []
-
-    def convert_detections_for_deepsort_alg(self, bboxes):
-        converted_bboxes = []
-        for bbox in bboxes:
-            converted_bboxes.append(bbox.as_width_height_bbox())
-        return converted_bboxes

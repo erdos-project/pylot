@@ -46,6 +46,11 @@ class ObjectTrackerOperator(erdos.Operator):
                     'Unexpected tracker type {}'.format(tracker_type))
         except ImportError:
             self._logger.fatal('Error importing {}'.format(tracker_type))
+        # Labels the obstacle trackers should track.
+        self._tracked_labels = {
+            'person', 'bicycle', 'car', 'motorcycle', 'bus', 'truck'
+        }
+
         # True when the tracker is ready to update bboxes.
         self._ready_to_update = False
         self._ready_to_update_timestamp = None
@@ -89,16 +94,22 @@ class ObjectTrackerOperator(erdos.Operator):
                 msg.timestamp, self._to_process[0][0], msg.timestamp))
             self._to_process.popleft()
 
-        # Track all pedestrians.
-        bboxes, ids, confidence_scores = self.__get_pedestrians(msg.obstacles)
-        if len(bboxes) > 0:
+        tracked_obstacles = []
+        for obstacle in msg.obstacles:
+            if obstacle.label in self._tracked_labels:
+                tracked_obstacles.append(obstacle)
+
+        if len(tracked_obstacles) > 0:
             if len(self._to_process) > 0:
                 # Found the frame corresponding to the bounding boxes.
                 (timestamp, camera_frame) = self._to_process.popleft()
                 assert timestamp == msg.timestamp
                 # Re-initialize trackers.
-                self.__initialize_trackers(camera_frame, bboxes, msg.timestamp,
-                                           confidence_scores, ids)
+                self._ready_to_update = True
+                self._ready_to_update_timestamp = timestamp
+                self._logger.debug(
+                    'Restarting trackers at frame {}'.format(timestamp))
+                self._tracker.reinitialize(camera_frame, tracked_obstacles)
                 self._logger.debug(
                     'Trackers have {} frames to catch-up'.format(
                         len(self._to_process)))
@@ -111,29 +122,10 @@ class ObjectTrackerOperator(erdos.Operator):
                     '@{}: received bboxes update, but no frame to process'.
                     format(msg.timestamp))
 
-    def __get_pedestrians(self, obstacles):
-        bboxes = []
-        ids = []
-        confidence_scores = []
-        for obstacle in obstacles:
-            if obstacle.label == 'person':
-                bboxes.append(obstacle.bounding_box)
-                ids.append(obstacle.id)
-                confidence_scores.append(obstacle.confidence)
-        return bboxes, ids, confidence_scores
-
-    def __initialize_trackers(self, camera_frame, bboxes, timestamp,
-                              confidence_scores, ids):
-        self._ready_to_update = True
-        self._ready_to_update_timestamp = timestamp
-        self._logger.debug('Restarting trackers at frame {}'.format(timestamp))
-        self._tracker.reinitialize(camera_frame.frame, bboxes,
-                                   confidence_scores, ids)
-
     def __track_bboxes_on_frame(self, camera_frame, timestamp, catch_up):
         self._logger.debug('Processing frame {}'.format(timestamp))
         # Sequentually update state for each bounding box.
-        ok, tracked_obstacles = self._tracker.track(camera_frame.frame)
+        ok, tracked_obstacles = self._tracker.track(camera_frame)
         if not ok:
             self._logger.error(
                 'Tracker failed at timestamp {} last ready_to_update at {}'.
