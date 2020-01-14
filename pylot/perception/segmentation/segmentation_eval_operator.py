@@ -6,9 +6,6 @@ from pylot.utils import time_epoch_ms
 
 flags.DEFINE_enum('segmentation_metric', 'mIoU', ['mIoU', 'timely-mIoU'],
                   'Segmentation evaluation metric')
-flags.DEFINE_bool(
-    'segmentation_eval_use_accuracy_model', False,
-    'Enable to use a model for segmentation accuracy decay over time')
 
 
 class SegmentationEvalOperator(erdos.Operator):
@@ -95,13 +92,8 @@ class SegmentationEvalOperator(erdos.Operator):
         elif self._flags.segmentation_metric == 'timely-mIoU':
             # Ground segmented frame time should be as close as possible to
             # the time game time + segmentation runtime.
-            segmented_time = game_time + msg.runtime
-            if self._flags.segmentation_eval_use_accuracy_model:
-                # Include the decay of segmentation with time if we do not
-                # want to use the accuracy of our models.
-                # TODO(ionel): We must pass model mIoU to this method.
-                segmented_time += self.__mean_iou_to_latency(1)
-            segmented_time = self.__compute_closest_frame_time(segmented_time)
+            segmented_time = self.__compute_closest_frame_time(game_time +
+                                                               msg.runtime)
             # Round time to nearest frame.
             heapq.heappush(self._segmented_start_end_times,
                            (segmented_time, game_time))
@@ -124,13 +116,6 @@ class SegmentationEvalOperator(erdos.Operator):
         self._csv_logger.info('{},{},{},{}'.format(
             time_epoch_ms(), self._name, self._flags.segmentation_metric,
             mean_iou))
-
-    def __mean_iou_to_latency(self, mean_iou):
-        """ Function that gives a latency estimate of how much
-        simulation time must pass such that a 1.0 IoU decays to mean_iou.
-        """
-        # TODO(ionel): Implement!
-        return 0
 
     def __get_ground_segmentation_at(self, timestamp):
         for (time, frame) in self._ground_frames:

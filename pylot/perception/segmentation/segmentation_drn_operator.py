@@ -13,8 +13,6 @@ from pylot.utils import time_epoch_ms
 flags.DEFINE_string('segmentation_model_path',
                     'dependencies/models/drn_d_22_cityscapes.pth',
                     'Path to the model')
-flags.DEFINE_float('segmentation_drn_gpu_memory_fraction', 0.2,
-                   'GPU memory fraction allocated to DRN segmentation')
 flags.DEFINE_bool('visualize_segmentation_output', False,
                   'True to enable visualization of segmentation output')
 
@@ -38,7 +36,6 @@ class SegmentationDRNOperator(erdos.Operator):
         arch = "drn_d_22"
         classes = 19
         self._pallete = drn.segment.CARLA_PALETTE
-        # TODO(ionel): Figure out how to set GPU memory fraction.
         self._model = DRNSeg(arch,
                              classes,
                              pretrained_model=None,

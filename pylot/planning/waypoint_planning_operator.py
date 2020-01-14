@@ -226,7 +226,6 @@ class WaypointPlanningOperator(erdos.Operator):
 
     def __generate_trajectory(self, next_state, vehicle_transform,
                               predictions):
-        # TODO(ionel): Implement.
         raise NotImplementedError
 
     def __successor_states(self):

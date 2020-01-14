@@ -273,11 +273,9 @@ class HDMap(object):
         return waypoint.s, location.distance(d0_location)
 
     def get_left_lane(self, location):
-        # TODO(ionel): Implement!
         raise NotImplementedError
 
     def get_right_lane(self, location):
-        # TODO(ionel): Implement!
         raise NotImplementedError
 
     def compute_waypoints(self, source_loc, destination_loc):
