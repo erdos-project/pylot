@@ -23,38 +23,37 @@ def get_angle(vec_dst, vec_src):
     return angle
 
 
-def _is_pedestrian_on_hit_zone(p_dist, p_angle, flags):
-    return (math.fabs(p_angle) < flags.pedestrian_angle_hit_thres
-            and p_dist < flags.pedestrian_distance_hit_thres)
+def _is_person_on_hit_zone(p_dist, p_angle, flags):
+    return (math.fabs(p_angle) < flags.person_angle_hit_thres
+            and p_dist < flags.person_distance_hit_thres)
 
 
-def _is_pedestrian_on_near_hit_zone(p_dist, p_angle, flags):
-    return (math.fabs(p_angle) < flags.pedestrian_angle_emergency_thres
-            and p_dist < flags.pedestrian_distance_emergency_thres)
+def _is_person_on_near_hit_zone(p_dist, p_angle, flags):
+    return (math.fabs(p_angle) < flags.person_angle_emergency_thres
+            and p_dist < flags.person_distance_emergency_thres)
 
 
-def stop_pedestrian(ego_vehicle_location, pedestrian_location, wp_vector,
-                    speed_factor_p, flags):
-    """ Computes a stopping factor for ego vehicle given a pedestrian pos.
+def stop_person(ego_vehicle_location, person_location, wp_vector,
+                speed_factor_p, flags):
+    """ Computes a stopping factor for ego vehicle given a person pos.
 
     Args:
         ego_vehicle_location: Location of the ego vehicle in world coordinates.
-        pedestrian_location: Location of the pedestrian in world coordinates.
+        person_location: Location of the person in world coordinates.
         flags: A absl flags object.
 
     Returns:
         A stopping factor between 0 and 1 (i.e., no braking).
     """
     speed_factor_p_temp = 1
-    p_vector, p_dist = get_world_vec_dist(pedestrian_location.x,
-                                          pedestrian_location.y,
+    p_vector, p_dist = get_world_vec_dist(person_location.x, person_location.y,
                                           ego_vehicle_location.x,
                                           ego_vehicle_location.y)
     p_angle = get_angle(p_vector, wp_vector)
-    if _is_pedestrian_on_hit_zone(p_dist, p_angle, flags):
+    if _is_person_on_hit_zone(p_dist, p_angle, flags):
         speed_factor_p_temp = p_dist / (flags.coast_factor *
-                                        flags.pedestrian_distance_hit_thres)
-    if _is_pedestrian_on_near_hit_zone(p_dist, p_angle, flags):
+                                        flags.person_distance_hit_thres)
+    if _is_person_on_near_hit_zone(p_dist, p_angle, flags):
         speed_factor_p_temp = 0
     if (speed_factor_p_temp < speed_factor_p):
         speed_factor_p = speed_factor_p_temp

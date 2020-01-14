@@ -26,7 +26,7 @@ class MultipleObjectTrackerLoggerOperator(erdos.Operator):
         timestamp = msg.timestamp.coordinates[0]
         lines = []
         for obstacle in msg.obstacles:
-            if obstacle.label in {"pedestrian", "vehicle"}:
+            if obstacle.label in {'person', 'vehicle'}:
                 lines.append(obstacle.as_mot16_str(timestamp))
 
         # Write the data, MOT16 style: https://motchallenge.net/instructions/

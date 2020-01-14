@@ -20,7 +20,6 @@ from miou_scenario_runner import cleanup_function
 from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.detection.obstacle import Obstacle
 from pylot.perception.detection.utils import get_precision_recall_at_iou
-from pylot.perception.messages import DepthFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.simulation.sensor_setup import DepthCameraSetup
 from pylot.utils import Transform
@@ -122,7 +121,7 @@ def draw_bounding_box(bbox, surface, color=BB_COLOR):
     pygame.draw.line(surface, color, (x_min, y_max), (x_max, y_max))
 
 
-def compute_and_log_map(current_pedestrians,
+def compute_and_log_map(current_people,
                         current_timestamp,
                         csv,
                         deadline=210,
@@ -135,14 +134,14 @@ def compute_and_log_map(current_pedestrians,
     metric for mAP.
 
     Args:
-        current_pedestrians: List of bboxes for the detected pedestrians
+        current_people: List of bboxes for the detected people
         current_timestamp: The timestamp associated with the current frame.
         csv: The csv file to write the results to.
         deadline: The oldest frame to compare the results to.
         base_iou: The IOU to start from.
         step: The step to take from the base_IOU to reach 1.0
     """
-    SAVED_DETECTIONS.append((current_timestamp, current_pedestrians))
+    SAVED_DETECTIONS.append((current_timestamp, current_people))
 
     # Remove data older than the deadline that we don't need anymore.
     while (current_timestamp - SAVED_DETECTIONS[0][0]) * 1000 > deadline:
@@ -152,7 +151,7 @@ def compute_and_log_map(current_pedestrians,
     # timestamp, the AP at the given IOU and log them.
     for old_timestamp, old_detections in SAVED_DETECTIONS:
         for iou in np.arange(base_iou, 1.0, step):
-            precision, _ = get_precision_recall_at_iou(current_pedestrians,
+            precision, _ = get_precision_recall_at_iou(current_people,
                                                        old_detections, iou)
             time_diff = current_timestamp - old_timestamp
 
@@ -185,7 +184,7 @@ def process_depth_images(msg,
     if visualize:
         draw_image(rgb_image, surface)
 
-    # Transform pedestrians into obstacles relative to the current frame.
+    # Transform people into obstacles relative to the current frame.
     bb_surface = None
     resolution = (depth_camera_setup.width, depth_camera_setup.height)
     if visualize:
@@ -201,15 +200,15 @@ def process_depth_images(msg,
     depth_frame.camera_setup.set_transform(vehicle_transform *
                                            depth_frame.camera_setup.transform)
 
-    detected_pedestrians = []
-    for pedestrian in ego_vehicle.get_world().get_actors().filter('walker.*'):
-        obstacle = Obstacle.from_carla_actor(pedestrian)
+    detected_people = []
+    for person in ego_vehicle.get_world().get_actors().filter('walker.*'):
+        obstacle = Obstacle.from_carla_actor(person)
         if obstacle.distance(vehicle_transform) > 125:
             bbox = None
         else:
             bbox = obstacle.to_camera_view(depth_frame, semantic_image.frame)
         if bbox is not None:
-            detected_pedestrians.append(bbox)
+            detected_people.append(bbox)
             if visualize:
                 draw_bounding_box(bbox, bb_surface)
 
@@ -220,9 +219,8 @@ def process_depth_images(msg,
         pygame.display.flip()
 
     # Compute the mAP.
-    print("We detected a total of {} pedestrians.".format(
-        len(detected_pedestrians)))
-    compute_and_log_map(detected_pedestrians, msg.timestamp, csv)
+    print("We detected a total of {} people.".format(len(detected_people)))
+    compute_and_log_map(detected_people, msg.timestamp, csv)
 
     # Move the ego_vehicle according to the given speed.
     ego_vehicle.set_velocity(carla.Vector3D(x=-speed))

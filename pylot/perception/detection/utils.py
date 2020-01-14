@@ -8,7 +8,7 @@ except ImportError:
 import pylot.utils
 
 GROUND_COLOR_MAP = {
-    'pedestrian': [0, 128, 0],
+    'person': [0, 128, 0],
     'vehicle': [128, 0, 0],
     'stop marking': [128, 128, 0],
     'speed limit': [255, 255, 0],

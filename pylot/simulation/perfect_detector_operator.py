@@ -11,12 +11,13 @@ class PerfectDetectorOperator(erdos.Operator):
     perfect bounding boxes.
 
     Attributes:
-        _bgr_imgs: Buffer of received ground BGR image messages.
+        _bgr_msgs: Buffer of received ground BGR image messages.
         _can_bus_msgs: Buffer of received ground can bus messages.
         _depth_frame_msgs: Buffer of received depth frame messages.
-        _pedestrians: Buffer of pedestrian messages received from Carla.
-        _vehicles: Buffer of pedestrian messages received from Carla.
-        _segmented_imgs: Buffer of segmented frame msgs received from Carla.
+        _obstacles: Buffer of obstacle messages received from Carla.
+        _segmented_msgs: Buffer of segmented frame msgs received from Carla.
+        _speed_limit_signs: Buffer of speed limit sign msgs.
+        _stop_signs: Buffer of stop sign msgs received from Carla.
     """
     def __init__(self,
                  depth_camera_stream,
@@ -56,11 +57,11 @@ class PerfectDetectorOperator(erdos.Operator):
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
         # Queues of incoming data.
-        self._bgr_imgs = deque()
+        self._bgr_msgs = deque()
         self._can_bus_msgs = deque()
         self._depth_frame_msgs = deque()
         self._obstacles = deque()
-        self._segmented_imgs = deque()
+        self._segmented_msgs = deque()
         self._speed_limit_signs = deque()
         self._stop_signs = deque()
         self._camera_setup = bgr_camera_setup
@@ -78,8 +79,8 @@ class PerfectDetectorOperator(erdos.Operator):
     def on_watermark(self, timestamp, obstacles_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         depth_msg = self._depth_frame_msgs.popleft()
-        bgr_msg = self._bgr_imgs.popleft()
-        segmented_msg = self._segmented_imgs.popleft()
+        bgr_msg = self._bgr_msgs.popleft()
+        segmented_msg = self._segmented_msgs.popleft()
         can_bus_msg = self._can_bus_msgs.popleft()
         obstacles_msg = self._obstacles.popleft()
         speed_limit_signs_msg = self._speed_limit_signs.popleft()
@@ -151,12 +152,12 @@ class PerfectDetectorOperator(erdos.Operator):
 
     def on_bgr_camera_update(self, msg):
         self._logger.debug('@{}: received BGR frame'.format(msg.timestamp))
-        self._bgr_imgs.append(msg)
+        self._bgr_msgs.append(msg)
 
     def on_segmented_frame(self, msg):
         self._logger.debug('@{}: received segmented frame'.format(
             msg.timestamp))
-        self._segmented_imgs.append(msg)
+        self._segmented_msgs.append(msg)
 
     def __get_obstacles(self, obstacles, vehicle_transform, depth_frame,
                         segmented_frame):

@@ -109,11 +109,11 @@ class GroundAgentOperator(erdos.Operator):
                         ego_vehicle_location, obstacle.transform.location,
                         wp_vector, speed_factor_v, self._flags)
                     speed_factor_v = min(speed_factor_v, new_speed_factor_v)
-            if obstacle.label == 'pedestrian' and \
-               self._flags.stop_for_pedestrians:
-                # Only brake for pedestrians that are on the road.
+            if obstacle.label == 'person' and \
+               self._flags.stop_for_people:
+                # Only brake for people that are on the road.
                 if self._map.is_on_lane(obstacle.transform.location):
-                    new_speed_factor_p = pylot.control.utils.stop_pedestrian(
+                    new_speed_factor_p = pylot.control.utils.stop_person(
                         ego_vehicle_location, obstacle.transform.location,
                         wp_vector, speed_factor_p, self._flags)
                     speed_factor_p = min(speed_factor_p, new_speed_factor_p)
@@ -131,7 +131,7 @@ class GroundAgentOperator(erdos.Operator):
 
         speed_factor = min(speed_factor_tl, speed_factor_p, speed_factor_v)
         state = {
-            'stop_pedestrian': speed_factor_p,
+            'stop_person': speed_factor_p,
             'stop_vehicle': speed_factor_v,
             'stop_traffic_lights': speed_factor_tl
         }

@@ -99,19 +99,18 @@ class PylotAgentOperator(erdos.Operator):
                                                     depth_frame)
         assert len(timestamp.coordinates) == 1
         game_time = timestamp.coordinates[0]
-        (pedestrians,
+        (people,
          vehicles) = self.__transform_detector_output(obstacles_msg,
                                                       point_cloud, depth_frame)
 
         self._logger.debug('@{}: speed {} and location {}'.format(
             timestamp, vehicle_speed, vehicle_transform))
-        self._logger.debug('@{}: pedestrians {}'.format(
-            timestamp, pedestrians))
+        self._logger.debug('@{}: people {}'.format(timestamp, people))
         self._logger.debug('@{}: vehicles {}'.format(timestamp, vehicles))
 
         speed_factor, _ = self.__stop_for_agents(vehicle_transform.location,
                                                  wp_angle, wp_vector, vehicles,
-                                                 pedestrians, traffic_lights,
+                                                 people, traffic_lights,
                                                  timestamp)
 
         control_msg = self.get_control_message(wp_angle, wp_angle_speed,
@@ -238,22 +237,22 @@ class PylotAgentOperator(erdos.Operator):
             A list of 3D world locations.
         """
         vehicles = []
-        pedestrians = []
+        people = []
         for obstacle in obstacles_msg.obstacles:
             if obstacle.label == 'person':
                 location = self.__transform_to_3d(
                     obstacle.bounding_box.get_center_point(), point_cloud,
                     depth_frame)
-                pedestrians.append(location)
+                people.append(location)
             elif (obstacle.label in self._vehicle_labels):
                 location = self.__transform_to_3d(
                     obstacle.bounding_box.get_center_point(), point_cloud,
                     depth_frame)
                 vehicles.append(location)
-        return (pedestrians, vehicles)
+        return (people, vehicles)
 
     def __stop_for_agents(self, ego_vehicle_location, wp_angle, wp_vector,
-                          vehicles, pedestrians, traffic_lights, timestamp):
+                          vehicles, people, traffic_lights, timestamp):
         speed_factor = 1
         speed_factor_tl = 1
         speed_factor_p = 1
@@ -274,19 +273,19 @@ class PylotAgentOperator(erdos.Operator):
                         '@{}: vehicle {} reduced speed factor to {}'.format(
                             timestamp, obs_vehicle_loc, speed_factor_v))
 
-        for obs_ped_loc in pedestrians:
+        for obs_ped_loc in people:
             if (not self._map or self._map.are_on_same_lane(
                     ego_vehicle_location, obs_ped_loc)):
                 self._logger.debug(
-                    '@{}: ego {} and pedestrian {} are on the same lane'.
-                    format(timestamp, ego_vehicle_location, obs_ped_loc))
-                new_speed_factor_p = pylot.control.utils.stop_pedestrian(
+                    '@{}: ego {} and person {} are on the same lane'.format(
+                        timestamp, ego_vehicle_location, obs_ped_loc))
+                new_speed_factor_p = pylot.control.utils.stop_person(
                     ego_vehicle_location, obs_ped_loc, wp_vector,
                     speed_factor_p, self._flags)
                 if new_speed_factor_p < speed_factor_p:
                     speed_factor_p = new_speed_factor_p
                     self._logger.debug(
-                        '@{}: pedestrian {} reduced speed factor to {}'.format(
+                        '@{}: person {} reduced speed factor to {}'.format(
                             timestamp, obs_ped_loc, speed_factor_p))
 
         for tl in traffic_lights:
@@ -307,7 +306,7 @@ class PylotAgentOperator(erdos.Operator):
 
         speed_factor = min(speed_factor_tl, speed_factor_p, speed_factor_v)
         state = {
-            'stop_pedestrian': speed_factor_p,
+            'stop_person': speed_factor_p,
             'stop_vehicle': speed_factor_v,
             'stop_traffic_lights': speed_factor_tl
         }

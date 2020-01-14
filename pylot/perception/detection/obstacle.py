@@ -28,10 +28,10 @@ class Obstacle(object):
         self.label = label
         if label == 'vehicle':
             self.segmentation_class = 10
-        elif label == 'pedestrian':
+        elif label == 'person':
             self.segmentation_class = 4
         else:
-            raise ValueError('label should be: vehicle or pedestrian')
+            raise ValueError('label should be: vehicle or person')
         # Thresholds to be used for detection of the obstacle.
         self.__segmentation_threshold = 0.20
         self.__depth_threshold = 5
@@ -61,8 +61,8 @@ class Obstacle(object):
         if isinstance(actor, carla.Vehicle):
             label = 'vehicle'
         else:
-            label = 'pedestrian'
-        # TODO (Sukrit): Move from vehicles and pedestrians to separate classes
+            label = 'person'
+        # TODO (Sukrit): Move from vehicles and people to separate classes
         # for bicycles, motorcycles, cars and persons.
         return cls(actor.id, label, transform, bounding_box, forward_speed)
 

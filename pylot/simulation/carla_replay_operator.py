@@ -100,11 +100,11 @@ class CarlaReplayOperator(erdos.Operator):
         # Get all the actors in the simulation.
         actor_list = self._world.get_actors()
 
-        (vehicles, pedestrians, traffic_lights, speed_limits,
+        (vehicles, people, traffic_lights, speed_limits,
          traffic_stops) = extract_data_in_pylot_format(actor_list)
 
         obstacles_msg = pylot.simulation.messages.GroundObstaclesMessage(
-            timestamp, vehicles + pedestrians)
+            timestamp, vehicles + people)
         self._ground_obstacles_stream.send(obstacles_msg)
         self._ground_obstacles_stream.send(watermark_msg)
         traffic_lights_msg = pylot.simulation.messages.GroundTrafficLightsMessage(

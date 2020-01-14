@@ -5,16 +5,16 @@ from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 flags.DEFINE_string(
-    'deep_sort_tracker_pedestrian_weights_path',
+    'deep_sort_tracker_person_weights_path',
     'dependencies/nanonets_object_tracking/ped_feature_extractor',
-    'Path to weights for pedestrian feature extractor model')
+    'Path to weights for person feature extractor model')
 
 
 class MultiObjectDeepSORTTracker(MultiObjectTracker):
     def __init__(self, flags, logger):
         # Initialize the deepsort object, which has a tracker object within it
         self._deepsort = deepsort_rbc(
-            wt_path=flags.deep_sort_tracker_pedestrian_weights_path)
+            wt_path=flags.deep_sort_tracker_person_weights_path)
         self.tracker = None
 
     def reinitialize(self, frame, obstacles):

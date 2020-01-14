@@ -2,7 +2,7 @@ import erdos
 
 
 class GroundObstaclesMessage(erdos.Message):
-    """ Message class used to send pedestrian and vehicle info.
+    """ Message class used to send person and vehicle info.
 
     Attributes:
         obstacles: A list of simulation.utils.Obstacle tuples.

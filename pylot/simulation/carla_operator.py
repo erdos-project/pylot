@@ -26,7 +26,7 @@ flags.DEFINE_float(
     'Target frequency of sending control commands. -1 if '
     'commands should be applied as fast as possible.')
 flags.DEFINE_integer('carla_num_vehicles', 20, 'Carla num vehicles.')
-flags.DEFINE_integer('carla_num_pedestrians', 40, 'Carla num pedestrians.')
+flags.DEFINE_integer('carla_num_people', 40, 'Carla num people.')
 flags.DEFINE_string('carla_weather', 'ClearNoon', 'Carla Weather Presets')
 flags.DEFINE_integer(
     'carla_spawn_point_index', -1,
@@ -127,19 +127,19 @@ class CarlaOperator(erdos.Operator):
 
         if (self._flags.carla_version == '0.9.6'
                 or self._flags.carla_version == '0.9.7'):
-            # Pedestrians are do not move in versions older than 0.9.6.
-            (self._pedestrians, ped_control_ids) = self._spawn_pedestrians(
-                self._flags.carla_num_pedestrians)
+            # People are do not move in versions older than 0.9.6.
+            (self._people, ped_control_ids) = self._spawn_people(
+                self._flags.carla_num_people)
 
         # Tick once to ensure that the actors are spawned before the data-flow
         # starts.
         self._tick_at = time.time()
         self._tick_simulator()
 
-        # Start pedestrians
+        # Start people
         if (self._flags.carla_version == '0.9.6'
                 or self._flags.carla_version == '0.9.7'):
-            self._start_pedestrians(ped_control_ids)
+            self._start_people(ped_control_ids)
 
     @staticmethod
     def connect(control_stream):
@@ -198,18 +198,18 @@ class CarlaOperator(erdos.Operator):
         self._tick_at += 1.0 / self._flags.carla_step_frequency
         self._world.tick()
 
-    def _spawn_pedestrians(self, num_pedestrians):
-        """ Spawns pedestrians at random locations inside the world.
+    def _spawn_people(self, num_people):
+        """ Spawns people at random locations inside the world.
 
         Args:
-            num_pedestrians: The number of pedestrians to spawn.
+            num_people: The number of people to spawn.
         """
         p_blueprints = self._world.get_blueprint_library().filter(
             'walker.pedestrian.*')
         unique_locs = set([])
         spawn_points = []
         # Get unique spawn points.
-        for i in range(num_pedestrians):
+        for i in range(num_people):
             attempt = 0
             while attempt < 10:
                 spawn_point = carla.Transform()
@@ -224,9 +224,8 @@ class CarlaOperator(erdos.Operator):
                         break
                 attempt += 1
             if attempt == 10:
-                self._logger.error(
-                    'Could not find unique pedestrian spawn point')
-        # Spawn the pedestrians.
+                self._logger.error('Could not find unique person spawn point')
+        # Spawn the people.
         batch = []
         for spawn_point in spawn_points:
             p_blueprint = random.choice(p_blueprints)
@@ -238,11 +237,11 @@ class CarlaOperator(erdos.Operator):
         for response in self._client.apply_batch_sync(batch, True):
             if response.error:
                 self._logger.info(
-                    'Received an error while spawning a pedestrian: {}'.format(
+                    'Received an error while spawning a person: {}'.format(
                         response.error))
             else:
                 ped_ids.append(response.actor_id)
-        # Spawn the pedestrian controllers
+        # Spawn the person controllers
         ped_controller_bp = self._world.get_blueprint_library().find(
             'controller.ai.walker')
         batch = []
@@ -254,17 +253,17 @@ class CarlaOperator(erdos.Operator):
         for response in self._client.apply_batch_sync(batch, True):
             if response.error:
                 self._logger.info(
-                    'Error while spawning a pedestrian controller: {}'.format(
+                    'Error while spawning a person controller: {}'.format(
                         response.error))
             else:
                 ped_control_ids.append(response.actor_id)
 
         return (ped_ids, ped_control_ids)
 
-    def _start_pedestrians(self, ped_control_ids):
+    def _start_people(self, ped_control_ids):
         ped_actors = self._world.get_actors(ped_control_ids)
         for i, ped_control_id in enumerate(ped_control_ids):
-            # Start pedestrian.
+            # Start person.
             ped_actors[i].start()
             ped_actors[i].go_to_location(
                 self._world.get_random_location_from_navigation())
@@ -408,13 +407,13 @@ class CarlaOperator(erdos.Operator):
         # Get all the actors in the simulation.
         actor_list = self._world.get_actors()
 
-        (vehicles, pedestrians, traffic_lights, speed_limits,
+        (vehicles, people, traffic_lights, speed_limits,
          traffic_stops) = extract_data_in_pylot_format(actor_list)
 
-        # Send ground pedestrians and vehicles.
+        # Send ground people and vehicles.
         self.ground_obstacles_stream.send(
             pylot.simulation.messages.GroundObstaclesMessage(
-                timestamp, vehicles + pedestrians))
+                timestamp, vehicles + people))
         self.ground_obstacles_stream.send(erdos.WatermarkMessage(timestamp))
         # Send ground traffic lights.
         self.ground_traffic_lights_stream.send(

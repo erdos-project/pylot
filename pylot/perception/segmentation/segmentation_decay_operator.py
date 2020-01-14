@@ -57,14 +57,14 @@ class SegmentationDecayOperator(erdos.Operator):
                     cur_time, self._name, time_diff, mean_iou))
                 iou_stream.send(
                     erdos.Message(msg.timestamp, (time_diff, mean_iou)))
-                pedestrian_key = 4
-                if pedestrian_key in class_iou:
+                person_key = 4
+                if person_key in class_iou:
                     self._logger.info(
-                        'Segmentation ground latency {} ; pedestrian IoU {}'.
-                        format(time_diff, class_iou[pedestrian_key]))
-                    self._csv_logger.info('{},{},pedestrianIoU,{},{}'.format(
+                        'Segmentation ground latency {} ; person IoU {}'.
+                        format(time_diff, class_iou[person_key]))
+                    self._csv_logger.info('{},{},personIoU,{},{}'.format(
                         cur_time, self._name, time_diff,
-                        class_iou[pedestrian_key]))
+                        class_iou[person_key]))
 
                 vehicle_key = 10
                 if vehicle_key in class_iou:

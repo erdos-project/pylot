@@ -136,11 +136,10 @@ def compute_and_log_miou(current_frame, current_timestamp, csv, deadline=210):
         # Format of the CSV file: (latency_in_ms, class, mean IOU)
         csv.writerow([time_diff * 1000, "Scene", mean_iou])
 
-        # Insert the results for the pedestrian.
-        pedestrian_key = 4
-        if pedestrian_key in class_iou:
-            csv.writerow(
-                [time_diff * 1000, "Pedestrian", class_iou[pedestrian_key]])
+        # Insert the results for the person.
+        person_key = 4
+        if person_key in class_iou:
+            csv.writerow([time_diff * 1000, "Person", class_iou[person_key]])
 
 
 def process_segmentation_images(msg, ego_vehicle, speed, csv, dump=False):

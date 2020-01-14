@@ -33,9 +33,9 @@ class DetectionDecayOperator(erdos.Operator):
         assert len(msg.timestamp.coordinates) == 1
         game_time = msg.timestamp.coordinates[0]
         bboxes = []
-        # Select the pedestrian bounding boxes.
+        # Select the person bounding boxes.
         for obstacle in msg.obstacles:
-            if obstacle.label == 'pedestrian':
+            if obstacle.label == 'person':
                 bboxes.append(obstacle.bounding_box)
 
         # Remove the buffered bboxes that are too old.

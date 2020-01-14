@@ -115,9 +115,9 @@ def extract_data_in_pylot_format(actor_list):
         Obstacle.from_carla_actor(vec_actor) for vec_actor in vec_actors
     ]
 
-    pedestrian_actors = actor_list.filter('walker.pedestrian.*')
-    pedestrians = [
-        Obstacle.from_carla_actor(ped_actor) for ped_actor in pedestrian_actors
+    person_actors = actor_list.filter('walker.pedestrian.*')
+    people = [
+        Obstacle.from_carla_actor(ped_actor) for ped_actor in person_actors
     ]
 
     tl_actors = actor_list.filter('traffic.traffic_light*')
@@ -136,7 +136,7 @@ def extract_data_in_pylot_format(actor_list):
         StopSign.from_carla_actor(ts_actor) for ts_actor in traffic_stop_actors
     ]
 
-    return (vehicles, pedestrians, traffic_lights, speed_limits, traffic_stops)
+    return (vehicles, people, traffic_lights, speed_limits, traffic_stops)
 
 
 def draw_trigger_volume(world, actor):

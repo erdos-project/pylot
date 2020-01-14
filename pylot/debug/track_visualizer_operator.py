@@ -34,14 +34,8 @@ class TrackVisualizerOperator(erdos.Operator):
         self._name = name
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
-        self._past_colors = {
-            'pedestrian': [255, 0, 0],
-            'vehicle': [128, 128, 0]
-        }
-        self._future_colors = {
-            'pedestrian': [0, 0, 255],
-            'vehicle': [0, 255, 0]
-        }
+        self._past_colors = {'person': [255, 0, 0], 'vehicle': [128, 128, 0]}
+        self._future_colors = {'person': [0, 0, 255], 'vehicle': [0, 255, 0]}
         # Dictionaries to store incoming data.
         self._tracking_msgs = deque()
         self._top_down_segmentation_msgs = deque()

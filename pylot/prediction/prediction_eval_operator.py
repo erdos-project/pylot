@@ -106,19 +106,19 @@ class PredictionEvalOperator(erdos.Operator):
         vehicle_ade = 0.0
         vehicle_fde = 0.0
 
-        # Pedestrian metrics.
-        pedestrian_cnt = 0
-        pedestrian_msd = 0.0
-        pedestrian_ade = 0.0
-        pedestrian_fde = 0.0
+        # Person metrics.
+        person_cnt = 0
+        person_msd = 0.0
+        person_ade = 0.0
+        person_fde = 0.0
 
         for obstacle in predictions:
             predicted_trajectory = obstacle.trajectory
             ground_trajectory = ground_trajectories[obstacle.id].trajectory
             if obstacle.label == 'vehicle':
                 vehicle_cnt += 1
-            elif obstacle.label == 'pedestrian':
-                pedestrian_cnt += 1
+            elif obstacle.label == 'person':
+                person_cnt += 1
             else:
                 raise ValueError('Unexpected obstacle label {}'.format(
                     obstacle.label))
@@ -139,10 +139,10 @@ class PredictionEvalOperator(erdos.Operator):
                 vehicle_msd += l2_distance
                 vehicle_ade += l1_distance
                 vehicle_fde += fde
-            elif obstacle.label == 'pedestrian':
-                pedestrian_msd += l2_distance
-                pedestrian_ade += l1_distance
-                pedestrian_fde += fde
+            elif obstacle.label == 'person':
+                person_msd += l2_distance
+                person_ade += l1_distance
+                person_fde += fde
             else:
                 raise ValueError('Unexpected obstacle label {}'.format(
                     obstacle.label))
@@ -150,16 +150,16 @@ class PredictionEvalOperator(erdos.Operator):
         vehicle_msd /= vehicle_cnt
         vehicle_ade /= vehicle_cnt
         vehicle_fde /= vehicle_cnt
-        pedestrian_msd /= pedestrian_cnt
-        pedestrian_ade /= pedestrian_cnt
-        pedestrian_fde /= pedestrian_cnt
+        person_msd /= person_cnt
+        person_ade /= person_cnt
+        person_fde /= person_cnt
         # Log metrics.
         self._logger.info('Vehicle MSD is: {}'.format(vehicle_msd))
         self._logger.info('Vehicle ADE is: {}'.format(vehicle_ade))
         self._logger.info('Vehicle FDE is: {}'.format(vehicle_fde))
-        self._logger.info('Pedestrian MSD is: {}'.format(pedestrian_msd))
-        self._logger.info('Pedestrian ADE is: {}'.format(pedestrian_ade))
-        self._logger.info('Pedestrian FDE is: {}'.format(pedestrian_fde))
+        self._logger.info('Person MSD is: {}'.format(person_msd))
+        self._logger.info('Person ADE is: {}'.format(person_ade))
+        self._logger.info('Person FDE is: {}'.format(person_fde))
 
         self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(), self._name,
                                                    'vehicle-MSD', vehicle_msd))
@@ -168,11 +168,8 @@ class PredictionEvalOperator(erdos.Operator):
         self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(), self._name,
                                                    'vehicle-FDE', vehicle_fde))
         self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(), self._name,
-                                                   'pedestrian-MSD',
-                                                   pedestrian_msd))
+                                                   'person-MSD', person_msd))
         self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(), self._name,
-                                                   'pedestrian-ADE',
-                                                   pedestrian_ade))
+                                                   'person-ADE', person_ade))
         self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(), self._name,
-                                                   'pedestrian-FDE',
-                                                   pedestrian_fde))
+                                                   'person-FDE', person_fde))

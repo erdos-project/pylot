@@ -116,9 +116,8 @@ class DetectionEvalOperator(erdos.Operator):
 
     def on_obstacles(self, msg):
         game_time = msg.timestamp.coordinates[0]
-        vehicles, pedestrians, _ = self.__get_obstacles_by_category(
-            msg.obstacles)
-        self._detected_obstacles.append((game_time, vehicles + pedestrians))
+        vehicles, people, _ = self.__get_obstacles_by_category(msg.obstacles)
+        self._detected_obstacles.append((game_time, vehicles + people))
         # Two metrics: 1) mAP, and 2) timely-mAP
         if self._flags.detection_metric == 'mAP':
             # We will compare the obstacles with the ground truth at the same
@@ -139,9 +138,8 @@ class DetectionEvalOperator(erdos.Operator):
 
     def on_ground_obstacles(self, msg):
         game_time = msg.timestamp.coordinates[0]
-        vehicles, pedestrians, _ = self.__get_obstacles_by_category(
-            msg.obstacles)
-        self._ground_obstacles.append((game_time, pedestrians + vehicles))
+        vehicles, people, _ = self.__get_obstacles_by_category(msg.obstacles)
+        self._ground_obstacles.append((game_time, people + vehicles))
 
     def __compute_closest_frame_time(self, time):
         base = int(time) / self._sim_interval * self._sim_interval
@@ -153,16 +151,16 @@ class DetectionEvalOperator(erdos.Operator):
     def __get_obstacles_by_category(self, obstacles):
         """ Divides perception.detection.utils.DetectedObstacle by labels."""
         vehicles = []
-        pedestrians = []
+        people = []
         traffic_lights = []
         for obstacle in obstacles:
             if obstacle.label == 'vehicle':
                 vehicles.append(obstacle)
-            elif obstacle.label == 'pedestrian':
-                pedestrians.append(obstacle)
+            elif obstacle.label == 'person':
+                people.append(obstacle)
             elif obstacle.label == 'traffic_light':
                 traffic_lights.append(obstacle)
             else:
                 self._logger.warning('Unexpected label {}'.format(
                     obstacle.label))
-        return vehicles, pedestrians, traffic_lights
+        return vehicles, people, traffic_lights

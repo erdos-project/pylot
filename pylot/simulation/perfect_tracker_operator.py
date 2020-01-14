@@ -48,7 +48,7 @@ class PerfectTrackerOperator(erdos.Operator):
         can_bus_msg = self._can_bus_msgs.popleft()
 
         # Use the most recent can_bus message to convert the past frames
-        # of vehicles and pedestrians to our current perspective.
+        # of vehicles and people to our current perspective.
         can_bus_transform = can_bus_msg.data.transform
 
         obstacle_trajectories = []

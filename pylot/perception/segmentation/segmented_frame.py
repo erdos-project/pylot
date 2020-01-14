@@ -13,7 +13,7 @@ CITYSCAPES_LABELS = {
     1: "building",
     2: "fence",
     3: "other",
-    4: "pedestrian",
+    4: "person",
     5: "pole",
     6: "road_line",
     7: "road",
