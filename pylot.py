@@ -270,15 +270,15 @@ def add_planning(goal_location,
     return waypoints_stream
 
 
-def add_control(center_camera_setup, can_bus_stream, obstacles_stream,
-                traffic_lights_stream, waypoints_stream, open_drive_stream,
-                depth_camera_stream, point_cloud_stream,
-                ground_obstacles_stream, ground_traffic_lights_stream):
+def add_control(can_bus_stream, obstacles_stream, traffic_lights_stream,
+                waypoints_stream, open_drive_stream, depth_camera_stream,
+                point_cloud_stream, ground_obstacles_stream,
+                ground_traffic_lights_stream):
     if FLAGS.control_agent == 'pylot':
         control_stream = pylot.operator_creator.add_pylot_agent(
             can_bus_stream, waypoints_stream, traffic_lights_stream,
             obstacles_stream, point_cloud_stream, open_drive_stream,
-            depth_camera_stream, center_camera_setup)
+            depth_camera_stream)
     elif FLAGS.control_agent == 'mpc':
         control_stream = pylot.operator_creator.add_mpc_agent(
             can_bus_stream, ground_obstacles_stream,
@@ -379,11 +379,10 @@ def driver():
 
     # TODO: Merge depth camera stream and point cloud stream.
     # Add the behaviour planning and control operator.
-    control_stream = add_control(rgb_camera_setup, can_bus_stream,
-                                 obstacles_stream, traffic_lights_stream,
-                                 waypoints_stream, open_drive_stream,
-                                 depth_camera_stream, point_cloud_stream,
-                                 ground_obstacles_stream,
+    control_stream = add_control(can_bus_stream, obstacles_stream,
+                                 traffic_lights_stream, waypoints_stream,
+                                 open_drive_stream, depth_camera_stream,
+                                 point_cloud_stream, ground_obstacles_stream,
                                  ground_traffic_lights_stream)
     control_loop_stream.set(control_stream)
 

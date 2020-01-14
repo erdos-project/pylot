@@ -94,21 +94,21 @@ class DetectionOperator(erdos.Operator):
         res_boxes = boxes[0][:num_detections]
         res_scores = scores[0][:num_detections]
 
-        boxes = []
-        scores = []
-        labels = []
+        obstacles = []
         for i in range(0, num_detections):
-            if res_classes[i] in self._coco_labels:
-                labels.append(self._coco_labels[res_classes[i]])
-                boxes.append(res_boxes[i])
-                scores.append(res_scores[i])
+            if (res_classes[i] in self._coco_labels and res_scores[i] >=
+                    self._flags.obstacle_detection_min_score_threshold):
+                obstacles.append(
+                    DetectedObstacle(
+                        BoundingBox2D(int(res_boxes[i][1] * msg.frame.width),
+                                      int(res_boxes[i][3] * msg.frame.width),
+                                      int(res_boxes[i][0] * msg.frame.height),
+                                      int(res_boxes[i][2] * msg.frame.height)),
+                        res_scores[i], self._coco_labels[res_classes[i]]))
             else:
                 self._logger.warning('Filtering unknown class: {}'.format(
                     res_classes[i]))
 
-        obstacles = self.__convert_to_obstacles(boxes, scores, labels,
-                                                msg.frame.height,
-                                                msg.frame.width)
         self._logger.debug('@{}: {} obstacles: {}'.format(
             msg.timestamp, self._name, obstacles))
 
@@ -131,17 +131,3 @@ class DetectionOperator(erdos.Operator):
         # Send out obstacles.
         obstacles_stream.send(
             ObstaclesMessage(obstacles, msg.timestamp, runtime))
-
-    def __convert_to_obstacles(self, boxes, scores, labels, height, width):
-        obstacles = []
-        for index in range(len(scores)):
-            if scores[index] >= \
-               self._flags.obstacle_detection_min_score_threshold:
-                obstacles.append(
-                    DetectedObstacle(
-                        BoundingBox2D(int(boxes[index][1] * width),
-                                      int(boxes[index][3] * width),
-                                      int(boxes[index][0] * height),
-                                      int(boxes[index][2] * height)),
-                        scores[index], labels[index]))
-        return obstacles

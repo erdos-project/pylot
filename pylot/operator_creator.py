@@ -22,6 +22,8 @@ from pylot.perception.tracking.object_tracker_operator import \
 from pylot.perception.fusion.fusion_operator import FusionOperator
 from pylot.perception.fusion.fusion_verification_operator import \
     FusionVerificationOperator
+from pylot.perception.segmentation.segmentation_drn_operator import\
+    SegmentationDRNOperator
 from pylot.perception.segmentation.segmentation_eval_operator import \
     SegmentationEvalOperator
 from pylot.perception.segmentation.segmentation_decay_operator import \
@@ -177,12 +179,6 @@ def add_depth_estimation(left_camera_stream,
 
 
 def add_segmentation(bgr_camera_stream, name='drn_segmentation_operator'):
-    try:
-        from pylot.perception.segmentation.segmentation_drn_operator import\
-            SegmentationDRNOperator
-    except ImportError:
-        raise Exception("Error importing DRN segmentation.")
-
     [segmented_stream] = erdos.connect(SegmentationDRNOperator,
                                        [bgr_camera_stream],
                                        True,
@@ -424,7 +420,7 @@ def add_mpc_agent(can_bus_stream, ground_obstacles_stream,
 
 def add_pylot_agent(can_bus_stream, waypoints_stream, traffic_lights_stream,
                     obstacles_stream, lidar_stream, open_drive_stream,
-                    depth_camera_stream, camera_setup):
+                    depth_camera_stream):
     input_streams = [
         can_bus_stream, waypoints_stream, traffic_lights_stream,
         obstacles_stream, lidar_stream, open_drive_stream, depth_camera_stream
@@ -434,7 +430,6 @@ def add_pylot_agent(can_bus_stream, waypoints_stream, traffic_lights_stream,
                                      True,
                                      'pylot_agent_operator',
                                      FLAGS,
-                                     camera_setup,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_file_name=FLAGS.csv_log_file_name)
     return control_stream

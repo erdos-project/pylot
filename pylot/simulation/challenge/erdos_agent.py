@@ -239,7 +239,7 @@ class ERDOSAgent(AutonomousAgent):
             self._can_bus_stream, self._waypoints_stream,
             self._traffic_lights_stream, self._obstacles_stream,
             self._point_cloud_stream, self._open_drive_stream,
-            depth_camera_stream, self._camera_setups[CENTER_CAMERA_NAME])
+            depth_camera_stream)
         self._extract_control_stream = erdos.ExtractStream(
             self._control_stream)
 

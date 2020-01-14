@@ -13,8 +13,6 @@ from pylot.map.hd_map import HDMap
 from pylot.simulation.utils import get_map
 from pylot.utils import time_epoch_ms
 
-INTERSECTION_SPEED_M_PER_SEC = 5
-
 
 class PylotAgentOperator(erdos.Operator):
     def __init__(self,
@@ -28,7 +26,6 @@ class PylotAgentOperator(erdos.Operator):
                  control_stream,
                  name,
                  flags,
-                 bgr_camera_setup,
                  log_file_name=None,
                  csv_file_name=None):
         can_bus_stream.add_callback(self.on_can_bus_update)
@@ -36,7 +33,7 @@ class PylotAgentOperator(erdos.Operator):
         traffic_lights_stream.add_callback(self.on_traffic_lights_update)
         obstacles_stream.add_callback(self.on_obstacles_update)
         lidar_stream.add_callback(self.on_lidar_update)
-        open_drive_stream.add_callback(self.on_opendrive_map)
+        open_drive_stream.add_callback(self.on_open_drive_map)
         depth_camera_stream.add_callback(self.on_depth_camera_update)
         erdos.add_watermark_callback([
             can_bus_stream, waypoints_stream, traffic_lights_stream,
@@ -48,16 +45,19 @@ class PylotAgentOperator(erdos.Operator):
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
-        self._bgr_camera_setup = bgr_camera_setup
-        self._map = None
         if not hasattr(self._flags, 'track'):
+            # The agent is not used in the Carla challenge. It has access to
+            # the simulator, and to the town map.
             self._map = HDMap(
                 get_map(self._flags.carla_host, self._flags.carla_port,
                         self._flags.carla_timeout), log_file_name)
             self._logger.debug('Agent running using map')
+        else:
+            self._map = None
         self._pid = PID(p=self._flags.pid_p,
                         i=self._flags.pid_i,
                         d=self._flags.pid_d)
+        # Queues in which received messages are stored.
         self._waypoint_msgs = deque()
         self._can_bus_msgs = deque()
         self._traffic_lights_msgs = deque()
@@ -65,11 +65,6 @@ class PylotAgentOperator(erdos.Operator):
         self._point_clouds = deque()
         self._depth_camera_msgs = deque()
         self._vehicle_labels = {'car', 'bicycle', 'motorcycle', 'bus', 'truck'}
-        self._last_traffic_light_game_time = -100000
-        self._last_moving_time = 0
-        # Num of control commands to override to ensure the agent doesn't get
-        # stuck.
-        self._num_control_override = 0
 
     @staticmethod
     def connect(can_bus_stream, waypoints_stream, traffic_lights_stream,
@@ -104,8 +99,6 @@ class PylotAgentOperator(erdos.Operator):
                                                     depth_frame)
         assert len(timestamp.coordinates) == 1
         game_time = timestamp.coordinates[0]
-        if len(traffic_lights) > 0:
-            self._last_traffic_light_game_time = game_time
         (pedestrians,
          vehicles) = self.__transform_detector_output(obstacles_msg,
                                                       point_cloud, depth_frame)
@@ -125,26 +118,11 @@ class PylotAgentOperator(erdos.Operator):
                                                speed_factor, vehicle_speed,
                                                target_speed, timestamp)
 
-        if control_msg.throttle > 0.001:
-            self._last_moving_time = game_time
-            self._num_control_override = 0
-
-        if self._num_control_override > 0:
-            self._num_control_override -= 1
-            control_msg.throttle = 0.75
-
-        # Might be stuck because of a faulty detector.
-        # Override control message if we haven't been moving for a while.
-        if game_time - self._last_moving_time > 30000:
-            self._num_control_override = 6
-            control_msg = ControlMessage(0, 0.75, 0, False, False, timestamp)
-
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
                                                      self._name, timestamp,
                                                      runtime))
-
         return control_msg
 
     def on_watermark(self, timestamp, control_stream):
@@ -189,7 +167,7 @@ class PylotAgentOperator(erdos.Operator):
         self._logger.debug('@{}: lidar update'.format(msg.timestamp))
         self._point_clouds.append(msg)
 
-    def on_opendrive_map(self, msg):
+    def on_open_drive_map(self, msg):
         self._logger.debug('@{}: open drive update'.format(msg.timestamp))
         self._map = HDMap(carla.Map('challenge', msg.data),
                           self._log_file_name)
@@ -239,8 +217,8 @@ class PylotAgentOperator(erdos.Operator):
         """
         traffic_lights = []
         for tl in tls.obstacles:
-            location = self.__transform_to_3d(tl.get_center_point(),
-                                              point_cloud, depth_frame)
+            location = self.__transform_to_3d(
+                tl.bounding_box.get_center_point(), point_cloud, depth_frame)
             traffic_lights.append((location, tl.label))
         return traffic_lights
 
@@ -263,12 +241,14 @@ class PylotAgentOperator(erdos.Operator):
         pedestrians = []
         for obstacle in obstacles_msg.obstacles:
             if obstacle.label == 'person':
-                location = self.__transform_to_3d(obstacle.get_center_point(),
-                                                  point_cloud, depth_frame)
+                location = self.__transform_to_3d(
+                    obstacle.bounding_box.get_center_point(), point_cloud,
+                    depth_frame)
                 pedestrians.append(location)
             elif (obstacle.label in self._vehicle_labels):
-                location = self.__transform_to_3d(obstacle.get_center_point(),
-                                                  point_cloud, depth_frame)
+                location = self.__transform_to_3d(
+                    obstacle.bounding_box.get_center_point(), point_cloud,
+                    depth_frame)
                 vehicles.append(location)
         return (pedestrians, vehicles)
 
