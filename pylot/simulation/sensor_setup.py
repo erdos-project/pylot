@@ -87,6 +87,7 @@ class CameraSetup(object):
     def __init__(self, name, camera_type, width, height, transform, fov=90):
         self.name = name
         self.camera_type = camera_type
+        assert width > 1, "Valid camera setup should have width > 1"
         self.width = width
         self.height = height
         self._transform = transform
@@ -103,9 +104,12 @@ class CameraSetup(object):
     def __create_intrinsic_matrix(width, height, fov):
         import numpy as np
         k = np.identity(3)
-        k[0, 2] = width / 2.0
-        k[1, 2] = height / 2.0
-        k[0, 0] = k[1, 1] = width / (2.0 * np.tan(fov * np.pi / 360.0))
+        # Center column of the image.
+        k[0, 2] = (width - 1) / 2.0
+        # Center row of the image.
+        k[1, 2] = (height - 1) / 2.0
+        # Focal length.
+        k[0, 0] = k[1, 1] = (width - 1) / (2.0 * np.tan(fov * np.pi / 360.0))
         return k
 
     @staticmethod

@@ -355,7 +355,7 @@ class Transform(object):
         Returns:
             a 4x4 numpy matrix which represents the transformation matrix.
         """
-        matrix = np.matrix(np.identity(4))
+        matrix = np.identity(4)
         cy = math.cos(np.radians(rotation.yaw))
         sy = math.sin(np.radians(rotation.yaw))
         cr = math.cos(np.radians(rotation.roll))
@@ -391,7 +391,7 @@ class Transform(object):
             Transformed points in the format [Location, ... Location]
         """
         # Retrieve the locations as numpy arrays.
-        points = np.matrix([loc.as_numpy_array() for loc in points])
+        points = np.array([loc.as_numpy_array() for loc in points])
 
         # Needed format: [[X0,..Xn],[Y0,..Yn],[Z0,..Zn]].
         # So let's transpose the point matrix.
