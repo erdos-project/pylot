@@ -6,9 +6,10 @@ import sys
 import pylot.flags
 import pylot.operator_creator
 import pylot.perception.messages
+from pylot.perception.camera_frame import CameraFrame
+from pylot.perception.point_cloud import PointCloud
 from pylot.simulation.sensor_setup import RGBCameraSetup
 import pylot.utils
-from pylot.perception.point_cloud import PointCloud
 
 from srunner.challenge.autoagents.autonomous_agent import AutonomousAgent,\
     Track
@@ -44,26 +45,15 @@ class ERDOSAgent(AutonomousAgent):
         # Set the lidar in the same position as the center camera.
         self._lidar_transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                                       pylot.utils.Rotation())
+        # Stores the waypoints we get from the challenge planner.
         self._waypoints = None
-        self._sent_open_drive_data = False
+        # Stores the open drive string we get when we run in track 3.
         self._open_drive_data = None
-        # Declare the data-flow streams.
-        self._camera_streams = {}
-        self._can_bus_stream = None
-        self._global_trajectory_stream = None
-        self._open_drive_stream = None
-        self._point_cloud_stream = None
-        self._obstacles_stream = None
-        self._traffic_lights_stream = None
-        self._waypoints_stream = None
-        self._point_cloud_stream = None
-        self._control_stream = None
-        self._extract_control_stream = None
+        self.__create_data_flow()
 
     def setup(self, path_to_conf_file):
         """ Setup phase. Invoked by the scenario runner."""
         self.__init_attributes(path_to_conf_file)
-        self.__create_data_flow()
 
     def destroy(self):
         """ Clean-up the agent. Invoked between different runs."""
@@ -110,7 +100,7 @@ class ERDOSAgent(AutonomousAgent):
             }]
 
         camera_sensors = []
-        for cs in self._camera_setups:
+        for cs in self._camera_setups.values():
             camera_sensor = {
                 'type': cs.camera_type,
                 'x': cs.transform.location.x,
@@ -140,14 +130,11 @@ class ERDOSAgent(AutonomousAgent):
             if key in self._camera_streams:
                 self._camera_streams[key].send(
                     pylot.perception.messages.FrameMessage(
-                        val[1], erdos_timestamp))
+                        CameraFrame(val[1], 'BGR'), erdos_timestamp))
                 self._camera_streams[key].send(
                     erdos.WatermarkMessage(erdos_timestamp))
             elif key == 'can_bus':
                 self.send_can_bus_msg(val[1], erdos_timestamp)
-            elif key == 'GPS':
-                # gps = LocationGeo(val[1][0], val[1][1], val[1][2])
-                pass
             elif key == 'hdmap':
                 self.send_hd_map_msg(val[1], erdos_timestamp)
             elif key == 'LIDAR':
@@ -167,11 +154,10 @@ class ERDOSAgent(AutonomousAgent):
         output_control.manual_gear_shift = False
         return output_control
 
-    def send_hd_map_reading(self, data, timestamp):
+    def send_hd_map_msg(self, data, timestamp):
         # Sending once opendrive data
-        if not self._sent_open_drive_data:
+        if self._open_drive_data is None:
             self._open_drive_data = data['opendrive']
-            self._sent_open_drive_data = True
             self._open_drive_stream.send(
                 erdos.Message(timestamp, self._open_drive_data))
             self._open_drive_stream.send(
@@ -214,7 +200,6 @@ class ERDOSAgent(AutonomousAgent):
 
     def __create_data_flow(self):
         """ Create the challenge data-flow graph."""
-        self._camera_streams = {}
         for name in self._camera_setups:
             self._camera_streams[name] = erdos.IngestStream()
         self._can_bus_stream = erdos.IngestStream()
@@ -222,11 +207,9 @@ class ERDOSAgent(AutonomousAgent):
         self._open_drive_stream = erdos.IngestStream()
         if self.track != Track.ALL_SENSORS_HDMAP_WAYPOINTS:
             # We do not have access to the open drive map. Send top watermark.
-            if not self._sent_open_drive_data:
-                self._sent_open_drive_data = True
-                self._open_drive_stream.send(
-                    erdos.WatermarkMessage(
-                        erdos.Timestamp(coordinates=[sys.maxsize])))
+            self._open_drive_stream.send(
+                erdos.WatermarkMessage(
+                    erdos.Timestamp(coordinates=[sys.maxsize])))
 
         if (self.track == Track.ALL_SENSORS
                 or self.track == Track.ALL_SENSORS_HDMAP_WAYPOINTS):
