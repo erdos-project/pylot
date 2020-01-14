@@ -4,7 +4,9 @@ from collections import namedtuple
 import numpy as np
 
 import carla
-from pylot.utils import Location, Rotation
+from pylot.utils import Location, Rotation, Transform, Vector2D
+from pylot.perception.depth_frame import DepthFrame
+from pylot.simulation.sensor_setup import CameraSetup
 
 ## Location Tests
 
@@ -171,3 +173,95 @@ def test_as_carla_rotation():
     "yaw value is not the same as the one in rotation."
     assert np.isclose(carla_rotation.roll, rotation.roll), "Returned instance "
     "roll value is not the same as the one in location."
+
+## Depth Frame Tests
+
+@pytest.mark.parametrize("x, y, z, threshold, expected", [
+    (1, 0, 150, 100, True),
+    (1, 0, 150, 25, False),
+    (2, 1, 300, 250, True),
+    (2, 1, 300, 150, False)
+])
+def test_pixel_has_same_depth(x, y, z, threshold, expected):
+    """Tests if the pixel at (x,y) has a depth within the specified
+       threshold of z."""
+    camera_setup = None
+    depth_frame = DepthFrame([[0, 0.1, 0],
+                              [0, 0, 0.5]],
+                               camera_setup)
+    assert depth_frame.pixel_has_same_depth(x, y, z, threshold) is expected, \
+           "Depth thresholding did not work correctly."
+
+
+@pytest.mark.parametrize("depth_frame, expected", [
+    (np.array([[0.4, 0.3], [0.2, 0.1]]), \
+        [Location(400, -400, 400), Location(300, 300, 300), \
+         Location(200, -200, -200), Location(100, 100, -100)]),
+    (np.array([[0.1, 0.2]]), [Location(100, -100, 0), Location(200, 200, 0)]),
+    (0.01 * np.ones((3,3)), \
+        [Location(10, -10, 10), Location(10, 0, 10), Location(10, 10, 10),
+         Location(10, -10, 0), Location(10, 0, 0), Location(10, 10, 0),
+         Location(10, -10, -10), Location(10, 0, -10), Location(10, 10, -10)])
+])
+def test_depth_to_point_cloud(depth_frame, expected):
+    height, width = depth_frame.shape
+    camera_setup = CameraSetup('test_setup', 'test_type',
+                               width, height,
+                               Transform(location=Location(0, 0, 0),
+                                         rotation=Rotation(0, 0, 0)),
+                               fov=90)
+    depth_frame = DepthFrame(depth_frame, camera_setup)
+    # Resulting unreal coordinates.
+    point_cloud = depth_frame.as_point_cloud()
+    for i in range(width * height):
+        assert np.isclose(point_cloud[i].x, expected[i].x), 'Returned x '
+        'value is not the same as expected'
+        assert np.isclose(point_cloud[i].y, expected[i].y), 'Returned y '
+        'value is not the same as expected'
+        assert np.isclose(point_cloud[i].z, expected[i].z), 'Returned z '
+        'value is not the same as expected'
+
+
+@pytest.mark.parametrize("depth_frame, expected", [
+    (np.array([[0.1, 0.1]]), [Location(110, -80, 30), Location(110, 120, 30)])
+])
+def test_depth_to_point_cloud_nonzero_camera_loc(depth_frame, expected):
+    height, width = depth_frame.shape
+    camera_setup = CameraSetup('test_setup', 'test_type',
+                               width, height,
+                               Transform(location=Location(10, 20, 30),
+                                         rotation=Rotation(0, 0, 0)),
+                               fov=90)
+    depth_frame = DepthFrame(depth_frame, camera_setup)
+    # Resulting unreal coordinates.
+    point_cloud = depth_frame.as_point_cloud()
+    print (point_cloud)
+    for i in range(width * height):
+        assert np.isclose(point_cloud[i].x, expected[i].x), 'Returned x '
+        'value is not the same as expected'
+        assert np.isclose(point_cloud[i].y, expected[i].y), 'Returned y '
+        'value is not the same as expected'
+        assert np.isclose(point_cloud[i].z, expected[i].z), 'Returned z '
+        'value is not the same as expected'
+
+
+@pytest.mark.parametrize("depth_frame, pixels, expected", [
+    (np.array([[0.4, 0.3], [0.2, 0.1]]), \
+     [Vector2D(0,1), Vector2D(1,0)], \
+     [Location(200, -200, -200), Location(300, 300, 300)])])
+def test_get_pixel_locations(depth_frame, pixels, expected):
+    height, width = depth_frame.shape
+    camera_setup = CameraSetup('test_setup', 'test_type',
+                               width, height,
+                               Transform(location=Location(0, 0, 0),
+                                         rotation=Rotation(0, 0, 0)),
+                               fov=90)
+    depth_frame = DepthFrame(depth_frame, camera_setup)
+    locations = depth_frame.get_pixel_locations(pixels)
+    for i in range(len(pixels)):
+        assert np.isclose(locations[i].x, expected[i].x), 'Returned x '
+        'value is not the same as expected'
+        assert np.isclose(locations[i].y, expected[i].y), 'Returned y '
+        'value is not the same as expected'
+        assert np.isclose(locations[i].z, expected[i].z), 'Returned z '
+        'value is not the same as expected'
