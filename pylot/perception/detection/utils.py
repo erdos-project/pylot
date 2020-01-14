@@ -402,7 +402,10 @@ def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
     else:
         x = [int(x) for x, _ in thresholded_points]
         y = [int(y) for _, y in thresholded_points]
-        return BoundingBox2D(min(x), max(x), min(y), max(y))
+        if min(x) < max(x) and min(y) < max(y):
+            return BoundingBox2D(min(x), max(x), min(y), max(y))
+        else:
+            return None
 
 
 def load_coco_labels(labels_path):

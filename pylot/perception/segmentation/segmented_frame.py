@@ -48,7 +48,7 @@ CITYSCAPES_CLASSES = {
 class SegmentedFrame(object):
     """ Stores a semantically segmented frame."""
     def __init__(self, frame, encoding):
-        if encoding == 'carla':
+        if encoding == 'carla' or encoding == 'cityscapes':
             self._frame = frame
             self.encoding = encoding
             self.width = frame.shape[1]
@@ -88,7 +88,13 @@ class SegmentedFrame(object):
     def as_numpy_array(self):
         return self._frame
 
+    def transform_to_cityscapes(self):
+        self._frame = self.as_cityscapes_palette()
+        self.encoding = 'cityscapes'
+
     def get_traffic_sign_bounding_boxes(self, min_width=2, min_height=3):
+        assert self.encoding == 'carla', \
+            'Not implemented on cityscapes encoding'
         # Set the pixels we are interested in to True.
         traffic_signs_frame = self._get_traffic_sign_pixels()
         # Extracts bounding box from frame.
@@ -106,8 +112,10 @@ class SegmentedFrame(object):
                 bboxes.append(BoundingBox2D(x_min, x_max, y_min, y_max))
         return bboxes
 
-    def get_per_class_masks(self):
+    def _get_per_class_masks(self):
         """ Build a cache of class key to frame mask."""
+        assert self.encoding == 'carla', \
+            'Not implemented on cityscapes encoding'
         if self._class_masks is not None:
             return self._class_masks
         else:
@@ -126,6 +134,9 @@ class SegmentedFrame(object):
         Returns:
             A tuple comprising of mIoU and a list of IoUs.
         """
+        assert (self.encoding == 'cityscapes'
+                and other_frame.encoding == 'cityscapes'
+                ), 'Not implemented on carla encoding'
         iou = {}
         for key, value in CITYSCAPES_CLASSES.items():
             #  Do not include None in the mIoU
@@ -157,8 +168,10 @@ class SegmentedFrame(object):
         Returns:
             A tuple comprising of mIoU and a list of IoUs.
         """
-        masks = self.get_per_class_masks()
-        other_masks = other_frame.get_per_class_masks()
+        assert self.encoding == 'carla' and other_frame.encoding == 'carla', \
+            'Not implemented on cityscapes encoding'
+        masks = self._get_per_class_masks()
+        other_masks = other_frame._get_per_class_masks()
         iou = {}
         for i in range(1, len(CITYSCAPES_CLASSES)):
             intersection = np.logical_and(masks[i], other_masks[i])
@@ -173,7 +186,9 @@ class SegmentedFrame(object):
         return (mean_iou, iou)
 
     def save_per_class_masks(self, data_path, timestamp):
-        masks = self.get_per_class_masks()
+        assert self.encoding == 'carla', \
+            'Not implemented on cityscapes encoding'
+        masks = self._get_per_class_masks()
         assert len(timestamp.coordinates) == 1
         for k, v in CITYSCAPES_LABELS.items():
             file_name = os.path.join(

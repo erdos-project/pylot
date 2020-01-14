@@ -78,9 +78,11 @@ def add_traffic_light_detection(tl_transform,
     Returns:
         A stream on which traffic lights are published.
     """
-    (tl_camera_stream,
-     tl_camera_setup) = pylot.operator_creator.add_rgb_camera(
-         tl_transform, vehicle_id_stream, 'traffic_light_camera', 45)
+    if FLAGS.traffic_light_detection or FLAGS.perfect_traffic_light_detection:
+        # Only add the TL camera if traffic light detection is enabled.
+        (tl_camera_stream,
+         tl_camera_setup) = pylot.operator_creator.add_rgb_camera(
+             tl_transform, vehicle_id_stream, 'traffic_light_camera', 45)
 
     traffic_lights_stream = None
     if FLAGS.traffic_light_detection:
@@ -228,7 +230,7 @@ def add_prediction(obstacles_tracking_stream,
             pylot.operator_creator.add_prediction_evaluation(
                 can_bus_stream, obstacles_tracking_stream, prediction_stream)
         if FLAGS.visualize_prediction:
-            pylot.operator_creator.add_top_down_tracking_visualizer(
+            pylot.operator_creator.add_prediction_visualizer(
                 obstacles_tracking_stream, prediction_stream,
                 vehicle_id_stream, camera_transform)
     return prediction_stream

@@ -1,3 +1,4 @@
+from collections import deque
 import erdos
 
 
@@ -42,9 +43,9 @@ class TrackVisualizerOperator(erdos.Operator):
             'vehicle': [0, 255, 0]
         }
         # Dictionaries to store incoming data.
-        self._tracking_msgs = {}
-        self._top_down_segmentation_msgs = {}
-        self._prediction_msgs = {}
+        self._tracking_msgs = deque()
+        self._top_down_segmentation_msgs = deque()
+        self._prediction_msgs = deque()
         self._top_down_camera_setup = top_down_camera_setup
 
     @staticmethod
@@ -53,20 +54,24 @@ class TrackVisualizerOperator(erdos.Operator):
         return []
 
     def on_tracking_update(self, msg):
-        self._tracking_msgs[msg.timestamp] = msg
+        self._tracking_msgs.append(msg)
 
     def on_prediction_update(self, msg):
-        self._prediction_msgs[msg.timestamp] = msg
+        self._prediction_msgs.append(msg)
 
     def on_top_down_segmentation_update(self, msg):
-        self._top_down_segmentation_msgs[msg.timestamp] = msg
+        self._top_down_segmentation_msgs.append(msg)
 
     def on_watermark(self, timestamp):
         self._logger.debug('@{}: {} received watermark'.format(
             timestamp, self._name))
-        tracking_msg = self._tracking_msgs.pop()
-        segmentation_msg = self._top_down_segmentation_msgs.pop()
-        prediction_msg = self._prediction_msgs.pop()
+        tracking_msg = self._tracking_msgs.popleft()
+        segmentation_msg = self._top_down_segmentation_msgs.popleft()
+        prediction_msg = self._prediction_msgs.popleft()
+
+        # Transform segmented frame to cityscapes so that the drawn points
+        # maintain their color.
+        segmentation_msg.frame.transform_to_cityscapes()
 
         for obstacle in tracking_msg.obstacle_trajectories:
             self._draw_trajectory_on_img(obstacle, segmentation_msg.frame,
