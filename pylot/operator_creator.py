@@ -419,17 +419,18 @@ def add_mpc_agent(can_bus_stream, ground_obstacles_stream,
 
 
 def add_pylot_agent(can_bus_stream, waypoints_stream, traffic_lights_stream,
-                    obstacles_stream, lidar_stream, open_drive_stream,
-                    depth_camera_stream):
+                    obstacles_stream, point_cloud_stream, open_drive_stream,
+                    camera_setup):
     input_streams = [
         can_bus_stream, waypoints_stream, traffic_lights_stream,
-        obstacles_stream, lidar_stream, open_drive_stream, depth_camera_stream
+        obstacles_stream, point_cloud_stream, open_drive_stream
     ]
     [control_stream] = erdos.connect(PylotAgentOperator,
                                      input_streams,
                                      True,
                                      'pylot_agent_operator',
                                      FLAGS,
+                                     camera_setup,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_file_name=FLAGS.csv_log_file_name)
     return control_stream

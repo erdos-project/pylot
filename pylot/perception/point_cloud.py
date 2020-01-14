@@ -38,7 +38,8 @@ class PointCloud(object):
             [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
         transform = identity_transform * to_camera_transform
         transformed_points = transform.transform_points(points)
-        return [[loc.x, loc.y, loc.z] for loc in transformed_points]
+        return np.asarray([[loc.x, loc.y, loc.z]
+                           for loc in transformed_points])
 
     def get_pixel_location(self, pixel, camera_setup):
         """ Gets the 3D world location from pixel coordinates.

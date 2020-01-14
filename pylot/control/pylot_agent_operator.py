@@ -1,5 +1,6 @@
 import carla
 from collections import deque
+import copy
 import erdos
 import math
 from pid_controller.pid import PID
@@ -20,27 +21,27 @@ class PylotAgentOperator(erdos.Operator):
                  waypoints_stream,
                  traffic_lights_stream,
                  obstacles_stream,
-                 lidar_stream,
+                 point_cloud_stream,
                  open_drive_stream,
-                 depth_camera_stream,
                  control_stream,
                  name,
                  flags,
+                 camera_setup,
                  log_file_name=None,
                  csv_file_name=None):
         can_bus_stream.add_callback(self.on_can_bus_update)
         waypoints_stream.add_callback(self.on_waypoints_update)
         traffic_lights_stream.add_callback(self.on_traffic_lights_update)
         obstacles_stream.add_callback(self.on_obstacles_update)
-        lidar_stream.add_callback(self.on_lidar_update)
+        point_cloud_stream.add_callback(self.on_point_cloud_update)
         open_drive_stream.add_callback(self.on_open_drive_map)
-        depth_camera_stream.add_callback(self.on_depth_camera_update)
         erdos.add_watermark_callback([
             can_bus_stream, waypoints_stream, traffic_lights_stream,
-            obstacles_stream
+            obstacles_stream, point_cloud_stream
         ], [control_stream], self.on_watermark)
         self._name = name
         self._flags = flags
+        self._camera_setup = camera_setup
         self._log_file_name = log_file_name
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
@@ -63,19 +64,22 @@ class PylotAgentOperator(erdos.Operator):
         self._traffic_lights_msgs = deque()
         self._obstacles_msgs = deque()
         self._point_clouds = deque()
-        self._depth_camera_msgs = deque()
         self._vehicle_labels = {'car', 'bicycle', 'motorcycle', 'bus', 'truck'}
 
     @staticmethod
     def connect(can_bus_stream, waypoints_stream, traffic_lights_stream,
-                obstacles_stream, lidar_stream, open_drive_stream,
-                depth_camera_stream):
+                obstacles_stream, point_cloud_stream, open_drive_stream):
         control_stream = erdos.WriteStream()
         return [control_stream]
 
-    def compute_command(self, can_bus_msg, waypoint_msg, tl_msg, obstacles_msg,
-                        pc_msg, depth_msg, timestamp):
+    def on_watermark(self, timestamp, control_stream):
+        self._logger.debug('@{}: received watermark'.format(timestamp))
         start_time = time.time()
+        can_bus_msg = self._can_bus_msgs.popleft()
+        waypoint_msg = self._waypoint_msgs.popleft()
+        tl_msg = self._traffic_lights_msgs.popleft()
+        obstacles_msg = self._obstacles_msgs.popleft()
+        point_cloud_msg = self._point_clouds.popleft()
         vehicle_transform = can_bus_msg.data.transform
         # Vehicle sped in m/s
         vehicle_speed = can_bus_msg.data.forward_speed
@@ -83,25 +87,16 @@ class PylotAgentOperator(erdos.Operator):
         wp_vector = waypoint_msg.wp_vector
         wp_angle_speed = waypoint_msg.wp_angle_speed
         target_speed = waypoint_msg.target_speed
-        # Transform point cloud to camera coordinates.
-        point_cloud = None
-        if pc_msg is not None:
-            point_cloud = pc_msg.point_cloud
-        depth_frame = None
-        if depth_msg is not None:
-            depth_frame = depth_msg.frame
-            # We need to transform the static setup of the camera relative to
-            # the position of the vehicle.
-            depth_frame.camera_setup.set_transform(
-                vehicle_transform * depth_frame.camera_setup.transform)
 
-        traffic_lights = self.__transform_tl_output(tl_msg, point_cloud,
-                                                    depth_frame)
-        assert len(timestamp.coordinates) == 1
-        game_time = timestamp.coordinates[0]
-        (people,
-         vehicles) = self.__transform_detector_output(obstacles_msg,
-                                                      point_cloud, depth_frame)
+        transformed_camera_setup = copy.deepcopy(self._camera_setup)
+        transformed_camera_setup.set_transform(
+            vehicle_transform * transformed_camera_setup.transform)
+
+        traffic_lights = self.__transform_tl_output(
+            tl_msg, point_cloud_msg.point_cloud, transformed_camera_setup)
+        (people, vehicles) = self.__transform_detector_output(
+            obstacles_msg, point_cloud_msg.point_cloud,
+            transformed_camera_setup)
 
         self._logger.debug('@{}: speed {} and location {}'.format(
             timestamp, vehicle_speed, vehicle_transform))
@@ -122,29 +117,8 @@ class PylotAgentOperator(erdos.Operator):
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
                                                      self._name, timestamp,
                                                      runtime))
-        return control_msg
 
-    def on_watermark(self, timestamp, control_stream):
-        self._logger.debug('@{}: received watermark'.format(timestamp))
-        can_bus_msg = self._can_bus_msgs.popleft()
-        waypoint_msg = self._waypoint_msgs.popleft()
-        tl_msg = self._traffic_lights_msgs.popleft()
-        obstacles_msg = self._obstacles_msgs.popleft()
-        pc_msg = None
-        if len(self._point_clouds) == 0 and len(self._depth_camera_msgs) == 0:
-            self._logger.fatal('No point clouds or depth frame msgs available')
-            return
-        elif len(self._point_clouds) > 0:
-            pc_msg = self._point_clouds.popleft()
-        depth_msg = None
-        if len(self._depth_camera_msgs) > 0:
-            depth_msg = self._depth_camera_msgs.popleft()
-
-        control_command_msg = self.compute_command(can_bus_msg, waypoint_msg,
-                                                   tl_msg, obstacles_msg,
-                                                   pc_msg, depth_msg,
-                                                   timestamp)
-        control_stream.send(control_command_msg)
+        control_stream.send(control_msg)
 
     def on_waypoints_update(self, msg):
         self._logger.debug('@{}: waypoints update'.format(msg.timestamp))
@@ -162,8 +136,8 @@ class PylotAgentOperator(erdos.Operator):
         self._logger.debug('@{}: obstacles update'.format(msg.timestamp))
         self._obstacles_msgs.append(msg)
 
-    def on_lidar_update(self, msg):
-        self._logger.debug('@{}: lidar update'.format(msg.timestamp))
+    def on_point_cloud_update(self, msg):
+        self._logger.debug('@{}: point cloud update'.format(msg.timestamp))
         self._point_clouds.append(msg)
 
     def on_open_drive_map(self, msg):
@@ -171,36 +145,7 @@ class PylotAgentOperator(erdos.Operator):
         self._map = HDMap(carla.Map('challenge', msg.data),
                           self._log_file_name)
 
-    def on_depth_camera_update(self, msg):
-        self._logger.debug('@{}: depth camera update'.format(msg.timestamp))
-        self._depth_camera_msgs.append(msg)
-
-    def __transform_to_3d(self, pixel, point_cloud, depth_frame):
-        """ Transforms a camera view pixel location to 3d world location.
-
-        Args:
-            x: The x-axis pixel.
-            y: The y-axis pixel.
-            point_cloud: A lidar point cloud.
-            depth_frame: A pylot.perception.depth_frame.DepthFrame.
-
-        Note: It is sufficient to pass either a point cloud or a depth frame.
-
-        Returns:
-            The location in 3D world coordinates.
-        """
-        location = None
-        if depth_frame is not None:
-            location = depth_frame.get_pixel_locations([pixel])[0]
-        elif point_cloud is not None:
-            location = point_cloud.get_pixel_location(pixel,
-                                                      depth_frame.camera_setup)
-        if location is None:
-            self._logger.error(
-                'Could not find lidar point for {}'.format(pixel))
-        return location
-
-    def __transform_tl_output(self, tls, point_cloud, depth_frame):
+    def __transform_tl_output(self, tls, point_cloud, camera_setup):
         """ Transforms traffic light bounding boxes to world coordinates.
 
         Args:
@@ -208,21 +153,23 @@ class PylotAgentOperator(erdos.Operator):
             point_cloud: The Lidar point cloud. Must be taken captured at the
                          same time as the frame on which the traffic lights
                          were detected.
-            depth_frame: A pylot.perception.depth_frame.DepthFrame recorded at
-                the same time as the RGB frame used in detection.
 
         Returns:
             A list of traffic light locations.
         """
         traffic_lights = []
         for tl in tls.obstacles:
-            location = self.__transform_to_3d(
-                tl.bounding_box.get_center_point(), point_cloud, depth_frame)
-            traffic_lights.append((location, tl.label))
+            location = point_cloud.get_pixel_location(
+                tl.bounding_box.get_center_point(), camera_setup)
+            if location is not None:
+                traffic_lights.append((location, tl.label))
+            else:
+                self._logger.error(
+                    'Could not find location for traffic light {}'.format(tl))
         return traffic_lights
 
     def __transform_detector_output(self, obstacles_msg, point_cloud,
-                                    depth_frame):
+                                    camera_setup):
         """ Transforms detected obstacles to world coordinates.
 
         Args:
@@ -230,8 +177,6 @@ class PylotAgentOperator(erdos.Operator):
             point_cloud: The Lidar point cloud. Must be taken captured at the
                          same time as the frame on which the obstacles were
                          detected.
-            depth_frame: A pylot.perception.depth_frame.DepthFrame recorded at
-                the same time as the RGB frame used in detection.
 
         Returns:
             A list of 3D world locations.
@@ -240,15 +185,23 @@ class PylotAgentOperator(erdos.Operator):
         people = []
         for obstacle in obstacles_msg.obstacles:
             if obstacle.label == 'person':
-                location = self.__transform_to_3d(
-                    obstacle.bounding_box.get_center_point(), point_cloud,
-                    depth_frame)
-                people.append(location)
+                location = point_cloud.get_pixel_location(
+                    obstacle.bounding_box.get_center_point(), camera_setup)
+                if location is not None:
+                    people.append(location)
+                else:
+                    self._logger.error(
+                        'Could not find location for person {}'.format(
+                            obstacle))
             elif (obstacle.label in self._vehicle_labels):
-                location = self.__transform_to_3d(
-                    obstacle.bounding_box.get_center_point(), point_cloud,
-                    depth_frame)
-                vehicles.append(location)
+                location = point_cloud.get_pixel_location(
+                    obstacle.bounding_box.get_center_point(), camera_setup)
+                if location is not None:
+                    vehicles.append(location)
+                else:
+                    self._logger.error(
+                        'Could not find location for vehicle {}'.format(
+                            obstacle))
         return (people, vehicles)
 
     def __stop_for_agents(self, ego_vehicle_location, wp_angle, wp_vector,

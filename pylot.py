@@ -271,14 +271,14 @@ def add_planning(goal_location,
 
 
 def add_control(can_bus_stream, obstacles_stream, traffic_lights_stream,
-                waypoints_stream, open_drive_stream, depth_camera_stream,
-                point_cloud_stream, ground_obstacles_stream,
-                ground_traffic_lights_stream):
+                waypoints_stream, open_drive_stream, point_cloud_stream,
+                ground_obstacles_stream, ground_traffic_lights_stream,
+                camera_setup):
     if FLAGS.control_agent == 'pylot':
         control_stream = pylot.operator_creator.add_pylot_agent(
             can_bus_stream, waypoints_stream, traffic_lights_stream,
             obstacles_stream, point_cloud_stream, open_drive_stream,
-            depth_camera_stream)
+            camera_setup)
     elif FLAGS.control_agent == 'mpc':
         control_stream = pylot.operator_creator.add_mpc_agent(
             can_bus_stream, ground_obstacles_stream,
@@ -295,8 +295,6 @@ def add_control(can_bus_stream, obstacles_stream, traffic_lights_stream,
             stream_to_sync_on = obstacles_stream
         elif traffic_lights_stream is not None:
             stream_to_sync_on = traffic_lights_stream
-        elif depth_camera_stream is not None:
-            stream_to_sync_on = depth_camera_stream
         elif waypoints_stream is not None:
             stream_to_sync_on = waypoints_stream
         control_stream = pylot.operator_creator.add_synchronizer(
@@ -381,9 +379,10 @@ def driver():
     # Add the behaviour planning and control operator.
     control_stream = add_control(can_bus_stream, obstacles_stream,
                                  traffic_lights_stream, waypoints_stream,
-                                 open_drive_stream, depth_camera_stream,
-                                 point_cloud_stream, ground_obstacles_stream,
-                                 ground_traffic_lights_stream)
+                                 open_drive_stream, point_cloud_stream,
+                                 ground_obstacles_stream,
+                                 ground_traffic_lights_stream,
+                                 rgb_camera_setup)
     control_loop_stream.set(control_stream)
 
     pylot.operator_creator.add_sensor_visualizers(center_camera_stream,

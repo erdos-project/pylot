@@ -17,6 +17,10 @@ class DepthFrame(object):
         """
         self.frame = frame
         self.camera_setup = camera_setup
+        # Attribute used to cache the depth frame as a point cloud. We're doing
+        # this because it is computationally expensive to transform a depth
+        # frame to a point cloud.
+        self._cached_point_cloud = None
 
     @classmethod
     def from_carla_frame(cls, frame, camera_setup):
@@ -77,10 +81,11 @@ class DepthFrame(object):
         Returns:
             List of pylot.utils.Locations
         """
-        point_cloud = self.as_point_cloud()
+        if self._cached_point_cloud is None:
+            self._cached_point_cloud = self.as_point_cloud()
         return [
-            point_cloud[pixel.y * self.camera_setup.width + pixel.x]
-            for pixel in pixels
+            self._cached_point_cloud[pixel.y * self.camera_setup.width +
+                                     pixel.x] for pixel in pixels
         ]
 
     def save(self, timestamp, data_path, file_base):
