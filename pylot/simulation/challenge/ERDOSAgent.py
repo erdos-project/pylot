@@ -29,18 +29,9 @@ class ERDOSAgent(AutonomousAgent):
     """Agent class that interacts with the scenario runner."""
     def __init_attributes(self, path_to_conf_file):
         flags.FLAGS([__file__, '--flagfile={}'.format(path_to_conf_file)])
-        if FLAGS.track == 1:
-            self.track = Track.ALL_SENSORS
-        elif FLAGS.track == 2:
-            self.track = Track.CAMERAS
-        elif FLAGS.track == 3:
-            self.track = Track.ALL_SENSORS_HDMAP_WAYPOINTS
-        elif FLAGS.track == 4:
-            self.track = Track.SCENE_LAYOUT
-        else:
-            raise ValueError('Unexpected track {}'.format(FLAGS.track))
         self._logger = erdos.utils.setup_logging('erdos_agent',
                                                  FLAGS.log_file_name)
+        self.track = get_track()
         self._camera_setups = create_camera_setups(self.track)
         # Set the lidar in the same position as the center camera.
         self._lidar_transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
@@ -49,7 +40,15 @@ class ERDOSAgent(AutonomousAgent):
         self._waypoints = None
         # Stores the open drive string we get when we run in track 3.
         self._open_drive_data = None
-        self.__create_data_flow()
+        (camera_streams, can_bus_stream, global_trajectory_stream,
+         open_drive_stream, point_cloud_stream,
+         control_stream) = erdos.run_async(create_data_flow, start_port=19000)
+        self._camera_streams = camera_streams
+        self._can_bus_stream = can_bus_stream
+        self._global_trajectory_stream = global_trajectory_stream
+        self._open_drive_stream = open_drive_stream
+        self._point_cloud_stream = point_cloud_stream
+        self._control_stream = control_stream
 
     def setup(self, path_to_conf_file):
         """ Setup phase. Invoked by the scenario runner."""
@@ -144,7 +143,7 @@ class ERDOSAgent(AutonomousAgent):
                 self._logger.warning("Sensor {} not used".format(key))
 
         # Wait until the control is set.
-        control_msg = self._extract_control_stream.read()
+        control_msg = self._control_stream.read()
         output_control = carla.VehicleControl()
         output_control.throttle = control_msg.throttle
         output_control.brake = control_msg.brake
@@ -198,50 +197,65 @@ class ERDOSAgent(AutonomousAgent):
                 erdos.WatermarkMessage(
                     erdos.Timestamp(coordinates=[sys.maxsize])))
 
-    def __create_data_flow(self):
-        """ Create the challenge data-flow graph."""
-        for name in self._camera_setups:
-            self._camera_streams[name] = erdos.IngestStream()
-        self._can_bus_stream = erdos.IngestStream()
-        self._global_trajectory_stream = erdos.IngestStream()
-        self._open_drive_stream = erdos.IngestStream()
-        if self.track != Track.ALL_SENSORS_HDMAP_WAYPOINTS:
-            # We do not have access to the open drive map. Send top watermark.
-            self._open_drive_stream.send(
-                erdos.WatermarkMessage(
-                    erdos.Timestamp(coordinates=[sys.maxsize])))
 
-        if (self.track == Track.ALL_SENSORS
-                or self.track == Track.ALL_SENSORS_HDMAP_WAYPOINTS):
-            self._point_cloud_stream = erdos.IngestStream()
-        else:
-            self._point_cloud_stream = \
-                pylot.operator_creator.add_depth_estimation(
-                    self._camera_streams[LEFT_CAMERA_NAME],
-                    self._camera_streams[RIGHT_CAMERA_NAME],
-                    self._camera_setups[CENTER_CAMERA_NAME])
+def get_track():
+    track = None
+    if FLAGS.track == 1:
+        track = Track.ALL_SENSORS
+    elif FLAGS.track == 2:
+        track = Track.CAMERAS
+    elif FLAGS.track == 3:
+        track = Track.ALL_SENSORS_HDMAP_WAYPOINTS
+    elif FLAGS.track == 4:
+        track = Track.SCENE_LAYOUT
+    else:
+        raise ValueError('Unexpected track {}'.format(FLAGS.track))
+    return track
 
-        self._obstacles_stream = pylot.operator_creator.add_obstacle_detection(
-            self._camera_streams[CENTER_CAMERA_NAME])
-        self._traffic_lights_stream = \
-            pylot.operator_creator.add_traffic_light_detector(
-                self._camera_streams[TL_CAMERA_NAME])
 
-        self._waypoints_stream = pylot.operator_creator.add_waypoint_planning(
-            self._can_bus_stream, self._open_drive_stream,
-            self._global_trajectory_stream, None)
+def create_data_flow():
+    """ Create the challenge data-flow graph."""
+    track = get_track()
+    camera_setups = create_camera_setups(track)
+    camera_streams = {}
+    for name in camera_setups:
+        camera_streams[name] = erdos.IngestStream()
+    can_bus_stream = erdos.IngestStream()
+    global_trajectory_stream = erdos.IngestStream()
+    open_drive_stream = erdos.IngestStream()
+    if track != Track.ALL_SENSORS_HDMAP_WAYPOINTS:
+        # We do not have access to the open drive map. Send top watermark.
+        open_drive_stream.send(
+            erdos.WatermarkMessage(erdos.Timestamp(coordinates=[sys.maxsize])))
 
-        if FLAGS.visualize_rgb_camera:
-            pylot.operator_creator.add_camera_visualizer(
-                self._camera_streams[CENTER_CAMERA_NAME], CENTER_CAMERA_NAME)
+    if (track == Track.ALL_SENSORS
+            or track == Track.ALL_SENSORS_HDMAP_WAYPOINTS):
+        point_cloud_stream = erdos.IngestStream()
+    else:
+        point_cloud_stream = pylot.operator_creator.add_depth_estimation(
+            camera_streams[LEFT_CAMERA_NAME],
+            camera_streams[RIGHT_CAMERA_NAME],
+            camera_setups[CENTER_CAMERA_NAME])
 
-        self._control_stream = pylot.operator_creator.add_pylot_agent(
-            self._can_bus_stream, self._waypoints_stream,
-            self._traffic_lights_stream, self._obstacles_stream,
-            self._point_cloud_stream, self._open_drive_stream,
-            self._camera_setups[CENTER_CAMERA_NAME])
-        self._extract_control_stream = erdos.ExtractStream(
-            self._control_stream)
+    obstacles_stream = pylot.operator_creator.add_obstacle_detection(
+        camera_streams[CENTER_CAMERA_NAME])[0]
+    traffic_lights_stream = pylot.operator_creator.add_traffic_light_detector(
+        camera_streams[TL_CAMERA_NAME])
+
+    waypoints_stream = pylot.operator_creator.add_waypoint_planning(
+        can_bus_stream, open_drive_stream, global_trajectory_stream, None)
+
+    if FLAGS.visualize_rgb_camera:
+        pylot.operator_creator.add_camera_visualizer(
+            camera_streams[CENTER_CAMERA_NAME], CENTER_CAMERA_NAME)
+
+    control_stream = pylot.operator_creator.add_pylot_agent(
+        can_bus_stream, waypoints_stream, traffic_lights_stream,
+        obstacles_stream, point_cloud_stream, open_drive_stream,
+        camera_setups[CENTER_CAMERA_NAME])
+    extract_control_stream = erdos.ExtractStream(control_stream)
+    return (camera_streams, can_bus_stream, global_trajectory_stream,
+            open_drive_stream, point_cloud_stream, extract_control_stream)
 
 
 def create_camera_setups(track):
