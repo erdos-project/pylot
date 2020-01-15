@@ -282,6 +282,17 @@ def test_initialize_point_cloud(points, expected):
 
 
 @pytest.mark.parametrize("lidar_points, pixel, expected", [
+
+    # In this test, lidar points are first converted to camera coordinates,
+    # when constructing the PointCloud. Then, get_pixel_location finds the
+    # closest point in the point cloud, normalizes our query to have the
+    # same depth as this closest point, and converts to unreal coordinates.
+    #
+    # For example, in the first test case, the lidar points in camera coordinates
+    # are (-1,0,1),(1,0,1), and the query pixel is (-0.5, 0, 1). The closest lidar
+    # point is (-1,0,1), so the normalization step has no effect. Finally,
+    # converting the query pixel to unreal coordinates gives (1, -0.5, 0).
+
     # Lidar Points are left middle and right middle, same depth.
     ([Location(-1,-1,0),Location(1,-1,0)], Vector2D(200, 300), Location(1, -0.5, 0)),
     ([Location(-1,-1,0),Location(1,-1,0)], Vector2D(600, 300), Location(1, 0.5, 0)),
