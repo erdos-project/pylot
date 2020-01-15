@@ -62,6 +62,9 @@ class CameraFrame(object):
         cv2.imshow(window_name, image_np)
         cv2.waitKey(1)
 
+    def draw_point(self, point, color, r=3):
+        cv2.circle(self.frame, (int(point.x), int(point.y)), r, color, -1)
+
     def save(self, timestamp, data_path, file_base):
         if self.encoding != 'RGB':
             image_np = self.as_rgb_numpy_array()

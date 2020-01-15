@@ -584,11 +584,16 @@ def add_prediction_visualizer(obstacle_tracking_stream,
 
 
 def add_waypoint_visualizer(waypoints_stream,
+                            camera_stream,
+                            can_bus_stream,
+                            camera_setup,
                             name='waypoint_visualizer_operator'):
-    erdos.connect(WaypointVisualizerOperator, [waypoints_stream],
+    erdos.connect(WaypointVisualizerOperator,
+                  [waypoints_stream, camera_stream, can_bus_stream],
                   True,
                   name,
                   FLAGS,
+                  camera_setup,
                   log_file_name=FLAGS.log_file_name)
 
 

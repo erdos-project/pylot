@@ -38,7 +38,6 @@ def add_obstacle_detection(center_camera_stream,
         # TODO: Only returns the first obstacles stream.
         obstacles_streams = pylot.operator_creator.add_obstacle_detection(
             center_camera_stream)
-        assert len(obstacles_streams) == 1
         obstacles_stream = obstacles_streams[0]
     if FLAGS.perfect_obstacle_detection or FLAGS.evaluate_obstacle_detection:
         assert (center_camera_setup is not None and can_bus_stream is not None
@@ -239,6 +238,8 @@ def add_prediction(obstacles_tracking_stream,
 def add_planning(goal_location,
                  can_bus_stream,
                  prediction_stream,
+                 camera_stream,
+                 camera_setup,
                  open_drive_stream=None,
                  global_trajectory_stream=None):
     """ Adds planning operators.
@@ -266,7 +267,10 @@ def add_planning(goal_location,
         raise ValueError('Unexpected planning_type {}'.format(
             FLAGS.planning_type))
     if FLAGS.visualize_waypoints:
-        pylot.operator_creator.add_waypoint_visualizer(waypoints_stream)
+        pylot.operator_creator.add_waypoint_visualizer(waypoints_stream,
+                                                       camera_stream,
+                                                       can_bus_stream,
+                                                       camera_setup)
     return waypoints_stream
 
 
@@ -372,7 +376,8 @@ def driver():
                                    float(FLAGS.goal_location[1]),
                                    float(FLAGS.goal_location[2]))
     waypoints_stream = add_planning(goal_location, can_bus_stream,
-                                    prediction_stream, open_drive_stream,
+                                    prediction_stream, center_camera_stream,
+                                    rgb_camera_setup, open_drive_stream,
                                     global_trajectory_stream)
 
     # TODO: Merge depth camera stream and point cloud stream.
