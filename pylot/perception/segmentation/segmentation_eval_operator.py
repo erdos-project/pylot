@@ -103,6 +103,7 @@ class SegmentationEvalOperator(erdos.Operator):
             return base + self._sim_interval
 
     def __compute_mean_iou(self, ground_frame, segmented_frame):
+        ground_frame.transform_to_cityscapes()
         (mean_iou,
          class_iou) = ground_frame.compute_semantic_iou(segmented_frame)
         self._logger.info('IoU class scores: {}'.format(class_iou))

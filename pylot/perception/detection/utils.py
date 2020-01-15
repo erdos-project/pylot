@@ -10,11 +10,17 @@ import pylot.utils
 GROUND_COLOR_MAP = {
     'person': [0, 128, 0],
     'vehicle': [128, 0, 0],
+    'car': [128, 0, 0],
+    'bicycle': [128, 0, 0],
+    'motorcycle': [128, 0, 0],
+    'bus': [128, 0, 0],
+    'truck': [128, 0, 0],
     'stop marking': [128, 128, 0],
     'speed limit': [255, 255, 0],
     'red traffic light': [0, 0, 255],
     'yellow traffic light': [0, 255, 255],
     'green traffic light': [0, 255, 0],
+    '': [255, 255, 255],
 }
 
 coco_bbox_color_list = np.array([

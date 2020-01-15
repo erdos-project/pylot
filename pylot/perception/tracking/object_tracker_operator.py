@@ -140,5 +140,5 @@ class ObjectTrackerOperator(erdos.Operator):
             if self._flags.visualize_tracker_output and not catch_up:
                 # tracked obstacles have no label, draw white bbox.
                 camera_frame.annotate_with_bounding_boxes(
-                    timestamp, tracked_obstacles, {"": [255, 255, 255]})
+                    timestamp, tracked_obstacles)
                 camera_frame.visualize(self._name)

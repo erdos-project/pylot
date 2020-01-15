@@ -61,7 +61,7 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
     def __init__(self, flags):
         # Initialize the siam network.
         self._logger = erdos.utils.setup_logging(
-            'multi_object_da_siam_rpn_trakcer', self.flags.log_file_name)
+            'multi_object_da_siam_rpn_trakcer', flags.log_file_name)
         self._siam_net = SiamRPNvot()
         self._siam_net.load_state_dict(torch.load(
             flags.da_siam_rpn_model_path))

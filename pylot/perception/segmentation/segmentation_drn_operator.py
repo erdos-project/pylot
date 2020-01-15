@@ -36,7 +36,7 @@ class SegmentationDRNOperator(erdos.Operator):
             name + '-csv', csv_file_name)
         arch = "drn_d_22"
         classes = 19
-        self._pallete = drn.segment.CARLA_PALETTE
+        self._pallete = drn.segment.CARLA_CITYSCAPE_PALETTE
         self._model = DRNSeg(arch,
                              classes,
                              pretrained_model=None,
@@ -75,7 +75,7 @@ class SegmentationDRNOperator(erdos.Operator):
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
                                                      self._name, msg.timestamp,
                                                      runtime))
-        frame = SegmentedFrame(image_np, 'carla', msg.frame.camera_setup)
+        frame = SegmentedFrame(image_np, 'cityscapes', msg.frame.camera_setup)
         if self._flags.visualize_segmentation_output:
             frame.visualize(self._name, msg.timestamp)
         segmented_stream.send(

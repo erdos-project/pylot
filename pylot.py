@@ -388,8 +388,8 @@ def driver():
     pylot.operator_creator.add_sensor_visualizers(center_camera_stream,
                                                   depth_camera_stream,
                                                   point_cloud_stream,
-                                                  segmented_stream, imu_stream,
-                                                  can_bus_stream)
+                                                  ground_segmented_stream,
+                                                  imu_stream, can_bus_stream)
 
 
 def main(argv):
