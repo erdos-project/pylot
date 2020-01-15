@@ -118,6 +118,11 @@ class CameraSetup(object):
         Takes in a Transform that occurs in unreal coordinates,
         and converts it into a Transform that goes from camera
         coordinates to unreal coordinates.
+
+        With no additional rotations:
+        Unreal coordinates: +x is into the screen, +y is to the right, +z is up
+        Camera coordinates: +x is to the right, +y is down, +z is into the screen
+        Lidar coordinates: +x is to the right, +y is out of the screen, +z is down
         """
         import numpy as np
         to_unreal_transform = Transform(matrix=np.array(

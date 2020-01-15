@@ -30,14 +30,12 @@ class PointCloud(object):
         return cls(point_cloud, transform)
 
     def _to_camera_coordinates(self, points):
-        identity_transform = Transform(matrix=np.array(
-            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
-        # Converts a transform that occurs in camera coordinates into a
-        # transform that goes from lidar coordinates to camera coordinates.
+        # Converts points in lidar coordinates to points in camera coordinates.
+        # See CameraSetup in pylot/simulation/sensor_setup.py for coordinate
+        # axis orientations.
         to_camera_transform = Transform(matrix=np.array(
             [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
-        transform = identity_transform * to_camera_transform
-        transformed_points = transform.transform_points(points)
+        transformed_points = to_camera_transform.transform_points(points)
         return np.asarray([[loc.x, loc.y, loc.z]
                            for loc in transformed_points])
 
