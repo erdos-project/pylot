@@ -44,8 +44,11 @@ class DepthFrame(object):
 
     def as_point_cloud(self):
         """
-        Converts a CARLA-encoded depth-map to a 2D array containing
-        the 3D position (relative to the camera) of each pixel.
+        Converts a CARLA-encoded depth-map to a 1D array containing
+        the 3D position of each pixel in world coordinates.
+
+        See CameraSetup in pylot/simulation/sensor_setup.py for coordinate
+        axis orientations.
         """
         far = 1000.0  # max depth in meters.
         intrinsic_mat = self.camera_setup.get_intrinsic_matrix()
