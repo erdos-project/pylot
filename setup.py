@@ -7,15 +7,14 @@ setup(
     description=("A platform for developing autonomous vehicles."),
     long_description=open("README.md").read(),
     url="https://github.com/erdos-project/pylot",
-    keywords=("autonomous vehicles driving python"),
+    keywords=("autonomous vehicles driving python carla simulation"),
     packages=find_packages(),
     license="Apache 2.0",
     install_requires=[
         "absl-py",
-        "cffi",
         "cvxpy",
+        "erdos>=0.2.0",
         "gdown",
-        "erdos>=0.1.1",
         "matplotlib==2.2.4",
         "networkx==2.2",
         "numpy<1.17",  # Update to newer numpy version once we switch to tf2
@@ -23,13 +22,12 @@ setup(
         "opencv-python>=4.1.0.25",
         "opencv-contrib-python>=4.1.0.25",
         "pid_controller",
-        "pillow",
+        "pillow==6.2.1",
         "pptk",  # TODO(ionel): Fix pptk install (https://github.com/heremaps/pptk/issues/3)
-        "tensorflow-gpu>=1.12",
-        "protobuf",
+        "pytest"
         "scikit-image<0.15",
         "scipy==1.2.2",
-        "setproctitle",
+        "tensorflow-gpu>=1.12",
         "torch==0.4.1",
         "torchvision==0.2.1"
     ],

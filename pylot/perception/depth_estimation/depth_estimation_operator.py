@@ -1,6 +1,6 @@
 from absl import flags
 import erdos
-import matplotlib.pyplot as plt
+import cv2
 import os
 import time
 import torch
@@ -117,8 +117,8 @@ class DepthEstimationOperator(erdos.Operator):
                                                      runtime))
 
         if self._flags.visualize_depth_est:
-            plt.imshow(output, cmap='viridis')
-            plt.show()
+            cv2.imshow(self._name, output)
+            cv2.waitKey(1)
 
         camera_setup = CameraSetup("depth_estimation",
                                    "estimation.anynet",
