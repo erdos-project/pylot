@@ -29,6 +29,10 @@ setup(
         "scipy==1.2.2",
         "tensorflow-gpu>=1.12",
         "torch==0.4.1",
-        "torchvision==0.2.1"
+        "torchvision==0.2.1",
+        ##### Sort tracking dependencies ####
+        "filterpy==1.4.1",
+        "numba==0.38.1",
+        "scikit-learn==0.19.1",
     ],
 )

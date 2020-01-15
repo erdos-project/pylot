@@ -10,9 +10,10 @@ from pylot.perception.messages import SegmentedFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.utils import time_epoch_ms
 
-flags.DEFINE_string('segmentation_model_path',
-                    'dependencies/models/drn_d_22_cityscapes.pth',
-                    'Path to the model')
+flags.DEFINE_string(
+    'segmentation_model_path',
+    'dependencies/models/segmentation/drn/drn_d_22_cityscapes.pth',
+    'Path to the model')
 flags.DEFINE_bool('visualize_segmentation_output', False,
                   'True to enable visualization of segmentation output')
 

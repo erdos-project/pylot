@@ -15,7 +15,7 @@ flags.DEFINE_float(
     'GPU memory fraction allocated to each obstacle detector operator')
 flags.DEFINE_float('obstacle_detection_min_score_threshold', 0.5,
                    'Min score threshold for bounding box')
-flags.DEFINE_string('path_coco_labels', 'dependencies/models/coco.names',
+flags.DEFINE_string('path_coco_labels', 'dependencies/models/pylot.names',
                     'Path to the COCO labels')
 
 

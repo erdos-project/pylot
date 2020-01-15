@@ -20,9 +20,9 @@ flags.DEFINE_bool('perfect_obstacle_detection', False,
                   'True to enable perfect obstacle detection')
 flags.DEFINE_list(
     'obstacle_detection_model_paths',
-    'dependencies/models/ssd_resnet50_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03/frozen_inference_graph.pb',
+    'dependencies/models/obstacle_detection/faster-rcnn/frozen_inference_graph.pb',
     'Comma-separated list of model paths')
-flags.DEFINE_list('obstacle_detection_model_names', 'ssd_resnet50_v1_fpn',
+flags.DEFINE_list('obstacle_detection_model_names', 'faster-rcnn',
                   'Comma-separated list of model names')
 flags.DEFINE_bool('obstacle_tracking', False,
                   'True to enable obstacle tracking operator')

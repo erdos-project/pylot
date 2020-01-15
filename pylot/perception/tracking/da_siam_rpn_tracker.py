@@ -13,7 +13,7 @@ from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 flags.DEFINE_string('da_siam_rpn_model_path',
-                    'dependencies/models/SiamRPNVOT.model',
+                    'dependencies/models/tracking/DASiamRPN/SiamRPNVOT.model',
                     'Path to the model')
 
 MAX_TRACKER_AGE = 5

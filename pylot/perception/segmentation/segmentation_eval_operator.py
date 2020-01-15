@@ -61,14 +61,8 @@ class SegmentationEvalOperator(erdos.Operator):
                 end_frame = self.__get_ground_segmentation_at(end_time)
                 self._logger.debug('Computing for times {} {}'.format(
                     start_time, end_time))
-                if self._flags.segmentation_eval_use_accuracy_model:
-                    # Not using the segmentation output => get ground
-                    # segmentation.
-                    start_frame = self.__get_ground_segmentation_at(start_time)
-                    self.__compute_mean_iou(end_frame, start_frame)
-                else:
-                    start_frame = self.__get_segmented_at(start_time)
-                    self.__compute_mean_iou(end_frame, start_frame)
+                start_frame = self.__get_segmented_at(start_time)
+                self.__compute_mean_iou(end_frame, start_frame)
             else:
                 # The remaining entries are newer ground segmentated frames.
                 break

@@ -12,7 +12,7 @@ from pylot.utils import set_tf_loglevel, time_epoch_ms
 
 flags.DEFINE_string(
     'traffic_light_det_model_path',
-    'dependencies/models/traffic_light_det_inference_graph.pb',
+    'dependencies/models/traffic_light_detection/faster-rcnn/frozen_inference_graph.pb',
     'Path to the traffic light model protobuf')
 flags.DEFINE_float('traffic_light_det_min_score_threshold', 0.3,
                    'Min score threshold for bounding box')
@@ -68,8 +68,8 @@ class TrafficLightDetOperator(erdos.Operator):
             'num_detections:0')
         self._labels = {
             1: TrafficLightColor.GREEN,
-            2: TrafficLightColor.RED,
-            3: TrafficLightColor.YELLOW,
+            2: TrafficLightColor.YELLOW,
+            3: TrafficLightColor.RED,
             4: TrafficLightColor.OFF
         }
         # The bounding box colors to use in the visualizer.
