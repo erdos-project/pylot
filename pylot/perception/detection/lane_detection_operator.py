@@ -82,7 +82,7 @@ class LaneDetectionOperator(erdos.Operator):
                                                      runtime))
 
         if self._flags.visualize_lane_detection:
-            frame = CameraFrame(lines_edges, 'BGR')
+            frame = CameraFrame(lines_edges, 'BGR', msg.frame.camera_setup)
             frame.visualize(self._name, msg.timestamp)
 
         detected_lanes_stream.send(erdos.Message(msg.timestamp, image_np))

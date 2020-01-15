@@ -579,21 +579,18 @@ def add_prediction_visualizer(obstacle_tracking_stream,
                   True,
                   name,
                   FLAGS,
-                  top_down_segmented_camera_setup,
                   log_file_name=FLAGS.log_file_name)
 
 
 def add_waypoint_visualizer(waypoints_stream,
                             camera_stream,
                             can_bus_stream,
-                            camera_setup,
                             name='waypoint_visualizer_operator'):
     erdos.connect(WaypointVisualizerOperator,
                   [waypoints_stream, camera_stream, can_bus_stream],
                   True,
                   name,
                   FLAGS,
-                  camera_setup,
                   log_file_name=FLAGS.log_file_name)
 
 
@@ -601,7 +598,7 @@ def add_perfect_detector(depth_camera_stream, center_camera_stream,
                          segmented_camera_stream, can_bus_stream,
                          ground_obstacles_stream,
                          ground_speed_limit_signs_stream,
-                         ground_stop_signs_stream, camera_setup):
+                         ground_stop_signs_stream):
     [obstacles_stream] = erdos.connect(PerfectDetectorOperator, [
         depth_camera_stream, center_camera_stream, segmented_camera_stream,
         can_bus_stream, ground_obstacles_stream,
@@ -609,7 +606,6 @@ def add_perfect_detector(depth_camera_stream, center_camera_stream,
     ],
                                        True,
                                        'perfect_detector_operator',
-                                       camera_setup,
                                        FLAGS,
                                        log_file_name=FLAGS.log_file_name)
     return obstacles_stream

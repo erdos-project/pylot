@@ -16,7 +16,6 @@ CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
 
 
 def add_obstacle_detection(center_camera_stream,
-                           center_camera_setup=None,
                            can_bus_stream=None,
                            depth_camera_stream=None,
                            segmented_camera_stream=None,
@@ -40,8 +39,7 @@ def add_obstacle_detection(center_camera_stream,
             center_camera_stream)
         obstacles_stream = obstacles_streams[0]
     if FLAGS.perfect_obstacle_detection or FLAGS.evaluate_obstacle_detection:
-        assert (center_camera_setup is not None and can_bus_stream is not None
-                and depth_camera_stream is not None
+        assert (can_bus_stream is not None and depth_camera_stream is not None
                 and segmented_camera_stream is not None
                 and ground_obstacles_stream is not None
                 and ground_speed_limit_signs_stream is not None
@@ -49,8 +47,7 @@ def add_obstacle_detection(center_camera_stream,
         perfect_obstacles_stream = pylot.operator_creator.add_perfect_detector(
             depth_camera_stream, center_camera_stream, segmented_camera_stream,
             can_bus_stream, ground_obstacles_stream,
-            ground_speed_limit_signs_stream, ground_stop_signs_stream,
-            center_camera_setup)
+            ground_speed_limit_signs_stream, ground_stop_signs_stream)
         if FLAGS.evaluate_obstacle_detection:
             pylot.operator_creator.add_detection_evaluation(
                 obstacles_stream, perfect_obstacles_stream)
@@ -239,7 +236,6 @@ def add_planning(goal_location,
                  can_bus_stream,
                  prediction_stream,
                  camera_stream,
-                 camera_setup,
                  open_drive_stream=None,
                  global_trajectory_stream=None):
     """ Adds planning operators.
@@ -269,8 +265,7 @@ def add_planning(goal_location,
     if FLAGS.visualize_waypoints:
         pylot.operator_creator.add_waypoint_visualizer(waypoints_stream,
                                                        camera_stream,
-                                                       can_bus_stream,
-                                                       camera_setup)
+                                                       can_bus_stream)
     return waypoints_stream
 
 
@@ -341,8 +336,8 @@ def driver():
          _) = pylot.operator_creator.add_imu(transform, vehicle_id_stream)
 
     obstacles_stream = add_obstacle_detection(
-        center_camera_stream, rgb_camera_setup, can_bus_stream,
-        depth_camera_stream, ground_segmented_stream, ground_obstacles_stream,
+        center_camera_stream, can_bus_stream, depth_camera_stream,
+        ground_segmented_stream, ground_obstacles_stream,
         ground_speed_limit_signs_stream, ground_stop_signs_stream)
     traffic_lights_stream = add_traffic_light_detection(
         transform, vehicle_id_stream, can_bus_stream,
@@ -377,7 +372,7 @@ def driver():
                                    float(FLAGS.goal_location[2]))
     waypoints_stream = add_planning(goal_location, can_bus_stream,
                                     prediction_stream, center_camera_stream,
-                                    rgb_camera_setup, open_drive_stream,
+                                    open_drive_stream,
                                     global_trajectory_stream)
 
     # TODO: Merge depth camera stream and point cloud stream.

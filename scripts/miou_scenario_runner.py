@@ -9,8 +9,10 @@ import sys
 
 import carla
 
-from pylot.simulation.utils import get_world
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
+from pylot.simulation.sensor_setup import SegmentedCameraSetup
+from pylot.simulation.utils import get_world
+import pylot.utils
 
 VEHICLE_DESTINATION = carla.Location(x=387.73 - 370, y=327.07, z=0.5)
 SAVED_FRAMES = collections.deque()
@@ -42,8 +44,12 @@ def spawn_camera(camera_bp,
     camera = _world.spawn_actor(camera_blueprint,
                                 transform,
                                 attach_to=ego_vehicle)
+    camera_setup = SegmentedCameraSetup(
+        "segmented_camera", width, height,
+        pylot.utils.Transform.from_carla_transform(transform))
+
     _world.tick()
-    return camera
+    return camera, camera_setup
 
 
 def retrieve_actor(world, bp_regex, role_name):
@@ -142,7 +148,12 @@ def compute_and_log_miou(current_frame, current_timestamp, csv, deadline=210):
             csv.writerow([time_diff * 1000, "Person", class_iou[person_key]])
 
 
-def process_segmentation_images(msg, ego_vehicle, speed, csv, dump=False):
+def process_segmentation_images(msg,
+                                camera_setup,
+                                ego_vehicle,
+                                speed,
+                                csv,
+                                dump=False):
     print("Received a message for the time: {}".format(msg.timestamp))
 
     # If we are in distance to the destination, stop and exit with success.
@@ -152,7 +163,7 @@ def process_segmentation_images(msg, ego_vehicle, speed, csv, dump=False):
         sys.exit(0)
 
     # Compute the segmentation mIOU.
-    frame = SegmentedFrame.from_carla_image(msg)
+    frame = SegmentedFrame.from_carla_image(msg, camera_setup)
     compute_and_log_miou(frame, msg.timestamp, csv)
 
     # Visualize the run.
@@ -205,9 +216,9 @@ def main(args):
     segmentation_camera_transform = carla.Transform(
         location=carla.Location(1.5, 0.0, 1.4),
         rotation=carla.Rotation(0, 0, 0))
-    segmentation_camera = spawn_camera('sensor.camera.semantic_segmentation',
-                                       segmentation_camera_transform,
-                                       ego_vehicle, *args.res.split('x'))
+    segmentation_camera, camera_setup = spawn_camera(
+        'sensor.camera.semantic_segmentation', segmentation_camera_transform,
+        ego_vehicle, *args.res.split('x'))
 
     # Open the CSV file for writing.
     csv_file = open(args.output, 'w')
@@ -223,6 +234,7 @@ def main(args):
     # Register a callback function with the camera.
     segmentation_camera.listen(
         functools.partial(process_segmentation_images,
+                          camera_setup=camera_setup,
                           ego_vehicle=ego_vehicle,
                           speed=args.speed,
                           csv=csv_writer,

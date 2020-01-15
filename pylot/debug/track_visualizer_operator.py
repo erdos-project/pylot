@@ -12,7 +12,6 @@ class TrackVisualizerOperator(erdos.Operator):
                  segmented_camera_stream,
                  name,
                  flags,
-                 top_down_camera_setup,
                  log_file_name=None):
         """ Initializes the TrackVisualizerOperator with the given
         parameters.
@@ -40,7 +39,6 @@ class TrackVisualizerOperator(erdos.Operator):
         self._tracking_msgs = deque()
         self._top_down_segmentation_msgs = deque()
         self._prediction_msgs = deque()
-        self._top_down_camera_setup = top_down_camera_setup
 
     @staticmethod
     def connect(obstacle_tracking_stream, prediction_stream,
@@ -77,8 +75,8 @@ class TrackVisualizerOperator(erdos.Operator):
 
     def _draw_trajectory_on_img(self, obstacle, segmented_frame, predict):
         # Intrinsic and extrinsic matrix of the top down segmentation camera.
-        extrinsic_matrix = self._top_down_camera_setup.get_extrinsic_matrix()
-        intrinsic_matrix = self._top_down_camera_setup.get_intrinsic_matrix()
+        extrinsic_matrix = segmented_frame.camera_setup.get_extrinsic_matrix()
+        intrinsic_matrix = segmented_frame.camera_setup.get_intrinsic_matrix()
 
         # Convert to screen points.
         screen_points = [
@@ -93,6 +91,6 @@ class TrackVisualizerOperator(erdos.Operator):
 
         # Draw trajectory points on segmented image.
         for point in screen_points:
-            if (0 <= point.x <= segmented_frame.width) and \
-               (0 <= point.y <= segmented_frame.height):
+            if (0 <= point.x <= segmented_frame.camera_setup.width) and \
+               (0 <= point.y <= segmented_frame.camera_setup.height):
                 segmented_frame.draw_point(point, point_color)

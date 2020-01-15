@@ -86,7 +86,7 @@ def retrieve_semantic_image(timestamp):
     while True:
         semantic_image_msg = SEMANTIC_IMAGES.get()
         if semantic_image_msg.timestamp == timestamp:
-            return SegmentedFrame.from_carla_image(semantic_image_msg)
+            return semantic_image_msg
 
 
 def draw_image(image, surface, blend=False):
@@ -179,6 +179,8 @@ def process_depth_images(msg,
 
     # Get the semantic image corresponding to the given depth image timestamp.
     semantic_image = retrieve_semantic_image(msg.timestamp)
+    semantic_frame = SegmentedFrame.from_carla_image(semantic_image,
+                                                     depth_frame.camera_setup)
 
     # Visualize the image and the bounding boxes if needed.
     if visualize:
@@ -206,7 +208,7 @@ def process_depth_images(msg,
         if obstacle.distance(vehicle_transform) > 125:
             bbox = None
         else:
-            bbox = obstacle.to_camera_view(depth_frame, semantic_image.frame)
+            bbox = obstacle.to_camera_view(depth_frame, semantic_frame.frame)
         if bbox is not None:
             detected_people.append(bbox)
             if visualize:

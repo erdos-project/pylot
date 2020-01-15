@@ -130,8 +130,7 @@ def driver():
         obstacles_stream = pylot.operator_creator.add_perfect_detector(
             depth_camera_stream, center_camera_stream, segmented_stream,
             can_bus_stream, ground_obstacles_stream,
-            ground_speed_limit_signs_stream, ground_stop_signs_stream,
-            rgb_camera_setup)
+            ground_speed_limit_signs_stream, ground_stop_signs_stream)
         pylot.operator_creator.add_bounding_box_logging(obstacles_stream)
 
     if FLAGS.log_multiple_object_tracker:

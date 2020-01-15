@@ -8,16 +8,15 @@ import pylot.utils
 
 
 class CameraFrame(object):
-    def __init__(self, frame, encoding):
+    def __init__(self, frame, encoding, camera_setup=None):
         self.frame = frame
         if encoding != 'BGR' and encoding != 'RGB':
             raise ValueError('Unsupported encoding {}'.format(encoding))
         self.encoding = encoding
-        self.width = self.frame.shape[1]
-        self.height = self.frame.shape[0]
+        self.camera_setup = camera_setup
 
     @classmethod
-    def from_carla_frame(cls, carla_frame):
+    def from_carla_frame(cls, carla_frame, camera_setup):
         # Convert it to a BGR image and store it as a frame with the BGR
         # encoding.
         import carla
@@ -25,7 +24,7 @@ class CameraFrame(object):
             raise ValueError('carla_frame should be of type carla.Image')
         _frame = np.frombuffer(carla_frame.raw_data, dtype=np.dtype("uint8"))
         _frame = np.reshape(_frame, (carla_frame.height, carla_frame.width, 4))
-        return cls(_frame[:, :, :3], 'BGR')
+        return cls(_frame[:, :, :3], 'BGR', camera_setup)
 
     def as_numpy_array(self):
         return self.frame.astype(np.uint8)
@@ -79,5 +78,5 @@ class CameraFrame(object):
         return self.__str__()
 
     def __str__(self):
-        return 'CameraFrame(width: {}, height: {}, encoding: {})'.format(
-            self.width, self.height, self.encoding)
+        return 'CameraFrame(encoding: {}, camera_setup: {})'.format(
+            self.encoding, self.camera_setup)

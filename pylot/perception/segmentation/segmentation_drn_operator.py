@@ -74,7 +74,7 @@ class SegmentationDRNOperator(erdos.Operator):
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
                                                      self._name, msg.timestamp,
                                                      runtime))
-        frame = SegmentedFrame(image_np, 'carla')
+        frame = SegmentedFrame(image_np, 'carla', msg.frame.camera_setup)
         if self._flags.visualize_segmentation_output:
             frame.visualize(self._name, msg.timestamp)
         segmented_stream.send(

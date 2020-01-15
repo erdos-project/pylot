@@ -1,6 +1,5 @@
 from absl import flags
 import carla
-import copy
 from collections import deque
 import erdos
 
@@ -34,7 +33,6 @@ class WaypointVisualizerOperator(erdos.Operator):
                  can_bus_stream,
                  name,
                  flags,
-                 camera_setup,
                  log_file_name=None):
         """ Initializes the WaypointVisualizerOperator with the given
         parameters.
@@ -57,7 +55,6 @@ class WaypointVisualizerOperator(erdos.Operator):
         self._name = name
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
-        self._camera_setup = camera_setup
         self._bgr_msgs = deque()
         self._waypoints_msgs = deque()
         self._can_bus_msgs = deque()
@@ -77,18 +74,18 @@ class WaypointVisualizerOperator(erdos.Operator):
         bgr_msg = self._bgr_msgs.popleft()
         waypoints_msg = self._waypoints_msgs.popleft()
         can_bus_msg = self._can_bus_msgs.popleft()
+        bgr_frame = bgr_msg.frame
         vehicle_transform = can_bus_msg.data.transform
         if self._flags.draw_waypoints_on_camera_frames:
-            transformed_camera_setup = copy.deepcopy(self._camera_setup)
-            transformed_camera_setup.set_transform(
-                vehicle_transform * transformed_camera_setup.transform)
-            extrinsic_matrix = transformed_camera_setup.get_extrinsic_matrix()
-            intrinsic_matrix = transformed_camera_setup.get_intrinsic_matrix()
+            bgr_frame.camera_setup.set_transform(
+                vehicle_transform * bgr_frame.camera_setup.transform)
+            extrinsic_matrix = bgr_frame.camera_setup.get_extrinsic_matrix()
+            intrinsic_matrix = bgr_frame.camera_setup.get_intrinsic_matrix()
             for waypoint in waypoints_msg.waypoints:
                 pixel_location = waypoint.location.to_camera_view(
                     extrinsic_matrix, intrinsic_matrix)
-                bgr_msg.frame.draw_point(pixel_location, [0, 0, 0])
-            bgr_msg.frame.visualize(self._name)
+                bgr_frame.draw_point(pixel_location, [0, 0, 0])
+            bgr_frame.visualize(self._name)
 
     def on_bgr_frame(self, msg):
         self._logger.debug('@{}: {} received bgr message'.format(

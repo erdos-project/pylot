@@ -107,9 +107,9 @@ class TrafficLightDetOperator(erdos.Operator):
         boxes = boxes[0][:num_detections]
         scores = scores[0][:num_detections]
 
-        traffic_lights = self.__convert_to_detected_tl(boxes, scores, labels,
-                                                       msg.frame.height,
-                                                       msg.frame.width)
+        traffic_lights = self.__convert_to_detected_tl(
+            boxes, scores, labels, msg.frame.camera_setup.height,
+            msg.frame.camera_setup.width)
 
         self._logger.debug('@{}: {} detected traffic lights {}'.format(
             msg.timestamp, self._name, traffic_lights))

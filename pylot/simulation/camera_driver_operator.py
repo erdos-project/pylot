@@ -123,8 +123,10 @@ class CameraDriverOperator(erdos.Operator):
 
             msg = None
             if self._camera_setup.camera_type == 'sensor.camera.rgb':
-                msg = FrameMessage(CameraFrame.from_carla_frame(carla_image),
-                                   timestamp)
+                msg = FrameMessage(
+                    CameraFrame.from_carla_frame(carla_image,
+                                                 self._camera_setup),
+                    timestamp)
             elif self._camera_setup.camera_type == 'sensor.camera.depth':
                 # Include the transform relative to the vehicle.
                 # Carla carla_image.transform returns the world transform, but
@@ -135,7 +137,9 @@ class CameraDriverOperator(erdos.Operator):
             elif self._camera_setup.camera_type == \
                  'sensor.camera.semantic_segmentation':
                 msg = SegmentedFrameMessage(
-                    SegmentedFrame.from_carla_image(carla_image), timestamp)
+                    SegmentedFrame.from_carla_image(carla_image,
+                                                    self._camera_setup),
+                    timestamp)
             # Send the message containing the frame.
             self._camera_stream.send(msg)
             # Note: The operator is set not to automatically propagate

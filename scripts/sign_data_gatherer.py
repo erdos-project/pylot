@@ -16,7 +16,8 @@ from pylot.perception.messages import DepthFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.simulation.utils import get_world
 import pylot.simulation.utils
-from pylot.simulation.sensor_setup import DepthCameraSetup
+from pylot.simulation.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
+    SegmentedCameraSetup
 import pylot.utils
 
 FLAGS = flags.FLAGS
@@ -53,7 +54,12 @@ def on_depth_msg(carla_image):
 
 def on_segmented_msg(carla_image):
     global SEGMENTED_FRAME
-    SEGMENTED_FRAME = SegmentedFrame(carla_image, encoding='carla')
+    transform = pylot.utils.Transform.from_carla_transform(
+        carla_image.transform)
+    camera_setup = SegmentedCameraSetup("segmented_camera", FLAGS.frame_width,
+                                        FLAGS.camera_height, transform,
+                                        FLAGS.camera_fov)
+    SEGMENTED_FRAME = SegmentedFrame(carla_image, 'carla', camera_setup)
 
 
 def add_camera(world, transform, callback):
@@ -147,7 +153,12 @@ def log_bounding_boxes(carla_image, depth_msg, segmented_frame, traffic_lights,
     game_time = int(carla_image.timestamp * 1000)
     print("Processing game time {} in {} with weather {}".format(
         game_time, town, weather))
-    frame = CameraFrame.from_carla_frame(carla_image)
+    transform = pylot.utils.Transform.from_carla_transform(
+        carla_image.transform)
+    camera_setup = RGBCameraSetup("rgb_camera", FLAGS.frame_width,
+                                  FLAGS.camera_height, transform,
+                                  FLAGS.camera_fov)
+    frame = CameraFrame.from_carla_frame(carla_image, camera_setup)
     _, world = get_world()
     town_name = world.get_map().name
 

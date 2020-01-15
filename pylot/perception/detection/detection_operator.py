@@ -100,11 +100,16 @@ class DetectionOperator(erdos.Operator):
                     self._flags.obstacle_detection_min_score_threshold):
                 obstacles.append(
                     DetectedObstacle(
-                        BoundingBox2D(int(res_boxes[i][1] * msg.frame.width),
-                                      int(res_boxes[i][3] * msg.frame.width),
-                                      int(res_boxes[i][0] * msg.frame.height),
-                                      int(res_boxes[i][2] * msg.frame.height)),
-                        res_scores[i], self._coco_labels[res_classes[i]]))
+                        BoundingBox2D(
+                            int(res_boxes[i][1] *
+                                msg.frame.camera_setup.width),
+                            int(res_boxes[i][3] *
+                                msg.frame.camera_setup.width),
+                            int(res_boxes[i][0] *
+                                msg.frame.camera_setup.height),
+                            int(res_boxes[i][2] *
+                                msg.frame.camera_setup.height)), res_scores[i],
+                        self._coco_labels[res_classes[i]]))
             else:
                 self._logger.warning('Filtering unknown class: {}'.format(
                     res_classes[i]))

@@ -29,14 +29,9 @@ class PerfectDetectorOperator(erdos.Operator):
                  ground_stop_signs_stream,
                  obstacles_stream,
                  name,
-                 bgr_camera_setup,
                  flags,
                  log_file_name=None):
-        """ Initializes the operator.
-
-        Args:
-            bgr_camera_setup: A simulation.sensor_setup.CameraSetup.
-        """
+        """ Initializes the operator. """
         depth_camera_stream.add_callback(self.on_depth_camera_update)
         center_camera_stream.add_callback(self.on_bgr_camera_update)
         segmented_camera_stream.add_callback(self.on_segmented_frame)
@@ -64,7 +59,6 @@ class PerfectDetectorOperator(erdos.Operator):
         self._segmented_msgs = deque()
         self._speed_limit_signs = deque()
         self._stop_signs = deque()
-        self._camera_setup = bgr_camera_setup
         self._frame_cnt = 0
 
     @staticmethod
