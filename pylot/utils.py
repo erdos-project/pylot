@@ -11,6 +11,12 @@ class Rotation(object):
         pitch: Rotation about Y-axis.
         yaw:   Rotation about Z-axis.
         roll:  Rotation about X-axis.
+
+    Rotations are applied in the order: Roll (X), Pitch (Y), Yaw (Z).
+    A 90-degree "Roll" maps the positive Z-axis to the positive Y-axis.
+    A 90-degree "Pitch" maps the positive X-axis to the positive Z-axis.
+    A 90-degree "Yaw" maps the positive X-axis to the positive Y-axis.
+
     """
     def __init__(self, pitch=0, yaw=0, roll=0):
         """ Initializes the Rotation instance with either the given pitch,
@@ -285,11 +291,6 @@ class Transform(object):
             coordinate space with respect to the location and rotation of the
             given object.
     """
-
-    # Rotations are applied in the order: Roll (X), Pitch (Y), Yaw (Z).
-    # A 90-degree "Roll" maps the positive Z-axis to the positive Y-axis.
-    # A 90-degree "Pitch" maps the positive X-axis to the positive Z-axis.
-    # A 90-degree "Yaw" maps the positive X-axis to the positive Y-axis.
 
     def __init__(self,
                  location=None,
