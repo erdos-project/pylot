@@ -2,6 +2,9 @@ Pylot is an autonomous vehicle platform for developing and test autonomous
 vehicle components (e.g., perception, prediction, planning) using the
 Carla simulator.
 
+[![Build Status](https://travis-ci.org/erdos-project/pylot.svg)](https://travis-ci.org/erdos-project/pylot)
+[![Documentation Status](https://readthedocs.org/projects/pylot/badge/?version=latest)](https://pylot.readthedocs.io/en/latest/?badge=latest)
+
 # Setup instructions
 
 ## Deploy using Docker
