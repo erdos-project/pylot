@@ -1,5 +1,10 @@
-pylot package
+Pylot
 =============
+
+Pylot is an autonomous vehicle platform for developing and testing autonomous
+vehicle components on top of the Carla simulator.
+
+.. _`codebase on GitHub`: https://github.com/erdos-project/pylot
 
 Subpackages
 -----------

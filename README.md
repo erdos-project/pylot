@@ -1,4 +1,4 @@
-Pylot is an autonomous vehicle platform for developing and test autonomous
+Pylot is an autonomous vehicle platform for developing and testing autonomous
 vehicle components (e.g., perception, prediction, planning) using the
 Carla simulator.
 
