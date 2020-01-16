@@ -16,18 +16,16 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../../'))
 
-
 # -- Project information -----------------------------------------------------
 
 project = u'Pylot'
-copyright = u'2019, The Pylot team'
+copyright = u'2020, The Pylot team'
 author = u'The Pylot team'
 
 # The short X.Y version
 version = u''
 # The full version, including alpha/beta/rc tags
 release = u'0.1'
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -49,18 +47,7 @@ extensions = [
 # Enable autodoc without requiring installation of listed modules
 import mock
 
-mock_modules = ["carla",
-                "DaSiamRPN",
-                "detectors.detector_factory",
-                "dla",
-                "DLASeg",
-                "drn",
-                "pptk",
-                "rospy",
-                "segment",
-                "skimage",
-                "tensorflow",
-                "torch"]
+mock_modules = ["absl", "carla", "DaSiamRPN", "pptk", "segment", "tensorflow"]
 for mod_name in mock_modules:
     sys.modules[mod_name] = mock.Mock()
 
@@ -90,7 +77,6 @@ exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
-
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -129,7 +115,6 @@ html_sidebars = {'**': ['pylot.html']}
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'Pylotdoc'
 
-
 # -- Options for LaTeX output ------------------------------------------------
 
 latex_elements = {
@@ -154,20 +139,15 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'Pylot.tex', u'Pylot Documentation',
-     u'The Pylot team', 'manual'),
+    (master_doc, 'Pylot.tex', u'Pylot Documentation', u'The Pylot team',
+     'manual'),
 ]
-
 
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 'pylot', u'Pylot Documentation',
-     [author], 1)
-]
-
+man_pages = [(master_doc, 'pylot', u'Pylot Documentation', [author], 1)]
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -175,11 +155,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'Pylot', u'Pylot Documentation',
-     author, 'Pylot', 'One line description of project.',
-     'Miscellaneous'),
+    (master_doc, 'Pylot', u'Pylot Documentation', author, 'Pylot',
+     'One line description of project.', 'Miscellaneous'),
 ]
-
 
 # -- Options for Epub output -------------------------------------------------
 
@@ -197,7 +175,6 @@ epub_title = project
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
-
 
 # -- Extension configuration -------------------------------------------------
 

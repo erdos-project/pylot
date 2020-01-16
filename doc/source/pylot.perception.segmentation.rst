@@ -4,10 +4,10 @@ pylot.perception.segmentation package
 Submodules
 ----------
 
-pylot.perception.segmentation.segmentation\_dla\_operator module
-----------------------------------------------------------------
+pylot.perception.segmentation.segmentation\_decay\_operator module
+------------------------------------------------------------------
 
-.. automodule:: pylot.perception.segmentation.segmentation_dla_operator
+.. automodule:: pylot.perception.segmentation.segmentation_decay_operator
     :members:
     :undoc-members:
     :show-inheritance:
@@ -20,14 +20,6 @@ pylot.perception.segmentation.segmentation\_drn\_operator module
     :undoc-members:
     :show-inheritance:
 
-pylot.perception.segmentation.segmentation\_eval\_ground\_operator module
--------------------------------------------------------------------------
-
-.. automodule:: pylot.perception.segmentation.segmentation_eval_ground_operator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pylot.perception.segmentation.segmentation\_eval\_operator module
 -----------------------------------------------------------------
 
@@ -36,14 +28,13 @@ pylot.perception.segmentation.segmentation\_eval\_operator module
     :undoc-members:
     :show-inheritance:
 
-pylot.perception.segmentation.utils module
-------------------------------------------
+pylot.perception.segmentation.segmented_frame module
+----------------------------------------------------
 
-.. automodule:: pylot.perception.segmentation.utils
+.. automodule:: pylot.perception.segmentation.segmented_frame
     :members:
     :undoc-members:
     :show-inheritance:
-
 
 Module contents
 ---------------

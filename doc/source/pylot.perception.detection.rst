@@ -4,18 +4,10 @@ pylot.perception.detection package
 Submodules
 ----------
 
-pylot.perception.detection.detection\_center\_net\_operator module
-------------------------------------------------------------------
-
-.. automodule:: pylot.perception.detection.detection_center_net_operator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pylot.perception.detection.detection\_eval\_ground\_operator module
+pylot.perception.detection.detection\_decay\_operator module
 -------------------------------------------------------------------
 
-.. automodule:: pylot.perception.detection.detection_eval_ground_operator
+.. automodule:: pylot.perception.detection.detection_decay_operator
     :members:
     :undoc-members:
     :show-inheritance:
@@ -28,6 +20,14 @@ pylot.perception.detection.detection\_operator module
     :undoc-members:
     :show-inheritance:
 
+pylot.perception.detection.detection\_eval\_operator module
+--------------------------------------------------------------
+
+.. automodule:: pylot.perception.detection.detection_eval_operator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pylot.perception.detection.lane\_detection\_operator module
 -----------------------------------------------------------
 
@@ -36,18 +36,43 @@ pylot.perception.detection.lane\_detection\_operator module
     :undoc-members:
     :show-inheritance:
 
-pylot.perception.detection.obstacle\_accuracy\_operator module
---------------------------------------------------------------
+pylot.perception.detection.obstacle module
+-----------------------------------------------------------
 
-.. automodule:: pylot.perception.detection.obstacle_accuracy_operator
+.. automodule:: pylot.perception.detection.obstacle
     :members:
     :undoc-members:
     :show-inheritance:
+
+pylot.perception.detection.speed\_limit\_sign module
+-----------------------------------------------------------
+
+.. automodule:: pylot.perception.detection.speed_limit_sign
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pylot.perception.detection.stop\_sign module
+-----------------------------------------------------------
+
+.. automodule:: pylot.perception.detection.stop_sign
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 pylot.perception.detection.traffic\_light\_det\_operator module
 ---------------------------------------------------------------
 
 .. automodule:: pylot.perception.detection.traffic_light_det_operator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pylot.perception.detection.traffic\_light module
+-----------------------------------------------------------
+
+.. automodule:: pylot.perception.detection.traffic_light
     :members:
     :undoc-members:
     :show-inheritance:

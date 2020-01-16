@@ -21,7 +21,7 @@ Submodules
 pylot.config module
 -------------------
 
-.. automodule:: pylot.config
+.. automodule:: pylot.flags
     :members:
     :undoc-members:
     :show-inheritance:

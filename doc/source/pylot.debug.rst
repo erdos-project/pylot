@@ -4,26 +4,26 @@ pylot.debug package
 Submodules
 ----------
 
-pylot.debug.camera\_replay\_operator module
--------------------------------------------
+pylot.debug.camera\_visualizer\_operator module
+-----------------------------------------------
 
-.. automodule:: pylot.debug.camera_replay_operator
+.. automodule:: pylot.debug.camera_visualizer_operator
     :members:
     :undoc-members:
     :show-inheritance:
 
-pylot.debug.depth\_camera\_visualizer module
+pylot.debug.can\_bus\_visualizer\_operator module
+-------------------------------------------------
+
+.. automodule:: pylot.debug.can_bus_visualizer_operator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pylot.debug.imu\_visualizer\_operator module
 --------------------------------------------
 
-.. automodule:: pylot.debug.depth_camera_visualizer
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pylot.debug.depth\_estimation\_operator module
-----------------------------------------------
-
-.. automodule:: pylot.debug.depth_estimation_operator
+.. automodule:: pylot.debug.imu_visualizer_operator
     :members:
     :undoc-members:
     :show-inheritance:
@@ -36,26 +36,18 @@ pylot.debug.lidar\_visualizer\_operator module
     :undoc-members:
     :show-inheritance:
 
-pylot.debug.segmented\_video\_operator module
----------------------------------------------
+pylot.debug.track\_visualizer\_operator module
+----------------------------------------------
 
-.. automodule:: pylot.debug.segmented_video_operator
+.. automodule:: pylot.debug.track_visualizer_operator
     :members:
     :undoc-members:
     :show-inheritance:
 
-pylot.debug.video\_operator module
-----------------------------------
+pylot.debug.waypoint\_visualizer\_operator module
+-------------------------------------------------
 
-.. automodule:: pylot.debug.video_operator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pylot.debug.waypoint\_visualize\_operator module
-------------------------------------------------
-
-.. automodule:: pylot.debug.waypoint_visualize_operator
+.. automodule:: pylot.debug.waypoint_visualizer_operator
     :members:
     :undoc-members:
     :show-inheritance:

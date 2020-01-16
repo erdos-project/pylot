@@ -168,7 +168,7 @@ python3 pylot.py --flagfile=configs/prediction.conf
 
 ### Planning
 The planning component provides two planning options, which can be specified
-using the ```planning_type``` flag:
+using the ```--planning_type``` flag:
 
 1. `waypoint`: a A-star planner that uses the Carla simulator map.
 2. `rrt_star`: a rapidly-explory random tree planner.

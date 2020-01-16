@@ -3,7 +3,7 @@
 To compile the documentation, run the following commands from this directory.
 
 ```
-pip install -r requirements-doc.txt
+pip3 install -r requirements-doc.txt
 make html
 open build/html/index.html
 ```

@@ -1,29 +1,20 @@
 pylot.control package
 =====================
 
+Subpackages
+-----------
+
+.. toctree::
+
+    pylot.control.mpc
+
 Submodules
 ----------
-
-pylot.control.erdos\_agent\_operator module
--------------------------------------------
-
-.. automodule:: pylot.control.erdos_agent_operator
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 pylot.control.ground\_agent\_operator module
 --------------------------------------------
 
 .. automodule:: pylot.control.ground_agent_operator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pylot.control.lidar\_erdos\_agent\_operator module
---------------------------------------------------
-
-.. automodule:: pylot.control.lidar_erdos_agent_operator
     :members:
     :undoc-members:
     :show-inheritance:
@@ -40,6 +31,14 @@ pylot.control.pid\_control\_operator module
 -------------------------------------------
 
 .. automodule:: pylot.control.pid_control_operator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pylot.control.pylot\_agent\_operator module
+-------------------------------------------
+
+.. automodule:: pylot.control.pylot_agent_operator
     :members:
     :undoc-members:
     :show-inheritance:

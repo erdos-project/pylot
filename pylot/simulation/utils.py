@@ -50,7 +50,6 @@ def get_map(host="localhost", port=2000, timeout=10):
 
     Returns:
         A map of the Carla city.
-
     """
     _, world = get_world(host, port, timeout)
     if world is None:
@@ -158,7 +157,6 @@ def get_top_down_transform(transform, top_down_lateral_view):
 def get_traffic_lights_obstacles(traffic_lights, depth_frame, segmented_frame,
                                  town_name):
     """ Get the traffic lights that are within the camera frame.
-    Note: This method should be used with Carla 0.9.*
 
     Args:
         traffic_lights: List of perception.detection.traffic_light.TrafficLight.
@@ -188,7 +186,7 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
         segmented_frame: A perception.segmentation.segmented_frame.SegmentedFrame.
 
     Returns:
-        A list of pylot.perception.detection.DetectedSpeedLimit
+        A list of pylot.perception.detection.DetectedSpeedLimit.
     """
     def match_bboxes_with_speed_signs(camera_transform, loc_bboxes,
                                       speed_signs):

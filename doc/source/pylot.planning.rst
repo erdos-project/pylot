@@ -4,14 +4,6 @@ pylot.planning package
 Submodules
 ----------
 
-pylot.planning.challenge\_planning\_operator module
----------------------------------------------------
-
-.. automodule:: pylot.planning.challenge_planning_operator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pylot.planning.cost\_functions module
 -------------------------------------
 
@@ -24,14 +16,6 @@ pylot.planning.messages module
 ------------------------------
 
 .. automodule:: pylot.planning.messages
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pylot.planning.planning\_operator module
-----------------------------------------
-
-.. automodule:: pylot.planning.planning_operator
     :members:
     :undoc-members:
     :show-inheritance:
@@ -52,10 +36,10 @@ pylot.planning.utils module
     :undoc-members:
     :show-inheritance:
 
-pylot.planning.waypointer\_operator module
-------------------------------------------
+pylot.planning.waypoint\_planning\_operator module
+----------------------------------------
 
-.. automodule:: pylot.planning.waypointer_operator
+.. automodule:: pylot.planning.waypoint_planning_operator
     :members:
     :undoc-members:
     :show-inheritance:
