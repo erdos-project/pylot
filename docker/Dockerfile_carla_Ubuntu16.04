@@ -28,8 +28,8 @@ RUN pip3 install gdown
 
 # Retrieve CARLA
 RUN sudo apt-get -y update && sudo apt-get -y install wget
-RUN cd /home/erdos/workspace/ && wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.7.tar.gz
-RUN cd /home/erdos/workspace/ && mkdir -p CARLA_0.9.7 && mv CARLA_0.9.7.tar.gz CARLA_0.9.7/
-RUN cd /home/erdos/workspace/CARLA_0.9.7 && tar xvf CARLA_0.9.7.tar.gz && rm -rf CARLA_0.9.7.tar.gz
+RUN cd /home/erdos/workspace/ && wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.6.tar.gz
+RUN cd /home/erdos/workspace/ && mkdir -p CARLA_0.9.6 && mv CARLA_0.9.6.tar.gz CARLA_0.9.6/
+RUN cd /home/erdos/workspace/CARLA_0.9.6 && tar xvf CARLA_0.9.6.tar.gz && rm -rf CARLA_0.9.6.tar.gz
 ENV SDL_VIDEODRIVER offscreen
-ENV CARLA_HOME /home/erdos/workspace/CARLA_0.9.7
+ENV CARLA_HOME /home/erdos/workspace/CARLA_0.9.6

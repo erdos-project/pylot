@@ -10,7 +10,7 @@ from pylot.simulation.utils import extract_data_in_pylot_format,\
     get_weathers, get_world, reset_world, set_synchronous_mode
 import pylot.simulation.messages
 
-flags.DEFINE_enum('carla_version', '0.9.7', ['0.9.5', '0.9.6', '0.9.7'],
+flags.DEFINE_enum('carla_version', '0.9.6', ['0.9.5', '0.9.6', '0.9.7'],
                   'Carla simulator version')
 flags.DEFINE_string('carla_host', 'localhost', 'Carla host.')
 flags.DEFINE_integer('carla_port', 2000, 'Carla port.')

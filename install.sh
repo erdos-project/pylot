@@ -4,6 +4,9 @@
 sudo apt-get -y update
 sudo apt-get install -y git wget python3-pip
 pip3 install gdown
+# Install opencv separately because pip3 install doesn't install all libraries
+# opencv requires.
+sudo apt-get install -y python3-opencv
 
 ###############################################################################
 # Get models & code bases we depend on
@@ -52,11 +55,11 @@ git clone https://github.com/ICGog/drn.git
 
 ###### Download the Carla simulator ######
 if [ "$1" != 'challenge' ]; then
-    mkdir CARLA_0.9.7
-    cd CARLA_0.9.7
-    wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.7.tar.gz
-    tar xvf CARLA_0.9.7.tar.gz
-    rm CARLA_0.9.7.tar.gz
+    mkdir CARLA_0.9.6
+    cd CARLA_0.9.6
+    wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.6.tar.gz
+    tar xvf CARLA_0.9.6.tar.gz
+    rm CARLA_0.9.6.tar.gz
     if [ "$1" == 'docker' ]; then
         rm -r CarlaUE4; rm -r HDMaps
     fi
