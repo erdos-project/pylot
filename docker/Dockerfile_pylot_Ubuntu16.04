@@ -22,21 +22,24 @@ SHELL ["/bin/bash", "-c"]
 
 # Get the erdos directory.
 RUN sudo apt-get -y update
-RUN sudo apt-get -y install git
+RUN sudo apt-get -y install git curl clang python3 python3-pip
+RUN pip3 install setuptools setuptools-rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/home/erdos/.cargo/bin:${PATH}"
+RUN rustup default nightly
 RUN mkdir -p /home/erdos/workspace
 RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/erdos.git
-# Install all the requirements.
-RUN cd /home/erdos/workspace/erdos/ && ./install.sh
 
 # Install Tensorflow
 RUN pip3 install tensorflow-gpu==1.12
 
 # Get the Pylot directory.
 RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/pylot.git
+WORKDIR /home/erdos/workspace/pylot/
 # Install all the Python dependencies.
 RUN  cd /home/erdos/workspace/pylot/ && pip3 install -e ./
 # Get the Pylot models and code dependencies.
-RUN sudo apt-get update && sudo apt-get install -y wget
+RUN sudo apt-get install -y wget
 RUN cd /home/erdos/workspace/pylot/ && ./install.sh docker
 
 # Set this env value to run carla in headless CARLA

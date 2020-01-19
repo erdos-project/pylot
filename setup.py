@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="erdos-pylot",
-    version="0.1",
+    version="0.2",
     author="ERDOS Team",
     description=("A platform for developing autonomous vehicles."),
     long_description=open("README.md").read(),
@@ -24,7 +24,7 @@ setup(
         "pid_controller",
         "pillow==6.2.1",
         "pptk",  # TODO(ionel): Fix pptk install (https://github.com/heremaps/pptk/issues/3)
-        "pytest"
+        "pytest",
         "scikit-image<0.15",
         "scipy==1.2.2",
         "tensorflow-gpu>=1.12",
