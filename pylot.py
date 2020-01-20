@@ -121,8 +121,9 @@ def add_lane_detection(center_camera_stream, can_bus_stream=None):
     """
     lane_detection_stream = None
     if FLAGS.lane_detection:
-        lane_detection_stream = pylot.operator_creator.add_lane_detection(
-            center_camera_stream)
+        lane_detection_stream = \
+            pylot.operator_creator.add_canny_edge_lane_detection(
+                center_camera_stream)
     elif FLAGS.perfect_lane_detection:
         assert can_bus_stream is not None
         lane_detection_stream = \

@@ -13,8 +13,8 @@ from pylot.perception.detection.detection_eval_operator import \
     DetectionEvalOperator
 from pylot.perception.detection.detection_decay_operator import \
     DetectionDecayOperator
-from pylot.perception.detection.lane_detection_operator import \
-    LaneDetectionOperator
+from pylot.perception.detection.lane_detection_canny_operator import \
+    CannyEdgeLaneDetectionOperator
 from pylot.perception.detection.traffic_light_det_operator import \
     TrafficLightDetOperator
 from pylot.perception.tracking.object_tracker_operator import \
@@ -129,9 +129,10 @@ def add_traffic_light_detector(traffic_light_camera_stream):
     return traffic_lights_stream
 
 
-def add_lane_detection(bgr_camera_stream, name='lane_detection'):
+def add_canny_edge_lane_detection(bgr_camera_stream,
+                                  name='canny_edge_lane_detection'):
     [lane_detection_stream
-     ] = erdos.connect(LaneDetectionOperator, [bgr_camera_stream],
+     ] = erdos.connect(CannyEdgeLaneDetectionOperator, [bgr_camera_stream],
                        True,
                        name,
                        FLAGS,
