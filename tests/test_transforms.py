@@ -1,9 +1,13 @@
 import pytest
-import mock
+
+# Mock the import of carla.
+import sys
+sys.modules['carla'] = __import__('mocked_carla')
 
 from collections import namedtuple
 import numpy as np
 
+# Import the mocked_carla as carla for the purposes of this test file.
 import mocked_carla as carla
 from pylot.utils import Location, Rotation, Transform, Vector2D
 
@@ -28,7 +32,6 @@ def test_location_creation(x, y, z):
 
 
 @pytest.mark.parametrize("x, y, z", [(10, 20, 30), (-10, -20, -30)])
-@mock.patch('carla.Location', new=carla.Location)
 def test_location_from_carla(x, y, z):
     """ Test that the Location is initialized correctly from a carla.Location
     instance """
@@ -59,7 +62,6 @@ def test_distance(point_a, point_b, expected):
     "between point_b and point_a is not the same as the expected distance."
 
 
-@mock.patch('carla.Location', new=carla.Location)
 def test_as_carla_location():
     """ Test the as_carla_location instance method of Location """
     location = Location(x=1, y=2, z=3)
@@ -143,7 +145,6 @@ def test_rotation(pitch, yaw, roll):
 
 
 @pytest.mark.parametrize("pitch, yaw, roll", [(90, 90, 90), (0, 0, 0)])
-@mock.patch('carla.Rotation', new=carla.Rotation)
 def test_rotation_from_carla(pitch, yaw, roll):
     """ Test that the Rotation is initialized correctly from a carla.Rotation
     instance """
@@ -163,7 +164,6 @@ def test_negative_rotation_from_carla():
         Rotation.from_carla_rotation(dummy_instance)
 
 
-@mock.patch('carla.Rotation', new=carla.Rotation)
 def test_as_carla_rotation():
     """ Test the as_carla_rotation instance method of Rotation """
     rotation = Rotation(pitch=1, yaw=2, roll=3)
