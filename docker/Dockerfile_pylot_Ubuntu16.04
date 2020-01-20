@@ -39,10 +39,12 @@ WORKDIR /home/erdos/workspace/pylot/
 # Cython is required by sci*, but its not a dependency in their setup.py.
 RUN pip3 install cython
 # Get the Pylot models and code dependencies.
-RUN sudo apt-get install -y wget
+RUN sudo apt-get install -y wget libpng16-dev python-opencv
 RUN cd /home/erdos/workspace/pylot/ && ./install.sh docker
 # Install all the Python dependencies.
-RUN  cd /home/erdos/workspace/pylot/ && pip3 install -e ./
+RUN cd /home/erdos/workspace/pylot/ && pip3 install -e ./
+# IPython 7.0 is required by Python 3.5.
+RUN pip3 uninstall --yes ipython && pip3 install ipython==7.0
 
 # Set this env value to run carla in headless CARLA
 ENV SDL_VIDEODRIVER offscreen

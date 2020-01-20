@@ -20,6 +20,11 @@ ENV SHELL /bin/bash
 WORKDIR /home/erdos
 SHELL ["/bin/bash", "-c"]
 
+# Install tzdata without prompt.
+RUN sudo apt-get -y update
+ENV DEBIAN_FRONTEND=noninteractive
+RUN sudo DEBIAN_FRONTEND=noninteractive sudo DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata
+
 # Get the erdos directory.
 RUN sudo apt-get -y update
 RUN sudo apt-get -y install git curl clang python3 python3-pip
