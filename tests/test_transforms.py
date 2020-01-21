@@ -15,7 +15,7 @@ from pylot.utils import Location, Rotation, Transform, Vector2D
 
 
 def test_empty_location():
-    """ Test that an empty Location is initializes at (0, 0, 0) """
+    """ Test that an empty Location is initialized at (0, 0, 0) """
     empty_location = Location()
     assert np.isclose(empty_location.x, 0), "X value is not zero"
     assert np.isclose(empty_location.y, 0), "Y value is not zero"
@@ -60,6 +60,17 @@ def test_distance(point_a, point_b, expected):
     "between point_a and point_b is not the same as the expected distance."
     assert np.isclose(location_b.distance(location_a), expected), "Distance "
     "between point_b and point_a is not the same as the expected distance."
+
+@pytest.mark.parametrize("point_a, point_b, expected",
+                         [((1, 2, 3), (1, 2, 3), 0),
+                          ((10, 20, 30), (40, 50, 60), 90)])
+def test_l1_distance(point_a, point_b, expected):
+    """ Test the L1 distance computed between the two points. """
+    location_a, location_b = Location(*point_a), Location(*point_b)
+    assert np.isclose(location_a.l1_distance(location_b), expected), "L1 "
+    "Distance between point_a and point_b is not the same as expected."
+    assert np.isclose(location_b.l1_distance(location_a), expected), "L1 "
+    "Distance between point_a and point_b is not the same as expected."
 
 
 def test_as_carla_location():
@@ -128,7 +139,7 @@ def test_subtraction(point_a, point_b, expected):
 
 
 def test_empty_rotation():
-    """ Test that an empty Location is initializes at (0, 0, 0) """
+    """ Test that an empty Location is initialized at (0, 0, 0) """
     empty_rotation = Rotation()
     assert np.isclose(empty_rotation.pitch, 0), "pitch value is not zero"
     assert np.isclose(empty_rotation.yaw, 0), "yaw value is not zero"
@@ -176,3 +187,35 @@ def test_as_carla_rotation():
     "yaw value is not the same as the one in rotation."
     assert np.isclose(carla_rotation.roll, rotation.roll), "Returned instance "
     "roll value is not the same as the one in location."
+
+## Vector3D Tests
+
+def test_empty_vector3d():
+    """ Test that an empty Vector3D is initialized at (0, 0, 0) """
+    empty_vector = Vector3D()
+    assert np.isclose(empty_vector.x, 0), "X value is not zero"
+    assert np.isclose(empty_vector.y, 0), "Y value is not zero"
+    assert np.isclose(empty_vector.z, 0), "Z value is not zero"
+
+@pytest.mark.parametrize("x, y, z", [(1, 2, 3), (-1, -2, -3)])
+def test_from_carla_vector(x, y, z):
+    """ Tests the creation of Vector3D from Carla. """
+    carla_vector3d = carla.Vector3D(x, y, z)
+    vector3d = Vector3D.from_carla_vector(carla_vector3d)
+    assert isinstance(vector3d, Vector3D), "The returned object is not of type"
+    "Vector3D"
+    assert np.isclose(carla_vector3d.x, vector3d.x), "X value is not the same"
+    assert np.isclose(carla_vector3d.y, vector3d.y), "Y value is not the same"
+    assert np.isclose(carla_vector3d.z, vector3d.z), "Z value is not the same"
+
+def test_negative_vector_from_carla():
+    """ Tests that Vector3D throws a ValueError if incorrect vector is 
+    passed. """
+    DummyType = namedtuple("DummyType", "x, y, z")
+    dummy_instance = DummyType(0, 0, 0)
+    with pytest.raises(ValueError):
+        Vector3D.from_carla_vector(dummy_instance)
+
+# TODO (Sukrit) :: Write tests for to_camera_view after the CameraSetup tests.
+
+## Transform tests.
