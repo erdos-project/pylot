@@ -238,6 +238,8 @@ class Transform(object):
     Attributes:
         location: The location of the object represented by the transform.
         rotation: The rotation of the object represented by the transform.
+        forward_vector: The forward vector of the object represented by the
+            transform.
         matrix: The transformation matrix used to convert points in the 3D
             coordinate space with respect to the location and rotation of the
             given object.
@@ -246,7 +248,6 @@ class Transform(object):
     def __init__(self,
                  location=None,
                  rotation=None,
-                 forward_vector=None,
                  matrix=None):
         """ Instantiates a Transform object with either the given location
         and rotation, or using the given matrix.
@@ -256,8 +257,6 @@ class Transform(object):
         Args:
             location: The location of the object represented by the transform.
             rotation: The rotation of the object represented by the transform.
-            forward_vector: The forward vector of the object represented by
-                the transform.
             matrix: The transformation matrix used to convert points in the
                 3D coordinate space with respect to the object.
         """

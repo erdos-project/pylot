@@ -18,3 +18,12 @@ class Rotation(object):
         self.pitch = pitch
         self.yaw = yaw
         self.roll = roll
+
+
+class Vector3D(object):
+    """ A mock class for carla.Vector3D. """
+
+    def __init__(self, x, y, z):
+        self.x = x
+        self.y = y
+        self.z = z

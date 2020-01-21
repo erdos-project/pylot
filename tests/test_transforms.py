@@ -9,7 +9,7 @@ import numpy as np
 
 # Import the mocked_carla as carla for the purposes of this test file.
 import mocked_carla as carla
-from pylot.utils import Location, Rotation, Transform, Vector2D
+from pylot.utils import Location, Rotation, Transform, Vector3D 
 
 ## Location Tests
 
@@ -217,5 +217,3 @@ def test_negative_vector_from_carla():
         Vector3D.from_carla_vector(dummy_instance)
 
 # TODO (Sukrit) :: Write tests for to_camera_view after the CameraSetup tests.
-
-## Transform tests.
