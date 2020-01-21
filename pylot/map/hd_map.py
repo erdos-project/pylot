@@ -29,12 +29,16 @@ class HDMap(object):
             location: pylot.utils.Location in world coordinates.
 
         Returns:
-            A waypoint or None if no waypoint is found.
+            A pylot.utils.Transform or None if no waypoint is found.
         """
         waypoint = self._map.get_waypoint(location.as_carla_location(),
                                           project_to_road=True,
                                           lane_type=carla.LaneType.Any)
-        return waypoint
+        if waypoint:
+            return pylot.utils.Transform.from_carla_transform(
+                waypoint.transform)
+        else:
+            return None
 
     def is_intersection(self, location):
         """ Returns True if the location is in an intersection.
@@ -137,7 +141,7 @@ class HDMap(object):
         intersection or exceeds max_distance_to_check.
 
         Args:
-            location: The starting location.
+            location: The starting pylot.utils.Location.
             max_distance_to_check: Max distance to move forward (in meters).
         Returns:
             The distance in meters, or None if there's no intersection within
@@ -285,14 +289,17 @@ class HDMap(object):
         the lane on whch it is on.
 
         Args:
-            source_loc: Source world location.
-            destination_loc: Destination world location.
+            source_loc: Source world pylot.utils.Location.
+            destination_loc: Destination world pylot.utils.Location.
         """
         start_waypoint = self._map.get_waypoint(
-            source_loc, project_to_road=True, lane_type=carla.LaneType.Driving)
-        end_waypoint = self._map.get_waypoint(destination_loc,
-                                              project_to_road=True,
-                                              lane_type=carla.LaneType.Driving)
+            source_loc.as_carla_location(),
+            project_to_road=True,
+            lane_type=carla.LaneType.Driving)
+        end_waypoint = self._map.get_waypoint(
+            destination_loc.as_carla_location(),
+            project_to_road=True,
+            lane_type=carla.LaneType.Driving)
         assert start_waypoint and end_waypoint, 'Map could not find waypoints'
         route = self._grp.trace_route(start_waypoint.transform.location,
                                       end_waypoint.transform.location)

@@ -1,5 +1,4 @@
 from absl import app, flags
-import carla
 import erdos
 
 import pylot.flags
@@ -242,7 +241,7 @@ def add_planning(goal_location,
     """ Adds planning operators.
 
     Args:
-        goal_location: A carla.Location representing the destination.
+        goal_location: A pylot.utils.Location representing the destination.
         can_bus_stream: A stream of ego-vehicle CanBus messages.
         prediction_stream: A stream of obstacles prediction messages.
         open_drive_stream: A stream on which open drive string representations
@@ -368,9 +367,9 @@ def driver():
                                        can_bus_stream)
 
     # Add planning operators.
-    goal_location = carla.Location(float(FLAGS.goal_location[0]),
-                                   float(FLAGS.goal_location[1]),
-                                   float(FLAGS.goal_location[2]))
+    goal_location = pylot.utils.Location(float(FLAGS.goal_location[0]),
+                                         float(FLAGS.goal_location[1]),
+                                         float(FLAGS.goal_location[2]))
     waypoints_stream = add_planning(goal_location, can_bus_stream,
                                     prediction_stream, center_camera_stream,
                                     open_drive_stream,

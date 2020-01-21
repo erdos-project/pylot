@@ -1,4 +1,3 @@
-import carla
 import collections
 import erdos
 import itertools
@@ -16,7 +15,7 @@ WAYPOINT_COMPLETION_THRESHOLD = 0.9
 
 
 class WaypointPlanningOperator(erdos.Operator):
-    """ Planning operator for Carla 0.9.x.
+    """ Operator that computes waypoints.
 
     The operator either receives all the waypoints from the scenario runner
     agent (on the global trajectory stream), or computes waypoints using the
@@ -88,6 +87,10 @@ class WaypointPlanningOperator(erdos.Operator):
     def on_opendrive_map(self, msg):
         self._logger.debug('@{}: received open drive message'.format(
             msg.timestamp))
+        try:
+            import carla
+        except ImportError:
+            raise Exception('Error importing carla.')
         self._logger.info('Initializing HDMap from open drive stream')
         self._map = HDMap(carla.Map('map', msg.data), self._log_file_name)
 
@@ -96,12 +99,11 @@ class WaypointPlanningOperator(erdos.Operator):
             msg.timestamp, len(msg.data)))
         if len(msg.data) > 0:
             # The last waypoint is the goal location.
-            self._goal_location = msg.data[-1][0].location.as_carla_location()
+            self._goal_location = msg.data[-1][0].location
         else:
             # Trajectory does not contain any waypoints. We assume we have
             # arrived at destionation.
-            goal_loc = self._vehicle_transform.location
-            self._goal_location = goal_loc.as_carla_location()
+            self._goal_location = self._vehicle_transform.location
         assert self._goal_location, 'Planner does not have a goal'
         self._waypoints = collections.deque()
         for waypoint_option in msg.data:
@@ -147,9 +149,8 @@ class WaypointPlanningOperator(erdos.Operator):
             speed angles.
         """
         if self._recompute_waypoints:
-            ego_location = self._vehicle_transform.location.as_carla_location()
             self._waypoints = self._map.compute_waypoints(
-                ego_location, self._goal_location)
+                self._vehicle_transform.location, self._goal_location)
         self.__remove_completed_waypoints()
         if not self._waypoints or len(self._waypoints) == 0:
             # If waypoints are empty (e.g., reached destination), set waypoint

@@ -9,7 +9,6 @@ Planner steps:
 4. Construct state_space, target_space, start_state and run RRT*
 5. Construct waypoints message and output on waypoints stream
 """
-import carla
 import collections
 from collections import deque
 import erdos
@@ -21,7 +20,7 @@ from pylot.planning.rrt_star.rrt_star import apply_rrt_star
 from pylot.planning.rrt_star.utils import start_target_to_space
 from pylot.planning.utils import get_waypoint_vector_and_angle
 from pylot.simulation.utils import get_map
-from pylot.utils import Location, Rotation, Transform
+from pylot.utils import Location
 
 DEFAULT_OBSTACLE_LENGTH = 3  # 3 meters from front to back
 DEFAULT_OBSTACLE_WIDTH = 2  # 2 meters from side to side
@@ -48,7 +47,7 @@ class RRTStarPlanningOperator(erdos.Operator):
         Args:
             name: Name of the operator.
             flags: Config flags.
-            goal_location: Global goal carla.Location for planner to route to.
+            goal_location: Goal pylot.utils.Location for planner to route to.
         """
         can_bus_stream.add_callback(self.on_can_bus_update)
         prediction_stream.add_callback(self.on_prediction_update)
@@ -62,10 +61,9 @@ class RRTStarPlanningOperator(erdos.Operator):
 
         self._wp_index = 9
         self._waypoints = None
-        self._carla_map = get_map(self._flags.carla_host,
-                                  self._flags.carla_port,
-                                  self._flags.carla_timeout)
-        self._hd_map = HDMap(self._carla_map, log_file_name)
+        self._hd_map = HDMap(
+            get_map(self._flags.carla_host, self._flags.carla_port,
+                    self._flags.carla_timeout), log_file_name)
         self._goal_location = goal_location
 
         self._can_bus_msgs = deque()
@@ -106,15 +104,9 @@ class RRTStarPlanningOperator(erdos.Operator):
         if cost is not None:
             path_transforms = []
             for point in path:
-                p_loc = self._carla_map.get_waypoint(
-                    carla.Location(x=point[0], y=point[1], z=0),
-                    project_to_road=True,
-                ).transform.location  # project to road to approximate Z
                 path_transforms.append(
-                    Transform(
-                        location=Location(x=point[0], y=point[1], z=p_loc.z),
-                        rotation=Rotation(),
-                    ))
+                    self._hd_map.get_closest_lane_waypoint(
+                        Location(x=point[0], y=point[1], z=0)))
             waypoints = deque(path_transforms)
             waypoints.extend(
                 itertools.islice(self._waypoints, self._wp_index,
@@ -189,9 +181,8 @@ class RRTStarPlanningOperator(erdos.Operator):
         Returns:
             target location
         """
-        ego_location = vehicle_transform.location.as_carla_location()
         self._waypoints = self._hd_map.compute_waypoints(
-            ego_location, self._goal_location)
+            vehicle_transform.location, self._goal_location)
         target_waypoint = self._waypoints[self._wp_index]
         target_location = target_waypoint.location
         return target_location

@@ -1,4 +1,3 @@
-import carla
 import erdos
 
 # Pylot specific imports.
@@ -53,10 +52,6 @@ class CanBusVisualizerOperator(erdos.Operator):
         vehicle_transform = msg.data.transform
         # Draw position. We add 0.5 to z to ensure that the point is above the
         # road surface.
-        self._world.debug.draw_point(carla.Location(
-            x=vehicle_transform.location.x,
-            y=vehicle_transform.location.y,
-            z=vehicle_transform.location.z + 0.5),
-                                     size=0.2,
-                                     life_time=DEFAULT_VIS_TIME,
-                                     color=carla.Color(255, 0, 0))
+        loc = (vehicle_transform.location +
+               pylot.utils.Location(0, 0, 0.5)).as_carla_location()
+        self._world.debug.draw_point(loc, size=0.2, life_time=DEFAULT_VIS_TIME)

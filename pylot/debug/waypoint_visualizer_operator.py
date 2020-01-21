@@ -1,5 +1,4 @@
 from absl import flags
-import carla
 from collections import deque
 import erdos
 
@@ -111,8 +110,7 @@ class WaypointVisualizerOperator(erdos.Operator):
                        pylot.utils.Location(0, 0, 0.5)).as_carla_location()
                 self._world.debug.draw_point(loc,
                                              size=0.1,
-                                             life_time=DEFAULT_VIS_TIME,
-                                             color=carla.Color(0, 0, 255))
+                                             life_time=DEFAULT_VIS_TIME)
 
     def on_can_bus_update(self, msg):
         self._logger.debug('@{}: {} received can bus message'.format(
