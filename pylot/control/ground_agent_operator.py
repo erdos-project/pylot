@@ -7,7 +7,6 @@ from pylot.control.messages import ControlMessage
 import pylot.control.utils
 from pylot.map.hd_map import HDMap
 from pylot.simulation.utils import get_map
-import pylot.utils
 
 
 class GroundAgentOperator(erdos.Operator):
@@ -66,9 +65,9 @@ class GroundAgentOperator(erdos.Operator):
         # Get ground traffic lights info.
         traffic_lights = self._traffic_light_msgs.popleft().traffic_lights
 
-        speed_factor, state = self.stop_for_agents(vehicle_transform.location,
-                                                   wp_angle, wp_vector,
-                                                   obstacles, traffic_lights)
+        speed_factor, state = pylot.control.utils.stop_for_agents(
+            vehicle_transform.location, wp_angle, wp_vector, wp_angle_speed,
+            obstacles, traffic_lights, self._map, self._flags)
         control_stream.send(
             self.get_control_message(wp_angle, wp_angle_speed, speed_factor,
                                      vehicle_speed, timestamp))
@@ -92,51 +91,6 @@ class GroundAgentOperator(erdos.Operator):
         self._logger.debug('@{}: received traffic lights message'.format(
             msg.timestamp))
         self._traffic_light_msgs.append(msg)
-
-    def stop_for_agents(self, ego_vehicle_location, wp_angle, wp_vector,
-                        obstacles, traffic_lights):
-        speed_factor = 1
-        speed_factor_tl = 1
-        speed_factor_p = 1
-        speed_factor_v = 1
-
-        for obstacle in obstacles:
-            if obstacle.label == 'vehicle' and self._flags.stop_for_vehicles:
-                # Only brake for vehicles that are in ego vehicle's lane.
-                if self._map.are_on_same_lane(ego_vehicle_location,
-                                              obstacle.transform.location):
-                    new_speed_factor_v = pylot.control.utils.stop_vehicle(
-                        ego_vehicle_location, obstacle.transform.location,
-                        wp_vector, speed_factor_v, self._flags)
-                    speed_factor_v = min(speed_factor_v, new_speed_factor_v)
-            if obstacle.label == 'person' and \
-               self._flags.stop_for_people:
-                # Only brake for people that are on the road.
-                if self._map.is_on_lane(obstacle.transform.location):
-                    new_speed_factor_p = pylot.control.utils.stop_person(
-                        ego_vehicle_location, obstacle.transform.location,
-                        wp_vector, speed_factor_p, self._flags)
-                    speed_factor_p = min(speed_factor_p, new_speed_factor_p)
-
-        if self._flags.stop_for_traffic_lights:
-            for tl in traffic_lights:
-                if (self._map.must_obbey_traffic_light(ego_vehicle_location,
-                                                       tl.transform.location)
-                        and self._is_traffic_light_visible(
-                            ego_vehicle_location, tl.transform.location)):
-                    new_speed_factor_tl = pylot.control.utils.stop_traffic_light(
-                        ego_vehicle_location, tl.transform.location, tl.state,
-                        wp_vector, wp_angle, speed_factor_tl, self._flags)
-                    speed_factor_tl = min(speed_factor_tl, new_speed_factor_tl)
-
-        speed_factor = min(speed_factor_tl, speed_factor_p, speed_factor_v)
-        state = {
-            'stop_person': speed_factor_p,
-            'stop_vehicle': speed_factor_v,
-            'stop_traffic_lights': speed_factor_tl
-        }
-
-        return speed_factor, state
 
     def get_control_message(self, wp_angle, wp_angle_speed, speed_factor,
                             current_speed, timestamp):
@@ -164,9 +118,3 @@ class GroundAgentOperator(erdos.Operator):
             brake = 0
 
         return ControlMessage(steer, throttle, brake, False, False, timestamp)
-
-    def _is_traffic_light_visible(self, ego_vehicle_location, tl_location):
-        _, tl_dist = pylot.control.utils.get_world_vec_dist(
-            ego_vehicle_location.x, ego_vehicle_location.y, tl_location.x,
-            tl_location.y)
-        return tl_dist > self._flags.traffic_light_min_dist_thres

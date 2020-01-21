@@ -1,4 +1,3 @@
-import carla
 from collections import deque
 import copy
 import erdos
@@ -142,6 +141,10 @@ class PylotAgentOperator(erdos.Operator):
 
     def on_open_drive_map(self, msg):
         self._logger.debug('@{}: open drive update'.format(msg.timestamp))
+        try:
+            import carla
+        except ImportError:
+            raise Exception('Error importing carla.')
         self._map = HDMap(carla.Map('challenge', msg.data),
                           self._log_file_name)
 

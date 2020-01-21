@@ -1,7 +1,6 @@
 from collections import deque
 import erdos
 import itertools
-import math
 import numpy as np
 from pid_controller.pid import PID
 
@@ -11,7 +10,6 @@ from pylot.control.mpc.utils import zero_to_2_pi, global_config, CubicSpline2D
 import pylot.control.utils
 from pylot.map.hd_map import HDMap
 from pylot.simulation.utils import get_map, get_world
-import pylot.utils
 
 
 class MPCAgentOperator(erdos.Operator):
@@ -75,31 +73,26 @@ class MPCAgentOperator(erdos.Operator):
         self._traffic_light_msgs.append(msg)
 
     def on_watermark(self, timestamp, control_stream):
-        self._logger.debug('Received watermark {}'.format(timestamp))
+        self._logger.debug('@{}: received watermark'.format(timestamp))
         # Get hero vehicle info.
         can_bus_msg = self._can_bus_msgs.popleft()
         vehicle_transform = can_bus_msg.data.transform
         vehicle_speed = can_bus_msg.data.forward_speed
-
         # Get waypoints.
         waypoint_msg = self._waypoint_msgs.popleft()
         wp_angle = waypoint_msg.wp_angle
         wp_vector = waypoint_msg.wp_vector
         wp_angle_speed = waypoint_msg.wp_angle_speed
-
-        waypoints = deque(itertools.islice(waypoint_msg.waypoints, 0,
-                                           50))  # only take 50 meters
-
+        # Only take the first 50 waypoints (50 meters).
+        waypoints = deque(itertools.islice(waypoint_msg.waypoints, 0, 50))
         # Get ground obstacles info.
         obstacles = self._obstacles_msgs.popleft().obstacles
-
         # Get ground traffic lights info.
         traffic_lights = self._traffic_light_msgs.popleft().traffic_lights
 
-        speed_factor, state = self.stop_for_agents(vehicle_transform.location,
-                                                   wp_angle, wp_vector,
-                                                   wp_angle_speed, obstacles,
-                                                   traffic_lights)
+        speed_factor, state = pylot.control.utils.stop_for_agents(
+            vehicle_transform.location, wp_angle, wp_vector, wp_angle_speed,
+            obstacles, traffic_lights, self._map, self._flags)
 
         control_msg = self.get_control_message(waypoints, vehicle_transform,
                                                vehicle_speed, speed_factor,
@@ -110,56 +103,6 @@ class MPCAgentOperator(erdos.Operator):
         self._logger.debug("State: {}".format(state))
 
         control_stream.send(control_msg)
-
-    def stop_for_agents(self, ego_vehicle_location, wp_angle, wp_vector,
-                        wp_angle_speed, obstacles, traffic_lights):
-        speed_factor = 1
-        speed_factor_tl = 1
-        speed_factor_p = 1
-        speed_factor_v = 1
-
-        for obstacle in obstacles:
-            if obstacle.label == 'vehicle' and self._flags.stop_for_vehicles:
-                # Only brake for vehicles that are in ego vehicle's lane.
-                if self._map.are_on_same_lane(ego_vehicle_location,
-                                              obstacle.transform.location):
-                    new_speed_factor_v = pylot.control.utils.stop_vehicle(
-                        ego_vehicle_location, obstacle.transform.location,
-                        wp_vector, speed_factor_v, self._flags)
-                    speed_factor_v = min(speed_factor_v, new_speed_factor_v)
-            if obstacle.label == 'person' and \
-               self._flags.stop_for_people:
-                # Only brake for people that are on the road.
-                if self._map.is_on_lane(obstacle.transform.location):
-                    new_speed_factor_p = pylot.control.utils.stop_person(
-                        ego_vehicle_location, obstacle.transform.location,
-                        wp_vector, speed_factor_p, self._flags)
-                    speed_factor_p = min(speed_factor_p, new_speed_factor_p)
-
-        if self._flags.stop_for_traffic_lights:
-            for tl in traffic_lights:
-                if (self._map.must_obbey_traffic_light(ego_vehicle_location,
-                                                       tl.transform.location)
-                        and self._is_traffic_light_visible(
-                            ego_vehicle_location, tl.transform.location)):
-                    new_speed_factor_tl = pylot.control.utils.stop_traffic_light(
-                        ego_vehicle_location, tl.transform.location, tl.state,
-                        wp_vector, wp_angle, speed_factor_tl, self._flags)
-                    speed_factor_tl = min(speed_factor_tl, new_speed_factor_tl)
-
-        speed_factor = min(speed_factor_tl, speed_factor_p, speed_factor_v)
-
-        # slow down around corners
-        if math.fabs(wp_angle_speed) < 0.1:
-            speed_factor = 0.3 * speed_factor
-
-        state = {
-            'stop_person': speed_factor_p,
-            'stop_vehicle': speed_factor_v,
-            'stop_traffic_lights': speed_factor_tl
-        }
-
-        return speed_factor, state
 
     def setup_mpc(self, waypoints):
         path = np.array([[wp.location.x, wp.location.y] for wp in waypoints])
@@ -198,23 +141,20 @@ class MPCAgentOperator(erdos.Operator):
 
     def get_control_message(self, waypoints, vehicle_transform, current_speed,
                             speed_factor, timestamp):
-        ego_location = vehicle_transform.location.as_carla_location()
-        ego_yaw = np.deg2rad(zero_to_2_pi(vehicle_transform.rotation.yaw))
-
-        # step the controller
         self.setup_mpc(waypoints)
-        self.mpc.vehicle.x = ego_location.x
-        self.mpc.vehicle.y = ego_location.y
-        self.mpc.vehicle.yaw = ego_yaw
+        self.mpc.vehicle.x = vehicle_transform.location.x
+        self.mpc.vehicle.y = vehicle_transform.location.y
+        self.mpc.vehicle.yaw = np.deg2rad(
+            zero_to_2_pi(vehicle_transform.rotation.yaw))
 
         try:
             self.mpc.step()
         except Exception as e:
-            self._logger.info("Failed to solve MPC.")
-            self._logger.info(e)
+            self._logger.error('Failed to solve MPC.')
+            self._logger.error(e)
             return ControlMessage(0, 0, 1, False, False, timestamp)
 
-        # compute pid controls
+        # Compute pid controls.
         target_speed = self.mpc.solution.vel_list[0] * speed_factor
         target_yaw = self.mpc.solution.yaw_list[0]
         target_steer_rad = self.mpc.horizon_steer[0]  # in rad
@@ -222,20 +162,13 @@ class MPCAgentOperator(erdos.Operator):
         throttle, brake = self.__get_throttle_brake_without_factor(
             current_speed, target_speed)
 
-        # send controls
         return ControlMessage(steer, throttle, brake, False, False, timestamp)
 
-    def _is_traffic_light_visible(self, ego_vehicle_location, tl_location):
-        _, tl_dist = pylot.control.utils.get_world_vec_dist(
-            ego_vehicle_location.x, ego_vehicle_location.y, tl_location.x,
-            tl_location.y)
-        return tl_dist > self._flags.traffic_light_min_dist_thres
-
     def __rad2steer(self, rad):
-        """
-        Converts radians to steer input.
+        """ Converts radians to steer input.
 
-        :return: float [-1.0, 1.0]
+        Returns:
+            float [-1.0, 1.0]
         """
         steer = self._flags.steer_gain * rad
         if steer > 0:
@@ -245,10 +178,12 @@ class MPCAgentOperator(erdos.Operator):
         return steer
 
     def __steer2rad(self, steer):
-        """
-        Converts radians to steer input. Assumes max steering angle is -45, 45 degrees
+        """ Converts radians to steer input.
 
-        :return: float [-1.0, 1.0]
+        Assumes max steering angle is -45, 45 degrees.
+
+        Returns:
+            float [-1.0, 1.0]
         """
         rad = steer / self._flags.steer_gain
         if rad > 0:

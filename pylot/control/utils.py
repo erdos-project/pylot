@@ -142,3 +142,62 @@ def stop_traffic_light(ego_vehicle_location, tl_location, tl_state, wp_vector,
             speed_factor_tl = speed_factor_tl_temp
 
     return speed_factor_tl
+
+
+def stop_for_agents(ego_vehicle_location, wp_angle, wp_vector, wp_angle_speed,
+                    obstacles, traffic_lights, hd_map, flags):
+    speed_factor = 1
+    speed_factor_tl = 1
+    speed_factor_p = 1
+    speed_factor_v = 1
+
+    for obstacle in obstacles:
+        if obstacle.label == 'vehicle' and flags.stop_for_vehicles:
+            # Only brake for vehicles that are in ego vehicle's lane.
+            if hd_map.are_on_same_lane(ego_vehicle_location,
+                                       obstacle.transform.location):
+                new_speed_factor_v = stop_vehicle(ego_vehicle_location,
+                                                  obstacle.transform.location,
+                                                  wp_vector, speed_factor_v,
+                                                  flags)
+                speed_factor_v = min(speed_factor_v, new_speed_factor_v)
+        if obstacle.label == 'person' and flags.stop_for_people:
+            # Only brake for people that are on the road.
+            if hd_map.is_on_lane(obstacle.transform.location):
+                new_speed_factor_p = stop_person(ego_vehicle_location,
+                                                 obstacle.transform.location,
+                                                 wp_vector, speed_factor_p,
+                                                 flags)
+                speed_factor_p = min(speed_factor_p, new_speed_factor_p)
+
+    if flags.stop_for_traffic_lights:
+        for tl in traffic_lights:
+            if (hd_map.must_obbey_traffic_light(ego_vehicle_location,
+                                                tl.transform.location)
+                    and _is_traffic_light_visible(
+                        ego_vehicle_location, tl.transform.location, flags)):
+                new_speed_factor_tl = stop_traffic_light(
+                    ego_vehicle_location, tl.transform.location, tl.state,
+                    wp_vector, wp_angle, speed_factor_tl, flags)
+                speed_factor_tl = min(speed_factor_tl, new_speed_factor_tl)
+
+    speed_factor = min(speed_factor_tl, speed_factor_p, speed_factor_v)
+
+    # Slow down around corners.
+    if math.fabs(wp_angle_speed) < 0.1:
+        speed_factor = 0.3 * speed_factor
+
+    state = {
+        'stop_person': speed_factor_p,
+        'stop_vehicle': speed_factor_v,
+        'stop_traffic_lights': speed_factor_tl
+    }
+
+    return speed_factor, state
+
+
+def _is_traffic_light_visible(ego_vehicle_location, tl_location, flags):
+    _, tl_dist = get_world_vec_dist(ego_vehicle_location.x,
+                                    ego_vehicle_location.y, tl_location.x,
+                                    tl_location.y)
+    return tl_dist > flags.traffic_light_min_dist_thres
