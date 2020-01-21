@@ -247,30 +247,6 @@ class Location(Vector3D):
             math.acos(np.dot(forward_vector, target_vector) / norm_dst))
         return d_angle < 90.0
 
-    def compute_magnitude_angle(self, target_loc):
-        """
-        Computes relative angle and distance between the location and  a target
-        location.
-
-        Args:
-            target_loc: Location of the target.
-
-        Returns:
-            Tuple of distance to the target and the angle
-        """
-        target_vector = np.array(
-            [target_loc.x - self.x, target_loc.y - self.y])
-        norm_target = np.linalg.norm(target_vector)
-
-        forward_vector = np.array([
-            math.cos(math.radians(self.rotation.yaw)),
-            math.sin(math.radians(self.rotation.yaw))
-        ])
-        d_angle = math.degrees(
-            math.acos(np.dot(forward_vector, target_vector) / norm_target))
-
-        return (norm_target, d_angle)
-
     def __repr__(self):
         return self.__str__()
 
@@ -455,6 +431,32 @@ class Transform(object):
             carla.Rotation(pitch=self.rotation.pitch,
                            yaw=self.rotation.yaw,
                            roll=self.rotation.roll))
+
+    def compute_magnitude_angle(self, target_loc):
+        """
+        Computes distance and relative angle between the transform and a target
+        location.
+
+        Args:
+            target_loc: Location of the target.
+
+        Returns:
+            Tuple of distance to the target and the angle
+        """
+        # TODO(Sukrit) :: Change this to use Vector2D instead of computing
+        # norms here.
+        target_vector = np.array(
+            [target_loc.x - self.x, target_loc.y - self.y])
+        norm_target = np.linalg.norm(target_vector)
+
+        forward_vector = np.array([
+            math.cos(math.radians(self.rotation.yaw)),
+            math.sin(math.radians(self.rotation.yaw))
+        ])
+        d_angle = math.degrees(
+            math.acos(np.dot(forward_vector, target_vector) / norm_target))
+
+        return (norm_target, d_angle)
 
     def __mul__(self, other):
         new_matrix = np.dot(self.matrix, other.matrix)

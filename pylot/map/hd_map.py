@@ -235,7 +235,7 @@ class HDMap(object):
         for tl_loc in tl_locations:
             if ego_transform.location.is_within_distance_ahead(
                     tl_loc, tl_max_dist_thresh):
-                magnitude, angle = ego_transform.location.compute_magnitude_angle(
+                magnitude, angle = ego_transform.compute_magnitude_angle(
                     tl_loc)
                 if magnitude < 60.0 and angle < min(25.0, min_angle):
                     min_angle = angle
