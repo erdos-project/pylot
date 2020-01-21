@@ -155,7 +155,7 @@ class RRTStarPlanningOperator(erdos.Operator):
             time = 0
             # use all prediction times as potential obstacles
             for transform in prediction.trajectory:
-                if vehicle_transform.location.is_within_distance_ahead(
+                if vehicle_transform.is_within_distance_ahead(
                         transform.location, DEFAULT_DISTANCE_THRESHOLD):
                     # compute the obstacle origin and range of the obstacle
                     obstacle_origin = ((transform.location.x -

@@ -222,31 +222,6 @@ class Location(Vector3D):
         import carla
         return carla.Location(self.x, self.y, self.z)
 
-    def is_within_distance_ahead(self, dst_loc, max_distance):
-        """
-        Check if a location is within a distance.
-
-        Args:
-            dst_loc: The location to compute distance for.
-            max_distance: Maximum allowed distance.
-        Returns:
-            True if other location is within max_distance.
-        """
-        target_vector = np.array([dst_loc.x - self.x, dst_loc.y - self.y])
-        norm_dst = np.linalg.norm(target_vector)
-        # Return if the vector is too small.
-        if norm_dst < 0.001:
-            return True
-        if norm_dst > max_distance:
-            return False
-        forward_vector = np.array([
-            math.cos(math.radians(self.rotation.yaw)),
-            math.sin(math.radians(self.rotation.yaw))
-        ])
-        d_angle = math.degrees(
-            math.acos(np.dot(forward_vector, target_vector) / norm_dst))
-        return d_angle < 90.0
-
     def __repr__(self):
         return self.__str__()
 
@@ -457,6 +432,38 @@ class Transform(object):
             math.acos(np.dot(forward_vector, target_vector) / norm_target))
 
         return (norm_target, d_angle)
+
+    # TODO (Sukrit) :: This method should use compute_magnitude_angle.
+    def is_within_distance_ahead(self, dst_loc, max_distance):
+        """
+        Check if a location is within a distance.
+
+        Args:
+            dst_loc: The location to compute distance for.
+            max_distance: Maximum allowed distance.
+        Returns:
+            True if other location is within max_distance.
+        """
+        # TODO(Sukrit) :: Change this to use Vector2D instead of computing
+        # norms here.
+        target_vector = np.array([dst_loc.x - self.x, dst_loc.y - self.y])
+        norm_dst = np.linalg.norm(target_vector)
+
+        # Return if the vector is too small.
+        if norm_dst < 0.001:
+            return True
+
+        # Return if the vector is greater than the distance.
+        if norm_dst > max_distance:
+            return False
+        forward_vector = np.array([
+            math.cos(math.radians(self.rotation.yaw)),
+            math.sin(math.radians(self.rotation.yaw))
+        ])
+        d_angle = math.degrees(
+            math.acos(np.dot(forward_vector, target_vector) / norm_dst))
+        return d_angle < 90.0
+
 
     def __mul__(self, other):
         new_matrix = np.dot(self.matrix, other.matrix)
