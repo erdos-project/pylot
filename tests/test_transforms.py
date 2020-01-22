@@ -9,7 +9,7 @@ import numpy as np
 
 # Import the mocked_carla as carla for the purposes of this test file.
 import mocked_carla as carla
-from pylot.utils import Location, Rotation, Transform, Vector3D 
+from pylot.utils import Location, Rotation, Transform, Vector3D
 
 ## Location Tests
 
@@ -87,7 +87,7 @@ def test_as_carla_location():
     "value is not the same as the one in location."
 
 
-def test_as_numpy_array():
+def test_location_as_numpy_array():
     """ Test the as_carla_location instance method of Location """
     location = Location(x=1, y=2, z=3)
     np_array = location.as_numpy_array()
@@ -190,12 +190,14 @@ def test_as_carla_rotation():
 
 ## Vector3D Tests
 
+
 def test_empty_vector3d():
     """ Test that an empty Vector3D is initialized at (0, 0, 0) """
     empty_vector = Vector3D()
     assert np.isclose(empty_vector.x, 0), "X value is not zero"
     assert np.isclose(empty_vector.y, 0), "Y value is not zero"
     assert np.isclose(empty_vector.z, 0), "Z value is not zero"
+
 
 @pytest.mark.parametrize("x, y, z", [(1, 2, 3), (-1, -2, -3)])
 def test_from_carla_vector(x, y, z):
@@ -208,12 +210,78 @@ def test_from_carla_vector(x, y, z):
     assert np.isclose(carla_vector3d.y, vector3d.y), "Y value is not the same"
     assert np.isclose(carla_vector3d.z, vector3d.z), "Z value is not the same"
 
+
 def test_negative_vector_from_carla():
-    """ Tests that Vector3D throws a ValueError if incorrect vector is 
+    """ Tests that Vector3D throws a ValueError if incorrect vector is
     passed. """
     DummyType = namedtuple("DummyType", "x, y, z")
     dummy_instance = DummyType(0, 0, 0)
     with pytest.raises(ValueError):
         Vector3D.from_carla_vector(dummy_instance)
+
+
+@pytest.mark.parametrize('point_a, point_b, expected',
+                         [((1, 1, 1), (2, 2, 2), (3, 3, 3)),
+                          ((0, 0, 0), (1, 1, 1), (1, 1, 1)),
+                          ((1, 1, 1), (-1, -1, -1), (0, 0, 0))])
+def test_add_vector(point_a, point_b, expected):
+    first_vector, second_vector = Vector3D(*point_a), Vector3D(*point_b)
+    sum_vector = first_vector + second_vector
+    expected_vector = Vector3D(*expected)
+    assert isinstance(sum_vector, Vector3D), "The sum is not an instance of "
+    "Vector3D"
+    assert np.isclose(sum_vector.x, expected_vector.x), "The x coordinate of "
+    "the sum is not the same as the expected x coordinate"
+    assert np.isclose(sum_vector.y, expected_vector.y), "The y coordinate of "
+    "the sum is not the same as the expected y coordinate"
+    assert np.isclose(sum_vector.z, expected_vector.z), "The z coordinate of "
+    "the sum is not the same as the expected z coordinate"
+
+
+@pytest.mark.parametrize('point_a, point_b, expected',
+                         [((1, 1, 1), (2, 2, 2), (-1, -1, -1)),
+                          ((0, 0, 0), (1, 1, 1), (-1, -1, -1)),
+                          ((1, 1, 1), (-1, -1, -1), (2, 2, 2))])
+def test_subtract_vector(point_a, point_b, expected):
+    first_vector, second_vector = Vector3D(*point_a), Vector3D(*point_b)
+    sub_vector = first_vector - second_vector
+    expected_vector = Vector3D(*expected)
+    assert isinstance(sub_vector, Vector3D), "The difference is not an "
+    "instance of Vector3D"
+    assert np.isclose(sub_vector.x, expected_vector.x), "The x coordinate of "
+    "the difference is not the same as the expected x coordinate"
+    assert np.isclose(sub_vector.y, expected_vector.y), "The y coordinate of "
+    "the difference is not the same as the expected y coordinate"
+    assert np.isclose(sub_vector.z, expected_vector.z), "The z coordinate of "
+    "the sum is not the same as the expected z coordinate"
+
+
+def test_vector_as_numpy_array():
+    vector_np = Vector3D().as_numpy_array()
+    assert isinstance(vector_np, np.ndarray), "Returned instance is not of "
+    "type numpy.ndarray"
+    assert all(vector_np == [0, 0, 0]), "The values returned in the numpy "
+    "array are not the expected values."
+
+
+def test_as_carla_vector():
+    vector_carla = Vector3D().as_carla_vector()
+    assert isinstance(vector_carla, carla.Vector3D), "The returned object "
+    "is not of the type carla.Vector3D"
+    assert np.isclose(vector_carla.x, 0), "The x value of the returned vector"
+    " is not 0"
+    assert np.isclose(vector_carla.y, 0), "The y value of the returned vector"
+    " is not 0"
+    assert np.isclose(vector_carla.z, 0), "The z value of the returned vector"
+    " is not 0"
+
+
+@pytest.mark.parametrize("point, expected", [((1, 2, 3), 3.7416573867739413),
+                                             ((0, 0, 0), 0)])
+def test_vector_magnitude(point, expected):
+    magnitude = Vector3D(*point).magnitude()
+    assert np.isclose(magnitude, expected), "The magnitude was not similar to"
+    " the expected magnitude."
+
 
 # TODO (Sukrit) :: Write tests for to_camera_view after the CameraSetup tests.
