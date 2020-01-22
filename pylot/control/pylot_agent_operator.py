@@ -270,27 +270,11 @@ class PylotAgentOperator(erdos.Operator):
             timestamp, state))
         return speed_factor, state
 
-    def __get_steer(self, wp_angle):
-        steer = self._flags.steer_gain * wp_angle
-        if steer > 0:
-            steer = min(steer, 1)
-        else:
-            steer = max(steer, -1)
-        return steer
-
-    def __get_throttle_brake_without_factor(self, current_speed, target_speed):
-        self._pid.target = target_speed
-        pid_gain = self._pid(feedback=current_speed)
-        throttle = min(max(self._flags.default_throttle - 1.3 * pid_gain, 0),
-                       self._flags.throttle_max)
-        if pid_gain > 0.5:
-            brake = min(0.35 * pid_gain * self._flags.brake_strength, 1)
-        else:
-            brake = 0
-        return throttle, brake
-
-    def __get_throttle_brake(self, current_speed, target_speed, wp_angle_speed,
-                             speed_factor):
+    def get_control_message(self, wp_angle, wp_angle_speed, speed_factor,
+                            current_speed, target_speed, timestamp):
+        assert current_speed >= 0, 'Current speed is negative'
+        steer = pylot.control.utils.radians_to_steer(wp_angle,
+                                                     self._flags.steer_gain)
         # TODO(ionel): DO NOT HARDCODE VALUES!
         # Don't go to fast around corners
         if math.fabs(wp_angle_speed) < 0.1:
@@ -299,23 +283,8 @@ class PylotAgentOperator(erdos.Operator):
             target_speed_adjusted = 6 * speed_factor
         else:
             target_speed_adjusted = 3 * speed_factor
-        self._pid.target = target_speed_adjusted
-        pid_gain = self._pid(feedback=current_speed)
-        throttle = min(max(self._flags.default_throttle - 1.3 * pid_gain, 0),
-                       self._flags.throttle_max)
 
-        if pid_gain > 0.5:
-            brake = min(0.35 * pid_gain * self._flags.brake_strength, 1)
-        else:
-            brake = 0
-        return throttle, brake
+        throttle, brake = pylot.control.utils.compute_throttle_and_brake(
+            self._pid, current_speed, target_speed_adjusted, self._flags)
 
-    def get_control_message(self, wp_angle, wp_angle_speed, speed_factor,
-                            current_speed, target_speed, timestamp):
-        current_speed = max(current_speed, 0)
-        steer = self.__get_steer(wp_angle)
-        throttle, brake = self.__get_throttle_brake(current_speed,
-                                                    target_speed,
-                                                    wp_angle_speed,
-                                                    speed_factor)
         return ControlMessage(steer, throttle, brake, False, False, timestamp)

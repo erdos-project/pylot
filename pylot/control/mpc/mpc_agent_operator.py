@@ -158,47 +158,9 @@ class MPCAgentOperator(erdos.Operator):
         target_speed = self.mpc.solution.vel_list[0] * speed_factor
         target_yaw = self.mpc.solution.yaw_list[0]
         target_steer_rad = self.mpc.horizon_steer[0]  # in rad
-        steer = self.__rad2steer(target_steer_rad)  # [-1.0, 1.0]
-        throttle, brake = self.__get_throttle_brake_without_factor(
-            current_speed, target_speed)
+        steer = pylot.control.utils.radians_to_steer(target_steer_rad,
+                                                     self._flags.steer_gain)
+        throttle, brake = pylot.control.utils.compute_throttle_and_brake(
+            self._pid, current_speed, target_speed, self._flags)
 
         return ControlMessage(steer, throttle, brake, False, False, timestamp)
-
-    def __rad2steer(self, rad):
-        """ Converts radians to steer input.
-
-        Returns:
-            float [-1.0, 1.0]
-        """
-        steer = self._flags.steer_gain * rad
-        if steer > 0:
-            steer = min(steer, 1)
-        else:
-            steer = max(steer, -1)
-        return steer
-
-    def __steer2rad(self, steer):
-        """ Converts radians to steer input.
-
-        Assumes max steering angle is -45, 45 degrees.
-
-        Returns:
-            float [-1.0, 1.0]
-        """
-        rad = steer / self._flags.steer_gain
-        if rad > 0:
-            rad = min(rad, np.pi / 2)
-        else:
-            rad = max(rad, -np.pi / 2)
-        return rad
-
-    def __get_throttle_brake_without_factor(self, current_speed, target_speed):
-        self._pid.target = target_speed
-        pid_gain = self._pid(feedback=current_speed)
-        throttle = min(max(self._flags.default_throttle - 1.3 * pid_gain, 0),
-                       self._flags.throttle_max)
-        if pid_gain > 0.5:
-            brake = min(0.35 * pid_gain * self._flags.brake_strength, 1)
-        else:
-            brake = 0
-        return throttle, brake

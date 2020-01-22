@@ -5,6 +5,7 @@ from pid_controller.pid import PID
 
 # Pipeline imports.
 from pylot.control.messages import ControlMessage
+import pylot.control.utils
 
 
 class PIDControlOperator(erdos.Operator):
@@ -52,26 +53,6 @@ class PIDControlOperator(erdos.Operator):
         control_stream = erdos.WriteStream()
         return [control_stream]
 
-    def _get_throttle_brake(self, target_speed):
-        """ Computes the throttle/brake required to reach the target speed.
-        It uses the longitudinal controller to derive the required information.
-
-        Args:
-            target_speed: The target speed to reach.
-
-        Returns:
-            Throttle and brake values.
-        """
-        self._pid.target = target_speed
-        pid_gain = self._pid(feedback=self._latest_speed)
-        throttle = min(max(self._flags.default_throttle - 1.3 * pid_gain, 0),
-                       self._flags.throttle_max)
-        if pid_gain > 0.5:
-            brake = min(0.35 * pid_gain * self._flags.brake_strength, 1)
-        else:
-            brake = 0
-        return throttle, brake
-
     def _get_steering(self, waypoint_transform):
         """ Get the steering angle of the vehicle to reach the required
         waypoint.
@@ -115,12 +96,9 @@ class PIDControlOperator(erdos.Operator):
         if np.cross(v_vector, wp_vector)[2] < 0:
             angle *= -1
 
-        steering = self._flags.steer_gain * angle
-        if steering > 0:
-            steering = min(steering, 1)
-        else:
-            steering = max(steering, -1)
-        return steering
+        steer = pylot.control.utils.radians_to_steer(angle,
+                                                     self._flags.steer_gain)
+        return steer
 
     def on_can_bus_update(self, msg, control_stream):
         self._latest_speed = msg.data.forward_speed
@@ -129,8 +107,9 @@ class PIDControlOperator(erdos.Operator):
         brake = 0
         steer = 0
         if self._last_waypoint_msg:
-            throttle, brake = self._get_throttle_brake(
-                self._last_waypoint_msg.target_speed)
+            throttle, brake = pylot.control.utils.compute_throttle_and_brake(
+                self._pid, self._latest_speed,
+                self._last_waypoint_msg.target_speed, self._flags)
             steer = self._get_steering(self._last_waypoint_msg.waypoints[0])
         control_stream.send(
             ControlMessage(steer, throttle, brake, False, False,

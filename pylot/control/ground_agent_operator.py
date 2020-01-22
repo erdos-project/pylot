@@ -94,12 +94,9 @@ class GroundAgentOperator(erdos.Operator):
 
     def get_control_message(self, wp_angle, wp_angle_speed, speed_factor,
                             current_speed, timestamp):
-        current_speed = max(current_speed, 0)
-        steer = self._flags.steer_gain * wp_angle
-        if steer > 0:
-            steer = min(steer, 1)
-        else:
-            steer = max(steer, -1)
+        assert current_speed >= 0, 'Current speed is negative'
+        steer = pylot.control.utils.radians_to_steer(wp_angle,
+                                                     self._flags.steer_gain)
 
         # Don't go to fast around corners
         if math.fabs(wp_angle_speed) < 0.1:
@@ -107,14 +104,7 @@ class GroundAgentOperator(erdos.Operator):
         else:
             target_speed_adjusted = self._flags.target_speed * speed_factor
 
-        self._pid.target = target_speed_adjusted
-        pid_gain = self._pid(feedback=current_speed)
-        throttle = min(max(self._flags.default_throttle - 1.3 * pid_gain, 0),
-                       self._flags.throttle_max)
-
-        if pid_gain > 0.5:
-            brake = min(0.35 * pid_gain * self._flags.brake_strength, 1)
-        else:
-            brake = 0
+        throttle, brake = pylot.control.utils.compute_throttle_and_brake(
+            self._pid, current_speed, target_speed_adjusted, self._flags)
 
         return ControlMessage(steer, throttle, brake, False, False, timestamp)
