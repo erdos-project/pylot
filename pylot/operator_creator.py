@@ -81,8 +81,10 @@ def add_carla_bridge(control_stream):
                          csv_file_name=FLAGS.csv_log_file_name)
 
 
-def add_obstacle_detection(camera_stream):
+def add_obstacle_detection(camera_stream, csv_file_name=None):
     obstacles_streams = []
+    if csv_file_name is None:
+        csv_file_name = FLAGS.csv_log_file_name
     for i in range(0, len(FLAGS.obstacle_detection_model_paths)):
         obstacles_streams += erdos.connect(
             DetectionOperator, [camera_stream],
@@ -91,7 +93,7 @@ def add_obstacle_detection(camera_stream):
             FLAGS.obstacle_detection_model_paths[i],
             FLAGS,
             log_file_name=FLAGS.log_file_name,
-            csv_file_name=FLAGS.csv_log_file_name)
+            csv_file_name=csv_file_name)
     return obstacles_streams
 
 

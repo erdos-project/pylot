@@ -244,11 +244,7 @@ class Transform(object):
             coordinate space with respect to the location and rotation of the
             given object.
     """
-
-    def __init__(self,
-                 location=None,
-                 rotation=None,
-                 matrix=None):
+    def __init__(self, location=None, rotation=None, matrix=None):
         """ Instantiates a Transform object with either the given location
         and rotation, or using the given matrix.
 
@@ -420,7 +416,7 @@ class Transform(object):
         # TODO(Sukrit) :: Change this to use Vector2D instead of computing
         # norms here.
         target_vector = np.array(
-            [target_loc.x - self.x, target_loc.y - self.y])
+            [target_loc.x - self.location.x, target_loc.y - self.location.y])
         norm_target = np.linalg.norm(target_vector)
 
         forward_vector = np.array([
@@ -445,7 +441,8 @@ class Transform(object):
         """
         # TODO(Sukrit) :: Change this to use Vector2D instead of computing
         # norms here.
-        target_vector = np.array([dst_loc.x - self.x, dst_loc.y - self.y])
+        target_vector = np.array(
+            [dst_loc.x - self.location.x, dst_loc.y - self.location.y])
         norm_dst = np.linalg.norm(target_vector)
 
         # Return if the vector is too small.
@@ -462,7 +459,6 @@ class Transform(object):
         d_angle = math.degrees(
             math.acos(np.dot(forward_vector, target_vector) / norm_dst))
         return d_angle < 90.0
-
 
     def __mul__(self, other):
         new_matrix = np.dot(self.matrix, other.matrix)

@@ -90,26 +90,27 @@ class DetectionOperator(erdos.Operator):
             feed_dict={self._image_tensor: image_np_expanded})
 
         num_detections = int(num_detections[0])
-        res_classes = classes[0][:num_detections]
+        res_classes = [int(cls) for cls in classes[0][:num_detections]]
         res_boxes = boxes[0][:num_detections]
         res_scores = scores[0][:num_detections]
 
         obstacles = []
         for i in range(0, num_detections):
-            if (res_classes[i] in self._coco_labels and res_scores[i] >=
-                    self._flags.obstacle_detection_min_score_threshold):
-                obstacles.append(
-                    DetectedObstacle(
-                        BoundingBox2D(
-                            int(res_boxes[i][1] *
-                                msg.frame.camera_setup.width),
-                            int(res_boxes[i][3] *
-                                msg.frame.camera_setup.width),
-                            int(res_boxes[i][0] *
-                                msg.frame.camera_setup.height),
-                            int(res_boxes[i][2] *
-                                msg.frame.camera_setup.height)), res_scores[i],
-                        self._coco_labels[res_classes[i]]))
+            if res_classes[i] in self._coco_labels:
+                if (res_scores[i] >=
+                        self._flags.obstacle_detection_min_score_threshold):
+                    obstacles.append(
+                        DetectedObstacle(
+                            BoundingBox2D(
+                                int(res_boxes[i][1] *
+                                    msg.frame.camera_setup.width),
+                                int(res_boxes[i][3] *
+                                    msg.frame.camera_setup.width),
+                                int(res_boxes[i][0] *
+                                    msg.frame.camera_setup.height),
+                                int(res_boxes[i][2] *
+                                    msg.frame.camera_setup.height)),
+                            res_scores[i], self._coco_labels[res_classes[i]]))
             else:
                 self._logger.warning('Filtering unknown class: {}'.format(
                     res_classes[i]))
