@@ -6,7 +6,7 @@ import sys
 import time
 
 import pylot.utils
-from pylot.simulation.utils import extract_data_in_pylot_format,\
+from pylot.simulation.utils import extract_data_in_pylot_format, \
     get_weathers, get_world, reset_world, set_synchronous_mode
 import pylot.simulation.messages
 
@@ -18,6 +18,8 @@ flags.DEFINE_integer('carla_timeout', 10,
                      'Timeout for connecting to the Carla simulator.')
 flags.DEFINE_bool('carla_synchronous_mode', True,
                   'Run Carla in synchronous mode.')
+flags.DEFINE_bool('carla_scenario_runner', False,
+                  'True to enable running a scenario.')
 flags.DEFINE_integer('carla_town', 1, 'Sets which Carla town to use.')
 flags.DEFINE_integer('carla_fps', 10,
                      'Carla simulator FPS; do not set bellow 10.')
@@ -91,55 +93,22 @@ class CarlaOperator(erdos.Operator):
         if self._client is None or self._world is None:
             raise ValueError('There was an issue connecting to the simulator.')
 
-        if self._flags.carla_version == '0.9.5':
-            # TODO (Sukrit) :: ERDOS provides no way to retrieve handles to the
-            # class objects to do garbage collection. Hence, objects from
-            # previous runs of the simulation may persist. We need to clean
-            # them up right now. In future, move this logic to a seperate
-            # destroy function.
-            reset_world(self._world)
-        else:
-            self._world = self._client.load_world('Town{:02d}'.format(
-                self._flags.carla_town))
-        # Send open drive string.
-        top_timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
-        self.open_drive_stream.send(
-            erdos.Message(top_timestamp,
-                          self._world.get_map().to_opendrive()))
-        top_watermark = erdos.WatermarkMessage(top_timestamp)
-        self.open_drive_stream.send(top_watermark)
-        self.global_trajectory_stream.send(top_watermark)
-        # Set the weather.
-        weather = get_weathers()[self._flags.carla_weather]
-        self._logger.info('Setting the weather to {}'.format(
-            self._flags.carla_weather))
-        self._world.set_weather(weather)
+        if not self._flags.carla_scenario_runner:
+            # Load the appropriate town.
+            self._initialize_world()
+
+        self._send_world_messages()
+
         # Turn on the synchronous mode so we can control the simulation.
         if self._flags.carla_synchronous_mode:
             set_synchronous_mode(self._world, self._flags.carla_fps)
 
-        # Spawn the required number of vehicles.
-        self._vehicles = self._spawn_vehicles(self._flags.carla_num_vehicles)
-
-        # Spawn the vehicle that the pipeline has to drive and send it to
-        # the downstream operators.
-        self._driving_vehicle = self._spawn_driving_vehicle()
-
-        if (self._flags.carla_version == '0.9.6'
-                or self._flags.carla_version == '0.9.7'):
-            # People are do not move in versions older than 0.9.6.
-            (self._people, ped_control_ids) = self._spawn_people(
-                self._flags.carla_num_people)
-
-        # Tick once to ensure that the actors are spawned before the data-flow
-        # starts.
-        self._tick_at = time.time()
-        self._tick_simulator()
-
-        # Start people
-        if (self._flags.carla_version == '0.9.6'
-                or self._flags.carla_version == '0.9.7'):
-            self._start_people(ped_control_ids)
+        if self._flags.carla_scenario_runner:
+            # Waits until the ego vehicle is spawned by the scenario runner.
+            self._wait_for_ego_vehicle()
+        else:
+            # Spawns the person and vehicle actors.
+            self._spawn_actors()
 
     @staticmethod
     def connect(control_stream):
@@ -182,6 +151,77 @@ class CarlaOperator(erdos.Operator):
         # processing the previous timestamp. However, this is not always
         # true (e.g., logging operators that are not part of the main loop).
         self._tick_simulator()
+
+    def _send_world_messages(self):
+        """ Sends initial open drive and trajectory messages."""
+        # Send open drive string.
+        top_timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
+        self.open_drive_stream.send(
+            erdos.Message(top_timestamp,
+                          self._world.get_map().to_opendrive()))
+        top_watermark = erdos.WatermarkMessage(top_timestamp)
+        self.open_drive_stream.send(top_watermark)
+        self.global_trajectory_stream.send(top_watermark)
+
+    def _initialize_world(self):
+        """ Setups the world town, and activates the desired weather."""
+        if self._flags.carla_version == '0.9.5':
+            # TODO (Sukrit) :: ERDOS provides no way to retrieve handles to the
+            # class objects to do garbage collection. Hence, objects from
+            # previous runs of the simulation may persist. We need to clean
+            # them up right now. In future, move this logic to a seperate
+            # destroy function.
+            reset_world(self._world)
+        else:
+            self._world = self._client.load_world('Town{:02d}'.format(
+                self._flags.carla_town))
+        # Set the weather.
+        weather = get_weathers()[self._flags.carla_weather]
+        self._logger.info('Setting the weather to {}'.format(
+            self._flags.carla_weather))
+        self._world.set_weather(weather)
+
+    def _spawn_actors(self):
+        # Spawn the required number of vehicles.
+        self._vehicles = self._spawn_vehicles(self._flags.carla_num_vehicles)
+
+        # Spawn the vehicle that the pipeline has to drive and send it to
+        # the downstream operators.
+        self._driving_vehicle = self._spawn_driving_vehicle()
+
+        if (self._flags.carla_version == '0.9.6'
+                or self._flags.carla_version == '0.9.7'):
+            # People are do not move in versions older than 0.9.6.
+            (self._people, ped_control_ids) = self._spawn_people(
+                self._flags.carla_num_people)
+
+        # Tick once to ensure that the actors are spawned before the data-flow
+        # starts.
+        self._tick_at = time.time()
+        self._tick_simulator()
+
+        # Start people
+        if (self._flags.carla_version == '0.9.6'
+                or self._flags.carla_version == '0.9.7'):
+            self._start_people(ped_control_ids)
+
+    def _wait_for_ego_vehicle(self):
+        # Connect to the ego-vehicle spawned by the scenario runner.
+        self._driving_vehicle = None
+        while self._driving_vehicle is None:
+            self._logger.info("Waiting for the scenario to be ready ...")
+            time.sleep(1)
+            possible_actors = self._world.get_actors().filter('vehicle.*')
+            for actor in possible_actors:
+                if actor.attributes['role_name'] == 'hero':
+                    self._driving_vehicle = actor
+                    break
+            self._world.tick()
+        # Fix the physics of the vehicle to increase the max speed.
+        physics_control = self._driving_vehicle.get_physics_control()
+        physics_control.moi = 0.1
+        physics_control.mass = 100
+        self._driving_vehicle.apply_physics_control(physics_control)
 
     def _tick_simulator(self):
         if (not self._flags.carla_synchronous_mode

@@ -244,11 +244,7 @@ class Transform(object):
             coordinate space with respect to the location and rotation of the
             given object.
     """
-
-    def __init__(self,
-                 location=None,
-                 rotation=None,
-                 matrix=None):
+    def __init__(self, location=None, rotation=None, matrix=None):
         """ Instantiates a Transform object with either the given location
         and rotation, or using the given matrix.
 
@@ -462,7 +458,6 @@ class Transform(object):
         d_angle = math.degrees(
             math.acos(np.dot(forward_vector, target_vector) / norm_dst))
         return d_angle < 90.0
-
 
     def __mul__(self, other):
         new_matrix = np.dot(self.matrix, other.matrix)

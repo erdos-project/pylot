@@ -84,6 +84,17 @@ def set_synchronous_mode(world, fps):
     world.apply_settings(settings)
 
 
+def set_asynchronous_mode(world):
+    """ Sets the simulator to asynchronous mode.
+
+    Args:
+        world: A handle to the world running inside the simulation.
+    """
+    settings = world.get_settings()
+    settings.synchronous_mode = False
+    world.apply_settings(settings)
+
+
 def reset_world(world):
     """ Resets the simulation to the original state. Removes all the vehicles,
     sensors and other actors from the environment.
