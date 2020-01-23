@@ -34,7 +34,7 @@ def test_pixel_has_same_depth(x, y, z, threshold, expected):
 def test_depth_to_point_cloud(depth_frame, expected):
     height, width = depth_frame.shape
     camera_setup = CameraSetup('test_setup',
-                               'test_type',
+                               'sensor.camera.depth',
                                width,
                                height,
                                Transform(location=Location(0, 0, 0),
@@ -59,7 +59,7 @@ def test_depth_to_point_cloud(depth_frame, expected):
 def test_depth_to_point_cloud_nonzero_camera_loc(depth_frame, expected):
     height, width = depth_frame.shape
     camera_setup = CameraSetup('test_setup',
-                               'test_type',
+                               'sensor.camera.depth',
                                width,
                                height,
                                Transform(location=Location(10, 20, 30),
@@ -86,7 +86,7 @@ def test_depth_to_point_cloud_nonzero_camera_loc(depth_frame, expected):
 def test_get_pixel_locations(depth_frame, pixels, expected):
     height, width = depth_frame.shape
     camera_setup = CameraSetup('test_setup',
-                               'test_type',
+                               'sensor.camera.depth',
                                width,
                                height,
                                Transform(location=Location(0, 0, 0),
@@ -149,7 +149,7 @@ def test_initialize_point_cloud(points, expected):
 def test_point_cloud_get_pixel_location(lidar_points, pixel, expected):
     camera_setup = CameraSetup(
         'test_setup',
-        'test_type',
+        'sensor.camera.depth',
         801,
         601,  # width, height
         Transform(location=Location(0, 0, 0), rotation=Rotation(0, 0, 0)),

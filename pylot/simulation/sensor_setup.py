@@ -83,25 +83,73 @@ def create_imu_setup(location):
 
 
 class CameraSetup(object):
-    """ A helper class storing infromation about the setup of a camera."""
+    """ CameraSetup stores information about an instance of the camera
+    mounted on the vehicle.
+
+    Attributes:
+        name: The name of the camera instance.
+        camera_type: The type of the camera. One of ('sensor.camera.rgb',
+            'sensor.camera.depth', 'sensor.camera.semantic_segmentation')
+        width: The width of the image returned by the camera.
+        height: The height of the image returned by the camera.
+        transform: The transform containing the location and rotation of the
+            camera instance with respect to the vehicle.
+        fov: The field-of-view of the camera.
+    """
+
     def __init__(self, name, camera_type, width, height, transform, fov=90):
+        """ Initializes the CameraSetup with the given parameters.
+
+        Args:
+            name: The name of the camera instance.
+            camera_type: The type of the camera. One of ('sensor.camera.rgb',
+                'sensor.camera.depth', 'sensor.camera.semantic_segmentation')
+            width: The width of the image returned by the camera.
+            height: The height of the image returned by the camera.
+            transform: The transform containing the location and rotation of
+                the camera instance with respect to the vehicle.
+            fov: The field-of-view of the camera.
+        """
         self.name = name
+
+        # Ensure that the camera type is one of the three that we support.
+        assert camera_type in ('sensor.camera.rgb', 'sensor.camera.depth', \
+                'sensor.camera.semantic_segmentaion'), "The camera_type "
+        "should belong to ('sensor.camera.rgb', 'sensor.camera.depth', "
+        "'sensor.camera.semantic_segmentation')"
         self.camera_type = camera_type
+
+        # The width of the image produced by the camera should be > 1.
         assert width > 1, "Valid camera setup should have width > 1"
-        self.width = width
-        self.height = height
+        self.width, self.height = width, height
+
+        # Ensure that the transform is of the type pylot.Transform.
+        assert isinstance(transform, Transform), "The given transform is not "
+        "of the type pylot.utils.Transform"
         self._transform = transform
+
         self.fov = fov
+
+        # Generate the intrinsic and extrinsic matrices.
         self._intrinsic_mat = CameraSetup.__create_intrinsic_matrix(
             self.width, self.height, self.fov)
         self._unreal_transform = CameraSetup.__create_unreal_transform(
             self._transform)
 
-    def get_fov(self):
-        return self.fov
-
     @staticmethod
     def __create_intrinsic_matrix(width, height, fov):
+        """ Creates the intrinsic matrix for a camera with the given
+        parameters.
+
+        Args:
+            width: The width of the image returned by the camera.
+            height: The height of the image returned by the camera.
+            fov: The field-of-view of the camera.
+
+        Returns:
+            A 3x3 numpy matrix which contains the intrinsic matrix of the
+            camera.
+        """
         import numpy as np
         k = np.identity(3)
         # Center column of the image.
@@ -130,31 +178,79 @@ class CameraSetup(object):
         return transform * to_unreal_transform
 
     def get_intrinsic_matrix(self):
+        """ Get the intrinsic matrix of the camera denoted by the CameraSetup.
+
+        Returns:
+            A 3x3 numpy matrix containing the intrinsic matrix of the camera.
+        """
         return self._intrinsic_mat
 
     def get_extrinsic_matrix(self):
+        """ Get the extrinsic matrix of the camera denoted by the transform
+        of the camera with respect to the vehicle to which it is attached.
+
+        Returns:
+            A 4x4 matrix containing the extrinsic matrix of the camera.
+        """
         return self._unreal_transform.matrix
 
     def get_name(self):
+        """ Get the name of the camera instance.
+
+        Returns:
+            The name of the camera instance.
+        """
         return self.name
 
     def get_unreal_transform(self):
+        """ Get the transform of the camera with respect to the vehicle in
+        the Unreal Engine coordinate space.
+
+        Returns:
+            A pylot.utils.Transform instance which contains the transform of
+            the camera with respect to the vehicle in the Unreal Engine
+            coordinate space.
+        """
         return self._unreal_transform
 
     def get_transform(self):
+        """ Get the transform of the camera with respect to the vehicle to
+        which it is attached.
+
+        Args:
+            A pylot.utils.Transform instance which contains the transform of
+            the camera with respect to the vehicle to which it is attached.
+        """
         return self._transform
 
     def set_transform(self, transform):
+        """ Set the transform of the camera with respect to the vehicle to
+        which it is attached.
+
+        Args:
+            A pylot.utils.Transform instance depicting the transform of the
+            camera with respect to the vehicle to which it is attached.
+        """
+        assert isinstance(transform, Transform), "The given transform is not "
+        "of the type pylot.utils.Transform"
         self._transform = transform
         self._unreal_transform = CameraSetup.__create_unreal_transform(
             self._transform)
+
+    def get_fov(self):
+        """ Get the field of view of the camera.
+
+        Returns:
+            The field of view of the given camera.
+        """
+        return self.fov
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
         return 'CameraSetup(name: {}, type: {}, width: {}, height: {}, '\
-            'transform: {}, fov: {}'.format(
+            'transform: {}, fov: {})'.format(
                 self.name, self.camera_type, self.width, self.height,
                 self._transform, self.fov)
 
@@ -182,6 +278,7 @@ class SegmentedCameraSetup(CameraSetup):
 
 class LidarSetup(object):
     """ A helper class storing infromation about the setup of a Lidar."""
+
     def __init__(self, name, lidar_type, transform, range, rotation_frequency,
                  channels, upper_fov, lower_fov, points_per_second):
         self.name = name
