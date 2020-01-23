@@ -1,9 +1,25 @@
+"""This module implements an operator that logs tracked obstacles."""
 import erdos
 import os
 
 
 class MultipleObjectTrackerLoggerOperator(erdos.Operator):
-    """ Logs tracked obstacles in the MOT16 file format."""
+    """Operator that logs tracked obstacles in the MOT16 file format.
+    Args:
+        obstacles_stream (:py:class:`erdos.streams.ReadStream`): The stream on
+            which :py:class:`~pylot.perception.messages.ObstaclesMessage` are
+            received.
+        name (str): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (str, optional): Name of file where log messages are
+            written to. If None, then messages are written to stdout.
+
+    Attributes:
+        _name (str): The name of the operator.
+        _logger (:obj:`logging.Logger`): Instance to be used to log messages.
+        _flags (absl.flags): Object to be used to access absl flags.
+        _msg_cnt (:obj:`int`): Number of messages received.
+    """
     def __init__(self, obstacles_stream, name, flags, log_file_name=None):
         # Register a callback on obstacles data stream.
         obstacles_stream.add_callback(self.on_obstacles_msg)
@@ -17,6 +33,14 @@ class MultipleObjectTrackerLoggerOperator(erdos.Operator):
         return []
 
     def on_obstacles_msg(self, msg):
+        """Logs obstacles to files.
+
+        Invoked upon the receipt of a msg on the obstacles stream.
+
+        Args:
+            msg (:py:class:`~pylot.perception.messages.ObstaclesMessage`):
+                Received message.
+        """
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))
         self._msg_cnt += 1

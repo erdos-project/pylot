@@ -1,8 +1,28 @@
+"""This module implements an operator that logs lidar point clouds."""
 import erdos
 
 
 class LidarLoggerOperator(erdos.Operator):
-    """ Logs point cloud messages."""
+    """Operator that logs point cloud messages.
+
+    Args:
+        lidar_stream (:py:class:`erdos.streams.ReadStream`): The stream on
+            which :py:class:`~pylot.perception.messages.PointCloudMessage` are
+            received.
+        name (str): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        filename_prefix (str): Used to build the names of the files it logs to.
+        log_file_name (str, optional): Name of file where log messages are
+            written to. If None, then messages are written to stdout.
+
+    Attributes:
+        _name (str): The name of the operator.
+        _logger (:obj:`logging.Logger`): Instance to be used to log messages.
+        _flags (absl.flags): Object to be used to access absl flags.
+        _pc_msg_cnt (:obj:`int`): Number of messages received.
+        _filename_prefix (str): Used to construct the names of the files it
+             logs to.
+    """
     def __init__(self,
                  lidar_stream,
                  name,
@@ -21,6 +41,12 @@ class LidarLoggerOperator(erdos.Operator):
         return []
 
     def on_lidar_frame(self, msg):
+        """Invoked upon the receipt of a msg on the point cloud stream.
+
+        Args:
+            msg (:py:class:`~pylot.perception.messages.PointCloudMessage`):
+                Received message.
+        """
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))
         self._pc_msg_cnt += 1

@@ -1,3 +1,9 @@
+"""Wrapper module for interacting with the Carla HD map.
+
+This module implements HDMap class which offers utility methods for interacting
+with the carla HD map.
+"""
+
 from collections import deque
 
 import carla
@@ -11,6 +17,17 @@ import pylot.utils
 
 
 class HDMap(object):
+    """Wrapper class around the CARLA map.
+
+    All Pylot methods should strive to use this class instead of directly
+    accessing a CARLA map. This will make it easier to extend the probject
+    with support for other types of HD maps in the future.
+
+    Attributes:
+        _map (carla.Map): An instance of a CARLA map.
+        _grp: An instance of a CARLA global route planner (uses A*).
+        _logger (:obj:`logging.Logger`): Instance to be used to log messages.
+    """
     def __init__(self, carla_map, log_file_name=None):
         self._map = carla_map
         # Setup global planner.
@@ -23,13 +40,15 @@ class HDMap(object):
         self._logger = setup_logging('hd_map', log_file_name)
 
     def get_closest_lane_waypoint(self, location):
-        """ Returns the road closest waypoint to location.
+        """Returns the road closest waypoint to location.
 
         Args:
-            location: pylot.utils.Location in world coordinates.
+            location (:py:class:`~pylot.utils.Location`): Location in world
+                coordinates.
 
         Returns:
-            A pylot.utils.Transform or None if no waypoint is found.
+            :py:class:`~pylot.utils.Transform`: Transform or None if no
+            waypoint is found.
         """
         waypoint = self._map.get_waypoint(location.as_carla_location(),
                                           project_to_road=True,
@@ -41,10 +60,14 @@ class HDMap(object):
             return None
 
     def is_intersection(self, location):
-        """ Returns True if the location is in an intersection.
+        """Checks if a location is in an intersection.
 
         Args:
-            location: pylot.utils.Location in world coordinates.
+            location (:py:class:`~pylot.utils.Location`): Location in world
+                coordinates.
+
+        Returns:
+            bool: True if the location is in an intersection.
         """
         waypoint = self._map.get_waypoint(location.as_carla_location(),
                                           project_to_road=False,
@@ -59,7 +82,15 @@ class HDMap(object):
             return waypoint.is_intersection
 
     def is_on_lane(self, location):
-        """ Returns True if the location is on a lane."""
+        """Checks if a location is on a lane.
+
+        Args:
+            location (:py:class:`~pylot.utils.Location`): Location in world
+                coordinates.
+
+        Returns:
+            bool: True if the location is on a lane.
+        """
         waypoint = self._map.get_waypoint(location.as_carla_location(),
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Driving)
@@ -71,11 +102,16 @@ class HDMap(object):
             return True
 
     def are_on_same_lane(self, location1, location2):
-        """ Returns True if the two locations are on the same lane.
+        """Checks if two locations are on the same lane.
 
         Args:
-            location1: pylot.utils.Location in world coordinates.
-            location1: pylot.utils.Location in world coordinates.
+            location1 (:py:class:`~pylot.utils.Location`): Location in world
+                coordinates.
+            location2 (:py:class:`~pylot.utils.Location`): Location in world
+                coordinates.
+
+        Returns:
+            bool: True if the two locations are on the same lane.
         """
         waypoint1 = self._map.get_waypoint(location1.as_carla_location(),
                                            project_to_road=False,
@@ -104,7 +140,15 @@ class HDMap(object):
         return False
 
     def is_on_opposite_lane(self, transform):
-        """ Returns True if the transform is on the opposite lane."""
+        """Checks if a transform is on an opposite lane.
+
+        Args:
+            transform (:py:class:`~pylot.utils.Transform`): Transform in world
+                coordinates.
+
+        Returns:
+            bool: True if the transform is on the opposite lane.
+        """
         waypoint = self._map.get_waypoint(
             transform.location.as_carla_location(),
             project_to_road=False,
@@ -122,10 +166,14 @@ class HDMap(object):
             return False
 
     def is_at_stop(self, location):
-        """ Returns True if the location is at a stop sign.
+        """Checks if a location is close to a stop sign.
 
         Args:
-            location: pylot.utils.Location in world coordinates.
+            location (:py:class:`~pylot.utils.Location`): Location in world
+                coordinates.
+
+        Returns:
+            bool: True if the location is at a stop sign.
         """
         # TODO(ionel): This method doesn't work yet because the opendrive do
         # not contained waypoints annotated as stops.
@@ -135,17 +183,20 @@ class HDMap(object):
         return not waypoint
 
     def distance_to_intersection(self, location, max_distance_to_check=30):
-        """ Computes the distance (in meters) from location to an intersection.
+        """Computes the distance (in meters) from location to an intersection.
 
         The method starts from location, moves forward until it reaches an
         intersection or exceeds max_distance_to_check.
 
         Args:
-            location: The starting pylot.utils.Location.
-            max_distance_to_check: Max distance to move forward (in meters).
+            location (:py:class:`~pylot.utils.Location`): The starting location
+                in world coordinates.
+            max_distance_to_check (:obj:`int`): Max distance to move forward
+                 (in meters).
+
         Returns:
-            The distance in meters, or None if there's no intersection within
-            max_distance_to_check.
+            :obj:`int`: The distance in meters, or None if there is no
+            intersection within max_distance_to_check.
         """
         waypoint = self._map.get_waypoint(location.as_carla_location(),
                                           project_to_road=False,
@@ -166,7 +217,15 @@ class HDMap(object):
         return None
 
     def is_on_bidirectional_lane(self, location):
-        """ Returns True if the lane is bidirectional."""
+        """Checks if a location is a bidirectional lane.
+
+        Args:
+            location (:py:class:`~pylot.utils.Location`): Location in world
+                coordinates.
+
+        Returns:
+            bool: True if the location is on a bidirectional lane.
+        """
         waypoint = self._map.get_waypoint(
             location.as_carla_location(),
             project_to_road=False,
@@ -174,13 +233,16 @@ class HDMap(object):
         return not waypoint
 
     def must_obbey_traffic_light(self, ego_location, tl_location):
-        """ Returns True if the ego vehicle must obbey the traffic light.
+        """Checks if an ego vehicle must obbey a traffic light.
 
         Args:
-            ego_location: pylot.utils.Location of the ego vehicle in world
-                coordinates.
-            tl_location: pylot.utils.Location of the traffic light in world
-                coordinates.
+            ego_location (:py:class:`~pylot.utils.Location`): Location of the
+                ego vehicle in world coordinates.
+            tl_location (:py:class:`~pylot.utils.Location`): Location of the
+                traffic light in world coordinates.
+
+        Returns:
+            bool: True if the ego vehicle must obbey the traffic light.
         """
         waypoint = self._map.get_waypoint(ego_location.as_carla_location(),
                                           project_to_road=False,
@@ -247,7 +309,14 @@ class HDMap(object):
             return (False, None)
 
     def get_freenet_coordinates(self, location):
-        """ Returns s, d for a given Cartesian world location. """
+        """Transforms a location into Freenet coordinates.
+
+        Args:
+            location (:py:class:`~pylot.utils.Location`): Location in world
+                coordinates.
+        Returns:
+            s, d for a given Cartesian world location.
+        """
         # TODO(ionel): This method assumes that the location has the
         # same orientation as the lanes (i.e., it will always return a
         # positive d).
@@ -284,14 +353,20 @@ class HDMap(object):
         raise NotImplementedError
 
     def compute_waypoints(self, source_loc, destination_loc):
-        """ Computes waypoints between two locations.
+        """Computes waypoints between two locations.
 
-        Assumes that the ego vehicle has the same orientation as
-        the lane on whch it is on.
+        Assumes that the ego vehicle has the same orientation as the lane on
+        whch it is on.
 
         Args:
-            source_loc: Source world pylot.utils.Location.
-            destination_loc: Destination world pylot.utils.Location.
+            source_loc (:py:class:`~pylot.utils.Location`): Source location in
+                world coordinates.
+            destination_loc (:py:class:`~pylot.utils.Location`): Destination
+                location in world coordinates.
+
+        Returns:
+            list(:py:class:`~pylot.utils.Transform`): List of waypoint
+            transforms.
         """
         start_waypoint = self._map.get_waypoint(
             source_loc.as_carla_location(),

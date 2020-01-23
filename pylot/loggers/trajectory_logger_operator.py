@@ -1,10 +1,28 @@
+"""This module implements an operator that logs obstacle trajectories."""
+
 import erdos
 import json
 import os
 
 
 class TrajectoryLoggerOperator(erdos.Operator):
-    """ Logs tracked obstacle trajectories."""
+    """Logs tracked obstacles trajectories to files.
+
+    Args:
+        obstacles_tracking_stream (:py:class:`erdos.streams.ReadStream`): The
+            stream on which :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
+            are received.
+        name (str): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (str, optional): Name of file where log messages are
+            written to. If None, then messages are written to stdout.
+
+    Attributes:
+        _name (str): The name of the operator.
+        _logger (:obj:`logging.Logger`): Instance to be used to log messages.
+        _flags (absl.flags): Object to be used to access absl flags.
+        _msg_cnt (:obj:`int`): Number of messages received.
+    """
     def __init__(self,
                  obstacle_tracking_stream,
                  name,
@@ -21,6 +39,14 @@ class TrajectoryLoggerOperator(erdos.Operator):
         return []
 
     def on_trajectories_msg(self, msg):
+        """Logs obstacle trajectories to files.
+
+        Invoked upon the receipt of a msg on the obstacles trajectories stream.
+
+        Args:
+            msg (:py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`):
+                Received message.
+        """
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))
         self._msg_cnt += 1

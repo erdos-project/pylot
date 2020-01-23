@@ -1,12 +1,30 @@
+"""This module implements an operator that logs IMU sensor readings."""
+
 import erdos
 import json
 import os
 
 
 class IMULoggerOperator(erdos.Operator):
-    """ Subscribes to IMU streams and logs IMU measurements. This will log
-    every frame to preserve linearization when approximating jerk in smoothness
-    evaluation metrics."""
+    """Subscribes to IMU streams and logs IMU measurements.
+
+    This will log every frame to preserve linearization when approximating jerk
+    in smoothness evaluation metrics.
+
+    Args:
+        imu_stream: (:py:class:`erdos.streams.ReadStream`): The stream on which
+            :py:class:`~pylot.perception.messages.IMUMessage` are received.
+        name (str): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (str, optional): Name of file where log messages are
+            written to. If None, then messages are written to stdout.
+
+    Attributes:
+        _name (str): The name of the operator.
+        _logger (:obj:`logging.Logger`): Instance to be used to log messages.
+        _flags (absl.flags): Object to be used to access absl flags.
+        _msg_cnt (:obj:`int`): Number of messages received.
+    """
     def __init__(self, imu_stream, name, flags, log_file_name=None):
         imu_stream.add_callback(self.on_imu_update)
         self._name = name
@@ -19,11 +37,10 @@ class IMULoggerOperator(erdos.Operator):
         return []
 
     def on_imu_update(self, msg):
-        """ The callback function that gets called upon receipt of the
-        IMU message to be logged.
+        """Invoked upon receipt of an IMU message.
 
         Args:
-            msg: A message of type `pylot.perception.messages.IMUMessage` to
+            msg (:py:class:`pylot.perception.messages.IMUMessage`): Message to
                 be logged.
         """
         self._logger.debug('@{}: {} received message'.format(

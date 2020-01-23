@@ -195,4 +195,7 @@ autodoc_member_order = 'bysource'
 # -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None}
+intersphinx_mapping = {
+    'https://docs.python.org/': None,
+    'erdos': ('https://erdos.readthedocs.io/en/latest', None),
+}

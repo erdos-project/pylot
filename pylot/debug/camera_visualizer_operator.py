@@ -1,8 +1,21 @@
+"""This module implements an operator that visualizes camera frames."""
 import erdos
 
 
 class CameraVisualizerOperator(erdos.Operator):
-    """ Subscribes to camera streams, and visualizes frames."""
+    """Subscribes to a camera stream, and visualizes frames.
+
+    Args:
+        camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
+             which camera frames are received.
+        name (str): The name of the operator.
+        log_file_name (str, optional): Name of file where log messages are
+            written to. If None, then messages are written to stdout.
+
+    Attributes:
+        _name (str): The string name of the operator.
+        _logger (:obj:`logging.Logger`): Instance to be used to log messages.
+    """
     def __init__(self, camera_stream, name, log_file_name=None):
         camera_stream.add_callback(self.display_frame)
         self._name = name

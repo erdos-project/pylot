@@ -1,10 +1,28 @@
+"""This module implements an operator that logs bounding boxes."""
+
 import erdos
 import json
 import os
 
 
 class BoundingBoxLoggerOperator(erdos.Operator):
-    """ Logs bounding boxes of obstacles received on a stream."""
+    """Logs bounding boxes of obstacles to files.
+
+    Args:
+        obstacles_stream (:py:class:`erdos.streams.ReadStream`): The stream on
+            which :py:class:`~pylot.perception.messages.ObstaclesMessage` are
+            received.
+        name (str): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (str, optional): Name of file where log messages are
+            written to. If None, then messages are written to stdout.
+
+    Attributes:
+        _name (str): The name of the operator.
+        _logger (:obj:`logging.Logger`): Instance to be used to log messages.
+        _flags (absl.flags): Object to be used to access absl flags.
+        _msg_cnt (:obj:`int`): Number of messages received.
+    """
     def __init__(self, obstacles_stream, name, flags, log_file_name=None):
         obstacles_stream.add_callback(self.on_obstacles_msg)
         self._name = name
@@ -14,10 +32,22 @@ class BoundingBoxLoggerOperator(erdos.Operator):
 
     @staticmethod
     def connect(obstacles_stream):
+        """Connects the operator to other streams.
+
+        The operator receives an obstacles stream and does not write to any
+        output stream.
+        """
         return []
 
     def on_obstacles_msg(self, msg):
-        """ Invoked upon the receipt of a message on the obstacles stream."""
+        """Logs bounding boxes to files.
+
+        Invoked upon the receipt of a msg on the obstacles stream.
+
+        Args:
+            msg (:py:class:`~pylot.perception.messages.ObstaclesMessage`):
+                Received message.
+        """
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))
         self._msg_cnt += 1

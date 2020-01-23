@@ -1,10 +1,33 @@
+"""This module implements an operator that visualizes agent predictions."""
+
 from collections import deque
 import erdos
 
 
 class TrackVisualizerOperator(erdos.Operator):
-    """ TrackVisualizerOperator visualizes the past and predicted future
-        locations of agents on the top-down segmented image.
+    """Visualizes the past and predicted future locations of agents.
+
+    The visualization is shown on top-down segmented images.
+
+    Args:
+        obstacles_tracking_stream (:py:class:`erdos.streams.ReadStream`): The
+            stream on which :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
+            are received.
+        prediction_stream: The stream on which
+            :py:class:`~pylot.prediction.messages.PredictionMessage` are
+            received.
+        segmented_camera_stream: The stream on which top-down
+            :py:class:`~pylot.perception.messages.SegmentedFrameMessage` are
+            received.
+        name (str): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (str, optional): Name of file where log messages are
+            written to. If None, then messages are written to stdout.
+
+    Attributes:
+        _name (str): The name of the operator.
+        _logger (:obj:`logging.Logger`): Instance to be used to log messages.
+        _flags (absl.flags): Object to be used to access absl flags.
     """
     def __init__(self,
                  obstacle_tracking_stream,
@@ -13,15 +36,6 @@ class TrackVisualizerOperator(erdos.Operator):
                  name,
                  flags,
                  log_file_name=None):
-        """ Initializes the TrackVisualizerOperator with the given
-        parameters.
-
-        Args:
-            name: The name of the operator.
-            flags: A handle to the global flags instance to retrieve the
-                configuration.
-            log_file_name: The file to log the required information to.
-        """
         obstacle_tracking_stream.add_callback(self.on_tracking_update)
         prediction_stream.add_callback(self.on_prediction_update)
         segmented_camera_stream.add_callback(
@@ -46,15 +60,39 @@ class TrackVisualizerOperator(erdos.Operator):
         return []
 
     def on_tracking_update(self, msg):
+        """Invoked when a msg on the obstacles trajectories stream is received.
+
+        Args:
+            msg (:py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`):
+                Received message.
+        """
         self._tracking_msgs.append(msg)
 
     def on_prediction_update(self, msg):
+        """Invoked when a msg on the prediction stream is received.
+
+        Args:
+            msg (:py:class:`~pylot.prediction.messages.PredictionMessage`):
+                Received message.
+        """
         self._prediction_msgs.append(msg)
 
     def on_top_down_segmentation_update(self, msg):
+        """Invoked when a msg on the segmented camera stream is received.
+
+        Args:
+            msg (:py:class:`~pylot.prediction.messages.SegmentedFrameMessage`):
+                Received message.
+        """
         self._top_down_segmentation_msgs.append(msg)
 
     def on_watermark(self, timestamp):
+        """Invoked when all input streams have received a watermark.
+
+        Args:
+            timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
+                the watermark.
+        """
         self._logger.debug('@{}: {} received watermark'.format(
             timestamp, self._name))
         tracking_msg = self._tracking_msgs.popleft()

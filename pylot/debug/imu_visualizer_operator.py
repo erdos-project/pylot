@@ -1,3 +1,5 @@
+"""Implements an operator that visualizes forward linear acceleration."""
+
 import carla
 import erdos
 
@@ -6,7 +8,22 @@ import pylot.simulation.utils
 
 
 class IMUVisualizerOperator(erdos.Operator):
-    """ Subscribes to IMU stream and visualizes forward linear acceleration."""
+    """ Subscribes to IMU stream and visualizes forward linear acceleration.
+
+    Args:
+        imu_stream: (:py:class:`erdos.streams.ReadStream`): The stream on which
+            :py:class:`~pylot.perception.messages.IMUMessage` are received.
+        name (str): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (str, optional): Name of file where log messages are
+            written to. If None, then messages are written to stdout.
+
+    Attributes:
+        _name (str): The name of the operator.
+        _logger (:obj:`logging.Logger`): Instance to be used to log messages.
+        _flags (absl.flags): Object to be used to access absl flags.
+        _world (carla.World): Object used to draw in the Carla world.
+    """
     def __init__(self, imu_stream, name, flags, log_file_name=None):
         imu_stream.add_callback(self.on_imu_update)
         self._name = name
@@ -23,8 +40,9 @@ class IMUVisualizerOperator(erdos.Operator):
         return []
 
     def on_imu_update(self, msg):
-        """ The callback function that gets called upon receipt of the IMU
-        message to be drawn on the screen. Draws forward linear acceleration.
+        """Callback that gets called upon receipt of the IMU message.
+
+        Draws forward linear acceleration on the screen.
 
         Args:
             msg: A message of type `pylot.perception.messages.IMUMessage` to
