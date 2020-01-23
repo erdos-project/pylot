@@ -142,11 +142,13 @@ class PerfectPlanningOperator(erdos.Operator):
                 for obstacle in obstacle_msg.obstacles:
                     if obstacle.label == 'person':
                         self._csv_logger.info(
-                            "Detected a person {}m away".format(
+                            "{},{},detected a person {}m away".format(
+                                self._name, self.SPEED,
                                 person.distance(ego_transform)))
                         self._csv_logger.info(
-                            "The vehicle is travelling at a speed of {} m/s.".
-                            format(can_bus_msg.data.forward_speed))
+                            "{},{},vehicle speed {} m/s.".format(
+                                self._name, self.SPEED,
+                                can_bus_msg.data.forward_speed))
 
         # Figure out the location of the ego vehicle and compute the next
         # waypoint.
