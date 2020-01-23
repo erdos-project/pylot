@@ -1,3 +1,4 @@
+from absl import flags
 import collections
 import erdos
 import numpy as np
@@ -8,8 +9,11 @@ import pylot.control.utils
 from pylot.planning.utils import get_waypoint_vector_and_angle
 from pylot.simulation.utils import get_world
 
+flags.DEFINE_enum('avoidance_behavior', 'stop', ['stop', 'swerve'],
+                  'Planning behavior in case of emergencies (stop/swerve)')
 
-class PerfectPlanningOperator(erdos.Operator):
+
+class PersonAvoidanceAgentOperator(erdos.Operator):
     def __init__(self,
                  can_bus_stream,
                  obstacles_stream,
@@ -17,7 +21,6 @@ class PerfectPlanningOperator(erdos.Operator):
                  control_stream,
                  name,
                  goal,
-                 behavior,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
@@ -26,7 +29,6 @@ class PerfectPlanningOperator(erdos.Operator):
         Args:
             name: The name to be used for the operator in the data-flow graph.
             goal: The destination pylot.utils.Location used to plan until.
-            behavior: The behavior to show in case of emergencies.
             flags: The command line flags passed to the driver.
             log_file_name: The file name to log to.
             csv_file_name: The file name to log the experimental results to.
@@ -62,7 +64,6 @@ class PerfectPlanningOperator(erdos.Operator):
                         d=self._flags.pid_d)
 
         # Planning constants.
-        self.PLANNING_BEHAVIOR = behavior
         self.SPEED = self._flags.target_speed
         self.DETECTION_DISTANCE = 12
         self.GOAL_DISTANCE = self.SPEED
@@ -171,7 +172,7 @@ class PerfectPlanningOperator(erdos.Operator):
                     person_detected = True
                     break
 
-            if person_detected and self.PLANNING_BEHAVIOR == 'stop':
+            if person_detected and self._flags.avoidance_behavior == 'stop':
                 control_stream.send(
                     ControlMessage(0.0, 0.0, 1.0, True, False, timestamp))
                 return

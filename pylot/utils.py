@@ -416,7 +416,7 @@ class Transform(object):
         # TODO(Sukrit) :: Change this to use Vector2D instead of computing
         # norms here.
         target_vector = np.array(
-            [target_loc.x - self.x, target_loc.y - self.y])
+            [target_loc.x - self.location.x, target_loc.y - self.location.y])
         norm_target = np.linalg.norm(target_vector)
 
         forward_vector = np.array([
@@ -441,7 +441,8 @@ class Transform(object):
         """
         # TODO(Sukrit) :: Change this to use Vector2D instead of computing
         # norms here.
-        target_vector = np.array([dst_loc.x - self.x, dst_loc.y - self.y])
+        target_vector = np.array(
+            [dst_loc.x - self.location.x, dst_loc.y - self.location.y])
         norm_dst = np.linalg.norm(target_vector)
 
         # Return if the vector is too small.

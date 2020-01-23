@@ -6,28 +6,28 @@ import pylot.flags
 import pylot.component_creator
 import pylot.operator_creator
 from pylot.simulation.utils import get_world, set_asynchronous_mode
-from pylot.simulation.scenario.perfect_planning_operator \
-    import PerfectPlanningOperator
+from pylot.simulation.scenario.person_avoidance_agent_operator \
+    import PersonAvoidanceAgentOperator
 
 FLAGS = flags.FLAGS
-flags.DEFINE_enum('plan', 'stop', ['stop', 'swerve'],
-                  'Planning Behavior (stop/swerve)')
 flags.DEFINE_list('goal_location', '17.73, 327.07, 0.5',
                   'Ego-vehicle goal location')
+flags.DEFINE_bool(
+    'avoidance_agent', True,
+    'True to enable scenario avoidance agent planner and controller')
 
 # The location of the center camera relative to the ego-vehicle.
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
 
 
-def add_perfect_planning(can_bus_stream, obstacles_stream,
-                         ground_obstacles_stream, goal_location):
+def add_avoidance_agent(can_bus_stream, obstacles_stream,
+                        ground_obstacles_stream, goal_location):
     [control_stream] = erdos.connect(
-        PerfectPlanningOperator,
+        PersonAvoidanceAgentOperator,
         [can_bus_stream, obstacles_stream, ground_obstacles_stream],
         True,
-        FLAGS.obstacle_detection_model_names[0] + '_planning',
+        FLAGS.obstacle_detection_model_names[0] + '_agent',
         goal_location,
-        FLAGS.plan,
         FLAGS,
         log_file_name=FLAGS.log_file_name,
         csv_file_name=FLAGS.csv_log_file_name)
@@ -86,9 +86,20 @@ def driver():
         goal_location, can_bus_stream, prediction_stream, center_camera_stream,
         open_drive_stream, global_trajectory_stream)
 
-    control_stream = add_perfect_planning(can_bus_stream, obstacles_stream,
-                                          ground_obstacles_stream,
-                                          goal_location)
+    if FLAGS.avoidance_agent:
+        control_stream = add_avoidance_agent(can_bus_stream, obstacles_stream,
+                                             ground_obstacles_stream,
+                                             goal_location)
+    else:
+        assert FLAGS.control_agent != 'carla_auto_pilot', \
+            'Cannot use CARLA auto pilot in a scenario'
+        # Add the behaviour planning and control operator.
+        control_stream = pylot.component_creator.add_control(
+            can_bus_stream, obstacles_stream, traffic_lights_stream,
+            waypoints_stream, open_drive_stream, point_cloud_stream,
+            ground_obstacles_stream, ground_traffic_lights_stream,
+            center_camera_setup)
+
     control_loop_stream.set(control_stream)
 
     pylot.operator_creator.add_sensor_visualizers(center_camera_stream,
