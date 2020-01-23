@@ -198,4 +198,5 @@ autodoc_member_order = 'bysource'
 intersphinx_mapping = {
     'https://docs.python.org/': None,
     'erdos': ('https://erdos.readthedocs.io/en/latest', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
 }
