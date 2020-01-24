@@ -142,7 +142,7 @@ class Vector3D(object):
         # Normalize the 2D points.
         location_2D = type(self)(float(position_2D[0] / position_2D[2]),
                                  float(position_2D[1] / position_2D[2]),
-                                 position_2D[2])
+                                 float(position_2D[2]))
         return location_2D
 
     def __repr__(self):
