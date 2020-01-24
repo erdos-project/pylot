@@ -9,22 +9,22 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
     """Uses info from the simulator to perfectly detect traffic lights.
 
     Args:
-        ground_traffic_lights_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which :py:class:`~pylot.simulation.GroundTrafficLightsMessage`
+        ground_traffic_lights_stream (:py:class:`erdos.ReadStream`): Stream on
+            which :py:class:`~pylot.simulation.GroundTrafficLightsMessage`
             messages are received.
-        tl_camera_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which BGR frames are received.
-        depth_camera_stream (:py:class:`erdos.streams.ReadStream`): Stream on
-            which :py:class:`~pylot.perception.messages.DepthFrameMessage` are
+        tl_camera_stream (:py:class:`erdos.ReadStream`): Stream on which BGR
+            frames are received.
+        depth_camera_stream (:py:class:`erdos.ReadStream`): Stream on which
+            :py:class:`~pylot.perception.messages.DepthFrameMessage` are
             received.
-        segmented_camera__stream (:py:class:`erdos.streams.ReadStream`):
+        segmented_camera__stream (:py:class:`erdos.ReadStream`):
             Stream on which
             :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
             are received.
-        can_bus_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which can bus info is received.
-        traffic_lights_stream (:py:class:`erdos.streams.WriteStream`):
-            Stream on which the operator publishes
+        can_bus_stream (:py:class:`erdos.ReadStream`): Stream on which can bus
+            info is received.
+        traffic_lights_stream (:py:class:`erdos.WriteStream`): Stream on which
+            the operator publishes
             :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
             for traffic lights.
         name (:obj:`str`): The name of the operator.

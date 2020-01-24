@@ -11,7 +11,7 @@ class IMUVisualizerOperator(erdos.Operator):
     """ Subscribes to IMU stream and visualizes forward linear acceleration.
 
     Args:
-        imu_stream: (:py:class:`erdos.streams.ReadStream`): The stream on which
+        imu_stream: (:py:class:`erdos.ReadStream`): The stream on which
             :py:class:`~pylot.perception.messages.IMUMessage` are received.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.

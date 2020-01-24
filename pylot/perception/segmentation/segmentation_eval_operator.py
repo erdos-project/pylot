@@ -14,12 +14,12 @@ class SegmentationEvalOperator(erdos.Operator):
     """Operator that computes accuracy metrics using segmented frames.
 
     Args:
-        ground_segmented_stream (:py:class:`erdos.streams.ReadStream`): Stream
-            on which perfectly segmented
+        ground_segmented_stream (:py:class:`erdos.ReadStream`): Stream on
+            which perfectly segmented
             :py:class:`~pylot.perception.messages.SegmentedFrameMessage` are
             received.
-        segmented_stream (:py:class:`erdos.streams.ReadStream`): Stream
-            on which segmented
+        segmented_stream (:py:class:`erdos.ReadStream`): Stream on which
+            segmented
             :py:class:`~pylot.perception.messages.SegmentedFrameMessage` are
             received.
         name (:obj:`str`): The name of the operator.
@@ -60,12 +60,12 @@ class SegmentationEvalOperator(erdos.Operator):
         """Connects the operator to other streams.
 
         Args:
-            ground_segmented_stream (:py:class:`erdos.streams.ReadStream`):
-                 Stream on which perfectly segmented
+            ground_segmented_stream (:py:class:`erdos.ReadStream`): Stream on
+                 which perfectly segmented
                  :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
                  are received.
-            segmented_stream (:py:class:`erdos.streams.ReadStream`): Stream
-                on which segmented
+            segmented_stream (:py:class:`erdos.ReadStream`): Stream on which
+                segmented
                 :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
                 are received.
         """

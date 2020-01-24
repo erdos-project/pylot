@@ -30,10 +30,10 @@ class TrafficLightDetOperator(erdos.Operator):
     frame.
 
     Args:
-        camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
-            which camera frames are received.
-        traffic_lights_stream (:py:class:`erdos.streams.WriteStream`): Stream
-            on which the operator sends
+        camera_stream (:py:class:`erdos.ReadStream`): The stream on which
+            camera frames are received.
+        traffic_lights_stream (:py:class:`erdos.WriteStream`): Stream on which
+            the operator sends
             :py:class:`~pylot.perception.messages.ObstaclesMessage` messages.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
@@ -104,13 +104,13 @@ class TrafficLightDetOperator(erdos.Operator):
         """Connects the operator to other streams.
 
         Args:
-            camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
-                which camera frames are received.
+            camera_stream (:py:class:`erdos.ReadStream`): The stream on which
+                camera frames are received.
 
         Returns:
-            :py:class:`erdos.streams.WriteStream`: Stream on which the operator
-            sends :py:class:`~pylot.perception.messages.ObstaclesMessage`
-            messages for traffic lights.
+            :py:class:`erdos.WriteStream`: Stream on which the operator sends
+            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
+            for traffic lights.
         """
         traffic_lights_stream = erdos.WriteStream()
         return [traffic_lights_stream]
@@ -120,8 +120,8 @@ class TrafficLightDetOperator(erdos.Operator):
 
         Args:
             msg: A :py:class:`~pylot.perception.messages.FrameMessage`.
-            obstacles_stream (:py:class:`erdos.streams.WriteStream`):
-                Stream on which the operator sends
+            obstacles_stream (:py:class:`erdos.WriteStream`): Stream on which
+                the operator sends
                 :py:class:`~pylot.perception.messages.ObstaclesMessage`
                 messages for traffic lights.
         """

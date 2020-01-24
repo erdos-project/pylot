@@ -8,8 +8,8 @@ class LidarVisualizerOperator(erdos.Operator):
     """Subscribes to point cloud streams and visualizes point clouds.
 
     Args:
-        point_cloud_stream (:py:class:`erdos.streams.ReadStream`): The stream
-            on which :py:class:`~pylot.perception.messages.PointCloudMessage`
+        point_cloud_stream (:py:class:`erdos.ReadStream`): The stream on which
+            :py:class:`~pylot.perception.messages.PointCloudMessage`
             are received.
         name (:obj:`str`): The name of the operator.
         log_file_name (:obj:`str`, optional): Name of file where log messages

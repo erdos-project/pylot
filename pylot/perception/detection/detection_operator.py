@@ -28,10 +28,10 @@ class DetectionOperator(erdos.Operator):
     frame.
 
     Args:
-        camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
-            which camera frames are received.
-        obstacles_stream (:py:class:`erdos.streams.WriteStream`): Stream on
-            which the operator sends
+        camera_stream (:py:class:`erdos.ReadStream`): The stream on which
+            camera frames are received.
+        obstacles_stream (:py:class:`erdos.WriteStream`): Stream on which the
+            operator sends
             :py:class:`~pylot.perception.messages.ObstaclesMessage` messages.
         model_path(:obj:`str`): Path to the model pb file.
         name (:obj:`str`): The name of the operator.
@@ -92,13 +92,12 @@ class DetectionOperator(erdos.Operator):
         """Connects the operator to other streams.
 
         Args:
-            camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
-                which camera frames are received.
+            camera_stream (:py:class:`erdos.ReadStream`): The stream on which
+                camera frames are received.
 
         Returns:
-            :py:class:`erdos.streams.WriteStream`: Stream on which the operator
-            sends :py:class:`~pylot.perception.messages.ObstaclesMessage`
-            messages.
+            :py:class:`erdos.WriteStream`: Stream on which the operator sends
+            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages.
         """
         obstacles_stream = erdos.WriteStream()
         return [obstacles_stream]
@@ -109,8 +108,8 @@ class DetectionOperator(erdos.Operator):
         Args:
             msg (:py:class:`~pylot.perception.messages.FrameMessage`): Message
                 received.
-            obstacles_stream (:py:class:`erdos.streams.WriteStream`):
-                Stream on which the operator sends
+            obstacles_stream (:py:class:`erdos.WriteStream`): Stream on which
+                the operator sends
                 :py:class:`~pylot.perception.messages.ObstaclesMessage`
                 messages.
         """

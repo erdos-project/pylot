@@ -7,8 +7,8 @@ class CameraLoggerOperator(erdos.Operator):
     """Logs camera frames to files.
 
     Args:
-        camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
-             which camera frames are received.
+        camera_stream (:py:class:`erdos.ReadStream`): The stream on which
+            camera frames are received.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         filename_prefix (:obj:`str`): Used to build the names of the files it

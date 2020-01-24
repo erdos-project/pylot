@@ -15,11 +15,11 @@ class LinearPredictorOperator(erdos.Operator):
     these locations.
 
     Args:
-        tracking_stream (:py:class:`erdos.streams.ReadStream`): The stream on
-            which :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
+        tracking_stream (:py:class:`erdos.ReadStream`): The stream on which
+            :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
             are received.
-        linear_prediction_stream (:py:class:`erdos.streams.WriteStream`):
-            Stream on which the operator sends
+        linear_prediction_stream (:py:class:`erdos.WriteStream`): Stream on
+            which the operator sends
             :py:class:`~pylot.prediction.messages.PredictionMessage` messages.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
@@ -42,15 +42,13 @@ class LinearPredictorOperator(erdos.Operator):
         """Connects the operator to other streams.
 
         Args:
-            tracking_stream (:py:class:`erdos.streams.ReadStream`): The stream
-                on which
+            tracking_stream (:py:class:`erdos.ReadStream`): The stream on which
                 :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
                 are received.
 
         Returns:
-            :py:class:`erdos.streams.WriteStream`: Stream on which the operator
-            sends :py:class:`~pylot.prediction.messages.PredictionMessage`
-            messages.
+            :py:class:`erdos.WriteStream`: Stream on which the operator sends
+            :py:class:`~pylot.prediction.messages.PredictionMessage` messages.
         """
         linear_prediction_stream = erdos.WriteStream()
         return [linear_prediction_stream]

@@ -27,10 +27,10 @@ class SegmentationDRNOperator(erdos.Operator):
     frame.
 
     Args:
-        camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
-            which camera frames are received.
-        segmented_stream (:py:class:`erdos.streams.WriteStream`): Stream on
-            which the operator sends
+        camera_stream (:py:class:`erdos.ReadStream`): The stream on which
+            camera frames are received.
+        segmented_stream (:py:class:`erdos.WriteStream`): Stream on which the
+            operator sends
             :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
             messages.
         name (:obj:`str`): The name of the operator.
@@ -71,12 +71,12 @@ class SegmentationDRNOperator(erdos.Operator):
         """Connects the operator to other streams.
 
         Args:
-            camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
-                which camera frames are received.
+            camera_stream (:py:class:`erdos.ReadStream`): The stream on which
+                camera frames are received.
 
         Returns:
-            :py:class:`erdos.streams.WriteStream`: Stream on which the operator
-            sends :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
+            :py:class:`erdos.WriteStream`: Stream on which the operator sends
+            :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
             messages.
         """
         segmented_stream = erdos.WriteStream()
@@ -87,8 +87,8 @@ class SegmentationDRNOperator(erdos.Operator):
 
         Args:
             msg: A :py:class:`~pylot.perception.messages.FrameMessage`.
-            segmented_stream (:py:class:`erdos.streams.WriteStream`): Stream on
-                which the operator sends
+            segmented_stream (:py:class:`erdos.WriteStream`): Stream on which
+                the operator sends
                 :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
                 messages.
         """

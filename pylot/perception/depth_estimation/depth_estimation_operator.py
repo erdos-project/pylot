@@ -27,12 +27,12 @@ class DepthEstimationOperator(erdos.Operator):
     """Estimates depth using two cameras, and AnyNet neural network.
 
     Args:
-        left_camera_stream (:py:class:`erdos.streams.ReadStream`): The stream
-            on which left camera frames are received.
-        right_camera_stream (:py:class:`erdos.streams.ReadStream`): The stream
-            on which right camera frames are received.
-        depth_camera_stream (:py:class:`erdos.streams.WriteStream`): Stream
-            on which the operator sends computed depth frames.
+        left_camera_stream (:py:class:`erdos.ReadStream`): The stream on which
+            left camera frames are received.
+        right_camera_stream (:py:class:`erdos.ReadStream`): The stream on which
+            right camera frames are received.
+        depth_camera_stream (:py:class:`erdos.WriteStream`): Stream on which
+            the operator sends computed depth frames.
         name (:obj:`str`): The name of the operator.
         transform (:py:class:`~pylot.utils.Transform`): Transform of the center
             camera relative to the ego-vehicle.
@@ -94,14 +94,14 @@ class DepthEstimationOperator(erdos.Operator):
         """Connects the operator to other streams.
 
         Args:
-            left_camera_stream (:py:class:`erdos.streams.ReadStream`): The
-                stream on which left camera frames are received.
-            right_camera_stream (:py:class:`erdos.streams.ReadStream`): The
-                stream on which right camera frames are received.
+            left_camera_stream (:py:class:`erdos.ReadStream`): The stream on
+                which left camera frames are received.
+            right_camera_stream (:py:class:`erdos.ReadStream`): The stream on
+                which right camera frames are received.
 
         Returns:
-            :py:class:`erdos.streams.WriteStream`: Stream on which depth frames
-                are sent.
+            :py:class:`erdos.WriteStream`: Stream on which depth frames are
+            sent.
         """
         depth_estimation_stream = erdos.WriteStream()
         return [depth_estimation_stream]

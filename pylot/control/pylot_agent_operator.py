@@ -26,23 +26,23 @@ class PylotAgentOperator(erdos.Operator):
     timestamp t, and then it computes and sends a control command.
 
     Args:
-        can_bus_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which can bus info is received.
-        waypoints_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which :py:class:`~pylot.planning.messages.WaypointMessage`
-            messages are received. The agent receives waypoints from the
-            planning operator, and must follow these waypoints.
-        traffic_lights_stream (:py:class:`erdos.streams.ReadStream`): Stream on
-            which detected traffic lights are received.
-        obstacles_stream (:py:class:`erdos.streams.ReadStream`): Stream on
-            which detected obstacles are received.
-        point_cloud_stream (:py:class:`erdos.streams.ReadStream`): Stream on
-            which point cloud messages are received.
-        open_drive_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which open drive string representations are received.
-            The operator can construct HDMaps out of the open drive strings.
-        control_stream (:py:class:`erdos.streams.WriteStream`): Stream on which
-            the operator sends :py:class:`~pylot.control.messages.ControlMessage`
+        can_bus_stream (:py:class:`erdos.ReadStream`): Stream on which can bus
+            info is received.
+        waypoints_stream (:py:class:`erdos.ReadStream`): Stream on which
+            :py:class:`~pylot.planning.messages.WaypointMessage` messages are
+            received. The agent receives waypoints from the planning operator,
+            and must follow these waypoints.
+        traffic_lights_stream (:py:class:`erdos.ReadStream`): Stream on which
+            detected traffic lights are received.
+        obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
+            detected obstacles are received.
+        point_cloud_stream (:py:class:`erdos.ReadStream`): Stream on which
+            point cloud messages are received.
+        open_drive_stream (:py:class:`erdos.ReadStream`): Stream on which open
+            drive string representations are received. The operator can
+            construct HDMaps out of the open drive strings.
+        control_stream (:py:class:`erdos.WriteStream`): Stream on which the
+            operator sends :py:class:`~pylot.control.messages.ControlMessage`
             messages.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.

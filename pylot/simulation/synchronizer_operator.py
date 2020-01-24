@@ -13,10 +13,10 @@ class SynchronizerOperator(erdos.Operator):
        The operator should only be used with the CARLA auto pilot enabled.
 
     Args:
-        wait_stream (:py:class:`erdos.streams.ReadStream`): The stream on which
-            to wait for watermark messages.
-        control_stream (:py:class:`erdos.streams.WriteStream`): Stream on which
-            control messages are published.
+        wait_stream (:py:class:`erdos.ReadStream`): The stream on which to wait
+            for watermark messages.
+        control_stream (:py:class:`erdos.WriteStream`): Stream on which control
+            messages are published.
         flags (absl.flags): Object to be used to access absl flags.
     """
     def __init__(self, wait_stream, control_stream, flags):

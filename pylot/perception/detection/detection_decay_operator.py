@@ -9,10 +9,10 @@ class DetectionDecayOperator(erdos.Operator):
     """Operator that computes timely accuracy metrics.
 
     Args:
-        obstacles_stream (:py:class:`erdos.streams.ReadStream`): The stream
-            on which detected obstacles are received.
-        map_stream (:py:class:`erdos.streams.WriteStream`): Stream on which
-            the operator publishes mAP accuracy results.
+        obstacles_stream (:py:class:`erdos.ReadStream`): The stream on which
+            detected obstacles are received.
+        map_stream (:py:class:`erdos.WriteStream`): Stream on which the
+            operator publishes mAP accuracy results.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         log_file_name (:obj:`str`, optional): Name of file where log messages
@@ -41,11 +41,11 @@ class DetectionDecayOperator(erdos.Operator):
         """Connects the operator to other streams.
 
         Args:
-            obstacles_stream (:py:class:`erdos.streams.ReadStream`): The stream
-                on which detected obstacles are received.
+            obstacles_stream (:py:class:`erdos.ReadStream`): The stream on
+                which detected obstacles are received.
 
         Returns:
-            :py:class:`erdos.streams.WriteStream`: Stream on which the operator
+            :py:class:`erdos.WriteStream`: Stream on which the operator
             publishes mAP accuracy results.
         """
         map_stream = erdos.WriteStream()

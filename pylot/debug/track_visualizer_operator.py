@@ -10,8 +10,8 @@ class TrackVisualizerOperator(erdos.Operator):
     The visualization is shown on top-down segmented images.
 
     Args:
-        obstacles_tracking_stream (:py:class:`erdos.streams.ReadStream`): The
-            stream on which :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
+        obstacles_tracking_stream (:py:class:`erdos.ReadStream`): Stream on
+            which :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
             are received.
         prediction_stream: The stream on which
             :py:class:`~pylot.prediction.messages.PredictionMessage` are

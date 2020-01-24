@@ -11,12 +11,12 @@ class SegmentationDecayOperator(erdos.Operator):
     The operator subscribes to the Carla perfect segmented frames stream.
 
     Args:
-        ground_segmented_stream (:py:class:`erdos.streams.ReadStream`): Stream
-            on which perfectly segmented
+        ground_segmented_stream (:py:class:`erdos.ReadStream`): Stream on
+            which perfectly segmented
             :py:class:`~pylot.perception.messages.SegmentedFrameMessage` are
             received.
-        iou_stream (:py:class:`erdos.streams.WriteStream`): Stream on which
-            the operator publishes IoU accuracy results.
+        iou_stream (:py:class:`erdos.WriteStream`): Stream on which the
+            operator publishes IoU accuracy results.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         log_file_name (:obj:`str`, optional): Name of file where log messages
@@ -45,13 +45,13 @@ class SegmentationDecayOperator(erdos.Operator):
         """Connects the operator to other streams.
 
         Args:
-            ground_segmented_stream (:py:class:`erdos.streams.ReadStream`):
-                Stream on which perfectly segmented
+            ground_segmented_stream (:py:class:`erdos.ReadStream`): Stream on
+                which perfectly segmented
                 :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
                 are received.
 
         Returns:
-            :py:class:`erdos.streams.WriteStream`: Stream on which the operator
+            :py:class:`erdos.WriteStream`: Stream on which the operator
             publishes IoU accuracy results.
         """
         iou_stream = erdos.WriteStream()

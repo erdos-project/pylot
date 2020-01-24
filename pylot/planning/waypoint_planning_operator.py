@@ -24,16 +24,15 @@ class WaypointPlanningOperator(erdos.Operator):
     stream). Otherwise, it computes waypoints using the HD Map.
 
     Args:
-        can_bus_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which can bus info is received.
-        open_drive_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which open drive string representations are received.
-            The operator can construct HDMaps out of the open drive strings.
-        global_trajectory_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which the scenario runner publishes waypoints.
-        waypoints_stream (:py:class:`erdos.streams.WriteStream`):
-            Stream on which the operator sends waypoints the ego vehicle must
-            follow.
+        can_bus_stream (:py:class:`erdos.ReadStream`): Stream on which can bus
+            info is received.
+        open_drive_stream (:py:class:`erdos.ReadStream`): Stream on which open
+            drive string representations are received. The operator can
+            construct HDMaps out of the open drive strings.
+        global_trajectory_stream (:py:class:`erdos.ReadStream`): Stream on
+            which the scenario runner publishes waypoints.
+        waypoints_stream (:py:class:`erdos.WriteStream`): Stream on which the
+            operator sends waypoints the ego vehicle must follow.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         goal_location (:py:class:`~pylot.utils.Location`): The goal location of

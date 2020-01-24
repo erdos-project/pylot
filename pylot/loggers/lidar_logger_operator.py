@@ -6,8 +6,8 @@ class LidarLoggerOperator(erdos.Operator):
     """Operator that logs point cloud messages.
 
     Args:
-        lidar_stream (:py:class:`erdos.streams.ReadStream`): The stream on
-            which :py:class:`~pylot.perception.messages.PointCloudMessage` are
+        lidar_stream (:py:class:`erdos.ReadStream`): The stream on which
+            :py:class:`~pylot.perception.messages.PointCloudMessage` are
             received.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.

@@ -23,11 +23,12 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
     The operator uses standard vision techniques (Canny edge).
 
     Args:
-        camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
-            which camera frames are received.
-        detected_lanes_stream (:py:class:`erdos.streams.WriteStream`): Stream on
-            which the operator sends
-            :py:class:`~pylot.perception.messages.DetectedLaneMessage` messages.
+        camera_stream (:py:class:`erdos.ReadStream`): The stream on which
+            camera frames are received.
+        detected_lanes_stream (:py:class:`erdos.WriteStream`): Stream on which
+            the operator sends
+            :py:class:`~pylot.perception.messages.DetectedLaneMessage`
+            messages.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         log_file_name (:obj:`str`, optional): Name of file where log messages
@@ -56,12 +57,12 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
         """Connects the operator to other streams.
 
         Args:
-            camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
-                which camera frames are received.
+            camera_stream (:py:class:`erdos.ReadStream`): The stream on which
+                camera frames are received.
 
         Returns:
-            :py:class:`erdos.streams.WriteStream`: Stream on which the operator
-            sends :py:class:`~pylot.perception.messages.DetectedLaneMessage`
+            :py:class:`erdos.WriteStream`: Stream on which the operator sends
+            :py:class:`~pylot.perception.messages.DetectedLaneMessage`
             messages.
         """
         detected_lanes_stream = erdos.WriteStream()
@@ -72,8 +73,8 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
 
         Args:
             msg: A :py:class:`~pylot.perception.messages.FrameMessage`.
-            detected_lanes_stream (:py:class:`erdos.streams.WriteStream`):
-                Stream on which the operator sends
+            detected_lanes_stream (:py:class:`erdos.WriteStream`): Stream on
+                which the operator sends
                 :py:class:`~pylot.perception.messages.DetectedLaneMessage`
                 messages.
         """

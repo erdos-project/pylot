@@ -15,8 +15,8 @@ class DetectionEvalOperator(erdos.Operator):
     """Operator that computes accuracy metrics using detected obstacles.
 
     Args:
-        obstacles_stream (:py:class:`erdos.streams.ReadStream`): The stream
-            on which detected obstacles are received.
+        obstacles_stream (:py:class:`erdos.ReadStream`): The stream on which
+            detected obstacles are received.
         ground_obstacles_stream: The stream on which
             :py:class:`~pylot.simulation.messages.GroundObstaclesMessage`
             are received from the simulator.
@@ -57,8 +57,8 @@ class DetectionEvalOperator(erdos.Operator):
         """Connects the operator to other streams.
 
         Args:
-            obstacles_stream (:py:class:`erdos.streams.ReadStream`): The stream
-                on which detected obstacles are received.
+            obstacles_stream (:py:class:`erdos.ReadStream`): The stream on 
+                which detected obstacles are received.
             ground_obstacles_stream: The stream on which
                 :py:class:`~pylot.simulation.messages.GroundObstaclesMessage`
                 are received from the simulator.

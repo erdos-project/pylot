@@ -13,13 +13,13 @@ class PredictionEvalOperator(erdos.Operator):
     """Operator that calculates accuracy metrics for predicted trajectories.
 
     Args:
-        can_bus_stream (:py:class:`erdos.streams.ReadStream`): The stream on
-            which can bus info is received.
-        tracking_stream (:py:class:`erdos.streams.ReadStream`): The stream on
-            which perfect
+        can_bus_stream (:py:class:`erdos.ReadStream`): The stream on which can
+            bus info is received.
+        tracking_stream (:py:class:`erdos.ReadStream`): The stream on which
+            perfect
             :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
             are received.
-        prediction_stream (:py:class:`erdos.streams.ReadStream`): Stream on
+        prediction_stream (:py:class:`erdos.ReadStream`): Stream on
             :py:class:`~pylot.prediction.messages.PredictionMessage` are
             received from the prediction operator.
         name (:obj:`str`): The name of the operator.

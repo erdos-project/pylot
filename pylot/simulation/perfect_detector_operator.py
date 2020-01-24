@@ -11,28 +11,27 @@ class PerfectDetectorOperator(erdos.Operator):
     speed limit signs.
 
     Args:
-        depth_camera_stream (:py:class:`erdos.streams.ReadStream`): Stream on
+        depth_camera_stream (:py:class:`erdos.ReadStream`): Stream on
             which :py:class:`~pylot.perception.messages.DepthFrameMessage` are
             received.
-        center_camera_stream (:py:class:`erdos.streams.ReadStream`): Stream on
-            which RGB camera frames are received.
-        segmented_camera__stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which
-            :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
+        center_camera_stream (:py:class:`erdos.ReadStream`): Stream on which
+            RGB camera frames are received.
+        segmented_camera__stream (:py:class:`erdos.ReadStream`): Stream on
+            which :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
             are received.
-        can_bus_stream (:py:class:`erdos.streams.ReadStream`):
+        can_bus_stream (:py:class:`erdos.ReadStream`):
             Stream on which can bus info is received.
-        ground_obstacles_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which :py:class:`~pylot.simulation.GroundObstaclesMessage`
+        ground_obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
+            :py:class:`~pylot.simulation.GroundObstaclesMessage` messages are
+            received.
+        ground_speed_limit_signs_stream (:py:class:`erdos.ReadStream`): Stream
+            on which :py:class:`~pylot.simulation.GroundSpeedSignsMessage`
             messages are received.
-        ground_speed_limit_signs_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which :py:class:`~pylot.simulation.GroundSpeedSignsMessage`
-            messages are received.
-        ground_stop_signs_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which :py:class:`~pylot.simulation.GroundStopSignsMessage`
-            messages are received.
-        obstacles_stream (:py:class:`erdos.streams.WriteStream`): Stream on
-            which the operator publishes
+        ground_stop_signs_stream (:py:class:`erdos.ReadStream`): Stream on
+            which :py:class:`~pylot.simulation.GroundStopSignsMessage` messages
+            are received.
+        obstacles_stream (:py:class:`erdos.WriteStream`): Stream on which the
+            operator publishes
             :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
             for detected obstacles.
         name (:obj:`str`): The name of the operator.

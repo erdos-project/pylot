@@ -20,28 +20,28 @@ def add_obstacle_detection(center_camera_stream,
     a stream of obstacles detected using a trained model.
 
     Args:
-        center_camera_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which BGR frames are received.
-        can_bus_stream (:py:class:`erdos.streams.ReadStream`, optional):
-            Stream on which can bus info is received.
-        depth_camera_stream (:py:class:`erdos.streams.ReadStream`, optional):
-            Stream on which depth frames are received.
-        segmented_camera__stream (:py:class:`erdos.streams.ReadStream`, optional):
+        center_camera_stream (:py:class:`erdos.ReadStream`): Stream on which
+            BGR frames are received.
+        can_bus_stream (:py:class:`erdos.ReadStream`, optional): Stream on
+            which can bus info is received.
+        depth_camera_stream (:py:class:`erdos.ReadStream`, optional): Stream
+            on which depth frames are received.
+        segmented_camera__stream (:py:class:`erdos.ReadStream`, optional):
             Stream on which segmented
             :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
             are received.
-        ground_obstacles_stream (:py:class:`erdos.streams.ReadStream`, optional):
+        ground_obstacles_stream (:py:class:`erdos.ReadStream`, optional):
             Stream on which :py:class:`~pylot.simulation.GroundObstaclesMessage`
             messages are received.
-        ground_speed_limit_signs_stream (:py:class:`erdos.streams.ReadStream`, optional):
+        ground_speed_limit_signs_stream (:py:class:`erdos.ReadStream`, optional):
             Stream on which :py:class:`~pylot.simulation.GroundSpeedSignsMessage`
             messages are received.
-        ground_stop_signs_stream (:py:class:`erdos.streams.ReadStream`, optional):
+        ground_stop_signs_stream (:py:class:`erdos.ReadStream`, optional):
             Stream on which :py:class:`~pylot.simulation.GroundStopSignsMessage`
             messages are received.
 
     Returns:
-        :py:class:`erdos.streams.WriteStream`: Stream on which
+        :py:class:`erdos.WriteStream`: Stream on which
         :py:class:`~pylot.perception.messages.ObstaclesMessage` messages are
         published.
     """
@@ -85,13 +85,13 @@ def add_traffic_light_detection(tl_transform,
     Args:
         tl_transform (:py:class:`~pylot.utils.Transform`): Transform of the
              traffic light camera relative to the ego vehicle.
-        vehicle_id_stream (:py:class:`erdos.streams.ReadStream`): A stream on
-             which the simulator publishes Carla ego-vehicle id.
-        can_bus_stream (:py:class:`erdos.streams.ReadStream`, optional): A
-            stream on which can bus info is received.
+        vehicle_id_stream (:py:class:`erdos.ReadStream`): A stream on which
+            the simulator publishes Carla ego-vehicle id.
+        can_bus_stream (:py:class:`erdos.ReadStream`, optional): A stream
+            on which can bus info is received.
 
     Returns:
-        :py:class:`erdos.streams.WriteStream`: Stream on which
+        :py:class:`erdos.WriteStream`: Stream on which
         :py:class:`~pylot.perception.messages.ObstaclesMessage` traffic light
         messages are published.
     """
@@ -136,15 +136,15 @@ def add_depth(transform, vehicle_id_stream, center_camera_setup,
     Args:
         transform (:py:class:`~pylot.utils.Transform`): Transform of the
              center camera relative to the ego vehicle.
-        vehicle_id_stream (:py:class:`erdos.streams.ReadStream`): A stream on
-             which the simulator publishes Carla ego-vehicle id.
+        vehicle_id_stream (:py:class:`erdos.ReadStream`): A stream on which
+            the simulator publishes Carla ego-vehicle id.
         center_camera_setup (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`):
             The setup of the center camera.
-        depth_camera_stream (:py:class:`erdos.streams.ReadStream`): Stream on
-            which depth frames are received.
+        depth_camera_stream (:py:class:`erdos.ReadStream`): Stream on which
+            depth frames are received.
 
     Returns:
-        :py:class:`erdos.streams.WriteStream`: Stream on which
+        :py:class:`erdos.WriteStream`: Stream on which
         :py:class:`~pylot.perception.messages.DepthFrameMessage` messages are
         published.
     """
@@ -169,13 +169,13 @@ def add_lane_detection(center_camera_stream, can_bus_stream=None):
     detected using a trained model.
 
     Args:
-        center_camera_stream (:py:class:`erdos.streams.ReadStream`): A stream
-            on which camera frames are received.
-        can_bus_stream (:py:class:`erdos.streams.ReadStream`, optional): A
-            stream on which can bus info is received.
+        center_camera_stream (:py:class:`erdos.ReadStream`): A stream on which
+            camera frames are received.
+        can_bus_stream (:py:class:`erdos.ReadStream`, optional): A stream on
+            which can bus info is received.
 
     Returns:
-        :py:class:`erdos.streams.WriteStream`: Stream on which
+        :py:class:`erdos.WriteStream`: Stream on which
         :py:class:`~pylot.perception.messages.DetectedLaneMessage` are
         published.
     """
@@ -203,18 +203,18 @@ def add_obstacle_tracking(center_camera_stream,
     adds operators that use algorithms and trained models to track obstacles.
 
     Args:
-        center_camera_stream (:py:class:`erdos.streams.ReadStream`): Stream
-            on which camera frames are received.
-        obstacles_stream (:py:class:`erdos.streams.ReadStream`): Stream on
-            which detected obstacles are received.
-        can_bus_stream (:py:class:`erdos.streams.ReadStream`, optional): A
-            stream on which can bus info is received.
-        ground_obstacles_stream (:py:class:`erdos.streams.ReadStream`, optional):
+        center_camera_stream (:py:class:`erdos.ReadStream`): Stream on which
+            camera frames are received.
+        obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
+            detected obstacles are received.
+        can_bus_stream (:py:class:`erdos.ReadStream`, optional): A stream on
+            which can bus info is received.
+        ground_obstacles_stream (:py:class:`erdos.ReadStream`, optional):
             Stream on which :py:class:`~pylot.simulation.GroundObstaclesMessage`
             messages are received.
 
     Returns:
-        :py:class:`erdos.streams.WriteStream`: Stream on which
+        :py:class:`erdos.WriteStream`: Stream on which
         :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
         messages are published.
     """
@@ -243,16 +243,16 @@ def add_segmentation(center_camera_stream, ground_segmented_stream=None):
     method adds operators that use trained models.
 
     Args:
-        center_camera_stream (:py:class:`erdos.streams.ReadStream`): Stream
-            on which camera frames are received.
-        ground_segmented_stream (:py:class:`erdos.streams.ReadStream`, optional):
+        center_camera_stream (:py:class:`erdos.ReadStream`): Stream on which
+            camera frames are received.
+        ground_segmented_stream (:py:class:`erdos.ReadStream`, optional):
             Stream on which perfectly segmented
             :py:class:`~pylot.perception.messages.SegmentedFrameMessage` are
             received.
 
     Returns:
-        :py:class:`erdos.streams.WriteStream`: Stream on which semantically
-        segmented frames are published.
+        :py:class:`erdos.WriteStream`: Stream on which semantically segmented
+        frames are published.
     """
     segmented_stream = None
     if FLAGS.segmentation:
@@ -275,19 +275,19 @@ def add_prediction(obstacles_tracking_stream,
     """Adds prediction operators.
 
     Args:
-        obstacles_tracking_stream (:py:class:`erdos.streams.ReadStream`):
+        obstacles_tracking_stream (:py:class:`erdos.ReadStream`):
             Stream on which
             :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
             are received.
-        vehicle_id_stream (:py:class:`erdos.streams.ReadStream`): A stream on
+        vehicle_id_stream (:py:class:`erdos.ReadStream`): A stream on
              which the simulator publishes Carla ego-vehicle id.
         camera_transform (:py:class:`~pylot.utils.Transform`): Transform of the
              top-down view camera relative to the ego vehicle.
-        can_bus_stream (:py:class:`erdos.streams.ReadStream`, optional):
-            Stream on which can bus info is received.
+        can_bus_stream (:py:class:`erdos.ReadStream`, optional): Stream on
+             which can bus info is received.
 
     Returns:
-        :py:class:`erdos.streams.WriteStream`: Stream on which
+        :py:class:`erdos.WriteStream`: Stream on which
         :py:class:`~pylot.prediction.messages.PredictionMessage` messages are
         published.
     """
@@ -320,18 +320,18 @@ def add_planning(goal_location,
 
     Args:
         goal_location (:py:class:`~pylot.utils.Location`): The destination.
-        can_bus_stream (:py:class:`erdos.streams.ReadStream`): Stream on which
+        can_bus_stream (:py:class:`erdos.ReadStream`): Stream on which
             can bus info is received.
-        prediction_stream (:py:class:`erdos.streams.ReadStream`): Stream of
+        prediction_stream (:py:class:`erdos.ReadStream`): Stream of
             :py:class:`~pylot.prediction.messages.PredictionMessage` messages
             for obstacles.
-        open_drive_stream (:py:class:`erdos.streams.ReadStream`, optional):
+        open_drive_stream (:py:class:`erdos.ReadStream`, optional):
             Stream on which open drive string representations are received.
             Operators can construct HDMaps out of the open drive strings.
 
     Returns:
-        :py:class:`erdos.streams.WriteStream`: Stream on which the waypoints
-        are published.
+        :py:class:`erdos.WriteStream`: Stream on which the waypoints are
+        published.
     """
     if FLAGS.planning_type == 'waypoint':
         assert (open_drive_stream is not None
@@ -359,30 +359,30 @@ def add_control(can_bus_stream, obstacles_stream, traffic_lights_stream,
     """Adds ego-vehicle control operators.
 
     Args:
-        can_bus_stream (:py:class:`erdos.streams.ReadStream`, optional):
-            Stream on which can bus info is received.
-        obstacles_stream (:py:class:`erdos.streams.ReadStream`): Stream on
-            which detected obstacles are received.
-        traffic_lights_stream (:py:class:`erdos.streams.ReadStream`): Stream on
-            which detected traffic lights are received.
-        waypoints_stream (:py:class:`erdos.streams.ReadStream`): Stream on
-            which waypoints are received.
-        open_drive_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which open drive string representations are received.
-            Operators can construct HDMaps out of the open drive strings.
-        point_cloud_stream (:py:class:`erdos.streams.ReadStream`): Stream on
+        can_bus_stream (:py:class:`erdos.ReadStream`, optional): Stream on
+            which can bus info is received.
+        obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
+            detected obstacles are received.
+        traffic_lights_stream (:py:class:`erdos.ReadStream`): Stream on which
+            detected traffic lights are received.
+        waypoints_stream (:py:class:`erdos.ReadStream`): Stream on which
+            waypoints are received.
+        open_drive_stream (:py:class:`erdos.ReadStream`): Stream on which
+            open drive string representations are received. Operators can
+            construct HDMaps out of the open drive strings.
+        point_cloud_stream (:py:class:`erdos.ReadStream`): Stream on
             which point cloud messages are received.
-        ground_obstacles_stream (:py:class:`erdos.streams.ReadStream`, optional):
+        ground_obstacles_stream (:py:class:`erdos.ReadStream`, optional):
             Stream on which :py:class:`~pylot.simulation.GroundObstaclesMessage`
             messages are received.
-        ground_traffic_lights_stream (:py:class:`erdos.streams.ReadStream`, optional):
+        ground_traffic_lights_stream (:py:class:`erdos.ReadStream`, optional):
             Stream on which :py:class:`~pylot.simulation.GroundTrafficLightsMessage`
             messages are received.
         camera_setup (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`):
             The setup of the center camera.
 
     Returns:
-        :py:class:`erdos.streams.WriteStream`: Stream on which
+        :py:class:`erdos.WriteStream`: Stream on which
         :py:class:`~pylot.control.messages.ControlMessage` messages are
         published.
     """

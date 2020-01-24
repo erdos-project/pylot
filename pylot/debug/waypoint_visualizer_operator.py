@@ -22,11 +22,10 @@ class WaypointVisualizerOperator(erdos.Operator):
     world simulation screen.
 
     Args:
-        waypoints_stream (:py:class:`erdos.streams.ReadStream`): The stream on
-            which :py:class:`~pylot.planning.messages.WaypointsMessage` are
-            received.
-        camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
-            which camera frames are received.
+        waypoints_stream (:py:class:`erdos.ReadStream`): The stream on which
+            :py:class:`~pylot.planning.messages.WaypointsMessage` are received.
+        camera_stream (:py:class:`erdos.ReadStream`): The stream on which
+            camera frames are received.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         log_file_name (:obj:`str`, optional): Name of file where log messages

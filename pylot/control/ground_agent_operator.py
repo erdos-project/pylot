@@ -22,19 +22,19 @@ class GroundAgentOperator(erdos.Operator):
     timestamp t, and then it computes and sends a control command.
 
     Args:
-        can_bus_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which can bus info is received.
-        ground_obstacles_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which :py:class:`~pylot.simulation.GroundObstaclesMessage`
+        can_bus_stream (:py:class:`erdos.ReadStream`): Stream on which can bus
+            info is received.
+        ground_obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
+            :py:class:`~pylot.simulation.GroundObstaclesMessage` messages are
+            received.
+        ground_traffic_lights_stream (:py:class:`erdos.ReadStream`): Stream on
+            which :py:class:`~pylot.simulation.GroundTrafficLightsMessage`
             messages are received.
-        ground_traffic_lights_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which :py:class:`~pylot.simulation.GroundTrafficLightsMessage`
-            messages are received.
-        waypoints_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which :py:class:`~pylot.planning.messages.WaypointMessage`
-            messages are received. The agent must follow these waypoints.
-        control_stream (:py:class:`erdos.streams.WriteStream`): Stream on which
-            the operator sends :py:class:`~pylot.control.messages.ControlMessage`
+        waypoints_stream (:py:class:`erdos.ReadStream`): Stream on which
+            :py:class:`~pylot.planning.messages.WaypointMessage` messages are
+            received. The agent must follow these waypoints.
+        control_stream (:py:class:`erdos.WriteStream`): Stream on which the
+            operator sends :py:class:`~pylot.control.messages.ControlMessage`
             messages.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
@@ -82,8 +82,8 @@ class GroundAgentOperator(erdos.Operator):
         """Connects the operator to input streams.
 
         Returns:
-            :py:class:`erdos.streams.WriteStream`: Stream on which the control
-            commands are sent by the operator.
+            :py:class:`erdos.WriteStream`: Stream on which the control commands
+            are sent by the operator.
         """
         control_stream = erdos.WriteStream()
         return [control_stream]

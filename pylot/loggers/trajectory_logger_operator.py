@@ -9,8 +9,8 @@ class TrajectoryLoggerOperator(erdos.Operator):
     """Logs tracked obstacles trajectories to files.
 
     Args:
-        obstacles_tracking_stream (:py:class:`erdos.streams.ReadStream`): The
-            stream on which :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
+        obstacles_tracking_stream (:py:class:`erdos.ReadStream`): The stream on
+            which :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
             are received.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.

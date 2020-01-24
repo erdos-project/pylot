@@ -1,4 +1,5 @@
 """This module implements an operator that logs tracked obstacles."""
+
 import erdos
 import os
 
@@ -7,8 +8,8 @@ class MultipleObjectTrackerLoggerOperator(erdos.Operator):
     """Operator that logs tracked obstacles in the MOT16 file format.
 
     Args:
-        obstacles_stream (:py:class:`erdos.streams.ReadStream`): The stream on
-            which :py:class:`~pylot.perception.messages.ObstaclesMessage` are
+        obstacles_stream (:py:class:`erdos.ReadStream`): The stream on which
+            :py:class:`~pylot.perception.messages.ObstaclesMessage` are
             received.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
