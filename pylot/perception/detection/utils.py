@@ -52,7 +52,7 @@ coco_bbox_color_list = np.array([
 
 
 class BoundingBox2D(object):
-    """ Class that stores a 2D bounding box."""
+    """Class that stores a 2D bounding box."""
     def __init__(self, x_min, x_max, y_min, y_max):
         assert x_min < x_max and y_min < y_max
         self.x_min = x_min
@@ -80,7 +80,14 @@ class BoundingBox2D(object):
         return [self.x_min, self.y_min, self.get_width(), self.get_height()]
 
     def calculate_iou(self, other_bbox):
-        """Calculate the IoU of a single bounding box."""
+        """Calculate the IoU of a single bounding box.
+
+        Args:
+            other_bbox (:py:class:`.BoundingBox2D`): The other bounding box.
+
+        Returns:
+            :obj:`float`: The IoU of the two bounding boxes.
+        """
         if (other_bbox.x_min > other_bbox.x_max
                 or other_bbox.y_min > other_bbox.y_max):
             raise AssertionError(
@@ -115,12 +122,19 @@ class BoundingBox2D(object):
 
 
 class BoundingBox3D(object):
-    """ The Pylot version of the carla.BoundingBox instance that defines helper
-    functions needed in Pylot, and makes the class serializable.
+    """Class used to store a 3D bounding box.
+
+    Args:
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the
+            bounding box (rotation is (0, 0, 0)).
+        extent (:py:class:`~pylot.utils.Vector3D`): The extent of the bounding
+            box.
 
     Attributes:
-        transform: The transform of the bounding box (rotation is (0, 0, 0))
-        extent: The extent of the bounding box.
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the
+            bounding box (rotation is (0, 0, 0)).
+        extent (:py:class:`~pylot.utils.Vector3D`): The extent of the bounding
+            box.
     """
     def __init__(self, transform, extent):
         self.transform = transform
@@ -128,7 +142,14 @@ class BoundingBox3D(object):
 
     @classmethod
     def from_carla_bounding_box(cls, bbox):
-        """ Creates a BoundingBox3D from a carla.BoundingBox."""
+        """Creates a pylot bounding box from a CARLA bounding box.
+
+        Args:
+            bbox (carla.BoundingBox): The carla bounding box.
+
+        Returns:
+            :py:class:`.BoundingBox3D`: A bounding box instance.
+        """
         transform = pylot.utils.Transform(
             pylot.utils.Location.from_carla_location(bbox.location),
             pylot.utils.Rotation())
@@ -136,12 +157,10 @@ class BoundingBox3D(object):
         return cls(transform, extent)
 
     def as_carla_bounding_box(self):
-        """ Retrieves the current BoundingBox3D as an instance of
-        carla.BoundingBox
+        """Retrieves the bounding box as instance of a carla bounding box.
 
         Returns:
-            A carla.BoundingBox instance that represents the current bounding
-            box.
+            carla.BoundingBox: Instance that represents the bounding box.
         """
         import carla
         bb_loc = self.transform.location.as_carla_location()
@@ -149,13 +168,15 @@ class BoundingBox3D(object):
         return carla.BoundingBox(bb_loc, bb_extent)
 
     def visualize(self, world, actor_transform, time_between_frames=100):
-        """ Visualize the given bounding box on the world.
+        """Visualizes the bounding box on the world.
 
         Args:
-            world: The world instance to visualize the bounding box on.
-            actor_transform: The current transform of the actor that the
-                bounding box is of.
-            time_between_frames: Time in ms to show the bounding box for.
+            world (carla.World): The world instance to visualize the bounding
+                box on.
+            actor_transform (:py:class:`~pylot.utils.Transform`): The current
+                transform of the actor that the bounding box is of.
+            time_between_frames (:obj:`float`): Time in ms to show the bounding
+                box for.
         """
         bb = self.as_carla_bounding_box()
         bb.location += actor_transform.location()
@@ -165,7 +186,7 @@ class BoundingBox3D(object):
 
     def to_camera_view(self, obstacle_transform, extrinsic_matrix,
                        intrinsic_matrix):
-        """ Converts the coordinates of the bounding box for the given obstacle
+        """Converts the coordinates of the bounding box for the given obstacle
         to the coordinates in the view of the camera.
 
         This method retrieves the extent of the bounding box, transforms them
@@ -180,8 +201,9 @@ class BoundingBox3D(object):
         size of the camera image.
 
         Args:
-            obstacle_transform: The transform of the obstacle that the bounding
-                box is associated with.
+            obstacle_transform (:py:class:`~pylot.utils.Transform`): The
+                transform of the obstacle that the bounding box is associated
+                with.
             extrinsic_matrix: The extrinsic matrix of the camera.
             intrinsic_matrix: The intrinsic matrix of the camera.
 
@@ -231,12 +253,19 @@ class BoundingBox3D(object):
 
 
 class DetectedObstacle(object):
-    """ Class that stores info about a detected obstacle.
+    """Class that stores info about a detected obstacle.
+
+    Args:
+        bounding_box (:py:class:`.BoundingBox2D`): The bounding box of the
+            obstacle.
+        confidence (:obj:`float`): The confidence of the detection.
+        label (:obj:`str`): The label of the detected obstacle.
 
     Attributes:
-        bounding_box: The BoundingBox2D of the obstacle.
-        confidence: The confidence of the detection.
-        label: The label of the detected obstacle.
+        bounding_box (:py:class:`.BoundingBox2D`): The bounding box of the
+            obstacle.
+        confidence (:obj:`float`): The confidence of the detection.
+        label (:obj:`str`): The label of the detected obstacle.
     """
     def __init__(self, bounding_box, confidence, label, id=-1):
         self.bounding_box = bounding_box
@@ -245,7 +274,7 @@ class DetectedObstacle(object):
         self.id = id
 
     def visualize_on_img(self, image_np, bbox_color_map, text=None):
-        """ Annotate the image with the bounding box of the obstacle."""
+        """Annotate the image with the bounding box of the obstacle."""
         txt_font = cv2.FONT_HERSHEY_SIMPLEX
         if text is None:
             if self.id != -1:
@@ -292,6 +321,18 @@ class DetectedObstacle(object):
 
 
 class DetectedSpeedLimit(DetectedObstacle):
+    """Class that stores info about a detected speed limit.
+
+    Args:
+        bounding_box (:py:class:`.BoundingBox2D`): The bounding box of the
+            obstacle.
+        limit (:obj:`int`): The speed limit (in km/h).
+        confidence (:obj:`float`): The confidence of the detection.
+        label (:obj:`str`): The label of the detected obstacle.
+
+    Attributes:
+        limit (:obj:`int`): The speed limit (in km/h).
+    """
     def __init__(self, bounding_box, limit, confidence, label):
         super(DetectedSpeedLimit, self).__init__(bounding_box, confidence,
                                                  label)
@@ -330,18 +371,20 @@ class DetectedLane(object):
 
 
 def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
-    """ Creates the bounding box in the view of the camera image using the
+    """Creates the bounding box in the view of the camera image using the
     coordinates generated with respect to the camera transform.
 
     Args:
-        bb_coordinates: 8 pylot.util.Location coordinates of the bounding box
-            relative to the camera transform.
-        image_width: The width of the image being published by the camera.
-        image_height: The height of the image being published by the camera.
+        bb_coordinates: 8 :py:class:`~pylot.utils.Location` coordinates of
+            the bounding box relative to the camera transform.
+        image_width (:obj:`int`): The width of the image being published by the
+            camera.
+        image_height (:obj:`int`): The height of the image being published by
+            the camera.
 
     Returns:
-        None, if the bounding box does not fall into the view of the camera,
-        otherwise it returns a BoundingBox2D.
+        :py:class:`.BoundingBox2D`: a bounding box, or None if the bounding box
+            does not fall into the view of the camera.
     """
     # Make sure that atleast 2 of the bounding box coordinates are in front.
     z_vals = [loc.z for loc in bb_coordinates if loc.z >= 0]
@@ -415,10 +458,10 @@ def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
 
 
 def load_coco_labels(labels_path):
-    """ Creates a map from index to label.
+    """Returns a map from index to label.
 
     Args:
-        labels_path: Path to a file containing a label on each line.
+        labels_path (:obj:`str`): Path to a file storing a label on each line.
     """
     labels_map = {}
     with open(labels_path) as labels_file:
@@ -431,7 +474,7 @@ def load_coco_labels(labels_path):
 
 
 def load_coco_bbox_colors(coco_labels):
-    """ Returns a map from label to color."""
+    """Returns a map from label to color."""
     # Transform to RGB values.
     bbox_color_list = coco_bbox_color_list.reshape((-1, 3)) * 255
     # Transform to ints

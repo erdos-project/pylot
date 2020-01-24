@@ -6,9 +6,23 @@ from pylot.utils import time_epoch_ms
 
 
 class SegmentationDecayOperator(erdos.Operator):
-    """ Computes how much segmentation accuracy decreases over time.
+    """Computes how much segmentation accuracy decreases over time.
 
     The operator subscribes to the Carla perfect segmented frames stream.
+
+    Args:
+        ground_segmented_stream (:py:class:`erdos.streams.ReadStream`): Stream
+            on which perfectly segmented
+            :py:class:`~pylot.perception.messages.SegmentedFrameMessage` are
+            received.
+        iou_stream (:py:class:`erdos.streams.WriteStream`): Stream on which
+            the operator publishes IoU accuracy results.
+        name (:obj:`str`): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
+        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
+            written to. If None, then messages are written to stdout.
     """
     def __init__(self,
                  ground_segmented_stream,
@@ -28,6 +42,18 @@ class SegmentationDecayOperator(erdos.Operator):
 
     @staticmethod
     def connect(ground_segmented_stream):
+        """Connects the operator to other streams.
+
+        Args:
+            ground_segmented_stream (:py:class:`erdos.streams.ReadStream`):
+            Stream on which perfectly segmented
+            :py:class:`~pylot.perception.messages.SegmentedFrameMessage` are
+            received.
+
+        Returns:
+            :py:class:`erdos.streams.WriteStream`: Stream on which the operator
+            publishes IoU accuracy results.
+        """
         iou_stream = erdos.WriteStream()
         return [iou_stream]
 

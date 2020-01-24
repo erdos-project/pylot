@@ -6,6 +6,20 @@ from pylot.utils import time_epoch_ms
 
 
 class DetectionDecayOperator(erdos.Operator):
+    """Operator that computes timely accuracy metrics.
+
+    Args:
+        obstacles_stream (:py:class:`erdos.streams.ReadStream`): The stream
+            on which detected obstacles are received.
+        map_stream (:py:class:`erdos.streams.WriteStream`): Stream on which
+            the operator publishes mAP accuracy results.
+        name (:obj:`str`): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
+        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
+            written to. If None, then messages are written to stdout.
+    """
     def __init__(self,
                  obstacles_stream,
                  map_stream,
@@ -24,6 +38,16 @@ class DetectionDecayOperator(erdos.Operator):
 
     @staticmethod
     def connect(obstacles_stream):
+        """Connects the operator to other streams.
+
+        Args:
+            obstacles_stream (:py:class:`erdos.streams.ReadStream`): The stream
+                on which detected obstacles are received.
+
+        Returns:
+            :py:class:`erdos.streams.WriteStream`: Stream on which the operator
+            publishes mAP accuracy results.
+        """
         map_stream = erdos.WriteStream()
         return [map_stream]
 

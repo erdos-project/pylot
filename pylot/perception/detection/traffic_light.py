@@ -7,13 +7,18 @@ import pylot.utils
 
 
 class TrafficLightColor(Enum):
-    """ Enum to represent the states of a traffic light."""
+    """Enum to represent the states of a traffic light."""
     RED = 1
     YELLOW = 2
     GREEN = 3
     OFF = 4
 
     def get_label(self):
+        """Gets the label of a traffic light color.
+
+        Returns:
+            :obj:`str`: The label string.
+        """
         if self.value == 1:
             return 'red traffic light'
         elif self.value == 2:
@@ -25,14 +30,23 @@ class TrafficLightColor(Enum):
 
 
 class TrafficLight(object):
-    """ The Pylot version of a carla TrafficLight that defines helper
-    functions needed in Pylot, and makes the class serializable.
+    """Class used to store info about traffic lights.
 
     Args:
-        id: The identifier of the TrafficLight.
-        transform: The transform of the TrafficLight.
-        trigger_volume_extent: The extent of the trigger volume of the light.
-        state: The state of the light. (Green/Yellow/Red/Off)
+        id (:obj:`int`): The identifier of the traffic light.
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the
+            traffic light.
+        trigger_volume_extent (:py:class:`pylot.utils.Vector3D`): The extent
+            of the trigger volume of the light.
+        state (:py:class:`.TrafficLightColor`): The state of the traffic light.
+
+    Attributes:
+        id (:obj:`int`): The identifier of the traffic light.
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the
+            traffic light.
+        trigger_volume_extent (:py:class:`pylot.utils.Vector3D`): The extent
+            of the trigger volume of the light.
+        state (:py:class:`.TrafficLightColor`): The state of the traffic light.
     """
     def __init__(self, id, transform, trigger_volume_extent, state):
         self.id = id
@@ -42,11 +56,13 @@ class TrafficLight(object):
 
     @classmethod
     def from_carla_actor(cls, traffic_light):
-        """ Creates a TrafficLight from a carla traffic light actor.
+        """ Creates a TrafficLight from a CARLA traffic light actor.
 
         Args:
-            traffic_light: The carla.TrafficLight instance to initialize this
-                instance with.
+            traffic_light (carla.TrafficLight): A carla traffic light actor.
+
+        Returns:
+            :py:class:`.TrafficLight`: A traffic light.
         """
         import carla
         if not isinstance(traffic_light, carla.TrafficLight):
@@ -73,12 +89,17 @@ class TrafficLight(object):
                                  camera_transform,
                                  town_name=None,
                                  distance_threshold=70):
-        """ Returns True if the traffic light is visible from the
-        camera_transform.
+        """Checks if the traffic light is visible from the camera transform.
 
         Args:
-            camera_transform: The transform of the camera.
-            distance_threshold: Maximum distance to the camera (in m).
+            transform (:py:class:`~pylot.utils.Transform`): Transform of the
+                camera.
+            distance_threshold (:obj:`int`): Maximum distance to the camera
+                (in m).
+
+        Returns:
+            bool: True if the traffic light is visible from the camera
+            transform.
         """
         # We dot product the forward vectors (i.e., orientation).
         # Note: we have to rotate the traffic light forward vector
@@ -108,11 +129,15 @@ class TrafficLight(object):
         """ Returns DetectedObstacles for all boxes of a traffic light.
 
         Args:
-            town_name: The name of the town in which the traffic light is.
-            depth_frame: A pylot.perception.depth_frame.DepthFrame
-            segmented_image: A segmented image np array used to refine the bboxes.
+            town_name (:obj:`str`): Name of the town in which the traffic light
+                is.
+            depth_frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`):
+                 Depth frame.
+            segmented_image: A segmented image np array used to refine the
+                 bounding boxes.
         Returns:
-            A list of DetectedObstacles.
+            list(:py:class:`~pylot.perception.detection.utils.DetectedObstacle`):
+            Detected traffic lights.
         """
         detected = []
         bboxes = self._get_bboxes(town_name)
@@ -151,7 +176,7 @@ class TrafficLight(object):
         return detected
 
     def _relative_to_traffic_light(self, points):
-        """ Transforms the bounding box specified in the points relative to the
+        """Transforms the bounding box specified in the points relative to the
         light.
 
         Args:

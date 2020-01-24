@@ -1,3 +1,5 @@
+"""Implements an operator that detects lanes."""
+
 from absl import flags
 from collections import namedtuple
 import cv2
@@ -16,6 +18,23 @@ Line = namedtuple("Line", "x1, y1, x2, y2, slope")
 
 
 class CannyEdgeLaneDetectionOperator(erdos.Operator):
+    """Detects driving lanes using a camera.
+
+    The operator uses standard vision techniques (Canny edge).
+
+    Args:
+        camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
+            which camera frames are received.
+        detected_lanes_stream (:py:class:`erdos.streams.WriteStream`): Stream on
+            which the operator sends
+            :py:class:`~pylot.perception.messages.DetectedLaneMessage` messages.
+        name (:obj:`str`): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
+        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
+            written to. If None, then messages are written to stdout.
+    """
     def __init__(self,
                  camera_stream,
                  detected_lanes_stream,
@@ -34,10 +53,30 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
 
     @staticmethod
     def connect(camera_stream):
+        """Connects the operator to other streams.
+
+        Args:
+            camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
+                which camera frames are received.
+
+        Returns:
+            :py:class:`erdos.streams.WriteStream`: Stream on which the operator
+            sends :py:class:`~pylot.perception.messages.DetectedLaneMessage`
+            messages.
+        """
         detected_lanes_stream = erdos.WriteStream()
         return [detected_lanes_stream]
 
     def on_msg_camera_stream(self, msg, detected_lanes_stream):
+        """Invoked whenever a frame message is received on the stream.
+
+        Args:
+            msg: A :py:class:`~pylot.perception.messages.FrameMessage`.
+            detected_lanes_stream (:py:class:`erdos.streams.WriteStream`):
+                Stream on which the operator sends
+                :py:class:`~pylot.perception.messages.DetectedLaneMessage`
+                messages.
+        """
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))
         start_time = time.time()

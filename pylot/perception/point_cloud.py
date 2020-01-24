@@ -8,21 +8,30 @@ from pylot.utils import Location, Transform, Vector2D
 
 
 class PointCloud(object):
-    def __init__(self, points, transform):
-        """ Initializes the point cloud.
+    """Class that stores points clouds.
 
-        Args:
-            points: A list of pylot.utils.Location.
-            transform: utils.Transform of the point cloud, relative to the
-                ego-vehicle.
-        """
+    Args:
+        points (list(:py:class:`~pylot.utils.Location`)): A list locations.
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the
+            point cloud, relative to the ego-vehicle.
+
+    Attributes:
+        points: A numpy array of locations represented as lists.
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the
+            point cloud, relative to the ego-vehicle.
+    """
+    def __init__(self, points, transform):
         # Transform point cloud from lidar to camera coordinates.
         self.points = self._to_camera_coordinates(points)
         self.transform = transform
 
     @classmethod
     def from_carla_point_cloud(cls, carla_pc, transform):
-        # Transform the raw_data into a point cloud.
+        """Creates a pylot point cloud from a carla point cloud.
+
+        Returns:
+          :py:class:`.PointCloud`: A point cloud.
+        """
         points = np.frombuffer(carla_pc.raw_data, dtype=np.dtype('f4'))
         points = copy.deepcopy(points)
         points = np.reshape(points, (int(points.shape[0] / 3), 3))
@@ -43,11 +52,12 @@ class PointCloud(object):
         """ Gets the 3D world location from pixel coordinates.
 
         Args:
-            pixel: A pylot.utils.Vector2D denoting pixel coordinates.
-            camera_setup: The setup of the camera.
+            pixel (:py:class:`~pylot.utils.Vector2D`): Pixel coordinates.
+            camera_setup (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`):
+                The setup of the camera.
         Returns:
-            A pylot.utils.Location of the 3D world location, or None if all the
-            point cloud points are behind.
+            :py:class:`~pylot.utils.Location`: The 3D world location, or None
+            if all the point cloud points are behind.
         """
         if len(self.points) == 0:
             return None
@@ -68,7 +78,14 @@ class PointCloud(object):
         return camera_point_cloud[0]
 
     def _get_closest_point_in_point_cloud(self, pixel):
-        """ Finds the closest depth normalized point cloud point."""
+        """Finds the closest depth normalized point cloud point.
+
+        Args:
+            pixel (:py:class:`~pylot.utils.Vector2D`): Camera coordinates.
+
+        Returns:
+            :py:class:`~pylot.utils.Location`: Closest point cloud point.
+        """
         # Select only points that are in front.
         fwd_points = self.points[np.where(self.points[:, 2] > 0.0)]
         # Select x and y.
@@ -88,6 +105,13 @@ class PointCloud(object):
                         fwd_points[closest_index][2])
 
     def save(self, timestamp, data_path, file_base):
+        """Saves the point cloud to a file.
+
+        Args:
+            timestamp (:obj:`int`): Timestamp associated with the point cloud.
+            data_path (:obj:`str`): Path where to save the point cloud.
+            file_base (:obj:`str`): Base name of the file.
+        """
         file_name = os.path.join(data_path,
                                  '{}-{}.ply'.format(file_base, timestamp))
         pcd = o3d.PointCloud()

@@ -28,10 +28,10 @@ pylot.perception.detection.detection\_eval\_operator module
     :undoc-members:
     :show-inheritance:
 
-pylot.perception.detection.lane\_detection\_operator module
------------------------------------------------------------
+pylot.perception.detection.lane\_detection\_canny\_operator module
+------------------------------------------------------------------
 
-.. automodule:: pylot.perception.detection.lane_detection_operator
+.. automodule:: pylot.perception.detection.lane_detection_canny_operator
     :members:
     :undoc-members:
     :show-inheritance:

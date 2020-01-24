@@ -2,11 +2,17 @@ import pylot.utils
 
 
 class SpeedLimitSign(object):
-    """ Class used to store info about speed limit signs.
+    """Class used to store info about speed limit signs.
+
+    Args:
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the
+            speed limit sign.
+        limit (:obj:`int`): The speed limit of the sign.
 
     Attributes:
-        transform: The transform of the speed limit sign.
-        limit: The speed limit of the sign.
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the
+            speed limit sign.
+        limit (:obj:`int`): The speed limit of the sign.
     """
     def __init__(self, transform, limit):
         self.transform = transform
@@ -14,6 +20,14 @@ class SpeedLimitSign(object):
 
     @classmethod
     def from_carla_actor(cls, actor):
+        """Creates a speed limit sign from a CARLA actor.
+
+        Args:
+            actor (carla.TrafficSign): A carla speed limit sign actor.
+
+        Returns:
+            :py:class:`.SpeedLimitSign`: A speed limit sign.
+        """
         import carla
         if not isinstance(actor, carla.TrafficSign):
             raise ValueError('actor should be of type carla.TrafficSign')

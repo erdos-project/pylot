@@ -1,3 +1,5 @@
+"""Implements an operator that semantically segments frames."""
+
 from absl import flags
 import drn.segment
 from drn.segment import DRNSeg
@@ -19,7 +21,25 @@ flags.DEFINE_bool('visualize_segmentation_output', False,
 
 
 class SegmentationDRNOperator(erdos.Operator):
-    """ Subscribes to a camera stream, and segments frames using DRN."""
+    """Semantically segments frames using a DRN segmentation model.
+
+    The operator receives frames on a camera stream, and runs a model for each
+    frame.
+
+    Args:
+        camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
+            which camera frames are received.
+        segmented_stream (:py:class:`erdos.streams.WriteStream`): Stream on
+            which the operator sends
+            :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
+            messages.
+        name (:obj:`str`): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
+        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
+            written to. If None, then messages are written to stdout.
+    """
     def __init__(self,
                  camera_stream,
                  segmented_stream,
@@ -48,12 +68,29 @@ class SegmentationDRNOperator(erdos.Operator):
 
     @staticmethod
     def connect(camera_stream):
+        """Connects the operator to other streams.
+
+        Args:
+            camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
+                which camera frames are received.
+
+        Returns:
+            :py:class:`erdos.streams.WriteStream`: Stream on which the operator
+            sends :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
+            messages.
+        """
         segmented_stream = erdos.WriteStream()
         return [segmented_stream]
 
     def on_msg_camera_stream(self, msg, segmented_stream):
-        """Camera stream callback method.
-        Invoked upon the receipt of a message on the camera stream.
+        """Invoked upon the receipt of a message on the camera stream.
+
+        Args:
+            msg: A :py:class:`~pylot.perception.messages.FrameMessage`.
+            segmented_stream (:py:class:`erdos.streams.WriteStream`): Stream on
+                which the operator sends
+                :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
+                messages.
         """
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))

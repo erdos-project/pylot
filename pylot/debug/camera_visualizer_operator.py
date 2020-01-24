@@ -8,12 +8,12 @@ class CameraVisualizerOperator(erdos.Operator):
     Args:
         camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
              which camera frames are received.
-        name (str): The name of the operator.
-        log_file_name (str, optional): Name of file where log messages are
-            written to. If None, then messages are written to stdout.
+        name (:obj:`str`): The name of the operator.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
 
     Attributes:
-        _name (str): The string name of the operator.
+        _name (:obj:`str`): The string name of the operator.
         _logger (:obj:`logging.Logger`): Instance to be used to log messages.
     """
     def __init__(self, camera_stream, name, log_file_name=None):

@@ -23,6 +23,11 @@ class HDMap(object):
     accessing a CARLA map. This will make it easier to extend the probject
     with support for other types of HD maps in the future.
 
+    Args:
+        carla_map (carla.Map): An instance of a CARLA map.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
+
     Attributes:
         _map (carla.Map): An instance of a CARLA map.
         _grp: An instance of a CARLA global route planner (uses A*).

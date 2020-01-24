@@ -9,19 +9,20 @@ class LidarLoggerOperator(erdos.Operator):
         lidar_stream (:py:class:`erdos.streams.ReadStream`): The stream on
             which :py:class:`~pylot.perception.messages.PointCloudMessage` are
             received.
-        name (str): The name of the operator.
+        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
-        filename_prefix (str): Used to build the names of the files it logs to.
-        log_file_name (str, optional): Name of file where log messages are
-            written to. If None, then messages are written to stdout.
+        filename_prefix (:obj:`str`): Used to build the names of the files it
+            logs to.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
 
     Attributes:
-        _name (str): The name of the operator.
+        _name (:obj:`str`): The name of the operator.
         _logger (:obj:`logging.Logger`): Instance to be used to log messages.
         _flags (absl.flags): Object to be used to access absl flags.
         _pc_msg_cnt (:obj:`int`): Number of messages received.
-        _filename_prefix (str): Used to construct the names of the files it
-             logs to.
+        _filename_prefix (:obj:`str`): Used to construct the names of the files
+             it logs to.
     """
     def __init__(self,
                  lidar_stream,

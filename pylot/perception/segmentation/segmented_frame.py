@@ -46,7 +46,20 @@ CITYSCAPES_CLASSES = {
 
 
 class SegmentedFrame(object):
-    """ Stores a semantically segmented frame."""
+    """Stores a semantically segmented frame.
+
+    Args:
+        frame: A numpy array storring the segmented frame.
+        encoding (:obj:`str`): The encoding of the frame (carla | cityscapes).
+        camera_setup (:py:class:`~pylot.simulation.sensor_setup.SegmentedCameraSetup`):
+            The camera setup used by the sensor that generated this frame.
+
+    Attributes:
+        frame: A numpy array storring the segmented frame.
+        encoding (:obj:`str`): The encoding of the frame (carla | cityscapes).
+        camera_setup (:py:class:`~pylot.simulation.sensor_setup.SegmentedCameraSetup`):
+            The camera setup used by the sensor that generated this frame.
+    """
     def __init__(self, frame, encoding, camera_setup):
         if encoding == 'carla' or encoding == 'cityscapes':
             self._frame = frame
@@ -59,7 +72,15 @@ class SegmentedFrame(object):
 
     @classmethod
     def from_carla_image(cls, carla_image, camera_setup):
-        # Convert the array containing CARLA semantic segmentation labels
+        """Creates a pylot camera frame from a CARLA frame.
+
+        Note:
+            This conversion is slow.
+
+        Returns:
+            :py:class:`.SegmentedFrame`: A segmented camera frame.
+        """
+        # Converts the array containing CARLA semantic segmentation labels
         # to a 2D array containing the label of each pixel.
         import numpy as np
         import carla
@@ -71,9 +92,10 @@ class SegmentedFrame(object):
         return cls(__frame[:, :, 2], 'carla', camera_setup)
 
     def as_cityscapes_palette(self):
-        """ Transforms the frame to the Carla cityscapes pallete.
+        """Returns the frame to the Carla cityscapes pallete.
 
-        Note: this conversion is slow.
+        Returns:
+           A numpy array.
         """
         if self.encoding == 'cityscapes':
             return self._frame
@@ -85,13 +107,21 @@ class SegmentedFrame(object):
             return result
 
     def as_numpy_array(self):
+        """Returns the segmented frame as a numpy array."""
         return self._frame
 
     def transform_to_cityscapes(self):
+        """Transforms the frame to a cityscapes frame."""
         self._frame = self.as_cityscapes_palette()
         self.encoding = 'cityscapes'
 
     def get_traffic_sign_bounding_boxes(self, min_width=2, min_height=3):
+        """Extracts traffic sign bounding boxes from the frame.
+
+        Returns:
+            list(:py:class:`~pylot.perception.detection.utils.BoundingBox2D`):
+            Traffic sign bounding boxes.
+        """
         assert self.encoding == 'carla', \
             'Not implemented on cityscapes encoding'
         # Set the pixels we are interested in to True.
@@ -126,10 +156,12 @@ class SegmentedFrame(object):
         return self._class_masks
 
     def compute_semantic_iou(self, other_frame):
-        """ Computes IoU for a segmented frame.
+        """Computes IoU for a segmented frame.
 
         Args:
-            other_frame: The frame for which to compute IoU.
+            other_frame (:py:class:`.SegmentedFrame`): The frame for which to
+            compute IoU.
+
         Returns:
             A tuple comprising of mIoU and a list of IoUs.
         """
@@ -157,13 +189,15 @@ class SegmentedFrame(object):
         return (mean_iou, iou)
 
     def compute_semantic_iou_using_masks(self, other_frame):
-        """ Computes IoU for a segmented frame.
+        """Computes IoU for a segmented frame.
 
         Computes IoU from per class image masks. This method is the fastest if
         the frames already have precomputed masks.
 
         Args:
-            other_frame: The frame for which to compute IoU.
+            other_frame (:py:class:`.SegmentedFrame`): The frame for which to
+            compute IoU.
+
         Returns:
             A tuple comprising of mIoU and a list of IoUs.
         """
@@ -197,12 +231,21 @@ class SegmentedFrame(object):
             img.save(file_name)
 
     def save(self, timestamp, data_path, file_base):
+        """Saves the segmented frame to a file.
+
+        Args:
+            timestamp (:obj:`int`): Timestamp associated with the segmented
+                frame.
+            data_path (:obj:`str`): Path where to save the segmented frame.
+            file_base (:obj:`str`): Base name of the file.
+        """
         file_name = os.path.join(data_path,
                                  '{}-{}.png'.format(file_base, timestamp))
         img = Image.fromarray(self.as_cityscapes_palette())
         img.save(file_name)
 
     def visualize(self, window_name, timestamp=None):
+        """Creates a cv2 window to visualize the segmented frame."""
         cityscapes_frame = self.as_cityscapes_palette()
         # Convert to BGR
         cityscapes_frame = cityscapes_frame[:, :, ::-1]

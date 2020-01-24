@@ -11,9 +11,9 @@ class FusionOperator(erdos.Operator):
     """Fusion Operator
 
     Args:
-        rgbd_max_range (float): Maximum distance of the rgbd frame
-        camera_fov (float): Angular field of view in radians of the RGBD and
-            RGB cameras used to infer depth information and generate bounding
+        rgbd_max_range (:obj:`float`): Maximum distance of the rgbd frame
+        camera_fov (:obj:`float`): Angular field of view in radians of the RGBD
+            and RGB cameras used to infer depth info and generate bounding
             boxes respectively. Note that camera position, orientation, and
             FOV must be identical for both.
     """

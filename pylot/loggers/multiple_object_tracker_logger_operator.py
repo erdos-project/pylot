@@ -5,17 +5,18 @@ import os
 
 class MultipleObjectTrackerLoggerOperator(erdos.Operator):
     """Operator that logs tracked obstacles in the MOT16 file format.
+
     Args:
         obstacles_stream (:py:class:`erdos.streams.ReadStream`): The stream on
             which :py:class:`~pylot.perception.messages.ObstaclesMessage` are
             received.
-        name (str): The name of the operator.
+        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (str, optional): Name of file where log messages are
-            written to. If None, then messages are written to stdout.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
 
     Attributes:
-        _name (str): The name of the operator.
+        _name (:obj:`str`): The name of the operator.
         _logger (:obj:`logging.Logger`): Instance to be used to log messages.
         _flags (absl.flags): Object to be used to access absl flags.
         _msg_cnt (:obj:`int`): Number of messages received.

@@ -6,21 +6,30 @@ from pylot.perception.detection.utils import BoundingBox3D, \
 
 
 class Obstacle(object):
-    """ An Obstacle represents a dynamic obstacle that we could encounter on the
-    road. This class provides helper functions to detect obstacles and provide
+    """Class used to store info about obstacles.
+
+    This class provides helper functions to detect obstacles and provide
     bounding boxes for them.
+
+    Args:
+        id (:obj:`int`): The identifier of the obstacle.
+        label (:obj:`str`): The label of the obstacle.
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the
+            obstacle.
+        bounding_box (:py:class:`~pylot.utisl.BoundingBox3D`): Bounding box of
+            the obstacle.
+        forward_speed (:obj:`float`): Forward speed of the obstacle (in m/s).
+
+    Attributes:
+        id (:obj:`int`): The identifier of the obstacle.
+        label (:obj:`str`): The label of the obstacle.
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the
+            obstacle.
+        bounding_box (:py:class:`~pylot.utisl.BoundingBox3D`): Bounding box of
+            the obstacle.
+        forward_speed (:obj:`float`): Forward speed of the obstacle (in m/s).
     """
     def __init__(self, id, label, transform, bounding_box, forward_speed):
-        """ Initialize an obstacle.
-
-        Args:
-            id: The id of the obstacle.
-            label: The label of the obstacle.
-            transform: The transform of the obstacle.
-            bounding_box: A perception.detection.utils.BoundingBox3D of the
-                  obstacle.
-            forward_speed: The forward speed of the obstacle.
-        """
         self.id = id
         self.transform = transform
         self.bounding_box = bounding_box
@@ -38,11 +47,14 @@ class Obstacle(object):
 
     @classmethod
     def from_carla_actor(cls, actor):
-        """ Creates an Obstacle from a carla actor.
+        """Creates an Obstacle from a CARLA actor.
 
         Args:
             actor: The actor to initialize the obstacle with. (should be of
-            type carla.Vehicle or carla.Walker)
+                type carla.Vehicle or carla.Walker)
+
+        Returns:
+            :py:class:`.Obstacle`: An obstacle instance.
         """
         import carla
         if not isinstance(actor, (carla.Vehicle, carla.Walker)):
@@ -66,51 +78,51 @@ class Obstacle(object):
         # for bicycles, motorcycles, cars and persons.
         return cls(actor.id, label, transform, bounding_box, forward_speed)
 
-    def distance(self, vehicle_transform):
-        """ Returns the distance of the obstacle from the vehicle represented
-        by the vehicle transform.
+    def distance(self, other_transform):
+        """Computes the distance from the obstacle to the other transform.
 
         The distance provides an estimate of the depth returned by the depth
         camera sensor in Carla. As a result, the distance is defined as the
         displacement of the obstacle along either the X or the Y axis.
 
         Args:
-            vehicle_transform: The pylot.utils.Transform of the vehicle to find
-            the distance of the obstacle from.
+            other_transform (:py:class:`~pylot.utils.Transform`): The other
+                transform.
 
         Returns:
-            The distance (in metres) of the obstacle from the vehicle.
+            :obj:`float`: The distance (in metres) of the obstacle from the
+            transform.
         """
         import numpy as np
 
         # Get the location of the vehicle and the obstacle as numpy arrays.
-        vehicle_location = vehicle_transform.location.as_numpy_array()
+        other_location = other_transform.location.as_numpy_array()
         obstacle_location = self.transform.location.as_numpy_array()
 
         # Calculate the vector from the vehicle to the obstacle.
         # Scale it by the forward vector, and calculate the norm.
-        relative_vector = vehicle_location - obstacle_location
+        relative_vector = other_location - obstacle_location
         distance = np.linalg.norm(
-            relative_vector *
-            vehicle_transform.forward_vector.as_numpy_array())
+            relative_vector * other_transform.forward_vector.as_numpy_array())
         return distance
 
     def to_camera_view(self, depth_frame, segmented_frame):
-        """ Retrieves the 2D bounding box for the obstacle with respect to the
-        given camera setup.
+        """Retrieves the 2D bounding box for the obstacle.
 
         Heuristically uses the depth frame and segmentation frame to figure out
         if the obstacle is in view of the camera or not.
 
         Args:
-            depth_frame: The DepthFrame to be used to compare the depth
-                to the distance of the obstacle from the sensor.
-            segmented_frame: The SegmentedFrame to be used to compare
-                the segmentation class.
+            depth_frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`):
+                Depth frame used to compare the depth to the distance of the
+                obstacle from the sensor.
+            segmented_frame (:py:class:`~pylot.perception.segmentation.segmented_frame.SegmentedFrame`):
+                Segmented frame used to refine the conversions.
 
         Returns:
-            A BoundingBox2D instance representing a rectangle over the obstacle
-            if the obstacle is deemed to be visible, None otherwise.
+            :py:class:`~pylot.utisl.BoundingBox2D`: An instance representing a
+            rectangle over the obstacle if the obstacle is deemed to be
+            visible, None otherwise.
         """
         # Convert the bounding box of the obstacle to the camera coordinates.
         bb_coordinates = self.bounding_box.to_camera_view(

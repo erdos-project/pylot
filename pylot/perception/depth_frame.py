@@ -8,13 +8,19 @@ import pylot.utils
 
 
 class DepthFrame(object):
-    def __init__(self, frame, camera_setup):
-        """ Initializes a depth frame.
+    """Class that stores depth frames.
 
-        Args:
-            frame: A numpy array storring the depth frame.
-            camera_setup: The camera setup used to generate this frame.
-        """
+    Args:
+        frame: A numpy array storring the depth frame.
+        camera_setup (:py:class:`~pylot.simulation.sensor_setup.DepthCameraSetup`):
+            The camera setup used by the sensor that generated this frame.
+
+    Attributes:
+        frame: A numpy array storring the depth frame.
+        camera_setup (:py:class:`~pylot.simulation.sensor_setup.DepthCameraSetup`):
+            The camera setup used by the sensor that generated this frame.
+    """
+    def __init__(self, frame, camera_setup):
         self.frame = frame
         self.camera_setup = camera_setup
         # Attribute used to cache the depth frame as a point cloud. We're doing
@@ -24,7 +30,11 @@ class DepthFrame(object):
 
     @classmethod
     def from_carla_frame(cls, frame, camera_setup):
-        """ Creates a DepthFrame from a carla depth frame."""
+        """Creates a pylot depth frame from a carla depth frame.
+
+        Returns:
+            :py:class:`.DepthFrame`: A depth frame.
+        """
         # Convert an image containing CARLA encoded depth-map to a 2D
         # array containing the depth value of each pixel normalized
         # between [0.0, 1.0]
@@ -37,18 +47,19 @@ class DepthFrame(object):
         return cls(frame, camera_setup)
 
     def as_numpy_array(self):
+        """Returns the depth frame as a numpy array."""
         return self.frame
 
     def pixel_has_same_depth(self, x, y, z, threshold):
+        """Checks if the depth of pixel (y,x) is within threshold of z."""
         return abs(self.frame[int(y)][int(x)] * 1000 - z) < threshold
 
     def as_point_cloud(self):
-        """
-        Converts a CARLA-encoded depth-map to a 1D array containing
-        the 3D position of each pixel in world coordinates.
+        """Converts the depth frame to a 1D array containing the 3D
+        position of each pixel in world coordinates.
 
-        See CameraSetup in pylot/simulation/sensor_setup.py for coordinate
-        axis orientations.
+        See :py:class:`~pylot.simulation.sensor_setup.CameraSetup` for
+        coordinate axis orientations.
         """
         far = 1000.0  # max depth in meters.
         intrinsic_mat = self.camera_setup.get_intrinsic_matrix()
@@ -92,6 +103,13 @@ class DepthFrame(object):
         ]
 
     def save(self, timestamp, data_path, file_base):
+        """Saves the depth frame to a file.
+
+        Args:
+            timestamp (:obj:`int`): Timestamp associated with the depth frame.
+            data_path (:obj:`str`): Path where to save the depth frame.
+            file_base (:obj:`str`): Base name of the file.
+        """
         file_name = os.path.join(data_path,
                                  '{}-{}.pkl'.format(file_base, timestamp))
         pickle.dump(self.as_numpy_array(),

@@ -3,11 +3,19 @@ import pylot.utils
 
 
 class StopSign(object):
-    """ Class used to store info about stop signs.
+    """Class used to store info about stop signs.
+
+    Args:
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the
+            stop sign.
+        bounding_box (:py:class:`~pylot.utisl.BoundingBox3D`): Bounding box of
+            the stop sign.
 
     Attributes:
-        transform: The transform of the stop sign.
-        bounding_box: A BoundingBox3D of the stop sign.
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the
+            stop sign.
+        bounding_box (:py:class:`~pylot.utisl.BoundingBox3D`): Bounding box of
+            the stop sign.
     """
     def __init__(self, transform, bounding_box):
         self.transform = transform
@@ -15,6 +23,14 @@ class StopSign(object):
 
     @classmethod
     def from_carla_actor(cls, actor):
+        """Creates a stop sign from a CARLA actor.
+
+        Args:
+            actor (carla.TrafficSign): A carla stop sign actor.
+
+        Returns:
+            :py:class:`.StopSign`: A stop sign.
+        """
         import carla
         if not isinstance(actor, carla.TrafficSign):
             raise ValueError('actor should be of type carla.TrafficSign')

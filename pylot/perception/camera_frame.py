@@ -8,6 +8,19 @@ import pylot.utils
 
 
 class CameraFrame(object):
+    """Class that stores camera frames.
+
+    Args:
+        frame: A numpy array storring the frame.
+        camera_setup (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`):
+            The camera setup used by the sensor that generated this frame.
+
+    Attributes:
+        frame: A numpy array storring the frame.
+        encoding (:obj:`str`): The encoding of the frame (BGR | RGB).
+        camera_setup (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`):
+            The camera setup used by the sensor that generated this frame.
+    """
     def __init__(self, frame, encoding, camera_setup=None):
         self.frame = frame
         if encoding != 'BGR' and encoding != 'RGB':
@@ -17,8 +30,11 @@ class CameraFrame(object):
 
     @classmethod
     def from_carla_frame(cls, carla_frame, camera_setup):
-        # Convert it to a BGR image and store it as a frame with the BGR
-        # encoding.
+        """Creates a pylot camera frame from a CARLA frame.
+
+        Returns:
+            :py:class:`.CameraFrame`: A BGR camera frame.
+        """
         import carla
         if not isinstance(carla_frame, carla.Image):
             raise ValueError('carla_frame should be of type carla.Image')
@@ -27,15 +43,18 @@ class CameraFrame(object):
         return cls(_frame[:, :, :3], 'BGR', camera_setup)
 
     def as_numpy_array(self):
+        """Returns the camera frame as a numpy array."""
         return self.frame.astype(np.uint8)
 
     def as_bgr_numpy_array(self):
+        """Returns the camera frame as a BGR encoded numpy array."""
         if self.encoding == 'RGB':
             return self.frame[:, :, ::-1]
         else:
             return self.frame
 
     def as_rgb_numpy_array(self):
+        """Returns the camera frame as a RGB encoded numpy array."""
         if self.encoding == 'BGR':
             return self.frame[:, :, ::-1]
         else:
@@ -51,7 +70,7 @@ class CameraFrame(object):
             obstacle.visualize_on_img(self.frame, bbox_color_map)
 
     def visualize(self, window_name, timestamp=None):
-        """ Creates a cv2 window to visualize the camera frame."""
+        """Creates a cv2 window to visualize the camera frame."""
         if self.encoding != 'BGR':
             image_np = self.as_bgr_numpy_array()
         else:
@@ -65,6 +84,13 @@ class CameraFrame(object):
         cv2.circle(self.frame, (int(point.x), int(point.y)), r, color, -1)
 
     def save(self, timestamp, data_path, file_base):
+        """Saves the camera frame to a file.
+
+        Args:
+            timestamp (:obj:`int`): Timestamp associated with the camera frame.
+            data_path (:obj:`str`): Path where to save the camera frame.
+            file_base (:obj:`str`): Base name of the file.
+        """
         if self.encoding != 'RGB':
             image_np = self.as_rgb_numpy_array()
         else:

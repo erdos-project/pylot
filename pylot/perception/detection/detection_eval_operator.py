@@ -1,3 +1,5 @@
+"""Implements an operator that eveluates detection output."""
+
 from absl import flags
 import erdos
 import heapq
@@ -10,6 +12,21 @@ flags.DEFINE_enum('detection_metric', 'mAP', ['mAP', 'timely-mAP'],
 
 
 class DetectionEvalOperator(erdos.Operator):
+    """Operator that computes accuracy metrics using detected obstacles.
+
+    Args:
+        obstacles_stream (:py:class:`erdos.streams.ReadStream`): The stream
+            on which detected obstacles are received.
+        ground_obstacles_stream: The stream on which
+            :py:class:`~pylot.simulation.messages.GroundObstaclesMessage`
+            are received from the simulator.
+        name (:obj:`str`): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
+        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
+            written to. If None, then messages are written to stdout.
+    """
     def __init__(self,
                  obstacles_stream,
                  ground_obstacles_stream,
@@ -38,6 +55,15 @@ class DetectionEvalOperator(erdos.Operator):
 
     @staticmethod
     def connect(obstacles_stream, ground_obstacles_stream):
+        """Connects the operator to other streams.
+
+        Args:
+            obstacles_stream (:py:class:`erdos.streams.ReadStream`): The stream
+                on which detected obstacles are received.
+            ground_obstacles_stream: The stream on which
+                :py:class:`~pylot.simulation.messages.GroundObstaclesMessage`
+                are received from the simulator.
+        """
         return []
 
     def on_notification(self, timestamp):

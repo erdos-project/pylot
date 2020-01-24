@@ -11,12 +11,12 @@ class LidarVisualizerOperator(erdos.Operator):
         point_cloud_stream (:py:class:`erdos.streams.ReadStream`): The stream
             on which :py:class:`~pylot.perception.messages.PointCloudMessage`
             are received.
-        name (str): The name of the operator.
-        log_file_name (str, optional): Name of file where log messages are
-            written to. If None, then messages are written to stdout.
+        name (:obj:`str`): The name of the operator.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
 
     Attributes:
-        _name (str): The name of the operator.
+        _name (:obj:`str`): The name of the operator.
         _logger (:obj:`logging.Logger`): Instance to be used to log messages.
     """
     def __init__(self, point_cloud_stream, name, log_file_name=None):

@@ -1,3 +1,5 @@
+"""Implements an operator that estimates depth using two cameras."""
+
 from absl import flags
 import erdos
 import cv2
@@ -22,7 +24,25 @@ flags.DEFINE_string('depth_estimation_model_path', 'dependencies/anynet/',
 
 
 class DepthEstimationOperator(erdos.Operator):
-    """ Estimates depth using left and right cameras, and AnyNet."""
+    """Estimates depth using two cameras, and AnyNet neural network.
+
+    Args:
+        left_camera_stream (:py:class:`erdos.streams.ReadStream`): The stream
+            on which left camera frames are received.
+        right_camera_stream (:py:class:`erdos.streams.ReadStream`): The stream
+            on which right camera frames are received.
+        depth_camera_stream (:py:class:`erdos.streams.WriteStream`): Stream
+            on which the operator sends computed depth frames.
+        name (:obj:`str`): The name of the operator.
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the center
+            camera relative to the ego-vehicle.
+        fov(:obj:`int`): Field of view of the center camera.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
+        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
+            written to. If None, then messages are written to stdout.
+    """
     def __init__(self,
                  left_camera_stream,
                  right_camera_stream,
@@ -71,6 +91,18 @@ class DepthEstimationOperator(erdos.Operator):
 
     @staticmethod
     def connect(left_camera_stream, right_camera_stream):
+        """Connects the operator to other streams.
+
+        Args:
+            left_camera_stream (:py:class:`erdos.streams.ReadStream`): The
+                stream on which left camera frames are received.
+            right_camera_stream (:py:class:`erdos.streams.ReadStream`): The
+                stream on which right camera frames are received.
+
+        Returns:
+            :py:class:`erdos.streams.WriteStream`: Stream on which depth frames
+                are sent.
+        """
         depth_estimation_stream = erdos.WriteStream()
         return [depth_estimation_stream]
 

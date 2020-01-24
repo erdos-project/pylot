@@ -1,3 +1,5 @@
+"""Implements an operator that detects traffic lights."""
+
 from absl import flags
 import erdos
 import logging
@@ -22,7 +24,24 @@ flags.DEFINE_float(
 
 
 class TrafficLightDetOperator(erdos.Operator):
-    """ Subscribes to a camera stream, and runs a model for each frame."""
+    """Detects traffic lights using a TensorFlow model.
+
+    The operator receives frames on a camera stream, and runs a model for each
+    frame.
+
+    Args:
+        camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
+            which camera frames are received.
+        traffic_lights_stream (:py:class:`erdos.streams.WriteStream`): Stream
+            on which the operator sends
+            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages.
+        name (:obj:`str`): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
+        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
+            written to. If None, then messages are written to stdout.
+    """
     def __init__(self,
                  camera_stream,
                  traffic_lights_stream,
@@ -82,11 +101,30 @@ class TrafficLightDetOperator(erdos.Operator):
 
     @staticmethod
     def connect(camera_stream):
+        """Connects the operator to other streams.
+
+        Args:
+            camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
+                which camera frames are received.
+
+        Returns:
+            :py:class:`erdos.streams.WriteStream`: Stream on which the operator
+            sends :py:class:`~pylot.perception.messages.ObstaclesMessage`
+            messages for traffic lights.
+        """
         traffic_lights_stream = erdos.WriteStream()
         return [traffic_lights_stream]
 
     def on_frame(self, msg, traffic_lights_stream):
-        """ Invoked when the operator receives a message on the data stream."""
+        """Invoked whenever a frame message is received on the stream.
+
+        Args:
+            msg: A :py:class:`~pylot.perception.messages.FrameMessage`.
+            obstacles_stream (:py:class:`erdos.streams.WriteStream`):
+                Stream on which the operator sends
+                :py:class:`~pylot.perception.messages.ObstaclesMessage`
+                messages for traffic lights.
+        """
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self._name))
         start_time = time.time()

@@ -27,13 +27,13 @@ class WaypointVisualizerOperator(erdos.Operator):
             received.
         camera_stream (:py:class:`erdos.streams.ReadStream`): The stream on
             which camera frames are received.
-        name (str): The name of the operator.
+        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (str, optional): Name of file where log messages are
-            written to. If None, then messages are written to stdout.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
 
     Attributes:
-        _name (str): The string name of the operator.
+        _name (:obj:`str`): The string name of the operator.
         _logger (:obj:`logging.Logger`): Instance to be used to log messages.
         _flags (absl.flags): Object to be used to access absl flags.
         _bgr_msgs (:obj:`collections.deque`): Buffer of received ground BGR

@@ -1,3 +1,5 @@
+"""Implements an operator that eveluates segmentation output."""
+
 from absl import flags
 import erdos
 import heapq
@@ -9,6 +11,24 @@ flags.DEFINE_enum('segmentation_metric', 'mIoU', ['mIoU', 'timely-mIoU'],
 
 
 class SegmentationEvalOperator(erdos.Operator):
+    """Operator that computes accuracy metrics using segmented frames.
+
+    Args:
+        ground_segmented_stream (:py:class:`erdos.streams.ReadStream`): Stream
+            on which perfectly segmented
+            :py:class:`~pylot.perception.messages.SegmentedFrameMessage` are
+            received.
+        segmented_stream (:py:class:`erdos.streams.ReadStream`): Stream
+            on which segmented
+            :py:class:`~pylot.perception.messages.SegmentedFrameMessage` are
+            received.
+        name (:obj:`str`): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
+        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
+            written to. If None, then messages are written to stdout.
+    """
     def __init__(self,
                  ground_segmented_stream,
                  segmented_stream,
@@ -38,6 +58,18 @@ class SegmentationEvalOperator(erdos.Operator):
 
     @staticmethod
     def connect(ground_segmented_stream, segmented_stream):
+        """Connects the operator to other streams.
+
+        Args:
+            ground_segmented_stream (:py:class:`erdos.streams.ReadStream`):
+                 Stream on which perfectly segmented
+                 :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
+                 are received.
+            segmented_stream (:py:class:`erdos.streams.ReadStream`): Stream
+                on which segmented
+                :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
+                are received.
+        """
         return []
 
     def on_notification(self, timestamp):
