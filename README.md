@@ -34,7 +34,7 @@ Following, start the simulator in the Carla container:
 
 ```console
 nvidia-docker exec -i -t carla_v1 /bin/bash
-SDL_VIDEODRIVER=offscreen /home/erdos/workspace/CARLA_0.9.7/CarlaUE4.sh -opengl -windowed -ResX=800 -ResY=600 -carla-server -benchmark -fps=10 -quality-level=Epic
+SDL_VIDEODRIVER=offscreen /home/erdos/workspace/CARLA_0.9.6/CarlaUE4.sh -opengl -windowed -ResX=800 -ResY=600 -carla-server -benchmark -fps=10 -quality-level=Epic
 ```
 
 Finally, start Pylot in the container:
@@ -75,13 +75,13 @@ pip install -e ./
 
 Next, start the simulator:
 ```console
-export CARLA_HOME=$PYLOT_HOME/dependencies/CARLA_0.9.7/
+export CARLA_HOME=$PYLOT_HOME/dependencies/CARLA_0.9.6/
 ./scripts/run_simulator.sh
 ```
 
 In a different terminal, setup the paths:
 ```console
-export CARLA_HOME=$PYLOT_HOME/dependencies/CARLA_0.9.7/
+export CARLA_HOME=$PYLOT_HOME/dependencies/CARLA_0.9.6/
 cd $PYLOT_HOME/scripts/
 source ./set_pythonpath.sh
 ```

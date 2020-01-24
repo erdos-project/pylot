@@ -1,3 +1,5 @@
+"""Implements an agent operator that uses info from the simulator."""
+
 from collections import deque
 import erdos
 import math
@@ -10,6 +12,37 @@ from pylot.simulation.utils import get_map
 
 
 class GroundAgentOperator(erdos.Operator):
+    """ Agent that uses data from CARLA to drive around.
+
+    The agent stops whenever it encounters an obstacle (i.e., a vehicle or
+    a person), and waits for the obstacle to move. It does not implement
+    any obstacle avoidance policy.
+
+    The agent waits for all input streams to receive a watermark message for
+    timestamp t, and then it computes and sends a control command.
+
+    Args:
+        can_bus_stream (:py:class:`erdos.streams.ReadStream`):
+            Stream on which can bus info is received.
+        ground_obstacles_stream (:py:class:`erdos.streams.ReadStream`):
+            Stream on which :py:class:`~pylot.simulation.GroundObstaclesMessage`
+            messages are received.
+        ground_traffic_lights_stream (:py:class:`erdos.streams.ReadStream`):
+            Stream on which :py:class:`~pylot.simulation.GroundTrafficLightsMessage`
+            messages are received.
+        waypoints_stream (:py:class:`erdos.streams.ReadStream`):
+            Stream on which :py:class:`~pylot.planning.messages.WaypointMessage`
+            messages are received. The agent must follow these waypoints.
+        control_stream (:py:class:`erdos.streams.WriteStream`): Stream on which
+            the operator sends :py:class:`~pylot.control.messages.ControlMessage`
+            messages.
+        name (:obj:`str`): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
+        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
+            written to. If None, then messages are written to stdout.
+    """
     def __init__(self,
                  can_bus_stream,
                  ground_obstacles_stream,
@@ -46,10 +79,25 @@ class GroundAgentOperator(erdos.Operator):
     @staticmethod
     def connect(can_bus_stream, ground_obstacles_stream,
                 ground_traffic_lights_stream, waypoints_stream):
+        """Connects the operator to input streams.
+
+        Returns:
+            :py:class:`erdos.streams.WriteStream`: Stream on which the control
+            commands are sent by the operator.
+        """
         control_stream = erdos.WriteStream()
         return [control_stream]
 
     def on_watermark(self, timestamp, control_stream):
+        """Invoked when all input streams have received a watermark.
+
+        The method computes and sends the control command on the control
+        stream.
+
+        Args:
+            timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
+                the watermark.
+        """
         self._logger.debug('@{}: received watermark'.format(timestamp))
         # Get hero vehicle info.
         can_bus_msg = self._can_bus_msgs.popleft()

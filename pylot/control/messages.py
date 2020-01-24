@@ -1,15 +1,19 @@
+"""Implements messages related to vehicle control."""
+
 import erdos
 
 
 class ControlMessage(erdos.Message):
-    """ This class represents a message to be used to send control commands.
+    """This class represents a message to be used to send control commands.
 
-    Attributes:
-        steer: Steer angle between [-1.0, 1.0].
-        throttle: Throttle command between [0.0, 1.0].
-        brake: Brake command between [0.0, 1.0].
-        hand_brake: Boolean controlling hand-brake engagement.
-        reverse: Boolean controlling reverse gear engagement.
+    Args:
+        steer (:obj:`float`): Steer angle between [-1.0, 1.0].
+        throttle (:obj:`float`): Throttle command between [0.0, 1.0].
+        brake (:obj:`float`): Brake command between [0.0, 1.0].
+        hand_brake (bool): Boolean controlling hand-brake engagement.
+        reverse (bool): Boolean controlling reverse gear engagement.
+        timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
+            the message.
     """
     def __init__(self, steer, throttle, brake, hand_brake, reverse, timestamp):
         super(ControlMessage, self).__init__(timestamp, None)

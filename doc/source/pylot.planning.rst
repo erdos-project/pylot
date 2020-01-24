@@ -4,26 +4,10 @@ pylot.planning package
 Submodules
 ----------
 
-pylot.planning.cost\_functions module
--------------------------------------
-
-.. automodule:: pylot.planning.cost_functions
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pylot.planning.messages module
 ------------------------------
 
 .. automodule:: pylot.planning.messages
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pylot.planning.trajectory\_planning module
-------------------------------------------
-
-.. automodule:: pylot.planning.trajectory_planning
     :members:
     :undoc-members:
     :show-inheritance:

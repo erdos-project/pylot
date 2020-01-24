@@ -15,7 +15,7 @@ def get_angle(vec_dst, vec_src):
 
 
 def radians_to_steer(rad, steer_gain):
-    """ Converts radians to steer input.
+    """Converts radians to steer input.
 
     Returns:
         :obj:`float`: Between [-1.0, 1.0].
@@ -70,53 +70,49 @@ def compute_throttle_and_brake(pid, current_speed, target_speed, flags):
     return throttle, brake
 
 
-def _is_person_on_hit_zone(p_dist, p_angle, flags):
-    return (math.fabs(p_angle) < flags.person_angle_hit_thres
-            and p_dist < flags.person_distance_hit_thres)
-
-
-def _is_person_on_near_hit_zone(p_dist, p_angle, flags):
-    return (math.fabs(p_angle) < flags.person_angle_emergency_thres
-            and p_dist < flags.person_distance_emergency_thres)
-
-
 def stop_person(ego_vehicle_location, person_location, wp_vector,
                 speed_factor_p, flags):
-    """ Computes a stopping factor for ego vehicle given a person pos.
+    """Computes a stopping factor for ego vehicle given a person location.
 
     Args:
-        ego_vehicle_location: Location of the ego vehicle in world coordinates.
-        person_location: Location of the person in world coordinates.
-        flags: A absl flags object.
+        ego_vehicle_location (:py:class:`~pylot.utils.Location`): Location of
+            the ego vehicle in world coordinates.
+        person_location (:py:class:`~pylot.utils.Location`): Location of the
+            person in world coordinates.
+        flags (absl.flags): The flags object.
 
     Returns:
-        A stopping factor between 0 and 1 (i.e., no braking).
+        :obj:`float`: A stopping factor between 0 and 1 (i.e., no braking).
     """
     speed_factor_p_temp = 1
     p_vector, p_dist = person_location.get_vector_and_magnitude(
         ego_vehicle_location)
     p_angle = get_angle(p_vector, wp_vector)
-    if _is_person_on_hit_zone(p_dist, p_angle, flags):
+    # Check if person is on hit zone.
+    if (math.fabs(p_angle) < flags.person_angle_hit_thres
+            and p_dist < flags.person_distance_hit_thres):
         speed_factor_p_temp = p_dist / (flags.coast_factor *
                                         flags.person_distance_hit_thres)
-    if _is_person_on_near_hit_zone(p_dist, p_angle, flags):
+    # Check if person is near hit zone.
+    if (math.fabs(p_angle) < flags.person_angle_emergency_thres
+            and p_dist < flags.person_distance_emergency_thres):
         speed_factor_p_temp = 0
-    if (speed_factor_p_temp < speed_factor_p):
-        speed_factor_p = speed_factor_p_temp
-    return speed_factor_p
+    return min(speed_factor_p, speed_factor_p_temp)
 
 
 def stop_vehicle(ego_vehicle_location, obs_vehicle_location, wp_vector,
                  speed_factor_v, flags):
-    """ Computes a stopping factor for ego vehicle given a vehicle pos.
+    """Computes a stopping factor for ego vehicle given a vehicle pos.
 
     Args:
-        ego_vehicle_location: Location of the ego vehicle in world coordinates.
-        obs_vehicle_location: Location of the vehicle in world coordinates.
-        flags: A absl flags object.
+        ego_vehicle_location (:py:class:`~pylot.utils.Location`): Location of
+            the ego vehicle in world coordinates.
+        obs_vehicle_location (:py:class:`~pylot.utils.Location`): Location of
+            the obstacle vehicle in world coordinates.
+        flags (absl.flags): The flags object.
 
     Returns:
-        A stopping factor between 0 and 1 (i.e., no braking).
+        :obj:`float`: A stopping factor between 0 and 1 (i.e., no braking).
     """
     speed_factor_v_temp = 1
     v_vector, v_dist = obs_vehicle_location.get_vector_and_magnitude(
@@ -140,10 +136,7 @@ def stop_vehicle(ego_vehicle_location, obs_vehicle_location, wp_vector,
             and v_dist < nearby_dist):
         speed_factor_v_temp = 0
 
-    if speed_factor_v_temp < speed_factor_v:
-        speed_factor_v = speed_factor_v_temp
-
-    return speed_factor_v
+    return min(speed_factor_v, speed_factor_v_temp)
 
 
 def stop_traffic_light(ego_vehicle_location, tl_location, tl_state, wp_vector,
@@ -151,12 +144,14 @@ def stop_traffic_light(ego_vehicle_location, tl_location, tl_state, wp_vector,
     """ Computes a stopping factor for ego vehicle given a traffic light.
 
     Args:
-        ego_vehicle_location: Location of the ego vehicle in world coordinates.
-        tl_location: Location of the traffic light in world coordinates.
-        flags: A absl flags object.
+        ego_vehicle_location (:py:class:`~pylot.utils.Location`): Location of
+            the ego vehicle in world coordinates.
+        tl_location (:py:class:`~pylot.utils.Location`): Location of the
+            traffic light in world coordinates.
+        flags (absl.flags): The flags object.
 
     Returns:
-        A stopping factor between 0 and 1 (i.e., no braking).
+        :obj:`float`: A stopping factor between 0 and 1 (i.e., no braking).
     """
     speed_factor_tl_temp = 1
     if (tl_state == TrafficLightColor.YELLOW
@@ -181,10 +176,7 @@ def stop_traffic_light(ego_vehicle_location, tl_location, tl_state, wp_vector,
                 and math.fabs(wp_angle) < 0.2):
             speed_factor_tl_temp = 0
 
-        if (speed_factor_tl_temp < speed_factor_tl):
-            speed_factor_tl = speed_factor_tl_temp
-
-    return speed_factor_tl
+    return min(speed_factor_tl, speed_factor_tl_temp)
 
 
 def stop_for_agents(ego_vehicle_location, wp_angle, wp_vector, wp_angle_speed,

@@ -1,3 +1,5 @@
+"""Implements an operator that computes waypoints to a goal location."""
+
 import collections
 import erdos
 import itertools
@@ -15,11 +17,31 @@ WAYPOINT_COMPLETION_THRESHOLD = 0.9
 
 
 class WaypointPlanningOperator(erdos.Operator):
-    """ Operator that computes waypoints.
+    """Computes waypoints the ego vehicle must follow.
 
-    The operator either receives all the waypoints from the scenario runner
-    agent (on the global trajectory stream), or computes waypoints using the
-    HD Map.
+    If the operator is running in CARLA challenge mode, then it receives all
+    the waypoints from the scenario runner agent (on the global trajectory
+    stream). Otherwise, it computes waypoints using the HD Map.
+
+    Args:
+        can_bus_stream (:py:class:`erdos.streams.ReadStream`):
+            Stream on which can bus info is received.
+        open_drive_stream (:py:class:`erdos.streams.ReadStream`):
+            Stream on which open drive string representations are received.
+            The operator can construct HDMaps out of the open drive strings.
+        global_trajectory_stream (:py:class:`erdos.streams.ReadStream`):
+            Stream on which the scenario runner publishes waypoints.
+        waypoints_stream (:py:class:`erdos.streams.WriteStream`):
+            Stream on which the operator sends waypoints the ego vehicle must
+            follow.
+        name (:obj:`str`): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        goal_location (:py:class:`~pylot.utils.Location`): The goal location of
+            the ego vehicle.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
+        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
+            written to. If None, then messages are written to stdout.
     """
     def __init__(self,
                  can_bus_stream,
@@ -85,6 +107,12 @@ class WaypointPlanningOperator(erdos.Operator):
         return [waypoints_stream]
 
     def on_opendrive_map(self, msg):
+        """Invoked whenever a message is received on the open drive stream.
+
+        Args:
+            msg (:py:class:`~erdos.message.Message`): Message that contains
+                the open drive string.
+        """
         self._logger.debug('@{}: received open drive message'.format(
             msg.timestamp))
         try:
@@ -95,6 +123,12 @@ class WaypointPlanningOperator(erdos.Operator):
         self._map = HDMap(carla.Map('map', msg.data), self._log_file_name)
 
     def on_global_trajectory(self, msg):
+        """Invoked whenever a message is received on the trajectory stream.
+
+        Args:
+            msg (:py:class:`~erdos.message.Message`): Message that contains
+                a list of waypoints to the goal location.
+        """
         self._logger.debug('@{}: global trajectory has {} waypoints'.format(
             msg.timestamp, len(msg.data)))
         if len(msg.data) > 0:
@@ -110,6 +144,12 @@ class WaypointPlanningOperator(erdos.Operator):
             self._waypoints.append(waypoint_option[0])
 
     def on_can_bus_update(self, msg, waypoints_stream):
+        """Invoked whenever a message is received on the can bus stream.
+
+        Args:
+            msg (:py:class:`~erdos.message.Message`): Message that contains
+                info about the ego vehicle.
+        """
         self._logger.debug('@{}: received can bus message'.format(
             msg.timestamp))
         self._vehicle_transform = msg.data.transform
@@ -138,7 +178,7 @@ class WaypointPlanningOperator(erdos.Operator):
         waypoints_stream.send(output_msg)
 
     def __update_waypoints(self):
-        """ Updates the waypoints.
+        """Updates the waypoints.
 
         Depending on setup, the method either recomputes the waypoints
         between the ego vehicle and the goal location, or just garbage collects
@@ -158,12 +198,13 @@ class WaypointPlanningOperator(erdos.Operator):
             self._waypoints = collections.deque([self._vehicle_transform])
 
     def __remove_completed_waypoints(self):
-        """ Removes waypoints that the ego vehicle has already completed.
+        """Removes waypoints that the ego vehicle has already completed.
 
         The method first finds the closest waypoint, removes all waypoints
-        that are before the closest waypoint, and finally removes the
-        closest waypoint if the ego vehicle is very close to it
-        (i.e., close to completion)."""
+        that are before the closest waypoint, and finally removes the closest
+        waypoint if the ego vehicle is very close to it (i.e., close to
+        completion).
+        """
         min_dist = 10000000
         min_index = 0
         index = 0

@@ -107,7 +107,8 @@ class DetectionOperator(erdos.Operator):
         """Invoked whenever a frame message is received on the stream.
 
         Args:
-            msg: A :py:class:`~pylot.perception.messages.FrameMessage`.
+            msg (:py:class:`~pylot.perception.messages.FrameMessage`): Message
+                received.
             obstacles_stream (:py:class:`erdos.streams.WriteStream`):
                 Stream on which the operator sends
                 :py:class:`~pylot.perception.messages.ObstaclesMessage`

@@ -8,8 +8,7 @@ MAX_JERK_THRESHOLD = 10  # m/s/s/s
 
 
 class PlanningObstaclePrediction(object):
-    """
-    Non-ego obstacles move with constant acceleration.
+    """Non-ego obstacles move with constant acceleration.
     """
     def __init__(self, s, v_s, acc_s, d, v_d, acc_d):
         self.s = s
@@ -47,8 +46,7 @@ def get_polynomial_func(coefficients):
 
 
 def differentiate_polynomial(coefficients):
-    """
-    Calculates the derivative of a polynomial and returns
+    """Calculates the derivative of a polynomial and returns
     the corresponding coefficients.
     """
     new_coeffs = []
