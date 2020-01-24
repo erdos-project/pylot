@@ -26,15 +26,10 @@ Submodules
 pylot.config module
 -------------------
 
-.. automodule:: pylot.flags
-    :members:
-    :undoc-members:
-    :show-inheritance:
+pylot.component\_creator module
+-------------------------------
 
-pylot.operator\_creator module
-------------------------------
-
-.. automodule:: pylot.operator_creator
+.. automodule:: pylot.component_creator
     :members:
     :undoc-members:
     :show-inheritance:
