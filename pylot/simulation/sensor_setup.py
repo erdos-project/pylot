@@ -237,6 +237,9 @@ class CameraSetup(object):
         """
         import numpy as np
         k = np.identity(3)
+        # We use width - 1 and height - 1 to find the center column and row
+        # of the image, because the images are indexed from 0.
+
         # Center column of the image.
         k[0, 2] = (width - 1) / 2.0
         # Center row of the image.
@@ -519,7 +522,7 @@ class LidarSetup(object):
         " should be of type 'int'"
         self.points_per_second = points_per_second
         self._unreal_transform = LidarSetup.__create_unreal_transform(
-            self._transform)
+            self.transform)
 
     @staticmethod
     def __create_unreal_transform(transform):
@@ -573,9 +576,9 @@ class LidarSetup(object):
         """
         assert isinstance(transform, Transform), "The given transform is not "
         "of the type pylot.utils.Transform"
-        self._transform = transform
+        self.transform = transform
         self._unreal_transform = LidarSetup.__create_unreal_transform(
-            self._transform)
+            self.transform)
 
     def get_unreal_transform(self):
         """ Get the transform of the LIDAR with respect to the vehicle in the
@@ -602,7 +605,7 @@ class LidarSetup(object):
         return 'LidarSetup(name: {}, type: {}, transform: {}, range: {}, '\
             'rotation freq: {}, channels: {}, upper_fov: {}, lower_fov: {}, '\
             'points_per_second: {}'.format(
-                self.name, self.lidar_type, self._transform, self.range,
+                self.name, self.lidar_type, self.transform, self.range,
                 self.rotation_frequency, self.channels, self.upper_fov,
                 self.lower_fov, self.points_per_second)
 
