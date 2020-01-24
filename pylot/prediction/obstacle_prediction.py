@@ -1,11 +1,19 @@
 class ObstaclePrediction(object):
     """Class storing info about an obstacle prediction.
 
+    Args:
+        label (:obj:`str`): The label of the obstacle.
+        id (:obj:`int`): The id of the obstacle.
+        probability (:obj: `float`): The probability of the prediction.
+        trajectory (list(:py:class:`~pylot.utils.Transform`)): The trajectory
+            prediction.
+
     Attributes:
-        label: The label of the obstacle.
-        id: The id of the obstacle.
-        probability: The probability of the prediction.
-        trajectory: The prediction as a list of pylot.utils.Transforms.
+        label (:obj:`str`): The label of the obstacle.
+        id (:obj:`int`): The id of the obstacle.
+        probability (:obj: `float`): The probability of the prediction.
+        trajectory (list(:py:class:`~pylot.utils.Transform`)): The trajectory
+            prediction.
     """
     def __init__(self, label, id, probability, trajectory):
         self.label = label

@@ -37,8 +37,7 @@ class DetectionEvalOperator(erdos.Operator):
         obstacles_stream.add_callback(self.on_obstacles)
         ground_obstacles_stream.add_callback(self.on_ground_obstacles)
         erdos.add_watermark_callback(
-            [obstacles_stream, ground_obstacles_stream], [],
-            self.on_notification)
+            [obstacles_stream, ground_obstacles_stream], [], self.on_watermark)
         self._name = name
         self._flags = flags
         self._logger = erdos.utils.setup_logging(name, log_file_name)
@@ -66,7 +65,13 @@ class DetectionEvalOperator(erdos.Operator):
         """
         return []
 
-    def on_notification(self, timestamp):
+    def on_watermark(self, timestamp):
+        """Invoked when all input streams have received a watermark.
+
+        Args:
+            timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
+                the watermark.
+        """
         assert len(timestamp.coordinates) == 1
         game_time = timestamp.coordinates[0]
         if not self._last_notification:

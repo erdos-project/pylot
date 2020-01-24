@@ -40,8 +40,7 @@ class SegmentationEvalOperator(erdos.Operator):
         segmented_stream.add_callback(self.on_segmented_frame)
         # Register a watermark callback.
         erdos.add_watermark_callback(
-            [ground_segmented_stream, segmented_stream], [],
-            self.on_notification)
+            [ground_segmented_stream, segmented_stream], [], self.on_watermark)
         self._name = name
         self._flags = flags
         self._logger = erdos.utils.setup_logging(name, log_file_name)
@@ -72,7 +71,13 @@ class SegmentationEvalOperator(erdos.Operator):
         """
         return []
 
-    def on_notification(self, timestamp):
+    def on_watermark(self, timestamp):
+        """Invoked when all input streams have received a watermark.
+
+        Args:
+            timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
+                the watermark.
+        """
         assert len(timestamp.coordinates) == 1
         if not self._last_notification:
             self._last_notification = timestamp.coordinates[0]

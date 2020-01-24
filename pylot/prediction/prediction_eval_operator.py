@@ -1,3 +1,5 @@
+"""Implements an operator that eveluates prediction output."""
+
 from collections import deque
 import erdos
 
@@ -8,8 +10,25 @@ from pylot.utils import time_epoch_ms
 
 
 class PredictionEvalOperator(erdos.Operator):
-    """ Operator that calculates metrics for the quality of
-        predicted trajectories."""
+    """Operator that calculates accuracy metrics for predicted trajectories.
+
+    Args:
+        can_bus_stream (:py:class:`erdos.streams.ReadStream`): The stream on
+            which can bus info is received.
+        tracking_stream (:py:class:`erdos.streams.ReadStream`): The stream on
+            which perfect
+            :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
+            are received.
+        prediction_stream (:py:class:`erdos.streams.ReadStream`): Stream on
+            :py:class:`~pylot.prediction.messages.PredictionMessage` are
+            received from the prediction operator.
+        name (:obj:`str`): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
+        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
+            written to. If None, then messages are written to stdout.
+    """
     def __init__(self,
                  can_bus_stream,
                  tracking_stream,
@@ -23,7 +42,7 @@ class PredictionEvalOperator(erdos.Operator):
         prediction_stream.add_callback(self._on_prediction_update)
         erdos.add_watermark_callback(
             [can_bus_stream, tracking_stream, prediction_stream], [],
-            self.on_notification)
+            self.on_watermark)
         self._name = name
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self._name, log_file_name)
@@ -50,7 +69,13 @@ class PredictionEvalOperator(erdos.Operator):
     def _on_can_bus_update(self, msg):
         self._can_bus_msgs.append(msg)
 
-    def on_notification(self, timestamp):
+    def on_watermark(self, timestamp):
+        """Invoked when all input streams have received a watermark.
+
+        Args:
+            timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
+                the watermark.
+        """
         tracking_msg = self._tracking_msgs.popleft()
         prediction_msg = self._prediction_msgs.popleft()
         vehicle_transform = self._can_bus_msgs.popleft().data.transform
@@ -72,8 +97,8 @@ class PredictionEvalOperator(erdos.Operator):
                                        cur_trajectory)
             # Evaluate the prediction corresponding to the current set of
             # ground truth past trajectories.
-            self.calculate_metrics(ground_trajectories_dict,
-                                   self._predictions[0].predictions)
+            self._calculate_metrics(ground_trajectories_dict,
+                                    self._predictions[0].predictions)
 
         # Convert the prediction to world coordinates and append it to the
         # queue.
@@ -92,7 +117,7 @@ class PredictionEvalOperator(erdos.Operator):
         self._predictions.append(
             PredictionMessage(timestamp, obstacle_predictions_list))
 
-    def calculate_metrics(self, ground_trajectories, predictions):
+    def _calculate_metrics(self, ground_trajectories, predictions):
         """ Calculates and logs MSD (mean squared distance), ADE (average
             displacement error), and FDE (final displacement error).
 

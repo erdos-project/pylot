@@ -46,9 +46,9 @@ class SegmentationDecayOperator(erdos.Operator):
 
         Args:
             ground_segmented_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which perfectly segmented
-            :py:class:`~pylot.perception.messages.SegmentedFrameMessage` are
-            received.
+                Stream on which perfectly segmented
+                :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
+                are received.
 
         Returns:
             :py:class:`erdos.streams.WriteStream`: Stream on which the operator

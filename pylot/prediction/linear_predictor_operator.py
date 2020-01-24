@@ -1,3 +1,5 @@
+"""Implements an operator that fits a linear model to predict trajectories."""
+
 import erdos
 import numpy as np
 
@@ -7,8 +9,22 @@ from pylot.utils import Location, Rotation, Transform
 
 
 class LinearPredictorOperator(erdos.Operator):
-    """Operator that takes in past (x,y) locations of agents, and fits a linear
-    model to these locations.
+    """Operator that implements a linear predictor.
+
+    It takes (x,y) locations of agents in past, and fits a linear model to
+    these locations.
+
+    Args:
+        tracking_stream (:py:class:`erdos.streams.ReadStream`): The stream on
+            which :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
+            are received.
+        linear_prediction_stream (:py:class:`erdos.streams.WriteStream`):
+            Stream on which the operator sends
+            :py:class:`~pylot.prediction.messages.PredictionMessage` messages.
+        name (:obj:`str`): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
     """
     def __init__(self,
                  tracking_stream,
@@ -16,7 +32,6 @@ class LinearPredictorOperator(erdos.Operator):
                  name,
                  flags,
                  log_file_name=None):
-        """Initializes the LinearPredictor Operator."""
         tracking_stream.add_callback(self.generate_predicted_trajectories,
                                      [linear_prediction_stream])
         self._logger = erdos.utils.setup_logging(name, log_file_name)
@@ -24,6 +39,19 @@ class LinearPredictorOperator(erdos.Operator):
 
     @staticmethod
     def connect(tracking_stream):
+        """Connects the operator to other streams.
+
+        Args:
+            tracking_stream (:py:class:`erdos.streams.ReadStream`): The stream
+                on which
+                :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
+                are received.
+
+        Returns:
+            :py:class:`erdos.streams.WriteStream`: Stream on which the operator
+            sends :py:class:`~pylot.prediction.messages.PredictionMessage`
+            messages.
+        """
         linear_prediction_stream = erdos.WriteStream()
         return [linear_prediction_stream]
 
