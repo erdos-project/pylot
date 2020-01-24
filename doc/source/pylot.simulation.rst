@@ -100,6 +100,7 @@ pylot.simulation.sensor\_setup module
     :members:
     :undoc-members:
     :show-inheritance:
+    :inherited-members:
 
 pylot.simulation.synchronizer\_operator module
 ----------------------------------------------

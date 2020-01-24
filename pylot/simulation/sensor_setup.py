@@ -269,18 +269,84 @@ class CameraSetup(object):
 
 
 class RGBCameraSetup(CameraSetup):
+    """ A CameraSetup that denotes an RGB camera from Carla.
+
+    Args:
+        name (str): The name of the camera instance.
+        width (int): The width of the image returned by the camera.
+        height (int): The height of the image returned by the camera.
+        transform (:py:class:`pylot.utils.Transform`): The transform containing
+            the location and rotation of the camera instance with respect to
+            the vehicle.
+        fov (float): The field-of-view of the camera.
+
+    Attributes:
+        name (str): The name of the camera instance.
+        camera_type (str): The type of the camera. One of `('sensor.camera.rgb'
+            , 'sensor.camera.depth', 'sensor.camera.semantic_segmentation')`
+        width (int): The width of the image returned by the camera.
+        height (int): The height of the image returned by the camera.
+        transform (:py:class:`pylot.utils.Transform`): The transform
+            containing the location and rotation of the camera instance with
+            respect to the vehicle.
+        fov (float): The field-of-view of the camera.
+    """
     def __init__(self, name, width, height, transform, fov=90):
         super(RGBCameraSetup, self).__init__(name, 'sensor.camera.rgb', width,
                                              height, transform, fov)
 
 
 class DepthCameraSetup(CameraSetup):
+    """ A CameraSetup that denotes a Depth camera from Carla.
+
+    Args:
+        name (str): The name of the camera instance.
+        width (int): The width of the image returned by the camera.
+        height (int): The height of the image returned by the camera.
+        transform (:py:class:`pylot.utils.Transform`): The transform containing
+            the location and rotation of the camera instance with respect to
+            the vehicle.
+        fov (float): The field-of-view of the camera.
+
+    Attributes:
+        name (str): The name of the camera instance.
+        camera_type (str): The type of the camera. One of `('sensor.camera.rgb'
+            , 'sensor.camera.depth', 'sensor.camera.semantic_segmentation')`
+        width (int): The width of the image returned by the camera.
+        height (int): The height of the image returned by the camera.
+        transform (:py:class:`pylot.utils.Transform`): The transform
+            containing the location and rotation of the camera instance with
+            respect to the vehicle.
+        fov (float): The field-of-view of the camera.
+    """
     def __init__(self, name, width, height, transform, fov=90):
         super(DepthCameraSetup, self).__init__(name, 'sensor.camera.depth',
                                                width, height, transform, fov)
 
 
 class SegmentedCameraSetup(CameraSetup):
+    """ A CameraSetup that denotes a Semantic Segmentation camera from Carla.
+
+    Args:
+        name (str): The name of the camera instance.
+        width (int): The width of the image returned by the camera.
+        height (int): The height of the image returned by the camera.
+        transform (:py:class:`pylot.utils.Transform`): The transform containing
+            the location and rotation of the camera instance with respect to
+            the vehicle.
+        fov (float): The field-of-view of the camera.
+
+    Attributes:
+        name (str): The name of the camera instance.
+        camera_type (str): The type of the camera. One of `('sensor.camera.rgb'
+            , 'sensor.camera.depth', 'sensor.camera.semantic_segmentation')`
+        width (int): The width of the image returned by the camera.
+        height (int): The height of the image returned by the camera.
+        transform (:py:class:`pylot.utils.Transform`): The transform
+            containing the location and rotation of the camera instance with
+            respect to the vehicle.
+        fov (float): The field-of-view of the camera.
+    """
     def __init__(self, name, width, height, transform, fov=90):
         super(SegmentedCameraSetup,
               self).__init__(name, 'sensor.camera.semantic_segmentation',
