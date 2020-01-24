@@ -130,7 +130,7 @@ class CameraSetup(object):
         # Ensure that the transform is of the type pylot.Transform.
         assert isinstance(transform, Transform), "The given transform is not "
         "of the type pylot.utils.Transform"
-        self._transform = transform
+        self.transform = transform
 
         # Ensure that the field-of-view is a float.
         assert isinstance(fov, float), "The fov should be of type 'float'"
@@ -140,7 +140,7 @@ class CameraSetup(object):
         self._intrinsic_mat = CameraSetup.__create_intrinsic_matrix(
             self.width, self.height, self.fov)
         self._unreal_transform = CameraSetup.__create_unreal_transform(
-            self._transform)
+            self.transform)
 
     @staticmethod
     def __create_intrinsic_matrix(width, height, fov):
@@ -232,7 +232,7 @@ class CameraSetup(object):
             :py:class:`pylot.utils.Transform`: The transform of the camera
             with respect to the vehicle to which it is attached.
         """
-        return self._transform
+        return self.transform
 
     def set_transform(self, transform):
         """ Set the transform of the camera with respect to the vehicle to
@@ -245,9 +245,9 @@ class CameraSetup(object):
         """
         assert isinstance(transform, Transform), "The given transform is not "
         "of the type pylot.utils.Transform"
-        self._transform = transform
+        self.transform = transform
         self._unreal_transform = CameraSetup.__create_unreal_transform(
-            self._transform)
+            self.transform)
 
     def get_fov(self):
         """ Get the field of view of the camera.
@@ -264,9 +264,7 @@ class CameraSetup(object):
         return 'CameraSetup(name: {}, type: {}, width: {}, height: {}, '\
             'transform: {}, fov: {})'.format(
                 self.name, self.camera_type, self.width, self.height,
-                self._transform, self.fov)
-
-    transform = property(get_transform, set_transform)
+                self.transform, self.fov)
 
 
 class RGBCameraSetup(CameraSetup):
