@@ -8,6 +8,22 @@ def create_rgb_camera_setup(camera_name,
                             width,
                             height,
                             fov=90):
+    """ Creates an RGBCameraSetup instance with the given values.
+
+    The Rotation is set to (pitch=0, yaw=0, roll=0).
+
+    Args:
+        camera_name (str): The name of the camera instance.
+        camera_location (:py:class:`~pylot.utils.Location`): The location of
+            the camera with respect to the center of the vehicle.
+        width (int): The width of the image returned by the camera.
+        height (int): The height of the image returned by the camera.
+        fov (float): The field of view of the image returned by the camera.
+
+    Returns:
+        :py:class:`~pylot.simulation.sensor_setup.RGBCameraSetup`: A camera
+        setup with the given parameters.
+    """
     transform = Transform(camera_location, Rotation())
     return RGBCameraSetup(camera_name, width, height, transform, fov)
 
@@ -17,6 +33,23 @@ def create_depth_camera_setup(camera_name_prefix,
                               width,
                               height,
                               fov=90):
+    """ Creates a DepthCameraSetup instance with the given values.
+
+    The Rotation is set to (pitch=0, yaw=0, roll=0).
+
+    Args:
+        camera_name_prefix (str): The name of the camera instance. A suffix
+            of "_depth" is appended to the name.
+        camera_location (:py:class:`~pylot.utils.Location`): The location of
+            the camera with respect to the center of the vehicle.
+        width (int): The width of the image returned by the camera.
+        height (int): The height of the image returned by the camera.
+        fov (float): The field of view of the image returned by the camera.
+
+    Returns:
+        :py:class:`~pylot.simulation.sensor_setup.DepthCameraSetup`: A camera
+        setup with the given parameters.
+    """
     transform = Transform(camera_location, Rotation())
     return DepthCameraSetup(camera_name_prefix + '_depth',
                             width,
@@ -30,6 +63,23 @@ def create_segmented_camera_setup(camera_name_prefix,
                                   width,
                                   height,
                                   fov=90):
+    """ Creates a SegmentedCameraSetup instance with the given values.
+
+    The Rotation is set to (pitch=0, yaw=0, roll=0).
+
+    Args:
+        camera_name_prefix (str): The name of the camera instance. A suffix
+            of "_segmented" is appended to the name.
+        camera_location (:py:class:`~pylot.utils.Location`): The location of
+            the camera with respect to the center of the vehicle.
+        width (int): The width of the image returned by the camera.
+        height (int): The height of the image returned by the camera.
+        fov (float): The field of view of the image returned by the camera.
+
+    Returns:
+        :py:class:`~pylot.simulation.sensor_setup.SegmentedCameraSetup`: A
+        camera setup with the given parameters.
+    """
     transform = Transform(camera_location, Rotation())
     return SegmentedCameraSetup(camera_name_prefix + '_segmented',
                                 width,
@@ -44,6 +94,27 @@ def create_left_right_camera_setups(camera_name_prefix,
                                     height,
                                     camera_offset,
                                     fov=90):
+    """ Creates a dual-RGB-camera setup with the center at the given location,
+    and the two cameras on either side of the center at a distance specified
+    by the camera_offset.
+
+    The Rotation is set to (pitch=0, yaw=0, roll=0).
+
+    Args:
+        camera_name_prefix (str): The name of the camera instance. A suffix
+            of "_left" and "_right" is appended to the name.
+        location (:py:class:`~pylot.utils.Location`): The location of the
+            center of the cameras with respect to the center of the vehicle.
+        width (int): The width of the image returned by the cameras.
+        height (int): The height of the image returned by the cameras.
+        camera_offset (float): The offset of the two cameras from the center.
+        fov (float): The field of view of the image returned by the cameras.
+
+    Returns:
+        tuple: A tuple containing two instances of
+        :py:class:`~pylot.simulation.sensor_setup.RGBCameraSetup` for the left
+        and right camera setups with the given parameters.
+    """
     rotation = Rotation()
     left_loc = location + Location(0, -camera_offset, 0)
     right_loc = location + Location(0, camera_offset, 0)
@@ -63,6 +134,18 @@ def create_left_right_camera_setups(camera_name_prefix,
 
 
 def create_center_lidar_setup(location):
+    """ Creates a LidarSetup instance with the given location.
+
+    The Rotation is set to (pitch=0, roll=0, yaw=0).
+
+    Args:
+        location (:py:class:`~pylot.utils.Location`): The location of the
+            LIDAR with respect to the center of the vehicle.
+
+    Returns:
+        :py:class:`~pylot.simulation.sensor_setup.LidarSetup`: A LidarSetup
+        with the given location.
+    """
     rotation = Rotation()
     # Place the lidar in the same position as the camera.
     lidar_transform = Transform(location, rotation)
@@ -78,10 +161,6 @@ def create_center_lidar_setup(location):
         points_per_second=500000)
 
 
-def create_imu_setup(location):
-    return IMUSetup(name='imu', transform=Transform(location, Rotation()))
-
-
 class CameraSetup(object):
     """ CameraSetup stores information about an instance of the camera
     mounted on the vehicle.
@@ -92,9 +171,9 @@ class CameraSetup(object):
             , 'sensor.camera.depth', 'sensor.camera.semantic_segmentation')`
         width (int): The width of the image returned by the camera.
         height (int): The height of the image returned by the camera.
-        transform (:py:class:`pylot.utils.Transform`): The transform containing
-            the location and rotation of the camera instance with respect to
-            the vehicle.
+        transform (:py:class:`~pylot.utils.Transform`): The transform
+            containing the location and rotation of the camera instance with
+            respect to the vehicle.
         fov (float): The field-of-view of the camera.
 
     Attributes:
@@ -103,7 +182,7 @@ class CameraSetup(object):
             , 'sensor.camera.depth', 'sensor.camera.semantic_segmentation')`
         width (int): The width of the image returned by the camera.
         height (int): The height of the image returned by the camera.
-        transform (:py:class:`pylot.utils.Transform`): The transform
+        transform (:py:class:`~pylot.utils.Transform`): The transform
             containing the location and rotation of the camera instance with
             respect to the vehicle.
         fov (float): The field-of-view of the camera.
@@ -178,11 +257,11 @@ class CameraSetup(object):
             +x into the screen, +y to right, +z to up.
 
         Args:
-            transform (:py:class:`pylot.utils.Transform`): The transform to 
+            transform (:py:class:`~pylot.utils.Transform`): The transform to
                 convert to Unreal coordinate space.
 
         Returns:
-            :py:class:`pylot.utils.Transform`: The given transform after
+            :py:class:`~pylot.utils.Transform`: The given transform after
                 transforming to the Unreal coordinate space.
         """
         import numpy as np
@@ -220,8 +299,8 @@ class CameraSetup(object):
         the Unreal Engine coordinate space.
 
         Returns:
-            :py:class:`pylot.utils.Transform`: The transform of the camera
-            in the Unreal Engine coordinate space. 
+            :py:class:`~pylot.utils.Transform`: The transform of the camera
+            in the Unreal Engine coordinate space.
         """
         return self._unreal_transform
 
@@ -230,7 +309,7 @@ class CameraSetup(object):
         which it is attached.
 
         Returns:
-            :py:class:`pylot.utils.Transform`: The transform of the camera
+            :py:class:`~pylot.utils.Transform`: The transform of the camera
             with respect to the vehicle to which it is attached.
         """
         return self.transform
@@ -240,7 +319,7 @@ class CameraSetup(object):
         which it is attached.
 
         Args:
-            transform (:py:class:`pylot.utils.Transform`): The new transform
+            transform (:py:class:`~pylot.utils.Transform`): The new transform
                 of the camera with respect to the vehicle to which it is
                 attached.
         """
@@ -275,9 +354,9 @@ class RGBCameraSetup(CameraSetup):
         name (str): The name of the camera instance.
         width (int): The width of the image returned by the camera.
         height (int): The height of the image returned by the camera.
-        transform (:py:class:`pylot.utils.Transform`): The transform containing
-            the location and rotation of the camera instance with respect to
-            the vehicle.
+        transform (:py:class:`~pylot.utils.Transform`): The transform
+            containing the location and rotation of the camera instance
+            with respect to the vehicle.
         fov (float): The field-of-view of the camera.
 
     Attributes:
@@ -286,11 +365,12 @@ class RGBCameraSetup(CameraSetup):
             , 'sensor.camera.depth', 'sensor.camera.semantic_segmentation')`
         width (int): The width of the image returned by the camera.
         height (int): The height of the image returned by the camera.
-        transform (:py:class:`pylot.utils.Transform`): The transform
+        transform (:py:class:`~pylot.utils.Transform`): The transform
             containing the location and rotation of the camera instance with
             respect to the vehicle.
         fov (float): The field-of-view of the camera.
     """
+
     def __init__(self, name, width, height, transform, fov=90):
         super(RGBCameraSetup, self).__init__(name, 'sensor.camera.rgb', width,
                                              height, transform, fov)
@@ -303,9 +383,9 @@ class DepthCameraSetup(CameraSetup):
         name (str): The name of the camera instance.
         width (int): The width of the image returned by the camera.
         height (int): The height of the image returned by the camera.
-        transform (:py:class:`pylot.utils.Transform`): The transform containing
-            the location and rotation of the camera instance with respect to
-            the vehicle.
+        transform (:py:class:`~pylot.utils.Transform`): The transform
+            containing the location and rotation of the camera instance with
+            respect to the vehicle.
         fov (float): The field-of-view of the camera.
 
     Attributes:
@@ -314,11 +394,12 @@ class DepthCameraSetup(CameraSetup):
             , 'sensor.camera.depth', 'sensor.camera.semantic_segmentation')`
         width (int): The width of the image returned by the camera.
         height (int): The height of the image returned by the camera.
-        transform (:py:class:`pylot.utils.Transform`): The transform
+        transform (:py:class:`~pylot.utils.Transform`): The transform
             containing the location and rotation of the camera instance with
             respect to the vehicle.
         fov (float): The field-of-view of the camera.
     """
+
     def __init__(self, name, width, height, transform, fov=90):
         super(DepthCameraSetup, self).__init__(name, 'sensor.camera.depth',
                                                width, height, transform, fov)
@@ -331,9 +412,9 @@ class SegmentedCameraSetup(CameraSetup):
         name (str): The name of the camera instance.
         width (int): The width of the image returned by the camera.
         height (int): The height of the image returned by the camera.
-        transform (:py:class:`pylot.utils.Transform`): The transform containing
-            the location and rotation of the camera instance with respect to
-            the vehicle.
+        transform (:py:class:`~pylot.utils.Transform`): The transform
+            containing the location and rotation of the camera instance with
+            respect to the vehicle.
         fov (float): The field-of-view of the camera.
 
     Attributes:
@@ -342,11 +423,12 @@ class SegmentedCameraSetup(CameraSetup):
             , 'sensor.camera.depth', 'sensor.camera.semantic_segmentation')`
         width (int): The width of the image returned by the camera.
         height (int): The height of the image returned by the camera.
-        transform (:py:class:`pylot.utils.Transform`): The transform
+        transform (:py:class:`~pylot.utils.Transform`): The transform
             containing the location and rotation of the camera instance with
             respect to the vehicle.
         fov (float): The field-of-view of the camera.
     """
+
     def __init__(self, name, width, height, transform, fov=90):
         super(SegmentedCameraSetup,
               self).__init__(name, 'sensor.camera.semantic_segmentation',
@@ -361,9 +443,9 @@ class LidarSetup(object):
         name (str): The name of the LIDAR instance.
         lidar_type (str): The type of the LIDAR instance. Should be set to
             `'sensor.lidar.ray_cast'` currently.
-        transform (:py:class:`pylot.utils.Transform`): The transform containing
-            the location and rotation of the LIDAR instance with respect to
-            the vehicle.
+        transform (:py:class:`~pylot.utils.Transform`): The transform
+            containing the location and rotation of the LIDAR instance with
+            respect to the vehicle.
         range (float): The range of the LIDAR (in centimeters).
         rotation_frequency (float): The rotation frequency of the LIDAR.
         channels (int): The number of channels output by the LIDAR.
@@ -376,9 +458,9 @@ class LidarSetup(object):
         name (str): The name of the LIDAR instance.
         lidar_type (str): The type of the LIDAR instance. Should be set to
             `'sensor.lidar.ray_cast'` currently.
-        transform (:py:class:`pylot.utils.Transform`): The transform containing
-            the location and rotation of the LIDAR instance with respect to
-            the vehicle.
+        transform (:py:class:`~pylot.utils.Transform`): The transform
+            containing the location and rotation of the LIDAR instance with
+            respect to the vehicle.
         range (float): The range of the LIDAR (in centimeters).
         rotation_frequency (float): The rotation frequency of the LIDAR.
         channels (int): The number of channels output by the LIDAR.
@@ -398,7 +480,6 @@ class LidarSetup(object):
         assert lidar_type == 'sensor.lidar.ray_cast', "The LIDAR should be of "
         "type 'sensor.lidar.ray_cast'"
         self.lidar_type = lidar_type
-
 
         # Ensure that the transform is of the correct type.
         assert isinstance(transform, Transform), "The given transform is not "
@@ -434,7 +515,7 @@ class LidarSetup(object):
         self.upper_fov, self.lower_fov = upper_fov, lower_fov
 
         # Ensure that the points_per_second is of type 'int'
-        assert isinstance(points_per_second, int), "The points_per_second" 
+        assert isinstance(points_per_second, int), "The points_per_second"
         " should be of type 'int'"
         self.points_per_second = points_per_second
         self._unreal_transform = LidarSetup.__create_unreal_transform(
@@ -452,11 +533,11 @@ class LidarSetup(object):
             +x into the screen, +y to the right, +x to up.
 
         Args:
-            transform(:py:class:`pylot.utils.Transform`): The transform to
+            transform(:py:class:`~pylot.utils.Transform`): The transform to
                 convert to the Unreal Engine coordinate space.
 
         Returns:
-            :py:class:`pylot.utils.Transform`: The given transform after
+            :py:class:`~pylot.utils.Transform`: The given transform after
                 transforming to the Unreal Engine coordinate space.
         """
         to_camera_transform = Transform(matrix=np.array(
@@ -476,7 +557,7 @@ class LidarSetup(object):
         which it is attached.
 
         Returns:
-            :py:class:`pylot.utils.Transform`: The transform of the LIDAR with
+            :py:class:`~pylot.utils.Transform`: The transform of the LIDAR with
             respect to the vehicle to which it is attached.
         """
         return self.transform
@@ -486,7 +567,7 @@ class LidarSetup(object):
         it is attached.
 
         Args:
-            transform (:py:class:`pylot.utils.Transform`): The new transform
+            transform (:py:class:`~pylot.utils.Transform`): The new transform
                 of the LIDAR with respect to the vehicle to which it is
                 attached.
         """
@@ -501,7 +582,7 @@ class LidarSetup(object):
         Unreal Engine coordinate space.
 
         Returns:
-            :py:class:`pylot.utils.Transform`: The transform of the LIDAR with
+            :py:class:`~pylot.utils.Transform`: The transform of the LIDAR with
             respect to the vehicle in the Unreal Engine coordinate space.
         """
         return self._unreal_transform
@@ -527,14 +608,48 @@ class LidarSetup(object):
 
 
 class IMUSetup(object):
+    """ IMUSetup stores information about an instance of the IMU sensor
+    attached to the vehicle.
+
+    Args:
+        name (str): The name of the IMU instance.
+        transform (:py:class:`pylot.utils.Tranform`): The transform containing
+            the location and rotation of the IMU instance with respect to the
+            vehicle.
+
+    Attributes:
+        name (str): The name of the IMU instance.
+        transform (:py:class:`~pylot.utils.Transform`): The transform
+            containing the location and rotation of the IMU instance with
+            respect to the vehicle.
+    """
+
     def __init__(self, name, transform):
+        # Ensure that the name is of the correct type.
+        assert isinstance(name, str), "The name should be of type 'str'"
         self.name = name
+
+        # Ensure that the transform is of the correct type.
+        assert isinstance(transform, Transform), "The transform should be of "
+        "type 'pylot.utils.Transform'"
         self.transform = transform
 
     def get_name(self):
+        """ Get the name of the IMU instance.
+
+        Returns:
+            str: The name of the IMU instance.
+        """
         return self.name
 
     def get_transform(self):
+        """ Get the transform of the IMU sensor with respect to the vehicle
+        to which it is attached.
+
+        Returns:
+            :py:class:`~pylot.utils.Transform`: The transform of the IMU sensor
+            with respect to the vehicle to which it is attached.
+        """
         return self.transform
 
     def __repr__(self):
