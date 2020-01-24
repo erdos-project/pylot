@@ -21,12 +21,12 @@ def add_obstacle_detection(center_camera_stream,
 
     Args:
         center_camera_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which BGR frames are published.
+            Stream on which BGR frames are received.
         can_bus_stream (:py:class:`erdos.streams.ReadStream`, optional):
             Stream on which can bus info is received.
         depth_camera_stream (:py:class:`erdos.streams.ReadStream`, optional):
             Stream on which depth frames are received.
-        segmented_stream (:py:class:`erdos.streams.ReadStream`, optional):
+        segmented_camera__stream (:py:class:`erdos.streams.ReadStream`, optional):
             Stream on which segmented
             :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
             are received.
@@ -36,7 +36,7 @@ def add_obstacle_detection(center_camera_stream,
         ground_speed_limit_signs_stream (:py:class:`erdos.streams.ReadStream`, optional):
             Stream on which :py:class:`~pylot.simulation.GroundSpeedSignsMessage`
             messages are received.
-        ground_stop_sings_stream (:py:class:`erdos.streams.ReadStream`, optional):
+        ground_stop_signs_stream (:py:class:`erdos.streams.ReadStream`, optional):
             Stream on which :py:class:`~pylot.simulation.GroundStopSignsMessage`
             messages are received.
 
@@ -326,7 +326,7 @@ def add_planning(goal_location,
             :py:class:`~pylot.prediction.messages.PredictionMessage` messages
             for obstacles.
         open_drive_stream (:py:class:`erdos.streams.ReadStream`, optional):
-            Stream on which open drive string representations are published.
+            Stream on which open drive string representations are received.
             Operators can construct HDMaps out of the open drive strings.
 
     Returns:
@@ -368,7 +368,7 @@ def add_control(can_bus_stream, obstacles_stream, traffic_lights_stream,
         waypoints_stream (:py:class:`erdos.streams.ReadStream`): Stream on
             which waypoints are received.
         open_drive_stream (:py:class:`erdos.streams.ReadStream`):
-            Stream on which open drive string representations are published.
+            Stream on which open drive string representations are received.
             Operators can construct HDMaps out of the open drive strings.
         point_cloud_stream (:py:class:`erdos.streams.ReadStream`): Stream on
             which point cloud messages are received.

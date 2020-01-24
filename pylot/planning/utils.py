@@ -1,12 +1,10 @@
 import enum
-import math
-import numpy as np
 
 from pylot.control.utils import get_angle
 
 
 class BehaviorPlannerState(enum.Enum):
-    """ States in which the FSM behavior planner can be in."""
+    """States in which the FSM behavior planner can be in."""
     READY = 1
     KEEP_LANE = 2
     PREPARE_LANE_CHANGE_LEFT = 3
@@ -15,18 +13,10 @@ class BehaviorPlannerState(enum.Enum):
     LANE_CHANGE_RIGHT = 6
 
 
-def get_xy_vector_dist(loc1, loc2):
-    vec = np.array([loc1.x, loc1.y] - np.array([loc2.x, loc2.y]))
-    dist = math.sqrt(vec[0]**2 + vec[1]**2)
-    if abs(dist) < 0.00001:
-        return vec, dist
-    else:
-        return vec / dist, dist
-
-
 def get_waypoint_vector_and_angle(wp_transform, ego_transform):
-    wp_vector, wp_mag = get_xy_vector_dist(wp_transform.location,
-                                           ego_transform.location)
+    """Computes the 2D vector between the two transforms and the angle."""
+    wp_vector, wp_mag = wp_transform.location.get_vector_and_magnitude(
+        ego_transform.location)
     if wp_mag > 0:
         wp_angle = get_angle(
             wp_vector,

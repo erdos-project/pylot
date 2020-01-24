@@ -2,10 +2,15 @@ import erdos
 
 
 class GroundObstaclesMessage(erdos.Message):
-    """ Message class used to send person and vehicle info.
+    """Message class used to send person and vehicle info.
+
+    Args:
+        obstacles (list(:py:class:`~pylot.perception.detection.obstacle.Obstacle`)):
+            A list of obstacles.
 
     Attributes:
-        obstacles: A list of simulation.utils.Obstacle tuples.
+        obstacles (list(:py:class:`~pylot.perception.detection.obstacle.Obstacle`)):
+            A list of obstacles.
     """
     def __init__(self, timestamp, obstacles):
         super(GroundObstaclesMessage, self).__init__(timestamp, None)
@@ -17,10 +22,15 @@ class GroundObstaclesMessage(erdos.Message):
 
 
 class GroundTrafficLightsMessage(erdos.Message):
-    """ Message class to be used to send info about traffic lights actors.
+    """Message class to be used to send info about traffic lights actors.
+
+    Args:
+        traffic_lights (list(:py:class:`~pylot.perception.detection.traffic_light.TrafficLight`)):
+            A list of traffic lights.
 
     Attributes:
-        traffic_lights: A list of perception.detection.traffic_light.TrafficLight.
+        traffic_lights (list(:py:class:`~pylot.perception.detection.traffic_light.TrafficLight`)):
+            A list of traffic lights.
     """
     def __init__(self, timestamp, traffic_lights):
         super(GroundTrafficLightsMessage, self).__init__(timestamp, None)
@@ -33,10 +43,15 @@ class GroundTrafficLightsMessage(erdos.Message):
 
 
 class GroundSpeedSignsMessage(erdos.Message):
-    """ Message class to be used to send info about speed limit actors.
+    """Message class to be used to send info about speed limit actors.
+
+    Args:
+        speed_signs (list(:py:class:`~pylot.perception.detection.speed_limit_sign.SpeedLimitSign`)):
+            A list of speed limit signs.
 
     Attributes:
-        speed_signs: A list of perception.detection.speed_limit_sign.SpeedLimitSign.
+        speed_signs (list(:py:class:`~pylot.perception.detection.speed_limit_sign.SpeedLimitSign`)):
+            A list of speed limit signs.
     """
     def __init__(self, timestamp, speed_signs):
         super(GroundSpeedSignsMessage, self).__init__(timestamp, None)
@@ -49,10 +64,15 @@ class GroundSpeedSignsMessage(erdos.Message):
 
 
 class GroundStopSignsMessage(erdos.Message):
-    """ Message class to be used to send info about stop signs.
+    """Message class to be used to send info about stop signs.
+
+    Args:
+        stop_signs (list(:py:class:`~pylot.perception.detection.stop_sign.StopSign`)):
+            A list of stop signs.
 
     Attributes:
-        stop_signs: A list of perception.detection.stop_sign.StopSign.
+        stop_signs (list(:py:class:`~pylot.perception.detection.stop_sign.StopSign`)):
+            A list of stop signs.
     """
     def __init__(self, timestamp, stop_signs):
         super(GroundStopSignsMessage, self).__init__(timestamp, None)

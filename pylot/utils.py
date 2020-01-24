@@ -5,45 +5,48 @@ import time
 
 
 class Rotation(object):
-    """ Used to represent the rotation of an actor or obstacle.
-
-    Attributes:
-        pitch: Rotation about Y-axis.
-        yaw:   Rotation about Z-axis.
-        roll:  Rotation about X-axis.
+    """Used to represent the rotation of an actor or obstacle.
 
     Rotations are applied in the order: Roll (X), Pitch (Y), Yaw (Z).
     A 90-degree "Roll" maps the positive Z-axis to the positive Y-axis.
     A 90-degree "Pitch" maps the positive X-axis to the positive Z-axis.
     A 90-degree "Yaw" maps the positive X-axis to the positive Y-axis.
 
+    Args:
+        pitch: Rotation about Y-axis.
+        yaw:   Rotation about Z-axis.
+        roll:  Rotation about X-axis.
+
+    Attributes:
+        pitch: Rotation about Y-axis.
+        yaw:   Rotation about Z-axis.
+        roll:  Rotation about X-axis.
     """
     def __init__(self, pitch=0, yaw=0, roll=0):
-        """ Initializes the Rotation instance with either the given pitch,
-        roll and yaw values.
-
-        Args:
-            pitch: Rotation about Y-axis.
-            yaw:   Rotation about Z-axis.
-            roll:  Rotation about X-axis.
-        """
         self.pitch = pitch
         self.yaw = yaw
         self.roll = roll
 
     @classmethod
     def from_carla_rotation(cls, rotation):
-        """ Creates a Rotation from a carla.Rotation."""
+        """Creates a pylot Rotation from a CARLA rotation.
+
+        Args:
+            rotation (carla.Rotation): An instance of a CARLA rotation.
+
+        Returns:
+            :py:class:`.Rotation`: A pylot rotation.
+        """
         import carla
         if not isinstance(rotation, carla.Rotation):
             raise ValueError('rotation should be of type carla.Rotation')
         return cls(rotation.pitch, rotation.yaw, rotation.roll)
 
     def as_carla_rotation(self):
-        """ Retrieves the current rotation as an instance of carla.Rotation.
+        """ Retrieves the rotation as an instance of a CARLA rotation.
 
         Returns:
-            A carla.Rotation instance representing the current rotation.
+            carla.Rotation: Instance representing the rotation.
         """
         import carla
         return carla.Rotation(self.pitch, self.yaw, self.roll)
@@ -57,7 +60,12 @@ class Rotation(object):
 
 
 class Vector3D(object):
-    """ Represents a 3D vector and provides useful helper functions.
+    """Represents a 3D vector and provides useful helper functions.
+
+    Args:
+        x: The value of the first axis.
+        y: The value of the second axis.
+        z: The value of the third axis.
 
     Attributes:
         x: The value of the first axis.
@@ -65,50 +73,54 @@ class Vector3D(object):
         z: The value of the third axis.
     """
     def __init__(self, x=0, y=0, z=0):
-        """ Initializes the Vector3D instance from the given x, y and z values.
-
-        Args:
-            x: The value of the first axis.
-            y: The value of the second axis.
-            z: The value of the third axis.
-        """
         self.x, self.y, self.z = x, y, z
 
     @classmethod
     def from_carla_vector(cls, vector):
-        """ Creates a Vector3D from a carla.vector3d."""
+        """Creates a pylot Vector3D from a CARLA 3D vector.
+
+        Args:
+            vector (carla.Vector3D): An instance of a CARLA 3D vector.
+
+        Returns:
+            :py:class:`.Vector3D`: A pylot 3D vector.
+        """
         import carla
         if not isinstance(vector, carla.Vector3D):
             raise ValueError('The vector must be a carla.Vector3D')
         return cls(vector.x, vector.y, vector.z)
 
     def __add__(self, other):
-        """ Adds the two vectors together and returns the result. """
+        """Adds the two vectors together and returns the result."""
         return type(self)(x=self.x + other.x,
                           y=self.y + other.y,
                           z=self.z + other.z)
 
     def __sub__(self, other):
-        """ Subtracts the other vector from self and returns the result. """
+        """Subtracts the other vector from self and returns the result."""
         return type(self)(x=self.x - other.x,
                           y=self.y - other.y,
                           z=self.z - other.z)
 
     def as_numpy_array(self):
-        """ Retrieves the given vector as a numpy array. """
+        """Retrieves the 3D vector as a numpy array."""
         return np.array([self.x, self.y, self.z])
 
     def as_carla_vector(self):
-        """ Retrieves the given vector as an instance of carla.Vector3D. """
+        """Retrieves the 3D vector as an instance of CARLA 3D vector.
+
+        Returns:
+            carla.Vector3D: Instance representing the 3D vector.
+        """
         import carla
         return carla.Vector3D(self.x, self.y, self.z)
 
     def magnitude(self):
-        """ Returns the magnitude of the Vector3D instance. """
+        """Returns the magnitude of the 3D vector."""
         return np.linalg.norm(self.as_numpy_array())
 
     def to_camera_view(self, extrinsic_matrix, intrinsic_matrix):
-        """ Converts the given 3D vector to the view of the camera using
+        """Converts the given 3D vector to the view of the camera using
         the extrinsic and the intrinsic matrix.
 
         Args:
@@ -141,17 +153,17 @@ class Vector3D(object):
 
 
 class Vector2D(object):
-    """ Represents a 2D vector and provides helper functions."""
+    """Represents a 2D vector and provides helper functions."""
     def __init__(self, x, y):
         self.x = x
         self.y = y
 
     def __add__(self, other):
-        """ Adds the two vectors together and returns the result. """
+        """Adds the two vectors together and returns the result. """
         return type(self)(x=self.x + other.x, y=self.y + other.y)
 
     def __sub__(self, other):
-        """ Subtracts the other vector from self and returns the result. """
+        """Subtracts the other vector from self and returns the result. """
         return type(self)(x=self.x - other.x, y=self.y - other.y)
 
     def __repr__(self):
@@ -162,7 +174,12 @@ class Vector2D(object):
 
 
 class Location(Vector3D):
-    """ Stores a 3D location, and provides useful helper methods.
+    """Stores a 3D location, and provides useful helper methods.
+
+    Args:
+        x: The value of the x-axis.
+        y: The value of the y-axis.
+        z: The value of the z-axis.
 
     Attributes:
         x: The value of the x-axis.
@@ -170,54 +187,72 @@ class Location(Vector3D):
         z: The value of the z-axis.
     """
     def __init__(self, x=0, y=0, z=0):
-        """ Initializes the Location instance with either the given x, y, z
-        values.
-
-        Args:
-            x: The value of the x-axis.
-            y: The value of the y-axis.
-            z: The value of the z-axis.
-        """
         super(Location, self).__init__(x, y, z)
 
     @classmethod
     def from_carla_location(cls, location):
-        """ Creates a Location from a carla.Location."""
+        """Creates a pylot location from a CARLA location.
+
+        Args:
+            location (carla.Location): An instance of a CARLA location.
+
+        Returns:
+            :py:class:`.Location`: A pylot location.
+        """
         import carla
         if not isinstance(location, carla.Location):
             raise ValueError('The location must be a carla.Location')
         return cls(location.x, location.y, location.z)
 
     def distance(self, other):
-        """ Calculates the Euclidean distance between the given point and the
+        """Calculates the Euclidean distance between the given point and the
         other point.
 
         Args:
-            other: The other Location instance to calculate the distance to.
+            other (:py:class:`~.Location`): The other location used to
+                calculate the Euclidean distance to.
 
         Returns:
-            The Euclidean distance between the two points.
+            :obj:`float`: The Euclidean distance between the two points.
         """
         return (self - other).magnitude()
 
     def l1_distance(self, other):
-        """ Calculates the L1 distance between the given point and the other
+        """Calculates the L1 distance between the given point and the other
         point.
 
         Args:
-            other: The other Location instance to calculate the L1 distance to.
+            other (:py:class:`~.Location`): The other location used to
+                calculate the L1 distance to.
 
         Returns:
-            The L1 distance between the two points.
+            :obj:`float`: The L1 distance between the two points.
         """
         return abs(self.x - other.x) + abs(self.y - other.y) + abs(self.z -
                                                                    other.z)
 
-    def as_carla_location(self):
-        """ Retrieves the current location as an instance of carla.Location.
+    def get_vector_and_magnitude(self, other):
+        """Calculates vector and magnitude between two locations.
+
+        Args:
+            other (:py:class:`~.Location`): The other location to used to
+                calculate.
 
         Returns:
-            A carla.Location instance representing the current location.
+            A tuple comprising of a 2D vector and its magnitude.
+        """
+        vec = np.array([self.x, self.y] - np.array([other.x, other.y]))
+        dist = math.sqrt(vec[0]**2 + vec[1]**2)
+        if abs(dist) < 0.00001:
+            return vec, dist
+        else:
+            return vec / dist, dist
+
+    def as_carla_location(self):
+        """Retrieves the location as a carla location instance.
+
+        Returns:
+            carla.Location: Instance representing the location.
         """
         import carla
         return carla.Location(self.x, self.y, self.z)
@@ -230,32 +265,35 @@ class Location(Vector3D):
 
 
 class Transform(object):
-    """ A class that stores the location and rotation of an obstacle.
+    """A class that stores the location and rotation of an obstacle.
 
     It can be created from a carla.Transform, defines helper functions needed
     in Pylot, and makes the carla.Transform serializable.
 
+    A transform object is instantiated with either a location and a rotation,
+    or using a matrix.
+
+    Args:
+        location (:py:class:`.Location`, optional): The location of the object
+            represented by the transform.
+        rotation (:py:class:`.Rotation`, optional): The rotation  (in degreers)
+            of the object represented by the transform.
+        matrix: The transformation matrix used to convert points in the 3D
+            coordinate space with respect to the location and rotation of the
+            given object.
+
     Attributes:
-        location: The location of the object represented by the transform.
-        rotation: The rotation of the object represented by the transform.
-        forward_vector: The forward vector of the object represented by the
-            transform.
+        location (:py:class:`.Location`): The location of the object
+            represented by the transform.
+        rotation (:py:class:`.Rotation`): The rotation (in degreers) of the
+            object represented by the transform.
+        forward_vector (:py:class:`.Vector3D`): The forward vector of the
+            object represented by the transform.
         matrix: The transformation matrix used to convert points in the 3D
             coordinate space with respect to the location and rotation of the
             given object.
     """
     def __init__(self, location=None, rotation=None, matrix=None):
-        """ Instantiates a Transform object with either the given location
-        and rotation, or using the given matrix.
-
-        Rotation is assumed in degrees.
-
-        Args:
-            location: The location of the object represented by the transform.
-            rotation: The rotation of the object represented by the transform.
-            matrix: The transformation matrix used to convert points in the
-                3D coordinate space with respect to the object.
-        """
         if matrix is not None:
             self.matrix = matrix
             self.location = Location(matrix[0, 3], matrix[1, 3], matrix[2, 3])
@@ -281,7 +319,14 @@ class Transform(object):
 
     @classmethod
     def from_carla_transform(cls, transform):
-        """ Creates a Transform from a carla.Transform."""
+        """Creates a pylot transform from a carla transform.
+
+        Args:
+            transform (carla.Transform): Carla transform.
+
+        Returns:
+            :py:class:`.Transform`: An instance of a pylot transform.
+        """
         import carla
         if not isinstance(transform, carla.Transform):
             raise ValueError('transform should be of type carla.Transform')
@@ -290,17 +335,20 @@ class Transform(object):
 
     @staticmethod
     def _create_matrix(location, rotation):
-        """ Creates a transformation matrix to convert points in the 3D world
+        """Creates a transformation matrix to convert points in the 3D world
         coordinate space with respect to the object.
 
         Use the transform_points function to transpose a given set of points
         with respect to the object.
 
         Args:
-            location: The location of the object represented by the transform.
-            rotation: The rotation of the object represented by the transform.
+            location (:py:class:`.Location`): The location of the object
+                represented by the transform.
+            rotation (:py:class:`.Rotation`): The rotation of the object
+                represented by the transform.
+
         Returns:
-            a 4x4 numpy matrix which represents the transformation matrix.
+            A 4x4 numpy matrix which represents the transformation matrix.
         """
         matrix = np.identity(4)
         cy = math.cos(np.radians(rotation.yaw))
@@ -324,18 +372,18 @@ class Transform(object):
         return matrix
 
     def __transform(self, points, matrix):
-        """ Internal function to transform the points according to the
+        """Internal function to transform the points according to the
         given matrix. This function either converts the points from
         coordinate space relative to the transform to the world coordinate
         space (using self.matrix), or from world coordinate space to the
         space relative to the transform (using inv(self.matrix))
 
         Args:
-            points: Points in the format [Location, ... Location]
+            points (list(:py:class:`.Location`)): list of points.
             matrix: The matrix of the transformation to apply.
 
         Returns:
-            Transformed points in the format [Location, ... Location]
+            list(:py:class:`.Location`): List of transformed points.
         """
         # Retrieve the locations as numpy arrays.
         points = np.array([loc.as_numpy_array() for loc in points])
@@ -356,7 +404,7 @@ class Transform(object):
         return [Location(x, y, z) for x, y, z in points]
 
     def transform_points(self, points):
-        """ Transforms the given set of locations (specified in the coordinate
+        """Transforms the given set of locations (specified in the coordinate
         space of the current transform) to be in the world coordinate space.
 
         For example, if the transform is at location (3, 0, 0) and the
@@ -365,35 +413,35 @@ class Transform(object):
         coordinate space.
 
         Args:
-            points: Points in the format [Location,..Location]
+            points (list(:py:class:`.Location`)): list of points.
 
         Returns:
-            Transformed points in the format [Location,..Location]
+            list(:py:class:`.Location`): List of transformed points.
         """
         return self.__transform(points, self.matrix)
 
     def inverse_transform_points(self, points):
-        """ Transforms the given set of locations (specified in world
-        coordinate space) to be relative to the given transform.
+        """Transforms the given set of locations (specified in world coordinate
+        space) to be relative to the given transform.
 
-        For example, if the transform is at location (3, 0, 0) and the
-        location passed to the argument is (10, 0, 0), this function will
-        return (7, 0, 0) i.e. the location of the argument relative to the
-        given transform.
+        For example, if the transform is at location (3, 0, 0) and the location
+        passed to the argument is (10, 0, 0), this function will return
+        (7, 0, 0) i.e. the location of the argument relative to the given
+        transform.
 
         Args:
-            points: Points in the format [Location, ... Location]
+            points (list(:py:class:`.Location`)): list of points.
 
         Returns:
-            Transformed points in the format [Location, ... Location]
+            list(:py:class:`.Location`): List of transformed points.
         """
         return self.__transform(points, np.linalg.inv(self.matrix))
 
     def as_carla_transform(self):
-        """ Convert the transform to a carla.Transform instance.
+        """Converts the transform to a carla transform.
 
         Returns:
-            A carla.Transform instance representing the current Transform.
+            carla.Transform: Instance representing the current Transform.
         """
         import carla
         return carla.Transform(
@@ -403,12 +451,11 @@ class Transform(object):
                            roll=self.rotation.roll))
 
     def compute_magnitude_angle(self, target_loc):
-        """
-        Computes distance and relative angle between the transform and a target
-        location.
+        """Computes distance and relative angle between the transform and a
+        target location.
 
         Args:
-            target_loc: Location of the target.
+            target_loc (:py:class:`.Location`): Location of the target.
 
         Returns:
             Tuple of distance to the target and the angle
@@ -430,14 +477,14 @@ class Transform(object):
 
     # TODO (Sukrit) :: This method should use compute_magnitude_angle.
     def is_within_distance_ahead(self, dst_loc, max_distance):
-        """
-        Check if a location is within a distance.
+        """Checks if a location is within a distance.
 
         Args:
-            dst_loc: The location to compute distance for.
-            max_distance: Maximum allowed distance.
+            dst_loc (:py:class:`.Location`): Location to compute distance to.
+            max_distance (:obj:`float`): Maximum allowed distance.
+
         Returns:
-            True if other location is within max_distance.
+            bool: True if other location is within max_distance.
         """
         # TODO(Sukrit) :: Change this to use Vector2D instead of computing
         # norms here.
@@ -473,7 +520,18 @@ class Transform(object):
 
 
 class CanBus(object):
-    """ Class used to wrap ego-vehicle information."""
+    """Class used to wrap ego-vehicle information.
+
+    Args:
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the ego
+            vehicle.
+        forward_speed (:obj:`int`): Forward speed in m/s.
+
+    Attributes:
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the ego
+            vehicle.
+        forward_speed (:obj:`int`): Forward speed in m/s.
+    """
     def __init__(self, transform, forward_speed):
         if not isinstance(transform, Transform):
             raise ValueError(
@@ -491,7 +549,12 @@ class CanBus(object):
 
 
 def add_timestamp(image_np, timestamp):
-    """ Adds a timestamp text to an image np array."""
+    """Adds a timestamp text to an image np array.
+
+    Args:
+        image_np: A numpy array of the image.
+        timestamp (:obj:`int`): The timestamp of the image.
+    """
     txt_font = cv2.FONT_HERSHEY_SIMPLEX
     timestamp_txt = '{}'.format(timestamp)
     # Put timestamp text.
@@ -504,12 +567,12 @@ def add_timestamp(image_np, timestamp):
 
 
 def time_epoch_ms():
-    """ Get current time in milliseconds."""
+    """Get current time in milliseconds."""
     return int(time.time() * 1000)
 
 
 def set_tf_loglevel(level):
-    """ To be used to suppress TensorFlow logging."""
+    """To be used to suppress TensorFlow logging."""
     import logging
     import os
     if level >= logging.FATAL:

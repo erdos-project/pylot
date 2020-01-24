@@ -2,7 +2,19 @@ import erdos
 
 
 class WaypointsMessage(erdos.Message):
-    """ This class represents a message to be used to send waypoints."""
+    """Message class to be used to send waypoints.
+
+    Args:
+        timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
+            the message.
+        waypoints (list(:py:class:`~pylot.utils.Transform`), optional): List of
+            waypoint transforms.
+        target_speed (:obj:`float`, optional): Target speed in m/s.
+        wp_angle (:obj:`float`, optional):
+        wp_vector (:obj:`float`, optional):
+        wp_angle_speed (:obj:`float`, optional):
+        wp_vector_speed (:obj:`float`, optional):
+    """
     def __init__(self,
                  timestamp,
                  waypoints=None,

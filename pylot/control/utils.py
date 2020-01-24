@@ -4,15 +4,6 @@ import numpy as np
 from pylot.perception.detection.traffic_light import TrafficLightColor
 
 
-def get_world_vec_dist(x_dst, y_dst, x_src, y_src):
-    vec = np.array([x_dst, y_dst] - np.array([x_src, y_src]))
-    dist = math.sqrt(vec[0]**2 + vec[1]**2)
-    if abs(dist) < 0.00001:
-        return vec, dist
-    else:
-        return vec / dist, dist
-
-
 def get_angle(vec_dst, vec_src):
     angle = (math.atan2(vec_dst[1], vec_dst[0]) -
              math.atan2(vec_src[1], vec_src[0]))
@@ -27,7 +18,7 @@ def radians_to_steer(rad, steer_gain):
     """ Converts radians to steer input.
 
     Returns:
-        float [-1.0, 1.0]
+        :obj:`float`: Between [-1.0, 1.0].
     """
     steer = steer_gain * rad
     if steer > 0:
@@ -38,12 +29,12 @@ def radians_to_steer(rad, steer_gain):
 
 
 def steer_to_radians(steer, steer_gain):
-    """ Converts radians to steer input.
+    """Converts radians to steer input.
 
     Assumes max steering angle is -45, 45 degrees.
 
     Returns:
-        float [-1.0, 1.0]
+        :obj:`float`: Steering in radians.
     """
     rad = steer / steer_gain
     if rad > 0:
@@ -54,15 +45,16 @@ def steer_to_radians(steer, steer_gain):
 
 
 def compute_throttle_and_brake(pid, current_speed, target_speed, flags):
-    """ Computes the throttle/brake required to reach the target speed.
+    """Computes the throttle/brake required to reach the target speed.
 
     It uses the longitudinal controller to derive the required information.
 
     Args:
         pid: The pid controller.
-        current_speed: The current speed of the ego vehicle (in m/s).
-        target_speed: The target speed to reach (in m/s).
-        flags: The flags object.
+        current_speed (:obj:`float`): The current speed of the ego vehicle
+            (in m/s).
+        target_speed (:obj:`float`): The target speed to reach (in m/s).
+        flags (absl.flags): The flags object.
 
     Returns:
         Throttle and brake values.
@@ -101,9 +93,8 @@ def stop_person(ego_vehicle_location, person_location, wp_vector,
         A stopping factor between 0 and 1 (i.e., no braking).
     """
     speed_factor_p_temp = 1
-    p_vector, p_dist = get_world_vec_dist(person_location.x, person_location.y,
-                                          ego_vehicle_location.x,
-                                          ego_vehicle_location.y)
+    p_vector, p_dist = person_location.get_vector_and_magnitude(
+        ego_vehicle_location)
     p_angle = get_angle(p_vector, wp_vector)
     if _is_person_on_hit_zone(p_dist, p_angle, flags):
         speed_factor_p_temp = p_dist / (flags.coast_factor *
@@ -128,10 +119,8 @@ def stop_vehicle(ego_vehicle_location, obs_vehicle_location, wp_vector,
         A stopping factor between 0 and 1 (i.e., no braking).
     """
     speed_factor_v_temp = 1
-    v_vector, v_dist = get_world_vec_dist(obs_vehicle_location.x,
-                                          obs_vehicle_location.y,
-                                          ego_vehicle_location.x,
-                                          ego_vehicle_location.y)
+    v_vector, v_dist = obs_vehicle_location.get_vector_and_magnitude(
+        ego_vehicle_location)
     v_angle = get_angle(v_vector, wp_vector)
 
     min_angle = -0.5 * flags.vehicle_angle_thres / flags.coast_factor
@@ -172,9 +161,8 @@ def stop_traffic_light(ego_vehicle_location, tl_location, tl_state, wp_vector,
     speed_factor_tl_temp = 1
     if (tl_state == TrafficLightColor.YELLOW
             or tl_state == TrafficLightColor.RED):
-        tl_vector, tl_dist = get_world_vec_dist(tl_location.x, tl_location.y,
-                                                ego_vehicle_location.x,
-                                                ego_vehicle_location.y)
+        tl_vector, tl_dist = tl_location.get_vector_and_magnitude(
+            ego_vehicle_location)
         tl_angle = get_angle(tl_vector, wp_vector)
 
         if ((0 < tl_angle <
@@ -252,7 +240,5 @@ def stop_for_agents(ego_vehicle_location, wp_angle, wp_vector, wp_angle_speed,
 
 
 def _is_traffic_light_visible(ego_vehicle_location, tl_location, flags):
-    _, tl_dist = get_world_vec_dist(ego_vehicle_location.x,
-                                    ego_vehicle_location.y, tl_location.x,
-                                    tl_location.y)
+    _, tl_dist = ego_vehicle_location.get_vector_and_magnitude(tl_location)
     return tl_dist > flags.traffic_light_min_dist_thres

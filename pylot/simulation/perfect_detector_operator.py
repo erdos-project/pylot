@@ -7,17 +7,55 @@ import pylot.simulation.utils
 
 
 class PerfectDetectorOperator(erdos.Operator):
-    """ Operator that transforms information it receives from Carla into
-    perfect bounding boxes.
+    """Uses info from the simulator to perfectly detect obstacles, stop and
+    speed limit signs.
+
+    Args:
+        depth_camera_stream (:py:class:`erdos.streams.ReadStream`): Stream on
+            which :py:class:`~pylot.perception.messages.DepthFrameMessage` are
+            received.
+        center_camera_stream (:py:class:`erdos.streams.ReadStream`): Stream on
+            which RGB camera frames are received.
+        segmented_camera__stream (:py:class:`erdos.streams.ReadStream`):
+            Stream on which
+            :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
+            are received.
+        can_bus_stream (:py:class:`erdos.streams.ReadStream`):
+            Stream on which can bus info is received.
+        ground_obstacles_stream (:py:class:`erdos.streams.ReadStream`):
+            Stream on which :py:class:`~pylot.simulation.GroundObstaclesMessage`
+            messages are received.
+        ground_speed_limit_signs_stream (:py:class:`erdos.streams.ReadStream`):
+            Stream on which :py:class:`~pylot.simulation.GroundSpeedSignsMessage`
+            messages are received.
+        ground_stop_signs_stream (:py:class:`erdos.streams.ReadStream`):
+            Stream on which :py:class:`~pylot.simulation.GroundStopSignsMessage`
+            messages are received.
+        obstacles_stream (:py:class:`erdos.streams.WriteStream`): Stream on
+            which the operator publishes
+            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
+            for detected obstacles.
+        name (:obj:`str`): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
 
     Attributes:
-        _bgr_msgs: Buffer of received ground BGR image messages.
-        _can_bus_msgs: Buffer of received ground can bus messages.
-        _depth_frame_msgs: Buffer of received depth frame messages.
-        _obstacles: Buffer of obstacle messages received from Carla.
-        _segmented_msgs: Buffer of segmented frame msgs received from Carla.
-        _speed_limit_signs: Buffer of speed limit sign msgs.
-        _stop_signs: Buffer of stop sign msgs received from Carla.
+        _bgr_msgs (:obj:`collections.deque`): Buffer of received ground BGR
+            image messages.
+        _can_bus_msgs (:obj:`collections.deque`): Buffer of received ground
+            can bus messages.
+        _depth_frame_msgs (:obj:`collections.deque`): Buffer of received depth
+            frame messages.
+        _obstacles (:obj:`collections.deque`): Buffer of obstacle messages
+            received from Carla.
+        _segmented_msgs (:obj:`collections.deque`): Buffer of segmented frame
+            msgs received from Carla.
+        _speed_limit_signs (:obj:`collections.deque`): Buffer of speed limit
+            sign msgs.
+        _stop_signs (:obj:`collections.deque`): Buffer of stop sign msgs
+            received from Carla.
+        _frame_cnt (:obj:`int`): Number of messages received.
     """
     def __init__(self,
                  depth_camera_stream,
@@ -31,7 +69,6 @@ class PerfectDetectorOperator(erdos.Operator):
                  name,
                  flags,
                  log_file_name=None):
-        """ Initializes the operator. """
         depth_camera_stream.add_callback(self.on_depth_camera_update)
         center_camera_stream.add_callback(self.on_bgr_camera_update)
         segmented_camera_stream.add_callback(self.on_segmented_frame)
@@ -71,6 +108,12 @@ class PerfectDetectorOperator(erdos.Operator):
         return [obstacles_stream]
 
     def on_watermark(self, timestamp, obstacles_stream):
+        """Invoked when all input streams have received a watermark.
+
+        Args:
+            timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
+                the watermark.
+        """
         self._logger.debug('@{}: received watermark'.format(timestamp))
         depth_msg = self._depth_frame_msgs.popleft()
         bgr_msg = self._bgr_msgs.popleft()
@@ -155,15 +198,22 @@ class PerfectDetectorOperator(erdos.Operator):
 
     def __get_obstacles(self, obstacles, vehicle_transform, depth_frame,
                         segmented_frame):
-        """ Transforms obstacles into detected obstacles.
+        """Transforms obstacles into detected obstacles.
 
         Args:
-            obstacles: List of pylot.perception.detection.obstacle.Obstacle.
-            vehicle_transform: The transform of the ego vehicle.
-            depth_frame: perception.depth_frame.DepthFrame taken at the
-                time when obstacles were collected.
-            segmented_frame: perception.segmentation.segmented_frame.SegmentedFrame
-                taken at the time when the obstacles were collected.
+            obstacles (list(:py:class:`~pylot.perception.detection.obstacle.Obstacle`)):
+                List of obstacles.
+            vehicle_transform (:py:class:`~pylot.utils.Transform`): Transform of
+                the ego vehicle.
+            depth_frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`):
+                Depth frame taken at the time when obstacles were collected.
+            segmented_frame (:py:class:`~pylot.perception.segmentation.segmented_frame.SegmentedFrame`):
+                Segmented frame taken at the time when the obstacles were
+                collected.
+
+        Returns:
+            list(:py:class:`~pylot.perception.detection.utils.DetectedObstacle`):
+            List of detected obstacles.
         """
         det_obstacles = []
         for obstacle in obstacles:

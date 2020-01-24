@@ -16,12 +16,12 @@ LocationGeo = namedtuple('LocationGeo', 'latitude, longitude, altitude')
 
 
 def get_world(host="localhost", port=2000, timeout=10):
-    """ Get a handle to the world running inside the simulation.
+    """Get a handle to the world running inside the simulation.
 
     Args:
-        host: The host where the simulator is running.
-        port: The port to connect to at the given host.
-        timeout: The timeout of the connection.
+        host (:obj:`str`): The host where the simulator is running.
+        port (:obj:`int`): The port to connect to at the given host.
+        timeout (:obj:`int`): The timeout of the connection (in seconds).
 
     Returns:
         A tuple of `(client, world)` where the `client` is a connection to the
@@ -41,15 +41,15 @@ def get_world(host="localhost", port=2000, timeout=10):
 
 
 def get_map(host="localhost", port=2000, timeout=10):
-    """ Get a handle to the Carla map.
+    """Get a handle to the Carla map.
 
     Args:
-        host: The host where the simulator is running.
-        port: The port to connect to at the given host.
-        timeout: The timeout of the connection.
+        host (:obj:`str`): The host where the simulator is running.
+        port (:obj:`int`): The port to connect to at the given host.
+        timeout (:obj:`int`): The timeout of the connection (in seconds).
 
     Returns:
-        A map of the Carla city.
+        carla.Map: A map of the Carla city.
     """
     _, world = get_world(host, port, timeout)
     if world is None:
@@ -58,7 +58,7 @@ def get_map(host="localhost", port=2000, timeout=10):
 
 
 def get_weathers():
-    """ Gets the list of weathers that the simulation supports.
+    """Gets a dict of weathers that the simulation supports.
 
     Returns:
         A dictionary of {name: weather} that we can set the simulation to.
@@ -72,11 +72,12 @@ def get_weathers():
 
 
 def set_synchronous_mode(world, fps):
-    """ Sets Carla to run in synchronous mode.
+    """Sets Carla to run in synchronous mode.
 
     Args:
-        world: A handle to the world running inside the simulation.
-        fps: The frames per second rate the simulation should tick at.
+        world (carla.World): A handle to the world running inside the
+            simulator.
+        fps (:obj:`int`): Frames per second rate the simulation should tick at.
     """
     settings = world.get_settings()
     settings.synchronous_mode = True
@@ -85,10 +86,11 @@ def set_synchronous_mode(world, fps):
 
 
 def set_asynchronous_mode(world):
-    """ Sets the simulator to asynchronous mode.
+    """Sets the simulator to asynchronous mode.
 
     Args:
-        world: A handle to the world running inside the simulation.
+        world (carla.World): A handle to the world running inside the
+            simulation.
     """
     settings = world.get_settings()
     settings.synchronous_mode = False
@@ -96,11 +98,13 @@ def set_asynchronous_mode(world):
 
 
 def reset_world(world):
-    """ Resets the simulation to the original state. Removes all the vehicles,
-    sensors and other actors from the environment.
+    """Resets the simulation to the original state.
+
+    Removes all the vehicles, sensors and other actors from the environment.
 
     Args:
-        world: A handle to the world running inside the simulation.
+        world (carla.World): A handle to the world running inside the
+            simulation.
     """
     actors = world.get_actors()
     for actor in actors:
@@ -111,10 +115,11 @@ def reset_world(world):
 
 
 def extract_data_in_pylot_format(actor_list):
-    """ Extracts actor information in ERDOS format from an actor list.
+    """Extracts actor information in pylot format from an actor list.
 
     Args:
-        actor_list: A Carla actor list object with all the simulation actors.
+        actor_list (carla.ActorList): An actor list object with all the
+            simulation actors.
 
     Returns:
         A tuple that contains objects for all different types of actors.
@@ -150,7 +155,13 @@ def extract_data_in_pylot_format(actor_list):
 
 
 def draw_trigger_volume(world, actor):
-    """ Draws the trigger volume of an actor."""
+    """Draws the trigger volume of an actor.
+
+    Args:
+        world (carla.World): A handle to the world running inside the
+            simulation.
+        actor (carla.Actor): A CARLA actor.
+    """
     transform = actor.get_transform()
     tv = transform.transform(actor.trigger_volume.location)
     bbox = carla.BoundingBox(tv, actor.trigger_volume.extent)
@@ -167,12 +178,24 @@ def get_top_down_transform(transform, top_down_lateral_view):
 
 def get_traffic_lights_obstacles(traffic_lights, depth_frame, segmented_frame,
                                  town_name):
-    """ Get the traffic lights that are within the camera frame.
+    """Get the traffic lights that are within the camera frame.
+
+    Warning:
+        The depth frame must have a camera setup transform relative to the
+        world.
 
     Args:
-        traffic_lights: List of perception.detection.traffic_light.TrafficLight.
-        depth_frame: A perception.depth_frame.DepthFrame.
-        segmented_frame: A perception.segmentation.segmented_frame.SegmentedFrame.
+        traffic_lights (list(:py:class:`~pylot.perception.detection.traffic_light.TrafficLight`)):
+            List of traffic lights.
+        depth_frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`):
+            Depth frame captured from the same position as the camera frame.
+        segmented_frame (:py:class:`~pylot.perception.segmentation.segmented_frame.SegmentedFrame`):
+            Segmented frame captured from the same position as the camera
+            frame.
+
+    Returns:
+        list(:py:class:`~pylot.perception.detection.utils.DetectedObstacle`):
+        List of detected traffic light obstacles.
     """
     camera_transform = depth_frame.camera_setup.get_transform()
     # Iterate over all the traffic lights, and figure out which ones are
@@ -188,16 +211,24 @@ def get_traffic_lights_obstacles(traffic_lights, depth_frame, segmented_frame,
 
 
 def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
-    """ Get the speed limit signs that are withing the camera frame.
+    """Get the speed limit signs that are withing the camera frame.
+
+    Warning:
+        The depth frame must have a camera setup transform relative to the
+        world.
 
     Args:
-        speed_signs: List of speed limit signs in the world.
-        depth_frame: A perception.depth_frame.DepthFrame, with a
-            camera_setup relative to the world.
-        segmented_frame: A perception.segmentation.segmented_frame.SegmentedFrame.
+        speed_signs (list(:py:class:`~pylot.perception.detection.speed_limit_sign.SpeedLimitSign`)):
+            List of speed limit signs in the world.
+        depth_frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`):
+            Depth frame captured from the same position as the camera frame.
+        segmented_frame (:py:class:`~pylot.perception.segmentation.segmented_frame.SegmentedFrame`):
+            Segmented frame captured from the same position as the camera
+            frame.
 
     Returns:
-        A list of pylot.perception.detection.DetectedSpeedLimit.
+        list(:py:class:`~pylot.perception.detection.utils.DetectedSpeedLimit`): List
+        of detected speed limits.
     """
     def match_bboxes_with_speed_signs(camera_transform, loc_bboxes,
                                       speed_signs):
@@ -241,15 +272,21 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
 
 
 def get_detected_traffic_stops(traffic_stops, depth_frame):
-    """ Get traffic stop lane markings that are withing the camera frame.
+    """Gets traffic stop lane markings that are withing the camera frame.
+
+    Warning:
+        The depth frame must have a camera setup transform relative to the
+        world.
 
     Args:
-        traffic_stops: List of traffic stop actors in the world.
-        depth_frame: A pylot.perception.depth_frame.DepthFrame, with a
-            camera_setup relative to the world.
+        traffic_stops (list(:py:class:`~pylot.perception.detection.stop_sign.StopSign`)):
+            List of traffic stops in the world.
+        depth_frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`):
+            Depth frame captured from the same position as the camera frame.
 
     Returns:
-        List of DetectedObstacles.
+        list(:py:class:`~pylot.perception.detection.utils.DetectedObstacle`):
+        List of detected traffic stops.
     """
     def get_stop_markings_bbox(bbox3d, depth_frame):
         """ Gets a 2D stop marking bounding box from a 3D bounding box."""

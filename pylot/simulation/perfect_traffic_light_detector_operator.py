@@ -6,16 +6,43 @@ from pylot.simulation.utils import get_world, get_traffic_lights_obstacles
 
 
 class PerfectTrafficLightDetectorOperator(erdos.Operator):
-    """ Operator that uses info received from the simulator to perfectly detect
-    traffic lights.
+    """Uses info from the simulator to perfectly detect traffic lights.
+
+    Args:
+        ground_traffic_lights_stream (:py:class:`erdos.streams.ReadStream`):
+            Stream on which :py:class:`~pylot.simulation.GroundTrafficLightsMessage`
+            messages are received.
+        tl_camera_stream (:py:class:`erdos.streams.ReadStream`):
+            Stream on which BGR frames are received.
+        depth_camera_stream (:py:class:`erdos.streams.ReadStream`): Stream on
+            which :py:class:`~pylot.perception.messages.DepthFrameMessage` are
+            received.
+        segmented_camera__stream (:py:class:`erdos.streams.ReadStream`):
+            Stream on which
+            :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
+            are received.
+        can_bus_stream (:py:class:`erdos.streams.ReadStream`):
+            Stream on which can bus info is received.
+        traffic_lights_stream (:py:class:`erdos.streams.WriteStream`):
+            Stream on which the operator publishes
+            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
+            for traffic lights.
+        name (:obj:`str`): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
 
     Attributes:
-        _town_name: Name of the Carla town.
-        _traffic_lights: Buffer of ground traffic lights messages.
-        _bgr_msgs: Buffer of ground camera messages.
-        _depth_frame_msgs: Buffer of ground camera depth messages.
-        _segmented_msgs: Buffer of ground segmented messages.
-        _can_bus_msgs: Buffer of can bus messages.
+        _town_name (:obj:`str`): Name of the Carla town.
+        _traffic_lights (:obj:`collections.deque`): Buffer of ground traffic
+            lights messages.
+        _bgr_msgs (:obj:`collections.deque`): Buffer of ground camera messages.
+        _depth_frame_msgs (:obj:`collections.deque`): Buffer of ground camera
+            depth messages.
+        _segmented_msgs (:obj:`collections.deque`): Buffer of ground segmented
+            messages.
+        _can_bus_msgs (:obj:`collections.deque`): Buffer of can bus messages.
+        _frame_cnt (:obj:`int`): Number of messages received.
     """
     def __init__(self,
                  ground_traffic_lights_stream,
@@ -59,6 +86,12 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         return [traffic_lights_stream]
 
     def on_watermark(self, timestamp, traffic_lights_stream):
+        """Invoked when all input streams have received a watermark.
+
+        Args:
+            timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
+                the watermark.
+        """
         self._logger.debug('@{}: received watermark'.format(timestamp))
         traffic_light_msg = self._traffic_lights.popleft()
         bgr_msg = self._bgr_msgs.popleft()
