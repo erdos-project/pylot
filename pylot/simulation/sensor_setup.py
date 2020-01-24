@@ -111,7 +111,7 @@ class CameraSetup(object):
 
     def __init__(self, name, camera_type, width, height, transform, fov=90):
         # Ensure that the name is a string.
-        assert isinstance(self.name, str), "The name should be of type 'str'"
+        assert isinstance(name, str), "The name should be of type 'str'"
         self.name = name
 
         # Ensure that the camera type is one of the three that we support.
@@ -133,6 +133,7 @@ class CameraSetup(object):
         self.transform = transform
 
         # Ensure that the field-of-view is a float.
+        fov = float(fov) if isinstance(fov, int) else fov
         assert isinstance(fov, float), "The fov should be of type 'float'"
         self.fov = fov
 
