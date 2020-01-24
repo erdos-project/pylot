@@ -86,30 +86,32 @@ class CameraSetup(object):
     """ CameraSetup stores information about an instance of the camera
     mounted on the vehicle.
 
+    Args:
+        name (str): The name of the camera instance.
+        camera_type (str): The type of the camera. One of `('sensor.camera.rgb'
+            , 'sensor.camera.depth', 'sensor.camera.semantic_segmentation')`
+        width (int): The width of the image returned by the camera.
+        height (int): The height of the image returned by the camera.
+        transform (:py:class:`pylot.utils.Transform`): The transform containing
+            the location and rotation of the camera instance with respect to
+            the vehicle.
+        fov (float): The field-of-view of the camera.
+
     Attributes:
-        name: The name of the camera instance.
-        camera_type: The type of the camera. One of ('sensor.camera.rgb',
-            'sensor.camera.depth', 'sensor.camera.semantic_segmentation')
-        width: The width of the image returned by the camera.
-        height: The height of the image returned by the camera.
-        transform: The transform containing the location and rotation of the
-            camera instance with respect to the vehicle.
-        fov: The field-of-view of the camera.
+        name (str): The name of the camera instance.
+        camera_type (str): The type of the camera. One of `('sensor.camera.rgb'
+            , 'sensor.camera.depth', 'sensor.camera.semantic_segmentation')`
+        width (int): The width of the image returned by the camera.
+        height (int): The height of the image returned by the camera.
+        transform (:py:class:`pylot.utils.Transform`): The transform
+            containing the location and rotation of the camera instance with
+            respect to the vehicle.
+        fov (float): The field-of-view of the camera.
     """
 
     def __init__(self, name, camera_type, width, height, transform, fov=90):
-        """ Initializes the CameraSetup with the given parameters.
-
-        Args:
-            name: The name of the camera instance.
-            camera_type: The type of the camera. One of ('sensor.camera.rgb',
-                'sensor.camera.depth', 'sensor.camera.semantic_segmentation')
-            width: The width of the image returned by the camera.
-            height: The height of the image returned by the camera.
-            transform: The transform containing the location and rotation of
-                the camera instance with respect to the vehicle.
-            fov: The field-of-view of the camera.
-        """
+        # Ensure that the name is a string.
+        assert isinstance(self.name, str), "The name should be of type 'str'"
         self.name = name
 
         # Ensure that the camera type is one of the three that we support.
@@ -121,6 +123,8 @@ class CameraSetup(object):
 
         # The width of the image produced by the camera should be > 1.
         assert width > 1, "Valid camera setup should have width > 1"
+        assert isinstance(width, int) and isinstance(height, int), "The width"
+        " and height should be of type 'int'"
         self.width, self.height = width, height
 
         # Ensure that the transform is of the type pylot.Transform.
@@ -128,6 +132,8 @@ class CameraSetup(object):
         "of the type pylot.utils.Transform"
         self._transform = transform
 
+        # Ensure that the field-of-view is a float.
+        assert isinstance(fov, float), "The fov should be of type 'float'"
         self.fov = fov
 
         # Generate the intrinsic and extrinsic matrices.
@@ -142,13 +148,12 @@ class CameraSetup(object):
         parameters.
 
         Args:
-            width: The width of the image returned by the camera.
-            height: The height of the image returned by the camera.
-            fov: The field-of-view of the camera.
+            width (int): The width of the image returned by the camera.
+            height (int): The height of the image returned by the camera.
+            fov (float): The field-of-view of the camera.
 
         Returns:
-            A 3x3 numpy matrix which contains the intrinsic matrix of the
-            camera.
+            :py:class:`numpy.ndarray`: A 3x3 intrinsic matrix of the camera.
         """
         import numpy as np
         k = np.identity(3)
@@ -162,15 +167,22 @@ class CameraSetup(object):
 
     @staticmethod
     def __create_unreal_transform(transform):
-        """
-        Takes in a Transform that occurs in unreal coordinates,
-        and converts it into a Transform that goes from camera
-        coordinates to unreal coordinates.
+        """ Converts a Transform from the camera coordinate space to the
+        Unreal coordinate space.
 
-        With no additional rotations:
-        Unreal coordinates: +x is into the screen, +y is to the right, +z is up
-        Camera coordinates: +x is to the right, +y is down, +z is into the screen
-        Lidar coordinates: +x is to the right, +y is out of the screen, +z is down
+        The camera space is defined as:
+            +x to right, +y to down, +z into the screen.
+
+        The unreal coordinate space is defined as:
+            +x into the screen, +y to right, +z to up.
+
+        Args:
+            transform (:py:class:`pylot.utils.Transform`): The transform to 
+                convert to Unreal coordinate space.
+
+        Returns:
+            :py:class:~`pylot.utils.Transform`: The given transform after
+                transforming to the Unreal coordinate space.
         """
         import numpy as np
         to_unreal_transform = Transform(matrix=np.array(
@@ -181,7 +193,7 @@ class CameraSetup(object):
         """ Get the intrinsic matrix of the camera denoted by the CameraSetup.
 
         Returns:
-            A 3x3 numpy matrix containing the intrinsic matrix of the camera.
+            :py:class:`numpy.ndarray`: The 3x3 intrinsic matrix of the camera.
         """
         return self._intrinsic_mat
 
@@ -190,7 +202,7 @@ class CameraSetup(object):
         of the camera with respect to the vehicle to which it is attached.
 
         Returns:
-            A 4x4 matrix containing the extrinsic matrix of the camera.
+            :py:class:`numpy.ndarray`: The 4x4 extrinsic matrix of the camera.
         """
         return self._unreal_transform.matrix
 
@@ -198,7 +210,7 @@ class CameraSetup(object):
         """ Get the name of the camera instance.
 
         Returns:
-            The name of the camera instance.
+            str: The name of the camera instance.
         """
         return self.name
 
@@ -207,9 +219,8 @@ class CameraSetup(object):
         the Unreal Engine coordinate space.
 
         Returns:
-            A pylot.utils.Transform instance which contains the transform of
-            the camera with respect to the vehicle in the Unreal Engine
-            coordinate space.
+            :py:class:`pylot.utils.Transform`: The transform of the camera
+            in the Unreal Engine coordinate space. 
         """
         return self._unreal_transform
 
@@ -217,9 +228,9 @@ class CameraSetup(object):
         """ Get the transform of the camera with respect to the vehicle to
         which it is attached.
 
-        Args:
-            A pylot.utils.Transform instance which contains the transform of
-            the camera with respect to the vehicle to which it is attached.
+        Returns:
+            :py:class:`pylot.utils.Transform`: The transform of the camera
+            with respect to the vehicle to which it is attached.
         """
         return self._transform
 
@@ -228,8 +239,9 @@ class CameraSetup(object):
         which it is attached.
 
         Args:
-            A pylot.utils.Transform instance depicting the transform of the
-            camera with respect to the vehicle to which it is attached.
+            transform (:py:class:`pylot.utils.Transform`): The new transform
+                of the camera with respect to the vehicle to which it is
+                attached.
         """
         assert isinstance(transform, Transform), "The given transform is not "
         "of the type pylot.utils.Transform"
@@ -241,7 +253,7 @@ class CameraSetup(object):
         """ Get the field of view of the camera.
 
         Returns:
-            The field of view of the given camera.
+            float: The field of view of the given camera.
         """
         return self.fov
 
