@@ -2,7 +2,7 @@ from pylot.perception.detection.utils import DetectedObstacle
 import pylot.utils
 
 
-class DetectedSpeedLimit(DetectedObstacle):
+class SpeedLimitSign(DetectedObstacle):
     """Class that stores info about a detected speed limit signs.
 
     Args:
@@ -23,8 +23,8 @@ class DetectedSpeedLimit(DetectedObstacle):
                  bounding_box=None,
                  id=-1,
                  transform=None):
-        super(DetectedSpeedLimit, self).__init__(bounding_box, confidence,
-                                                 'speed limit', id, transform)
+        super(SpeedLimitSign, self).__init__(bounding_box, confidence,
+                                             'speed limit', id, transform)
         self.limit = speed_limit
 
     @classmethod
@@ -35,7 +35,7 @@ class DetectedSpeedLimit(DetectedObstacle):
             actor (carla.TrafficSign): A carla speed limit sign actor.
 
         Returns:
-            :py:class:`.DetectedSpeedLimit`: A detected speed limit sign.
+            :py:class:`.SpeedLimitSign`: A detected speed limit sign.
         """
         import carla
         if not isinstance(actor, carla.TrafficSign):
@@ -52,14 +52,14 @@ class DetectedSpeedLimit(DetectedObstacle):
 
     def visualize_on_img(self, image_np, bbox_color_map):
         text = '{} {} {:.1f}'.format(self.limit, self.label, self.confidence)
-        super(DetectedSpeedLimit,
-              self).visualize_on_img(image_np, bbox_color_map, text)
+        super(SpeedLimitSign, self).visualize_on_img(image_np, bbox_color_map,
+                                                     text)
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return 'DetectedSpeedLimit(label: {}, limit: {}, '\
+        return 'SpeedLimitSign(label: {}, limit: {}, '\
             'confidence: {}, id: {}, transform: {}, bbox: {})'.format(
                 self.label, self.limit, self.confidence, self.id,
                 self.transform, self.bounding_box)

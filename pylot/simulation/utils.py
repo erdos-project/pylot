@@ -4,11 +4,11 @@ import re
 
 import pylot.utils
 from pylot.perception.depth_frame import DepthFrame
-from pylot.perception.detection.detected_speed_limit import DetectedSpeedLimit
 from pylot.perception.detection.obstacle import Obstacle
+from pylot.perception.detection.speed_limit_sign import SpeedLimitSign
 from pylot.perception.detection.stop_sign import StopSign
 from pylot.perception.detection.traffic_light import TrafficLight
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
+from pylot.perception.detection.utils import BoundingBox2D
 
 # Type used to send location info from Carla.
 LocationGeo = namedtuple('LocationGeo', 'latitude, longitude, altitude')
@@ -141,7 +141,7 @@ def extract_data_in_pylot_format(actor_list):
 
     speed_limit_actors = actor_list.filter('traffic.speed_limit*')
     speed_limits = [
-        DetectedSpeedLimit.from_carla_actor(ts_actor)
+        SpeedLimitSign.from_carla_actor(ts_actor)
         for ts_actor in speed_limit_actors
     ]
 
@@ -217,7 +217,7 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
         world.
 
     Args:
-        speed_signs (list(:py:class:`~pylot.perception.detection.detected_speed_limit.DetectedSpeedLimit`)):
+        speed_signs (list(:py:class:`~pylot.perception.detection.speed_limit_sign.SpeedLimitSign`)):
             List of speed limit signs in the world.
         depth_frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`):
             Depth frame captured from the same position as the camera frame.
@@ -226,8 +226,8 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
             frame.
 
     Returns:
-        list(:py:class:`~pylot.perception.detection.detected_speed_limit.DetectedSpeedLimit`):
-        List of detected speed limits.
+        list(:py:class:`~pylot.perception.detection.speed_limit_sign.SpeedLimitSign`):
+        List of detected speed limits with 2D bounding boxes set.
     """
     def match_bboxes_with_speed_signs(camera_transform, loc_bboxes,
                                       speed_signs):
@@ -283,8 +283,8 @@ def get_detected_traffic_stops(traffic_stops, depth_frame):
             Depth frame captured from the same position as the camera frame.
 
     Returns:
-        list(:py:class:`~pylot.perception.detection.utils.DetectedObstacle`):
-        List of detected traffic stops.
+        list(:py:class:`~pylot.perception.detection.stop_sign.StopSign`):
+        List of detected traffic stops with 2D bounding boxes set.
     """
     def get_stop_markings_bbox(bbox3d, depth_frame):
         """ Gets a 2D stop marking bounding box from a 3D bounding box."""
@@ -331,13 +331,10 @@ def get_detected_traffic_stops(traffic_stops, depth_frame):
     if not isinstance(depth_frame, DepthFrame):
         raise ValueError(
             'depth_frame should be of type perception.depth_frame.DepthFrame')
-    det_obstacles = []
+    det_stop_signs = []
     for stop_sign in traffic_stops:
         bbox_2d = get_stop_markings_bbox(stop_sign.bounding_box, depth_frame)
         if bbox_2d is not None:
-            det_obstacles.append(
-                DetectedObstacle(bbox_2d,
-                                 1.0,
-                                 'stop marking',
-                                 transform=stop_sign.transform))
-    return det_obstacles
+            stop_sign.bounding_box = bbox_2d
+            det_stop_signs.append(stop_sign)
+    return det_stop_signs

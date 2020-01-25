@@ -1,25 +1,34 @@
-from pylot.perception.detection.utils import BoundingBox3D
+from pylot.perception.detection.utils import BoundingBox3D, \
+    DetectedObstacle
 import pylot.utils
 
 
-class StopSign(object):
+class StopSign(DetectedObstacle):
     """Class used to store info about stop signs.
 
     Args:
+        confidence (:obj:`float`): The confidence of the detection.
+        bounding_box (:py:class:`.BoundingBox2D`): The bounding box of the
+            stop sign in camera view.
+        id (:obj:`int`): Id associated with the sign.
         transform (:py:class:`~pylot.utils.Transform`): Transform of the
             stop sign.
-        bounding_box (:py:class:`~pylot.utisl.BoundingBox3D`): Bounding box of
-            the stop sign.
+        bounding_box_3d (:py:class:`~pylot.utisl.BoundingBox3D`): 3D bounding
+            box of the stop sign.
 
     Attributes:
-        transform (:py:class:`~pylot.utils.Transform`): Transform of the
-            stop sign.
-        bounding_box (:py:class:`~pylot.utisl.BoundingBox3D`): Bounding box of
-            the stop sign.
+        bounding_box_3d (:py:class:`~pylot.utisl.BoundingBox3D`): 3D bounding
+            box of the stop sign.
     """
-    def __init__(self, transform, bounding_box):
-        self.transform = transform
-        self.bounding_box = bounding_box
+    def __init__(self,
+                 confidence,
+                 bounding_box=None,
+                 id=-1,
+                 transform=None,
+                 bounding_box_3d=None):
+        super(StopSign, self).__init__(bounding_box, confidence,
+                                       'stop marking', id, transform)
+        self.bounding_box_3d = bounding_box_3d
 
     @classmethod
     def from_carla_actor(cls, actor):
@@ -39,4 +48,12 @@ class StopSign(object):
         world_trigger_volume = actor.get_transform().transform(
             actor.trigger_volume.location)
         bbox = BoundingBox3D(world_trigger_volume, actor.trigger_volume.extent)
-        return cls(transform, bbox)
+        return cls(1.0, id=actor.id, trasnform=transform, bounding_box_3d=bbox)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return 'StopSign(label: {}, confidence: {}, id: {}, transform: {}, '\
+            'bbox: {})'.format(self.label, self.confidence, self.id,
+                               self.transform, self.bounding_box)
