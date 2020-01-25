@@ -274,13 +274,26 @@ class DetectedObstacle(object):
             obstacle in the world.
     """
     def __init__(self, bounding_box, confidence, label, id=-1, transform=None):
-        self.bounding_box = bounding_box
+        self._bounding_box = bounding_box
         self.confidence = confidence
         self.label = label
         self.id = id
         self._transform = transform
 
-    def get_location(self):
+    def get_bounding_box(self):
+        if self._bounding_box is None:
+            raise ValueError(
+                'Bounding box was not computed for {}.'.format(self))
+        return self._bounding_box
+
+    def set_bounding_box(self, bounding_box):
+        self._bounding_box = bounding_box
+
+    def get_bbox_label(self):
+        return (self.label, (self.bounding_box.get_min_point(),
+                             self.bounding_box.get_max_point()))
+
+    def get_transform(self):
         if self._transform is None:
             raise ValueError('Transform not set for obstacle {}'.format(self))
         return self._transform
@@ -315,10 +328,6 @@ class DetectedObstacle(object):
                     thickness=1,
                     lineType=cv2.LINE_AA)
 
-    def get_bbox_label(self):
-        return (self.label, (self.bounding_box.get_min_point(),
-                             self.bounding_box.get_max_point()))
-
     def as_mot16_str(self, timestamp):
         log_line = "{},{},{},{},{},{},{},{},{},{}\n".format(
             timestamp, self.id, self.bounding_box.x_min,
@@ -334,54 +343,8 @@ class DetectedObstacle(object):
             'bbox: {})'.format(
                 self.id, self.label, self.confidence, self.bounding_box)
 
+    bounding_box = property(get_bounding_box, set_bounding_box)
     transform = property(get_transform, set_transform)
-
-
-class DetectedSpeedLimit(DetectedObstacle):
-    """Class that stores info about a detected speed limit signs.
-
-    Args:
-        bounding_box (:py:class:`.BoundingBox2D`): The bounding box of the
-            obstacle.
-        limit (:obj:`int`): The speed limit (in km/h).
-        confidence (:obj:`float`): The confidence of the detection.
-        label (:obj:`str`): The label of the detected obstacle.
-        id (:obj:`int`): Id associated with the sign.
-        transform (:py:class:`~pylot.utils.transform`): Transform of the sign
-            in the world.
-
-    Attributes:
-        limit (:obj:`int`): The speed limit (in km/h).
-    """
-    def __init__(self,
-                 bounding_box,
-                 limit,
-                 confidence,
-                 label,
-                 id=-1,
-                 transform=None):
-        super(DetectedSpeedLimit, self).__init__(bounding_box, confidence,
-                                                 label, id, transform)
-        self.limit = limit
-
-    def visualize_on_img(self, image_np, bbox_color_map):
-        text = '{} {} {:.1f}'.format(self.limit, self.label, self.confidence)
-        super(DetectedSpeedLimit,
-              self).visualize_on_img(image_np, bbox_color_map, text)
-
-    def get_bbox_label(self):
-        return (self.label + ' ' + str(self.limit),
-                (self.bounding_box.get_min_point(),
-                 self.bounding_box.get_max_point()))
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        return 'DetectedSpeedLimit(label: {}, limit: {}, '\
-            'confidence: {}, id: {}, transform: {}, bbox: {})'.format(
-                self.label, self.limit, self.confidence, self.id,
-                self.transform, self.bounding_box)
 
 
 class DetectedLane(object):

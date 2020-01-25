@@ -46,11 +46,11 @@ class GroundSpeedSignsMessage(erdos.Message):
     """Message class to be used to send info about speed limit actors.
 
     Args:
-        speed_signs (list(:py:class:`~pylot.perception.detection.speed_limit_sign.SpeedLimitSign`)):
+        speed_signs (list(:py:class:`~pylot.perception.detection.detected_speed_limit.DetectedSpeedLimit`)):
             A list of speed limit signs.
 
     Attributes:
-        speed_signs (list(:py:class:`~pylot.perception.detection.speed_limit_sign.SpeedLimitSign`)):
+        speed_signs (list(:py:class:`~pylot.perception.detection.detected_speed_limit.DetectedSpeedLimit`)):
             A list of speed limit signs.
     """
     def __init__(self, timestamp, speed_signs):

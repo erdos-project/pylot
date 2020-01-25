@@ -9,7 +9,7 @@ import re
 
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.depth_frame import DepthFrame
-from pylot.perception.detection.speed_limit_sign import SpeedLimitSign
+from pylot.perception.detection.detected_speed_limit import DetectedSpeedLimit
 from pylot.perception.detection.stop_sign import StopSign
 from pylot.perception.detection.traffic_light import TrafficLight
 from pylot.perception.messages import DepthFrameMessage
@@ -255,7 +255,7 @@ def get_actors(world):
     ]
     speed_limit_actors = actor_list.filter('traffic.speed_limit*')
     speed_signs = [
-        SpeedLimitSign.from_carla_actor(ts_actor)
+        DetectedSpeedLimit.from_carla_actor(ts_actor)
         for ts_actor in speed_limit_actors
     ]
     return (tl_actors, traffic_lights, traffic_stops, speed_signs)

@@ -44,10 +44,10 @@ pylot.perception.detection.obstacle module
     :undoc-members:
     :show-inheritance:
 
-pylot.perception.detection.speed\_limit\_sign module
------------------------------------------------------------
+pylot.perception.detection.detected\_speed\_limit module
+--------------------------------------------------------
 
-.. automodule:: pylot.perception.detection.speed_limit_sign
+.. automodule:: pylot.perception.detection.detected_speed_limit
     :members:
     :undoc-members:
     :show-inheritance:

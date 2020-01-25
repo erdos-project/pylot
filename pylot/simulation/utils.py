@@ -4,12 +4,11 @@ import re
 
 import pylot.utils
 from pylot.perception.depth_frame import DepthFrame
+from pylot.perception.detection.detected_speed_limit import DetectedSpeedLimit
 from pylot.perception.detection.obstacle import Obstacle
-from pylot.perception.detection.speed_limit_sign import SpeedLimitSign
 from pylot.perception.detection.stop_sign import StopSign
 from pylot.perception.detection.traffic_light import TrafficLight
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle, \
-    DetectedSpeedLimit
+from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
 
 # Type used to send location info from Carla.
 LocationGeo = namedtuple('LocationGeo', 'latitude, longitude, altitude')
@@ -142,7 +141,7 @@ def extract_data_in_pylot_format(actor_list):
 
     speed_limit_actors = actor_list.filter('traffic.speed_limit*')
     speed_limits = [
-        SpeedLimitSign.from_carla_actor(ts_actor)
+        DetectedSpeedLimit.from_carla_actor(ts_actor)
         for ts_actor in speed_limit_actors
     ]
 
@@ -218,7 +217,7 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
         world.
 
     Args:
-        speed_signs (list(:py:class:`~pylot.perception.detection.speed_limit_sign.SpeedLimitSign`)):
+        speed_signs (list(:py:class:`~pylot.perception.detection.detected_speed_limit.DetectedSpeedLimit`)):
             List of speed limit signs in the world.
         depth_frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`):
             Depth frame captured from the same position as the camera frame.
@@ -227,7 +226,7 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
             frame.
 
     Returns:
-        list(:py:class:`~pylot.perception.detection.utils.DetectedSpeedLimit`):
+        list(:py:class:`~pylot.perception.detection.detected_speed_limit.DetectedSpeedLimit`):
         List of detected speed limits.
     """
     def match_bboxes_with_speed_signs(camera_transform, loc_bboxes,
@@ -251,12 +250,8 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
             elif yaw_diff >= 360:
                 yaw_diff -= 360
             if best_dist < 5**2 and yaw_diff > 30 and yaw_diff < 150:
-                result.append(
-                    DetectedSpeedLimit(bbox,
-                                       best_ts.limit,
-                                       1.0,
-                                       'speed limit',
-                                       transform=best_ts.transform))
+                best_ts.set_bounding_box(bbox)
+                result.append(best_ts)
         return result
 
     if not isinstance(depth_frame, DepthFrame):
