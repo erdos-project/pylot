@@ -172,7 +172,8 @@ class TrafficLight(object):
                            bounding_box[0].z) <= 2 and mean_depth < 150:
                         detected.append(
                             DetectedObstacle(bbox_2d, 1.0,
-                                             self.state.get_label()))
+                                             self.state.get_label(), self.id,
+                                             self.transform.location))
         return detected
 
     def _relative_to_traffic_light(self, points):

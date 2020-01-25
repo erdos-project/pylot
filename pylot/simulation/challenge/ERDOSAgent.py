@@ -240,8 +240,18 @@ def create_data_flow():
 
     obstacles_stream = pylot.operator_creator.add_obstacle_detection(
         camera_streams[CENTER_CAMERA_NAME])[0]
+    # Adds an operator that finds the world locations of the obstacles.
+    obstacles_stream = pylot.operator_creator.add_obstacle_location_finder(
+        obstacles_stream, point_cloud_stream, can_bus_stream,
+        camera_setups[CENTER_CAMERA_NAME])
+
     traffic_lights_stream = pylot.operator_creator.add_traffic_light_detector(
         camera_streams[TL_CAMERA_NAME])
+    # Adds an operator that finds the world locations of the traffic lights.
+    traffic_lights_stream = \
+        pylot.operator_creator.add_obstacle_location_finder(
+            traffic_lights_stream, point_cloud_stream, can_bus_stream,
+            camera_setups[TL_CAMERA_NAME])
 
     waypoints_stream = pylot.operator_creator.add_waypoint_planning(
         can_bus_stream, open_drive_stream, global_trajectory_stream, None)
@@ -252,8 +262,7 @@ def create_data_flow():
 
     control_stream = pylot.operator_creator.add_pylot_agent(
         can_bus_stream, waypoints_stream, traffic_lights_stream,
-        obstacles_stream, point_cloud_stream, open_drive_stream,
-        camera_setups[CENTER_CAMERA_NAME])
+        obstacles_stream, open_drive_stream)
     extract_control_stream = erdos.ExtractStream(control_stream)
     return (camera_streams, can_bus_stream, global_trajectory_stream,
             open_drive_stream, point_cloud_stream, extract_control_stream)

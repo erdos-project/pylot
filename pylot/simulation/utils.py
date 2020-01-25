@@ -252,8 +252,11 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
                 yaw_diff -= 360
             if best_dist < 5**2 and yaw_diff > 30 and yaw_diff < 150:
                 result.append(
-                    DetectedSpeedLimit(bbox, best_ts.limit, 1.0,
-                                       'speed limit'))
+                    DetectedSpeedLimit(bbox,
+                                       best_ts.limit,
+                                       1.0,
+                                       'speed limit',
+                                       location=best_ts.transform.location))
         return result
 
     if not isinstance(depth_frame, DepthFrame):
@@ -334,9 +337,12 @@ def get_detected_traffic_stops(traffic_stops, depth_frame):
         raise ValueError(
             'depth_frame should be of type perception.depth_frame.DepthFrame')
     det_obstacles = []
-    for transform, bbox in traffic_stops:
-        bbox_2d = get_stop_markings_bbox(bbox, depth_frame)
+    for stop_sign in traffic_stops:
+        bbox_2d = get_stop_markings_bbox(stop_sign.bounding_box, depth_frame)
         if bbox_2d is not None:
-            det_obstacles.append(DetectedObstacle(bbox_2d, 1.0,
-                                                  'stop marking'))
+            det_obstacles.append(
+                DetectedObstacle(bbox_2d,
+                                 1.0,
+                                 'stop marking',
+                                 location=stop_sign.transform.location))
     return det_obstacles

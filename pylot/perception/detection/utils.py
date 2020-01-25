@@ -260,18 +260,33 @@ class DetectedObstacle(object):
             obstacle.
         confidence (:obj:`float`): The confidence of the detection.
         label (:obj:`str`): The label of the detected obstacle.
+        id (:obj:`int`, optional): Id associated with the obstacle.
+        location (:py:class:`~pylot.utils.Location`, optional): Location of
+            the obstacle in the world.
 
     Attributes:
         bounding_box (:py:class:`.BoundingBox2D`): The bounding box of the
             obstacle.
         confidence (:obj:`float`): The confidence of the detection.
         label (:obj:`str`): The label of the detected obstacle.
+        id (:obj:`int`): Id associated with the obstacle.
+        location (:py:class:`~pylot.utils.Location`): Location of the obstacle
+            in the world.
     """
-    def __init__(self, bounding_box, confidence, label, id=-1):
+    def __init__(self, bounding_box, confidence, label, id=-1, location=None):
         self.bounding_box = bounding_box
         self.confidence = confidence
         self.label = label
         self.id = id
+        self._location = location
+
+    def get_location(self):
+        if self._location is None:
+            raise ValueError('Location not set for obstacle {}'.format(self))
+        return self._location
+
+    def set_location(self, location):
+        self._location = location
 
     def visualize_on_img(self, image_np, bbox_color_map, text=None):
         """Annotate the image with the bounding box of the obstacle."""
@@ -319,6 +334,8 @@ class DetectedObstacle(object):
             'bbox: {})'.format(
                 self.id, self.label, self.confidence, self.bounding_box)
 
+    location = property(get_location, set_location)
+
 
 class DetectedSpeedLimit(DetectedObstacle):
     """Class that stores info about a detected speed limit.
@@ -329,11 +346,20 @@ class DetectedSpeedLimit(DetectedObstacle):
         limit (:obj:`int`): The speed limit (in km/h).
         confidence (:obj:`float`): The confidence of the detection.
         label (:obj:`str`): The label of the detected obstacle.
+        id (:obj:`int`): Id associated with the sign.
+        location (:py:class:`~pylot.utils.Location`): Location of the sign
+            in the world.
 
     Attributes:
         limit (:obj:`int`): The speed limit (in km/h).
     """
-    def __init__(self, bounding_box, limit, confidence, label):
+    def __init__(self,
+                 bounding_box,
+                 limit,
+                 confidence,
+                 label,
+                 id=-1,
+                 location=None):
         super(DetectedSpeedLimit, self).__init__(bounding_box, confidence,
                                                  label)
         self.limit = limit

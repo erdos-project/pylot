@@ -6,7 +6,9 @@ FLAGS = flags.FLAGS
 
 
 def add_obstacle_detection(center_camera_stream,
+                           center_camera_setup=None,
                            can_bus_stream=None,
+                           point_cloud_stream=None,
                            depth_camera_stream=None,
                            segmented_camera_stream=None,
                            ground_obstacles_stream=None,
@@ -22,8 +24,13 @@ def add_obstacle_detection(center_camera_stream,
     Args:
         center_camera_stream (:py:class:`erdos.ReadStream`): Stream on which
             BGR frames are received.
+        center_camera_setup (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`, optional):
+            The setup of the center camera. This setup is used to calculate the
+            real-world location of the obstacles.
         can_bus_stream (:py:class:`erdos.ReadStream`, optional): Stream on
             which can bus info is received.
+        point_cloud_stream (:py:class:`erdos.ReadStream`, optional): Stream on
+            which point cloud messages are received.
         depth_camera_stream (:py:class:`erdos.ReadStream`, optional): Stream
             on which depth frames are received.
         segmented_camera__stream (:py:class:`erdos.ReadStream`, optional):
@@ -41,7 +48,7 @@ def add_obstacle_detection(center_camera_stream,
             messages are received.
 
     Returns:
-        :py:class:`erdos.WriteStream`: Stream on which
+        :py:class:`erdos.ReadStream`: Stream on which
         :py:class:`~pylot.perception.messages.ObstaclesMessage` messages are
         published.
     """
@@ -51,6 +58,12 @@ def add_obstacle_detection(center_camera_stream,
         obstacles_streams = pylot.operator_creator.add_obstacle_detection(
             center_camera_stream)
         obstacles_stream = obstacles_streams[0]
+
+        # Adds an operator that finds the world locations of the obstacles.
+        obstacles_stream = pylot.operator_creator.add_obstacle_location_finder(
+            obstacles_stream, point_cloud_stream, can_bus_stream,
+            center_camera_setup)
+
     if FLAGS.perfect_obstacle_detection or FLAGS.evaluate_obstacle_detection:
         assert (can_bus_stream is not None and depth_camera_stream is not None
                 and segmented_camera_stream is not None
@@ -72,6 +85,7 @@ def add_obstacle_detection(center_camera_stream,
 def add_traffic_light_detection(tl_transform,
                                 vehicle_id_stream,
                                 can_bus_stream=None,
+                                point_cloud_stream=None,
                                 ground_traffic_lights_stream=None):
     """Adds traffic light detection operators.
 
@@ -89,9 +103,11 @@ def add_traffic_light_detection(tl_transform,
             the simulator publishes Carla ego-vehicle id.
         can_bus_stream (:py:class:`erdos.ReadStream`, optional): A stream
             on which can bus info is received.
+        point_cloud_stream (:py:class:`erdos.ReadStream`, optional): Stream on
+            which point cloud messages are received.
 
     Returns:
-        :py:class:`erdos.WriteStream`: Stream on which
+        :py:class:`erdos.ReadStream`: Stream on which
         :py:class:`~pylot.perception.messages.ObstaclesMessage` traffic light
         messages are published.
     """
@@ -106,6 +122,12 @@ def add_traffic_light_detection(tl_transform,
         traffic_lights_stream = \
             pylot.operator_creator.add_traffic_light_detector(
                 tl_camera_stream)
+        # Adds operator that finds the world locations of the traffic lights.
+        traffic_lights_stream = \
+            pylot.operator_creator.add_obstacle_location_finder(
+                traffic_lights_stream, point_cloud_stream, can_bus_stream,
+                tl_camera_setup)
+
     if FLAGS.perfect_traffic_light_detection:
         assert (can_bus_stream is not None
                 and ground_traffic_lights_stream is not None)
@@ -144,7 +166,7 @@ def add_depth(transform, vehicle_id_stream, center_camera_setup,
             depth frames are received.
 
     Returns:
-        :py:class:`erdos.WriteStream`: Stream on which
+        :py:class:`erdos.ReadStream`: Stream on which
         :py:class:`~pylot.perception.messages.DepthFrameMessage` messages are
         published.
     """
@@ -175,7 +197,7 @@ def add_lane_detection(center_camera_stream, can_bus_stream=None):
             which can bus info is received.
 
     Returns:
-        :py:class:`erdos.WriteStream`: Stream on which
+        :py:class:`erdos.ReadStream`: Stream on which
         :py:class:`~pylot.perception.messages.DetectedLaneMessage` are
         published.
     """
@@ -214,7 +236,7 @@ def add_obstacle_tracking(center_camera_stream,
             messages are received.
 
     Returns:
-        :py:class:`erdos.WriteStream`: Stream on which
+        :py:class:`erdos.ReadStream`: Stream on which
         :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
         messages are published.
     """
@@ -251,7 +273,7 @@ def add_segmentation(center_camera_stream, ground_segmented_stream=None):
             received.
 
     Returns:
-        :py:class:`erdos.WriteStream`: Stream on which semantically segmented
+        :py:class:`erdos.ReadStream`: Stream on which semantically segmented
         frames are published.
     """
     segmented_stream = None
@@ -287,7 +309,7 @@ def add_prediction(obstacles_tracking_stream,
              which can bus info is received.
 
     Returns:
-        :py:class:`erdos.WriteStream`: Stream on which
+        :py:class:`erdos.ReadStream`: Stream on which
         :py:class:`~pylot.prediction.messages.PredictionMessage` messages are
         published.
     """
@@ -330,7 +352,7 @@ def add_planning(goal_location,
             Operators can construct HDMaps out of the open drive strings.
 
     Returns:
-        :py:class:`erdos.WriteStream`: Stream on which the waypoints are
+        :py:class:`erdos.ReadStream`: Stream on which the waypoints are
         published.
     """
     if FLAGS.planning_type == 'waypoint':
@@ -353,9 +375,8 @@ def add_planning(goal_location,
 
 
 def add_control(can_bus_stream, obstacles_stream, traffic_lights_stream,
-                waypoints_stream, open_drive_stream, point_cloud_stream,
-                ground_obstacles_stream, ground_traffic_lights_stream,
-                camera_setup):
+                waypoints_stream, open_drive_stream, ground_obstacles_stream,
+                ground_traffic_lights_stream):
     """Adds ego-vehicle control operators.
 
     Args:
@@ -370,27 +391,22 @@ def add_control(can_bus_stream, obstacles_stream, traffic_lights_stream,
         open_drive_stream (:py:class:`erdos.ReadStream`): Stream on which
             open drive string representations are received. Operators can
             construct HDMaps out of the open drive strings.
-        point_cloud_stream (:py:class:`erdos.ReadStream`): Stream on
-            which point cloud messages are received.
         ground_obstacles_stream (:py:class:`erdos.ReadStream`, optional):
             Stream on which :py:class:`~pylot.simulation.GroundObstaclesMessage`
             messages are received.
         ground_traffic_lights_stream (:py:class:`erdos.ReadStream`, optional):
             Stream on which :py:class:`~pylot.simulation.GroundTrafficLightsMessage`
             messages are received.
-        camera_setup (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`):
-            The setup of the center camera.
 
     Returns:
-        :py:class:`erdos.WriteStream`: Stream on which
+        :py:class:`erdos.ReadStream`: Stream on which
         :py:class:`~pylot.control.messages.ControlMessage` messages are
         published.
     """
     if FLAGS.control_agent == 'pylot':
         control_stream = pylot.operator_creator.add_pylot_agent(
             can_bus_stream, waypoints_stream, traffic_lights_stream,
-            obstacles_stream, point_cloud_stream, open_drive_stream,
-            camera_setup)
+            obstacles_stream, open_drive_stream)
     elif FLAGS.control_agent == 'mpc':
         control_stream = pylot.operator_creator.add_mpc_agent(
             can_bus_stream, ground_obstacles_stream,

@@ -225,5 +225,6 @@ class PerfectDetectorOperator(erdos.Operator):
                 if bbox:
                     det_obstacles.append(
                         DetectedObstacle(bbox, 1.0, obstacle.label,
-                                         obstacle.id))
+                                         obstacle.id,
+                                         obstacle.transform.location))
         return det_obstacles

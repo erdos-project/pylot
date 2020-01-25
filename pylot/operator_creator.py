@@ -13,6 +13,8 @@ from pylot.perception.detection.detection_eval_operator import \
     DetectionEvalOperator
 from pylot.perception.detection.detection_decay_operator import \
     DetectionDecayOperator
+from pylot.perception.detection.obstacle_location_finder_operator import \
+    ObstacleLocationFinderOperator
 from pylot.perception.detection.lane_detection_canny_operator import \
     CannyEdgeLaneDetectionOperator
 from pylot.perception.detection.traffic_light_det_operator import \
@@ -95,6 +97,40 @@ def add_obstacle_detection(camera_stream, csv_file_name=None):
             log_file_name=FLAGS.log_file_name,
             csv_file_name=csv_file_name)
     return obstacles_streams
+
+
+def add_obstacle_location_finder(obstacles_stream,
+                                 point_cloud_stream,
+                                 can_bus_stream,
+                                 camera_setup,
+                                 name='obstacle_location_finder_operator'):
+    """Adds an operator that finds the world locations of the obstacles.
+
+    Args:
+        obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
+            detected obstacles are received.
+        point_cloud_stream (:py:class:`erdos.ReadStream`): Stream on
+            which point cloud messages are received.
+        can_bus_stream (:py:class:`erdos.ReadStream`, optional): Stream on
+            which can bus info is received.
+        camera_setup (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`):
+            The setup of the center camera.
+
+    Returns:
+        :py:class:`erdos.ReadStream`: Stream on which
+        :py:class:`~pylot.perception.messages.ObstaclesMessage` messages with
+        world locations are published.
+    """
+    [obstacles_with_loc_stream
+     ] = erdos.connect(ObstacleLocationFinderOperator,
+                       [obstacles_stream, point_cloud_stream, can_bus_stream],
+                       True,
+                       name,
+                       FLAGS,
+                       camera_setup,
+                       log_file_name=FLAGS.log_file_name,
+                       csv_file_name=FLAGS.csv_log_file_name)
+    return obstacles_with_loc_stream
 
 
 def add_detection_decay(ground_obstacles_stream):
@@ -422,18 +458,16 @@ def add_mpc_agent(can_bus_stream, ground_obstacles_stream,
 
 
 def add_pylot_agent(can_bus_stream, waypoints_stream, traffic_lights_stream,
-                    obstacles_stream, point_cloud_stream, open_drive_stream,
-                    camera_setup):
+                    obstacles_stream, open_drive_stream):
     input_streams = [
         can_bus_stream, waypoints_stream, traffic_lights_stream,
-        obstacles_stream, point_cloud_stream, open_drive_stream
+        obstacles_stream, open_drive_stream
     ]
     [control_stream] = erdos.connect(PylotAgentOperator,
                                      input_streams,
                                      True,
                                      'pylot_agent_operator',
                                      FLAGS,
-                                     camera_setup,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_file_name=FLAGS.csv_log_file_name)
     return control_stream

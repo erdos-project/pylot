@@ -46,12 +46,13 @@ def driver():
          _) = pylot.operator_creator.add_imu(transform, vehicle_id_stream)
 
     obstacles_stream = pylot.component_creator.add_obstacle_detection(
-        center_camera_stream, can_bus_stream, depth_camera_stream,
-        ground_segmented_stream, ground_obstacles_stream,
-        ground_speed_limit_signs_stream, ground_stop_signs_stream)
+        center_camera_stream, rgb_camera_setup, can_bus_stream,
+        point_cloud_stream, depth_camera_stream, ground_segmented_stream,
+        ground_obstacles_stream, ground_speed_limit_signs_stream,
+        ground_stop_signs_stream)
     traffic_lights_stream = \
         pylot.component_creator.add_traffic_light_detection(
-            transform, vehicle_id_stream, can_bus_stream,
+            transform, vehicle_id_stream, can_bus_stream, point_cloud_stream,
             ground_traffic_lights_stream)
 
     lane_detection_stream = pylot.component_creator.add_lane_detection(
@@ -90,9 +91,8 @@ def driver():
     # Add the behaviour planning and control operator.
     control_stream = pylot.component_creator.add_control(
         can_bus_stream, obstacles_stream, traffic_lights_stream,
-        waypoints_stream, open_drive_stream, point_cloud_stream,
-        ground_obstacles_stream, ground_traffic_lights_stream,
-        rgb_camera_setup)
+        waypoints_stream, open_drive_stream, ground_obstacles_stream,
+        ground_traffic_lights_stream)
     control_loop_stream.set(control_stream)
 
     pylot.operator_creator.add_sensor_visualizers(center_camera_stream,

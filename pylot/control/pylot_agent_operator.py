@@ -1,7 +1,6 @@
 """Implements an agent operator that uses info from other operators."""
 
 from collections import deque
-import copy
 import erdos
 import math
 from pid_controller.pid import PID
@@ -10,7 +9,6 @@ import time
 # Pylot imports
 from pylot.control.messages import ControlMessage
 import pylot.control.utils
-import pylot.simulation.utils
 from pylot.map.hd_map import HDMap
 from pylot.simulation.utils import get_map
 from pylot.utils import time_epoch_ms
@@ -36,8 +34,6 @@ class PylotAgentOperator(erdos.Operator):
             detected traffic lights are received.
         obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
             detected obstacles are received.
-        point_cloud_stream (:py:class:`erdos.ReadStream`): Stream on which
-            point cloud messages are received.
         open_drive_stream (:py:class:`erdos.ReadStream`): Stream on which open
             drive string representations are received. The operator can
             construct HDMaps out of the open drive strings.
@@ -46,11 +42,6 @@ class PylotAgentOperator(erdos.Operator):
             messages.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
-        camera_setup (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`):
-            The setup of the center camera. This setup is used to calculate the
-            real-world location of the camera, which in turn is used to convert
-            detected obstacles from camera coordinates to real-world
-            coordinates.
         log_file_name (:obj:`str`, optional): Name of file where log messages
             are written to. If None, then messages are written to stdout.
         csv_file_name (:obj:`str`, optional): Name of file where stats logs are
@@ -61,27 +52,23 @@ class PylotAgentOperator(erdos.Operator):
                  waypoints_stream,
                  traffic_lights_stream,
                  obstacles_stream,
-                 point_cloud_stream,
                  open_drive_stream,
                  control_stream,
                  name,
                  flags,
-                 camera_setup,
                  log_file_name=None,
                  csv_file_name=None):
         can_bus_stream.add_callback(self.on_can_bus_update)
         waypoints_stream.add_callback(self.on_waypoints_update)
         traffic_lights_stream.add_callback(self.on_traffic_lights_update)
         obstacles_stream.add_callback(self.on_obstacles_update)
-        point_cloud_stream.add_callback(self.on_point_cloud_update)
         open_drive_stream.add_callback(self.on_open_drive_map)
         erdos.add_watermark_callback([
             can_bus_stream, waypoints_stream, traffic_lights_stream,
-            obstacles_stream, point_cloud_stream
+            obstacles_stream
         ], [control_stream], self.on_watermark)
         self._name = name
         self._flags = flags
-        self._camera_setup = camera_setup
         self._log_file_name = log_file_name
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
@@ -103,12 +90,11 @@ class PylotAgentOperator(erdos.Operator):
         self._can_bus_msgs = deque()
         self._traffic_lights_msgs = deque()
         self._obstacles_msgs = deque()
-        self._point_clouds = deque()
         self._vehicle_labels = {'car', 'bicycle', 'motorcycle', 'bus', 'truck'}
 
     @staticmethod
     def connect(can_bus_stream, waypoints_stream, traffic_lights_stream,
-                obstacles_stream, point_cloud_stream, open_drive_stream):
+                obstacles_stream, open_drive_stream):
         control_stream = erdos.WriteStream()
         return [control_stream]
 
@@ -128,7 +114,6 @@ class PylotAgentOperator(erdos.Operator):
         waypoint_msg = self._waypoint_msgs.popleft()
         tl_msg = self._traffic_lights_msgs.popleft()
         obstacles_msg = self._obstacles_msgs.popleft()
-        point_cloud_msg = self._point_clouds.popleft()
         vehicle_transform = can_bus_msg.data.transform
         # Vehicle sped in m/s
         vehicle_speed = can_bus_msg.data.forward_speed
@@ -137,15 +122,13 @@ class PylotAgentOperator(erdos.Operator):
         wp_angle_speed = waypoint_msg.wp_angle_speed
         target_speed = waypoint_msg.target_speed
 
-        transformed_camera_setup = copy.deepcopy(self._camera_setup)
-        transformed_camera_setup.set_transform(
-            vehicle_transform * transformed_camera_setup.transform)
-
-        traffic_lights = self.__transform_tl_output(
-            tl_msg, point_cloud_msg.point_cloud, transformed_camera_setup)
-        (people, vehicles) = self.__transform_detector_output(
-            obstacles_msg, point_cloud_msg.point_cloud,
-            transformed_camera_setup)
+        people = []
+        vehicles = []
+        for obstacle in obstacles_msg.obstacles:
+            if obstacle.label == 'person':
+                people.append(obstacle)
+            elif obstacle.label in self._vehicle_labels:
+                vehicles.append(obstacle)
 
         self._logger.debug('@{}: speed {} and location {}'.format(
             timestamp, vehicle_speed, vehicle_transform))
@@ -154,7 +137,7 @@ class PylotAgentOperator(erdos.Operator):
 
         speed_factor, _ = self.__stop_for_agents(vehicle_transform.location,
                                                  wp_angle, wp_vector, vehicles,
-                                                 people, traffic_lights,
+                                                 people, tl_msg.obstacles,
                                                  timestamp)
 
         control_msg = self.get_control_message(wp_angle, wp_angle_speed,
@@ -185,10 +168,6 @@ class PylotAgentOperator(erdos.Operator):
         self._logger.debug('@{}: obstacles update'.format(msg.timestamp))
         self._obstacles_msgs.append(msg)
 
-    def on_point_cloud_update(self, msg):
-        self._logger.debug('@{}: point cloud update'.format(msg.timestamp))
-        self._point_clouds.append(msg)
-
     def on_open_drive_map(self, msg):
         self._logger.debug('@{}: open drive update'.format(msg.timestamp))
         try:
@@ -198,65 +177,6 @@ class PylotAgentOperator(erdos.Operator):
         self._map = HDMap(carla.Map('challenge', msg.data),
                           self._log_file_name)
 
-    def __transform_tl_output(self, tls, point_cloud, camera_setup):
-        """ Transforms traffic light bounding boxes to world coordinates.
-
-        Args:
-            tls: A list of traffic light detected obstacles.
-            point_cloud: The Lidar point cloud. Must be taken captured at the
-                         same time as the frame on which the traffic lights
-                         were detected.
-
-        Returns:
-            A list of traffic light locations.
-        """
-        traffic_lights = []
-        for tl in tls.obstacles:
-            location = point_cloud.get_pixel_location(
-                tl.bounding_box.get_center_point(), camera_setup)
-            if location is not None:
-                traffic_lights.append((location, tl.label))
-            else:
-                self._logger.error(
-                    'Could not find location for traffic light {}'.format(tl))
-        return traffic_lights
-
-    def __transform_detector_output(self, obstacles_msg, point_cloud,
-                                    camera_setup):
-        """ Transforms detected obstacles to world coordinates.
-
-        Args:
-            obstacles_msg: A list of detected obstacles.
-            point_cloud: The Lidar point cloud. Must be taken captured at the
-                         same time as the frame on which the obstacles were
-                         detected.
-
-        Returns:
-            A list of 3D world locations.
-        """
-        vehicles = []
-        people = []
-        for obstacle in obstacles_msg.obstacles:
-            if obstacle.label == 'person':
-                location = point_cloud.get_pixel_location(
-                    obstacle.bounding_box.get_center_point(), camera_setup)
-                if location is not None:
-                    people.append(location)
-                else:
-                    self._logger.error(
-                        'Could not find location for person {}'.format(
-                            obstacle))
-            elif (obstacle.label in self._vehicle_labels):
-                location = point_cloud.get_pixel_location(
-                    obstacle.bounding_box.get_center_point(), camera_setup)
-                if location is not None:
-                    vehicles.append(location)
-                else:
-                    self._logger.error(
-                        'Could not find location for vehicle {}'.format(
-                            obstacle))
-        return (people, vehicles)
-
     def __stop_for_agents(self, ego_vehicle_location, wp_angle, wp_vector,
                           vehicles, people, traffic_lights, timestamp):
         speed_factor = 1
@@ -264,51 +184,50 @@ class PylotAgentOperator(erdos.Operator):
         speed_factor_p = 1
         speed_factor_v = 1
 
-        for obs_vehicle_loc in vehicles:
+        for vehicle in vehicles:
             if (not self._map or self._map.are_on_same_lane(
-                    ego_vehicle_location, obs_vehicle_loc)):
+                    ego_vehicle_location, vehicle.location)):
                 self._logger.debug(
                     '@{}: ego {} and vehicle {} are on the same lane'.format(
-                        timestamp, ego_vehicle_location, obs_vehicle_loc))
+                        timestamp, ego_vehicle_location, vehicle.location))
                 new_speed_factor_v = pylot.control.utils.stop_vehicle(
-                    ego_vehicle_location, obs_vehicle_loc, wp_vector,
+                    ego_vehicle_location, vehicle.location, wp_vector,
                     speed_factor_v, self._flags)
                 if new_speed_factor_v < speed_factor_v:
                     speed_factor_v = new_speed_factor_v
                     self._logger.debug(
                         '@{}: vehicle {} reduced speed factor to {}'.format(
-                            timestamp, obs_vehicle_loc, speed_factor_v))
+                            timestamp, vehicle.location, speed_factor_v))
 
-        for obs_ped_loc in people:
+        for person in people:
             if (not self._map or self._map.are_on_same_lane(
-                    ego_vehicle_location, obs_ped_loc)):
+                    ego_vehicle_location, person.location)):
                 self._logger.debug(
                     '@{}: ego {} and person {} are on the same lane'.format(
-                        timestamp, ego_vehicle_location, obs_ped_loc))
+                        timestamp, ego_vehicle_location, person.location))
                 new_speed_factor_p = pylot.control.utils.stop_person(
-                    ego_vehicle_location, obs_ped_loc, wp_vector,
+                    ego_vehicle_location, person.location, wp_vector,
                     speed_factor_p, self._flags)
                 if new_speed_factor_p < speed_factor_p:
                     speed_factor_p = new_speed_factor_p
                     self._logger.debug(
                         '@{}: person {} reduced speed factor to {}'.format(
-                            timestamp, obs_ped_loc, speed_factor_p))
+                            timestamp, person.location, speed_factor_p))
 
         for tl in traffic_lights:
             if (not self._map or self._map.must_obbey_traffic_light(
-                    ego_vehicle_location, tl[0])):
+                    ego_vehicle_location, tl.location)):
                 self._logger.debug(
                     '@{}: ego is obbeying traffic light {}'.format(
-                        timestamp, ego_vehicle_location, tl[0]))
-                tl_state = tl[1]
+                        timestamp, ego_vehicle_location, tl.location))
                 new_speed_factor_tl = pylot.control.utils.stop_traffic_light(
-                    ego_vehicle_location, tl[0], tl_state, wp_vector, wp_angle,
-                    speed_factor_tl, self._flags)
+                    ego_vehicle_location, tl.location, tl.label, wp_vector,
+                    wp_angle, speed_factor_tl, self._flags)
                 if new_speed_factor_tl < speed_factor_tl:
                     speed_factor_tl = new_speed_factor_tl
                     self._logger.debug(
                         '@{}: traffic light {} reduced speed factor to {}'.
-                        format(timestamp, tl[0], speed_factor_tl))
+                        format(timestamp, tl.location, speed_factor_tl))
 
         speed_factor = min(speed_factor_tl, speed_factor_p, speed_factor_v)
         state = {
