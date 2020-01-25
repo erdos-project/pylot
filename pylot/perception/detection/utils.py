@@ -261,7 +261,7 @@ class DetectedObstacle(object):
         confidence (:obj:`float`): The confidence of the detection.
         label (:obj:`str`): The label of the detected obstacle.
         id (:obj:`int`, optional): Id associated with the obstacle.
-        location (:py:class:`~pylot.utils.Location`, optional): Location of
+        transform (:py:class:`~pylot.utils.Transform`, optional): Transform of
             the obstacle in the world.
 
     Attributes:
@@ -270,23 +270,23 @@ class DetectedObstacle(object):
         confidence (:obj:`float`): The confidence of the detection.
         label (:obj:`str`): The label of the detected obstacle.
         id (:obj:`int`): Id associated with the obstacle.
-        location (:py:class:`~pylot.utils.Location`): Location of the obstacle
-            in the world.
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the
+            obstacle in the world.
     """
-    def __init__(self, bounding_box, confidence, label, id=-1, location=None):
+    def __init__(self, bounding_box, confidence, label, id=-1, transform=None):
         self.bounding_box = bounding_box
         self.confidence = confidence
         self.label = label
         self.id = id
-        self._location = location
+        self._transform = transform
 
     def get_location(self):
-        if self._location is None:
-            raise ValueError('Location not set for obstacle {}'.format(self))
-        return self._location
+        if self._transform is None:
+            raise ValueError('Transform not set for obstacle {}'.format(self))
+        return self._transform
 
-    def set_location(self, location):
-        self._location = location
+    def set_transform(self, transform):
+        self._transform = transform
 
     def visualize_on_img(self, image_np, bbox_color_map, text=None):
         """Annotate the image with the bounding box of the obstacle."""
@@ -334,11 +334,11 @@ class DetectedObstacle(object):
             'bbox: {})'.format(
                 self.id, self.label, self.confidence, self.bounding_box)
 
-    location = property(get_location, set_location)
+    transform = property(get_transform, set_transform)
 
 
 class DetectedSpeedLimit(DetectedObstacle):
-    """Class that stores info about a detected speed limit.
+    """Class that stores info about a detected speed limit signs.
 
     Args:
         bounding_box (:py:class:`.BoundingBox2D`): The bounding box of the
@@ -347,7 +347,7 @@ class DetectedSpeedLimit(DetectedObstacle):
         confidence (:obj:`float`): The confidence of the detection.
         label (:obj:`str`): The label of the detected obstacle.
         id (:obj:`int`): Id associated with the sign.
-        location (:py:class:`~pylot.utils.Location`): Location of the sign
+        transform (:py:class:`~pylot.utils.transform`): Transform of the sign
             in the world.
 
     Attributes:
@@ -359,9 +359,9 @@ class DetectedSpeedLimit(DetectedObstacle):
                  confidence,
                  label,
                  id=-1,
-                 location=None):
+                 transform=None):
         super(DetectedSpeedLimit, self).__init__(bounding_box, confidence,
-                                                 label)
+                                                 label, id, transform)
         self.limit = limit
 
     def visualize_on_img(self, image_np, bbox_color_map):
@@ -379,8 +379,9 @@ class DetectedSpeedLimit(DetectedObstacle):
 
     def __str__(self):
         return 'DetectedSpeedLimit(label: {}, limit: {}, '\
-            'confidence: {}, bbox: {})'.format(
-                self.label, self.limit, self.confidence, self.bounding_box)
+            'confidence: {}, id: {}, transform: {}, bbox: {})'.format(
+                self.label, self.limit, self.confidence, self.id,
+                self.transform, self.bounding_box)
 
 
 class DetectedLane(object):

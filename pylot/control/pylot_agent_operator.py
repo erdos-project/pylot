@@ -186,48 +186,54 @@ class PylotAgentOperator(erdos.Operator):
 
         for vehicle in vehicles:
             if (not self._map or self._map.are_on_same_lane(
-                    ego_vehicle_location, vehicle.location)):
+                    ego_vehicle_location, vehicle.transform.location)):
                 self._logger.debug(
                     '@{}: ego {} and vehicle {} are on the same lane'.format(
-                        timestamp, ego_vehicle_location, vehicle.location))
+                        timestamp, ego_vehicle_location,
+                        vehicle.transform.location))
                 new_speed_factor_v = pylot.control.utils.stop_vehicle(
-                    ego_vehicle_location, vehicle.location, wp_vector,
-                    speed_factor_v, self._flags)
+                    ego_vehicle_location, vehicle.transform.location,
+                    wp_vector, speed_factor_v, self._flags)
                 if new_speed_factor_v < speed_factor_v:
                     speed_factor_v = new_speed_factor_v
                     self._logger.debug(
                         '@{}: vehicle {} reduced speed factor to {}'.format(
-                            timestamp, vehicle.location, speed_factor_v))
+                            timestamp, vehicle.transform.location,
+                            speed_factor_v))
 
         for person in people:
             if (not self._map or self._map.are_on_same_lane(
-                    ego_vehicle_location, person.location)):
+                    ego_vehicle_location, person.transform.location)):
                 self._logger.debug(
                     '@{}: ego {} and person {} are on the same lane'.format(
-                        timestamp, ego_vehicle_location, person.location))
+                        timestamp, ego_vehicle_location,
+                        person.transform.location))
                 new_speed_factor_p = pylot.control.utils.stop_person(
-                    ego_vehicle_location, person.location, wp_vector,
+                    ego_vehicle_location, person.transform.location, wp_vector,
                     speed_factor_p, self._flags)
                 if new_speed_factor_p < speed_factor_p:
                     speed_factor_p = new_speed_factor_p
                     self._logger.debug(
                         '@{}: person {} reduced speed factor to {}'.format(
-                            timestamp, person.location, speed_factor_p))
+                            timestamp, person.transform.location,
+                            speed_factor_p))
 
         for tl in traffic_lights:
             if (not self._map or self._map.must_obbey_traffic_light(
-                    ego_vehicle_location, tl.location)):
+                    ego_vehicle_location, tl.transform.location)):
                 self._logger.debug(
                     '@{}: ego is obbeying traffic light {}'.format(
-                        timestamp, ego_vehicle_location, tl.location))
+                        timestamp, ego_vehicle_location,
+                        tl.transform.location))
                 new_speed_factor_tl = pylot.control.utils.stop_traffic_light(
-                    ego_vehicle_location, tl.location, tl.label, wp_vector,
-                    wp_angle, speed_factor_tl, self._flags)
+                    ego_vehicle_location, tl.transform.location, tl.label,
+                    wp_vector, wp_angle, speed_factor_tl, self._flags)
                 if new_speed_factor_tl < speed_factor_tl:
                     speed_factor_tl = new_speed_factor_tl
                     self._logger.debug(
                         '@{}: traffic light {} reduced speed factor to {}'.
-                        format(timestamp, tl.location, speed_factor_tl))
+                        format(timestamp, tl.transform.location,
+                               speed_factor_tl))
 
         speed_factor = min(speed_factor_tl, speed_factor_p, speed_factor_v)
         state = {

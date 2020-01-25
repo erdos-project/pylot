@@ -173,7 +173,7 @@ class TrafficLight(object):
                         detected.append(
                             DetectedObstacle(bbox_2d, 1.0,
                                              self.state.get_label(), self.id,
-                                             self.transform.location))
+                                             self.transform))
         return detected
 
     def _relative_to_traffic_light(self, points):

@@ -227,8 +227,8 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
             frame.
 
     Returns:
-        list(:py:class:`~pylot.perception.detection.utils.DetectedSpeedLimit`): List
-        of detected speed limits.
+        list(:py:class:`~pylot.perception.detection.utils.DetectedSpeedLimit`):
+        List of detected speed limits.
     """
     def match_bboxes_with_speed_signs(camera_transform, loc_bboxes,
                                       speed_signs):
@@ -256,7 +256,7 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
                                        best_ts.limit,
                                        1.0,
                                        'speed limit',
-                                       location=best_ts.transform.location))
+                                       transform=best_ts.transform))
         return result
 
     if not isinstance(depth_frame, DepthFrame):
@@ -344,5 +344,5 @@ def get_detected_traffic_stops(traffic_stops, depth_frame):
                 DetectedObstacle(bbox_2d,
                                  1.0,
                                  'stop marking',
-                                 location=stop_sign.transform.location))
+                                 transform=stop_sign.transform))
     return det_obstacles

@@ -2,6 +2,7 @@ from collections import deque
 import copy
 import erdos
 
+from pylot.utils import Rotation, Transform
 from pylot.perception.messages import ObstaclesMessage
 
 
@@ -91,7 +92,7 @@ class ObstacleLocationFinderOperator(erdos.Operator):
                 obstacle.bounding_box.get_center_point(),
                 transformed_camera_setup)
             if location is not None:
-                obstacle.location = location
+                obstacle.transform = Transform(location, Rotation())
                 obstacles_with_location.append(obstacle)
             else:
                 self._logger.error(
