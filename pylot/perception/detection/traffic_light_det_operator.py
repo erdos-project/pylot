@@ -7,8 +7,9 @@ import numpy as np
 import tensorflow as tf
 import time
 
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
-from pylot.perception.detection.traffic_light import TrafficLightColor
+from pylot.perception.detection.utils import BoundingBox2D
+from pylot.perception.detection.traffic_light import TrafficLight, \
+    TrafficLightColor
 from pylot.perception.messages import ObstaclesMessage
 from pylot.utils import set_tf_loglevel, time_epoch_ms
 
@@ -91,13 +92,6 @@ class TrafficLightDetOperator(erdos.Operator):
             3: TrafficLightColor.RED,
             4: TrafficLightColor.OFF
         }
-        # The bounding box colors to use in the visualizer.
-        self._bbox_colors = {
-            TrafficLightColor.GREEN: [0, 128, 0],
-            TrafficLightColor.RED: [255, 0, 0],
-            TrafficLightColor.YELLOW: [255, 255, 0],
-            TrafficLightColor.OFF: [0, 0, 0]
-        }
 
     @staticmethod
     def connect(camera_stream):
@@ -155,8 +149,7 @@ class TrafficLightDetOperator(erdos.Operator):
         if (self._flags.visualize_detected_traffic_lights
                 or self._flags.log_traffic_light_detector_output):
             msg.frame.annotate_with_bounding_boxes(msg.timestamp,
-                                                   traffic_lights,
-                                                   self._bbox_colors)
+                                                   traffic_lights)
             if self._flags.visualize_detected_traffic_lights:
                 msg.frame.visualize(self._name)
             if self._flags.log_traffic_light_detector_output:
@@ -185,5 +178,7 @@ class TrafficLightDetOperator(erdos.Operator):
                     int(boxes[index][2] * height)  # y_max
                 )
                 traffic_lights.append(
-                    DetectedObstacle(bbox, scores[index], labels[index]))
+                    TrafficLight(scores[index],
+                                 labels[index],
+                                 bounding_box=bbox))
         return traffic_lights

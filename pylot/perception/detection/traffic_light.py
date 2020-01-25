@@ -29,30 +29,42 @@ class TrafficLightColor(Enum):
             return 'off traffic light'
 
 
-class TrafficLight(object):
+class TrafficLight(DetectedObstacle):
     """Class used to store info about traffic lights.
 
     Args:
-        id (:obj:`int`): The identifier of the traffic light.
-        transform (:py:class:`~pylot.utils.Transform`): Transform of the
-            traffic light.
-        trigger_volume_extent (:py:class:`pylot.utils.Vector3D`): The extent
-            of the trigger volume of the light.
+        confidence (:obj:`float`): The confidence of the detection.
         state (:py:class:`.TrafficLightColor`): The state of the traffic light.
+        id (:obj:`int`, optional): The identifier of the traffic light.
+        transform (:py:class:`~pylot.utils.Transform`, optional): Transform of
+            the traffic light.
+        trigger_volume_extent (:py:class:`pylot.utils.Vector3D`, optional): The
+            extent of the trigger volume of the light.
+        bounding_box (:py:class:`.BoundingBox2D`, optional): The bounding box
+            of the traffic light in camera view.
 
     Attributes:
+        confidence (:obj:`float`): The confidence of the detection.
+        state (:py:class:`.TrafficLightColor`): The state of the traffic light.
         id (:obj:`int`): The identifier of the traffic light.
         transform (:py:class:`~pylot.utils.Transform`): Transform of the
             traffic light.
         trigger_volume_extent (:py:class:`pylot.utils.Vector3D`): The extent
             of the trigger volume of the light.
-        state (:py:class:`.TrafficLightColor`): The state of the traffic light.
+        bounding_box (:py:class:`.BoundingBox2D`, optional): The bounding box
+            of the traffic light in camera view.
     """
-    def __init__(self, id, transform, trigger_volume_extent, state):
-        self.id = id
-        self.transform = transform
-        self.trigger_volume_extent = trigger_volume_extent
+    def __init__(self,
+                 confidence,
+                 state,
+                 id=-1,
+                 transform=None,
+                 trigger_volume_extent=None,
+                 bounding_box=None):
+        super(TrafficLight, self).__init__(bounding_box, confidence,
+                                           state.get_label(), id, transform)
         self.state = state
+        self.trigger_volume_extent = trigger_volume_extent
 
     @classmethod
     def from_carla_actor(cls, traffic_light):
@@ -83,7 +95,8 @@ class TrafficLight(object):
             state = TrafficLightColor.YELLOW
         elif traffic_light_state == carla.TrafficLightState.Green:
             state = TrafficLightColor.GREEN
-        return cls(traffic_light.id, transform, trigger_volume_extent, state)
+        return cls(1.0, state, traffic_light.id, transform,
+                   trigger_volume_extent)
 
     def is_traffic_light_visible(self,
                                  camera_transform,
@@ -126,7 +139,11 @@ class TrafficLight(object):
 
     def get_all_detected_traffic_light_boxes(self, town_name, depth_frame,
                                              segmented_image):
-        """ Returns DetectedObstacles for all boxes of a traffic light.
+        """ Returns traffic lights for all boxes of a CARLA traffic light.
+
+        Note:
+            All the traffic lights returned will have the same id and
+            transform.
 
         Args:
             town_name (:obj:`str`): Name of the town in which the traffic light
@@ -135,14 +152,15 @@ class TrafficLight(object):
                  Depth frame.
             segmented_image: A segmented image np array used to refine the
                  bounding boxes.
+
         Returns:
-            list(:py:class:`~pylot.perception.detection.utils.DetectedObstacle`):
-            Detected traffic lights.
+            list(:py:class:`~pylot.perception.detection.traffic_light.TrafficLight`):
+            Detected traffic lights, one for each traffic light box.
         """
-        detected = []
+        traffic_lights = []
         bboxes = self._get_bboxes(town_name)
         # Convert the returned bounding boxes to 2D and check if the
-        # light is occluded. If not, add it to the detected obstacle list.
+        # light is occluded. If not, add it to the traffic lights list.
         for bbox in bboxes:
             bounding_box = [
                 loc.to_camera_view(
@@ -170,11 +188,20 @@ class TrafficLight(object):
                     mean_depth = np.mean(masked_depth) * 1000
                     if abs(mean_depth -
                            bounding_box[0].z) <= 2 and mean_depth < 150:
-                        detected.append(
-                            DetectedObstacle(bbox_2d, 1.0,
-                                             self.state.get_label(), self.id,
-                                             self.transform))
-        return detected
+                        traffic_lights.append(
+                            TrafficLight(1.0, self.state, self.id,
+                                         self.transform,
+                                         self.trigger_volume_extent, bbox_2d))
+        return traffic_lights
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return 'TrafficLight(confidence: {}, state: {}, id: {}, ' \
+            'transform: {}, trigger_volume_extent: {}, bbox: {})'.format(
+                self.confidence, self.state, self.id, self.transform,
+                self.trigger_volume_extent, self.bounding_box)
 
     def _relative_to_traffic_light(self, points):
         """Transforms the bounding box specified in the points relative to the

@@ -20,6 +20,7 @@ GROUND_COLOR_MAP = {
     'red traffic light': [0, 0, 255],
     'yellow traffic light': [0, 255, 255],
     'green traffic light': [0, 255, 0],
+    'off traffic light': [0, 0, 0],
     '': [255, 255, 255],
 }
 
@@ -274,32 +275,15 @@ class DetectedObstacle(object):
             obstacle in the world.
     """
     def __init__(self, bounding_box, confidence, label, id=-1, transform=None):
-        self._bounding_box = bounding_box
+        self.bounding_box = bounding_box
         self.confidence = confidence
         self.label = label
         self.id = id
-        self._transform = transform
-
-    def get_bounding_box(self):
-        if self._bounding_box is None:
-            raise ValueError(
-                'Bounding box was not computed for {}.'.format(self))
-        return self._bounding_box
-
-    def set_bounding_box(self, bounding_box):
-        self._bounding_box = bounding_box
+        self.transform = transform
 
     def get_bbox_label(self):
         return (self.label, (self.bounding_box.get_min_point(),
                              self.bounding_box.get_max_point()))
-
-    def get_transform(self):
-        if self._transform is None:
-            raise ValueError('Transform not set for obstacle {}'.format(self))
-        return self._transform
-
-    def set_transform(self, transform):
-        self._transform = transform
 
     def visualize_on_img(self, image_np, bbox_color_map, text=None):
         """Annotate the image with the bounding box of the obstacle."""
@@ -342,9 +326,6 @@ class DetectedObstacle(object):
         return 'DetectedObstacle(id: {}, label: {}, confidence: {}, ' \
             'bbox: {})'.format(
                 self.id, self.label, self.confidence, self.bounding_box)
-
-    bounding_box = property(get_bounding_box, set_bounding_box)
-    transform = property(get_transform, set_transform)
 
 
 class DetectedLane(object):

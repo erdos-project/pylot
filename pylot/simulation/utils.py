@@ -193,7 +193,7 @@ def get_traffic_lights_obstacles(traffic_lights, depth_frame, segmented_frame,
             frame.
 
     Returns:
-        list(:py:class:`~pylot.perception.detection.utils.DetectedObstacle`):
+        list(:py:class:`~pylot.perception.detection.traffic_light.TrafficLight`):
         List of detected traffic light obstacles.
     """
     camera_transform = depth_frame.camera_setup.get_transform()

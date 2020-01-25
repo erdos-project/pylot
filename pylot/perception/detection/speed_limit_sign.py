@@ -15,7 +15,13 @@ class SpeedLimitSign(DetectedObstacle):
             in the world.
 
     Attributes:
-        limit (:obj:`int`): The speed limit (in km/h).
+        speed_limit (:obj:`int`): The speed limit (in km/h).
+        confidence (:obj:`float`): The confidence of the detection.
+        bounding_box (:py:class:`.BoundingBox2D`): The bounding box of the
+            speed limit sign in camera view.
+        id (:obj:`int`): Id associated with the sign.
+        transform (:py:class:`~pylot.utils.transform`): Transform of the sign
+            in the world.
     """
     def __init__(self,
                  speed_limit,
@@ -25,7 +31,7 @@ class SpeedLimitSign(DetectedObstacle):
                  transform=None):
         super(SpeedLimitSign, self).__init__(bounding_box, confidence,
                                              'speed limit', id, transform)
-        self.limit = speed_limit
+        self.speed_limit = speed_limit
 
     @classmethod
     def from_carla_actor(cls, actor):
@@ -46,12 +52,13 @@ class SpeedLimitSign(DetectedObstacle):
         return cls(speed_limit, 1.0, id=actor.id, transform=transform)
 
     def get_bbox_label(self):
-        return (self.label + ' ' + str(self.limit),
+        return (self.label + ' ' + str(self.speed_limit),
                 (self.bounding_box.get_min_point(),
                  self.bounding_box.get_max_point()))
 
     def visualize_on_img(self, image_np, bbox_color_map):
-        text = '{} {} {:.1f}'.format(self.limit, self.label, self.confidence)
+        text = '{} {} {:.1f}'.format(self.speed_limit, self.label,
+                                     self.confidence)
         super(SpeedLimitSign, self).visualize_on_img(image_np, bbox_color_map,
                                                      text)
 
@@ -61,5 +68,5 @@ class SpeedLimitSign(DetectedObstacle):
     def __str__(self):
         return 'SpeedLimitSign(label: {}, limit: {}, '\
             'confidence: {}, id: {}, transform: {}, bbox: {})'.format(
-                self.label, self.limit, self.confidence, self.id,
+                self.label, self.speed_limit, self.confidence, self.id,
                 self.transform, self.bounding_box)

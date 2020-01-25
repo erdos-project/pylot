@@ -17,6 +17,12 @@ class StopSign(DetectedObstacle):
             box of the stop sign.
 
     Attributes:
+        confidence (:obj:`float`): The confidence of the detection.
+        bounding_box (:py:class:`.BoundingBox2D`): The bounding box of the
+            stop sign in camera view.
+        id (:obj:`int`): Id associated with the sign.
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the
+            stop sign.
         bounding_box_3d (:py:class:`~pylot.utisl.BoundingBox3D`): 3D bounding
             box of the stop sign.
     """
