@@ -61,6 +61,7 @@ def test_distance(point_a, point_b, expected):
     assert np.isclose(location_b.distance(location_a), expected), "Distance "
     "between point_b and point_a is not the same as the expected distance."
 
+
 @pytest.mark.parametrize("point_a, point_b, expected",
                          [((1, 2, 3), (1, 2, 3), 0),
                           ((10, 20, 30), (40, 50, 60), 90)])
@@ -133,8 +134,6 @@ def test_subtraction(point_a, point_b, expected):
     "was not the same as the expected value."
 
 
-# TODO (Sukrit):: Write tests for to_camera_view after the CameraSetup tests.
-
 ## Rotation Tests
 
 
@@ -187,6 +186,7 @@ def test_as_carla_rotation():
     "yaw value is not the same as the one in rotation."
     assert np.isclose(carla_rotation.roll, rotation.roll), "Returned instance "
     "roll value is not the same as the one in location."
+
 
 ## Vector3D Tests
 
@@ -284,4 +284,21 @@ def test_vector_magnitude(point, expected):
     " the expected magnitude."
 
 
-# TODO (Sukrit) :: Write tests for to_camera_view after the CameraSetup tests.
+@pytest.mark.parametrize("location, expected",
+                         [((1, 2, 3), (2878.5, -2339, 1.0)),
+                          ((10000, 20, 30), (961.419, 536.6215, 10000.0)),
+                          ((-1, -1, -1), (1919.0, -420, -1.0))])
+def test_vector_to_camera_view(location, expected):
+    from pylot.simulation.sensor_setup import CameraSetup
+    camera_setup = CameraSetup('test_camera',
+                               'sensor.camera.rgb',
+                               width=1920,
+                               height=1080,
+                               transform=Transform(Location(), Rotation()))
+    location = Location(*location)
+    assert all(
+        np.isclose(
+            location.to_camera_view(
+                camera_setup.get_extrinsic_matrix(),
+                camera_setup.get_intrinsic_matrix()).as_numpy_array(),
+            expected)), "The camera transformation was not as expected."
