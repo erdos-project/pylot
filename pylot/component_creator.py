@@ -411,10 +411,6 @@ def add_control(can_bus_stream, obstacles_stream, traffic_lights_stream,
         control_stream = pylot.operator_creator.add_mpc_agent(
             can_bus_stream, ground_obstacles_stream,
             ground_traffic_lights_stream, waypoints_stream)
-    elif FLAGS.control_agent == 'ground':
-        control_stream = pylot.operator_creator.add_ground_agent(
-            can_bus_stream, ground_obstacles_stream,
-            ground_traffic_lights_stream, waypoints_stream)
     elif FLAGS.control_agent == 'carla_auto_pilot':
         # TODO: Hack! We synchronize on a single stream, based on a
         # guesestimate of which stream is slowest.

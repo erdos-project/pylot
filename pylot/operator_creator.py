@@ -38,7 +38,6 @@ from pylot.planning.waypoint_planning_operator import WaypointPlanningOperator
 from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
 from pylot.prediction.prediction_eval_operator import PredictionEvalOperator
 # Control operators.
-from pylot.control.ground_agent_operator import GroundAgentOperator
 from pylot.control.mpc.mpc_agent_operator import MPCAgentOperator
 from pylot.control.pid_control_operator import PIDControlOperator
 from pylot.control.pylot_agent_operator import PylotAgentOperator
@@ -423,20 +422,6 @@ def add_pid_control(waypoints_stream, can_bus_stream):
                                      [waypoints_stream, can_bus_stream],
                                      True,
                                      'pid_control_operator',
-                                     FLAGS,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_file_name=FLAGS.csv_log_file_name)
-    return control_stream
-
-
-def add_ground_agent(can_bus_stream, ground_obstacles_stream,
-                     ground_traffic_lights_stream, waypoints_stream):
-    [control_stream] = erdos.connect(GroundAgentOperator, [
-        can_bus_stream, ground_obstacles_stream, ground_traffic_lights_stream,
-        waypoints_stream
-    ],
-                                     True,
-                                     'ground_agent_operator',
                                      FLAGS,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_file_name=FLAGS.csv_log_file_name)

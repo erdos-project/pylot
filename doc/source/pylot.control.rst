@@ -11,14 +11,6 @@ Subpackages
 Submodules
 ----------
 
-pylot.control.ground\_agent\_operator module
---------------------------------------------
-
-.. automodule:: pylot.control.ground_agent_operator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pylot.control.messages module
 -----------------------------
 

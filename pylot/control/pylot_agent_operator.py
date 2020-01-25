@@ -90,7 +90,6 @@ class PylotAgentOperator(erdos.Operator):
         self._can_bus_msgs = deque()
         self._traffic_lights_msgs = deque()
         self._obstacles_msgs = deque()
-        self._vehicle_labels = {'car', 'bicycle', 'motorcycle', 'bus', 'truck'}
 
     @staticmethod
     def connect(can_bus_stream, waypoints_stream, traffic_lights_stream,
@@ -111,38 +110,28 @@ class PylotAgentOperator(erdos.Operator):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         start_time = time.time()
         can_bus_msg = self._can_bus_msgs.popleft()
-        waypoint_msg = self._waypoint_msgs.popleft()
-        tl_msg = self._traffic_lights_msgs.popleft()
-        obstacles_msg = self._obstacles_msgs.popleft()
         vehicle_transform = can_bus_msg.data.transform
         # Vehicle sped in m/s
         vehicle_speed = can_bus_msg.data.forward_speed
+        waypoint_msg = self._waypoint_msgs.popleft()
         wp_angle = waypoint_msg.wp_angle
         wp_vector = waypoint_msg.wp_vector
         wp_angle_speed = waypoint_msg.wp_angle_speed
-        target_speed = waypoint_msg.target_speed
-
-        people = []
-        vehicles = []
-        for obstacle in obstacles_msg.obstacles:
-            if obstacle.label == 'person':
-                people.append(obstacle)
-            elif obstacle.label in self._vehicle_labels:
-                vehicles.append(obstacle)
+        tl_msg = self._traffic_lights_msgs.popleft()
+        obstacles_msg = self._obstacles_msgs.popleft()
 
         self._logger.debug('@{}: speed {} and location {}'.format(
             timestamp, vehicle_speed, vehicle_transform))
-        self._logger.debug('@{}: people {}'.format(timestamp, people))
-        self._logger.debug('@{}: vehicles {}'.format(timestamp, vehicles))
 
-        speed_factor, _ = self.__stop_for_agents(vehicle_transform.location,
-                                                 wp_angle, wp_vector, vehicles,
-                                                 people, tl_msg.obstacles,
-                                                 timestamp)
+        speed_factor, _ = pylot.control.utils.stop_for_agents(
+            vehicle_transform.location, wp_angle, wp_vector,
+            obstacles_msg.obstacles, tl_msg.obstacles, self._flags,
+            self._logger, self._map, timestamp)
 
         control_msg = self.get_control_message(wp_angle, wp_angle_speed,
                                                speed_factor, vehicle_speed,
-                                               target_speed, timestamp)
+                                               waypoint_msg.target_speed,
+                                               timestamp)
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
@@ -177,87 +166,16 @@ class PylotAgentOperator(erdos.Operator):
         self._map = HDMap(carla.Map('challenge', msg.data),
                           self._log_file_name)
 
-    def __stop_for_agents(self, ego_vehicle_location, wp_angle, wp_vector,
-                          vehicles, people, traffic_lights, timestamp):
-        speed_factor = 1
-        speed_factor_tl = 1
-        speed_factor_p = 1
-        speed_factor_v = 1
-
-        for vehicle in vehicles:
-            if (not self._map or self._map.are_on_same_lane(
-                    ego_vehicle_location, vehicle.transform.location)):
-                self._logger.debug(
-                    '@{}: ego {} and vehicle {} are on the same lane'.format(
-                        timestamp, ego_vehicle_location,
-                        vehicle.transform.location))
-                new_speed_factor_v = pylot.control.utils.stop_vehicle(
-                    ego_vehicle_location, vehicle.transform.location,
-                    wp_vector, speed_factor_v, self._flags)
-                if new_speed_factor_v < speed_factor_v:
-                    speed_factor_v = new_speed_factor_v
-                    self._logger.debug(
-                        '@{}: vehicle {} reduced speed factor to {}'.format(
-                            timestamp, vehicle.transform.location,
-                            speed_factor_v))
-
-        for person in people:
-            if (not self._map or self._map.are_on_same_lane(
-                    ego_vehicle_location, person.transform.location)):
-                self._logger.debug(
-                    '@{}: ego {} and person {} are on the same lane'.format(
-                        timestamp, ego_vehicle_location,
-                        person.transform.location))
-                new_speed_factor_p = pylot.control.utils.stop_person(
-                    ego_vehicle_location, person.transform.location, wp_vector,
-                    speed_factor_p, self._flags)
-                if new_speed_factor_p < speed_factor_p:
-                    speed_factor_p = new_speed_factor_p
-                    self._logger.debug(
-                        '@{}: person {} reduced speed factor to {}'.format(
-                            timestamp, person.transform.location,
-                            speed_factor_p))
-
-        for tl in traffic_lights:
-            if (not self._map or self._map.must_obbey_traffic_light(
-                    ego_vehicle_location, tl.transform.location)):
-                self._logger.debug(
-                    '@{}: ego is obbeying traffic light {}'.format(
-                        timestamp, ego_vehicle_location,
-                        tl.transform.location))
-                new_speed_factor_tl = pylot.control.utils.stop_traffic_light(
-                    ego_vehicle_location, tl.transform.location, tl.label,
-                    wp_vector, wp_angle, speed_factor_tl, self._flags)
-                if new_speed_factor_tl < speed_factor_tl:
-                    speed_factor_tl = new_speed_factor_tl
-                    self._logger.debug(
-                        '@{}: traffic light {} reduced speed factor to {}'.
-                        format(timestamp, tl.transform.location,
-                               speed_factor_tl))
-
-        speed_factor = min(speed_factor_tl, speed_factor_p, speed_factor_v)
-        state = {
-            'stop_person': speed_factor_p,
-            'stop_vehicle': speed_factor_v,
-            'stop_traffic_lights': speed_factor_tl
-        }
-        self._logger.debug('@{}: agent speed factors {}'.format(
-            timestamp, state))
-        return speed_factor, state
-
     def get_control_message(self, wp_angle, wp_angle_speed, speed_factor,
                             current_speed, target_speed, timestamp):
         assert current_speed >= 0, 'Current speed is negative'
         steer = pylot.control.utils.radians_to_steer(wp_angle,
                                                      self._flags.steer_gain)
-        # TODO(ionel): DO NOT HARDCODE VALUES!
         # Don't go to fast around corners
         if math.fabs(wp_angle_speed) < 0.1:
-            target_speed_adjusted = target_speed * speed_factor
-        elif math.fabs(wp_angle_speed) < 0.5:
-            target_speed_adjusted = 6 * speed_factor
+            target_speed_adjusted = target_speed * speed_factor / 2
         else:
-            target_speed_adjusted = 3 * speed_factor
+            target_speed_adjusted = target_speed * speed_factor
 
         throttle, brake = pylot.control.utils.compute_throttle_and_brake(
             self._pid, current_speed, target_speed_adjusted, self._flags)

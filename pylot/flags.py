@@ -68,7 +68,7 @@ flags.DEFINE_bool('imu', False, 'True to enable the IMU sensor')
 # Control
 ######################################################################
 flags.DEFINE_enum('control_agent', 'carla_auto_pilot',
-                  ['pylot', 'ground', 'mpc', 'carla_auto_pilot'],
+                  ['pylot', 'mpc', 'carla_auto_pilot'],
                   'Control agent operator to use to drive')
 
 ######################################################################
@@ -167,18 +167,6 @@ flags.register_multi_flags_validator(['planning_type', 'prediction'],
                                      message='rrt star requires --prediction')
 
 
-def ground_agent_validator(flags_dict):
-    if flags_dict['control_agent'] == 'ground':
-        return flags_dict['planning_type'] == 'waypoint'
-    return True
-
-
-flags.register_multi_flags_validator(
-    ['planning_type', 'control_agent'],
-    ground_agent_validator,
-    message='ground agent requires waypoint planning')
-
-
 def pylot_agent_validator(flags_dict):
     if flags_dict['control_agent'] == 'pylot':
         has_obstacle_detector = (flags_dict['obstacle_detection']
@@ -188,11 +176,7 @@ def pylot_agent_validator(flags_dict):
             or flags_dict['perfect_traffic_light_detection'])
         # TODO: Add lane detection, obstacle tracking and prediction once
         # the agent depends on these components.
-        has_depth = (flags_dict['depth_estimation']
-                     or flags_dict['perfect_depth_estimation'])
-        has_planner = flags_dict['planning_type'] == 'waypoint'
-        return (has_obstacle_detector and has_traffic_light_detector
-                and has_planner and has_depth)
+        return (has_obstacle_detector and has_traffic_light_detector)
     return True
 
 
@@ -200,12 +184,11 @@ flags.register_multi_flags_validator(
     [
         'obstacle_detection', 'perfect_obstacle_detection',
         'traffic_light_detection', 'perfect_traffic_light_detection',
-        'depth_estimation', 'perfect_depth_estimation', 'planning_type',
         'control_agent'
     ],
     pylot_agent_validator,
     message='pylot agent requires obstacle detection, traffic light detection,'
-    ' depth, and waypoint planning')
+)
 
 
 def obstacle_detection_validator(flags_dict):

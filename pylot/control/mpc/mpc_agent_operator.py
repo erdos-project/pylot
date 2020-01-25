@@ -82,7 +82,6 @@ class MPCAgentOperator(erdos.Operator):
         waypoint_msg = self._waypoint_msgs.popleft()
         wp_angle = waypoint_msg.wp_angle
         wp_vector = waypoint_msg.wp_vector
-        wp_angle_speed = waypoint_msg.wp_angle_speed
         # Only take the first 50 waypoints (50 meters).
         waypoints = deque(itertools.islice(waypoint_msg.waypoints, 0, 50))
         # Get ground obstacles info.
@@ -91,8 +90,8 @@ class MPCAgentOperator(erdos.Operator):
         traffic_lights = self._traffic_light_msgs.popleft().traffic_lights
 
         speed_factor, state = pylot.control.utils.stop_for_agents(
-            vehicle_transform.location, wp_angle, wp_vector, wp_angle_speed,
-            obstacles, traffic_lights, self._map, self._flags)
+            vehicle_transform.location, wp_angle, wp_vector, obstacles,
+            traffic_lights, self._flags, self._logger, self._map, timestamp)
 
         control_msg = self.get_control_message(waypoints, vehicle_transform,
                                                vehicle_speed, speed_factor,

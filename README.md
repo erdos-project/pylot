@@ -61,7 +61,7 @@ Finally, ssh into the container with X forwarding:
 ssh -p 20022 -X erdos@localhost
 /bin/bash
 cd /home/erdos/workspace/pylot/
-python3 pylot.py --flagfile=configs/ground_agent_e2e.conf --carla_host=carla_v1
+python3 pylot.py --flagfile=configs/detection.conf --carla_host=carla_v1
 ```
 
 ## Manual installation instructions
@@ -178,15 +178,13 @@ using the ```--planning_type``` flag:
 
 
 ### Driving policies
-Pylot supports four driving policies, which can be specified using the
+Pylot supports three driving policies, which can be specified using the
 ```control_agent``` flag:
-1. `pylot`: uses a mix of data from our components (e.g., detected
- obstacles, traffic lights) and data from Carla (e.g., traffic lanes).
-2. `ground`: uses perfect sensor data to drive. This policy is useful to test
- components in long running experiments in which the ego vehicle
- must reach a goal destination without crashing.
-3. `mpc`: uses model predictive control for speed and steering.
-4. `carla_auto_pilot`: uses the carla auto pilot to drive on predefined routes.
+1. `pylot`: an agent that stops when obstacles are detected. It can use
+ outputs from operators that use trained models or operators that output
+ perfect obstacles using CARLA data.
+2. `mpc`: uses model predictive control for speed and steering.
+3. `carla_auto_pilot`: uses the carla auto pilot to drive on predefined routes.
 
 You can run all the components, together with one of the two policies by
 executing:
@@ -194,8 +192,6 @@ executing:
 ```console
 # Runs all components and the Pylot policy
 python3 pylot.py --flagfile=configs/pylot_agent_e2e.conf
-# Runs all components and the ground policy
-python3 pylot.py --flagfile=configs/ground_agent_e2e.conf
 # Runs the MPC policy
 python3 pylot.py --flagfile=configs/mpc_agent.conf
 # Runs the carla policy
