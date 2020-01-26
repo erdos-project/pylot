@@ -12,16 +12,16 @@ class FrameMessage(erdos.Message):
     """Message class to be used to send camera frames.
 
     Args:
-        frame (:py:class:`~pylot.perception.camera_frame.CameraFrame`): The
-            camera frame.
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
             message.
+        frame (:py:class:`~pylot.perception.camera_frame.CameraFrame`): The
+            camera frame.
 
     Attributes:
         frame (:py:class:`~pylot.perception.camera_frame.CameraFrame`): The
             camera frame.
     """
-    def __init__(self, frame, timestamp):
+    def __init__(self, timestamp, frame):
         super(FrameMessage, self).__init__(timestamp, None)
         if not isinstance(frame, pylot.perception.camera_frame.CameraFrame):
             raise ValueError(
@@ -37,16 +37,16 @@ class DepthFrameMessage(erdos.Message):
     """Message class to be used to send depth camera frames.
 
     Args:
-        frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`): The
-            depth frame.
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
             message.
+        frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`): The
+            depth frame.
 
     Attributes:
         frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`): The
             depth frame.
     """
-    def __init__(self, frame, timestamp):
+    def __init__(self, timestamp, frame):
         super(DepthFrameMessage, self).__init__(timestamp, None)
         if not isinstance(frame, pylot.perception.depth_frame.DepthFrame):
             raise ValueError(
@@ -62,10 +62,10 @@ class SegmentedFrameMessage(erdos.Message):
     """This class represents a message to be used to send segmented frames
 
     Args:
-        frame (:py:class:`~pylot.perception.segmentation.segmented_frame.SegmentedFrame`):
-            The segmented frame.
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
             message.
+        frame (:py:class:`~pylot.perception.segmentation.segmented_frame.SegmentedFrame`):
+            The segmented frame.
         runtime (:obj:`float`, optional): The runtime of the operator that
             produced the segmented frame (in ms).
 
@@ -75,7 +75,7 @@ class SegmentedFrameMessage(erdos.Message):
         runtime (:obj:`float`): The runtime of the operator that produced the
             segmented frame (in ms).
     """
-    def __init__(self, frame, timestamp, runtime=0):
+    def __init__(self, timestamp, frame, runtime=0):
         super(SegmentedFrameMessage, self).__init__(timestamp, None)
         if not isinstance(frame, SegmentedFrame):
             raise ValueError('frame should be of type SegmentedFrame')
@@ -91,15 +91,16 @@ class PointCloudMessage(erdos.Message):
     """Message class to be used to send point clouds.
 
     Args:
-        pc (:py:class:`~pylot.perception.point_cloud.PointCloud`): A point cloud.
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
             message.
+        pc (:py:class:`~pylot.perception.point_cloud.PointCloud`): The point
+            cloud to send.
 
     Attributes:
         point_cloud (:py:class:`~pylot.perception.point_cloud.PointCloud`): The
             point cloud.
     """
-    def __init__(self, pc, timestamp):
+    def __init__(self, timestamp, pc):
         super(PointCloudMessage, self).__init__(timestamp, None)
         if not isinstance(pc, pylot.perception.point_cloud.PointCloud):
             raise ValueError(
@@ -115,6 +116,8 @@ class IMUMessage(erdos.Message):
     """Message class to be used to send IMU measurements.
 
     Args:
+        timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
+            message.
         transform (:py:class:`~pylot.utils.Transform`): Transform of the IMU.
         acceleration (:py:class:`~pylot.utils.Vector3D`): Linear acceleration
             measurement in m/s^2.
@@ -122,8 +125,6 @@ class IMUMessage(erdos.Message):
             in rad/sec.
         compass (:obj:`float`): Orientation measurement w.r.t North direction
             ((0, -1, 0) in Unreal) in radians.
-        timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
-            message.
 
     Attributes:
         transform (:py:class:`~pylot.utils.Transform`): Transform of the IMU.
@@ -134,7 +135,7 @@ class IMUMessage(erdos.Message):
         compass (:obj:`float`): Orientation measurement w.r.t North direction
             ((0, -1, 0) in Unreal) in radians.
     """
-    def __init__(self, transform, acceleration, gyro, compass, timestamp):
+    def __init__(self, timestamp, transform, acceleration, gyro, compass):
         super(IMUMessage, self).__init__(timestamp, None)
         self.transform = transform
         self.acceleration = acceleration
@@ -152,10 +153,10 @@ class ObstaclesMessage(erdos.Message):
     """Used to send detected obstacles.
 
     Args:
-        obstacles (list(:py:class:`~pylot.perception.detection.utils.DetectedObstacle`)):
-            Detected obstacles.
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
             message.
+        obstacles (list(:py:class:`~pylot.perception.detection.utils.DetectedObstacle`)):
+            Detected obstacles.
         runtime (:obj:`float`, optional): The runtime of the operator that
             produced the obstacles (in ms).
 
@@ -166,7 +167,7 @@ class ObstaclesMessage(erdos.Message):
         runtime (:obj:`float`, optional): The runtime of the operator that
             produced the obstacles (in ms).
     """
-    def __init__(self, obstacles, timestamp, runtime=0):
+    def __init__(self, timestamp, obstacles, runtime=0):
         super(ObstaclesMessage, self).__init__(timestamp, None)
         self.obstacles = obstacles
         self.runtime = runtime
@@ -188,7 +189,7 @@ class ObstaclePositionsSpeedsMessage(erdos.Message):
     Attributes:
         obstacle_positions_speeds: A list of 2D obstacle positions.
     """
-    def __init__(self, obstacle_positions_speeds, timestamp):
+    def __init__(self, timestamp, obstacle_positions_speeds):
         super(ObstaclePositionsSpeedsMessage, self).__init__(timestamp, None)
         self.obstacle_positions_speeds = obstacle_positions_speeds
 
@@ -202,10 +203,10 @@ class ObstacleTrajectoriesMessage(erdos.Message):
     """Message to be used to send obstacle trajectory info.
 
     Args:
-        obstacle_trajectories (list(:py:class:`~pylot.perception.tracking.obstacle_trajectory.ObstacleTrajectory`)):
-            Obstacle trajectories.
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
             message.
+        obstacle_trajectories (list(:py:class:`~pylot.perception.tracking.obstacle_trajectory.ObstacleTrajectory`)):
+            Obstacle trajectories.
 
     Attributes:
         obstacle_trajectories (list(:py:class:`~pylot.perception.tracking.obstacle_trajectory.ObstacleTrajectory`)):
@@ -226,6 +227,8 @@ class DetectedLaneMessage(erdos.Message):
     """Message to be used to send info about lanes.
 
     Args:
+        timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
+            message.
         detected_lanes (list(:py:class:`~pylot.utils.Location`)): Detected lane
             locations.
 
@@ -241,3 +244,70 @@ class DetectedLaneMessage(erdos.Message):
         return 'DetectedLaneMessage(timestamp: {}, '\
                 'detected_lanes: {})'.format(
                     self.timestamp, self.detected_lanes)
+
+
+class TrafficLightsMessage(erdos.Message):
+    """Message class to be used to send info about traffic lights.
+
+    Args:
+        timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
+            message.
+        traffic_lights (list(:py:class:`~pylot.perception.detection.traffic_light.TrafficLight`)):
+            A list of traffic lights.
+
+    Attributes:
+        traffic_lights (list(:py:class:`~pylot.perception.detection.traffic_light.TrafficLight`)):
+            A list of traffic lights.
+    """
+    def __init__(self, timestamp, traffic_lights):
+        super(TrafficLightsMessage, self).__init__(timestamp, None)
+        self.obstacles = traffic_lights
+
+    def __str__(self):
+        return 'TrafficLightsMessage(timestamp: {}, ' \
+            'traffic lights: {})'.format(
+                self.timestamp, self.obstacles)
+
+
+class StopSignsMessage(erdos.Message):
+    """Message class to be used to send info about stop signs.
+
+    Args:
+        timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
+            message.
+        stop_signs (list(:py:class:`~pylot.perception.detection.stop_sign.StopSign`)):
+            A list of stop signs.
+
+    Attributes:
+        stop_signs (list(:py:class:`~pylot.perception.detection.stop_sign.StopSign`)):
+            A list of stop signs.
+    """
+    def __init__(self, timestamp, stop_signs):
+        super(StopSignsMessage, self).__init__(timestamp, None)
+        self.stop_signs = stop_signs
+
+    def __str__(self):
+        return 'StopSignsMessage(timestamp: {}, stop signs: {})'.format(
+            self.timestamp, self.stop_signs)
+
+
+class SpeedSignsMessage(erdos.Message):
+    """Message class to be used to send info about speed limit actors.
+
+    Args:
+        timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
+            message.
+        speed_signs (list(:py:class:`~pylot.perception.detection.speed_limit_sign.SpeedLimitSign`)):
+            A list of speed limit signs.
+
+    Attributes:
+        speed_signs (list(:py:class:`~pylot.perception.detection.speed_limit_sign.SpeedLimitSign`)):
+            A list of speed limit signs.
+    """
+    def __init__(self, timestamp, speed_signs):
+        super(SpeedSignsMessage, self).__init__(timestamp, None)
+        self.speed_signs = speed_signs
+
+    def __str__(self):
+        return 'SpeedSignsMessage(timestamp: {}, speed signs: {})'.format(
+            self.timestamp, self.speed_signs)

@@ -100,7 +100,7 @@ class ObstacleLocationFinderOperator(erdos.Operator):
                         obstacle))
 
         obstacles_output_stream.send(
-            ObstaclesMessage(obstacles_with_location, timestamp))
+            ObstaclesMessage(timestamp, obstacles_with_location))
 
     def on_obstacles_update(self, msg):
         self._logger.debug('@{}: obstacles update'.format(msg.timestamp))

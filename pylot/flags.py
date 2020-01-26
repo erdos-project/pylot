@@ -17,7 +17,10 @@ flags.DEFINE_string('csv_log_file_name', None,
 flags.DEFINE_bool('obstacle_detection', False,
                   'True to enable obstacle detection operator')
 flags.DEFINE_bool('perfect_obstacle_detection', False,
-                  'True to enable perfect obstacle detection')
+                  'True to enable perfect obstacle 2D detection')
+flags.DEFINE_bool(
+    'carla_obstacle_detection', False,
+    'True to enable usage of obstacles received directly from CARLA')
 flags.DEFINE_list(
     'obstacle_detection_model_paths',
     'dependencies/models/obstacle_detection/faster-rcnn/frozen_inference_graph.pb',
@@ -37,7 +40,10 @@ flags.DEFINE_bool('fusion', False, 'True to enable fusion operator')
 flags.DEFINE_bool('traffic_light_detection', False,
                   'True to enable traffic light detection operator')
 flags.DEFINE_bool('perfect_traffic_light_detection', False,
-                  'True to enable perfect traffic light detection')
+                  'True to enable perfect traffic light 2D detection')
+flags.DEFINE_bool(
+    'carla_traffic_light_detection', False,
+    'True to enable usage of traffic lights received directly from CARLA')
 flags.DEFINE_bool('segmentation', False,
                   'True to enable segmentation operator')
 flags.DEFINE_bool('perfect_segmentation', False,
@@ -167,13 +173,16 @@ flags.register_multi_flags_validator(['planning_type', 'prediction'],
                                      message='rrt star requires --prediction')
 
 
-def pylot_agent_validator(flags_dict):
-    if flags_dict['control_agent'] == 'pylot':
+def agent_validator(flags_dict):
+    if (flags_dict['control_agent'] == 'pylot'
+            or flags_dict['control_agent'] == 'mpc'):
         has_obstacle_detector = (flags_dict['obstacle_detection']
-                                 or flags_dict['perfect_obstacle_detection'])
+                                 or flags_dict['perfect_obstacle_detection']
+                                 or flags_dict['carla_obstacle_detection'])
         has_traffic_light_detector = (
             flags_dict['traffic_light_detection']
-            or flags_dict['perfect_traffic_light_detection'])
+            or flags_dict['perfect_traffic_light_detection']
+            or flags_dict['carla_traffic_light_detection'])
         # TODO: Add lane detection, obstacle tracking and prediction once
         # the agent depends on these components.
         return (has_obstacle_detector and has_traffic_light_detector)
@@ -183,11 +192,13 @@ def pylot_agent_validator(flags_dict):
 flags.register_multi_flags_validator(
     [
         'obstacle_detection', 'perfect_obstacle_detection',
-        'traffic_light_detection', 'perfect_traffic_light_detection',
+        'carla_obstacle_detection', 'traffic_light_detection',
+        'perfect_traffic_light_detection', 'carla_traffic_light_detection',
         'control_agent'
     ],
-    pylot_agent_validator,
-    message='pylot agent requires obstacle detection, traffic light detection,'
+    agent_validator,
+    message=
+    'pylot and mpc agents require obstacle detection and traffic light detection'
 )
 
 

@@ -5,10 +5,11 @@ import random
 import sys
 import time
 
+from pylot.perception.messages import ObstaclesMessage, SpeedSignsMessage, \
+    StopSignsMessage, TrafficLightsMessage
 import pylot.utils
 from pylot.simulation.utils import extract_data_in_pylot_format, \
     get_weathers, get_world, reset_world, set_synchronous_mode
-import pylot.simulation.messages
 
 flags.DEFINE_enum('carla_version', '0.9.6', ['0.9.5', '0.9.6', '0.9.7'],
                   'Carla simulator version')
@@ -452,23 +453,19 @@ class CarlaOperator(erdos.Operator):
 
         # Send ground people and vehicles.
         self.ground_obstacles_stream.send(
-            pylot.simulation.messages.GroundObstaclesMessage(
-                timestamp, vehicles + people))
+            ObstaclesMessage(timestamp, vehicles + people))
         self.ground_obstacles_stream.send(erdos.WatermarkMessage(timestamp))
         # Send ground traffic lights.
         self.ground_traffic_lights_stream.send(
-            pylot.simulation.messages.GroundTrafficLightsMessage(
-                timestamp, traffic_lights))
+            TrafficLightsMessage(timestamp, traffic_lights))
         self.ground_traffic_lights_stream.send(
             erdos.WatermarkMessage(timestamp))
         # Send ground speed signs.
         self.ground_speed_limit_signs_stream.send(
-            pylot.simulation.messages.GroundSpeedSignsMessage(
-                timestamp, speed_limits))
+            SpeedSignsMessage(timestamp, speed_limits))
         self.ground_speed_limit_signs_stream.send(
             erdos.WatermarkMessage(timestamp))
         # Send stop signs.
         self.ground_stop_signs_stream.send(
-            pylot.simulation.messages.GroundStopSignsMessage(
-                timestamp, traffic_stops))
+            StopSignsMessage(timestamp, traffic_stops))
         self.ground_stop_signs_stream.send(erdos.WatermarkMessage(timestamp))

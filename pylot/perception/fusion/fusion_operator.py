@@ -111,8 +111,8 @@ class FusionOperator(erdos.Operator):
         self._csv_logger.info('{},{},{}'.format(time_epoch_ms(), self._name,
                                                 runtime))
 
-        output_msg = ObstaclePositionsSpeedsMessage(obstacle_positions,
-                                                    timestamp)
+        output_msg = ObstaclePositionsSpeedsMessage(timestamp,
+                                                    obstacle_positions)
         self._fused_stream.send(output_msg)
 
     def update_pos(self, msg):

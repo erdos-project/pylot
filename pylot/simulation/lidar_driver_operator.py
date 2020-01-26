@@ -69,8 +69,9 @@ class LidarDriverOperator(erdos.Operator):
             # Carla carla_pc.transform returns the world transform, but
             # we do not use it directly.
             msg = PointCloudMessage(
+                timestamp,
                 PointCloud.from_carla_point_cloud(
-                    carla_pc, self._lidar_setup.get_transform()), timestamp)
+                    carla_pc, self._lidar_setup.get_transform()))
 
             self._lidar_stream.send(msg)
             # Note: The operator is set not to automatically propagate

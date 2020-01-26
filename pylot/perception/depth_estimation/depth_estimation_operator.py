@@ -159,4 +159,4 @@ class DepthEstimationOperator(erdos.Operator):
                                    self._transform,
                                    fov=self._fov)
         depth_estimation_stream.send(
-            DepthFrameMessage(DepthFrame(depth, camera_setup), timestamp))
+            DepthFrameMessage(timestamp, DepthFrame(depth, camera_setup)))

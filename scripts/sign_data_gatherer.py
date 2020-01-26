@@ -48,8 +48,8 @@ def on_depth_msg(carla_image):
                                     FLAGS.camera_fov)
 
     DEPTH_FRAME = DepthFrameMessage(
-        DepthFrame.from_carla_frame(carla_image, camera_setup),
-        int(carla_image.timestamp * 1000))
+        int(carla_image.timestamp * 1000),
+        DepthFrame.from_carla_frame(carla_image, camera_setup))
 
 
 def on_segmented_msg(carla_image):

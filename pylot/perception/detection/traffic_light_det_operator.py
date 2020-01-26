@@ -10,7 +10,7 @@ import time
 from pylot.perception.detection.utils import BoundingBox2D
 from pylot.perception.detection.traffic_light import TrafficLight, \
     TrafficLightColor
-from pylot.perception.messages import ObstaclesMessage
+from pylot.perception.messages import TrafficLightsMessage
 from pylot.utils import set_tf_loglevel, time_epoch_ms
 
 flags.DEFINE_string(
@@ -35,7 +35,8 @@ class TrafficLightDetOperator(erdos.Operator):
             camera frames are received.
         traffic_lights_stream (:py:class:`erdos.WriteStream`): Stream on which
             the operator sends
-            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages.
+            :py:class:`~pylot.perception.messages.TrafficLightsMessage`
+            messages.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         log_file_name (:obj:`str`, optional): Name of file where log messages
@@ -103,8 +104,8 @@ class TrafficLightDetOperator(erdos.Operator):
 
         Returns:
             :py:class:`erdos.WriteStream`: Stream on which the operator sends
-            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
-            for traffic lights.
+            :py:class:`~pylot.perception.messages.TrafficLightsMessage`
+            messages for traffic lights.
         """
         traffic_lights_stream = erdos.WriteStream()
         return [traffic_lights_stream]
@@ -116,7 +117,7 @@ class TrafficLightDetOperator(erdos.Operator):
             msg: A :py:class:`~pylot.perception.messages.FrameMessage`.
             obstacles_stream (:py:class:`erdos.WriteStream`): Stream on which
                 the operator sends
-                :py:class:`~pylot.perception.messages.ObstaclesMessage`
+                :py:class:`~pylot.perception.messages.TrafficLightsMessage`
                 messages for traffic lights.
         """
         self._logger.debug('@{}: {} received message'.format(
@@ -164,7 +165,7 @@ class TrafficLightDetOperator(erdos.Operator):
                                                      runtime))
 
         traffic_lights_stream.send(
-            ObstaclesMessage(traffic_lights, msg.timestamp, runtime))
+            TrafficLightsMessage(msg.timestamp, traffic_lights))
 
     def __convert_to_detected_tl(self, boxes, scores, labels, height, width):
         traffic_lights = []

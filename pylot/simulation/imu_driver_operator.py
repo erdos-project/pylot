@@ -68,10 +68,11 @@ class IMUDriverOperator(erdos.Operator):
             timestamp = erdos.Timestamp(coordinates=[game_time])
             watermark_msg = erdos.WatermarkMessage(timestamp)
 
-            msg = IMUMessage(Transform.from_carla_transform(imu_msg.transform),
+            msg = IMUMessage(timestamp,
+                             Transform.from_carla_transform(imu_msg.transform),
                              Vector3D.from_carla_vector(imu_msg.accelerometer),
                              Vector3D.from_carla_vector(imu_msg.gyroscope),
-                             imu_msg.compass, timestamp)
+                             imu_msg.compass)
             self._imu_stream.send(msg)
             # Note: The operator is set not to automatically propagate
             # watermark messages received on input streams. Thus, we can

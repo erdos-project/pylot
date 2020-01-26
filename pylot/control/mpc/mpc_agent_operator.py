@@ -90,7 +90,7 @@ class MPCAgentOperator(erdos.Operator):
         # Get ground obstacles info.
         obstacles = self._obstacles_msgs.popleft().obstacles
         # Get ground traffic lights info.
-        traffic_lights = self._traffic_light_msgs.popleft().traffic_lights
+        traffic_lights = self._traffic_light_msgs.popleft().obstacles
 
         speed_factor, state = pylot.control.utils.stop_for_agents(
             vehicle_transform.location, wp_angle, wp_vector, obstacles,

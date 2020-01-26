@@ -129,8 +129,8 @@ class ERDOSAgent(AutonomousAgent):
             if key in self._camera_streams:
                 self._camera_streams[key].send(
                     pylot.perception.messages.FrameMessage(
-                        CameraFrame(val[1], 'BGR', self._camera_setups[key]),
-                        erdos_timestamp))
+                        erdos_timestamp,
+                        CameraFrame(val[1], 'BGR', self._camera_setups[key])))
                 self._camera_streams[key].send(
                     erdos.WatermarkMessage(erdos_timestamp))
             elif key == 'can_bus':
@@ -179,9 +179,8 @@ class ERDOSAgent(AutonomousAgent):
         self._can_bus_stream.send(erdos.WatermarkMessage(timestamp))
 
     def send_lidar_msg(self, data, transform, timestamp):
-        msg = pylot.perception.messages.PointCloudMessage(PointCloud(
-            data, transform),
-                                                          timestamp=timestamp)
+        msg = pylot.perception.messages.PointCloudMessage(
+            timestamp, PointCloud(data, transform))
         self._point_cloud_stream.send(msg)
         self._point_cloud_stream.send(erdos.WatermarkMessage(timestamp))
 

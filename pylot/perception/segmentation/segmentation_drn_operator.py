@@ -116,4 +116,4 @@ class SegmentationDRNOperator(erdos.Operator):
         if self._flags.visualize_segmentation_output:
             frame.visualize(self._name, msg.timestamp)
         segmented_stream.send(
-            SegmentedFrameMessage(frame, msg.timestamp, runtime))
+            SegmentedFrameMessage(msg.timestamp, frame, runtime))

@@ -38,13 +38,16 @@ def add_obstacle_detection(center_camera_stream,
             :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
             are received.
         ground_obstacles_stream (:py:class:`erdos.ReadStream`, optional):
-            Stream on which :py:class:`~pylot.simulation.GroundObstaclesMessage`
-            messages are received.
+            Stream on which
+            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
+            are received.
         ground_speed_limit_signs_stream (:py:class:`erdos.ReadStream`, optional):
-            Stream on which :py:class:`~pylot.simulation.GroundSpeedSignsMessage`
+            Stream on which
+            :py:class:`~pylot.perception.messages.SpeedSignsMessage`
             messages are received.
         ground_stop_signs_stream (:py:class:`erdos.ReadStream`, optional):
-            Stream on which :py:class:`~pylot.simulation.GroundStopSignsMessage`
+            Stream on which
+            :py:class:`~pylot.perception.messages.StopSignsMessage`
             messages are received.
 
     Returns:
@@ -79,6 +82,10 @@ def add_obstacle_detection(center_camera_stream,
                 obstacles_stream, perfect_obstacles_stream)
         if FLAGS.perfect_obstacle_detection:
             obstacles_stream = perfect_obstacles_stream
+
+    if FLAGS.carla_obstacle_detection:
+        obstacles_stream = ground_obstacles_stream
+
     return obstacles_stream
 
 
@@ -145,6 +152,10 @@ def add_traffic_light_detection(tl_transform,
                 ground_traffic_lights_stream, tl_camera_stream,
                 tl_depth_camera_stream, tl_segmented_camera_stream,
                 can_bus_stream)
+
+    if FLAGS.carla_traffic_light_detection:
+        traffic_lights_stream = ground_traffic_lights_stream
+
     return traffic_lights_stream
 
 
@@ -232,8 +243,9 @@ def add_obstacle_tracking(center_camera_stream,
         can_bus_stream (:py:class:`erdos.ReadStream`, optional): A stream on
             which can bus info is received.
         ground_obstacles_stream (:py:class:`erdos.ReadStream`, optional):
-            Stream on which :py:class:`~pylot.simulation.GroundObstaclesMessage`
-            messages are received.
+            Stream on which
+            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
+            are received.
 
     Returns:
         :py:class:`erdos.ReadStream`: Stream on which
@@ -392,10 +404,11 @@ def add_control(can_bus_stream, obstacles_stream, traffic_lights_stream,
             open drive string representations are received. Operators can
             construct HDMaps out of the open drive strings.
         ground_obstacles_stream (:py:class:`erdos.ReadStream`, optional):
-            Stream on which :py:class:`~pylot.simulation.GroundObstaclesMessage`
-            messages are received.
+            Stream on which
+            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
+            are received.
         ground_traffic_lights_stream (:py:class:`erdos.ReadStream`, optional):
-            Stream on which :py:class:`~pylot.simulation.GroundTrafficLightsMessage`
+            Stream on which :py:class:`~pylot.perception.messages.TrafficLightsMessage`
             messages are received.
 
     Returns:

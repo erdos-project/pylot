@@ -1,7 +1,7 @@
 from collections import deque
 import erdos
 
-from pylot.perception.messages import ObstaclesMessage
+from pylot.perception.messages import TrafficLightsMessage
 from pylot.simulation.utils import get_world, get_traffic_lights_obstacles
 
 
@@ -10,7 +10,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
 
     Args:
         ground_traffic_lights_stream (:py:class:`erdos.ReadStream`): Stream on
-            which :py:class:`~pylot.simulation.GroundTrafficLightsMessage`
+            which :py:class:`~pylot.perception.messages.TrafficLightsMessage`
             messages are received.
         tl_camera_stream (:py:class:`erdos.ReadStream`): Stream on which BGR
             frames are received.
@@ -25,7 +25,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
             info is received.
         traffic_lights_stream (:py:class:`erdos.WriteStream`): Stream on which
             the operator publishes
-            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
+            :py:class:`~pylot.perception.messages.TrafficLightsMessage` messages
             for traffic lights.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
@@ -104,7 +104,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
                 and self._frame_cnt % self._flags.log_every_nth_message != 0):
             # There's no point to run the perfect detector if collecting
             # data, and only logging every nth frame.
-            traffic_lights_stream.send(ObstaclesMessage([], timestamp))
+            traffic_lights_stream.send(TrafficLightsMessage(timestamp, []))
             return
 
         # The camera setup sent with the image is relative to the car, we need
@@ -113,8 +113,8 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
             vehicle_transform * depth_msg.frame.camera_setup.transform)
 
         det_traffic_lights = get_traffic_lights_obstacles(
-            traffic_light_msg.traffic_lights, depth_msg.frame,
-            segmented_msg.frame, self._town_name)
+            traffic_light_msg.obstacles, depth_msg.frame, segmented_msg.frame,
+            self._town_name)
 
         if (self._flags.visualize_detected_traffic_lights
                 or self._flags.log_detector_output):
@@ -128,7 +128,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
 
         # Send the detected traffic lights.
         traffic_lights_stream.send(
-            ObstaclesMessage(det_traffic_lights, timestamp))
+            TrafficLightsMessage(timestamp, det_traffic_lights))
 
     def on_can_bus_update(self, msg):
         self._logger.debug('@{}: received can bus message'.format(

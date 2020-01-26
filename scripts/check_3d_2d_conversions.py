@@ -5,7 +5,7 @@ import pptk
 import time
 
 from pylot.perception.depth_frame import DepthFrame
-from pylot.perception.messages import FrameMessage
+from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.point_cloud import PointCloud
 from pylot.simulation.utils import get_world
 import pylot.utils
@@ -76,7 +76,7 @@ def on_camera_msg(carla_image):
     game_time = int(carla_image.timestamp * 1000)
     print("Received camera msg {}".format(game_time))
     global last_frame
-    last_frame = FrameMessage(carla_image, game_time, encoding='carla')
+    last_frame = CameraFrame.from_carla_image(carla_image)
 
 
 def on_depth_msg(carla_image):

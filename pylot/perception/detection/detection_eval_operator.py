@@ -18,8 +18,8 @@ class DetectionEvalOperator(erdos.Operator):
         obstacles_stream (:py:class:`erdos.ReadStream`): The stream on which
             detected obstacles are received.
         ground_obstacles_stream: The stream on which
-            :py:class:`~pylot.simulation.messages.GroundObstaclesMessage`
-            are received from the simulator.
+            :py:class:`~pylot.perception.messages.ObstaclesMessage` are
+            received from the simulator.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         log_file_name (:obj:`str`, optional): Name of file where log messages
@@ -60,8 +60,8 @@ class DetectionEvalOperator(erdos.Operator):
             obstacles_stream (:py:class:`erdos.ReadStream`): The stream on 
                 which detected obstacles are received.
             ground_obstacles_stream: The stream on which
-                :py:class:`~pylot.simulation.messages.GroundObstaclesMessage`
-                are received from the simulator.
+                :py:class:`~pylot.perception.messages.ObstaclesMessage` are
+                received from the simulator.
         """
         return []
 

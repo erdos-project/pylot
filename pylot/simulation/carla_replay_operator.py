@@ -4,9 +4,10 @@ import sys
 import threading
 import time
 
+from pylot.perception.messages import ObstaclesMessage, SpeedSignsMessage, \
+    StopSignsMessage, TrafficLightsMessage
 import pylot.utils
 from pylot.simulation.utils import get_world, extract_data_in_pylot_format
-import pylot.simulation.messages
 import pylot.simulation.utils
 
 flags.DEFINE_float('carla_replay_start_time', 0.0,
@@ -103,20 +104,16 @@ class CarlaReplayOperator(erdos.Operator):
         (vehicles, people, traffic_lights, speed_limits,
          traffic_stops) = extract_data_in_pylot_format(actor_list)
 
-        obstacles_msg = pylot.simulation.messages.GroundObstaclesMessage(
-            timestamp, vehicles + people)
+        obstacles_msg = ObstaclesMessage(timestamp, vehicles + people)
         self._ground_obstacles_stream.send(obstacles_msg)
         self._ground_obstacles_stream.send(watermark_msg)
-        traffic_lights_msg = pylot.simulation.messages.GroundTrafficLightsMessage(
-            timestamp, traffic_lights)
+        traffic_lights_msg = TrafficLightsMessage(timestamp, traffic_lights)
         self._ground_traffic_lights_stream.send(traffic_lights_msg)
         self._ground_traffic_lights_stream.send(watermark_msg)
-        speed_limit_signs_msg = pylot.simulation.messages.GroundSpeedSignsMessage(
-            timestamp, speed_limits)
+        speed_limit_signs_msg = SpeedSignsMessage(timestamp, speed_limits)
         self._ground_speed_limit_signs_stream.send(speed_limit_signs_msg)
         self._ground_speed_limit_signs_stream.send(watermark_msg)
-        stop_signs_msg = pylot.simulation.messages.GroundStopSignsMessage(
-            timestamp, traffic_stops)
+        stop_signs_msg = StopSignsMessage(timestamp, traffic_stops)
         self._ground_stop_signs_stream.send(stop_signs_msg)
         self._ground_stop_signs_stream.send(watermark_msg)
 

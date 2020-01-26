@@ -53,14 +53,6 @@ pylot.simulation.lidar\_driver\_operator module
     :undoc-members:
     :show-inheritance:
 
-pylot.simulation.messages module
---------------------------------
-
-.. automodule:: pylot.simulation.messages
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pylot.simulation.perfect\_detector\_operator module
 ---------------------------------------------------
 

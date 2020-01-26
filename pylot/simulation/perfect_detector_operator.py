@@ -22,14 +22,14 @@ class PerfectDetectorOperator(erdos.Operator):
         can_bus_stream (:py:class:`erdos.ReadStream`):
             Stream on which can bus info is received.
         ground_obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
-            :py:class:`~pylot.simulation.GroundObstaclesMessage` messages are
-            received.
+            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
+            are received.
         ground_speed_limit_signs_stream (:py:class:`erdos.ReadStream`): Stream
-            on which :py:class:`~pylot.simulation.GroundSpeedSignsMessage`
+            on which :py:class:`~pylot.perception.messages.SpeedSignsMessage`
             messages are received.
         ground_stop_signs_stream (:py:class:`erdos.ReadStream`): Stream on
-            which :py:class:`~pylot.simulation.GroundStopSignsMessage` messages
-            are received.
+            which :py:class:`~pylot.perception.messages.StopSignsMessage`
+            messages are received.
         obstacles_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator publishes
             :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
@@ -126,7 +126,7 @@ class PerfectDetectorOperator(erdos.Operator):
                 and self._frame_cnt % self._flags.log_every_nth_message != 0):
             # There's no point to run the perfect detector if collecting
             # data, and only logging every nth frame.
-            obstacles_stream.send(ObstaclesMessage([], timestamp))
+            obstacles_stream.send(ObstaclesMessage(timestamp, []))
             return
         vehicle_transform = can_bus_msg.data.transform
 
@@ -150,7 +150,7 @@ class PerfectDetectorOperator(erdos.Operator):
         det_obstacles = det_obstacles + det_speed_limits + det_stop_signs
 
         # Send the detected obstacles.
-        obstacles_stream.send(ObstaclesMessage(det_obstacles, timestamp))
+        obstacles_stream.send(ObstaclesMessage(timestamp, det_obstacles))
 
         if (self._flags.visualize_detected_obstacles
                 or self._flags.log_detector_output):

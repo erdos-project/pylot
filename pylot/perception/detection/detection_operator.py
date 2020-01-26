@@ -175,4 +175,4 @@ class DetectionOperator(erdos.Operator):
                                                      runtime))
         # Send out obstacles.
         obstacles_stream.send(
-            ObstaclesMessage(obstacles, msg.timestamp, runtime))
+            ObstaclesMessage(msg.timestamp, obstacles, runtime))
