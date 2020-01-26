@@ -118,19 +118,8 @@ class RRTStarPlanningOperator(erdos.Operator):
         waypoints = collections.deque(
             itertools.islice(waypoints, 0,
                              DEFAULT_NUM_WAYPOINTS))  # only take 50 meters
-        next_waypoint = waypoints[self._wp_index]
-        wp_steer_speed_vector, _, wp_steer_speed_angle = \
-            vehicle_transform.get_vector_magnitude_angle(
-                next_waypoint.location)
-        output_msg = WaypointsMessage(timestamp,
-                                      waypoints=waypoints,
-                                      wp_angle=wp_steer_speed_angle,
-                                      wp_vector=wp_steer_speed_vector,
-                                      wp_angle_speed=wp_steer_speed_angle)
 
-        # send waypoints message
-        waypoints_stream.send(output_msg)
-        waypoints_stream.send(erdos.WatermarkMessage(timestamp))
+        waypoints_stream.send(WaypointsMessage(timestamp, waypoints))
 
     def _build_obstacle_map(self, vehicle_transform):
         """

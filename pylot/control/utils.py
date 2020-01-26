@@ -6,6 +6,15 @@ from pylot.perception.detection.traffic_light import TrafficLightColor
 VEHICLE_LABELS = {'car', 'bicycle', 'motorcycle', 'bus', 'truck', 'vehicle'}
 
 
+def compute_waypoint_vector_and_angle(vehicle_transform, waypoints, wp_num):
+    # Get vectors and angles to corresponding speed and steer waypoints.
+    next_waypoint = waypoints[min(len(waypoints) - 1, wp_num)]
+    wp_vector, _, wp_angle = \
+        vehicle_transform.get_vector_magnitude_angle(
+            next_waypoint.location)
+    return wp_vector, wp_angle
+
+
 def radians_to_steer(rad, steer_gain):
     """Converts radians to steer input.
 

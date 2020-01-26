@@ -70,12 +70,6 @@ class WaypointPlanningOperator(erdos.Operator):
         # scenario runner, or computed using the Carla global planner when
         # running in stand-alone mode. The waypoints are Pylot transforms.
         self._waypoints = collections.deque()
-        # The operator picks the wp_num_steer-th waypoint to compute the angle
-        # it has to steer by when taking a turn.
-        self._wp_num_steer = 9  # use 10th waypoint for steering
-        # The operator picks the wp_num_speed-th waypoint to compute the angle
-        # it has to steer by when driving straight.
-        self._wp_num_speed = 4  # use tth waypoint for speed
         # We're not running in challenge mode if no track flag is present.
         # Thus, we can directly get the map from the simulator.
         if not hasattr(self._flags, 'track'):
@@ -91,13 +85,6 @@ class WaypointPlanningOperator(erdos.Operator):
         else:
             # Do not recompute waypoints upon each run.
             self._recompute_waypoints = False
-            # TODO(ionel): HACK! In Carla challenge track 1 and 2 the waypoints
-            # are coarse grained (30 meters apart). We pick the first waypoint
-            # to compute the angles. However, we should instead implement
-            # trajectory planning.
-            if self._flags.track == 1 or self._flags == 2:
-                self._wp_num_steer = 1
-                self._wp_num_speed = 1
 
     @staticmethod
     def connect(can_bus_stream, open_drive_stream, global_trajectory_stream):
@@ -151,43 +138,7 @@ class WaypointPlanningOperator(erdos.Operator):
         self._logger.debug('@{}: received can bus message'.format(
             msg.timestamp))
         self._vehicle_transform = msg.data.transform
-        self.__update_waypoints()
 
-        next_waypoint_steer = self._waypoints[min(
-            len(self._waypoints) - 1, self._wp_num_steer)]
-        next_waypoint_speed = self._waypoints[min(
-            len(self._waypoints) - 1, self._wp_num_speed)]
-
-        # Get vectors and angles to corresponding speed and steer waypoints.
-        wp_steer_vector, _, wp_steer_angle = \
-            self._vehicle_transform.get_vector_magnitude_angle(
-                next_waypoint_steer.location)
-        wp_speed_vector, _, wp_speed_angle = \
-            self._vehicle_transform.get_vector_magnitude_angle(
-                next_waypoint_speed.location)
-
-        head_waypoints = collections.deque(
-            itertools.islice(self._waypoints, 0, DEFAULT_NUM_WAYPOINTS))
-
-        output_msg = WaypointsMessage(msg.timestamp,
-                                      waypoints=head_waypoints,
-                                      target_speed=self._flags.target_speed,
-                                      wp_angle=wp_steer_angle,
-                                      wp_vector=wp_steer_vector,
-                                      wp_angle_speed=wp_speed_angle)
-        waypoints_stream.send(output_msg)
-
-    def __update_waypoints(self):
-        """Updates the waypoints.
-
-        Depending on setup, the method either recomputes the waypoints
-        between the ego vehicle and the goal location, or just garbage collects
-        waypoints that have already been achieved.
-
-        Returns:
-            (wp_steer, wp_speed): The waypoints to be used to compute steer and
-            speed angles.
-        """
         if self._recompute_waypoints:
             self._waypoints = self._map.compute_waypoints(
                 self._vehicle_transform.location, self._goal_location)
@@ -196,6 +147,11 @@ class WaypointPlanningOperator(erdos.Operator):
             # If waypoints are empty (e.g., reached destination), set waypoint
             # to current vehicle location.
             self._waypoints = collections.deque([self._vehicle_transform])
+
+        head_waypoints = collections.deque(
+            itertools.islice(self._waypoints, 0, DEFAULT_NUM_WAYPOINTS))
+
+        waypoints_stream.send(WaypointsMessage(msg.timestamp, head_waypoints))
 
     def __remove_completed_waypoints(self):
         """Removes waypoints that the ego vehicle has already completed.

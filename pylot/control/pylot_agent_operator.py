@@ -114,9 +114,16 @@ class PylotAgentOperator(erdos.Operator):
         # Vehicle sped in m/s
         vehicle_speed = can_bus_msg.data.forward_speed
         waypoint_msg = self._waypoint_msgs.popleft()
-        wp_angle = waypoint_msg.wp_angle
-        wp_vector = waypoint_msg.wp_vector
-        wp_angle_speed = waypoint_msg.wp_angle_speed
+        # The operator picks the wp_num_steer-th waypoint to compute the angle
+        # it has to steer by when taking a turn.
+        # Use 10th waypoint for steering.
+        wp_vector, wp_angle = \
+            pylot.control.utils.compute_waypoint_vector_and_angle(
+                vehicle_transform, waypoint_msg.waypoints, 9)
+        # Use 5th waypoint for speed.
+        _, wp_angle_speed = \
+            pylot.control.utils.compute_waypoint_vector_and_angle(
+                vehicle_transform, waypoint_msg.waypoints, 4)
         tl_msg = self._traffic_lights_msgs.popleft()
         obstacles_msg = self._obstacles_msgs.popleft()
 
@@ -130,7 +137,7 @@ class PylotAgentOperator(erdos.Operator):
 
         control_msg = self.get_control_message(wp_angle, wp_angle_speed,
                                                speed_factor, vehicle_speed,
-                                               waypoint_msg.target_speed,
+                                               self._flags.target_speed,
                                                timestamp)
 
         # Get runtime in ms.

@@ -80,8 +80,11 @@ class MPCAgentOperator(erdos.Operator):
         vehicle_speed = can_bus_msg.data.forward_speed
         # Get waypoints.
         waypoint_msg = self._waypoint_msgs.popleft()
-        wp_angle = waypoint_msg.wp_angle
-        wp_vector = waypoint_msg.wp_vector
+        # The operator picks the wp_num_steer-th waypoint to compute the angle
+        # it has to steer. Operator uses 10th waypoint.
+        wp_vector, wp_angle = \
+            pylot.control.utils.compute_waypoint_vector_and_angle(
+                vehicle_transform, waypoint_msg.waypoints, 9)
         # Only take the first 50 waypoints (50 meters).
         waypoints = deque(itertools.islice(waypoint_msg.waypoints, 0, 50))
         # Get ground obstacles info.
