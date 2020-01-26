@@ -18,7 +18,6 @@ from pylot.map.hd_map import HDMap
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.rrt_star.rrt_star import apply_rrt_star
 from pylot.planning.rrt_star.utils import start_target_to_space
-from pylot.planning.utils import get_waypoint_vector_and_angle
 from pylot.simulation.utils import get_map
 from pylot.utils import Location
 
@@ -120,10 +119,9 @@ class RRTStarPlanningOperator(erdos.Operator):
             itertools.islice(waypoints, 0,
                              DEFAULT_NUM_WAYPOINTS))  # only take 50 meters
         next_waypoint = waypoints[self._wp_index]
-        wp_steer_speed_vector, wp_steer_speed_angle = \
-            get_waypoint_vector_and_angle(
-                next_waypoint, vehicle_transform
-            )
+        wp_steer_speed_vector, _, wp_steer_speed_angle = \
+            vehicle_transform.get_vector_magnitude_angle(
+                next_waypoint.location)
         output_msg = WaypointsMessage(timestamp,
                                       waypoints=waypoints,
                                       wp_angle=wp_steer_speed_angle,

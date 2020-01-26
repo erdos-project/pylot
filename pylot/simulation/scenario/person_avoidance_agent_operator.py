@@ -6,7 +6,6 @@ from pid_controller.pid import PID
 
 from pylot.control.messages import ControlMessage
 import pylot.control.utils
-from pylot.planning.utils import get_waypoint_vector_and_angle
 from pylot.simulation.utils import get_world
 
 flags.DEFINE_enum('avoidance_behavior', 'stop', ['stop', 'swerve'],
@@ -218,9 +217,10 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
                                          size=0.2,
                                          life_time=30000.0)
 
-            wp_steer_vector, wp_steer_angle = get_waypoint_vector_and_angle(
-                pylot.utils.Transform.from_carla_transform(wp_steer.transform),
-                ego_transform)
+            wp_steer_vector, _, wp_steer_angle = \
+                ego_transform.get_vector_magnitude_angle(
+                    pylot.utils.Location.from_carla_location(
+                        wp_steer.transform.location))
             current_speed = max(0, can_bus_msg.data.forward_speed)
             steer = pylot.control.utils.radians_to_steer(
                 wp_steer_angle, self._flags.steer_gain)

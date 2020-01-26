@@ -10,10 +10,15 @@ class WaypointsMessage(erdos.Message):
         waypoints (list(:py:class:`~pylot.utils.Transform`), optional): List of
             waypoint transforms.
         target_speed (:obj:`float`, optional): Target speed in m/s.
-        wp_angle (:obj:`float`, optional):
-        wp_vector (:obj:`float`, optional):
-        wp_angle_speed (:obj:`float`, optional):
-        wp_vector_speed (:obj:`float`, optional):
+        wp_angle (:obj:`float`, optional): Angle between the ego vehicle
+            forward vector and the waypoint used for steering.
+        wp_vector (:py:class:`~pylot.utils.Vector2D`, optional): Vector between
+            the ego vehicle and the waypoint used for steering.
+        wp_angle_speed (:obj:`float`, optional): Angle between the ego vehicle
+            forward vector and the waypoint used for decising vehicle speed.
+        wp_vector_speed (:py:class:`~pylot.utils.Vector2D`, optional): Vector
+            between the ego vehicle and the waypoint used for decising vehicle
+            speed.
     """
     def __init__(self,
                  timestamp,

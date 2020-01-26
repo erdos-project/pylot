@@ -158,6 +158,32 @@ class Vector2D(object):
         self.x = x
         self.y = y
 
+    def get_angle(self, other):
+        """Computes the angle between the vector and another vector."""
+        angle = math.atan2(self.y, self.x) - math.atan2(other.y, other.x)
+        if angle > math.pi:
+            angle -= 2 * math.pi
+        elif angle < -math.pi:
+            angle += 2 * math.pi
+        return angle
+
+    def get_vector_and_magnitude(self, other):
+        """Calculates vector and magnitude between two vectors.
+
+        Args:
+            other (:py:class:`.Vector2D`): The other vector to be used to
+                calculate.
+
+        Returns:
+            :py:class:`.Vector2D`, :obj:`float`: A tuple comprising of a 2D
+            vector and its magnitude.
+        """
+        vec = np.array([self.x - other.x, self.y - other.y])
+        magnitude = np.linalg.norm(vec)
+        if magnitude > 0.00001:
+            vec = vec / magnitude
+        return Vector2D(vec[0], vec[1]), magnitude
+
     def __add__(self, other):
         """Adds the two vectors together and returns the result. """
         return type(self)(x=self.x + other.x, y=self.y + other.y)
@@ -239,14 +265,12 @@ class Location(Vector3D):
                 calculate.
 
         Returns:
-            A tuple comprising of a 2D vector and its magnitude.
+            :py:class:`.Vector2D`, :obj:`float`: A tuple comprising of a 2D
+            vector and its magnitude.
         """
-        vec = np.array([self.x, self.y] - np.array([other.x, other.y]))
-        dist = math.sqrt(vec[0]**2 + vec[1]**2)
-        if abs(dist) < 0.00001:
-            return vec, dist
-        else:
-            return vec / dist, dist
+        vec = Vector2D(self.x, self.y)
+        other_vec = Vector2D(other.x, other.y)
+        return vec.get_vector_and_magnitude(other_vec)
 
     def as_carla_location(self):
         """Retrieves the location as a carla location instance.
@@ -450,7 +474,7 @@ class Transform(object):
                            yaw=self.rotation.yaw,
                            roll=self.rotation.roll))
 
-    def compute_magnitude_angle(self, target_loc):
+    def get_vector_magnitude_angle(self, target_loc):
         """Computes distance and relative angle between the transform and a
         target location.
 
@@ -460,22 +484,17 @@ class Transform(object):
         Returns:
             Tuple of distance to the target and the angle
         """
-        # TODO(Sukrit) :: Change this to use Vector2D instead of computing
-        # norms here.
-        target_vector = np.array(
-            [target_loc.x - self.location.x, target_loc.y - self.location.y])
-        norm_target = np.linalg.norm(target_vector)
+        target_vec, magnitude = target_loc.get_vector_and_magnitude(
+            self.location)
+        if magnitude > 0:
+            forward_vector = Vector2D(
+                math.cos(math.radians(self.rotation.yaw)),
+                math.sin(math.radians(self.rotation.yaw)))
+            angle = target_vec.get_angle(forward_vector)
+        else:
+            angle = 0
+        return (target_vec, magnitude, angle)
 
-        forward_vector = np.array([
-            math.cos(math.radians(self.rotation.yaw)),
-            math.sin(math.radians(self.rotation.yaw))
-        ])
-        d_angle = math.degrees(
-            math.acos(np.dot(forward_vector, target_vector) / norm_target))
-
-        return (norm_target, d_angle)
-
-    # TODO (Sukrit) :: This method should use compute_magnitude_angle.
     def is_within_distance_ahead(self, dst_loc, max_distance):
         """Checks if a location is within a distance.
 
@@ -486,25 +505,13 @@ class Transform(object):
         Returns:
             bool: True if other location is within max_distance.
         """
-        # TODO(Sukrit) :: Change this to use Vector2D instead of computing
-        # norms here.
-        target_vector = np.array(
-            [dst_loc.x - self.location.x, dst_loc.y - self.location.y])
-        norm_dst = np.linalg.norm(target_vector)
-
+        norm_dst, d_angle = self.get_vector_magnitude_angle(dst_loc)
         # Return if the vector is too small.
         if norm_dst < 0.001:
             return True
-
         # Return if the vector is greater than the distance.
         if norm_dst > max_distance:
             return False
-        forward_vector = np.array([
-            math.cos(math.radians(self.rotation.yaw)),
-            math.sin(math.radians(self.rotation.yaw))
-        ])
-        d_angle = math.degrees(
-            math.acos(np.dot(forward_vector, target_vector) / norm_dst))
         return d_angle < 90.0
 
     def __mul__(self, other):

@@ -7,8 +7,7 @@ import itertools
 from pylot.map.hd_map import HDMap
 import pylot.planning.cost_functions
 from pylot.planning.messages import WaypointsMessage
-from pylot.planning.utils import get_waypoint_vector_and_angle, \
-    BehaviorPlannerState
+from pylot.planning.utils import BehaviorPlannerState
 from pylot.simulation.utils import get_map
 import pylot.utils
 
@@ -160,10 +159,12 @@ class WaypointPlanningOperator(erdos.Operator):
             len(self._waypoints) - 1, self._wp_num_speed)]
 
         # Get vectors and angles to corresponding speed and steer waypoints.
-        wp_steer_vector, wp_steer_angle = get_waypoint_vector_and_angle(
-            next_waypoint_steer, self._vehicle_transform)
-        wp_speed_vector, wp_speed_angle = get_waypoint_vector_and_angle(
-            next_waypoint_speed, self._vehicle_transform)
+        wp_steer_vector, _, wp_steer_angle = \
+            self._vehicle_transform.get_vector_magnitude_angle(
+                next_waypoint_steer.location)
+        wp_speed_vector, _, wp_speed_angle = \
+            self._vehicle_transform.get_vector_magnitude_angle(
+                next_waypoint_speed.location)
 
         head_waypoints = collections.deque(
             itertools.islice(self._waypoints, 0, DEFAULT_NUM_WAYPOINTS))

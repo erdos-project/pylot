@@ -6,16 +6,6 @@ from pylot.perception.detection.traffic_light import TrafficLightColor
 VEHICLE_LABELS = {'car', 'bicycle', 'motorcycle', 'bus', 'truck', 'vehicle'}
 
 
-def get_angle(vec_dst, vec_src):
-    angle = (math.atan2(vec_dst[1], vec_dst[0]) -
-             math.atan2(vec_src[1], vec_src[0]))
-    if angle > math.pi:
-        angle -= 2 * math.pi
-    elif angle < -math.pi:
-        angle += 2 * math.pi
-    return angle
-
-
 def radians_to_steer(rad, steer_gain):
     """Converts radians to steer input.
 
@@ -89,7 +79,7 @@ def stop_person(ego_vehicle_location, person_location, wp_vector,
     speed_factor_p_temp = 1
     p_vector, p_dist = person_location.get_vector_and_magnitude(
         ego_vehicle_location)
-    p_angle = get_angle(p_vector, wp_vector)
+    p_angle = p_vector.get_angle(wp_vector)
     # Check if person is on hit zone.
     if (math.fabs(p_angle) < flags.person_angle_hit_thres
             and p_dist < flags.person_distance_hit_thres):
@@ -119,7 +109,7 @@ def stop_vehicle(ego_vehicle_location, obs_vehicle_location, wp_vector,
     speed_factor_v_temp = 1
     v_vector, v_dist = obs_vehicle_location.get_vector_and_magnitude(
         ego_vehicle_location)
-    v_angle = get_angle(v_vector, wp_vector)
+    v_angle = v_vector.get_angle(wp_vector)
 
     min_angle = -0.5 * flags.vehicle_angle_thres / flags.coast_factor
     max_angle = flags.vehicle_angle_thres / flags.coast_factor
@@ -160,7 +150,7 @@ def stop_traffic_light(ego_vehicle_location, tl_location, tl_state, wp_vector,
             or tl_state == TrafficLightColor.RED):
         tl_vector, tl_dist = tl_location.get_vector_and_magnitude(
             ego_vehicle_location)
-        tl_angle = get_angle(tl_vector, wp_vector)
+        tl_angle = tl_vector.get_angle(wp_vector)
 
         if ((0 < tl_angle <
              flags.traffic_light_angle_thres / flags.coast_factor and
