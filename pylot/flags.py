@@ -121,7 +121,8 @@ flags.DEFINE_bool('log_detector_output', False,
                   'Enable recording of bbox annotated detector images')
 flags.DEFINE_bool('log_traffic_light_detector_output', False,
                   'Enable recording of bbox annotated tl detector images')
-
+flags.DEFINE_bool('log_imu', False,
+                  'Enable recording of IMU measurements')
 # Flag validators.
 flags.register_multi_flags_validator(
     [
