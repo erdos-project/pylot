@@ -39,7 +39,6 @@ from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
 from pylot.prediction.prediction_eval_operator import PredictionEvalOperator
 # Control operators.
 from pylot.control.mpc.mpc_agent_operator import MPCAgentOperator
-from pylot.control.pid_control_operator import PIDControlOperator
 from pylot.control.pylot_agent_operator import PylotAgentOperator
 # Logging operators.
 from pylot.loggers.bounding_box_logger_operator import \
@@ -415,17 +414,6 @@ def add_fusion(can_bus_stream, obstacles_stream, depth_stream,
                       'fusion_verification_operator',
                       log_file_name=FLAGS.log_file_name)
     return obstacle_pos_stream
-
-
-def add_pid_control(waypoints_stream, can_bus_stream):
-    [control_stream] = erdos.connect(PIDControlOperator,
-                                     [waypoints_stream, can_bus_stream],
-                                     True,
-                                     'pid_control_operator',
-                                     FLAGS,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_file_name=FLAGS.csv_log_file_name)
-    return control_stream
 
 
 def add_mpc_agent(can_bus_stream, ground_obstacles_stream,

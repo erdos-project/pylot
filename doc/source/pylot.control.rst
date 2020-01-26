@@ -19,14 +19,6 @@ pylot.control.messages module
     :undoc-members:
     :show-inheritance:
 
-pylot.control.pid\_control\_operator module
--------------------------------------------
-
-.. automodule:: pylot.control.pid_control_operator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pylot.control.pylot\_agent\_operator module
 -------------------------------------------
 
