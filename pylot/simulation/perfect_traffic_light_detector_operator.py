@@ -2,7 +2,7 @@ from collections import deque
 import erdos
 
 from pylot.perception.messages import TrafficLightsMessage
-from pylot.simulation.utils import get_world, get_traffic_lights_obstacles
+from pylot.simulation.utils import get_map, get_traffic_lights_obstacles
 
 
 class PerfectTrafficLightDetectorOperator(erdos.Operator):
@@ -25,8 +25,8 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
             info is received.
         traffic_lights_stream (:py:class:`erdos.WriteStream`): Stream on which
             the operator publishes
-            :py:class:`~pylot.perception.messages.TrafficLightsMessage` messages
-            for traffic lights.
+            :py:class:`~pylot.perception.messages.TrafficLightsMessage`
+            messages for traffic lights.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         log_file_name (:obj:`str`, optional): Name of file where log messages
@@ -66,11 +66,6 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         self._name = name
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
-        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
-                             self._flags.carla_timeout)
-        if world is None:
-            raise ValueError("There was an issue connecting to the simulator.")
-        self._town_name = world.get_map().name
 
         self._traffic_lights = deque()
         self._bgr_msgs = deque()
@@ -84,6 +79,14 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
                 depth_camera_stream, segmented_camera_stream, can_bus_stream):
         traffic_lights_stream = erdos.WriteStream()
         return [traffic_lights_stream]
+
+    def run(self):
+        # Run method is invoked after all operators finished initializing,
+        # including the CARLA operator, which reloads the world. Thus, if
+        # we get the map here we're sure it is up-to-date.
+        world_map = get_map(self._flags.carla_host, self._flags.carla_port,
+                            self._flags.carla_timeout)
+        self._town_name = world_map.name
 
     def on_watermark(self, timestamp, traffic_lights_stream):
         """Invoked when all input streams have received a watermark.

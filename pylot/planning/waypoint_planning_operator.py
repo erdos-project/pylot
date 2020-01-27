@@ -65,31 +65,36 @@ class WaypointPlanningOperator(erdos.Operator):
         self.__initialize_behaviour_planner()
         # We do not know yet the vehicle's location.
         self._vehicle_transform = None
+        assert goal_location, 'Planner has not received a goal location'
+        self._goal_location = goal_location
         # Deque of waypoints the vehicle must follow. The waypoints are either
         # received on the global trajectory stream when running using the
         # scenario runner, or computed using the Carla global planner when
         # running in stand-alone mode. The waypoints are Pylot transforms.
         self._waypoints = collections.deque()
-        # We're not running in challenge mode if no track flag is present.
-        # Thus, we can directly get the map from the simulator.
-        if not hasattr(self._flags, 'track'):
-            self._map = HDMap(
-                get_map(self._flags.carla_host, self._flags.carla_port,
-                        self._flags.carla_timeout), log_file_name)
-            self._logger.info('Planner running in stand-alone mode')
-            assert goal_location, 'Planner has not received a goal location'
-            # Transform goal location to carla.Location
-            self._goal_location = goal_location
-            # Recompute waypoints upon each run.
-            self._recompute_waypoints = True
-        else:
-            # Do not recompute waypoints upon each run.
-            self._recompute_waypoints = False
 
     @staticmethod
     def connect(can_bus_stream, open_drive_stream, global_trajectory_stream):
         waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
+
+    def run(self):
+        # Run method is invoked after all operators finished initializing,
+        # including the CARLA operator, which reloads the world. Thus, if
+        # we get the map here we're sure it is up-to-date.
+
+        # We're not running in challenge mode if no track flag is present.
+        # Thus, we can directly get the map from the simulator.
+        if not hasattr(self._flags, 'track'):
+            self._map = HDMap(
+                get_map(self._flags.carla_host, self._flags.carla_port,
+                        self._flags.carla_timeout), self._log_file_name)
+            self._logger.info('Planner running in stand-alone mode')
+            # Recompute waypoints upon each run.
+            self._recompute_waypoints = True
+        else:
+            # Do not recompute waypoints upon each run.
+            self._recompute_waypoints = False
 
     def on_opendrive_map(self, msg):
         """Invoked whenever a message is received on the open drive stream.

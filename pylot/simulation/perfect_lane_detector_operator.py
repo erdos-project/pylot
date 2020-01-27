@@ -2,7 +2,7 @@ import erdos
 
 from pylot.perception.detection.utils import DetectedLane
 from pylot.perception.messages import DetectedLaneMessage
-from pylot.simulation.utils import get_world
+from pylot.simulation.utils import get_map
 import pylot.utils
 
 
@@ -29,14 +29,19 @@ class PerfectLaneDetectionOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._waypoint_precision = 0.05
-        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
-                             self._flags.carla_timeout)
-        self._world_map = world.get_map()
 
     @staticmethod
     def connect(can_bus_stream):
         detected_lane_stream = erdos.WriteStream()
         return [detected_lane_stream]
+
+    def run(self):
+        # Run method is invoked after all operators finished initializing,
+        # including the CARLA operator, which reloads the world. Thus, if
+        # we get the world here we're sure it is up-to-date.
+        self._world_map = get_map(self._flags.carla_host,
+                                  self._flags.carla_port,
+                                  self._flags.carla_timeout)
 
     def _lateral_shift(self, transform, shift):
         transform.rotation.yaw += 90

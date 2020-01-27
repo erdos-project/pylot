@@ -51,17 +51,21 @@ class ChauffeurLoggerOperator(erdos.Operator):
         self._current_transform = None
         self._previous_transform = None
         self._top_down_camera_setup = top_down_camera_setup
-        # Get world to access traffic lights.
-        _, self._world = pylot.simulation.utils.get_world(
-            self._flags.carla_host, self._flags.carla_port,
-            self._flags.carla_timeout)
-        if self._world is None:
-            raise ValueError('There was an issue connecting to the simulator.')
 
     @staticmethod
     def connect(vehicle_id_stream, can_bus_stream, obstacle_tracking_stream,
                 top_down_camera_stream, top_down_segmentation_stream):
         return []
+
+    def run(self):
+        # Run method is invoked after all operators finished initializing,
+        # including the CARLA operator, which reloads the world. Thus, if
+        # we get the world here we're sure it is up-to-date.
+        _, self._world = pylot.simulation.utils.get_world(
+            self._flags.carla_host, self._flags.carla_port,
+            self._flags.carla_timeout)
+        if self._world is None:
+            raise ValueError('There was an issue connecting to the simulator.')
 
     def on_tracking_update(self, msg):
         assert len(msg.timestamp.coordinates) == 1

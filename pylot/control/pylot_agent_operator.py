@@ -73,15 +73,6 @@ class PylotAgentOperator(erdos.Operator):
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
-        if not hasattr(self._flags, 'track'):
-            # The agent is not used in the Carla challenge. It has access to
-            # the simulator, and to the town map.
-            self._map = HDMap(
-                get_map(self._flags.carla_host, self._flags.carla_port,
-                        self._flags.carla_timeout), log_file_name)
-            self._logger.debug('Agent running using map')
-        else:
-            self._map = None
         self._pid = PID(p=self._flags.pid_p,
                         i=self._flags.pid_i,
                         d=self._flags.pid_d)
@@ -96,6 +87,20 @@ class PylotAgentOperator(erdos.Operator):
                 obstacles_stream, open_drive_stream):
         control_stream = erdos.WriteStream()
         return [control_stream]
+
+    def run(self):
+        # Run method is invoked after all operators finished initializing,
+        # including the CARLA operator, which reloads the world. Thus, if
+        # we get the map here we're sure it is up-to-date.
+        if not hasattr(self._flags, 'track'):
+            # The agent is not used in the Carla challenge. It has access to
+            # the simulator, and to the town map.
+            self._map = HDMap(
+                get_map(self._flags.carla_host, self._flags.carla_port,
+                        self._flags.carla_timeout), self._log_file_name)
+            self._logger.debug('Agent running using map')
+        else:
+            self._map = None
 
     def on_watermark(self, timestamp, control_stream):
         """Invoked when all input streams have received a watermark.

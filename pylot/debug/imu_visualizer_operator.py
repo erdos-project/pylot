@@ -29,15 +29,20 @@ class IMUVisualizerOperator(erdos.Operator):
         self._name = name
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._flags = flags
+
+    @staticmethod
+    def connect(imu_stream):
+        return []
+
+    def run(self):
+        # Run method is invoked after all operators finished initializing,
+        # including the CARLA operator, which reloads the world. Thus, if
+        # we get the world here we're sure it is up-to-date.
         _, self._world = pylot.simulation.utils.get_world(
             self._flags.carla_host, self._flags.carla_port,
             self._flags.carla_timeout)
         if self._world is None:
             raise ValueError("Error connecting to the simulator.")
-
-    @staticmethod
-    def connect(imu_stream):
-        return []
 
     def on_imu_update(self, msg):
         """Callback that gets called upon receipt of the IMU message.

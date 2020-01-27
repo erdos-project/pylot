@@ -53,6 +53,7 @@ class RRTStarPlanningOperator(erdos.Operator):
         erdos.add_watermark_callback([can_bus_stream, prediction_stream],
                                      [waypoints_stream], self.on_watermark)
         self._name = name
+        self._log_file_name = log_file_name
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
@@ -60,9 +61,6 @@ class RRTStarPlanningOperator(erdos.Operator):
 
         self._wp_index = 9
         self._waypoints = None
-        self._hd_map = HDMap(
-            get_map(self._flags.carla_host, self._flags.carla_port,
-                    self._flags.carla_timeout), log_file_name)
         self._goal_location = goal_location
 
         self._can_bus_msgs = deque()
@@ -72,6 +70,14 @@ class RRTStarPlanningOperator(erdos.Operator):
     def connect(can_bus_stream, prediction_stream):
         waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
+
+    def run(self):
+        # Run method is invoked after all operators finished initializing,
+        # including the CARLA operator, which reloads the world. Thus, if
+        # we get the map here we're sure it is up-to-date.
+        self._hd_map = HDMap(
+            get_map(self._flags.carla_host, self._flags.carla_port,
+                    self._flags.carla_timeout), self._log_file_name)
 
     def on_can_bus_update(self, msg):
         self._logger.debug('@{}: received can bus message'.format(

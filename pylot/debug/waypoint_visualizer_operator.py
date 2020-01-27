@@ -61,16 +61,21 @@ class WaypointVisualizerOperator(erdos.Operator):
         self._bgr_msgs = deque()
         self._waypoints_msgs = deque()
         self._can_bus_msgs = deque()
+
+    @staticmethod
+    def connect(waypoints_stream, camera_stream, can_bus_stream):
+        return []
+
+    def run(self):
+        # Run method is invoked after all operators finished initializing,
+        # including the CARLA operator, which reloads the world. Thus, if
+        # we get the world here we're sure it is up-to-date.
         if self._flags.draw_waypoints_on_world:
             _, self._world = pylot.simulation.utils.get_world(
                 self._flags.carla_host, self._flags.carla_port,
                 self._flags.carla_timeout)
             if self._world is None:
                 raise ValueError("Error connecting to the simulator.")
-
-    @staticmethod
-    def connect(waypoints_stream, camera_stream, can_bus_stream):
-        return []
 
     def on_watermark(self, timestamp):
         """Invoked when all input streams have received a watermark.

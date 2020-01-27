@@ -9,7 +9,7 @@ from pylot.control.mpc.mpc import ModelPredictiveController
 from pylot.control.mpc.utils import zero_to_2_pi, global_config, CubicSpline2D
 import pylot.control.utils
 from pylot.map.hd_map import HDMap
-from pylot.simulation.utils import get_map, get_world
+from pylot.simulation.utils import get_map
 
 
 class MPCAgentOperator(erdos.Operator):
@@ -33,17 +33,12 @@ class MPCAgentOperator(erdos.Operator):
             ground_traffic_lights_stream, waypoints_stream
         ], [control_stream], self.on_watermark)
         self._name = name
+        self._log_file_name = log_file_name
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._flags = flags
         self._config = global_config
-        self._map = HDMap(
-            get_map(self._flags.carla_host, self._flags.carla_port,
-                    self._flags.carla_timeout), log_file_name)
-        _, self._world = get_world(self._flags.carla_host,
-                                   self._flags.carla_port,
-                                   self._flags.carla_timeout)
         self._pid = PID(p=flags.pid_p, i=flags.pid_i, d=flags.pid_d)
         self._can_bus_msgs = deque()
         self._obstacles_msgs = deque()
@@ -55,6 +50,14 @@ class MPCAgentOperator(erdos.Operator):
                 ground_traffic_lights_stream, waypoints_stream):
         control_stream = erdos.WriteStream()
         return [control_stream]
+
+    def run(self):
+        # Run method is invoked after all operators finished initializing,
+        # including the CARLA operator, which reloads the world. Thus, if
+        # we get the map here we're sure it is up-to-date.
+        self._map = HDMap(
+            get_map(self._flags.carla_host, self._flags.carla_port,
+                    self._flags.carla_timeout), self._log_file_name)
 
     def on_waypoints_update(self, msg):
         self._logger.debug('@{}: waypoints update'.format(msg.timestamp))

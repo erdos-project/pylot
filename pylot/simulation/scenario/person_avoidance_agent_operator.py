@@ -45,13 +45,6 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
         self._flags = flags
         self._goal = goal
 
-        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
-                             self._flags.carla_timeout)
-        if world is None:
-            raise ValueError("There was an issue connecting to the simulator.")
-        self._world = world
-        self._map = world.get_map()
-
         # Input retrieved from the various input streams.
         self._can_bus_msgs = collections.deque()
         self._ground_obstacles_msgs = collections.deque()
@@ -73,6 +66,17 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
     def connect(can_bus_stream, obstacles_stream, ground_obstacles_stream):
         control_stream = erdos.WriteStream()
         return [control_stream]
+
+    def run(self):
+        # Run method is invoked after all operators finished initializing,
+        # including the CARLA operator, which reloads the world. Thus, if
+        # we get the world here we're sure it is up-to-date.
+        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
+                             self._flags.carla_timeout)
+        if world is None:
+            raise ValueError("There was an issue connecting to the simulator.")
+        self._world = world
+        self._map = world.get_map()
 
     def on_obstacles_update(self, msg):
         """ Receives the message from the detector and adds it to the queue.
