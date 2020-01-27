@@ -25,6 +25,7 @@ setup(
         "pillow==6.2.1",
         "pptk",  # TODO(ionel): Fix pptk install (https://github.com/heremaps/pptk/issues/3)
         "pytest",
+        "python3-tk",
         "scikit-image<0.15",
         "scipy==1.2.2",
         "tensorflow-gpu>=1.12",
