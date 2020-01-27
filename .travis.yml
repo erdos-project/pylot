@@ -10,8 +10,8 @@ os:
 python:
   - "3.5"
 
-before_script:
-  - pip3 install -r test/requirements.txt
+install:
+  - pip3 install -r tests/requirements.txt
 
 script:
   - python3 -m pytest tests/
