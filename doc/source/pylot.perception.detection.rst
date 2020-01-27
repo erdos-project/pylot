@@ -5,7 +5,7 @@ Submodules
 ----------
 
 pylot.perception.detection.detection\_decay\_operator module
--------------------------------------------------------------------
+------------------------------------------------------------
 
 .. automodule:: pylot.perception.detection.detection_decay_operator
     :members:
@@ -21,7 +21,7 @@ pylot.perception.detection.detection\_operator module
     :show-inheritance:
 
 pylot.perception.detection.detection\_eval\_operator module
---------------------------------------------------------------
+-----------------------------------------------------------
 
 .. automodule:: pylot.perception.detection.detection_eval_operator
     :members:
@@ -37,23 +37,23 @@ pylot.perception.detection.lane\_detection\_canny\_operator module
     :show-inheritance:
 
 pylot.perception.detection.obstacle module
------------------------------------------------------------
+------------------------------------------
 
 .. automodule:: pylot.perception.detection.obstacle
     :members:
     :undoc-members:
     :show-inheritance:
 
-pylot.perception.detection.detected\_speed\_limit module
---------------------------------------------------------
+pylot.perception.detection.speed\_limit\_sign module
+----------------------------------------------------
 
-.. automodule:: pylot.perception.detection.detected_speed_limit
+.. automodule:: pylot.perception.detection.speed_limit_sign
     :members:
     :undoc-members:
     :show-inheritance:
 
 pylot.perception.detection.stop\_sign module
------------------------------------------------------------
+--------------------------------------------
 
 .. automodule:: pylot.perception.detection.stop_sign
     :members:
