@@ -1,4 +1,3 @@
-import cv2
 import math
 import numpy as np
 import time
@@ -562,6 +561,7 @@ def add_timestamp(image_np, timestamp):
         image_np: A numpy array of the image.
         timestamp (:obj:`int`): The timestamp of the image.
     """
+    import cv2
     txt_font = cv2.FONT_HERSHEY_SIMPLEX
     timestamp_txt = '{}'.format(timestamp)
     # Put timestamp text.

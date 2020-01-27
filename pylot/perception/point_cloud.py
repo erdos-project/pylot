@@ -1,7 +1,6 @@
 import copy
 import numpy as np
 from numpy.linalg import inv
-import open3d as o3d
 import os
 
 from pylot.utils import Location, Transform, Vector2D
@@ -112,6 +111,7 @@ class PointCloud(object):
             data_path (:obj:`str`): Path where to save the point cloud.
             file_base (:obj:`str`): Base name of the file.
         """
+        import open3d as o3d
         file_name = os.path.join(data_path,
                                  '{}-{}.ply'.format(file_base, timestamp))
         pcd = o3d.PointCloud()
