@@ -56,6 +56,8 @@ git clone https://github.com/ICGog/sort.git
 
 ###### Download the DaSiamRPN code ######
 git clone https://github.com/ICGog/DaSiamRPN.git
+# Required for lapsolver, used in matching for DaSiamRPN Tracker
+sudo apt-get -y install cmake
 
 ###### Download the DRN segmentation code ######
 git clone https://github.com/ICGog/drn.git
