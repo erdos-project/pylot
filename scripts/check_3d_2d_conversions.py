@@ -12,7 +12,7 @@ from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.point_cloud import PointCloud
 from pylot.simulation.utils import get_world
 import pylot.utils
-from matplotlib import pyplot as plt
+import cv2
 from pylot.simulation.sensor_setup import CameraSetup
 
 FLAGS = flags.FLAGS
@@ -162,8 +162,8 @@ def run_scenario(target_vehicle_transform, sensor_transform):
         while lidar_pc is None or depth_pc is None or last_frame is None:
             time.sleep(0.2)
 
-        plt.imshow(last_frame.frame)
-        plt.show()
+        cv2.imshow('camera view', last_frame.frame)
+        cv2.waitKey(0)
     finally:
         # Destroy the actors.
         lidar.destroy()
