@@ -504,7 +504,7 @@ class Transform(object):
         Returns:
             bool: True if other location is within max_distance.
         """
-        norm_dst, d_angle = self.get_vector_magnitude_angle(dst_loc)
+        _, norm_dst, d_angle = self.get_vector_magnitude_angle(dst_loc)
         # Return if the vector is too small.
         if norm_dst < 0.001:
             return True

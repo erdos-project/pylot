@@ -85,7 +85,8 @@ def driver():
                                          float(FLAGS.goal_location[2]))
     waypoints_stream = pylot.component_creator.add_planning(
         goal_location, can_bus_stream, prediction_stream, center_camera_stream,
-        open_drive_stream, global_trajectory_stream)
+        obstacles_stream, traffic_lights_stream, open_drive_stream,
+        global_trajectory_stream)
 
     # TODO: Merge depth camera stream and point cloud stream.
     # Add the behaviour planning and control operator.
