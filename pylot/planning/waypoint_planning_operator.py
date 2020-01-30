@@ -191,10 +191,12 @@ class WaypointPlanningOperator(erdos.Operator):
             self._vehicle_transform.location, wp_angle, wp_vector,
             obstacles_msg.obstacles, tl_msg.obstacles, self._flags,
             self._logger, self._map, timestamp)
+
+        target_speed = speed_factor * pylot.planning.utils.MAX_VEL
         self._logger.debug('@{}: computed speed factor: {}'
                            .format(timestamp, speed_factor))
-        target_speed = speed_factor * pylot.planning.utils.MAX_VEL
-
+        self._logger.debug('@{}: computed target speed: {}'
+                           .format(timestamp, target_speed))
         head_waypoints = deque(
             itertools.islice(self._waypoints, 0, DEFAULT_NUM_WAYPOINTS))
         target_speeds = deque([target_speed
