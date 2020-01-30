@@ -24,7 +24,8 @@ def add_obstacle_detection(center_camera_stream,
     Args:
         center_camera_stream (:py:class:`erdos.ReadStream`): Stream on which
             BGR frames are received.
-        center_camera_setup (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`, optional):
+        center_camera_setup
+            (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`, optional):
             The setup of the center camera. This setup is used to calculate the
             real-world location of the obstacles.
         can_bus_stream (:py:class:`erdos.ReadStream`, optional): Stream on
@@ -41,8 +42,8 @@ def add_obstacle_detection(center_camera_stream,
             Stream on which
             :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
             are received.
-        ground_speed_limit_signs_stream (:py:class:`erdos.ReadStream`, optional):
-            Stream on which
+        ground_speed_limit_signs_stream
+            (:py:class:`erdos.ReadStream`, optional): Stream on which
             :py:class:`~pylot.perception.messages.SpeedSignsMessage`
             messages are received.
         ground_stop_signs_stream (:py:class:`erdos.ReadStream`, optional):
@@ -171,7 +172,8 @@ def add_depth(transform, vehicle_id_stream, center_camera_setup,
              center camera relative to the ego vehicle.
         vehicle_id_stream (:py:class:`erdos.ReadStream`): A stream on which
             the simulator publishes Carla ego-vehicle id.
-        center_camera_setup (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`):
+        center_camera_setup
+            (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`):
             The setup of the center camera.
         depth_camera_stream (:py:class:`erdos.ReadStream`): Stream on which
             depth frames are received.
@@ -348,6 +350,8 @@ def add_planning(goal_location,
                  can_bus_stream,
                  prediction_stream,
                  camera_stream,
+                 obstacles_stream,
+                 traffic_lights_stream,
                  open_drive_stream=None,
                  global_trajectory_stream=None):
     """Adds planning operators.
@@ -358,10 +362,21 @@ def add_planning(goal_location,
             can bus info is received.
         prediction_stream (:py:class:`erdos.ReadStream`): Stream of
             :py:class:`~pylot.prediction.messages.PredictionMessage` messages
+            for predicted obstacles.
+        camera_stream (:py:class:`erdos.ReadStream`): Stream of
+            :py:class:`~pylot.perception.messages.FrameMessage` messages
+            for camera frames.
+        obstacles_stream (:py:class:`erdos.ReadStream`): Stream of
+            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
             for obstacles.
+        traffic_lights_stream (:py:class:`erdos.ReadStream`): Stream of
+            :py:class:`~pylot.perception.messages.TrafficLightsMessage`
+            messages for traffic lights.
         open_drive_stream (:py:class:`erdos.ReadStream`, optional):
             Stream on which open drive string representations are received.
             Operators can construct HDMaps out of the open drive strings.
+        global_trajectory_stream (:py:class:`erdos.ReadStream`, optional):
+            Stream on which global trajectory is received.
 
     Returns:
         :py:class:`erdos.ReadStream`: Stream on which the waypoints are
@@ -372,6 +387,7 @@ def add_planning(goal_location,
                 and global_trajectory_stream is not None)
         waypoints_stream = pylot.operator_creator.add_waypoint_planning(
             can_bus_stream, open_drive_stream, global_trajectory_stream,
+            obstacles_stream, traffic_lights_stream,
             goal_location)
     elif FLAGS.planning_type == 'rrt_star':
         waypoints_stream = pylot.operator_creator.add_rrt_start_planning(
@@ -408,7 +424,8 @@ def add_control(can_bus_stream, obstacles_stream, traffic_lights_stream,
             :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
             are received.
         ground_traffic_lights_stream (:py:class:`erdos.ReadStream`, optional):
-            Stream on which :py:class:`~pylot.perception.messages.TrafficLightsMessage`
+            Stream on which
+            :py:class:`~pylot.perception.messages.TrafficLightsMessage`
             messages are received.
 
     Returns:
@@ -422,8 +439,7 @@ def add_control(can_bus_stream, obstacles_stream, traffic_lights_stream,
             obstacles_stream, open_drive_stream)
     elif FLAGS.control_agent == 'mpc':
         control_stream = pylot.operator_creator.add_mpc_agent(
-            can_bus_stream, ground_obstacles_stream,
-            ground_traffic_lights_stream, waypoints_stream)
+            can_bus_stream, waypoints_stream)
     elif FLAGS.control_agent == 'carla_auto_pilot':
         # TODO: Hack! We synchronize on a single stream, based on a
         # guesestimate of which stream is slowest.

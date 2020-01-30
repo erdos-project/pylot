@@ -1,6 +1,6 @@
 """Implements an operator that computes waypoints to a goal location."""
 
-import collections
+from collections import deque
 import erdos
 import itertools
 
@@ -45,15 +45,24 @@ class WaypointPlanningOperator(erdos.Operator):
                  can_bus_stream,
                  open_drive_stream,
                  global_trajectory_stream,
+                 obstacles_stream,
+                 traffic_lights_stream,
                  waypoints_stream,
                  name,
                  flags,
                  goal_location=None,
                  log_file_name=None,
                  csv_file_name=None):
-        can_bus_stream.add_callback(self.on_can_bus_update, [waypoints_stream])
+        can_bus_stream.add_callback(self.on_can_bus_update)
         open_drive_stream.add_callback(self.on_opendrive_map)
         global_trajectory_stream.add_callback(self.on_global_trajectory)
+        obstacles_stream.add_callback(self.on_obstacles_update)
+        traffic_lights_stream.add_callback(
+            self.on_traffic_lights_update)
+        erdos.add_watermark_callback([
+            can_bus_stream, obstacles_stream,
+            traffic_lights_stream
+        ], [waypoints_stream], self.on_watermark)
 
         self._log_file_name = log_file_name
         self._logger = erdos.utils.setup_logging(name, log_file_name)
@@ -71,10 +80,14 @@ class WaypointPlanningOperator(erdos.Operator):
         # received on the global trajectory stream when running using the
         # scenario runner, or computed using the Carla global planner when
         # running in stand-alone mode. The waypoints are Pylot transforms.
-        self._waypoints = collections.deque()
+        self._waypoints = deque()
+        self._can_bus_msgs = deque()
+        self._obstacles_msgs = deque()
+        self._traffic_light_msgs = deque()
 
     @staticmethod
-    def connect(can_bus_stream, open_drive_stream, global_trajectory_stream):
+    def connect(can_bus_stream, open_drive_stream, global_trajectory_stream,
+                obstacles_stream, traffic_lights_stream):
         waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
 
@@ -129,11 +142,11 @@ class WaypointPlanningOperator(erdos.Operator):
             # arrived at destionation.
             self._goal_location = self._vehicle_transform.location
         assert self._goal_location, 'Planner does not have a goal'
-        self._waypoints = collections.deque()
+        self._waypoints = deque()
         for waypoint_option in msg.data:
             self._waypoints.append(waypoint_option[0])
 
-    def on_can_bus_update(self, msg, waypoints_stream):
+    def on_can_bus_update(self, msg):
         """Invoked whenever a message is received on the can bus stream.
 
         Args:
@@ -142,7 +155,24 @@ class WaypointPlanningOperator(erdos.Operator):
         """
         self._logger.debug('@{}: received can bus message'.format(
             msg.timestamp))
-        self._vehicle_transform = msg.data.transform
+        self._can_bus_msgs.append(msg)
+
+    def on_obstacles_update(self, msg):
+        self._logger.debug('@{}: obstacles update'.format(msg.timestamp))
+        self._obstacles_msgs.append(msg)
+
+    def on_traffic_lights_update(self, msg):
+        self._logger.debug('@{}: traffic lights update'.format(msg.timestamp))
+        self._traffic_light_msgs.append(msg)
+
+    def on_watermark(self, timestamp, waypoints_stream):
+        self._logger.debug('@{}: received watermark'.format(timestamp))
+
+        # Get hero vehicle info.
+        can_bus_msg = self._can_bus_msgs.popleft()
+        self._vehicle_transform = can_bus_msg.data.transform
+        tl_msg = self._traffic_light_msgs.popleft()
+        obstacles_msg = self._obstacles_msgs.popleft()
 
         if self._recompute_waypoints:
             self._waypoints = self._map.compute_waypoints(
@@ -151,12 +181,24 @@ class WaypointPlanningOperator(erdos.Operator):
         if not self._waypoints or len(self._waypoints) == 0:
             # If waypoints are empty (e.g., reached destination), set waypoint
             # to current vehicle location.
-            self._waypoints = collections.deque([self._vehicle_transform])
+            self._waypoints = deque([self._vehicle_transform])
 
-        head_waypoints = collections.deque(
+        wp_vector, wp_angle = \
+            pylot.planning.utils.compute_waypoint_vector_and_angle(
+                self._vehicle_transform, self._waypoints, 9)
+
+        speed_factor, _ = pylot.planning.utils.stop_for_agents(
+            self._vehicle_transform.location, wp_angle, wp_vector,
+            obstacles_msg.obstacles, tl_msg.obstacles, self._flags,
+            self._logger, self._map, timestamp)
+        target_speed = speed_factor * pylot.planning.utils.MAX_VEL
+
+        head_waypoints = deque(
             itertools.islice(self._waypoints, 0, DEFAULT_NUM_WAYPOINTS))
-
-        waypoints_stream.send(WaypointsMessage(msg.timestamp, head_waypoints))
+        target_speeds = deque([target_speed
+                               for _ in range(len(head_waypoints))])
+        waypoints_stream.send(WaypointsMessage(timestamp, head_waypoints,
+                                               target_speeds))
 
     def __remove_completed_waypoints(self):
         """Removes waypoints that the ego vehicle has already completed.

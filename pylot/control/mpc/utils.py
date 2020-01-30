@@ -62,7 +62,8 @@ def zero_to_2_pi(angle):
 
 class CubicSpline1D:
     """
-    1-dimensional cubic spline class. For technical details see: http://mathworld.wolfram.com/CubicSpline.html
+    1-dimensional cubic spline class. For technical details see:
+    http://mathworld.wolfram.com/CubicSpline.html
     """
     def __init__(self, x, y):
         """
@@ -197,20 +198,20 @@ class CubicSpline1D:
 
 class CubicSpline2D:
     """
-    2-dimensional cubic spline class. For technical details see: http://mathworld.wolfram.com/CubicSpline.html
+    2-dimensional cubic spline class. For technical details see:
+    http://mathworld.wolfram.com/CubicSpline.html
     """
-    def __init__(self, x, y, delta_s=1):
+    def __init__(self, x, y):
         """
         Construct the 2-dimensional cubic spline.
 
         :param x: list
             List of x values.
         :param y: list
-            List of y values
+            List of y values.
         :param delta_s: float.
             Distance between interpolated points.
         """
-        self.delta_s = delta_s  # [m]
         self.s = self._calc_s(x, y)
         self.sx = CubicSpline1D(self.s, x)
         self.sy = CubicSpline1D(self.s, y)
