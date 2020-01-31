@@ -86,7 +86,7 @@ cd $PYLOT_HOME/scripts/
 source ./set_pythonpath.sh
 ```
 
-Finally, execute Pylot in a different terminal:
+Finally, run Pylot:
 ```console
 cd  $PYLOT_HOME/
 python3 pylot.py --flagfile=configs/detection.conf
