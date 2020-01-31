@@ -65,7 +65,6 @@ class WaypointPlanningOperator(erdos.Operator):
         self.__initialize_behaviour_planner()
         # We do not know yet the vehicle's location.
         self._vehicle_transform = None
-        assert goal_location, 'Planner has not received a goal location'
         self._goal_location = goal_location
         # Deque of waypoints the vehicle must follow. The waypoints are either
         # received on the global trajectory stream when running using the

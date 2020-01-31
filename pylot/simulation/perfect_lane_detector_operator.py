@@ -7,22 +7,26 @@ import pylot.utils
 
 
 class PerfectLaneDetectionOperator(erdos.Operator):
-    """ Operator that uses the Carla world to perfectly detect lanes."""
+    """Operator that uses the Carla world to perfectly detect lanes.
+
+    Args:
+        can_bus_stream (:py:class:`erdos.ReadStream`): Stream on which can bus
+            info is received.
+        detected_lane_stream (:py:class:`erdos.WriteStream`): Stream on which
+            the operator writes
+            :py:class:`~pylot.perception.messages.DetectedLaneMessage`
+            messages.
+        name (:obj:`str`): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
+    """
     def __init__(self,
                  can_bus_stream,
                  detected_lane_stream,
                  name,
                  flags,
                  log_file_name=None):
-        """ Initializes the PerfectLaneDetectionOperator to use the given name
-        and output to the given stream.
-
-        Args:
-            name: The name to be given to the operator.
-            output_stream_name: The name of the output stream.
-            flags: The flags to be used while initializing.
-            log_file_name: Name of the log file.
-        """
         can_bus_stream.add_callback(self.on_position_update,
                                     [detected_lane_stream])
         self._name = name
