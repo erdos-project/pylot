@@ -160,7 +160,7 @@ class ERDOSAgent(AutonomousAgent):
         # Wait until the control is set.
         while True:
             control_msg = self._control_stream.read()
-            if isinstance(control_msg, erdos.Message):
+            if not isinstance(control_msg, erdos.WatermarkMessage):
                 output_control = carla.VehicleControl()
                 output_control.throttle = control_msg.throttle
                 output_control.brake = control_msg.brake
@@ -179,6 +179,9 @@ class ERDOSAgent(AutonomousAgent):
             self._open_drive_stream.send(
                 erdos.WatermarkMessage(
                     erdos.Timestamp(coordinates=[sys.maxsize])))
+        else:
+            self._logger.warning(
+                'Agent did not sent open drive data for {}'.format(timestamp))
         # TODO: Send point cloud data.
         # pc_file = data['map_file']
 
