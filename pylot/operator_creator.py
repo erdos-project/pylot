@@ -15,6 +15,8 @@ from pylot.perception.detection.traffic_light_det_operator import \
     TrafficLightDetOperator
 from pylot.perception.tracking.object_tracker_operator import \
     ObjectTrackerOperator
+from pylot.perception.tracking.tracking_eval_operator import \
+    TrackingEvalOperator
 from pylot.perception.fusion.fusion_operator import FusionOperator
 from pylot.perception.fusion.fusion_verification_operator import \
     FusionVerificationOperator
@@ -173,6 +175,18 @@ def add_obstacle_tracking(obstacles_stream,
                        log_file_name=FLAGS.log_file_name,
                        csv_file_name=FLAGS.csv_log_file_name)
     return obstacle_tracking_stream
+
+
+def add_tracking_evaluation(obstacle_tracking_stream,
+                            ground_obstacles_stream,
+                            name='tracking_eval_operator'):
+    erdos.connect(TrackingEvalOperator,
+                  [obstacle_tracking_stream, ground_obstacles_stream],
+                  True,
+                  name,
+                  FLAGS,
+                  log_file_name=FLAGS.log_file_name,
+                  csv_file_name=FLAGS.csv_log_file_name)
 
 
 def add_depth_estimation(left_camera_stream,

@@ -57,6 +57,7 @@ def add_obstacle_detection(center_camera_stream,
         published.
     """
     obstacles_stream = None
+    perfect_obstacles_stream = None
     if FLAGS.obstacle_detection:
         # TODO: Only returns the first obstacles stream.
         obstacles_streams = pylot.operator_creator.add_obstacle_detection(
@@ -268,6 +269,12 @@ def add_obstacle_tracking(center_camera_stream,
         obstacles_tracking_stream = \
             pylot.operator_creator.add_perfect_tracking(
                 ground_obstacles_stream, can_bus_stream)
+
+    if FLAGS.evaluate_obstacle_tracking:
+        pylot.operator_creator.add_tracking_evaluation(
+            obstacles_tracking_stream,
+            obstacles_stream)
+
     return obstacles_tracking_stream
 
 

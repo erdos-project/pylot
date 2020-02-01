@@ -45,11 +45,12 @@ def driver():
         (imu_stream,
          _) = pylot.operator_creator.add_imu(transform, vehicle_id_stream)
 
-    obstacles_stream = pylot.component_creator.add_obstacle_detection(
-        center_camera_stream, rgb_camera_setup, can_bus_stream,
-        point_cloud_stream, depth_camera_stream, ground_segmented_stream,
-        ground_obstacles_stream, ground_speed_limit_signs_stream,
-        ground_stop_signs_stream)
+    obstacles_stream = \
+        pylot.component_creator.add_obstacle_detection(
+            center_camera_stream, rgb_camera_setup, can_bus_stream,
+            point_cloud_stream, depth_camera_stream, ground_segmented_stream,
+            ground_obstacles_stream, ground_speed_limit_signs_stream,
+            ground_stop_signs_stream)
     traffic_lights_stream = \
         pylot.component_creator.add_traffic_light_detection(
             transform, vehicle_id_stream, can_bus_stream, point_cloud_stream,
