@@ -26,11 +26,22 @@ RIGHT_CAMERA_NAME = 'right_camera'
 
 
 class ERDOSAgent(AutonomousAgent):
-    """Agent class that interacts with the scenario runner."""
+    """Agent class that interacts with the CARLA challenge scenario runner.
+
+    Attributes:
+        track: Track the agent is running in.
+        _camera_setups: Mapping between camera names and
+            :py:class:`~pylot.simulation.sensor_setup.CameraSetup`.
+        _lidar_transform (:py:class:`~pylot.utils.Transform`): Transform of
+            the Lidar relative to the ego vehicle.
+        _waypoints (list(:py:class:`~pylot.utils.Transform`)): List of
+            waypoints the agent receives from the challenge planner.
+    """
     def __init_attributes(self, path_to_conf_file):
         flags.FLAGS([__file__, '--flagfile={}'.format(path_to_conf_file)])
         self._logger = erdos.utils.setup_logging('erdos_agent',
                                                  FLAGS.log_file_name)
+        enable_logging()
         self.track = get_track()
         self._camera_setups = create_camera_setups(self.track)
         # Set the lidar in the same position as the center camera.
@@ -42,7 +53,7 @@ class ERDOSAgent(AutonomousAgent):
         self._open_drive_data = None
         (camera_streams, can_bus_stream, global_trajectory_stream,
          open_drive_stream, point_cloud_stream,
-         control_stream) = erdos.run_async(create_data_flow, start_port=19000)
+         control_stream) = erdos.run_async(create_data_flow)
         self._camera_streams = camera_streams
         self._can_bus_stream = can_bus_stream
         self._global_trajectory_stream = global_trajectory_stream
@@ -56,7 +67,7 @@ class ERDOSAgent(AutonomousAgent):
 
     def destroy(self):
         """ Clean-up the agent. Invoked between different runs."""
-        pass
+        self._logger.info('ERDOSAgent destroy method invoked')
 
     def sensors(self):
         """
@@ -119,18 +130,21 @@ class ERDOSAgent(AutonomousAgent):
                 lidar_sensors)
 
     def run_step(self, input_data, timestamp):
-        self._logger.debug("Current game time {}".format(timestamp))
-        erdos_timestamp = erdos.Timestamp(coordinates=[timestamp])
+        game_time = int(timestamp * 1000)
+        self._logger.debug("Current game time {}".format(game_time))
+        erdos_timestamp = erdos.Timestamp(coordinates=[game_time])
 
         self.send_waypoints_msg(erdos_timestamp)
 
         for key, val in input_data.items():
             # print("{} {} {}".format(key, val[0], type(val[1])))
             if key in self._camera_streams:
+
                 self._camera_streams[key].send(
                     pylot.perception.messages.FrameMessage(
                         erdos_timestamp,
-                        CameraFrame(val[1], 'BGR', self._camera_setups[key])))
+                        CameraFrame(val[1][:, :, :3], 'BGR',
+                                    self._camera_setups[key])))
                 self._camera_streams[key].send(
                     erdos.WatermarkMessage(erdos_timestamp))
             elif key == 'can_bus':
@@ -144,15 +158,17 @@ class ERDOSAgent(AutonomousAgent):
                 self._logger.warning("Sensor {} not used".format(key))
 
         # Wait until the control is set.
-        control_msg = self._control_stream.read()
-        output_control = carla.VehicleControl()
-        output_control.throttle = control_msg.throttle
-        output_control.brake = control_msg.brake
-        output_control.steer = control_msg.steer
-        output_control.reverse = control_msg.reverse
-        output_control.hand_brake = control_msg.hand_brake
-        output_control.manual_gear_shift = False
-        return output_control
+        while True:
+            control_msg = self._control_stream.read()
+            if not isinstance(control_msg, erdos.WatermarkMessage):
+                output_control = carla.VehicleControl()
+                output_control.throttle = control_msg.throttle
+                output_control.brake = control_msg.brake
+                output_control.steer = control_msg.steer
+                output_control.reverse = control_msg.reverse
+                output_control.hand_brake = control_msg.hand_brake
+                output_control.manual_gear_shift = False
+                return output_control
 
     def send_hd_map_msg(self, data, timestamp):
         # Sending once opendrive data
@@ -163,6 +179,9 @@ class ERDOSAgent(AutonomousAgent):
             self._open_drive_stream.send(
                 erdos.WatermarkMessage(
                     erdos.Timestamp(coordinates=[sys.maxsize])))
+        else:
+            self._logger.warning(
+                'Agent did not sent open drive data for {}'.format(timestamp))
         # TODO: Send point cloud data.
         # pc_file = data['map_file']
 
@@ -178,9 +197,10 @@ class ERDOSAgent(AutonomousAgent):
                                              forward_speed)))
         self._can_bus_stream.send(erdos.WatermarkMessage(timestamp))
 
-    def send_lidar_msg(self, data, transform, timestamp):
+    def send_lidar_msg(self, carla_pc, transform, timestamp):
+        points = [pylot.utils.Location(x, y, z) for x, y, z in carla_pc]
         msg = pylot.perception.messages.PointCloudMessage(
-            timestamp, PointCloud(data, transform))
+            timestamp, PointCloud(points, transform))
         self._point_cloud_stream.send(msg)
         self._point_cloud_stream.send(erdos.WatermarkMessage(timestamp))
 
@@ -302,3 +322,13 @@ def create_camera_setups(track):
             pylot.utils.Transform(right_location, pylot.utils.Rotation()), 90)
         camera_setups[RIGHT_CAMERA_NAME] = right_camera_setup
     return camera_setups
+
+
+def enable_logging():
+    """Overwrites logging config so that loggers can control verbosity.
+
+    This method is required because the challenge evaluator overwrites
+    verbosity, which causes Pylot log messages to be discarded.
+    """
+    import logging
+    logging.root.setLevel(logging.NOTSET)

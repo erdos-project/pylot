@@ -97,11 +97,8 @@ def add_obstacle_detection(camera_stream, csv_file_name=None):
     return obstacles_streams
 
 
-def add_obstacle_location_finder(obstacles_stream,
-                                 point_cloud_stream,
-                                 can_bus_stream,
-                                 camera_setup,
-                                 name='obstacle_location_finder_operator'):
+def add_obstacle_location_finder(obstacles_stream, point_cloud_stream,
+                                 can_bus_stream, camera_setup):
     """Adds an operator that finds the world locations of the obstacles.
 
     Args:
@@ -123,7 +120,7 @@ def add_obstacle_location_finder(obstacles_stream,
      ] = erdos.connect(ObstacleLocationFinderOperator,
                        [obstacles_stream, point_cloud_stream, can_bus_stream],
                        True,
-                       name,
+                       camera_setup.name + '_location_finder_operator',
                        FLAGS,
                        camera_setup,
                        log_file_name=FLAGS.log_file_name,

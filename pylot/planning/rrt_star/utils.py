@@ -57,8 +57,7 @@ def select_node_to_expand(tree, space_range):
 
 
 def sample_new_point(m_g, random_point, d_threshold):
-    """
-    Return a randomly sampled point d_threshold away from a node m_g.
+    """Returns a randomly sampled point d_threshold away from a node m_g.
 
     Args:
         m_g: nx node in RRT* tree
@@ -66,9 +65,8 @@ def sample_new_point(m_g, random_point, d_threshold):
         d_threshold: float describing minimum distance to sample at
 
     Returns:
-        if random_point is greater than d_threshold away from node m_g,
-            rescale and return it
-        otherwise return the random_point
+        If random_point is greater than d_threshold away from node m_g,
+        rescale and return it. Otherwise, returns the random_point
     """
     m_g = np.asarray(m_g)
     random_point = np.asarray(random_point)

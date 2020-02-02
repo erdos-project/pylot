@@ -180,7 +180,10 @@ class PylotAgentOperator(erdos.Operator):
 
     def get_control_message(self, wp_angle, wp_angle_speed, speed_factor,
                             current_speed, target_speed, timestamp):
-        assert current_speed >= 0, 'Current speed is negative'
+        if current_speed < 0:
+            self._logger.warning(
+                'Current speed is negative: {}'.format(current_speed))
+            current_speed = 0
         steer = pylot.control.utils.radians_to_steer(wp_angle,
                                                      self._flags.steer_gain)
         # Don't go to fast around corners

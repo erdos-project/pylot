@@ -1,6 +1,13 @@
 pylot.planning package
 ======================
 
+Subpackages
+-----------
+
+.. toctree::
+
+    pylot.planning.rrt_star.rst
+
 Submodules
 ----------
 
