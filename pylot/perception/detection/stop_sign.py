@@ -53,8 +53,15 @@ class StopSign(DetectedObstacle):
             actor.get_transform())
         world_trigger_volume = actor.get_transform().transform(
             actor.trigger_volume.location)
-        bbox = BoundingBox3D(world_trigger_volume, actor.trigger_volume.extent)
-        return cls(1.0, id=actor.id, trasnform=transform, bounding_box_3d=bbox)
+        extent = pylot.utils.Vector3D.from_carla_vector(
+            actor.trigger_volume.extent)
+        trigger_loc = pylot.utils.Location(world_trigger_volume.x,
+                                           world_trigger_volume.y,
+                                           world_trigger_volume.z)
+        trigger_transform = pylot.utils.Transform(trigger_loc,
+                                                  pylot.utils.Rotation())
+        bbox = BoundingBox3D(trigger_transform, extent)
+        return cls(1.0, id=actor.id, transform=transform, bounding_box_3d=bbox)
 
     def __repr__(self):
         return self.__str__()
