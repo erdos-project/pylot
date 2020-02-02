@@ -124,8 +124,10 @@ class RRTStarPlanningOperator(erdos.Operator):
         waypoints = collections.deque(
             itertools.islice(waypoints, 0,
                              DEFAULT_NUM_WAYPOINTS))  # only take 50 meters
-
-        waypoints_stream.send(WaypointsMessage(timestamp, waypoints))
+        target_speeds = deque([self._flags.target_speed
+                               for _ in range(len(waypoints))])
+        waypoints_stream.send(WaypointsMessage(timestamp, waypoints,
+                                               target_speeds))
 
     def _build_obstacle_map(self, vehicle_transform):
         """

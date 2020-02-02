@@ -273,11 +273,14 @@ def add_prediction_evaluation(can_bus_stream,
 def add_waypoint_planning(can_bus_stream,
                           open_drive_stream,
                           global_trajectory_stream,
+                          obstacles_stream,
+                          traffic_lights_stream,
                           goal_location,
                           name='waypoint_planning_operator'):
     [waypoints_stream] = erdos.connect(
         WaypointPlanningOperator,
-        [can_bus_stream, open_drive_stream, global_trajectory_stream],
+        [can_bus_stream, open_drive_stream, global_trajectory_stream,
+         obstacles_stream, traffic_lights_stream],
         True,
         name,
         FLAGS,
@@ -413,11 +416,9 @@ def add_fusion(can_bus_stream, obstacles_stream, depth_stream,
     return obstacle_pos_stream
 
 
-def add_mpc_agent(can_bus_stream, ground_obstacles_stream,
-                  ground_traffic_lights_stream, waypoints_stream):
+def add_mpc_agent(can_bus_stream, waypoints_stream):
     [control_stream] = erdos.connect(MPCAgentOperator, [
-        can_bus_stream, ground_obstacles_stream, ground_traffic_lights_stream,
-        waypoints_stream
+        can_bus_stream, waypoints_stream
     ],
                                      True,
                                      'mpc_agent_operator',
@@ -499,7 +500,8 @@ def add_lidar_logging(point_cloud_stream,
 
 
 def add_multiple_object_tracker_logging(
-    obstacles_stream, name='multiple_object_tracker_logger_operator'):
+        obstacles_stream,
+        name='multiple_object_tracker_logger_operator'):
     erdos.connect(MultipleObjectTrackerLoggerOperator, [obstacles_stream],
                   True,
                   name,

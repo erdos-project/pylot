@@ -273,7 +273,8 @@ def create_data_flow():
             camera_setups[TL_CAMERA_NAME])
 
     waypoints_stream = pylot.operator_creator.add_waypoint_planning(
-        can_bus_stream, open_drive_stream, global_trajectory_stream, None)
+        can_bus_stream, open_drive_stream, global_trajectory_stream,
+        obstacles_stream, traffic_lights_stream, None)
 
     if FLAGS.visualize_rgb_camera:
         pylot.operator_creator.add_camera_visualizer(
