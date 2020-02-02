@@ -11,7 +11,8 @@ from pylot.planning.utils import BehaviorPlannerState
 from pylot.simulation.utils import get_map
 import pylot.utils
 
-DEFAULT_NUM_WAYPOINTS = 50
+DEFAULT_NUM_WAYPOINTS = 50  # 50 waypoints / 50 meters of planning ahead
+DEFAULT_TARGET_WAYPOINT = 9  # Use the 10th waypoint for computing speed
 WAYPOINT_COMPLETION_THRESHOLD = 0.9
 
 
@@ -185,14 +186,15 @@ class WaypointPlanningOperator(erdos.Operator):
 
         wp_vector, wp_angle = \
             pylot.planning.utils.compute_waypoint_vector_and_angle(
-                self._vehicle_transform, self._waypoints, 9)
+                self._vehicle_transform, self._waypoints,
+                DEFAULT_TARGET_WAYPOINT)
 
         speed_factor, _ = pylot.planning.utils.stop_for_agents(
             self._vehicle_transform.location, wp_angle, wp_vector,
             obstacles_msg.obstacles, tl_msg.obstacles, self._flags,
             self._logger, self._map, timestamp)
 
-        target_speed = speed_factor * pylot.planning.utils.MAX_VEL
+        target_speed = speed_factor * self._flags.target_speed
         self._logger.debug('@{}: computed speed factor: {}'
                            .format(timestamp, speed_factor))
         self._logger.debug('@{}: computed target speed: {}'

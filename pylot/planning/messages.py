@@ -2,8 +2,9 @@ import erdos
 
 
 class WaypointsMessage(erdos.Message):
-    """Message class to be used to send waypoints. Optionally can also send
-    a target speed for each waypoint.
+    """Message class to be used to send waypoints.
+
+    Optionally can also send a target speed for each waypoint.
 
     Args:
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of

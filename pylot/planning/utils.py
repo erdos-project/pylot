@@ -2,7 +2,6 @@ import enum
 import math
 from pylot.perception.detection.traffic_light import TrafficLightColor
 
-MAX_VEL = 20  # m/s
 VEHICLE_LABELS = {'car', 'bicycle', 'motorcycle', 'bus', 'truck', 'vehicle'}
 
 

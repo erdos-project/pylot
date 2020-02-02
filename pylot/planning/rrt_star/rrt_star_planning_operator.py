@@ -18,7 +18,6 @@ from pylot.map.hd_map import HDMap
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.rrt_star.rrt_star import apply_rrt_star
 from pylot.planning.rrt_star.utils import start_target_to_space
-from pylot.planning.utils import MAX_VEL
 from pylot.simulation.utils import get_map
 from pylot.utils import Location
 
@@ -125,7 +124,8 @@ class RRTStarPlanningOperator(erdos.Operator):
         waypoints = collections.deque(
             itertools.islice(waypoints, 0,
                              DEFAULT_NUM_WAYPOINTS))  # only take 50 meters
-        target_speeds = deque([MAX_VEL for _ in range(len(waypoints))])
+        target_speeds = deque([self._flags.target_speed
+                               for _ in range(len(waypoints))])
         waypoints_stream.send(WaypointsMessage(timestamp, waypoints,
                                                target_speeds))
 
