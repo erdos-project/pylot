@@ -169,7 +169,8 @@ class FOTPlanningOperator(erdos.Operator):
         c_d_d = c_speed * np.dot(tvec, fvec)  # current lateral speed [m\s]
         c_d_dd = 0.0  # current lateral acceleration [m\s]
 
-        return s0, c_speed, c_d, c_d_d, c_d_dd
+        # TODO: fix this
+        return s0, c_speed, 0, 0, c_d_dd
 
     @staticmethod
     def _build_obstacle_list(vehicle_transform, prediction_msg):

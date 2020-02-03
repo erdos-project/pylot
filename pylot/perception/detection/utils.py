@@ -24,6 +24,8 @@ GROUND_COLOR_MAP = {
     '': [255, 255, 255],
 }
 
+VEHICLE_LABELS = {'car', 'bicycle', 'motorcycle', 'bus', 'truck', 'vehicle'}
+
 coco_bbox_color_list = np.array([
     1.000, 1.000, 1.000, 0.850, 0.325, 0.098, 0.929, 0.694, 0.125, 0.494,
     0.184, 0.556, 0.466, 0.674, 0.188, 0.301, 0.745, 0.933, 0.635, 0.078,
@@ -546,13 +548,14 @@ def get_mAP(ground_obstacles, obstacles):
     confidence_bbox.sort()
     confidence_bbox.reverse()
     detected_bboxes = [bbox for (score, bbox) in confidence_bbox]
+    ground_bboxes = [obstacle.bounding_box for obstacle in ground_obstacles]
     # Compute recall precision. The results are sorted in descending
     # order by recall.
     prec_rec = []
     while (len(detected_bboxes) > 0):
         # Get precision recall with 0.5 IoU threshold .
         precision, recall = get_precision_recall_at_iou(
-            ground_obstacles, detected_bboxes, 0.5)
+            ground_bboxes, detected_bboxes, 0.5)
         prec_rec.append((precision, recall))
         detected_bboxes.pop()
     # Append (0, 0) to also cover the area from first recall point to 0 recall.

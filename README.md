@@ -173,16 +173,17 @@ python3 pylot.py --flagfile=configs/prediction.conf
 The planning component provides two planning options, which can be specified
 using the ```--planning_type``` flag:
 
-1. `waypoint`: a A-star planner that uses the Carla simulator map.
+1. `waypoint`: a A-star planner that uses the Carla simulator map. The planner
+ ensures the vehicle stops whenever there are obstacles in its path, but does
+ not implement obstacle avoidance.
 2. `rrt_star`: a rapidly-explory random tree planner.
 
 
 ### Driving policies
-Pylot supports three driving policies, which can be specified using the
+Pylot supports three controllers, which can be specified using the
 ```control_agent``` flag:
-1. `pylot`: an agent that stops when obstacles are detected. It can use
- outputs from operators that use trained models or operators that output
- perfect obstacles using CARLA data.
+1. `pid`: an agent that follows the waypoints computed by the planning component
+ using a PID controller.
 2. `mpc`: uses model predictive control for speed and steering.
 3. `carla_auto_pilot`: uses the carla auto pilot to drive on predefined routes.
 
@@ -190,8 +191,8 @@ You can run all the components, together with one of the two policies by
 executing:
 
 ```console
-# Runs all components and the Pylot policy
-python3 pylot.py --flagfile=configs/pylot_agent_e2e.conf
+# Runs all components using the algorithms we implemented and the models we trained:
+python3 pylot.py --flagfile=configs/pid_agent_e2e.conf
 # Runs the MPC policy
 python3 pylot.py --flagfile=configs/mpc_agent.conf
 # Runs the carla policy

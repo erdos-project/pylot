@@ -12,22 +12,24 @@ Execute the following command to run a demo of the MPC controller:
     python3 pylot.py --flagfile=configs/mpc_agent.conf
 
 
-Execute the following command to run a demo of the Pylot agent, which uses a
-PID controller:
+Execute the following command to run a demo using solely the PID controller:
 
 .. code-block:: bash
 
-    python3 pylot.py --flagfile=configs/pylot_agent_e2e.conf
+    python3 pylot.py --flagfile=configs/pid_agent_e2e.conf
 
 Important flags:
 
 - ``--control_agent``: Sets which control algorithm to use: Pylot currently
-  offers two alternatives:
+  offers three alternatives:
 
   1. `mpc <pylot.control.mpc.html#module-pylot.control.mpc.mpc\_agent\_operator>`__:
      An operator that implements a model predictive controller.
-  2. `pylot <pylot.control.html#module-pylot.control.pylot\_agent\_operator>`__:
+  2. `pid <pylot.control.html#module-pylot.control.pid\_agent\_operator>`__:
      An operator that uses a PID controller to follow the waypoints.
+  3. ``carla_auto_pilot``: The CARLA simulator control the ego-vehicle, and
+     drives it on a predefined path. The path differs depending on the spawning
+     position.
 
 - ``--pid_p``: Sets the p parameter of the PID controller.
 - ``--pid_i``: Sets the i parameter of the PID controller.

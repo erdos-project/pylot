@@ -19,7 +19,7 @@ flags.DEFINE_bool('obstacle_detection', False,
 flags.DEFINE_bool('perfect_obstacle_detection', False,
                   'True to enable perfect obstacle 2D detection')
 flags.DEFINE_bool(
-    'carla_obstacle_detection', False,
+    'carla_obstacle_detection', True,
     'True to enable usage of obstacles received directly from CARLA')
 flags.DEFINE_list(
     'obstacle_detection_model_paths',
@@ -43,7 +43,7 @@ flags.DEFINE_bool('traffic_light_detection', False,
 flags.DEFINE_bool('perfect_traffic_light_detection', False,
                   'True to enable perfect traffic light 2D detection')
 flags.DEFINE_bool(
-    'carla_traffic_light_detection', False,
+    'carla_traffic_light_detection', True,
     'True to enable usage of traffic lights received directly from CARLA')
 flags.DEFINE_bool('segmentation', False,
                   'True to enable segmentation operator')
@@ -76,7 +76,7 @@ flags.DEFINE_bool('imu', False, 'True to enable the IMU sensor')
 # Control
 ######################################################################
 flags.DEFINE_enum('control_agent', 'carla_auto_pilot',
-                  ['pylot', 'mpc', 'carla_auto_pilot'],
+                  ['pid', 'mpc', 'carla_auto_pilot'],
                   'Control agent operator to use to drive')
 
 ######################################################################
@@ -175,9 +175,8 @@ flags.register_multi_flags_validator(['planning_type', 'prediction'],
                                      message='rrt star requires --prediction')
 
 
-def agent_validator(flags_dict):
-    if (flags_dict['control_agent'] == 'pylot'
-            or flags_dict['control_agent'] == 'mpc'):
+def waypoint_planning_validator(flags_dict):
+    if flags_dict['planning_type'] == 'waypoint':
         has_obstacle_detector = (flags_dict['obstacle_detection']
                                  or flags_dict['perfect_obstacle_detection']
                                  or flags_dict['carla_obstacle_detection'])
@@ -196,28 +195,35 @@ flags.register_multi_flags_validator(
         'obstacle_detection', 'perfect_obstacle_detection',
         'carla_obstacle_detection', 'traffic_light_detection',
         'perfect_traffic_light_detection', 'carla_traffic_light_detection',
-        'control_agent'
+        'planning_type'
     ],
-    agent_validator,
-    message=
-    'pylot and mpc agents require obstacle detection and traffic light detection'
-)
+    waypoint_planning_validator,
+    message='waypoint planner requires obstacle detection and '
+    'traffic light detection')
 
 
 def obstacle_detection_validator(flags_dict):
-    return (flags_dict['obstacle_detection'] is False
-            or flags_dict['perfect_obstacle_detection'] is False)
+    if flags_dict['obstacle_detection']:
+        return not (flags_dict['perfect_obstacle_detection']
+                    or flags_dict['carla_obstacle_detection'])
+    if flags_dict['perfect_obstacle_detection']:
+        return not (flags_dict['obstacle_detection']
+                    or flags_dict['carla_obstacle_detection'])
+    if flags_dict['carla_obstacle_detection']:
+        return not (flags_dict['obstacle_detection']
+                    or flags_dict['perfect_obstacle_detection'])
+    return False
 
 
 flags.register_multi_flags_validator(
     [
         'obstacle_detection',
         'perfect_obstacle_detection',
+        'carla_obstacle_detection',
     ],
     obstacle_detection_validator,
-    message=
-    '--obstacle_detection and --perfect_obstacle_detection cannot be both True'
-)
+    message='Only one of --obstacle_detection, --perfect_obstacle_detection, '
+    'or --carla_obstacle_detection can be True')
 
 
 def obstacle_detection_eval_validator(flags_dict):
@@ -229,36 +235,50 @@ def obstacle_detection_eval_validator(flags_dict):
 flags.register_multi_flags_validator(
     ['obstacle_detection', 'evaluate_obstacle_detection'],
     obstacle_detection_eval_validator,
-    message=
-    '--obstacle_detection must be True when --evaluate_obstacle_detection is True'
-)
+    message='--obstacle_detection must be enabled when '
+    '--evaluate_obstacle_detection is enabled')
+
+
+def traffic_light_detection_validator(flags_dict):
+    if flags_dict['traffic_light_detection']:
+        return not (flags_dict['perfect_traffic_light_detection']
+                    or flags_dict['carla_traffic_light_detection'])
+    if flags_dict['perfect_traffic_light_detection']:
+        return not (flags_dict['traffic_light_detection']
+                    or flags_dict['carla_traffic_light_detection'])
+    if flags_dict['carla_traffic_light_detection']:
+        return not (flags_dict['traffic_light_detection']
+                    or flags_dict['perfect_traffic_light_detection'])
+
+
+flags.register_multi_flags_validator(
+    [
+        'traffic_light_detection', 'perfect_traffic_light_detection',
+        'carla_traffic_light_detection'
+    ],
+    traffic_light_detection_validator,
+    message='Only one of --traffic_light_detection, '
+    '--perfect_traffic_light_detection, or --carla_traffic_light_detection'
+    ' can be True')
 
 
 def obstacle_tracking_validator(flags_dict):
     if flags_dict['obstacle_tracking']:
         return (flags_dict['obstacle_detection']
-                or flags_dict['perfect_obstacle_detection'])
+                or flags_dict['perfect_obstacle_detection']
+                or flags_dict['carla_obstacle_detection'])
     return True
 
 
 flags.register_multi_flags_validator(
-    ['obstacle_detection', 'perfect_obstacle_detection', 'obstacle_tracking'],
+    [
+        'obstacle_detection', 'perfect_obstacle_detection',
+        'carla_obstacle_detection', 'obstacle_tracking'
+    ],
     obstacle_tracking_validator,
-    message='--obstacle_detection or --perfect_obstacle_detection must be set'
-    ' when --obstacle_tracking is enabled')
-
-
-def detector_evaluation_validator(flags_dict):
-    if flags_dict['evaluate_obstacle_detection']:
-        return flags_dict['obstacle_detection']
-    return True
-
-
-flags.register_multi_flags_validator(
-    ['obstacle_detection', 'evaluate_obstacle_detection'],
-    detector_evaluation_validator,
-    message='--obstacle_detection must be set when '
-    '--evaluate_obstacle_detection is enabled')
+    message='--obstacle_detection, --perfect_obstacle_detection, or '
+    '--carla_obstacle_detection must be set when --obstacle_tracking is'
+    ' enabled')
 
 
 def fusion_evaluation_validator(flags_dict):
