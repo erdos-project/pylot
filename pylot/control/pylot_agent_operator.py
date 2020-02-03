@@ -123,19 +123,19 @@ class PylotAgentOperator(erdos.Operator):
         # it has to steer by when taking a turn.
         # Use 10th waypoint for steering.
         wp_vector, wp_angle = \
-            pylot.control.utils.compute_waypoint_vector_and_angle(
-                vehicle_transform, waypoint_msg.waypoints, 9)
+            pylot.planning.utils.compute_waypoint_vector_and_angle(
+                vehicle_transform, waypoint_msg.waypoints, 4)
         # Use 5th waypoint for speed.
         _, wp_angle_speed = \
-            pylot.control.utils.compute_waypoint_vector_and_angle(
-                vehicle_transform, waypoint_msg.waypoints, 4)
+            pylot.planning.utils.compute_waypoint_vector_and_angle(
+                vehicle_transform, waypoint_msg.waypoints, 9)
         tl_msg = self._traffic_lights_msgs.popleft()
         obstacles_msg = self._obstacles_msgs.popleft()
 
         self._logger.debug('@{}: speed {} and location {}'.format(
             timestamp, vehicle_speed, vehicle_transform))
 
-        speed_factor, _ = pylot.control.utils.stop_for_agents(
+        speed_factor, _ = pylot.planning.utils.stop_for_agents(
             vehicle_transform.location, wp_angle, wp_vector,
             obstacles_msg.obstacles, tl_msg.obstacles, self._flags,
             self._logger, self._map, timestamp)

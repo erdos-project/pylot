@@ -1,9 +1,14 @@
 """
 Author: Fangyu Wu, Edward Fang
 Email: fangyuwu@berkeley.edu, edward.fang@berkeley.edu
-The code is adapted from
-https://github.com/AtsushiSakai/PythonRobotics/tree/master/
-PathTracking/model_predictive_speed_and_steer_control
+
+The code is adapted from https://github.com/AtsushiSakai/PythonRobotics/tree/
+master/PathTracking/model_predictive_speed_and_steer_control.
+Its author is Atsushi Sakai.
+
+Reference Papers:
+- [Kinematic and Dynamic Vehicle Models for Autonomous Driving Control Design]
+(https://borrelli.me.berkeley.edu/pdfpub/IV_KinematicMPC_jason.pdf)
 """
 
 import numpy as np
