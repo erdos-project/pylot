@@ -23,6 +23,10 @@ class WaypointPlanningOperator(erdos.Operator):
     the waypoints from the scenario runner agent (on the global trajectory
     stream). Otherwise, it computes waypoints using the HD Map.
 
+    The planner reduces speed/stops whenever it encounters an obstacle,
+    and waits for the obstacle to move. It does not implement an obstacle
+    avoidance policy.
+
     Args:
         can_bus_stream (:py:class:`erdos.ReadStream`): Stream on which can bus
             info is received.
@@ -58,12 +62,10 @@ class WaypointPlanningOperator(erdos.Operator):
         open_drive_stream.add_callback(self.on_opendrive_map)
         global_trajectory_stream.add_callback(self.on_global_trajectory)
         obstacles_stream.add_callback(self.on_obstacles_update)
-        traffic_lights_stream.add_callback(
-            self.on_traffic_lights_update)
-        erdos.add_watermark_callback([
-            can_bus_stream, obstacles_stream,
-            traffic_lights_stream
-        ], [waypoints_stream], self.on_watermark)
+        traffic_lights_stream.add_callback(self.on_traffic_lights_update)
+        erdos.add_watermark_callback(
+            [can_bus_stream, obstacles_stream, traffic_lights_stream],
+            [waypoints_stream], self.on_watermark)
 
         self._log_file_name = log_file_name
         self._logger = erdos.utils.setup_logging(name, log_file_name)
@@ -194,16 +196,16 @@ class WaypointPlanningOperator(erdos.Operator):
             self._logger, self._map, timestamp)
 
         target_speed = speed_factor * self._flags.target_speed
-        self._logger.debug('@{}: computed speed factor: {}'
-                           .format(timestamp, speed_factor))
-        self._logger.debug('@{}: computed target speed: {}'
-                           .format(timestamp, target_speed))
+        self._logger.debug('@{}: computed speed factor: {}'.format(
+            timestamp, speed_factor))
+        self._logger.debug('@{}: computed target speed: {}'.format(
+            timestamp, target_speed))
         head_waypoints = deque(
             itertools.islice(self._waypoints, 0, DEFAULT_NUM_WAYPOINTS))
-        target_speeds = deque([target_speed
-                               for _ in range(len(head_waypoints))])
-        waypoints_stream.send(WaypointsMessage(timestamp, head_waypoints,
-                                               target_speeds))
+        target_speeds = deque(
+            [target_speed for _ in range(len(head_waypoints))])
+        waypoints_stream.send(
+            WaypointsMessage(timestamp, head_waypoints, target_speeds))
 
     def __remove_completed_waypoints(self):
         """Removes waypoints that the ego vehicle has already completed.

@@ -39,7 +39,7 @@ from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
 from pylot.prediction.prediction_eval_operator import PredictionEvalOperator
 # Control operators.
 from pylot.control.mpc.mpc_agent_operator import MPCAgentOperator
-from pylot.control.pylot_agent_operator import PylotAgentOperator
+from pylot.control.pid_agent_operator import PIDAgentOperator
 # Logging operators.
 from pylot.loggers.bounding_box_logger_operator import \
     BoundingBoxLoggerOperator
@@ -277,16 +277,16 @@ def add_waypoint_planning(can_bus_stream,
                           traffic_lights_stream,
                           goal_location,
                           name='waypoint_planning_operator'):
-    [waypoints_stream] = erdos.connect(
-        WaypointPlanningOperator,
-        [can_bus_stream, open_drive_stream, global_trajectory_stream,
-         obstacles_stream, traffic_lights_stream],
-        True,
-        name,
-        FLAGS,
-        goal_location,
-        log_file_name=FLAGS.log_file_name,
-        csv_file_name=FLAGS.csv_log_file_name)
+    [waypoints_stream] = erdos.connect(WaypointPlanningOperator, [
+        can_bus_stream, open_drive_stream, global_trajectory_stream,
+        obstacles_stream, traffic_lights_stream
+    ],
+                                       True,
+                                       name,
+                                       FLAGS,
+                                       goal_location,
+                                       log_file_name=FLAGS.log_file_name,
+                                       csv_file_name=FLAGS.csv_log_file_name)
     return waypoints_stream
 
 
@@ -417,9 +417,8 @@ def add_fusion(can_bus_stream, obstacles_stream, depth_stream,
 
 
 def add_mpc_agent(can_bus_stream, waypoints_stream):
-    [control_stream] = erdos.connect(MPCAgentOperator, [
-        can_bus_stream, waypoints_stream
-    ],
+    [control_stream] = erdos.connect(MPCAgentOperator,
+                                     [can_bus_stream, waypoints_stream],
                                      True,
                                      'mpc_agent_operator',
                                      FLAGS,
@@ -428,16 +427,12 @@ def add_mpc_agent(can_bus_stream, waypoints_stream):
     return control_stream
 
 
-def add_pylot_agent(can_bus_stream, waypoints_stream, traffic_lights_stream,
-                    obstacles_stream, open_drive_stream):
-    input_streams = [
-        can_bus_stream, waypoints_stream, traffic_lights_stream,
-        obstacles_stream, open_drive_stream
-    ]
-    [control_stream] = erdos.connect(PylotAgentOperator,
+def add_pid_agent(can_bus_stream, waypoints_stream):
+    input_streams = [can_bus_stream, waypoints_stream]
+    [control_stream] = erdos.connect(PIDAgentOperator,
                                      input_streams,
                                      True,
-                                     'pylot_agent_operator',
+                                     'pid_agent_operator',
                                      FLAGS,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_file_name=FLAGS.csv_log_file_name)
@@ -500,8 +495,7 @@ def add_lidar_logging(point_cloud_stream,
 
 
 def add_multiple_object_tracker_logging(
-        obstacles_stream,
-        name='multiple_object_tracker_logger_operator'):
+    obstacles_stream, name='multiple_object_tracker_logger_operator'):
     erdos.connect(MultipleObjectTrackerLoggerOperator, [obstacles_stream],
                   True,
                   name,

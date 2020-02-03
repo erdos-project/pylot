@@ -280,9 +280,8 @@ def create_data_flow():
         pylot.operator_creator.add_camera_visualizer(
             camera_streams[CENTER_CAMERA_NAME], CENTER_CAMERA_NAME)
 
-    control_stream = pylot.operator_creator.add_pylot_agent(
-        can_bus_stream, waypoints_stream, traffic_lights_stream,
-        obstacles_stream, open_drive_stream)
+    control_stream = pylot.operator_creator.add_pid_agent(
+        can_bus_stream, waypoints_stream)
     extract_control_stream = erdos.ExtractStream(control_stream)
     return (camera_streams, can_bus_stream, global_trajectory_stream,
             open_drive_stream, point_cloud_stream, extract_control_stream)

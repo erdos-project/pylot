@@ -75,7 +75,7 @@ flags.DEFINE_bool('imu', False, 'True to enable the IMU sensor')
 # Control
 ######################################################################
 flags.DEFINE_enum('control_agent', 'carla_auto_pilot',
-                  ['pylot', 'mpc', 'carla_auto_pilot'],
+                  ['pid', 'mpc', 'carla_auto_pilot'],
                   'Control agent operator to use to drive')
 
 ######################################################################
@@ -174,9 +174,8 @@ flags.register_multi_flags_validator(['planning_type', 'prediction'],
                                      message='rrt star requires --prediction')
 
 
-def agent_validator(flags_dict):
-    if (flags_dict['control_agent'] == 'pylot'
-            or flags_dict['control_agent'] == 'mpc'):
+def waypoint_planning_validator(flags_dict):
+    if flags_dict['planning_type'] == 'waypoint':
         has_obstacle_detector = (flags_dict['obstacle_detection']
                                  or flags_dict['perfect_obstacle_detection']
                                  or flags_dict['carla_obstacle_detection'])
@@ -195,12 +194,11 @@ flags.register_multi_flags_validator(
         'obstacle_detection', 'perfect_obstacle_detection',
         'carla_obstacle_detection', 'traffic_light_detection',
         'perfect_traffic_light_detection', 'carla_traffic_light_detection',
-        'control_agent'
+        'plannint_type'
     ],
-    agent_validator,
+    waypoint_planning_validator,
     message=
-    'pylot and mpc agents require obstacle detection and traffic light detection'
-)
+    'waypoint planner requires obstacle detection and traffic light detection')
 
 
 def obstacle_detection_validator(flags_dict):
@@ -245,19 +243,6 @@ flags.register_multi_flags_validator(
     obstacle_tracking_validator,
     message='--obstacle_detection or --perfect_obstacle_detection must be set'
     ' when --obstacle_tracking is enabled')
-
-
-def detector_evaluation_validator(flags_dict):
-    if flags_dict['evaluate_obstacle_detection']:
-        return flags_dict['obstacle_detection']
-    return True
-
-
-flags.register_multi_flags_validator(
-    ['obstacle_detection', 'evaluate_obstacle_detection'],
-    detector_evaluation_validator,
-    message='--obstacle_detection must be set when '
-    '--evaluate_obstacle_detection is enabled')
 
 
 def fusion_evaluation_validator(flags_dict):

@@ -387,8 +387,7 @@ def add_planning(goal_location,
                 and global_trajectory_stream is not None)
         waypoints_stream = pylot.operator_creator.add_waypoint_planning(
             can_bus_stream, open_drive_stream, global_trajectory_stream,
-            obstacles_stream, traffic_lights_stream,
-            goal_location)
+            obstacles_stream, traffic_lights_stream, goal_location)
     elif FLAGS.planning_type == 'rrt_star':
         waypoints_stream = pylot.operator_creator.add_rrt_start_planning(
             can_bus_stream, prediction_stream, goal_location)
@@ -402,56 +401,31 @@ def add_planning(goal_location,
     return waypoints_stream
 
 
-def add_control(can_bus_stream, obstacles_stream, traffic_lights_stream,
-                waypoints_stream, open_drive_stream, ground_obstacles_stream,
-                ground_traffic_lights_stream):
+def add_control(can_bus_stream, waypoints_stream):
     """Adds ego-vehicle control operators.
 
     Args:
         can_bus_stream (:py:class:`erdos.ReadStream`, optional): Stream on
             which can bus info is received.
-        obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
-            detected obstacles are received.
-        traffic_lights_stream (:py:class:`erdos.ReadStream`): Stream on which
-            detected traffic lights are received.
         waypoints_stream (:py:class:`erdos.ReadStream`): Stream on which
             waypoints are received.
-        open_drive_stream (:py:class:`erdos.ReadStream`): Stream on which
-            open drive string representations are received. Operators can
-            construct HDMaps out of the open drive strings.
-        ground_obstacles_stream (:py:class:`erdos.ReadStream`, optional):
-            Stream on which
-            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
-            are received.
-        ground_traffic_lights_stream (:py:class:`erdos.ReadStream`, optional):
-            Stream on which
-            :py:class:`~pylot.perception.messages.TrafficLightsMessage`
-            messages are received.
 
     Returns:
         :py:class:`erdos.ReadStream`: Stream on which
         :py:class:`~pylot.control.messages.ControlMessage` messages are
         published.
     """
-    if FLAGS.control_agent == 'pylot':
-        control_stream = pylot.operator_creator.add_pylot_agent(
-            can_bus_stream, waypoints_stream, traffic_lights_stream,
-            obstacles_stream, open_drive_stream)
+    if FLAGS.control_agent == 'pid':
+        control_stream = pylot.operator_creator.add_pid_agent(
+            can_bus_stream, waypoints_stream)
     elif FLAGS.control_agent == 'mpc':
         control_stream = pylot.operator_creator.add_mpc_agent(
             can_bus_stream, waypoints_stream)
     elif FLAGS.control_agent == 'carla_auto_pilot':
         # TODO: Hack! We synchronize on a single stream, based on a
         # guesestimate of which stream is slowest.
-        stream_to_sync_on = ground_obstacles_stream
-        if obstacles_stream is not None:
-            stream_to_sync_on = obstacles_stream
-        elif traffic_lights_stream is not None:
-            stream_to_sync_on = traffic_lights_stream
-        elif waypoints_stream is not None:
-            stream_to_sync_on = waypoints_stream
         control_stream = pylot.operator_creator.add_synchronizer(
-            stream_to_sync_on)
+            waypoints_stream)
     else:
         raise ValueError('Unexpected control_agent {}'.format(
             FLAGS.control_agent))

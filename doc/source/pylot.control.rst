@@ -19,10 +19,10 @@ pylot.control.messages module
     :undoc-members:
     :show-inheritance:
 
-pylot.control.pylot\_agent\_operator module
--------------------------------------------
+pylot.control.pid\_agent\_operator module
+-----------------------------------------
 
-.. automodule:: pylot.control.pylot_agent_operator
+.. automodule:: pylot.control.pid_agent_operator
     :members:
     :undoc-members:
     :show-inheritance:

@@ -97,9 +97,7 @@ def driver():
             'Cannot use CARLA auto pilot in a scenario'
         # Add the behaviour planning and control operator.
         control_stream = pylot.component_creator.add_control(
-            can_bus_stream, obstacles_stream, traffic_lights_stream,
-            waypoints_stream, open_drive_stream, ground_obstacles_stream,
-            ground_traffic_lights_stream)
+            can_bus_stream, waypoints_stream)
 
     control_loop_stream.set(control_stream)
 

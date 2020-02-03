@@ -88,12 +88,9 @@ def driver():
         obstacles_stream, traffic_lights_stream, open_drive_stream,
         global_trajectory_stream)
 
-    # TODO: Merge depth camera stream and point cloud stream.
     # Add the behaviour planning and control operator.
     control_stream = pylot.component_creator.add_control(
-        can_bus_stream, obstacles_stream, traffic_lights_stream,
-        waypoints_stream, open_drive_stream, ground_obstacles_stream,
-        ground_traffic_lights_stream)
+        can_bus_stream, waypoints_stream)
     control_loop_stream.set(control_stream)
 
     pylot.operator_creator.add_sensor_visualizers(center_camera_stream,
