@@ -333,7 +333,8 @@ def get_detected_traffic_stops(traffic_stops, depth_frame):
             'depth_frame should be of type perception.depth_frame.DepthFrame')
     det_stop_signs = []
     for stop_sign in traffic_stops:
-        bbox_2d = get_stop_markings_bbox(stop_sign.bounding_box, depth_frame)
+        bbox_2d = get_stop_markings_bbox(stop_sign.bounding_box_3d,
+                                         depth_frame)
         if bbox_2d is not None:
             stop_sign.bounding_box = bbox_2d
             det_stop_signs.append(stop_sign)

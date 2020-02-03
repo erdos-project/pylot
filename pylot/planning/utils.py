@@ -1,8 +1,7 @@
 import enum
 import math
 from pylot.perception.detection.traffic_light import TrafficLightColor
-
-VEHICLE_LABELS = {'car', 'bicycle', 'motorcycle', 'bus', 'truck', 'vehicle'}
+import pylot.perception.detection.utils
 
 
 class BehaviorPlannerState(enum.Enum):
@@ -79,7 +78,7 @@ def stop_vehicle(ego_vehicle_location, obs_vehicle_location, wp_vector,
     medium_max_angle = flags.vehicle_angle_thres
     medium_dist = flags.vehicle_distance_thres
     if ((min_angle < v_angle < max_angle and v_dist < max_dist) or
-            (min_angle < v_angle < medium_max_angle and v_dist < medium_dist)):
+        (min_angle < v_angle < medium_max_angle and v_dist < medium_dist)):
         speed_factor_v_temp = v_dist / (flags.coast_factor *
                                         flags.vehicle_distance_thres)
 
@@ -160,7 +159,8 @@ def stop_for_agents(ego_vehicle_location,
                     logger.debug(
                         '@{}: person {} reduced speed factor to {}'.format(
                             timestamp, obstacle, speed_factor_p))
-        elif obstacle.label in VEHICLE_LABELS and flags.stop_for_vehicles:
+        elif (obstacle.label in pylot.perception.detection.utils.VEHICLE_LABELS
+              and flags.stop_for_vehicles):
             # Only brake for vehicles that are in ego vehicle's lane.
             if (not hd_map or hd_map.are_on_same_lane(
                     ego_vehicle_location, obstacle.transform.location)):

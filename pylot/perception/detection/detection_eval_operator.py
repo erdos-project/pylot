@@ -4,7 +4,7 @@ from absl import flags
 import erdos
 import heapq
 
-from pylot.perception.detection.utils import get_mAP
+import pylot.perception.detection.utils
 from pylot.utils import time_epoch_ms
 
 flags.DEFINE_enum('detection_metric', 'mAP', ['mAP', 'timely-mAP'],
@@ -92,7 +92,8 @@ class DetectionEvalOperator(erdos.Operator):
                 # Get detector output obstacles.
                 obstacles = self.__get_obstacles_at(start_time)
                 if (len(obstacles) > 0 or len(ground_obstacles) > 0):
-                    mAP = get_mAP(ground_obstacles, obstacles)
+                    mAP = pylot.perception.detection.utils.get_mAP(
+                        ground_obstacles, obstacles)
                     self._logger.info('mAP is: {}'.format(mAP))
                     self._csv_logger.info('{},{},{},{}'.format(
                         time_epoch_ms(), self._name, 'mAP', mAP))
@@ -185,7 +186,8 @@ class DetectionEvalOperator(erdos.Operator):
         people = []
         traffic_lights = []
         for obstacle in obstacles:
-            if obstacle.label == 'vehicle':
+            if (obstacle.label in
+                    pylot.perception.detection.utils.VEHICLE_LABELS):
                 vehicles.append(obstacle)
             elif obstacle.label == 'person':
                 people.append(obstacle)
