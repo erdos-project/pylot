@@ -4,9 +4,11 @@ Email: edward.fang@berkeley.edu
 
 """
 import numpy as np
-from collections import deque
-import erdos
+import shapely.geometry as geom
 import itertools
+from collections import deque
+
+import erdos
 
 from pylot.map.hd_map import HDMap
 from pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory import \
@@ -55,6 +57,7 @@ class FOTPlanningOperator(erdos.Operator):
 
         self._can_bus_msgs = deque()
         self._prediction_msgs = deque()
+        self.s0 = 0
 
     @staticmethod
     def connect(can_bus_stream, prediction_stream):
@@ -93,7 +96,7 @@ class FOTPlanningOperator(erdos.Operator):
         # update waypoints
         if not self._waypoints:
             self._update_global_waypoints(vehicle_transform)
-        self.__remove_completed_waypoints(vehicle_transform)
+        # self.__remove_completed_waypoints(vehicle_transform)
 
         # convert waypoints to frenet coordinates
         wx = []
@@ -104,14 +107,15 @@ class FOTPlanningOperator(erdos.Operator):
         tx, ty, tyaw, tc, csp = generate_target_course(wx, wy)
 
         s0, c_speed, c_d, c_d_d, c_d_dd = \
-            self._compute_initial_conditions(can_bus_msg, wx, wy)
+            self._compute_initial_conditions(can_bus_msg, wx, wy, csp)
 
+        self._logger.info("s_0: {}".format(s0))
         self._logger.info("c_speed: {}".format(c_speed))
         self._logger.info("c_d: {}".format(c_d))
         self._logger.info("c_d_d: {}".format(c_d_d))
 
         # compute frenet optimal trajectory
-        target_speed = min(c_speed + 10, self._flags.target_speed)
+        target_speed = min(c_speed + 15, self._flags.target_speed)
         path = frenet_optimal_planning(
             csp, s0, c_speed, c_d, c_d_d, c_d_dd, obstacle_list, target_speed)
 
@@ -144,17 +148,27 @@ class FOTPlanningOperator(erdos.Operator):
         self._logger.info("Wx: {}".format(wx))
         self._logger.info("Wy: {}".format(wy))
 
-    def _compute_initial_conditions(self, can_bus_msg, wx, wy):
+    def _compute_initial_conditions(self, can_bus_msg, wx, wy, csp):
         x = can_bus_msg.data.transform.location.x
         y = can_bus_msg.data.transform.location.y
         vx = can_bus_msg.data.velocity_vector.x
         vy = can_bus_msg.data.velocity_vector.y
+
+        # get distance from car to spline and projection
+        line = geom.LineString(zip(wx, wy))
+        point = geom.Point(x, y)
+        distance = point.distance(line)
+        point_on_line = line.interpolate(line.project(point))
+
+        # compute tanget / normal spline vectors
         svec = np.array([wx[1] - wx[0], wy[1] - wy[0]])
         svec = svec / np.linalg.norm(svec)  # unit vector tangent to spline
         tvec = np.array([-svec[1], svec[0]])  # unit vector orthog. to spline
+
+        # compute tangent / normal car vectors
         fvec = np.array([vx, vy])
         fvec = fvec / np.linalg.norm(fvec)  # unit vector tangent to velocity
-        bvec = np.array([wx[0] - x, wy[0] - y])
+        bvec = np.array([point_on_line.x - x, point_on_line.y - y])
         bvec = bvec / np.linalg.norm(bvec)  # unit vector between car and spline
 
         self._logger.info("fvec: {}".format(fvec))
@@ -163,14 +177,14 @@ class FOTPlanningOperator(erdos.Operator):
         self._logger.info("bvec: {}".format(bvec))
         self._logger.info("x, y: {}, {}".format(x, y))
 
-        s0 = 0  # current course position
+        s0 = csp.find_s(x, y, self.s0)  # current course position
         c_speed = can_bus_msg.data.forward_speed  # current speed [m/s]
-        c_d = np.sign(np.dot(tvec, bvec)) * np.linalg.norm([x-wx[0], y-wy[0]])  # current lateral position [m]
+        c_d = np.sign(np.dot(tvec, bvec)) * distance  # current lateral position [m]
         c_d_d = c_speed * np.dot(tvec, fvec)  # current lateral speed [m\s]
         c_d_dd = 0.0  # current lateral acceleration [m\s]
 
-        # TODO: fix this
-        return s0, c_speed, 0, 0, c_d_dd
+        self.s0 = s0
+        return s0, c_speed, c_d, c_d_d, c_d_dd
 
     @staticmethod
     def _build_obstacle_list(vehicle_transform, prediction_msg):
@@ -190,17 +204,13 @@ class FOTPlanningOperator(erdos.Operator):
         # look over all predictions
         for prediction in prediction_msg.predictions:
             # use all prediction times as potential obstacles
-            time = 0
             for transform in prediction.trajectory:
-                # if time < 0.3:
-                #     continue
                 _, dist, _ = vehicle_transform.get_vector_magnitude_angle(transform.location)
                 if dist < DEFAULT_DISTANCE_THRESHOLD:
                     # add the obstacle origin to the map
                     obstacle_origin = [transform.location.x,
                                        transform.location.y]
                     obstacle_list.append(obstacle_origin)
-            time += 0.1
         return np.array(obstacle_list)
 
     def _update_global_waypoints(self, vehicle_transform):
@@ -217,34 +227,34 @@ class FOTPlanningOperator(erdos.Operator):
         self._waypoints = self._hd_map.compute_waypoints(
             vehicle_transform.location, self._goal_location)
 
-    def __remove_completed_waypoints(self, vehicle_transform):
-        """Removes waypoints that the ego vehicle has already completed.
-
-        The method first finds the closest waypoint, removes all waypoints
-        that are before the closest waypoint, and finally removes the closest
-        waypoint if the ego vehicle is very close to it (i.e., close to
-        completion).
-        """
-        min_dist = 10000000
-        min_index = 0
-        index = 0
-        for waypoint in self._waypoints:
-            # XXX(ionel): We only check the first 10 waypoints.
-            if index > 30:
-                break
-            dist = waypoint.location.distance(vehicle_transform.location)
-            if dist < min_dist:
-                min_dist = dist
-                min_index = index
-
-        # Remove waypoints that are before the closest waypoint. The ego
-        # vehicle already completed them.
-        while min_index > 0:
-            self._logger.info("POP LEFT: {}".format(min_index))
-            self._waypoints.popleft()
-            min_index -= 1
-
-        # The closest waypoint is almost complete, remove it.
-        if min_dist < WAYPOINT_COMPLETION_THRESHOLD:
-            self._logger.info("POP LEFT: {}".format(min_index))
-            self._waypoints.popleft()
+    # def __remove_completed_waypoints(self, vehicle_transform):
+    #     """Removes waypoints that the ego vehicle has already completed.
+    #
+    #     The method first finds the closest waypoint, removes all waypoints
+    #     that are before the closest waypoint, and finally removes the closest
+    #     waypoint if the ego vehicle is very close to it (i.e., close to
+    #     completion).
+    #     """
+    #     min_dist = 10000000
+    #     min_index = 0
+    #     index = 0
+    #     for waypoint in self._waypoints:
+    #         # XXX(ionel): We only check the first 10 waypoints.
+    #         if index > 30:
+    #             break
+    #         dist = waypoint.location.distance(vehicle_transform.location)
+    #         if dist < min_dist:
+    #             min_dist = dist
+    #             min_index = index
+    #
+    #     # Remove waypoints that are before the closest waypoint. The ego
+    #     # vehicle already completed them.
+    #     while min_index > 0:
+    #         self._logger.info("POP LEFT: {}".format(min_index))
+    #         self._waypoints.popleft()
+    #         min_index -= 1
+    #
+    #     # The closest waypoint is almost complete, remove it.
+    #     if min_dist < WAYPOINT_COMPLETION_THRESHOLD:
+    #         self._logger.info("POP LEFT: {}".format(min_index))
+    #         self._waypoints.popleft()

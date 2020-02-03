@@ -281,6 +281,19 @@ class CubicSpline2D:
         yaw = np.arctan2(dy, dx)
         return yaw
 
+    def find_s(self, x, y, s0=0):
+        s_closest = s0
+        closest = np.inf
+        for s in np.arange(s0, self.s[-1], 0.2):
+            sx, sy = self.calc_position(s)
+            dist = np.linalg.norm([x-sx, y-sy])
+            if dist < closest:
+                closest = dist
+                s_closest = s
+            elif dist > closest:
+                break
+        return s_closest
+
     def _calc_s(self, x, y):
         """
         Calculate the s values for interpolation given x, y.
