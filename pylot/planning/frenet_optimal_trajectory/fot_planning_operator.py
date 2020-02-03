@@ -15,9 +15,9 @@ from pylot.planning.messages import WaypointsMessage
 from pylot.simulation.utils import get_map
 from pylot.utils import Location, Transform, Rotation
 
-DEFAULT_DISTANCE_THRESHOLD = 30  # 20 meters ahead of ego
+DEFAULT_DISTANCE_THRESHOLD = 50  # 20 meters ahead of ego
 DEFAULT_NUM_WAYPOINTS = 50  # 50 waypoints to plan for
-WAYPOINT_COMPLETION_THRESHOLD = 1
+WAYPOINT_COMPLETION_THRESHOLD = 0.9
 
 
 class FOTPlanningOperator(erdos.Operator):
@@ -154,13 +154,14 @@ class FOTPlanningOperator(erdos.Operator):
         tvec = np.array([-svec[1], svec[0]])  # unit vector orthog. to spline
         fvec = np.array([vx, vy])
         fvec = fvec / np.linalg.norm(fvec)  # unit vector tangent to velocity
-        bvec = np.array([x - wx[0], y - wy[0]])
+        bvec = np.array([wx[0] - x, wy[0] - y])
         bvec = bvec / np.linalg.norm(bvec)  # unit vector between car and spline
 
         self._logger.info("fvec: {}".format(fvec))
         self._logger.info("tvec: {}".format(tvec))
         self._logger.info("svec: {}".format(svec))
         self._logger.info("bvec: {}".format(bvec))
+        self._logger.info("x, y: {}, {}".format(x, y))
 
         s0 = 0  # current course position
         c_speed = can_bus_msg.data.forward_speed  # current speed [m/s]
@@ -188,13 +189,17 @@ class FOTPlanningOperator(erdos.Operator):
         # look over all predictions
         for prediction in prediction_msg.predictions:
             # use all prediction times as potential obstacles
+            time = 0
             for transform in prediction.trajectory:
+                # if time < 0.3:
+                #     continue
                 _, dist, _ = vehicle_transform.get_vector_magnitude_angle(transform.location)
                 if dist < DEFAULT_DISTANCE_THRESHOLD:
                     # add the obstacle origin to the map
                     obstacle_origin = [transform.location.x,
                                        transform.location.y]
                     obstacle_list.append(obstacle_origin)
+            time += 0.1
         return np.array(obstacle_list)
 
     def _update_global_waypoints(self, vehicle_transform):
@@ -234,9 +239,11 @@ class FOTPlanningOperator(erdos.Operator):
         # Remove waypoints that are before the closest waypoint. The ego
         # vehicle already completed them.
         while min_index > 0:
+            self._logger.info("POP LEFT: {}".format(min_index))
             self._waypoints.popleft()
             min_index -= 1
 
         # The closest waypoint is almost complete, remove it.
         if min_dist < WAYPOINT_COMPLETION_THRESHOLD:
+            self._logger.info("POP LEFT: {}".format(min_index))
             self._waypoints.popleft()
