@@ -1,4 +1,7 @@
 """
+Author: Edward Fang
+Email: edward.fang@berkeley.edu
+
 An RRT* planning operator that runs the RRT* algorithm defined under
 pylot/planning/rrt_star/rrt_star.py.
 
@@ -19,7 +22,7 @@ from pylot.planning.messages import WaypointsMessage
 from pylot.planning.rrt_star.rrt_star import apply_rrt_star
 from pylot.planning.rrt_star.utils import start_target_to_space
 from pylot.simulation.utils import get_map
-from pylot.utils import Location
+from pylot.utils import Location, Rotation, Transform
 
 DEFAULT_OBSTACLE_LENGTH = 3  # 3 meters from front to back
 DEFAULT_OBSTACLE_WIDTH = 2  # 2 meters from side to side
@@ -27,6 +30,7 @@ DEFAULT_TARGET_LENGTH = 1  # 1.5 meters from front to back
 DEFAULT_TARGET_WIDTH = 1  # 1 meters from side to side
 DEFAULT_DISTANCE_THRESHOLD = 20  # 20 meters ahead of ego
 DEFAULT_NUM_WAYPOINTS = 50  # 50 waypoints to plan for
+DEFAULT_TARGET_WAYPOINT = 9  # Use the 10th waypoint for computing speed
 
 
 class RRTStarPlanningOperator(erdos.Operator):
@@ -59,7 +63,7 @@ class RRTStarPlanningOperator(erdos.Operator):
             name + '-csv', csv_file_name)
         self._flags = flags
 
-        self._wp_index = 9
+        self._wp_index = DEFAULT_TARGET_WAYPOINT
         self._waypoints = None
         self._goal_location = goal_location
 
@@ -96,7 +100,9 @@ class RRTStarPlanningOperator(erdos.Operator):
         vehicle_transform = can_bus_msg.data.transform
 
         # get obstacles
-        obstacle_map = self._build_obstacle_map(vehicle_transform)
+        prediction_msg = self._prediction_msgs.popleft()
+        obstacle_map = self._build_obstacle_map(vehicle_transform,
+                                                prediction_msg)
 
         # compute goals
         target_location = self._compute_target_location(vehicle_transform)
@@ -109,9 +115,13 @@ class RRTStarPlanningOperator(erdos.Operator):
         if cost is not None:
             path_transforms = []
             for point in path:
+                p_loc = self._hd_map.get_closest_lane_waypoint(
+                        Location(x=point[0], y=point[1], z=0)).location
                 path_transforms.append(
-                    self._hd_map.get_closest_lane_waypoint(
-                        Location(x=point[0], y=point[1], z=0)))
+                    Transform(
+                        location=Location(x=point[0], y=point[1], z=p_loc.z),
+                        rotation=Rotation(),
+                    ))
             waypoints = deque(path_transforms)
             waypoints.extend(
                 itertools.islice(self._waypoints, self._wp_index,
@@ -129,7 +139,7 @@ class RRTStarPlanningOperator(erdos.Operator):
         waypoints_stream.send(WaypointsMessage(timestamp, waypoints,
                                                target_speeds))
 
-    def _build_obstacle_map(self, vehicle_transform):
+    def _build_obstacle_map(self, vehicle_transform, prediction_msg):
         """
         Construct an obstacle map given vehicle_transform.
 
@@ -144,7 +154,6 @@ class RRTStarPlanningOperator(erdos.Operator):
             ego vehicle are considered to save computation cost.
         """
         obstacle_map = {}
-        prediction_msg = self._prediction_msgs.popleft()
         # look over all predictions
         for prediction in prediction_msg.predictions:
             time = 0
@@ -159,6 +168,10 @@ class RRTStarPlanningOperator(erdos.Operator):
                                         DEFAULT_OBSTACLE_WIDTH / 2),
                                        (DEFAULT_OBSTACLE_LENGTH,
                                         DEFAULT_OBSTACLE_WIDTH))
+                    # TODO (@fangedward): this doesn't consider the orientation
+                    # of the car, so unless the dimensions are square then
+                    # the prediction will be incorrect. Consider sending car
+                    # shapes along with predictions.
                     obs_id = str("{}_{}".format(prediction.id, time))
                     obstacle_map[obs_id] = obstacle_origin
                 time += 1
