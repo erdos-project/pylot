@@ -102,12 +102,12 @@ class ObjectTrackerOperator(erdos.Operator):
                 msg.timestamp, self._to_process[0][0], msg.timestamp))
             self._to_process.popleft()
 
-        tracked_obstacles = []
+        detected_obstacles = []
         for obstacle in msg.obstacles:
             if obstacle.label in self._tracked_labels:
-                tracked_obstacles.append(obstacle)
+                detected_obstacles.append(obstacle)
 
-        if len(tracked_obstacles) > 0:
+        if len(detected_obstacles) > 0:
             if len(self._to_process) > 0:
                 # Found the frame corresponding to the bounding boxes.
                 (timestamp, camera_frame) = self._to_process.popleft()
@@ -117,7 +117,7 @@ class ObjectTrackerOperator(erdos.Operator):
                 self._ready_to_update_timestamp = timestamp
                 self._logger.debug(
                     'Restarting trackers at frame {}'.format(timestamp))
-                self._tracker.reinitialize(camera_frame, tracked_obstacles)
+                self._tracker.reinitialize(camera_frame, detected_obstacles)
                 self._logger.debug(
                     'Trackers have {} frames to catch-up'.format(
                         len(self._to_process)))
