@@ -17,7 +17,7 @@ from pylot.utils import Location, Transform, Rotation
 
 DEFAULT_DISTANCE_THRESHOLD = 30  # 20 meters ahead of ego
 DEFAULT_NUM_WAYPOINTS = 50  # 50 waypoints to plan for
-WAYPOINT_COMPLETION_THRESHOLD = 0.9
+WAYPOINT_COMPLETION_THRESHOLD = 1
 
 
 class FOTPlanningOperator(erdos.Operator):
@@ -103,12 +103,12 @@ class FOTPlanningOperator(erdos.Operator):
             wy.append(wp.location.y)
         tx, ty, tyaw, tc, csp = generate_target_course(wx, wy)
 
-        # TODO: compute initial conditions
-        s0 = 0  # current course position
-        c_speed = can_bus_msg.data.forward_speed  # current speed [m/s]
-        c_d = 0.0  # current lateral position [m]
-        c_d_d = 0.0  # current lateral speed [m\s]
-        c_d_dd = 0.0  # current lateral acceleration [m\s]
+        s0, c_speed, c_d, c_d_d, c_d_dd = \
+            self._compute_initial_conditions(can_bus_msg, wx, wy)
+
+        self._logger.info("c_speed: {}".format(c_speed))
+        self._logger.info("c_d: {}".format(c_d))
+        self._logger.info("c_d_d: {}".format(c_d_d))
 
         # compute frenet optimal trajectory
         target_speed = min(c_speed + 10, self._flags.target_speed)
@@ -144,7 +144,34 @@ class FOTPlanningOperator(erdos.Operator):
         self._logger.info("Wx: {}".format(wx))
         self._logger.info("Wy: {}".format(wy))
 
-    def _build_obstacle_list(self, vehicle_transform, prediction_msg):
+    def _compute_initial_conditions(self, can_bus_msg, wx, wy):
+        x = can_bus_msg.data.transform.location.x
+        y = can_bus_msg.data.transform.location.y
+        vx = can_bus_msg.data.velocity_vector.x
+        vy = can_bus_msg.data.velocity_vector.y
+        svec = np.array([wx[1] - wx[0], wy[1] - wy[0]])
+        svec = svec / np.linalg.norm(svec)  # unit vector tangent to spline
+        tvec = np.array([-svec[1], svec[0]])  # unit vector orthog. to spline
+        fvec = np.array([vx, vy])
+        fvec = fvec / np.linalg.norm(fvec)  # unit vector tangent to velocity
+        bvec = np.array([x - wx[0], y - wy[0]])
+        bvec = bvec / np.linalg.norm(bvec)  # unit vector between car and spline
+
+        self._logger.info("fvec: {}".format(fvec))
+        self._logger.info("tvec: {}".format(tvec))
+        self._logger.info("svec: {}".format(svec))
+        self._logger.info("bvec: {}".format(bvec))
+
+        s0 = 0  # current course position
+        c_speed = can_bus_msg.data.forward_speed  # current speed [m/s]
+        c_d = np.sign(np.dot(tvec, bvec)) * np.linalg.norm([x-wx[0], y-wy[0]])  # current lateral position [m]
+        c_d_d = c_speed * np.dot(tvec, fvec)  # current lateral speed [m\s]
+        c_d_dd = 0.0  # current lateral acceleration [m\s]
+
+        return s0, c_speed, c_d, c_d_d, c_d_dd
+
+    @staticmethod
+    def _build_obstacle_list(vehicle_transform, prediction_msg):
         """
         Construct an obstacle map given vehicle_transform.
 
@@ -154,7 +181,7 @@ class FOTPlanningOperator(erdos.Operator):
 
         Returns:
             an obstacle list of coordinates from the prediction stream.
-            only obstacles within DEFAULT_DISTANCE_THRESHOLD in front of the
+            only obstacles within DEFAULT_DISTANCE_THRESHOLD of the
             ego vehicle are considered to save computation cost.
         """
         obstacle_list = []
@@ -197,7 +224,7 @@ class FOTPlanningOperator(erdos.Operator):
         index = 0
         for waypoint in self._waypoints:
             # XXX(ionel): We only check the first 10 waypoints.
-            if index > 10:
+            if index > 30:
                 break
             dist = waypoint.location.distance(vehicle_transform.location)
             if dist < min_dist:

@@ -173,9 +173,9 @@ def stop_for_agents(ego_vehicle_location,
                     logger.debug(
                         '@{}: vehicle {} reduced speed factor to {}'.format(
                             timestamp, obstacle, speed_factor_v))
-        else:
-            logger.debug('@{}: filtering obstacle {}'.format(
-                timestamp, obstacle))
+        # else:
+            # logger.debug('@{}: filtering obstacle {}'.format(
+            #     timestamp, obstacle))
 
     if flags.stop_for_traffic_lights:
         for tl in traffic_lights:

@@ -538,20 +538,21 @@ class CanBus(object):
             vehicle.
         forward_speed (:obj:`int`): Forward speed in m/s.
     """
-    def __init__(self, transform, forward_speed):
+    def __init__(self, transform, forward_speed, velocity_vector=None):
         if not isinstance(transform, Transform):
             raise ValueError(
                 'transform should be of type pylot.utils.Transform')
         self.transform = transform
         # Forward speed in m/s.
         self.forward_speed = forward_speed
+        self.velocity_vector = velocity_vector
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return "CanBus(transform: {}, forward speed: {})".format(
-            self.transform, self.forward_speed)
+        return "CanBus(transform: {}, forward speed: {}, velocity vector: {})"\
+            .format(self.transform, self.forward_speed, self.velocity_vector)
 
 
 def add_timestamp(image_np, timestamp):
