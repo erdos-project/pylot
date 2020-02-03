@@ -1,7 +1,13 @@
 """
 Author: Edward Fang
 Email: edward.fang@berkeley.edu
-This code is adapted from: https://github.com/dixantmittal/fast-rrt-star
+
+This code is adapted from https://github.com/dixantmittal/fast-rrt-star.
+Its author is Dixant Mittal.
+
+Reference Papers:
+- [Sampling-based Algorithms for Optimal Motion Planning]
+(https://arxiv.org/pdf/1105.1186.pdf)
 """
 import networkx as nx
 from pylot.planning.rrt_star.utils import *
