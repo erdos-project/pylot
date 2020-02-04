@@ -94,6 +94,7 @@ class PredictionEvalOperator(erdos.Operator):
                 ground_trajectories_dict[obstacle.id] = \
                     ObstacleTrajectory(obstacle.label,
                                        obstacle.id,
+                                       obstacle.bounding_box,
                                        cur_trajectory)
             # Evaluate the prediction corresponding to the current set of
             # ground truth past trajectories.
@@ -108,10 +109,15 @@ class PredictionEvalOperator(erdos.Operator):
             for past_transform in obstacle.trajectory:
                 world_coord = vehicle_transform * past_transform
                 cur_trajectory.append(world_coord)
+            # Get the current transform of the obstacle, which is the last
+            # trajectory value.
+            cur_transform = obstacle.trajectory[-1]
             obstacle_predictions_list.append(
                 ObstaclePrediction(
                     obstacle.label,
                     obstacle.id,
+                    cur_transform,
+                    obstacle.bounding_box,
                     1.0,  # probability
                     cur_trajectory))
         self._predictions.append(

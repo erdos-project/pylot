@@ -86,10 +86,15 @@ class LinearPredictorOperator(erdos.Operator):
                     Transform(location=Location(x=predict_array[t][0],
                                                 y=predict_array[t][1]),
                               rotation=Rotation()))
+            # Get the current transform of the obstacle, which is the last
+            # trajectory value.
+            cur_transform = obstacle.trajectory[-1]
             obstacle_predictions_list.append(
                 ObstaclePrediction(
                     obstacle.label,
                     obstacle.id,
+                    cur_transform,
+                    obstacle.bounding_box,
                     1.0,  # probability
                     predictions))
         linear_prediction_stream.send(

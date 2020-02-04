@@ -1,17 +1,25 @@
+from pylot.perception.detection.utils import BoundingBox3D
+
+
 class ObstacleTrajectory(object):
-    def __init__(self, label, id, trajectory):
-        """Constructs the obstacle trajectory using the given data.
+    """Used to store the trajectory of an obstacle.
 
-        Args:
-            label: String for the class of the obstacle.
-            id: ID of the obstacle.
-            trajectory: List of past pylot.util.simulation.Transforms.
-        """
-
+    Args:
+        label (:obj:`str`): The label of the obstacle.
+        id (:obj:`int`): The identifier of the obstacle.
+        bounding_box (:py:class:`~pylot.utisl.BoundingBox3D`): Bounding box
+            of the obstacle.
+        trajectory (list(:py:class:`~pylot.utils.Transform`)): List of past
+            transforms.
+    """
+    def __init__(self, label, id, bounding_box, trajectory):
         self.label = label
         self.id = id
+        if not isinstance(bounding_box, BoundingBox3D):
+            raise ValueError('bounding box should be of type BoundingBox3D')
+        self.bounding_box = bounding_box
         self.trajectory = trajectory
 
     def __str__(self):
-        return '{} {}, Trajectory {}'.format(self.label, self.id,
-                                             self.trajectory)
+        return 'Obstacle {}, label: {}, bbox: {}, trajectory {}'.format(
+            self.id, self.label, self.bounding_box, self.trajectory)
