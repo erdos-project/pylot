@@ -18,7 +18,7 @@ from pylot.simulation.utils import get_map
 from pylot.utils import Location, Transform, Rotation
 
 DEFAULT_DISTANCE_THRESHOLD = 50  # 20 meters ahead of ego
-DEFAULT_NUM_WAYPOINTS = 50  # 50 waypoints to plan for
+DEFAULT_NUM_WAYPOINTS = 100  # 50 waypoints to plan for
 WAYPOINT_COMPLETION_THRESHOLD = 0.9
 
 
@@ -115,7 +115,7 @@ class FOTPlanningOperator(erdos.Operator):
         self._logger.info("c_d_d: {}".format(c_d_d))
 
         # compute frenet optimal trajectory
-        target_speed = min(c_speed + 15, self._flags.target_speed)
+        target_speed = min(c_speed + 10, self._flags.target_speed)
         path = frenet_optimal_planning(
             csp, s0, c_speed, c_d, c_d_d, c_d_dd, obstacle_list, target_speed)
 
@@ -151,6 +151,7 @@ class FOTPlanningOperator(erdos.Operator):
     def _compute_initial_conditions(self, can_bus_msg, wx, wy, csp):
         x = can_bus_msg.data.transform.location.x
         y = can_bus_msg.data.transform.location.y
+        yaw = can_bus_msg.data.transform.rotation.yaw
         vx = can_bus_msg.data.velocity_vector.x
         vy = can_bus_msg.data.velocity_vector.y
 
@@ -161,7 +162,10 @@ class FOTPlanningOperator(erdos.Operator):
         point_on_line = line.interpolate(line.project(point))
 
         # compute tanget / normal spline vectors
-        svec = np.array([wx[1] - wx[0], wy[1] - wy[0]])
+        x0, y0 = csp.calc_position(self.s0)
+        x1, y1 = csp.calc_position(self.s0 + 2)
+        self._logger.info("S0: {}; x0 y0: {}, {}; x1 y1: {}, {}".format(self.s0, x0, y0, x1, y1))
+        svec = np.array([x1-x0, y1-y0])
         svec = svec / np.linalg.norm(svec)  # unit vector tangent to spline
         tvec = np.array([-svec[1], svec[0]])  # unit vector orthog. to spline
 
@@ -200,6 +204,7 @@ class FOTPlanningOperator(erdos.Operator):
             only obstacles within DEFAULT_DISTANCE_THRESHOLD of the
             ego vehicle are considered to save computation cost.
         """
+        # TODO: missing obstacle in turn?
         obstacle_list = []
         # look over all predictions
         for prediction in prediction_msg.predictions:

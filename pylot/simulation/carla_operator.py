@@ -71,7 +71,7 @@ class CarlaOperator(erdos.Operator):
             log_file_name: The file to log the required information to.
             csv_file_name: The file to log info to in csv format.
         """
-        random.seed(1337)
+        random.seed(1332)
         # Register callback on control stream.
         control_stream.add_callback(self.on_control_msg)
         self.can_bus_stream = can_bus_stream

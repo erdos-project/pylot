@@ -290,8 +290,6 @@ class CubicSpline2D:
             if dist < closest:
                 closest = dist
                 s_closest = s
-            elif dist > closest:
-                break
         return s_closest
 
     def _calc_s(self, x, y):
