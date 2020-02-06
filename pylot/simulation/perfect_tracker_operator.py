@@ -70,6 +70,7 @@ class PerfectTrackerOperator(erdos.Operator):
                                           rotation=pylot.utils.Rotation()))
             obstacle_trajectories.append(
                 ObstacleTrajectory(obstacle.label, obstacle.id,
+                                   obstacle.bounding_box,
                                    cur_obstacle_trajectory))
 
         output_msg = ObstacleTrajectoriesMessage(timestamp,
