@@ -23,10 +23,7 @@ show_animation = True
 
 
 class QuinticPolynomial:
-
     def __init__(self, xs, vxs, axs, xe, vxe, axe, time):
-        # calc coefficient of quintic polynomial
-        # See jupyter notebook document for derivation of this equation.
         self.a0 = xs
         self.a1 = vxs
         self.a2 = axs / 2.0
@@ -56,7 +53,8 @@ class QuinticPolynomial:
         return xt
 
     def calc_second_derivative(self, t):
-        xt = 2 * self.a2 + 6 * self.a3 * t + 12 * self.a4 * t ** 2 + 20 * self.a5 * t ** 3
+        xt = 2 * self.a2 + 6 * self.a3 * t + 12 * self.a4 * t ** 2 + 20 * \
+             self.a5 * t ** 3
 
         return xt
 
@@ -66,11 +64,12 @@ class QuinticPolynomial:
         return xt
 
 
-def quintic_polynomials_planner(sx, sy, syaw, sv, sa, gx, gy, gyaw, gv, ga, max_accel, max_jerk, dt):
+def quintic_polynomials_planner(sx, sy, syaw, sv, sa, gx, gy, gyaw, gv, ga,
+                                max_accel, max_jerk, dt):
     """
-    quintic polynomial planner
+    Quintic polynomial planner.
 
-    input
+    Args
         sx: start x position [m]
         sy: start y position [m]
         syaw: start yaw angle [rad]
@@ -83,7 +82,7 @@ def quintic_polynomials_planner(sx, sy, syaw, sv, sa, gx, gy, gyaw, gv, ga, max_
         max_jerk: maximum jerk [m/sss]
         dt: time tick [s]
 
-    return
+    Returns
         time: time result
         rx: x position result list
         ry: y position result list
@@ -137,7 +136,8 @@ def quintic_polynomials_planner(sx, sy, syaw, sv, sa, gx, gy, gyaw, gv, ga, max_
                 j *= -1
             rj.append(j)
 
-        if max([abs(i) for i in ra]) <= max_accel and max([abs(i) for i in rj]) <= max_jerk:
+        if max([abs(i) for i in ra]) <= max_accel and \
+                max([abs(i) for i in rj]) <= max_jerk:
             print("find path!!")
             break
 
@@ -146,7 +146,9 @@ def quintic_polynomials_planner(sx, sy, syaw, sv, sa, gx, gy, gyaw, gv, ga, max_
             plt.cla()
             # for stopping simulation with the esc key.
             plt.gcf().canvas.mpl_connect('key_release_event',
-                                         lambda event: [exit(0) if event.key == 'escape' else None])
+                                         lambda event: [exit(0)
+                                                        if event.key == 'escape'
+                                                        else None])
             plt.grid(True)
             plt.axis("equal")
             plot_arrow(sx, sy, syaw)
@@ -162,7 +164,7 @@ def quintic_polynomials_planner(sx, sy, syaw, sv, sa, gx, gy, gyaw, gv, ga, max_
     return time, rx, ry, ryaw, rv, ra, rj
 
 
-def plot_arrow(x, y, yaw, length=1.0, width=0.5, fc="r", ec="k"):  # pragma: no cover
+def plot_arrow(x, y, yaw, length=1.0, width=0.5, fc="r", ec="k"):
     """
     Plot arrow
     """

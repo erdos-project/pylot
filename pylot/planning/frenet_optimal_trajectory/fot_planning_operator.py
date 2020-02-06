@@ -1,7 +1,6 @@
 """
 Author: Edward Fang
 Email: edward.fang@berkeley.edu
-
 """
 import numpy as np
 import shapely.geometry as geom
@@ -17,9 +16,8 @@ from pylot.planning.messages import WaypointsMessage
 from pylot.simulation.utils import get_map
 from pylot.utils import Location, Transform, Rotation
 
-DEFAULT_DISTANCE_THRESHOLD = 50  # 20 meters ahead of ego
-DEFAULT_NUM_WAYPOINTS = 100  # 50 waypoints to plan for
-WAYPOINT_COMPLETION_THRESHOLD = 0.9
+DEFAULT_DISTANCE_THRESHOLD = 20  # 20 meters radius around of ego
+DEFAULT_NUM_WAYPOINTS = 100  # 100 waypoints to plan for
 
 
 class FOTPlanningOperator(erdos.Operator):
@@ -96,8 +94,27 @@ class FOTPlanningOperator(erdos.Operator):
         # update waypoints
         if not self._waypoints:
             self._update_global_waypoints(vehicle_transform)
-        # self.__remove_completed_waypoints(vehicle_transform)
 
+        # compute optimal frenet trajectory
+        path, csp, s0, initial_conditions = \
+            self._compute_optimal_frenet_trajectory(can_bus_msg, obstacle_list)
+
+        # send debug info
+        self._logger.debug("@{}: Initial conditions: {}"
+                           .format(timestamp, initial_conditions))
+        if path:
+            self._logger.debug("@{}: Frenet Path X: {}".format(timestamp, path.x))
+            self._logger.debug("@{}: Frenet Path Y: {}".format(timestamp, path.y))
+            self._logger.debug("@{}: Frenet Path V: {}".format(timestamp, path.s_d))
+
+        # construct and send waypoint message
+        waypoints_message = self._construct_waypoints(timestamp, path, csp, s0)
+        waypoints_stream.send(waypoints_message)
+
+    def _compute_optimal_frenet_trajectory(self, can_bus_msg, obstacle_list):
+        """
+        Compute the optimal frenet trajectory, given current environment info.
+        """
         # convert waypoints to frenet coordinates
         wx = []
         wy = []
@@ -106,52 +123,70 @@ class FOTPlanningOperator(erdos.Operator):
             wy.append(wp.location.y)
         tx, ty, tyaw, tc, csp = generate_target_course(wx, wy)
 
+        # compute frenet optimal trajectory
         s0, c_speed, c_d, c_d_d, c_d_dd = \
             self._compute_initial_conditions(can_bus_msg, wx, wy, csp)
-
-        self._logger.info("s_0: {}".format(s0))
-        self._logger.info("c_speed: {}".format(c_speed))
-        self._logger.info("c_d: {}".format(c_d))
-        self._logger.info("c_d_d: {}".format(c_d_d))
-
-        # compute frenet optimal trajectory
-        target_speed = min(c_speed + 10, self._flags.target_speed)
+        target_speed = (c_speed + self._flags.target_speed) / 2
         path = frenet_optimal_planning(
             csp, s0, c_speed, c_d, c_d_d, c_d_dd, obstacle_list, target_speed)
 
-        if path is None:
-            self._logger.info("Path not found. Emergency stop.")
-            self._logger.info("Wx: {}".format(wx))
-            self._logger.info("Wy: {}".format(wy))
-            self._logger.info("Ob: {}".format(obstacle_list.tolist()))
-            waypoints_stream.send(WaypointsMessage(timestamp, self._waypoints,
-                                                   [0] * len(self._waypoints)))
-            return
+        initial_conditions = {
+            "s0": s0,
+            "c_speed": c_speed,
+            "c_d": c_d,
+            "c_d_d": c_d_d,
+            "c_d_dd": c_d_dd,
+            "wx": wx,
+            "wy": wy,
+            "obstacle_list": obstacle_list.tolist(),
+            "x": can_bus_msg.data.transform.location.x,
+            "y": can_bus_msg.data.transform.location.x,
+            "vx": can_bus_msg.data.velocity_vector.x,
+            "vy": can_bus_msg.data.velocity_vector.x,
+        }
+        return path, csp, s0, initial_conditions
 
-        # construct waypoint message
+    def _construct_waypoints(self, timestamp, path, csp, s0):
+        """
+        Convert the optimal frenet path into a waypoints message.
+        """
         path_transforms = []
         target_speeds = []
-        for point in zip(path.x, path.y, path.s_d):
-            p_loc = self._hd_map.get_closest_lane_waypoint(
-                Location(x=point[0], y=point[1], z=0)).location
-            path_transforms.append(
-                Transform(
-                    location=Location(x=point[0], y=point[1], z=p_loc.z),
-                    rotation=Rotation(),
-                ))
-            target_speeds.append(point[2])
+        if path is None:
+            self._logger.debug("@{}: Frenet Optimal Trajectory failed. "
+                               "Sending emergency stop.".format(timestamp))
+            for s in np.arange(s0, csp.s[-1], 1):
+                x, y = csp.calc_position(s)
+                p_loc = self._hd_map.get_closest_lane_waypoint(
+                    Location(x=x, y=y, z=0)).location
+                path_transforms.append(
+                    Transform(
+                        location=Location(x=x, y=y, z=p_loc.z),
+                        rotation=Rotation(),
+                    ))
+                target_speeds.append(0)
+        else:
+            self._logger.debug("@{}: Frenet Optimal Trajectory succeeded."
+                               .format(timestamp))
+            for point in zip(path.x, path.y, path.s_d):
+                p_loc = self._hd_map.get_closest_lane_waypoint(
+                    Location(x=point[0], y=point[1], z=0)).location
+                path_transforms.append(
+                    Transform(
+                        location=Location(x=point[0], y=point[1], z=p_loc.z),
+                        rotation=Rotation(),
+                    ))
+                target_speeds.append(point[2])
+
         waypoints = deque(path_transforms)
-        waypoints_stream.send(WaypointsMessage(timestamp, waypoints,
-                                               target_speeds))
-        self._logger.info("FOUND PATH!")
-        self._logger.info("Ob: {}".format(obstacle_list.tolist()))
-        self._logger.info("Wx: {}".format(wx))
-        self._logger.info("Wy: {}".format(wy))
+        return WaypointsMessage(timestamp, waypoints, target_speeds)
 
     def _compute_initial_conditions(self, can_bus_msg, wx, wy, csp):
+        """
+        Convert the initial conditions of vehicle into frenet frame parameters.
+        """
         x = can_bus_msg.data.transform.location.x
         y = can_bus_msg.data.transform.location.y
-        yaw = can_bus_msg.data.transform.rotation.yaw
         vx = can_bus_msg.data.velocity_vector.x
         vy = can_bus_msg.data.velocity_vector.y
 
@@ -161,13 +196,12 @@ class FOTPlanningOperator(erdos.Operator):
         distance = point.distance(line)
         point_on_line = line.interpolate(line.project(point))
 
-        # compute tanget / normal spline vectors
+        # compute tangent / normal spline vectors
         x0, y0 = csp.calc_position(self.s0)
         x1, y1 = csp.calc_position(self.s0 + 2)
-        self._logger.info("S0: {}; x0 y0: {}, {}; x1 y1: {}, {}".format(self.s0, x0, y0, x1, y1))
         svec = np.array([x1-x0, y1-y0])
         svec = svec / np.linalg.norm(svec)  # unit vector tangent to spline
-        tvec = np.array([-svec[1], svec[0]])  # unit vector orthog. to spline
+        tvec = np.array([svec[1], -svec[0]])  # unit vector orthog. to spline
 
         # compute tangent / normal car vectors
         fvec = np.array([vx, vy])
@@ -175,17 +209,13 @@ class FOTPlanningOperator(erdos.Operator):
         bvec = np.array([point_on_line.x - x, point_on_line.y - y])
         bvec = bvec / np.linalg.norm(bvec)  # unit vector between car and spline
 
-        self._logger.info("fvec: {}".format(fvec))
-        self._logger.info("tvec: {}".format(tvec))
-        self._logger.info("svec: {}".format(svec))
-        self._logger.info("bvec: {}".format(bvec))
-        self._logger.info("x, y: {}, {}".format(x, y))
-
-        s0 = csp.find_s(x, y, self.s0)  # current course position
-        c_speed = can_bus_msg.data.forward_speed  # current speed [m/s]
-        c_d = np.sign(np.dot(tvec, bvec)) * distance  # current lateral position [m]
-        c_d_d = c_speed * np.dot(tvec, fvec)  # current lateral speed [m\s]
-        c_d_dd = 0.0  # current lateral acceleration [m\s]
+        # get initial conditions in frenet frame
+        s0 = csp.find_s(x, y, self.s0)  # cur course position
+        c_speed = can_bus_msg.data.forward_speed  # cur speed [m/s]
+        c_d = np.sign(np.dot(tvec, bvec)) * distance  # cur lateral position [m]
+        c_d_d = c_speed * np.dot(tvec, fvec)  # cur lateral speed [m\s]
+        c_d_dd = 0.0  # cur lateral acceleration [m\s]
+        # TODO (@fangedward) add IMU for lat. acc. when 0.9.7 is fixed
 
         self.s0 = s0
         return s0, c_speed, c_d, c_d_d, c_d_dd
@@ -193,73 +223,36 @@ class FOTPlanningOperator(erdos.Operator):
     @staticmethod
     def _build_obstacle_list(vehicle_transform, prediction_msg):
         """
-        Construct an obstacle map given vehicle_transform.
-
-        Args:
-            vehicle_transform: pylot.utils.Transform of vehicle from can_bus
-                stream
-
-        Returns:
-            an obstacle list of coordinates from the prediction stream.
-            only obstacles within DEFAULT_DISTANCE_THRESHOLD of the
-            ego vehicle are considered to save computation cost.
+        Construct an obstacle list of proximal objects given vehicle_transform.
         """
-        # TODO: missing obstacle in turn?
         obstacle_list = []
         # look over all predictions
         for prediction in prediction_msg.predictions:
             # use all prediction times as potential obstacles
             for transform in prediction.trajectory:
-                _, dist, _ = vehicle_transform.get_vector_magnitude_angle(transform.location)
-                if dist < DEFAULT_DISTANCE_THRESHOLD:
-                    # add the obstacle origin to the map
-                    obstacle_origin = [transform.location.x,
-                                       transform.location.y]
+                # predictions are ego centric
+                dist_to_ego = np.linalg.norm([transform.location.x,
+                                              transform.location.y])
+                # TODO (@fangedward): Fix this hack
+                # Prediction also sends a prediction for ego vehicle
+                # This will always be the closest to the ego vehicle
+                # Filter out until this is removed from prediction
+                if dist_to_ego < 2:  # this allows max vel to be 20m/s
+                    break
+
+                # take all predictions within radius of ego vehicle
+                if dist_to_ego < DEFAULT_DISTANCE_THRESHOLD:
+                    obstacle_origin = [transform.location.x +
+                                       vehicle_transform.location.x,
+                                       transform.location.y +
+                                       vehicle_transform.location.y]
+
                     obstacle_list.append(obstacle_origin)
         return np.array(obstacle_list)
 
     def _update_global_waypoints(self, vehicle_transform):
         """
         Update the global waypoint route.
-
-        Args:
-            vehicle_transform: pylot.utils.Transform of vehicle from can_bus
-                stream
-
-        Returns:
-            target location
         """
         self._waypoints = self._hd_map.compute_waypoints(
             vehicle_transform.location, self._goal_location)
-
-    # def __remove_completed_waypoints(self, vehicle_transform):
-    #     """Removes waypoints that the ego vehicle has already completed.
-    #
-    #     The method first finds the closest waypoint, removes all waypoints
-    #     that are before the closest waypoint, and finally removes the closest
-    #     waypoint if the ego vehicle is very close to it (i.e., close to
-    #     completion).
-    #     """
-    #     min_dist = 10000000
-    #     min_index = 0
-    #     index = 0
-    #     for waypoint in self._waypoints:
-    #         # XXX(ionel): We only check the first 10 waypoints.
-    #         if index > 30:
-    #             break
-    #         dist = waypoint.location.distance(vehicle_transform.location)
-    #         if dist < min_dist:
-    #             min_dist = dist
-    #             min_index = index
-    #
-    #     # Remove waypoints that are before the closest waypoint. The ego
-    #     # vehicle already completed them.
-    #     while min_index > 0:
-    #         self._logger.info("POP LEFT: {}".format(min_index))
-    #         self._waypoints.popleft()
-    #         min_index -= 1
-    #
-    #     # The closest waypoint is almost complete, remove it.
-    #     if min_dist < WAYPOINT_COMPLETION_THRESHOLD:
-    #         self._logger.info("POP LEFT: {}".format(min_index))
-    #         self._waypoints.popleft()
