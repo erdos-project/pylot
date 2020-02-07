@@ -16,7 +16,7 @@ from pylot.planning.messages import WaypointsMessage
 from pylot.simulation.utils import get_map
 from pylot.utils import Location, Transform, Rotation
 
-DEFAULT_DISTANCE_THRESHOLD = 20  # 20 meters radius around of ego
+DEFAULT_DISTANCE_THRESHOLD = 30  # 30 meters radius around of ego
 DEFAULT_NUM_WAYPOINTS = 100  # 100 waypoints to plan for
 
 

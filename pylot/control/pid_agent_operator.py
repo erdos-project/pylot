@@ -11,9 +11,6 @@ from pylot.control.messages import ControlMessage
 import pylot.control.utils
 from pylot.utils import time_epoch_ms
 
-DEFAULT_STEER_WAYPOINT = 5  # Use the 5th waypoint for computing speed
-DEFAULT_SPEED_WAYPOINT = 9  # Use the 10th waypoint for computing speed
-
 
 class PIDAgentOperator(erdos.Operator):
     """Agent operator that uses PID to follow a list of waystops.
@@ -95,15 +92,15 @@ class PIDAgentOperator(erdos.Operator):
         _, wp_angle_steer = \
             pylot.planning.utils.compute_waypoint_vector_and_angle(
                 vehicle_transform, waypoint_msg.waypoints,
-                DEFAULT_STEER_WAYPOINT)
+                self._flags.pid_steer_wp)
         # Use 5th waypoint for speed.
         _, wp_angle_speed = \
             pylot.planning.utils.compute_waypoint_vector_and_angle(
                 vehicle_transform, waypoint_msg.waypoints,
-                DEFAULT_SPEED_WAYPOINT)
+                self._flags.pid_speed_wp)
         # Don't go to fast around corners
         target_speed_adjusted = waypoint_msg.target_speeds[min(
-            len(waypoint_msg.target_speeds) - 1, DEFAULT_SPEED_WAYPOINT)]
+            len(waypoint_msg.target_speeds) - 1, self._flags.pid_speed_wp)]
         if math.fabs(wp_angle_speed) < 0.1:
             target_speed_adjusted /= 2
 

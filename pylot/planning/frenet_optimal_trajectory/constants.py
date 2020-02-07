@@ -9,7 +9,7 @@ MAXT = 6                    # max prediction time [m]
 MINT = 4                    # min prediction time [m]
 D_T_S = 1.0                 # target speed sampling length [m/s]
 N_S_SAMPLE = 1              # sampling number of target speed
-OBSTACLE_RADIUS = 2         # obstacle radius [m]
+OBSTACLE_RADIUS = 3.5         # obstacle radius [m]
 
 # cost weights
 KJ = 0.1                    # jerk cost
