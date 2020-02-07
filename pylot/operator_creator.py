@@ -288,9 +288,9 @@ def add_fot_planning(can_bus_stream,
 
 
 def add_rrt_star_planning(can_bus_stream,
-                           prediction_stream,
-                           goal_location,
-                           name='rrt_star_planning_operator'):
+                          prediction_stream,
+                          goal_location,
+                          name='rrt_star_planning_operator'):
     [waypoints_stream] = erdos.connect(RRTStarPlanningOperator,
                                        [can_bus_stream, prediction_stream],
                                        True,
@@ -512,7 +512,7 @@ def add_lidar_logging(point_cloud_stream,
 
 
 def add_multiple_object_tracker_logging(
-    obstacles_stream, name='multiple_object_tracker_logger_operator'):
+        obstacles_stream, name='multiple_object_tracker_logger_operator'):
     erdos.connect(MultipleObjectTrackerLoggerOperator, [obstacles_stream],
                   True,
                   name,

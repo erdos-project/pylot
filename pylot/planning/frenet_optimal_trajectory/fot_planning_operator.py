@@ -10,8 +10,8 @@ from collections import deque
 import erdos
 
 from pylot.map.hd_map import HDMap
-from pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory import \
-    generate_target_course, frenet_optimal_planning
+from pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory \
+    import generate_target_course, frenet_optimal_planning
 from pylot.planning.messages import WaypointsMessage
 from pylot.simulation.utils import get_map
 from pylot.utils import Location, Transform, Rotation
@@ -103,9 +103,12 @@ class FOTPlanningOperator(erdos.Operator):
         self._logger.debug("@{}: Initial conditions: {}"
                            .format(timestamp, initial_conditions))
         if path:
-            self._logger.debug("@{}: Frenet Path X: {}".format(timestamp, path.x))
-            self._logger.debug("@{}: Frenet Path Y: {}".format(timestamp, path.y))
-            self._logger.debug("@{}: Frenet Path V: {}".format(timestamp, path.s_d))
+            self._logger.debug("@{}: Frenet Path X: {}".format(timestamp,
+                                                               path.x))
+            self._logger.debug("@{}: Frenet Path Y: {}".format(timestamp,
+                                                               path.y))
+            self._logger.debug("@{}: Frenet Path V: {}".format(timestamp,
+                                                               path.s_d))
 
         # construct and send waypoint message
         waypoints_message = self._construct_waypoints(timestamp, path, csp, s0)
@@ -207,14 +210,14 @@ class FOTPlanningOperator(erdos.Operator):
         fvec = np.array([vx, vy])
         fvec = fvec / np.linalg.norm(fvec)  # unit vector tangent to velocity
         bvec = np.array([point_on_line.x - x, point_on_line.y - y])
-        bvec = bvec / np.linalg.norm(bvec)  # unit vector between car and spline
+        bvec = bvec / np.linalg.norm(bvec)  # unit vector between car, spline
 
         # get initial conditions in frenet frame
-        s0 = csp.find_s(x, y, self.s0)  # cur course position
-        c_speed = can_bus_msg.data.forward_speed  # cur speed [m/s]
-        c_d = np.sign(np.dot(tvec, bvec)) * distance  # cur lateral position [m]
-        c_d_d = c_speed * np.dot(tvec, fvec)  # cur lateral speed [m\s]
-        c_d_dd = 0.0  # cur lateral acceleration [m\s]
+        s0 = csp.find_s(x, y, self.s0)  # course position
+        c_speed = can_bus_msg.data.forward_speed  # speed [m/s]
+        c_d = np.sign(np.dot(tvec, bvec)) * distance  # lateral position [m]
+        c_d_d = c_speed * np.dot(tvec, fvec)  # lateral speed [m\s]
+        c_d_dd = 0.0  # lateral acceleration [m\s]
         # TODO (@fangedward) add IMU for lat. acc. when 0.9.7 is fixed
 
         self.s0 = s0
