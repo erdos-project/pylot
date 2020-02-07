@@ -133,6 +133,7 @@ class FOTPlanningOperator(erdos.Operator):
         path = frenet_optimal_planning(
             csp, s0, c_speed, c_d, c_d_d, c_d_dd, obstacle_list, target_speed)
 
+        # log initial conditions for debugging
         initial_conditions = {
             "s0": s0,
             "c_speed": c_speed,
