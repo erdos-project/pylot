@@ -140,9 +140,9 @@ class FOTPlanningOperator(erdos.Operator):
             "wy": wy,
             "obstacle_list": obstacle_list.tolist(),
             "x": can_bus_msg.data.transform.location.x,
-            "y": can_bus_msg.data.transform.location.x,
+            "y": can_bus_msg.data.transform.location.y,
             "vx": can_bus_msg.data.velocity_vector.x,
-            "vy": can_bus_msg.data.velocity_vector.x,
+            "vy": can_bus_msg.data.velocity_vector.y,
         }
         return path, csp, s0, initial_conditions
 
@@ -230,23 +230,20 @@ class FOTPlanningOperator(erdos.Operator):
         for prediction in prediction_msg.predictions:
             # use all prediction times as potential obstacles
             for transform in prediction.trajectory:
-                # predictions are ego centric
-                dist_to_ego = np.linalg.norm([transform.location.x,
-                                              transform.location.y])
+                global_obstacle = vehicle_transform * transform
+                obstacle_origin = [global_obstacle.location.x,
+                                   global_obstacle.location.y]
+                dist_to_ego = np.linalg.norm([vehicle_transform.location.x -
+                                              obstacle_origin[0],
+                                              vehicle_transform.location.y -
+                                              obstacle_origin[1]])
                 # TODO (@fangedward): Fix this hack
                 # Prediction also sends a prediction for ego vehicle
                 # This will always be the closest to the ego vehicle
                 # Filter out until this is removed from prediction
                 if dist_to_ego < 2:  # this allows max vel to be 20m/s
                     break
-
-                # take all predictions within radius of ego vehicle
-                if dist_to_ego < DEFAULT_DISTANCE_THRESHOLD:
-                    obstacle_origin = [transform.location.x +
-                                       vehicle_transform.location.x,
-                                       transform.location.y +
-                                       vehicle_transform.location.y]
-
+                elif dist_to_ego < DEFAULT_DISTANCE_THRESHOLD:
                     obstacle_list.append(obstacle_origin)
         return np.array(obstacle_list)
 
