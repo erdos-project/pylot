@@ -27,7 +27,7 @@ from pylot.planning.frenet_optimal_trajectory.quintic_polynomials \
     import QuinticPolynomial
 
 
-class Frenet_path:
+class FrenetPath:
     def __init__(self):
         self.t = []         # time
         self.d = []         # lateral offset
@@ -60,7 +60,7 @@ def _calc_frenet_paths(c_speed, c_d, c_d_d, c_d_dd, s0, target_speed):
 
         # Lateral motion planning
         for Ti in np.arange(MINT, MAXT, DT):
-            fp = Frenet_path()
+            fp = FrenetPath()
 
             # lat_qp = quintic_polynomial(c_d, c_d_d, c_d_dd, di, 0.0, 0.0, Ti)
             lat_qp = QuinticPolynomial(c_d, c_d_d, c_d_dd, di, 0.0, 0.0, Ti)
@@ -190,8 +190,13 @@ def frenet_optimal_planning(csp,
         c_d (:float:): the lateral offset d from the frenet frame
         c_d_d (:float:): the lateral speed of the vehicle
         c_d_dd (:float:): the lateral acceleration of the vehicle
-        ob (:list([x, y]): list of obstacle origins
+        ob (:list([x, y]:): list of obstacle origins
         target_speed (:float:): target speed to reach
+
+    Returns:
+        bestpath
+            (:py:class:`~pylot.planning.frenet_optimal_trajectory.FrenetPath`):
+            frenet optimal trajectory
     """
     fplist = _calc_frenet_paths(c_speed, c_d, c_d_d, c_d_dd, s0, target_speed)
     fplist = _calc_global_paths(fplist, csp)
@@ -213,8 +218,16 @@ def generate_target_course(x, y):
     Return the global course and frenet path defined by a list of waypoints.
 
     Args:
-        x (:list(float):): list of x positions
-        y (:list(float):): list of y positions
+        x (:list(float):): list of x positions [m]
+        y (:list(float):): list of y positions [m]
+
+    Returns:
+        rx (:list(float):): list of x positions [m]
+        ry (:list(float):): list of y positions [m]
+        ryaw (:list(float):): list of yaws [rads]
+        rk (:list(float):): list of curvatures [1/m]
+        csp (:py:class:`~pylot.control.mpc.utils.CubicSpline2D`): Cubic spline
+            defined by input x, y
     """
     csp = CubicSpline2D(x, y)
     s = np.arange(0, csp.s[-1], 0.1)

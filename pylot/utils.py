@@ -532,11 +532,15 @@ class CanBus(object):
         transform (:py:class:`~pylot.utils.Transform`): Transform of the ego
             vehicle.
         forward_speed (:obj:`int`): Forward speed in m/s.
+        velocity_vector (:py:class:`~pylot.utils.Vector3D`): Velocity vector
+            in world frame
 
     Attributes:
         transform (:py:class:`~pylot.utils.Transform`): Transform of the ego
             vehicle.
         forward_speed (:obj:`int`): Forward speed in m/s.
+        velocity_vector (:py:class:`~pylot.utils.Vector3D`): Velocity vector
+            in world frame
     """
     def __init__(self, transform, forward_speed, velocity_vector=None):
         if not isinstance(transform, Transform):

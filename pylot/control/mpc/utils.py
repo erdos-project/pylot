@@ -61,17 +61,16 @@ def zero_to_2_pi(angle):
 
 
 class CubicSpline1D:
-    """
-    1-dimensional cubic spline class. For technical details see:
-    http://mathworld.wolfram.com/CubicSpline.html
+    """ 1-dimensional cubic spline class.
+
+    For technical details see: http://mathworld.wolfram.com/CubicSpline.html
     """
     def __init__(self, x, y):
-        """
-        Construct the 1-dimensional cubic spline.
-        :param x: list
-            List of x values.
-        :param y: list
-            List of y values.
+        """ Construct the 1-dimensional cubic spline.
+
+        Args:
+            x (list([float])): list of x values
+            y (list([float])): list of y values
         """
         self.a = [item for item in y]
         self.b, self.c, self.d, self.w = [], [], [], []
@@ -89,13 +88,13 @@ class CubicSpline1D:
             self.b.append(tb)
 
     def calc_der0(self, t):
-        """
-        Calculate the 1st derivative evaluated at t.
+        """ Calculate the 0th derivative evaluated at t.
 
-        :param t: float
-            Position along the 1-dimensional spline.
-        :return: float
-            1st derivative evaluated at t.
+        Args:
+            t (:float:): position along the 1-d spline
+
+        Returns:
+            der0 (:float:): 0th derivative evaluated at t
         """
         if t < self.x[0]:
             return None
@@ -103,19 +102,19 @@ class CubicSpline1D:
             return None
         i = self._search_index(t)
         dx = t - self.x[i]
-        result = \
+        der0 = \
             self.a[i] + self.b[i] * dx + \
             self.c[i] * dx ** 2.0 + self.d[i] * dx ** 3.0
-        return result
+        return der0
 
     def calc_der1(self, t):
-        """
-        Calculate the 2nd derivative evaluated at t.
+        """ Calculate the 1st derivative evaluated at t.
 
-        :param t: float
-            Position along the 1-dimensional spline.
-        :return: float
-            2nd derivative evaluated at t.
+        Args:
+            t (:float:): position along the 1-d spline
+
+        Returns:
+            der1 (:float:): 1st derivative evaluated at t
         """
         if t < self.x[0]:
             return None
@@ -123,19 +122,19 @@ class CubicSpline1D:
             return None
         i = self._search_index(t)
         dx = t - self.x[i]
-        result = \
+        der1 = \
             self.b[i] + 2.0 * self.c[i] * dx + \
             3.0 * self.d[i] * dx ** 2.0
-        return result
+        return der1
 
     def calc_der2(self, t):
-        """
-        Calculate the 3rd derivative evaluated at t.
+        """ Calculate the 2nd derivative evaluated at t.
 
-        :param t: float
-            Position along the 1-dimensional spline.
-        :return: float
-            3rd derivative evaluated at t.
+        Args:
+            t (:float:): position along the 1-d spline
+
+        Returns:
+            der2 (:float:): 2nd derivative evaluated at t
         """
         if t < self.x[0]:
             return None
@@ -143,28 +142,28 @@ class CubicSpline1D:
             return None
         i = self._search_index(t)
         dx = t - self.x[i]
-        result = 2.0 * self.c[i] + 6.0 * self.d[i] * dx
-        return result
+        der2 = 2.0 * self.c[i] + 6.0 * self.d[i] * dx
+        return der2
 
     def _search_index(self, x):
-        """
-        Search the spline for index closest to x.
+        """ Search the spline for index closest to x.
 
-        :param x: float
-            Position along the 1-dimensional spline.
-        :return: int
-            Index closest to x.
+        Args:
+            x (:float:): position along the 1-d spline
+
+        Returns:
+            (:int:): index closest to x
         """
         return bisect.bisect(self.x, x) - 1
 
     def _matrix_a(self, h):
-        """
-        Create the constants matrix a used in spline construction.
+        """Create the constants matrix a used in spline construction.
 
-        :param h: np.ndarray
-            List of deltas between values.
-        :return: np.ndarray
-            Constants matrix.
+        Args:
+            h (:np.ndarray:): list of deltas between values
+
+        Returns:
+            matrix_a (:np.ndarray:): constants matrix
         """
         matrix_a = np.zeros((self.nx, self.nx))
         matrix_a[0, 0] = 1.0
@@ -180,13 +179,13 @@ class CubicSpline1D:
         return matrix_a
 
     def _matrix_b(self, h):
-        """
-        Create the 1st derivative matrix b used in spline construction.
+        """ Create the 1st derivative matrix b used in spline construction.
 
-        :param h: np.ndarray
-            List of deltas between values
-        :return: np.ndarray
-            1st derivative matrix
+        Args:
+            h (:np.ndarray:): list of deltas between values
+
+        Returns:
+            matrix_b (:np.ndarray:): 1st derivative matrix
         """
         matrix_b = np.zeros(self.nx)
         for i in range(self.nx - 2):
@@ -202,63 +201,59 @@ class CubicSpline2D:
     http://mathworld.wolfram.com/CubicSpline.html
     """
     def __init__(self, x, y):
-        """
-        Construct the 2-dimensional cubic spline.
+        """ Construct the 2-dimensional cubic spline.
 
-        :param x: list
-            List of x values.
-        :param y: list
-            List of y values.
-        :param delta_s: float.
-            Distance between interpolated points.
+        Args:
+            x (:list([float]):): list of x values
+            y (:list([float]):): list of y values
         """
         self.s = self._calc_s(x, y)
         self.sx = CubicSpline1D(self.s, x)
         self.sy = CubicSpline1D(self.s, y)
 
     def calc_x(self, s):
-        """
-        Calculate the x position along the spline at given s.
+        """ Calculate the x position along the spline at given s.
 
-        :param s: float
-            s position along the 2-dimensional spline.
-        :return: float
-            x position along the 2-dimensional spline.
+        Args:
+            s (:float:): s position along the 2-d spline
+
+        Returns:
+            x (:float:): x position along the 2-d spline
         """
         return self.sx.calc_der0(s)
 
     def calc_y(self, s):
-        """
-        Calculate the y position along the spline at given s.
+        """ Calculate the y position along the spline at given s.
 
-        :param s: float
-            s position along the 2-dimensional spline.
-        :return: float
-            y position along the 2-dimensional spline.
+        Args:
+            s (:float:): s position along the 2-d spline
+
+        Returns:
+            y (:float:): y position along the 2-d spline
         """
         return self.sy.calc_der0(s)
 
     def calc_position(self, s):
-        """
-        Calculate the x, y position along the spline at given s.
+        """ Calculate the x, y position along the spline at given s.
 
-        :param s: float
-            s position along the 2-dimensional spline.
-        :return: (float, float)
-            x, y position along the 2-dimensional spline.
+        Args:
+            s (:float:): s position along the 2-d spline
+
+        Returns:
+            x, y (:tuple(float, float):): x, y position along the 2-d spline
         """
         x = self.sx.calc_der0(s)
         y = self.sy.calc_der0(s)
         return x, y
 
     def calc_curvature(self, s):
-        """
-        Calculate the curvature along the spline at given s.
+        """ Calculate the curvature along the spline at given s.
 
-        :param s: float
-            s position along the 2-dimensional spline.
-        :return: float
-            Curvature along the 2-dimensional spline.
+        Args:
+            s (:float:): s position along the 2-d spline
+
+        Returns:
+            k (:float:): curvature along the 2-d spline
         """
         dx = self.sx.calc_der1(s)
         ddx = self.sx.calc_der2(s)
@@ -268,13 +263,13 @@ class CubicSpline2D:
         return k
 
     def calc_yaw(self, s):
-        """
-        Calculate the yaw in radians along the spline at given s.
+        """ Calculate the yaw in radians along the spline at given s.
 
-        :param s: float
-            s position along the 2-dimensional spline.
-        :return: float
-            Yaw along the 2-dimensional spline.
+        Args:
+            s (:float:): s position along the 2-d spline
+
+        Returns:
+            yaw (:float:): yaw along the 2-d spline
         """
         dx = self.sx.calc_der1(s)
         dy = self.sy.calc_der1(s)
@@ -282,6 +277,17 @@ class CubicSpline2D:
         return yaw
 
     def find_s(self, x, y, s0=0):
+        """ Calculate the s along the spline given x, y and an optional search
+        index.
+
+        Args:
+            x (:float:): x position along the 1-d spline
+            y (:float:): y position along the 1-d spline
+            s0 (:float:, optional): search index to start at
+
+        Returns:
+            s_closest (:float:): s corresponding to closest position on spline
+        """
         s_closest = s0
         closest = np.inf
         for s in np.arange(s0, self.s[-1], 0.2):
@@ -293,15 +299,14 @@ class CubicSpline2D:
         return s_closest
 
     def _calc_s(self, x, y):
-        """
-        Calculate the s values for interpolation given x, y.
+        """ Calculate the s values for interpolation given x, y.
 
-        :param x: list
-            List of x values.
-        :param y: list
-            List of y values.
-        :return: np.ndarray
-            List of s values for interpolation.
+        Args:
+            x (:list([float]):): list of x values
+            y (:list([float]):): list of y values
+
+        Returns:
+            s (:list([float]):): list of s values
         """
         dx = np.diff(x)
         dy = np.diff(y)

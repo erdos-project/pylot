@@ -1,5 +1,9 @@
 from absl import flags
 
+import pylot.control.flags
+import pylot.prediction.flags
+import pylot.simulation.flags
+
 FLAGS = flags.FLAGS
 
 # Files where to log information.

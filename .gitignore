@@ -9,5 +9,4 @@ dependencies/
 /doc/build
 .idea/
 venv/
-Untitled.ipynb
 erdos_pylot.egg-info/
