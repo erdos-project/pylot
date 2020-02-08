@@ -2,6 +2,7 @@ from absl import flags
 import carla
 import erdos
 import sys
+import numpy as np
 
 import pylot.flags
 import pylot.operator_creator
@@ -191,10 +192,14 @@ class ERDOSAgent(AutonomousAgent):
         vehicle_transform = pylot.utils.Transform.from_carla_transform(
             data['transform'])
         forward_speed = data['speed']
+        yaw = vehicle_transform.rotation.yaw
+        velocity_vector = pylot.utils.Vector3D(forward_speed * np.cos(yaw),
+                                               forward_speed * np.sin(yaw),
+                                               0)
         self._can_bus_stream.send(
             erdos.Message(timestamp,
                           pylot.utils.CanBus(vehicle_transform,
-                                             forward_speed)))
+                                             forward_speed, velocity_vector)))
         self._can_bus_stream.send(erdos.WatermarkMessage(timestamp))
 
     def send_lidar_msg(self, carla_pc, transform, timestamp):

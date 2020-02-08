@@ -93,7 +93,8 @@ class CarlaReplayOperator(erdos.Operator):
         velocity_vector = pylot.utils.Vector3D.from_carla_vector(
             self._driving_vehicle.get_velocity())
         forward_speed = velocity_vector.magnitude()
-        can_bus = pylot.utils.CanBus(vec_transform, forward_speed)
+        can_bus = pylot.utils.CanBus(vec_transform, forward_speed,
+                                     velocity_vector)
         self._can_bus_stream.send(erdos.Message(timestamp, can_bus))
         self._can_bus_stream.send(watermark_msg)
 
