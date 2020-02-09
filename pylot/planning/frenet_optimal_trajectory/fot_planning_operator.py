@@ -21,7 +21,17 @@ DEFAULT_NUM_WAYPOINTS = 100  # 100 waypoints to plan for
 
 
 class FOTPlanningOperator(erdos.Operator):
-    """ Frenet Optimal Trajectory (FOT) Planning operator for Carla 0.9.x."""
+    """ Frenet Optimal Trajectory (FOT) Planning operator for Carla 0.9.x.
+
+    This planning operator uses a global route and listens for predictions
+    to produce a frenet optimal trajectory plan. Details can be found in
+    `~pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory.py`.
+
+     Args:
+        name(:obj:`str`): The name of the operator
+        flags(:absl.flags:): Object to be used to access absl flags
+        goal_location(:pylot.utils.Location:): Goal location for route planning
+    """
     def __init__(self,
                  can_bus_stream,
                  prediction_stream,
@@ -31,14 +41,6 @@ class FOTPlanningOperator(erdos.Operator):
                  goal_location,
                  log_file_name=None,
                  csv_file_name=None):
-        """
-        Initialize the FOT planner. Setup logger and map attributes.
-
-        Args:
-            name: Name of the operator.
-            flags: Config flags.
-            goal_location: Goal pylot.utils.Location for planner to route to.
-        """
         can_bus_stream.add_callback(self.on_can_bus_update)
         prediction_stream.add_callback(self.on_prediction_update)
         erdos.add_watermark_callback([can_bus_stream, prediction_stream],
@@ -93,15 +95,13 @@ class FOTPlanningOperator(erdos.Operator):
                                                   prediction_msg)
         # update waypoints
         if not self._waypoints:
-            self._update_global_waypoints(vehicle_transform)
+            self._waypoints = self._hd_map.compute_waypoints(
+                vehicle_transform.location, self._goal_location)
 
         # compute optimal frenet trajectory
-        path, csp, s0, initial_conditions = \
+        path, csp, s0 = \
             self._compute_optimal_frenet_trajectory(can_bus_msg, obstacle_list)
 
-        # send debug info
-        self._logger.debug("@{}: Initial conditions: {}"
-                           .format(timestamp, initial_conditions))
         if path:
             self._logger.debug("@{}: Frenet Path X: {}".format(timestamp,
                                                                path.x))
@@ -148,7 +148,11 @@ class FOTPlanningOperator(erdos.Operator):
             "vx": can_bus_msg.data.velocity_vector.x,
             "vy": can_bus_msg.data.velocity_vector.y,
         }
-        return path, csp, s0, initial_conditions
+        timestamp = can_bus_msg.timestamp
+        self._logger.debug("@{}: Initial conditions: {}"
+                           .format(timestamp, initial_conditions))
+
+        return path, csp, s0
 
     def _construct_waypoints(self, timestamp, path, csp, s0):
         """
@@ -250,10 +254,3 @@ class FOTPlanningOperator(erdos.Operator):
                 elif dist_to_ego < DEFAULT_DISTANCE_THRESHOLD:
                     obstacle_list.append(obstacle_origin)
         return np.array(obstacle_list)
-
-    def _update_global_waypoints(self, vehicle_transform):
-        """
-        Update the global waypoint route.
-        """
-        self._waypoints = self._hd_map.compute_waypoints(
-            vehicle_transform.location, self._goal_location)
