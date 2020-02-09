@@ -133,11 +133,10 @@ class MPCAgentOperator(erdos.Operator):
             return ControlMessage(0, 0, 1, False, False, timestamp)
 
         # Compute pid controls.
-        target_speed = self._mpc.solution.vel_list[0]
+        target_speed = self._mpc.solution.vel_list[-1]
         target_steer_rad = self._mpc.horizon_steer[0]  # in rad
         steer = pylot.control.utils.radians_to_steer(target_steer_rad,
                                                      self._flags.steer_gain)
         throttle, brake = pylot.control.utils.compute_throttle_and_brake(
             self._pid, current_speed, target_speed, self._flags)
-
         return ControlMessage(steer, throttle, brake, False, False, timestamp)

@@ -389,7 +389,10 @@ def add_planning(goal_location,
             can_bus_stream, open_drive_stream, global_trajectory_stream,
             obstacles_stream, traffic_lights_stream, goal_location)
     elif FLAGS.planning_type == 'rrt_star':
-        waypoints_stream = pylot.operator_creator.add_rrt_start_planning(
+        waypoints_stream = pylot.operator_creator.add_rrt_star_planning(
+            can_bus_stream, prediction_stream, goal_location)
+    elif FLAGS.planning_type == 'frenet_optimal_trajectory':
+        waypoints_stream = pylot.operator_creator.add_fot_planning(
             can_bus_stream, prediction_stream, goal_location)
     else:
         raise ValueError('Unexpected planning_type {}'.format(

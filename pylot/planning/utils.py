@@ -78,7 +78,7 @@ def stop_vehicle(ego_vehicle_location, obs_vehicle_location, wp_vector,
     medium_max_angle = flags.vehicle_angle_thres
     medium_dist = flags.vehicle_distance_thres
     if ((min_angle < v_angle < max_angle and v_dist < max_dist) or
-        (min_angle < v_angle < medium_max_angle and v_dist < medium_dist)):
+            (min_angle < v_angle < medium_max_angle and v_dist < medium_dist)):
         speed_factor_v_temp = v_dist / (flags.coast_factor *
                                         flags.vehicle_distance_thres)
 

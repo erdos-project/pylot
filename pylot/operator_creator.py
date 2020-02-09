@@ -31,6 +31,8 @@ from pylot.perception.segmentation.segmentation_eval_operator import \
 from pylot.perception.segmentation.segmentation_decay_operator import \
     SegmentationDecayOperator
 # Planning operators.
+from pylot.planning.frenet_optimal_trajectory.fot_planning_operator import \
+    FOTPlanningOperator
 from pylot.planning.rrt_star.rrt_star_planning_operator import \
     RRTStarPlanningOperator
 from pylot.planning.waypoint_planning_operator import WaypointPlanningOperator
@@ -270,6 +272,36 @@ def add_prediction_evaluation(can_bus_stream,
                   csv_file_name=FLAGS.csv_log_file_name)
 
 
+def add_fot_planning(can_bus_stream,
+                     prediction_stream,
+                     goal_location,
+                     name='fot_planning_operator'):
+    [waypoints_stream] = erdos.connect(FOTPlanningOperator,
+                                       [can_bus_stream, prediction_stream],
+                                       True,
+                                       name,
+                                       FLAGS,
+                                       goal_location,
+                                       log_file_name=FLAGS.log_file_name,
+                                       csv_file_name=FLAGS.csv_log_file_name)
+    return waypoints_stream
+
+
+def add_rrt_star_planning(can_bus_stream,
+                          prediction_stream,
+                          goal_location,
+                          name='rrt_star_planning_operator'):
+    [waypoints_stream] = erdos.connect(RRTStarPlanningOperator,
+                                       [can_bus_stream, prediction_stream],
+                                       True,
+                                       name,
+                                       FLAGS,
+                                       goal_location,
+                                       log_file_name=FLAGS.log_file_name,
+                                       csv_file_name=FLAGS.csv_log_file_name)
+    return waypoints_stream
+
+
 def add_waypoint_planning(can_bus_stream,
                           open_drive_stream,
                           global_trajectory_stream,
@@ -281,21 +313,6 @@ def add_waypoint_planning(can_bus_stream,
         can_bus_stream, open_drive_stream, global_trajectory_stream,
         obstacles_stream, traffic_lights_stream
     ],
-                                       True,
-                                       name,
-                                       FLAGS,
-                                       goal_location,
-                                       log_file_name=FLAGS.log_file_name,
-                                       csv_file_name=FLAGS.csv_log_file_name)
-    return waypoints_stream
-
-
-def add_rrt_start_planning(can_bus_stream,
-                           prediction_stream,
-                           goal_location,
-                           name='rrt_star_planning_operator'):
-    [waypoints_stream] = erdos.connect(RRTStarPlanningOperator,
-                                       [can_bus_stream, prediction_stream],
                                        True,
                                        name,
                                        FLAGS,
@@ -495,7 +512,7 @@ def add_lidar_logging(point_cloud_stream,
 
 
 def add_multiple_object_tracker_logging(
-    obstacles_stream, name='multiple_object_tracker_logger_operator'):
+        obstacles_stream, name='multiple_object_tracker_logger_operator'):
     erdos.connect(MultipleObjectTrackerLoggerOperator, [obstacles_stream],
                   True,
                   name,

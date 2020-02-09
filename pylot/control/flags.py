@@ -4,6 +4,8 @@ from absl import flags
 flags.DEFINE_float('pid_p', 0.25, 'PID p parameter')
 flags.DEFINE_float('pid_i', 0.20, 'PID i parameter')
 flags.DEFINE_float('pid_d', 0.0, 'PID d parameter')
+flags.DEFINE_integer('pid_speed_wp', 10, 'PID speed waypoint number')
+flags.DEFINE_integer('pid_steer_wp', 5, 'PID steer waypoint number')
 # Agent stopping configs.
 flags.DEFINE_bool('stop_for_traffic_lights', True,
                   'True to enable traffic light stopping')

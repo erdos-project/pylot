@@ -1,9 +1,14 @@
 """
 Author: Fangyu Wu, Edward Fang
 Email: fangyuwu@berkeley.edu, edward.fang@berkeley.edu
-The code is adapted from
-https://github.com/AtsushiSakai/PythonRobotics/tree/master/
-PathTracking/model_predictive_speed_and_steer_control
+
+The code is adapted from https://github.com/AtsushiSakai/PythonRobotics/tree/
+master/PathTracking/model_predictive_speed_and_steer_control.
+Its author is Atsushi Sakai.
+
+Reference Papers:
+- [Kinematic and Dynamic Vehicle Models for Autonomous Driving Control Design]
+(https://borrelli.me.berkeley.edu/pdfpub/IV_KinematicMPC_jason.pdf)
 """
 
 import numpy as np
@@ -55,7 +60,8 @@ class ModelPredictiveController:
 
     def step(self):
         """
-        Solve the mpc problem and step the vehicle forward in time with solved controls.
+        Solve the mpc problem and step the vehicle forward in time with solved
+        controls.
 
         :return: None
         """
@@ -108,7 +114,8 @@ class ModelPredictiveController:
 
     def _retrieve_imminent_reference(self):
         """
-        Retrieve the reference state and reference steer in the imminent horizon.
+        Retrieve the reference state and reference steer in the imminent
+        horizon.
 
         :return: reference state and reference steer
         """
@@ -203,7 +210,8 @@ class ModelPredictiveController:
         Solve the MPC control problem.
 
         :param reference_state: np.array of reference states
-        :param predicted_state: np.array of predicted states obtained using propogated controls
+        :param predicted_state: np.array of predicted states obtained using
+            propogated controls
         :param reference_steer: np.array of reference steering
         :return:
         """
@@ -269,7 +277,8 @@ class ModelPredictiveController:
         horizon_accel = np.array(u.value[0, :]).flatten()
         horizon_steer = np.array(u.value[1, :]).flatten()
 
-        return horizon_x, horizon_y, horizon_vel, horizon_yaw, horizon_accel, horizon_steer, solved
+        return horizon_x, horizon_y, horizon_vel, horizon_yaw, horizon_accel, \
+            horizon_steer, solved
 
     def _linearized_model_matrix(self, vel, yaw, steer):
         """

@@ -1,8 +1,12 @@
 *~
 *.pyc
+*.log
+*.csv
+*.ipynb
 dependencies/
 
 # Generated documentation files
 /doc/build
 .idea/
 venv/
+erdos_pylot.egg-info/
