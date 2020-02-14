@@ -117,18 +117,40 @@ class TrackVisualizerOperator(erdos.Operator):
         intrinsic_matrix = segmented_frame.camera_setup.get_intrinsic_matrix()
 
         # Convert to screen points.
-        screen_points = [
-            transform.location.to_camera_view(extrinsic_matrix,
-                                              intrinsic_matrix)
-            for transform in obstacle.trajectory
-        ]
+        start_location = obstacle.bounding_box.transform.location - \
+            obstacle.bounding_box.extent
+        end_location = obstacle.bounding_box.transform.location + \
+            obstacle.bounding_box.extent
+        screen_points = []
+        start_points = []
+        end_points = []
+        for transform in obstacle.trajectory:
+            screen_point = transform.location.to_camera_view(extrinsic_matrix,
+                                                             intrinsic_matrix)
+            start_transform = transform.transform_points([start_location])
+            end_transform = transform.transform_points([end_location])
+            start_point = start_transform[0].to_camera_view(extrinsic_matrix,
+                                                            intrinsic_matrix)
+            end_point = end_transform[0].to_camera_view(extrinsic_matrix,
+                                                        intrinsic_matrix)
+            screen_points.append(screen_point)
+            start_points.append(start_point)
+            end_points.append(end_point)
+
         if predict:
             point_color = self._future_colors[obstacle.label]
         else:
             point_color = self._past_colors[obstacle.label]
 
         # Draw trajectory points on segmented image.
-        for point in screen_points:
-            if (0 <= point.x <= segmented_frame.camera_setup.width) and \
-               (0 <= point.y <= segmented_frame.camera_setup.height):
+        for point, start_point, end_point in \
+                zip(screen_points, start_points, end_points):
+            if self._in_frame(point, segmented_frame):
                 segmented_frame.draw_point(point, point_color)
+                segmented_frame.draw_box(start_point, end_point, point_color)
+
+    @staticmethod
+    def _in_frame(point, segmented_frame):
+        """ Return if the point is in the segmented frame."""
+        return (0 <= point.x <= segmented_frame.camera_setup.width) and \
+               (0 <= point.y <= segmented_frame.camera_setup.height)
