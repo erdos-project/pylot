@@ -7,8 +7,6 @@ from pylot.control.messages import ControlMessage
 from pylot.control.mpc.mpc import ModelPredictiveController
 from pylot.control.mpc.utils import zero_to_2_pi, global_config, CubicSpline2D
 import pylot.control.utils
-from pylot.map.hd_map import HDMap
-from pylot.simulation.utils import get_map
 
 
 class MPCAgentOperator(erdos.Operator):
@@ -22,9 +20,8 @@ class MPCAgentOperator(erdos.Operator):
                  csv_file_name=None):
         can_bus_stream.add_callback(self.on_can_bus_update)
         waypoints_stream.add_callback(self.on_waypoints_update)
-        erdos.add_watermark_callback([
-            can_bus_stream, waypoints_stream
-        ], [control_stream], self.on_watermark)
+        erdos.add_watermark_callback([can_bus_stream, waypoints_stream],
+                                     [control_stream], self.on_watermark)
         self._name = name
         self._log_file_name = log_file_name
         self._logger = erdos.utils.setup_logging(name, log_file_name)
@@ -43,14 +40,6 @@ class MPCAgentOperator(erdos.Operator):
     def connect(can_bus_stream, waypoints_stream):
         control_stream = erdos.WriteStream()
         return [control_stream]
-
-    def run(self):
-        # Run method is invoked after all operators finished initializing,
-        # including the CARLA operator, which reloads the world. Thus, if
-        # we get the map here we're sure it is up-to-date.
-        self._map = HDMap(
-            get_map(self._flags.carla_host, self._flags.carla_port,
-                    self._flags.carla_timeout), self._log_file_name)
 
     def on_waypoints_update(self, msg):
         self._logger.debug('@{}: waypoints update'.format(msg.timestamp))
@@ -83,8 +72,7 @@ class MPCAgentOperator(erdos.Operator):
         control_stream.send(control_msg)
 
     def setup_mpc(self, waypoints, target_speeds):
-        path = np.array([[wp.location.x, wp.location.y]
-                         for wp in waypoints])
+        path = np.array([[wp.location.x, wp.location.y] for wp in waypoints])
         # convert target waypoints into spline
         spline = CubicSpline2D(path[:, 0], path[:, 1])
         ss = []

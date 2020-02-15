@@ -2,7 +2,6 @@ import erdos
 
 # Pylot specific imports.
 import pylot.utils
-import pylot.simulation.utils
 
 DEFAULT_VIS_TIME = 30000.0
 
@@ -39,9 +38,10 @@ class CanBusVisualizerOperator(erdos.Operator):
         # Run method is invoked after all operators finished initializing,
         # including the CARLA operator, which reloads the world. Thus, if
         # we get the world here we're sure it is up-to-date.
-        _, self._world = pylot.simulation.utils.get_world(
-            self._flags.carla_host, self._flags.carla_port,
-            self._flags.carla_timeout)
+        from pylot.simulation.utils import get_world
+        _, self._world = get_world(self._flags.carla_host,
+                                   self._flags.carla_port,
+                                   self._flags.carla_timeout)
         if self._world is None:
             raise ValueError("Error connecting to the simulator.")
 

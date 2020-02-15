@@ -1,12 +1,6 @@
 from absl import flags
 import erdos
 
-# Simulation operators.
-from pylot.simulation.camera_driver_operator import CameraDriverOperator
-from pylot.simulation.carla_operator import CarlaOperator
-from pylot.simulation.imu_driver_operator import IMUDriverOperator
-from pylot.simulation.lidar_driver_operator import LidarDriverOperator
-from pylot.simulation.synchronizer_operator import SynchronizerOperator
 # Perception operators.
 from pylot.perception.detection.detection_operator import DetectionOperator
 from pylot.perception.detection.detection_eval_operator import \
@@ -31,10 +25,6 @@ from pylot.perception.segmentation.segmentation_eval_operator import \
 from pylot.perception.segmentation.segmentation_decay_operator import \
     SegmentationDecayOperator
 # Planning operators.
-from pylot.planning.frenet_optimal_trajectory.fot_planning_operator import \
-    FOTPlanningOperator
-from pylot.planning.rrt_star.rrt_star_planning_operator import \
-    RRTStarPlanningOperator
 from pylot.planning.waypoint_planning_operator import WaypointPlanningOperator
 # Prediction operators.
 from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
@@ -46,7 +36,6 @@ from pylot.control.pid_agent_operator import PIDAgentOperator
 from pylot.loggers.bounding_box_logger_operator import \
     BoundingBoxLoggerOperator
 from pylot.loggers.camera_logger_operator import CameraLoggerOperator
-from pylot.loggers.chauffeur_logger_operator import ChauffeurLoggerOperator
 from pylot.loggers.imu_logger_operator import IMULoggerOperator
 from pylot.loggers.lidar_logger_operator import LidarLoggerOperator
 from pylot.loggers.multiple_object_tracker_logger_operator import \
@@ -55,26 +44,21 @@ from pylot.loggers.trajectory_logger_operator import TrajectoryLoggerOperator
 # Visualizing operators.
 from pylot.debug.camera_visualizer_operator import CameraVisualizerOperator
 from pylot.debug.can_bus_visualizer_operator import CanBusVisualizerOperator
-from pylot.debug.imu_visualizer_operator import IMUVisualizerOperator
 from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
 from pylot.debug.track_visualizer_operator import TrackVisualizerOperator
 from pylot.debug.waypoint_visualizer_operator import WaypointVisualizerOperator
-# Perfect versions of operators.
-from pylot.simulation.perfect_detector_operator import PerfectDetectorOperator
-from pylot.simulation.perfect_lane_detector_operator import \
-    PerfectLaneDetectionOperator
-from pylot.simulation.perfect_tracker_operator import PerfectTrackerOperator
-from pylot.simulation.perfect_traffic_light_detector_operator import \
-    PerfectTrafficLightDetectorOperator
+#
+from pylot.simulation.synchronizer_operator import SynchronizerOperator
 # Sensor setups.
 from pylot.simulation.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
     SegmentedCameraSetup
-import pylot.simulation.utils
+import pylot.utils
 
 FLAGS = flags.FLAGS
 
 
 def add_carla_bridge(control_stream):
+    from pylot.simulation.carla_operator import CarlaOperator
     return erdos.connect(CarlaOperator, [control_stream],
                          True,
                          'carla_operator',
@@ -276,6 +260,8 @@ def add_fot_planning(can_bus_stream,
                      prediction_stream,
                      goal_location,
                      name='fot_planning_operator'):
+    from pylot.planning.frenet_optimal_trajectory.fot_planning_operator \
+        import FOTPlanningOperator
     [waypoints_stream] = erdos.connect(FOTPlanningOperator,
                                        [can_bus_stream, prediction_stream],
                                        True,
@@ -291,6 +277,8 @@ def add_rrt_star_planning(can_bus_stream,
                           prediction_stream,
                           goal_location,
                           name='rrt_star_planning_operator'):
+    from pylot.planning.rrt_star.rrt_star_planning_operator import \
+        RRTStarPlanningOperator
     [waypoints_stream] = erdos.connect(RRTStarPlanningOperator,
                                        [can_bus_stream, prediction_stream],
                                        True,
@@ -374,6 +362,7 @@ def add_left_right_cameras(transform, vehicle_id_stream, fov=90):
 
 
 def _add_camera_driver(vehicle_id_stream, camera_setup):
+    from pylot.simulation.camera_driver_operator import CameraDriverOperator
     [camera_stream] = erdos.connect(CameraDriverOperator, [vehicle_id_stream],
                                     False,
                                     camera_setup.get_name() + "_operator",
@@ -392,6 +381,7 @@ def add_lidar(transform, vehicle_id_stream, name='center_lidar'):
 
 
 def _add_lidar_driver(vehicle_id_stream, lidar_setup):
+    from pylot.simulation.lidar_driver_operator import LidarDriverOperator
     [point_cloud_stream] = erdos.connect(LidarDriverOperator,
                                          [vehicle_id_stream],
                                          False,
@@ -403,6 +393,7 @@ def _add_lidar_driver(vehicle_id_stream, lidar_setup):
 
 
 def add_imu(transform, vehicle_id_stream, name='imu'):
+    from pylot.simulation.imu_driver_operator import IMUDriverOperator
     imu_setup = pylot.simulation.sensor_setup.IMUSetup(name, transform)
     [imu_stream] = erdos.connect(IMUDriverOperator, [vehicle_id_stream],
                                  False,
@@ -486,6 +477,7 @@ def add_camera_logging(stream, name, filename_prefix):
 def add_chauffeur_logging(vehicle_id_stream, can_bus_stream,
                           obstacle_tracking_stream, top_down_camera_stream,
                           top_down_segmentation_stream, top_down_camera_setup):
+    from pylot.loggers.chauffeur_logger_operator import ChauffeurLoggerOperator
     erdos.connect(ChauffeurLoggerOperator, [
         vehicle_id_stream, can_bus_stream, obstacle_tracking_stream,
         top_down_camera_stream, top_down_segmentation_stream
@@ -512,7 +504,7 @@ def add_lidar_logging(point_cloud_stream,
 
 
 def add_multiple_object_tracker_logging(
-        obstacles_stream, name='multiple_object_tracker_logger_operator'):
+    obstacles_stream, name='multiple_object_tracker_logger_operator'):
     erdos.connect(MultipleObjectTrackerLoggerOperator, [obstacles_stream],
                   True,
                   name,
@@ -562,6 +554,7 @@ def add_camera_visualizer(camera_stream, name):
 
 
 def add_imu_visualizer(imu_stream, name='imu_visualizer_operator'):
+    from pylot.debug.imu_visualizer_operator import IMUVisualizerOperator
     erdos.connect(IMUVisualizerOperator, [imu_stream],
                   True,
                   name,
@@ -582,7 +575,7 @@ def add_prediction_visualizer(obstacle_tracking_stream,
                               vehicle_id_stream,
                               camera_transform,
                               name='top_down_tracking_visualizer_operator'):
-    top_down_transform = pylot.simulation.utils.get_top_down_transform(
+    top_down_transform = pylot.utils.get_top_down_transform(
         camera_transform, FLAGS.top_down_lateral_view)
     (top_down_segmented_camera_stream,
      top_down_segmented_camera_setup) = \
@@ -619,6 +612,8 @@ def add_perfect_detector(depth_camera_stream, center_camera_stream,
                          ground_obstacles_stream,
                          ground_speed_limit_signs_stream,
                          ground_stop_signs_stream):
+    from pylot.simulation.perfect_detector_operator import \
+        PerfectDetectorOperator
     [obstacles_stream] = erdos.connect(PerfectDetectorOperator, [
         depth_camera_stream, center_camera_stream, segmented_camera_stream,
         can_bus_stream, ground_obstacles_stream,
@@ -636,6 +631,8 @@ def add_perfect_traffic_light_detector(ground_traffic_lights_stream,
                                        depth_camera_stream,
                                        segmented_camera_stream,
                                        can_bus_stream):
+    from pylot.simulation.perfect_traffic_light_detector_operator import \
+        PerfectTrafficLightDetectorOperator
     [traffic_lights_stream
      ] = erdos.connect(PerfectTrafficLightDetectorOperator, [
          ground_traffic_lights_stream, center_camera_stream,
@@ -649,6 +646,8 @@ def add_perfect_traffic_light_detector(ground_traffic_lights_stream,
 
 
 def add_perfect_lane_detector(can_bus_stream):
+    from pylot.simulation.perfect_lane_detector_operator import \
+        PerfectLaneDetectionOperator
     [detected_lanes_stream] = erdos.connect(PerfectLaneDetectionOperator,
                                             [can_bus_stream],
                                             True,
@@ -659,6 +658,8 @@ def add_perfect_lane_detector(can_bus_stream):
 
 
 def add_perfect_tracking(ground_obstacles_stream, can_bus_stream):
+    from pylot.simulation.perfect_tracker_operator import \
+        PerfectTrackerOperator
     [ground_tracking_stream
      ] = erdos.connect(PerfectTrackerOperator,
                        [ground_obstacles_stream, can_bus_stream],

@@ -167,14 +167,6 @@ def draw_trigger_volume(world, actor):
     world.debug.draw_box(bbox, transform.rotation, life_time=1000)
 
 
-def get_top_down_transform(transform, top_down_lateral_view):
-    # Height calculation relies on the fact that the camera's FOV is 90.
-    top_down_location = (transform.location +
-                         pylot.utils.Location(0, 0, top_down_lateral_view))
-    return pylot.utils.Transform(top_down_location,
-                                 pylot.utils.Rotation(-90, 0, 0))
-
-
 def get_traffic_lights_obstacles(traffic_lights, depth_frame, segmented_frame,
                                  town_name):
     """Get the traffic lights that are within the camera frame.

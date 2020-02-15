@@ -4,11 +4,9 @@ from collections import deque
 import erdos
 import itertools
 
-from pylot.map.hd_map import HDMap
 import pylot.planning.cost_functions
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.utils import BehaviorPlannerState
-from pylot.simulation.utils import get_map
 import pylot.utils
 
 DEFAULT_NUM_WAYPOINTS = 50  # 50 waypoints / 50 meters of planning ahead
@@ -101,6 +99,8 @@ class WaypointPlanningOperator(erdos.Operator):
         # We're not running in challenge mode if no track flag is present.
         # Thus, we can directly get the map from the simulator.
         if not hasattr(self._flags, 'track'):
+            from pylot.map.hd_map import HDMap
+            from pylot.simulation.utils import get_map
             self._map = HDMap(
                 get_map(self._flags.carla_host, self._flags.carla_port,
                         self._flags.carla_timeout), self._log_file_name)
@@ -125,6 +125,7 @@ class WaypointPlanningOperator(erdos.Operator):
         except ImportError:
             raise Exception('Error importing carla.')
         self._logger.info('Initializing HDMap from open drive stream')
+        from pylot.map.hd_map import HDMap
         self._map = HDMap(carla.Map('map', msg.data), self._log_file_name)
 
     def on_global_trajectory(self, msg):

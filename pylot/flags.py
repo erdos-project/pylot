@@ -67,8 +67,8 @@ flags.DEFINE_enum('prediction_type', 'linear', ['linear'],
 ######################################################################
 # Planning
 ######################################################################
-flags.DEFINE_enum('planning_type', 'waypoint', ['waypoint', 'rrt_star',
-                                                'frenet_optimal_trajectory'],
+flags.DEFINE_enum('planning_type', 'waypoint',
+                  ['waypoint', 'rrt_star', 'frenet_optimal_trajectory'],
                   'Type of planning module to use')
 flags.DEFINE_bool('imu', False, 'True to enable the IMU sensor')
 

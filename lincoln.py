@@ -13,6 +13,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_integer('camera_image_width', 2736, 'Camera image width')
 flags.DEFINE_integer('camera_image_height', 2192, 'Camera image height')
+flags.DEFINE_integer('track', 3, 'Track to execute')
 
 # The location of the center camera relative to the ego-vehicle.
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)

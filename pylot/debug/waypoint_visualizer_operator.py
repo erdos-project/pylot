@@ -4,7 +4,6 @@ from absl import flags
 from collections import deque
 import erdos
 
-import pylot.simulation.utils
 import pylot.utils
 
 DEFAULT_VIS_TIME = 0.1
@@ -71,9 +70,10 @@ class WaypointVisualizerOperator(erdos.Operator):
         # including the CARLA operator, which reloads the world. Thus, if
         # we get the world here we're sure it is up-to-date.
         if self._flags.draw_waypoints_on_world:
-            _, self._world = pylot.simulation.utils.get_world(
-                self._flags.carla_host, self._flags.carla_port,
-                self._flags.carla_timeout)
+            from pylot.simulation.utils import get_world
+            _, self._world = get_world(self._flags.carla_host,
+                                       self._flags.carla_port,
+                                       self._flags.carla_timeout)
             if self._world is None:
                 raise ValueError("Error connecting to the simulator.")
 
