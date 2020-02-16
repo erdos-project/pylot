@@ -1,6 +1,6 @@
 import erdos
 import rospy
-from std_msgs.msg import PointCloud
+from sensor_msgs.msg import PointCloud
 
 from pylot.perception.messages import PointCloudMessage
 import pylot.perception.point_cloud
