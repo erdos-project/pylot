@@ -30,7 +30,7 @@ from pylot.planning.waypoint_planning_operator import WaypointPlanningOperator
 from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
 from pylot.prediction.prediction_eval_operator import PredictionEvalOperator
 # Control operators.
-from pylot.control.mpc.mpc_agent_operator import MPCAgentOperator
+#from pylot.control.mpc.mpc_agent_operator import MPCAgentOperator
 from pylot.control.pid_agent_operator import PIDAgentOperator
 # Logging operators.
 from pylot.loggers.bounding_box_logger_operator import \
@@ -44,7 +44,7 @@ from pylot.loggers.trajectory_logger_operator import TrajectoryLoggerOperator
 # Visualizing operators.
 from pylot.debug.camera_visualizer_operator import CameraVisualizerOperator
 from pylot.debug.can_bus_visualizer_operator import CanBusVisualizerOperator
-from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
+#from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
 from pylot.debug.track_visualizer_operator import TrackVisualizerOperator
 from pylot.debug.waypoint_visualizer_operator import WaypointVisualizerOperator
 #
