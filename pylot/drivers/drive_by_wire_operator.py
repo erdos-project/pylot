@@ -54,6 +54,9 @@ class DriveByWireOperator(erdos.Operator):
         # Initialize the Node.
         rospy.init_node(self._name, anonymous=True, disable_signals=True)
 
+        # Enable the ADAS.
+        self.enable_pub.publish(Empty())
+
         # Pull from the control stream and publish messages continuously.
         r = rospy.Rate(ROS_FREQUENCY)
         last_control_message = ControlMessage(steer=0,
@@ -107,3 +110,6 @@ class DriveByWireOperator(erdos.Operator):
 
             # Run at frequency
             r.sleep()
+
+        # Disable the ADAS.
+        self.disable_pub.publish(Empty())
