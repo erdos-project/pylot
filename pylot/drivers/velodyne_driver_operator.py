@@ -36,10 +36,11 @@ class VelodyneDriverOperator(erdos.Operator):
         return [erdos.WriteStream()]
 
     def on_point_cloud(self, data):
+        print("Modulo to send: {}".format(self._modulo_to_send))
         self._counter += 1
         if self._counter % self._modulo_to_send != 0:
             return
-        self._logger.debug('Received {}'.format(data.header.seq))
+        print('Received {}'.format(data.header.seq))
         timestamp = erdos.Timestamp(coordinates=[self._msg_cnt])
         points = []
         for data in pc2.read_points(data,
@@ -56,5 +57,6 @@ class VelodyneDriverOperator(erdos.Operator):
 
     def run(self):
         rospy.init_node(self._name, anonymous=True, disable_signals=True)
+        print("Starting a subscriber with modulo: {}".format(self._modulo_to_send))
         rospy.Subscriber(self._topic_name, PointCloud2, self.on_point_cloud)
         rospy.spin()

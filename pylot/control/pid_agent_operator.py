@@ -93,6 +93,7 @@ class PIDAgentOperator(erdos.Operator):
             pylot.planning.utils.compute_waypoint_vector_and_angle(
                 vehicle_transform, waypoint_msg.waypoints,
                 self._flags.pid_steer_wp)
+        print("Vehicle Transform: {}, Waypoint: {}, Steer Angle: {}".format(vehicle_transform, waypoint_msg.waypoints[4], wp_angle_steer))
         # Use 5th waypoint for speed.
         _, wp_angle_speed = \
             pylot.planning.utils.compute_waypoint_vector_and_angle(
@@ -109,7 +110,7 @@ class PIDAgentOperator(erdos.Operator):
         steer = pylot.control.utils.radians_to_steer(wp_angle_steer,
                                                      self._flags.steer_gain)
 
-        self._logger.debug(
+        print(
             '@{}: speed {}, location {}, steer {}, throttle {}, brake {}'.
             format(timestamp, current_speed, vehicle_transform, steer,
                    throttle, brake))

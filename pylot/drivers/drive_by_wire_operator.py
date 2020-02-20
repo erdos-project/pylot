@@ -57,7 +57,7 @@ class DriveByWireOperator(erdos.Operator):
         rospy.init_node(self._name, anonymous=True, disable_signals=True)
 
         # Enable the ADAS.
-        self.enable_pub.publish(Empty())
+        #self.enable_pub.publish(Empty())
 
         # Pull from the control stream and publish messages continuously.
         r = rospy.Rate(ROS_FREQUENCY)
@@ -71,6 +71,7 @@ class DriveByWireOperator(erdos.Operator):
         msg_cnt = 0
         while not rospy.is_shutdown():
             msg_cnt += 1
+            msg_cnt %= 255
             control_message = self._control_stream.try_read()
             if control_message is None or isinstance(control_message,
                                                      erdos.WatermarkMessage):
@@ -109,4 +110,4 @@ class DriveByWireOperator(erdos.Operator):
             r.sleep()
 
         # Disable the ADAS.
-        self.disable_pub.publish(Empty())
+        #self.disable_pub.publish(Empty())
