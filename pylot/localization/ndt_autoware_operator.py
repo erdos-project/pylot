@@ -6,6 +6,8 @@ from tf.transformations import euler_from_quaternion
 
 from pylot.utils import CanBus, Location, Rotation, Transform
 
+NDT_FREQUENCY = 10
+
 
 class NDTAutowareOperator(erdos.Operator):
     def __init__(self,
@@ -23,12 +25,18 @@ class NDTAutowareOperator(erdos.Operator):
         self._csv_logger = erdos.utils.setup_csv_logging(
             name + '-csv', csv_file_name)
         self._forward_speed = 0
+        self._modulo_to_send = NDT_FREQUENCY // self._flags.sensor_frequency
+        self._counter = 0
+        self._msg_cnt = 0
 
     @staticmethod
     def connect():
         return [erdos.WriteStream()]
 
     def on_pose_update(self, data):
+        self._counter += 1
+        if self._counter % self._modulo_to_send != 0:
+            return
         loc = Location(data.pose.position.x, data.pose.position.y,
                        data.pose.position.z)
         quaternion = [
@@ -37,11 +45,12 @@ class NDTAutowareOperator(erdos.Operator):
         ]
         roll, pitch, yaw = euler_from_quaternion(quaternion)
         rotation = Rotation(pitch, yaw, roll)
-        timestamp = erdos.Timestamp(coordinates=[data.header.seq])
+        timestamp = erdos.Timestamp(coordinates=[self._msg_cnt])
         can_bus = CanBus(Transform(loc, rotation), self._forward_speed)
-        print('Localization {}'.format(can_bus))
+        self._logger.debug('Localization {}'.format(can_bus))
         self._can_bus_stream.send(erdos.Message(timestamp, can_bus))
         self._can_bus_stream.send(erdos.WatermarkMessage(timestamp))
+        self._msg_cnt
 
     def on_velocity_update(self, data):
         self._forward_speed = data.data

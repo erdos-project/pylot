@@ -31,7 +31,9 @@ flags.DEFINE_integer('sensor_frequency', 10,
                      'Frequency at which to process sensors')
 
 # The location of the center camera relative to the ego-vehicle.
-CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
+LEFT_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
+RIGHT_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
+VELODYNE_LOCATION = pylot.utils.Location(1.47, 0, 1.8)
 
 
 def add_grasshopper3_camera(transform,
@@ -86,19 +88,26 @@ def add_drive_by_wire_operator(control_stream):
 
 
 def create_data_flow():
-    # TODO: Set the correct camera locations.
-    transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
-                                      pylot.utils.Rotation())
+    left_camera_transform = pylot.utils.Transform(LEFT_CAMERA_LOCATION,
+                                                  pylot.utils.Rotation())
+    right_camera_transform = pylot.utils.Transform(RIGHT_CAMERA_LOCATION,
+                                                   pylot.utils.Rotation())
+    velodyne_transform = pylot.utils.Transform(VELODYNE_LOCATION,
+                                               pylot.utils.Rotation())
 
     (left_camera_stream, left_camera_setup) = add_grasshopper3_camera(
-        transform, name='left_grasshopper', topic_name='/pg_0/image_color')
+        left_camera_transform,
+        name='left_grasshopper',
+        topic_name='/pg_0/image_color')
 
     (right_camera_stream, right_camera_setup) = add_grasshopper3_camera(
-        transform, name='right_grasshopper', topic_name='/pg_1/image_color')
+        right_camera_transform,
+        name='right_grasshopper',
+        topic_name='/pg_1/image_color')
 
-    # TODO: Set the correct lidar location.
     (point_cloud_stream,
-     lidar_setup) = add_velodyne_lidar(transform, topic_name='/points_raw')
+     lidar_setup) = add_velodyne_lidar(velodyne_transform,
+                                       topic_name='/points_raw')
 
     can_bus_stream = add_localization()
 

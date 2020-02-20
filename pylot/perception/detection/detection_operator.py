@@ -86,6 +86,10 @@ class DetectionOperator(erdos.Operator):
             'num_detections:0')
         self._coco_labels = load_coco_labels(self._flags.path_coco_labels)
         self._bbox_colors = load_coco_bbox_colors(self._coco_labels)
+        self._important_labels = {
+            'car', 'bicycle', 'motorcycle', 'bus', 'truck', 'vehicle',
+            'person', 'stop sign', 'parking meter', 'cat', 'dog'
+        }
 
     @staticmethod
     def connect(camera_stream):
@@ -137,7 +141,9 @@ class DetectionOperator(erdos.Operator):
         for i in range(0, num_detections):
             if res_classes[i] in self._coco_labels:
                 if (res_scores[i] >=
-                        self._flags.obstacle_detection_min_score_threshold):
+                        self._flags.obstacle_detection_min_score_threshold
+                        and self._coco_labels[
+                            res_classes[i]] in self._important_labels):
                     obstacles.append(
                         DetectedObstacle(
                             BoundingBox2D(
