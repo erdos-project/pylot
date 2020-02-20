@@ -5,6 +5,7 @@ import sensor_msgs.point_cloud2 as pc2
 
 from pylot.perception.messages import PointCloudMessage
 import pylot.perception.point_cloud
+from pylot.utils import Location
 
 
 class VelodyneDriverOperator(erdos.Operator):
@@ -29,14 +30,16 @@ class VelodyneDriverOperator(erdos.Operator):
         return [erdos.WriteStream()]
 
     def on_point_cloud(self, data):
-        print('Received {} data {}'.format(data.header.seq, data.points))
+        print('Received {}'.format(data.header.seq))
         # data.header.stamp.secs
         # data.header.stamp.nsec
         transform = None
         timestamp = erdos.Timestamp(coordinates=[data.header.seq])
         points = []
-        for data in pc2.read_points(data, skip_nans=True):
-            points_list.append(Location(data[0], data[1], data[2]))
+        for data in pc2.read_points(data,
+                                    field_names=('x', 'y', 'z'),
+                                    skip_nans=True):
+            points.append(Location(data[0], data[1], data[2]))
         point_cloud = pylot.perception.point_cloud.PointCloud(
             points, transform)
         msg = PointCloudMessage(timestamp, point_cloud)
