@@ -25,6 +25,10 @@ flags.DEFINE_string('waypoints_csv_file', '',
                     'Path to the file storing the waypoints csv file')
 flags.DEFINE_bool('drive_by_wire', False,
                   'True to enable sending commands to the car')
+flags.DEFINE_bool('dry_run', True,
+                  'False to enable sending of commands to the car')
+flags.DEFINE_integer('sensor_frequency', 10,
+                     'Frequency at which to process sensors')
 
 # The location of the center camera relative to the ego-vehicle.
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
@@ -87,10 +91,10 @@ def create_data_flow():
                                       pylot.utils.Rotation())
 
     (left_camera_stream, left_camera_setup) = add_grasshopper3_camera(
-        transform, name='left_grasshopper', topic_name='/camera0/image_raw')
+        transform, name='left_grasshopper', topic_name='/pg_0/image_color')
 
     (right_camera_stream, right_camera_setup) = add_grasshopper3_camera(
-        transform, name='right_grasshopper', topic_name='/camera1/image_raw')
+        transform, name='right_grasshopper', topic_name='/pg_1/image_color')
 
     # TODO: Set the correct lidar location.
     (point_cloud_stream,
