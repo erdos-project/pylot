@@ -12,6 +12,8 @@ THROTTLE_TOPIC = ROS_NAMESPACE + "throttle_cmd"
 BRAKE_TOPIC = ROS_NAMESPACE + "brake_cmd"
 STEERING_TOPIC = ROS_NAMESPACE + "steering_cmd"
 
+STEERING_ANGLE_MAX = 8.2
+
 
 class DriveByWireOperator(erdos.Operator):
     """ Operator that converts ControlMessages that Pylot sends to Carla to
@@ -59,54 +61,49 @@ class DriveByWireOperator(erdos.Operator):
 
         # Pull from the control stream and publish messages continuously.
         r = rospy.Rate(ROS_FREQUENCY)
-        last_control_message = ControlMessage(steer=0,
-                                              throttle=0,
-                                              brake=0,
-                                              hand_brake=False,
-                                              reverse=False,
-                                              timestamp=0)
+        last_control_message = ControlMessage(
+            steer=0,
+            throttle=0,
+            brake=0,
+            hand_brake=False,
+            reverse=False,
+            timestamp=erdos.Timestamp(coordinates=[0]))
+        msg_cnt = 0
         while not rospy.is_shutdown():
+            msg_cnt += 1
             control_message = self._control_stream.try_read()
-            if control_message is None:
+            if control_message is None or isinstance(control_message,
+                                                     erdos.WatermarkMessage):
                 control_message = last_control_message
             else:
                 last_control_message = control_message
 
             # Send all the commands from a single ControlMessage one after
             # the other.
-            steer_angle = control_message.steer * SteeringCmd.ANGLE_MAX
+            steer_angle = control_message.steer * STEERING_ANGLE_MAX
             steer_message = SteeringCmd(enable=True,
+                                        clear=False,
                                         ignore=False,
-                                        count=control_message.timestamp,
-                                        cmd_type=SteeringCmd.CMD_ANGLE,
+                                        quiet=False,
+                                        count=msg_cnt,
                                         steering_wheel_angle_cmd=steer_angle,
                                         steering_wheel_angle_velocity=0.0)
-            if self._flags.dry_run:
-                print("Will send the steer command: {}".format(steer_message))
-            else:
-                self.steering_pub.publish(steer_message)
+            self.steering_pub.publish(steer_message)
 
             throttle_message = ThrottleCmd(
                 enable=True,
                 ignore=False,
-                count=control_message.timestamp,
+                count=msg_cnt,
                 pedal_cmd_type=ThrottleCmd.CMD_PERCENT,
                 pedal_cmd=control_message.throttle)
-            if self._flags.dry_run:
-                print("Will send the throttle command: {}".format(
-                    throttle_message))
-            else:
-                self.throttle_pub.publish(throttle_message)
+            self.throttle_pub.publish(throttle_message)
 
             brake_message = BrakeCmd(enable=True,
                                      ignore=False,
-                                     count=control_message.timestamp,
+                                     count=msg_cnt,
                                      pedal_cmd_type=BrakeCmd.CMD_PERCENT,
                                      pedal_cmd=control_message.brake)
-            if self._flags.dry_run:
-                print("Will send the brake command: {}".format(brake_message))
-            else:
-                self.brake_pub.publish(brake_message)
+            self.brake_pub.publish(brake_message)
 
             # Run at frequency
             r.sleep()
