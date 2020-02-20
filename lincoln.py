@@ -1,12 +1,17 @@
 from absl import app, flags
+import csv
 import erdos
+import sys
+import time
 
+from pylot.drivers.drive_by_wire_operator import DriveByWireOperator
 from pylot.drivers.grasshopper3_driver_operator import \
     Grasshopper3DriverOperator
 from pylot.drivers.velodyne_driver_operator import VelodyneDriverOperator
 from pylot.localization.ndt_autoware_operator import NDTAutowareOperator
 import pylot.flags
 import pylot.operator_creator
+from pylot.perception.messages import ObstaclesMessage, TrafficLightsMessage
 import pylot.simulation.sensor_setup
 import pylot.utils
 
@@ -15,6 +20,10 @@ FLAGS = flags.FLAGS
 flags.DEFINE_integer('camera_image_width', 2048, 'Camera image width')
 flags.DEFINE_integer('camera_image_height', 2048, 'Camera image height')
 flags.DEFINE_integer('track', 3, 'Track to execute')
+flags.DEFINE_string('waypoints_csv_file', '',
+                    'Path to the file storing the waypoints csv file')
+flags.DEFINE_bool('drive_by_wire', False,
+                  'True to enable sending commands to the car')
 
 # The location of the center camera relative to the ego-vehicle.
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
@@ -33,7 +42,8 @@ def add_grasshopper3_camera(transform,
                                     camera_setup,
                                     topic_name,
                                     FLAGS,
-                                    log_file_name=FLAGS.log_file_name)
+                                    log_file_name=FLAGS.log_file_name,
+                                    csv_file_name=FLAGS.csv_log_file_name)
     return (camera_stream, camera_setup)
 
 
@@ -46,7 +56,8 @@ def add_velodyne_lidar(transform, name='velodyne', topic_name='/points_raw'):
                                          lidar_setup,
                                          topic_name,
                                          FLAGS,
-                                         log_file_name=FLAGS.log_file_name)
+                                         log_file_name=FLAGS.log_file_name,
+                                         csv_file_name=FLAGS.csv_log_file_name)
     return (point_cloud_stream, lidar_setup)
 
 
@@ -55,11 +66,21 @@ def add_localization():
                                      False,
                                      'ndt_localizer_operator',
                                      FLAGS,
-                                     log_file_name=FLAGS.log_file_name)
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_file_name=FLAGS.csv_log_file_name)
     return can_bus_stream
 
 
-def driver():
+def add_drive_by_wire_operator(control_stream):
+    erdos.connect(DriveByWireOperator, [control_stream],
+                  False,
+                  'drive_by_wire_operator',
+                  FLAGS,
+                  log_file_name=FLAGS.log_file_name,
+                  csv_file_name=FLAGS.csv_log_file_name)
+
+
+def create_data_flow():
     # TODO: Set the correct camera locations.
     transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                       pylot.utils.Rotation())
@@ -71,38 +92,100 @@ def driver():
         transform, name='right_grasshopper', topic_name='/camera1/image_color')
 
     # TODO: Set the correct lidar location.
-    # (point_cloud_stream, lidar_setup) = add_velodyne_lidar(transform,
-    #                                                        topic_name='/points_raw')
+    (point_cloud_stream,
+     lidar_setup) = add_velodyne_lidar(transform, topic_name='/points_raw')
 
     can_bus_stream = add_localization()
 
-    obstacles_streams = pylot.operator_creator.add_obstacle_detection(
-        left_camera_stream)
-    obstacles_stream = obstacles_streams[0]
+    if FLAGS.obstacle_detection:
+        obstacles_streams = pylot.operator_creator.add_obstacle_detection(
+            left_camera_stream)
+        obstacles_stream = obstacles_streams[0]
+    else:
+        obstacles_stream = erdos.IngestStream()
 
-    # The right camera is more likely to contain the traffic lights.
-    traffic_lights_stream = pylot.operator_creator.add_traffic_light_detector(
-        right_camera_stream)
+    if FLAGS.traffic_light_detection:
+        # The right camera is more likely to contain the traffic lights.
+        traffic_lights_stream = pylot.operator_creator.add_traffic_light_detector(
+            right_camera_stream)
+    else:
+        traffic_lights_stream = erdos.IngestStream()
 
-    lane_detection = pylot.operator_creator.add_canny_edge_lane_detection(
-        left_camera_stream)
+    if FLAGS.lane_detection:
+        lane_detection = pylot.operator_creator.add_canny_edge_lane_detection(
+            left_camera_stream)
 
     obstacles_tracking_stream = pylot.operator_creator.add_obstacle_tracking(
         obstacles_stream, left_camera_stream)
 
-    prediction_stream = pylot.operator_creator.add_linear_prediction(
-        obstacles_tracking_stream)
+    if FLAGS.prediction:
+        prediction_stream = pylot.operator_creator.add_linear_prediction(
+            obstacles_tracking_stream)
 
-    # waypoints_stream = pylot.operator_creator.add_fot_planning(
-    #     can_bus_stream, prediction_stream, goal_location)
+    open_drive_stream = erdos.IngestStream()
+    global_trajectory_stream = erdos.IngestStream()
+
+    waypoints_stream = pylot.operator_creator.add_waypoint_planning(
+        can_bus_stream, open_drive_stream, global_trajectory_stream,
+        obstacles_stream, traffic_lights_stream)
+
+    if FLAGS.visualize_waypoints:
+        pylot.operator_creator.add_waypoint_visualizer(waypoints_stream,
+                                                       left_camera_stream,
+                                                       can_bus_stream)
+
+    control_stream = pylot.operator_creator.add_pid_agent(
+        can_bus_stream, waypoints_stream)
+
+    if FLAGS.drive_by_wire:
+        add_drive_by_wire_operator(control_stream)
 
     # Add visualizers.
-    # pylot.operator_creator.add_camera_visualizer(left_camera_stream,
-    #                                              'left_grasshopper3_camera')
+    if FLAGS.visualize_rgb_camera:
+        pylot.operator_creator.add_camera_visualizer(
+            left_camera_stream, 'left_grasshopper3_camera')
+
+    return (obstacles_stream, traffic_lights_stream, open_drive_stream,
+            global_trajectory_stream)
+
+
+def read_waypoints():
+    csv_file = open(FLAGS.waypoints_csv_file)
+    csv_reader = csv.reader(csv_file)
+    waypoints = []
+    for row in csv_reader:
+        x = row[0]
+        y = row[1]
+        z = row[2]
+        waypoint = pylot.utils.Transform(pylot.utils.Location(x, y, z),
+                                         pylot.utils.Rotation(0, 0, 0))
+        waypoints.append(waypoint)
+    return waypoints
 
 
 def main(argv):
-    erdos.run(driver)
+    (obstacles_stream, traffic_lights_stream, open_drive_stream,
+     global_trajectory_stream) = erdos.run_async(create_data_flow)
+
+    top_timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
+    open_drive_stream.send(erdos.WatermarkMessage(top_timestamp))
+
+    waypoints = [[waypoint] for waypoint in read_waypoints()]
+    global_trajectory_stream.send(
+        erdos.Message(erdos.Timestamp(coordinates=[0]), waypoints))
+    global_trajectory_stream.send(erdos.WatermarkMessage(top_timestamp))
+
+    count = 0
+    while True:
+        timestamp = erdos.Timestamp(coordinates=[count])
+        if not FLAGS.obstacle_detection:
+            obstacles_stream.send(ObstaclesMessage(timestamp, []))
+            obstacles_stream.send(erdos.WatermarkMessage(timestamp))
+        if not FLAGS.traffic_light_detection:
+            traffic_lights_stream.send(TrafficLightsMessage(timestamp, []))
+            traffic_lights_stream.send(erdos.WatermarkMessage(timestamp))
+        count += 1
+        time.sleep(0.1)
 
 
 if __name__ == '__main__':
