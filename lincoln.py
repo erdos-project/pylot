@@ -11,7 +11,8 @@ from pylot.drivers.velodyne_driver_operator import VelodyneDriverOperator
 from pylot.localization.ndt_autoware_operator import NDTAutowareOperator
 import pylot.flags
 import pylot.operator_creator
-from pylot.perception.messages import ObstaclesMessage, TrafficLightsMessage
+from pylot.perception.messages import ObstaclesMessage, \
+    ObstacleTrajectoriesMessage, TrafficLightsMessage
 import pylot.simulation.sensor_setup
 import pylot.utils
 
@@ -86,10 +87,10 @@ def create_data_flow():
                                       pylot.utils.Rotation())
 
     (left_camera_stream, left_camera_setup) = add_grasshopper3_camera(
-        transform, name='left_grasshopper', topic_name='/camera0/image_color')
+        transform, name='left_grasshopper', topic_name='/camera0/image_raw')
 
     (right_camera_stream, right_camera_setup) = add_grasshopper3_camera(
-        transform, name='right_grasshopper', topic_name='/camera1/image_color')
+        transform, name='right_grasshopper', topic_name='/camera1/image_raw')
 
     # TODO: Set the correct lidar location.
     (point_cloud_stream,
@@ -115,8 +116,11 @@ def create_data_flow():
         lane_detection = pylot.operator_creator.add_canny_edge_lane_detection(
             left_camera_stream)
 
-    obstacles_tracking_stream = pylot.operator_creator.add_obstacle_tracking(
-        obstacles_stream, left_camera_stream)
+    if FLAGS.obstacle_tracking:
+        obstacles_tracking_stream = pylot.operator_creator.add_obstacle_tracking(
+            obstacles_stream, left_camera_stream)
+    else:
+        obstacles_tracking_stream = erdos.IngestStream()
 
     if FLAGS.prediction:
         prediction_stream = pylot.operator_creator.add_linear_prediction(
@@ -145,8 +149,8 @@ def create_data_flow():
         pylot.operator_creator.add_camera_visualizer(
             left_camera_stream, 'left_grasshopper3_camera')
 
-    return (obstacles_stream, traffic_lights_stream, open_drive_stream,
-            global_trajectory_stream)
+    return (obstacles_stream, traffic_lights_stream, obstacles_tracking_stream,
+            open_drive_stream, global_trajectory_stream)
 
 
 def read_waypoints():
@@ -164,7 +168,8 @@ def read_waypoints():
 
 
 def main(argv):
-    (obstacles_stream, traffic_lights_stream, open_drive_stream,
+    (obstacles_stream, traffic_lights_stream, obstacles_tracking_stream,
+     open_drive_stream,
      global_trajectory_stream) = erdos.run_async(create_data_flow)
 
     top_timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
@@ -184,6 +189,10 @@ def main(argv):
         if not FLAGS.traffic_light_detection:
             traffic_lights_stream.send(TrafficLightsMessage(timestamp, []))
             traffic_lights_stream.send(erdos.WatermarkMessage(timestamp))
+        if not FLAGS.obstacles_tracking:
+            obstacles_tracking_stream.send(
+                ObstacleTrajectoriesMessage(timestamp, []))
+            obstacles_tracking_stream.send(erdos.WatermarkMessage(timestamp))
         count += 1
         time.sleep(0.1)
 
