@@ -44,7 +44,7 @@ class NDTAutowareOperator(erdos.Operator):
         self._can_bus_stream.send(erdos.WatermarkMessage(timestamp))
 
     def on_velocity_update(self, data):
-        self._forward_speed = data
+        self._forward_speed = data.data
 
     def run(self):
         rospy.init_node(self._name, anonymous=True, disable_signals=True)

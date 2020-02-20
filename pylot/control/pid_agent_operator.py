@@ -109,8 +109,10 @@ class PIDAgentOperator(erdos.Operator):
         steer = pylot.control.utils.radians_to_steer(wp_angle_steer,
                                                      self._flags.steer_gain)
 
-        self._logger.debug('@{}: speed {} and location {}'.format(
-            timestamp, current_speed, vehicle_transform))
+        self._logger.debug(
+            '@{}: speed {}, location {}, steer {}, throttle {}, brake {}'.
+            format(timestamp, current_speed, vehicle_transform, steer,
+                   throttle, brake))
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),

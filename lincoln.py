@@ -131,12 +131,7 @@ def create_data_flow():
 
     waypoints_stream = pylot.operator_creator.add_waypoint_planning(
         can_bus_stream, open_drive_stream, global_trajectory_stream,
-        obstacles_stream, traffic_lights_stream)
-
-    if FLAGS.visualize_waypoints:
-        pylot.operator_creator.add_waypoint_visualizer(waypoints_stream,
-                                                       left_camera_stream,
-                                                       can_bus_stream)
+        obstacles_stream, traffic_lights_stream, None)
 
     control_stream = pylot.operator_creator.add_pid_agent(
         can_bus_stream, waypoints_stream)
@@ -148,6 +143,10 @@ def create_data_flow():
     if FLAGS.visualize_rgb_camera:
         pylot.operator_creator.add_camera_visualizer(
             left_camera_stream, 'left_grasshopper3_camera')
+    if FLAGS.visualize_waypoints:
+        pylot.operator_creator.add_waypoint_visualizer(waypoints_stream,
+                                                       left_camera_stream,
+                                                       can_bus_stream)
 
     return (obstacles_stream, traffic_lights_stream, obstacles_tracking_stream,
             open_drive_stream, global_trajectory_stream)
@@ -158,9 +157,9 @@ def read_waypoints():
     csv_reader = csv.reader(csv_file)
     waypoints = []
     for row in csv_reader:
-        x = row[0]
-        y = row[1]
-        z = row[2]
+        x = float(row[0])
+        y = float(row[1])
+        z = float(row[2])
         waypoint = pylot.utils.Transform(pylot.utils.Location(x, y, z),
                                          pylot.utils.Rotation(0, 0, 0))
         waypoints.append(waypoint)
@@ -189,7 +188,7 @@ def main(argv):
         if not FLAGS.traffic_light_detection:
             traffic_lights_stream.send(TrafficLightsMessage(timestamp, []))
             traffic_lights_stream.send(erdos.WatermarkMessage(timestamp))
-        if not FLAGS.obstacles_tracking:
+        if not FLAGS.obstacle_tracking:
             obstacles_tracking_stream.send(
                 ObstacleTrajectoriesMessage(timestamp, []))
             obstacles_tracking_stream.send(erdos.WatermarkMessage(timestamp))
