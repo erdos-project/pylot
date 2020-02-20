@@ -83,7 +83,7 @@ class CubicSpline1D:
         self.c = np.linalg.solve(matrix_a, matrix_b)
         for i in range(self.nx - 1):
             self.d.append((self.c[i + 1] - self.c[i]) / (3.0 * h[i]))
-            tb = (self.a[i + 1] - self.a[i]) / h[i] - h[i] * \
+            tb = (self.a[i + 1] - self.a[i]) / (1.0 * h[i]) - h[i] * \
                  (self.c[i + 1] + 2.0 * self.c[i]) / 3.0
             self.b.append(tb)
 
