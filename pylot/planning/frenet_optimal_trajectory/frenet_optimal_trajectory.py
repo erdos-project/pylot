@@ -17,6 +17,7 @@ Reference Papers:
 import numpy as np
 import copy
 import math
+from shapely.geometry import box, Point
 
 from pylot.control.mpc.utils import CubicSpline2D
 from pylot.planning.frenet_optimal_trajectory.constants import *
@@ -138,14 +139,14 @@ def _check_collision(fp, ob):
     if len(ob) == 0:
         return True
 
-    for i in range(len(ob[:, 0])):
-        d = [((ix - ob[i, 0])**2 + (iy - ob[i, 1])**2)
-             for (ix, iy) in zip(fp.x, fp.y)]
-
-        collision = any([di <= OBSTACLE_RADIUS**2 for di in d])
-
-        if collision:
-            return False
+    for obstacle in ob:
+        b = box(obstacle[0][0], obstacle[0][1], obstacle[1][0], obstacle[1][1])
+        for (ix, iy) in zip(fp.x, fp.y):
+            if np.isnan(ix) or np.isnan(iy):
+                continue
+            c = Point(ix, iy).buffer(OBSTACLE_RADIUS)
+            if b.intersects(c):
+                return False
 
     return True
 
