@@ -2,8 +2,10 @@ import erdos
 import rospy
 from std_msgs.msg import Empty
 from dbw_mkz_msgs.msg import ThrottleCmd, BrakeCmd, SteeringCmd
+from pylot.control.messages import ControlMessage
 
 ROS_NAMESPACE = "/vehicle/"
+ROS_FREQUENCY = 50  #hz
 ENABLE_TOPIC = ROS_NAMESPACE + "enable"
 DISABLE_TOPIC = ROS_NAMESPACE + "disable"
 THROTTLE_TOPIC = ROS_NAMESPACE + "throttle_cmd"
@@ -21,8 +23,8 @@ class DriveByWireOperator(erdos.Operator):
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-        control_stream.add_callback(self.on_control_stream_update)
         self._name = name
+        self._control_stream = control_stream
         self._flags = flags
         self._logger = erdos.utils.setup_logging(name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
@@ -36,31 +38,6 @@ class DriveByWireOperator(erdos.Operator):
     @staticmethod
     def connect(control_stream):
         return []
-
-    def on_control_stream_update(self, msg):
-        # Send all the commands from a single ControlMessage one after the other.
-        steer_message = SteeringCmd(enable=True,
-                                    ignore=False,
-                                    count=msg.timestamp,
-                                    cmd_type=SteeringCmd.CMD_ANGLE,
-                                    steering_wheel_angle_cmd=msg.steer *
-                                    SteeringCmd.ANGLE_MAX,
-                                    steering_wheel_angle_velocity=0.0)
-        self.steering_pub.publish(steer_message)
-
-        throttle_message = ThrottleCmd(enable=True,
-                                       ignore=False,
-                                       count=msg.timestamp,
-                                       pedal_cmd_type=ThrottleCmd.CMD_PERCENT,
-                                       pedal_cmd=msg.throttle)
-        self.throttle_pub.publish(throttle_message)
-
-        brake_message = BrakeCmd(enable=True,
-                                 ignore=False,
-                                 count=msg.timestamp,
-                                 pedal_cmd_type=BrakeCmd.CMD_PERCENT,
-                                 pedal_cmd=msg.brake)
-        self.throttle_pub.publish(brake_message)
 
     def run(self):
         # Initialize all the publishers.
@@ -76,4 +53,57 @@ class DriveByWireOperator(erdos.Operator):
 
         # Initialize the Node.
         rospy.init_node(self._name, anonymous=True, disable_signals=True)
-        rospy.spin()
+
+        # Pull from the control stream and publish messages continuously.
+        r = rospy.Rate(ROS_FREQUENCY)
+        last_control_message = ControlMessage(steer=0,
+                                              throttle=0,
+                                              brake=0,
+                                              hand_brake=False,
+                                              reverse=False,
+                                              timestamp=0)
+        while not rospy.is_shutdown():
+            control_message = self._control_stream.try_read()
+            if control_message is None:
+                control_message = last_control_message
+            else:
+                last_control_message = control_message
+
+            # Send all the commands from a single ControlMessage one after
+            # the other.
+            steer_angle = control_message.steer * SteeringCmd.ANGLE_MAX
+            steer_message = SteeringCmd(enable=True,
+                                        ignore=False,
+                                        count=control_message.timestamp,
+                                        cmd_type=SteeringCmd.CMD_ANGLE,
+                                        steering_wheel_angle_cmd=steer_angle,
+                                        steering_wheel_angle_velocity=0.0)
+            if self._flags.dry_run:
+                print("Will send the steer command: {}".format(steer_message))
+            else:
+                self.steering_pub.publish(steer_message)
+
+            throttle_message = ThrottleCmd(
+                enable=True,
+                ignore=False,
+                count=control_message.timestamp,
+                pedal_cmd_type=ThrottleCmd.CMD_PERCENT,
+                pedal_cmd=control_message.throttle)
+            if self._flags.dry_run:
+                print("Will send the throttle command: {}".format(
+                    throttle_message))
+            else:
+                self.throttle_pub.publish(throttle_message)
+
+            brake_message = BrakeCmd(enable=True,
+                                     ignore=False,
+                                     count=control_message.timestamp,
+                                     pedal_cmd_type=BrakeCmd.CMD_PERCENT,
+                                     pedal_cmd=control_message.brake)
+            if self._flags.dry_run:
+                print("Will send the brake command: {}".format(brake_message))
+            else:
+                self.brake_pub.publish(brake_message)
+
+            # Run at frequency
+            r.sleep()
