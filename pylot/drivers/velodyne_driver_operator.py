@@ -1,6 +1,6 @@
 import erdos
 import rospy
-from sensor_msgs.msg import PointCloud
+from sensor_msgs.msg import PointCloud2
 
 from pylot.perception.messages import PointCloudMessage
 import pylot.perception.point_cloud
@@ -41,6 +41,6 @@ class VelodyneDriverOperator(erdos.Operator):
         self._point_cloud_stream.send(watermark_msg)
 
     def run(self):
-        rospy.init_node(self._name, anonymous=True)
-        rospy.Subscriber(self._topic_name, PointCloud, self.on_point_cloud)
+        rospy.init_node(self._name, anonymous=True, disable_signals=True)
+        rospy.Subscriber(self._topic_name, PointCloud2, self.on_point_cloud)
         rospy.spin()

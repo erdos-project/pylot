@@ -4,6 +4,7 @@ import erdos
 from pylot.drivers.grasshopper3_driver_operator import \
     Grasshopper3DriverOperator
 from pylot.drivers.velodyne_driver_operator import VelodyneDriverOperator
+from pylot.localization.ndt_autoware_operator import NDTAutowareOperator
 import pylot.flags
 import pylot.operator_creator
 import pylot.simulation.sensor_setup
@@ -36,7 +37,7 @@ def add_grasshopper3_camera(transform,
     return (camera_stream, camera_setup)
 
 
-def add_velodyne_lidar(transform, name='velodyne', topic_name=''):
+def add_velodyne_lidar(transform, name='velodyne', topic_name='/points_raw'):
     lidar_setup = pylot.simulation.sensor_setup.LidarSetup(
         name=name, lidar_type='velodyne', transform=transform)
     [point_cloud_stream] = erdos.connect(VelodyneDriverOperator, [],
@@ -49,20 +50,31 @@ def add_velodyne_lidar(transform, name='velodyne', topic_name=''):
     return (point_cloud_stream, lidar_setup)
 
 
+def add_localization():
+    [can_bus_stream] = erdos.connect(NDTAutowareOperator, [],
+                                     False,
+                                     'ndt_localizer_operator',
+                                     FLAGS,
+                                     log_file_name=FLAGS.log_file_name)
+    return can_bus_stream
+
+
 def driver():
     # TODO: Set the correct camera locations.
     transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                       pylot.utils.Rotation())
 
     (left_camera_stream, left_camera_setup) = add_grasshopper3_camera(
-        transform, name='left_grasshopper', topic_name='/pg_0/image_color')
+        transform, name='left_grasshopper', topic_name='/camera0/image_color')
 
-    # (right_camera_stream, right_camera_setup) = add_grasshopper3_camera(
-    #     transform, name='right_grasshopper', topic_name='/pg_1/image_color')
+    (right_camera_stream, right_camera_setup) = add_grasshopper3_camera(
+        transform, name='right_grasshopper', topic_name='/camera1/image_color')
 
     # TODO: Set the correct lidar location.
     # (point_cloud_stream, lidar_setup) = add_velodyne_lidar(transform,
-    #                                                        topic_name='')
+    #                                                        topic_name='/points_raw')
+
+    can_bus_stream = add_localization()
 
     obstacles_streams = pylot.operator_creator.add_obstacle_detection(
         left_camera_stream)
@@ -70,7 +82,7 @@ def driver():
 
     # The right camera is more likely to contain the traffic lights.
     traffic_lights_stream = pylot.operator_creator.add_traffic_light_detector(
-        left_camera_stream)
+        right_camera_stream)
 
     lane_detection = pylot.operator_creator.add_canny_edge_lane_detection(
         left_camera_stream)
