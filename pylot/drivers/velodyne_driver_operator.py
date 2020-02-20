@@ -1,6 +1,7 @@
 import erdos
 import rospy
 from sensor_msgs.msg import PointCloud2
+import sensor_msgs.point_cloud2 as pc2
 
 from pylot.perception.messages import PointCloudMessage
 import pylot.perception.point_cloud
@@ -33,8 +34,11 @@ class VelodyneDriverOperator(erdos.Operator):
         # data.header.stamp.nsec
         transform = None
         timestamp = erdos.Timestamp(coordinates=[data.header.seq])
+        points = []
+        for data in pc2.read_points(data, skip_nans=True):
+            points_list.append(Location(data[0], data[1], data[2]))
         point_cloud = pylot.perception.point_cloud.PointCloud(
-            data.points, transform)
+            points, transform)
         msg = PointCloudMessage(timestamp, point_cloud)
         self._point_cloud_stream.send(msg)
         watermark_msg = erdos.WatermarkMessage(timestamp)
