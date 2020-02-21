@@ -93,27 +93,31 @@ class PIDAgentOperator(erdos.Operator):
             pylot.planning.utils.compute_waypoint_vector_and_angle(
                 vehicle_transform, waypoint_msg.waypoints,
                 self._flags.pid_steer_wp)
-        print("Vehicle Transform: {}, Waypoint: {}, Steer Angle: {}".format(vehicle_transform, waypoint_msg.waypoints[4], wp_angle_steer))
-        # Use 5th waypoint for speed.
-        _, wp_angle_speed = \
-            pylot.planning.utils.compute_waypoint_vector_and_angle(
-                vehicle_transform, waypoint_msg.waypoints,
-                self._flags.pid_speed_wp)
-        # Don't go to fast around corners
-        target_speed_adjusted = waypoint_msg.target_speeds[min(
-            len(waypoint_msg.target_speeds) - 1, self._flags.pid_speed_wp)]
-        if math.fabs(wp_angle_speed) < 0.1:
-            target_speed_adjusted /= 2
+        try:
+            print("Vehicle Transform: {}, Waypoint: {}, Steer Angle: {}".format(vehicle_transform, waypoint_msg.waypoints[4], wp_angle_steer))
+            # Use 5th waypoint for speed.
+            _, wp_angle_speed = \
+                pylot.planning.utils.compute_waypoint_vector_and_angle(
+                    vehicle_transform, waypoint_msg.waypoints,
+                    self._flags.pid_speed_wp)
+            # Don't go to fast around corners
+            target_speed_adjusted = waypoint_msg.target_speeds[min(
+                len(waypoint_msg.target_speeds) - 1, self._flags.pid_speed_wp)]
+            if math.fabs(wp_angle_speed) < 0.1:
+                target_speed_adjusted /= 1
 
-        throttle, brake = pylot.control.utils.compute_throttle_and_brake(
-            self._pid, current_speed, target_speed_adjusted, self._flags)
-        steer = pylot.control.utils.radians_to_steer(wp_angle_steer,
-                                                     self._flags.steer_gain)
+            throttle, brake = pylot.control.utils.compute_throttle_and_brake(
+                self._pid, current_speed, target_speed_adjusted, self._flags)
+            steer = pylot.control.utils.radians_to_steer(wp_angle_steer,
+                                                         self._flags.steer_gain)
 
-        print(
-            '@{}: speed {}, location {}, steer {}, throttle {}, brake {}'.
-            format(timestamp, current_speed, vehicle_transform, steer,
-                   throttle, brake))
+            print(
+                '@{}: speed {}, location {}, steer {}, throttle {}, brake {}'.
+                format(timestamp, current_speed, vehicle_transform, steer,
+                       throttle, brake))
+        except IndexError:
+            throttle, brake = 0.0, 0.5
+            steer = 0.0
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),

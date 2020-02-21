@@ -5,7 +5,7 @@ from dbw_mkz_msgs.msg import ThrottleCmd, BrakeCmd, SteeringCmd
 from pylot.control.messages import ControlMessage
 
 ROS_NAMESPACE = "/vehicle/"
-ROS_FREQUENCY = 50  #hz
+ROS_FREQUENCY = 100  #hz
 ENABLE_TOPIC = ROS_NAMESPACE + "enable"
 DISABLE_TOPIC = ROS_NAMESPACE + "disable"
 THROTTLE_TOPIC = ROS_NAMESPACE + "throttle_cmd"
@@ -70,8 +70,8 @@ class DriveByWireOperator(erdos.Operator):
             timestamp=erdos.Timestamp(coordinates=[0]))
         msg_cnt = 0
         while not rospy.is_shutdown():
-            msg_cnt += 1
-            msg_cnt %= 255
+            #msg_cnt += 1
+            #msg_cnt %= 255
             control_message = self._control_stream.try_read()
             if control_message is None or isinstance(control_message,
                                                      erdos.WatermarkMessage):
@@ -82,8 +82,9 @@ class DriveByWireOperator(erdos.Operator):
             # Send all the commands from a single ControlMessage one after
             # the other.
             steer_angle = control_message.steer * STEERING_ANGLE_MAX
+            print("The steering angle is {}".format(steer_angle))
             steer_message = SteeringCmd(enable=True,
-                                        clear=False,
+                                        clear=True,
                                         ignore=False,
                                         quiet=False,
                                         count=msg_cnt,

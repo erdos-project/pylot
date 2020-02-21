@@ -48,7 +48,7 @@ class NDTAutowareOperator(erdos.Operator):
         rotation = Rotation(np.degrees(pitch), np.degrees(yaw), np.degrees(roll))
         timestamp = erdos.Timestamp(coordinates=[self._msg_cnt])
         can_bus = CanBus(Transform(loc, rotation), self._forward_speed)
-        self._logger.debug('Localization {}'.format(can_bus))
+        print('Localization {}'.format(can_bus))
         self._can_bus_stream.send(erdos.Message(timestamp, can_bus))
         self._can_bus_stream.send(erdos.WatermarkMessage(timestamp))
         self._msg_cnt += 1
