@@ -5,7 +5,7 @@ from dbw_mkz_msgs.msg import ThrottleCmd, BrakeCmd, SteeringCmd
 from pylot.control.messages import ControlMessage
 
 ROS_NAMESPACE = "/vehicle/"
-ROS_FREQUENCY = 100  #hz
+ROS_FREQUENCY = 100  # hz
 ENABLE_TOPIC = ROS_NAMESPACE + "enable"
 DISABLE_TOPIC = ROS_NAMESPACE + "disable"
 THROTTLE_TOPIC = ROS_NAMESPACE + "throttle_cmd"
@@ -16,9 +16,18 @@ STEERING_ANGLE_MAX = 8.2
 
 
 class DriveByWireOperator(erdos.Operator):
-    """ Operator that converts ControlMessages that Pylot sends to Carla to
-    messages for the Lincoln MKZ ADAS. """
+    """Converts ControlMessages to messages for the Lincoln MKZ ADAS.
 
+    Args:
+        control_stream (:py:class:`erdos.ReadStream`): Stream on which the
+            operator receives control commands.
+        name (:obj:`str`): The name of the operator.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
+        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
+            written to. If None, then messages are written to stdout.
+    """
     def __init__(self,
                  control_stream,
                  name,
@@ -52,8 +61,6 @@ class DriveByWireOperator(erdos.Operator):
         self.steering_pub = rospy.Publisher(STEERING_TOPIC,
                                             SteeringCmd,
                                             queue_size=10)
-
-        # Initialize the Node.
         rospy.init_node(self._name, anonymous=True, disable_signals=True)
 
         # Enable the ADAS.
@@ -68,10 +75,7 @@ class DriveByWireOperator(erdos.Operator):
             hand_brake=False,
             reverse=False,
             timestamp=erdos.Timestamp(coordinates=[0]))
-        msg_cnt = 0
         while not rospy.is_shutdown():
-            #msg_cnt += 1
-            #msg_cnt %= 255
             control_message = self._control_stream.try_read()
             if control_message is None or isinstance(control_message,
                                                      erdos.WatermarkMessage):
@@ -82,12 +86,12 @@ class DriveByWireOperator(erdos.Operator):
             # Send all the commands from a single ControlMessage one after
             # the other.
             steer_angle = control_message.steer * STEERING_ANGLE_MAX
-            print("The steering angle is {}".format(steer_angle))
+            self._logger.debug("The steering angle is {}".format(steer_angle))
             steer_message = SteeringCmd(enable=True,
                                         clear=True,
                                         ignore=False,
                                         quiet=False,
-                                        count=msg_cnt,
+                                        count=0,
                                         steering_wheel_angle_cmd=steer_angle,
                                         steering_wheel_angle_velocity=0.0)
             self.steering_pub.publish(steer_message)
@@ -95,14 +99,14 @@ class DriveByWireOperator(erdos.Operator):
             throttle_message = ThrottleCmd(
                 enable=True,
                 ignore=False,
-                count=msg_cnt,
+                count=0,
                 pedal_cmd_type=ThrottleCmd.CMD_PERCENT,
                 pedal_cmd=control_message.throttle)
             self.throttle_pub.publish(throttle_message)
 
             brake_message = BrakeCmd(enable=True,
                                      ignore=False,
-                                     count=msg_cnt,
+                                     count=0,
                                      pedal_cmd_type=BrakeCmd.CMD_PERCENT,
                                      pedal_cmd=control_message.brake)
             self.brake_pub.publish(brake_message)

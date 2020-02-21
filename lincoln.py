@@ -25,8 +25,6 @@ flags.DEFINE_string('waypoints_csv_file', '',
                     'Path to the file storing the waypoints csv file')
 flags.DEFINE_bool('drive_by_wire', False,
                   'True to enable sending commands to the car')
-flags.DEFINE_bool('dry_run', True,
-                  'False to enable sending of commands to the car')
 flags.DEFINE_integer('sensor_frequency', 10,
                      'Frequency at which to process sensors')
 
@@ -115,6 +113,10 @@ def create_data_flow():
         obstacles_streams = pylot.operator_creator.add_obstacle_detection(
             left_camera_stream)
         obstacles_stream = obstacles_streams[0]
+        # Adds an operator that finds the world locations of the obstacles.
+        obstacles_stream = pylot.operator_creator.add_obstacle_location_finder(
+            obstacles_stream, point_cloud_stream, can_bus_stream,
+            left_camera_setup)
     else:
         obstacles_stream = erdos.IngestStream()
 
@@ -122,6 +124,11 @@ def create_data_flow():
         # The right camera is more likely to contain the traffic lights.
         traffic_lights_stream = pylot.operator_creator.add_traffic_light_detector(
             right_camera_stream)
+        # Adds operator that finds the world locations of the traffic lights.
+        traffic_lights_stream = \
+            pylot.operator_creator.add_obstacle_location_finder(
+                traffic_lights_stream, point_cloud_stream, can_bus_stream,
+                right_camera_setup)
     else:
         traffic_lights_stream = erdos.IngestStream()
 
@@ -142,12 +149,18 @@ def create_data_flow():
     open_drive_stream = erdos.IngestStream()
     global_trajectory_stream = erdos.IngestStream()
 
-    waypoints_stream = pylot.operator_creator.add_waypoint_planning(
-        can_bus_stream, open_drive_stream, global_trajectory_stream,
-        obstacles_stream, traffic_lights_stream, None)
+    if FLAGS.planning_type == 'waypoint':
+        waypoints_stream = pylot.operator_creator.add_waypoint_planning(
+            can_bus_stream, open_drive_stream, global_trajectory_stream,
+            obstacles_stream, traffic_lights_stream, None)
+    else:
+        raise ValueError('Only waypoint planning is currently supported')
 
-    control_stream = pylot.operator_creator.add_pid_agent(
-        can_bus_stream, waypoints_stream)
+    if FLAGS.control_agent == 'pid':
+        control_stream = pylot.operator_creator.add_pid_agent(
+            can_bus_stream, waypoints_stream)
+    else:
+        raise ValueError('Only PID control is currently supported')
 
     if FLAGS.drive_by_wire:
         add_drive_by_wire_operator(control_stream)
@@ -192,6 +205,7 @@ def main(argv):
         erdos.Message(erdos.Timestamp(coordinates=[0]), waypoints))
     global_trajectory_stream.send(erdos.WatermarkMessage(top_timestamp))
 
+    time_to_sleep = 1.0 / FLAGS.sensor_frequency
     count = 0
     while True:
         timestamp = erdos.Timestamp(coordinates=[count])
@@ -206,7 +220,9 @@ def main(argv):
                 ObstacleTrajectoriesMessage(timestamp, []))
             obstacles_tracking_stream.send(erdos.WatermarkMessage(timestamp))
         count += 1
-        time.sleep(0.1)
+        # NOTE: We should offset sleep time by the time it takes to send the
+        # messages.
+        time.sleep(time_to_sleep)
 
 
 if __name__ == '__main__':

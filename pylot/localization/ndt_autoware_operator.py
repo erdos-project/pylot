@@ -1,7 +1,7 @@
 import erdos
-import rospy
-import numpy as np
 from geometry_msgs.msg import PoseStamped
+import numpy as np
+import rospy
 from std_msgs.msg import Float32
 from tf.transformations import euler_from_quaternion
 
@@ -45,10 +45,11 @@ class NDTAutowareOperator(erdos.Operator):
             data.pose.orientation.z, data.pose.orientation.w
         ]
         roll, pitch, yaw = euler_from_quaternion(quaternion)
-        rotation = Rotation(np.degrees(pitch), np.degrees(yaw), np.degrees(roll))
+        rotation = Rotation(np.degrees(pitch), np.degrees(yaw),
+                            np.degrees(roll))
         timestamp = erdos.Timestamp(coordinates=[self._msg_cnt])
         can_bus = CanBus(Transform(loc, rotation), self._forward_speed)
-        print('Localization {}'.format(can_bus))
+        self._logger.debug('NDT localization {}'.format(can_bus))
         self._can_bus_stream.send(erdos.Message(timestamp, can_bus))
         self._can_bus_stream.send(erdos.WatermarkMessage(timestamp))
         self._msg_cnt += 1

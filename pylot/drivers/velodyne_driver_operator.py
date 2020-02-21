@@ -11,6 +11,22 @@ LIDAR_FREQUENCY = 10
 
 
 class VelodyneDriverOperator(erdos.Operator):
+    """Subscribes to a ROS topic on which point clouds are published.
+
+    Args:
+        point_cloud_stream (:py:class:`erdos.WriteStream`): Stream on which the
+            operator sends point clouds.
+        name (:obj:`str`): The name of the operator.
+        lidar_setup (:py:class:`pylot.simulation.sensor_setup.LidarSetup`):
+            Setup of the Lidar.
+        topic_name (:obj:`str`): The name of the ROS topic on which to listen
+            for point cloud messages.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
+        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
+            written to. If None, then messages are written to stdout.
+    """
     def __init__(self,
                  point_cloud_stream,
                  name,
@@ -36,11 +52,9 @@ class VelodyneDriverOperator(erdos.Operator):
         return [erdos.WriteStream()]
 
     def on_point_cloud(self, data):
-        print("Modulo to send: {}".format(self._modulo_to_send))
         self._counter += 1
         if self._counter % self._modulo_to_send != 0:
             return
-        print('Received {}'.format(data.header.seq))
         timestamp = erdos.Timestamp(coordinates=[self._msg_cnt])
         points = []
         for data in pc2.read_points(data,
@@ -53,10 +67,10 @@ class VelodyneDriverOperator(erdos.Operator):
         self._point_cloud_stream.send(msg)
         watermark_msg = erdos.WatermarkMessage(timestamp)
         self._point_cloud_stream.send(watermark_msg)
+        self._logger.debug('@{}: sent message'.format(timestamp))
         self._msg_cnt += 1
 
     def run(self):
         rospy.init_node(self._name, anonymous=True, disable_signals=True)
-        print("Starting a subscriber with modulo: {}".format(self._modulo_to_send))
         rospy.Subscriber(self._topic_name, PointCloud2, self.on_point_cloud)
         rospy.spin()

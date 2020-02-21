@@ -12,6 +12,22 @@ CAMERA_FPS = 30
 
 
 class Grasshopper3DriverOperator(erdos.Operator):
+    """Subscribes to a ROS topic on which camera images are published.
+
+    Args:
+        camera_stream (:py:class:`erdos.WriteStream`): Stream on which the
+            operator sends camera frames.
+        name (:obj:`str`): The name of the operator.
+        camera_setup (:py:class:`pylot.simulation.sensor_setup.RGBCameraSetup`):
+            Setup of the camera.
+        topic_name (:obj:`str`): The name of the ROS topic on which to listen
+            for camera frames.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
+        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
+            written to. If None, then messages are written to stdout.
+    """
     def __init__(self,
                  camera_stream,
                  name,
@@ -41,8 +57,6 @@ class Grasshopper3DriverOperator(erdos.Operator):
         self._counter += 1
         if self._counter % self._modulo_to_send != 0:
             return
-        self._logger.debug('Received data {} encoding {}'.format(
-            data.header.seq, data.encoding))
         cv2_image = self._bridge.imgmsg_to_cv2(data, "bgr8")
         resized_image = cv2.resize(cv2.flip(cv2_image, 0), (512, 512))
         numpy_array = np.asarray(resized_image)
@@ -51,6 +65,7 @@ class Grasshopper3DriverOperator(erdos.Operator):
         self._camera_stream.send(FrameMessage(timestamp, camera_frame))
         watermark_msg = erdos.WatermarkMessage(timestamp)
         self._camera_stream.send(watermark_msg)
+        self._logger.debug('@{}: sent message'.format(timestamp))
         self._msg_cnt += 1
 
     def run(self):

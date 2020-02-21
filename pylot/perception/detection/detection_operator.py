@@ -88,7 +88,8 @@ class DetectionOperator(erdos.Operator):
         self._bbox_colors = load_coco_bbox_colors(self._coco_labels)
         self._important_labels = {
             'car', 'bicycle', 'motorcycle', 'bus', 'truck', 'vehicle',
-            'person', 'stop sign', 'parking meter', 'cat', 'dog'
+            'person', 'stop sign', 'parking meter', 'cat', 'dog',
+            'speed limit 30', 'speed limit 60', 'speed limit 90'
         }
 
     @staticmethod
