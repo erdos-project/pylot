@@ -76,6 +76,7 @@ class WaypointPlanningOperator(erdos.Operator):
         # We do not know yet the vehicle's location.
         self._vehicle_transform = None
         self._goal_location = goal_location
+        self._map = None
         # Deque of waypoints the vehicle must follow. The waypoints are either
         # received on the global trajectory stream when running using the
         # scenario runner, or computed using the Carla global planner when

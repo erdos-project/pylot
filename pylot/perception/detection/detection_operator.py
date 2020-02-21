@@ -60,19 +60,19 @@ class DetectionOperator(erdos.Operator):
         # Load the model from the model file.
         set_tf_loglevel(logging.ERROR)
         with self._detection_graph.as_default():
-            od_graph_def = tf.compat.v1.GraphDef()
-            with tf.io.gfile.GFile(model_path, 'rb') as fid:
+            od_graph_def = tf.GraphDef()
+            with tf.gfile.GFile(model_path, 'rb') as fid:
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name='')
 
-        self._gpu_options = tf.compat.v1.GPUOptions(
+        self._gpu_options = tf.GPUOptions(
             per_process_gpu_memory_fraction=flags.
             obstacle_detection_gpu_memory_fraction)
         # Create a TensorFlow session.
-        self._tf_session = tf.compat.v1.Session(
+        self._tf_session = tf.Session(
             graph=self._detection_graph,
-            config=tf.compat.v1.ConfigProto(gpu_options=self._gpu_options))
+            config=tf.ConfigProto(gpu_options=self._gpu_options))
         # Get the tensors we're interested in.
         self._image_tensor = self._detection_graph.get_tensor_by_name(
             'image_tensor:0')
@@ -86,6 +86,11 @@ class DetectionOperator(erdos.Operator):
             'num_detections:0')
         self._coco_labels = load_coco_labels(self._flags.path_coco_labels)
         self._bbox_colors = load_coco_bbox_colors(self._coco_labels)
+        self._important_labels = {
+            'car', 'bicycle', 'motorcycle', 'bus', 'truck', 'vehicle',
+            'person', 'stop sign', 'parking meter', 'cat', 'dog',
+            'speed limit 30', 'speed limit 60', 'speed limit 90'
+        }
 
     @staticmethod
     def connect(camera_stream):
@@ -137,7 +142,9 @@ class DetectionOperator(erdos.Operator):
         for i in range(0, num_detections):
             if res_classes[i] in self._coco_labels:
                 if (res_scores[i] >=
-                        self._flags.obstacle_detection_min_score_threshold):
+                        self._flags.obstacle_detection_min_score_threshold
+                        and self._coco_labels[
+                            res_classes[i]] in self._important_labels):
                     obstacles.append(
                         DetectedObstacle(
                             BoundingBox2D(

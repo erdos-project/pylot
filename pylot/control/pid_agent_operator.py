@@ -86,37 +86,38 @@ class PIDAgentOperator(erdos.Operator):
                 'Current speed is negative: {}'.format(current_speed))
             current_speed = 0
 
-        # The operator picks the wp_num_steer-th waypoint to compute the angle
-        # it has to steer by when taking a turn.
-        # Use 10th waypoint for steering.
-        _, wp_angle_steer = \
-            pylot.planning.utils.compute_waypoint_vector_and_angle(
-                vehicle_transform, waypoint_msg.waypoints,
-                self._flags.pid_steer_wp)
-        # Use 5th waypoint for speed.
-        _, wp_angle_speed = \
-            pylot.planning.utils.compute_waypoint_vector_and_angle(
-                vehicle_transform, waypoint_msg.waypoints,
-                self._flags.pid_speed_wp)
-        # Don't go to fast around corners
-        target_speed_adjusted = waypoint_msg.target_speeds[min(
-            len(waypoint_msg.target_speeds) - 1, self._flags.pid_speed_wp)]
-        if math.fabs(wp_angle_speed) < 0.1:
-            target_speed_adjusted /= 2
-
-        throttle, brake = pylot.control.utils.compute_throttle_and_brake(
-            self._pid, current_speed, target_speed_adjusted, self._flags)
-        steer = pylot.control.utils.radians_to_steer(wp_angle_steer,
-                                                     self._flags.steer_gain)
-
-        self._logger.debug('@{}: speed {} and location {}'.format(
-            timestamp, current_speed, vehicle_transform))
+        if len(waypoint_msg.waypoints) > 0:
+            # The operator picks the wp_num_steer-th waypoint to compute the
+            # angle it has to steer by when taking a turn.
+            # Use 10th waypoint for steering.
+            _, wp_angle_steer = \
+                pylot.planning.utils.compute_waypoint_vector_and_angle(
+                    vehicle_transform, waypoint_msg.waypoints,
+                    self._flags.pid_steer_wp)
+            # Use 5th waypoint for speed.
+            _, wp_angle_speed = \
+                pylot.planning.utils.compute_waypoint_vector_and_angle(
+                    vehicle_transform, waypoint_msg.waypoints,
+                    self._flags.pid_speed_wp)
+            target_speed = waypoint_msg.target_speeds[min(
+                len(waypoint_msg.target_speeds) - 1, self._flags.pid_speed_wp)]
+            throttle, brake = pylot.control.utils.compute_throttle_and_brake(
+                self._pid, current_speed, target_speed, self._flags)
+            steer = pylot.control.utils.radians_to_steer(
+                wp_angle_steer, self._flags.steer_gain)
+        else:
+            self._logger.warning('Braking! No more waypoints to follow.')
+            throttle, brake = 0.0, 0.5
+            steer = 0.0
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
                                                      self._name, timestamp,
                                                      runtime))
-
+        self._logger.debug(
+            '@{}: speed {}, location {}, steer {}, throttle {}, brake {}'.
+            format(timestamp, current_speed, vehicle_transform, steer,
+                   throttle, brake))
         control_stream.send(
             ControlMessage(steer, throttle, brake, False, False, timestamp))
 
