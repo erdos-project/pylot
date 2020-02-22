@@ -4,16 +4,16 @@ from absl import app
 from absl import flags
 
 import carla
+import cv2
 import pptk
 import time
 
+from pylot.drivers.sensor_setup import CameraSetup
 from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.point_cloud import PointCloud
 from pylot.simulation.utils import get_world
 import pylot.utils
-import cv2
-from pylot.simulation.sensor_setup import CameraSetup
 
 FLAGS = flags.FLAGS
 
@@ -21,6 +21,7 @@ flags.DEFINE_string('carla_host', 'localhost', 'Carla host.')
 lidar_pc = None
 depth_pc = None
 last_frame = None
+
 
 def on_lidar_msg(carla_pc):
     game_time = int(carla_pc.timestamp * 1000)
@@ -150,7 +151,8 @@ def run_scenario(target_vehicle_transform, sensor_transform):
     world.get_spectator().set_transform(sensor_transform)
 
     print("Target Vehicle Location:", target_vehicle_transform.location.x,
-          target_vehicle_transform.location.y, target_vehicle_transform.location.z)
+          target_vehicle_transform.location.y,
+          target_vehicle_transform.location.z)
 
     print("Our Location:", sensor_transform.location.x,
           sensor_transform.location.y, sensor_transform.location.z)
@@ -174,20 +176,17 @@ def run_scenario(target_vehicle_transform, sensor_transform):
 
 def main(argv):
     global pixels_to_check
-    target_vehicle_transform = carla.Transform(
-        carla.Location(242, 131.24, 0))
-    sensor_transform = carla.Transform(
-        carla.Location(237.7, 132.24, 1.3))
+    target_vehicle_transform = carla.Transform(carla.Location(242, 131.24, 0))
+    sensor_transform = carla.Transform(carla.Location(237.7, 132.24, 1.3))
     pixels_to_check = [(200, 370)]
     run_scenario(target_vehicle_transform, sensor_transform)
 
-    target_vehicle_transform = carla.Transform(
-        carla.Location(2, 12, 0))
+    target_vehicle_transform = carla.Transform(carla.Location(2, 12, 0))
     sensor_transform = carla.Transform(
-        carla.Location(0, 18, 1.4),
-        carla.Rotation(pitch=0, yaw=-90, roll=0))
+        carla.Location(0, 18, 1.4), carla.Rotation(pitch=0, yaw=-90, roll=0))
     pixels_to_check = [(500, 400), (600, 400), (500, 350), (600, 350)]
     run_scenario(target_vehicle_transform, sensor_transform)
+
 
 if __name__ == '__main__':
     app.run(main)

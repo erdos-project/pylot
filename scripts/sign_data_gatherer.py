@@ -7,6 +7,8 @@ import PIL.Image as Image
 import time
 import re
 
+from pylot.drivers.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
+    SegmentedCameraSetup
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.detection.speed_limit_sign import SpeedLimitSign
@@ -16,8 +18,6 @@ from pylot.perception.messages import DepthFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.simulation.utils import get_world
 import pylot.simulation.utils
-from pylot.simulation.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
-    SegmentedCameraSetup
 import pylot.utils
 
 FLAGS = flags.FLAGS

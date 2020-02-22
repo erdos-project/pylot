@@ -1,12 +1,12 @@
 import pytest
 import numpy as np
 
-from pylot.utils import Location, Rotation, Transform, Vector2D
+from pylot.drivers.sensor_setup import CameraSetup
 from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.point_cloud import PointCloud
-from pylot.simulation.sensor_setup import CameraSetup
+from pylot.utils import Location, Rotation, Transform, Vector2D
 
-## Depth Frame Tests
+# Depth Frame Tests
 
 
 @pytest.mark.parametrize("x, y, z, threshold, expected",

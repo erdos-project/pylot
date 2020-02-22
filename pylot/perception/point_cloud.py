@@ -39,7 +39,7 @@ class PointCloud(object):
 
     def _to_camera_coordinates(self, points):
         # Converts points in lidar coordinates to points in camera coordinates.
-        # See CameraSetup in pylot/simulation/sensor_setup.py for coordinate
+        # See CameraSetup in pylot/drivers/sensor_setup.py for coordinate
         # axis orientations.
         to_camera_transform = Transform(matrix=np.array(
             [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
@@ -52,7 +52,7 @@ class PointCloud(object):
 
         Args:
             pixel (:py:class:`~pylot.utils.Vector2D`): Pixel coordinates.
-            camera_setup (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`):
+            camera_setup (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
                 The setup of the camera.
         Returns:
             :py:class:`~pylot.utils.Location`: The 3D world location, or None

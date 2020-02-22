@@ -50,7 +50,7 @@ from pylot.debug.waypoint_visualizer_operator import WaypointVisualizerOperator
 #
 from pylot.simulation.synchronizer_operator import SynchronizerOperator
 # Sensor setups.
-from pylot.simulation.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
+from pylot.drivers.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
     SegmentedCameraSetup
 import pylot.utils
 
@@ -94,7 +94,7 @@ def add_obstacle_location_finder(obstacles_stream, point_cloud_stream,
             which point cloud messages are received.
         can_bus_stream (:py:class:`erdos.ReadStream`, optional): Stream on
             which can bus info is received.
-        camera_setup (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`):
+        camera_setup (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
             The setup of the center camera.
 
     Returns:
@@ -347,7 +347,7 @@ def add_segmented_camera(transform,
 
 def add_left_right_cameras(transform, vehicle_id_stream, fov=90):
     (left_camera_setup, right_camera_setup) = \
-        pylot.simulation.sensor_setup.create_left_right_camera_setups(
+        pylot.drivers.sensor_setup.create_left_right_camera_setups(
             'camera',
             transform.location,
             FLAGS.carla_camera_image_width,
@@ -362,8 +362,10 @@ def add_left_right_cameras(transform, vehicle_id_stream, fov=90):
 
 
 def _add_camera_driver(vehicle_id_stream, camera_setup):
-    from pylot.simulation.camera_driver_operator import CameraDriverOperator
-    [camera_stream] = erdos.connect(CameraDriverOperator, [vehicle_id_stream],
+    from pylot.drivers.carla_camera_driver_operator import \
+        CarlaCameraDriverOperator
+    [camera_stream] = erdos.connect(CarlaCameraDriverOperator,
+                                    [vehicle_id_stream],
                                     False,
                                     camera_setup.get_name() + "_operator",
                                     camera_setup,
@@ -374,15 +376,16 @@ def _add_camera_driver(vehicle_id_stream, camera_setup):
 
 
 def add_lidar(transform, vehicle_id_stream, name='center_lidar'):
-    lidar_setup = pylot.simulation.sensor_setup.create_center_lidar_setup(
+    lidar_setup = pylot.drivers.sensor_setup.create_center_lidar_setup(
         transform.location)
     point_cloud_stream = _add_lidar_driver(vehicle_id_stream, lidar_setup)
     return (point_cloud_stream, lidar_setup)
 
 
 def _add_lidar_driver(vehicle_id_stream, lidar_setup):
-    from pylot.simulation.lidar_driver_operator import LidarDriverOperator
-    [point_cloud_stream] = erdos.connect(LidarDriverOperator,
+    from pylot.drivers.carla_lidar_driver_operator import \
+        CarlaLidarDriverOperator
+    [point_cloud_stream] = erdos.connect(CarlaLidarDriverOperator,
                                          [vehicle_id_stream],
                                          False,
                                          lidar_setup.get_name() + "_operator",
@@ -393,9 +396,9 @@ def _add_lidar_driver(vehicle_id_stream, lidar_setup):
 
 
 def add_imu(transform, vehicle_id_stream, name='imu'):
-    from pylot.simulation.imu_driver_operator import IMUDriverOperator
-    imu_setup = pylot.simulation.sensor_setup.IMUSetup(name, transform)
-    [imu_stream] = erdos.connect(IMUDriverOperator, [vehicle_id_stream],
+    from pylot.drivers.carla_imu_driver_operator import CarlaIMUDriverOperator
+    imu_setup = pylot.drivers.sensor_setup.IMUSetup(name, transform)
+    [imu_stream] = erdos.connect(CarlaIMUDriverOperator, [vehicle_id_stream],
                                  False,
                                  imu_setup.get_name() + "_operator",
                                  imu_setup,

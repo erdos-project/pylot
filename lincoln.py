@@ -7,13 +7,13 @@ import time
 from pylot.drivers.drive_by_wire_operator import DriveByWireOperator
 from pylot.drivers.grasshopper3_driver_operator import \
     Grasshopper3DriverOperator
+import pylot.drivers.sensor_setup
 from pylot.drivers.velodyne_driver_operator import VelodyneDriverOperator
-from pylot.localization.ndt_autoware_operator import NDTAutowareOperator
 import pylot.flags
+from pylot.localization.ndt_autoware_operator import NDTAutowareOperator
 import pylot.operator_creator
 from pylot.perception.messages import ObstaclesMessage, \
     ObstacleTrajectoriesMessage, TrafficLightsMessage
-import pylot.simulation.sensor_setup
 import pylot.utils
 
 FLAGS = flags.FLAGS
@@ -38,7 +38,7 @@ def add_grasshopper3_camera(transform,
                             name='grasshopper3',
                             topic_name='/pg_0/image_color',
                             fov=90):
-    camera_setup = pylot.simulation.sensor_setup.RGBCameraSetup(
+    camera_setup = pylot.drivers.sensor_setup.RGBCameraSetup(
         name, FLAGS.camera_image_width, FLAGS.camera_image_height, transform,
         fov)
     [camera_stream] = erdos.connect(Grasshopper3DriverOperator, [],
@@ -53,8 +53,9 @@ def add_grasshopper3_camera(transform,
 
 
 def add_velodyne_lidar(transform, name='velodyne', topic_name='/points_raw'):
-    lidar_setup = pylot.simulation.sensor_setup.LidarSetup(
-        name=name, lidar_type='velodyne', transform=transform)
+    lidar_setup = pylot.drivers.sensor_setup.LidarSetup(name=name,
+                                                        lidar_type='velodyne',
+                                                        transform=transform)
     [point_cloud_stream] = erdos.connect(VelodyneDriverOperator, [],
                                          False,
                                          lidar_setup.get_name() + '_operator',

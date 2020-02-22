@@ -17,7 +17,7 @@ class VelodyneDriverOperator(erdos.Operator):
         point_cloud_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends point clouds.
         name (:obj:`str`): The name of the operator.
-        lidar_setup (:py:class:`pylot.simulation.sensor_setup.LidarSetup`):
+        lidar_setup (:py:class:`pylot.drivers.sensor_setup.LidarSetup`):
             Setup of the Lidar.
         topic_name (:obj:`str`): The name of the ROS topic on which to listen
             for point cloud messages.

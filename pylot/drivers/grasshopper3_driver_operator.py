@@ -18,7 +18,7 @@ class Grasshopper3DriverOperator(erdos.Operator):
         camera_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends camera frames.
         name (:obj:`str`): The name of the operator.
-        camera_setup (:py:class:`pylot.simulation.sensor_setup.RGBCameraSetup`):
+        camera_setup (:py:class:`pylot.drivers.sensor_setup.RGBCameraSetup`):
             Setup of the camera.
         topic_name (:obj:`str`): The name of the ROS topic on which to listen
             for camera frames.

@@ -25,7 +25,7 @@ def add_obstacle_detection(center_camera_stream,
         center_camera_stream (:py:class:`erdos.ReadStream`): Stream on which
             BGR frames are received.
         center_camera_setup
-            (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`, optional):
+            (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`, optional):
             The setup of the center camera. This setup is used to calculate the
             real-world location of the obstacles.
         can_bus_stream (:py:class:`erdos.ReadStream`, optional): Stream on
@@ -173,7 +173,7 @@ def add_depth(transform, vehicle_id_stream, center_camera_setup,
         vehicle_id_stream (:py:class:`erdos.ReadStream`): A stream on which
             the simulator publishes Carla ego-vehicle id.
         center_camera_setup
-            (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`):
+            (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
             The setup of the center camera.
         depth_camera_stream (:py:class:`erdos.ReadStream`): Stream on which
             depth frames are received.

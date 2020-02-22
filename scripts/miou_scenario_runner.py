@@ -9,8 +9,8 @@ import sys
 
 import carla
 
+from pylot.drivers.sensor_setup import SegmentedCameraSetup
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
-from pylot.simulation.sensor_setup import SegmentedCameraSetup
 from pylot.simulation.utils import get_world
 import pylot.utils
 

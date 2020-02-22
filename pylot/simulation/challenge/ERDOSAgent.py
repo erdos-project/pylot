@@ -9,7 +9,7 @@ import pylot.operator_creator
 import pylot.perception.messages
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.point_cloud import PointCloud
-from pylot.simulation.sensor_setup import RGBCameraSetup
+from pylot.drivers.sensor_setup import RGBCameraSetup
 import pylot.utils
 
 from srunner.challenge.autoagents.autonomous_agent import AutonomousAgent,\
@@ -32,7 +32,7 @@ class ERDOSAgent(AutonomousAgent):
     Attributes:
         track: Track the agent is running in.
         _camera_setups: Mapping between camera names and
-            :py:class:`~pylot.simulation.sensor_setup.CameraSetup`.
+            :py:class:`~pylot.drivers.sensor_setup.CameraSetup`.
         _lidar_transform (:py:class:`~pylot.utils.Transform`): Transform of
             the Lidar relative to the ego vehicle.
         _waypoints (list(:py:class:`~pylot.utils.Transform`)): List of
@@ -194,12 +194,12 @@ class ERDOSAgent(AutonomousAgent):
         forward_speed = data['speed']
         yaw = vehicle_transform.rotation.yaw
         velocity_vector = pylot.utils.Vector3D(forward_speed * np.cos(yaw),
-                                               forward_speed * np.sin(yaw),
-                                               0)
+                                               forward_speed * np.sin(yaw), 0)
         self._can_bus_stream.send(
-            erdos.Message(timestamp,
-                          pylot.utils.CanBus(vehicle_transform,
-                                             forward_speed, velocity_vector)))
+            erdos.Message(
+                timestamp,
+                pylot.utils.CanBus(vehicle_transform, forward_speed,
+                                   velocity_vector)))
         self._can_bus_stream.send(erdos.WatermarkMessage(timestamp))
 
     def send_lidar_msg(self, carla_pc, transform, timestamp):

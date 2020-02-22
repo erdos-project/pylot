@@ -12,12 +12,12 @@ class DepthFrame(object):
 
     Args:
         frame: A numpy array storring the depth frame.
-        camera_setup (:py:class:`~pylot.simulation.sensor_setup.DepthCameraSetup`):
+        camera_setup (:py:class:`~pylot.drivers.sensor_setup.DepthCameraSetup`):
             The camera setup used by the sensor that generated this frame.
 
     Attributes:
         frame: A numpy array storring the depth frame.
-        camera_setup (:py:class:`~pylot.simulation.sensor_setup.DepthCameraSetup`):
+        camera_setup (:py:class:`~pylot.drivers.sensor_setup.DepthCameraSetup`):
             The camera setup used by the sensor that generated this frame.
     """
     def __init__(self, frame, camera_setup):
@@ -58,7 +58,7 @@ class DepthFrame(object):
         """Converts the depth frame to a 1D array containing the 3D
         position of each pixel in world coordinates.
 
-        See :py:class:`~pylot.simulation.sensor_setup.CameraSetup` for
+        See :py:class:`~pylot.drivers.sensor_setup.CameraSetup` for
         coordinate axis orientations.
         """
         far = 1000.0  # max depth in meters.

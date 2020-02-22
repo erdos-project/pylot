@@ -14,9 +14,9 @@ import torch.backends.cudnn as cudnn
 import anynet.anynet
 from anynet import preprocess
 
+from pylot.drivers.sensor_setup import CameraSetup
 from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.messages import DepthFrameMessage
-from pylot.simulation.sensor_setup import CameraSetup
 from pylot.utils import time_epoch_ms
 
 flags.DEFINE_string('depth_estimation_model_path', 'dependencies/anynet/',
