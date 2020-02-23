@@ -4,6 +4,7 @@ from absl import flags
 import erdos
 import cv2
 import os
+from PIL import Image
 import time
 import torch
 import torch.nn as nn
@@ -11,16 +12,29 @@ import torch.nn.parallel
 import torch.utils.data
 import torch.backends.cudnn as cudnn
 
-import anynet.anynet
-from anynet import preprocess
+import AnyNet.models.anynet as anynet
+from AnyNet.utils import preprocess
 
 from pylot.drivers.sensor_setup import CameraSetup
 from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.messages import DepthFrameMessage
 from pylot.utils import time_epoch_ms
 
-flags.DEFINE_string('depth_estimation_model_path', 'dependencies/anynet/',
+flags.DEFINE_string('depth_estimation_model_path',
+                    'dependencies/models/depth_estimation/AnyNet/',
                     'Path to AnyNet depth estimation model')
+
+
+class AnyNetArgs(object):
+    def __init__(self):
+        self.init_channels = 1
+        self.maxdisplist = [12, 3, 3]
+        self.spn_init_channels = 1
+        self.nblocks = 2
+        self.layers_3d = 4
+        self.channels_3d = 4
+        self.growth_rate = [4, 1, 1]
+        self.with_spn = False
 
 
 class DepthEstimationOperator(erdos.Operator):
@@ -69,21 +83,19 @@ class DepthEstimationOperator(erdos.Operator):
         self._transform = transform
         self._fov = fov
         # Load AnyNet
-        model = anynet.anynet.AnyNet()
+        model = anynet.AnyNet(AnyNetArgs())
         model = nn.DataParallel(model).cuda()
         pretrained = os.path.join(self._flags.depth_estimation_model_path,
-                                  'results/pretrained_anynet/checkpoint.tar')
+                                  'checkpoint/sceneflow/sceneflow.tar')
         resume = os.path.join(self._flags.depth_estimation_model_path,
-                              'results/finetune_anynet/checkpoint.tar')
+                              'checkpoint/kitti2015_ck/checkpoint.tar')
         if os.path.isfile(pretrained):
             checkpoint = torch.load(pretrained)
-            model.load_state_dict(checkpoint['state_dict'])
         else:
             self._logger.warning('No pretrained Anynet model')
 
         if os.path.isfile(resume):
             checkpoint = torch.load(resume)
-            model.load_state_dict(checkpoint['state_dict'])
         else:
             self._logger.warning('No Anynet checkpoint available')
 
@@ -109,8 +121,11 @@ class DepthEstimationOperator(erdos.Operator):
     def on_left_camera_msg(self, msg):
         self._logger.debug('@{}: {} received left camera message'.format(
             msg.timestamp, self._name))
-        img = msg.frame.as_rgb_numpy_array()
-        img = preprocess.crop(img)
+        img = Image.fromarray(msg.frame.as_rgb_numpy_array().astype('uint8'),
+                              'RGB')
+        w, h = img.size
+        img = img.crop((w - 960, h - 544, w, h))
+        #        img = preprocess.scale_crop(img)
         processed = preprocess.get_transform(augment=False)
         img = processed(img)
         self._left_imgs[msg.timestamp] = img
@@ -118,8 +133,11 @@ class DepthEstimationOperator(erdos.Operator):
     def on_right_camera_msg(self, msg):
         self._logger.debug('@{}: {} received right camera message'.format(
             msg.timestamp, self._name))
-        img = msg.frame.as_rgb_numpy_array()
-        img = preprocess.crop(img)
+        img = Image.fromarray(msg.frame.as_rgb_numpy_array().astype('uint8'),
+                              'RGB')
+        #        img = preprocess.scale_crop(img)
+        w, h = img.size
+        img = img.crop((w - 960, h - 544, w, h))
         processed = preprocess.get_transform(augment=False)
         img = processed(img)
         self._right_imgs[msg.timestamp] = img
@@ -141,22 +159,21 @@ class DepthEstimationOperator(erdos.Operator):
             output = torch.squeeze(outputs[2], 1)
         output = output.squeeze().cpu().numpy()
         # Process the output (disparity) to depth, model-dependent
-        depth = preprocess.disp2depth(output)
+        # depth = preprocess.disp2depth(output)
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
                                                      self._name, timestamp,
                                                      runtime))
 
-        if self._flags.visualize_depth_est:
-            cv2.imshow(self._name, output)
-            cv2.waitKey(1)
+        cv2.imshow(self._name, output)
+        cv2.waitKey(1)
 
-        camera_setup = CameraSetup("depth_estimation",
-                                   "estimation.anynet",
-                                   depth.shape[1],
-                                   depth.shape[0],
-                                   self._transform,
-                                   fov=self._fov)
-        depth_estimation_stream.send(
-            DepthFrameMessage(timestamp, DepthFrame(depth, camera_setup)))
+        # camera_setup = CameraSetup("depth_estimation",
+        #                            "estimation.anynet",
+        #                            depth.shape[1],
+        #                            depth.shape[0],
+        #                            self._transform,
+        #                            fov=self._fov)
+        # depth_estimation_stream.send(
+        #     DepthFrameMessage(timestamp, DepthFrame(depth, camera_setup)))

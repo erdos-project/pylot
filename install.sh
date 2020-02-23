@@ -41,6 +41,13 @@ gdown https://drive.google.com/uc?id=1G9GtKpF36-AwjyRXVLH_gHvrfVSCZMa7
 gdown https://drive.google.com/uc?id=1_bIGtHYdAoTMS-hqOPE1j3KU-ON15cVV
 # SiamRPNOTB.model
 gdown https://drive.google.com/uc?id=18-LyMHVLhcx6qBWpUJEcPFoay1tSqURI
+cd ../../
+
+##### Download AnyNet depth estimation models #####
+mkdir -p depth_estimation/AnyNet ; cd depth_estimation/AnyNet
+gdown https://drive.google.com/uc?id=18Vi68rQO-vcBn3882vkumIWtGggZQDoU
+unzip checkpoint.zip
+
 cd ../../../
 
 ###### Get DeepSORT and SORT tracker code bases
@@ -52,6 +59,11 @@ git clone https://github.com/ICGog/DaSiamRPN.git
 
 ###### Download the DRN segmentation code ######
 git clone https://github.com/ICGog/drn.git
+
+###### Download AnyNet depth estimation code #####
+git clone https://github.com/mileyan/AnyNet.git
+cd AnyNet/models/spn_t1/ ; python3 setup.py clean ; python3 setup.py build
+cd ../../../
 
 ###### Download the Carla simulator ######
 if [ "$1" != 'challenge' ]; then

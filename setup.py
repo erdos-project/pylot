@@ -29,7 +29,7 @@ setup(
         "scipy==1.2.2",
         "shapely==1.6.4",
         "tensorflow-gpu>=1.12",
-        "torch==0.4.1",
+        "torch==1.3.1",
         "torchvision==0.2.1",
         ##### Sort tracking dependencies ####
         "filterpy==1.4.1",
