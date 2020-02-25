@@ -73,6 +73,7 @@ class DetectionEvalOperator(erdos.Operator):
                 the watermark.
         """
         assert len(timestamp.coordinates) == 1
+        op_start_time = time.time()
         game_time = timestamp.coordinates[0]
         if not self._last_notification:
             self._last_notification = game_time
@@ -94,6 +95,10 @@ class DetectionEvalOperator(erdos.Operator):
                 if (len(obstacles) > 0 or len(ground_obstacles) > 0):
                     mAP = pylot.perception.detection.utils.get_mAP(
                         ground_obstacles, obstacles)
+                    # Get runtime in ms
+                    runtime = (time.time() - op_start_time) * 1000
+                    self._csv_logger.info('{},{},{},{}'.format(
+                        time_epoch_ms(), self._name, 'runtime', runtime))
                     self._logger.info('mAP is: {}'.format(mAP))
                     self._csv_logger.info('{},{},{},{}'.format(
                         time_epoch_ms(), self._name, 'mAP', mAP))

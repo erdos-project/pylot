@@ -52,10 +52,12 @@ cd ../../../
 
 ###### Get DeepSORT and SORT tracker code bases
 git clone https://github.com/ICGog/nanonets_object_tracking.git
-git clone https://github.com/abewley/sort.git
+git clone https://github.com/ICGog/sort.git
 
 ###### Download the DaSiamRPN code ######
 git clone https://github.com/ICGog/DaSiamRPN.git
+# Required for lapsolver, used in matching for DaSiamRPN Tracker
+sudo apt-get -y install cmake
 
 ###### Download the DRN segmentation code ######
 git clone https://github.com/ICGog/drn.git
