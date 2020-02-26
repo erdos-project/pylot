@@ -289,7 +289,7 @@ def test_vector_magnitude(point, expected):
                           ((10000, 20, 30), (961.419, 536.6215, 10000.0)),
                           ((-1, -1, -1), (1919.0, -420, -1.0))])
 def test_vector_to_camera_view(location, expected):
-    from pylot.simulation.sensor_setup import CameraSetup
+    from pylot.drivers.sensor_setup import CameraSetup
     camera_setup = CameraSetup('test_camera',
                                'sensor.camera.rgb',
                                width=1920,

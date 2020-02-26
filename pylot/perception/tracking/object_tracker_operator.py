@@ -3,6 +3,7 @@ from collections import deque
 import erdos
 import time
 
+from pylot.perception.messages import ObstaclesMessage
 from pylot.utils import time_epoch_ms
 
 flags.DEFINE_bool('visualize_tracker_output', False,
@@ -19,8 +20,10 @@ class ObjectTrackerOperator(erdos.Operator):
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-        obstacles_stream.add_callback(self.on_obstacles_msg)
-        camera_stream.add_callback(self.on_frame_msg)
+        obstacles_stream.add_callback(self.on_obstacles_msg, 
+                                      [obstacle_tracking_stream])
+        camera_stream.add_callback(self.on_frame_msg, 
+                                   [obstacle_tracking_stream])
         self._name = name
         self._flags = flags
         self._logger = erdos.utils.setup_logging(name, log_file_name)
@@ -65,7 +68,7 @@ class ObjectTrackerOperator(erdos.Operator):
         obstacle_tracking_stream = erdos.WriteStream()
         return [obstacle_tracking_stream]
 
-    def on_frame_msg(self, msg):
+    def on_frame_msg(self, msg, obstacle_tracking_stream):
         """ Invoked when a FrameMessage is received on the camera stream."""
         self._logger.debug('@{}: {} received frame'.format(
             msg.timestamp, self._name))
@@ -77,14 +80,15 @@ class ObjectTrackerOperator(erdos.Operator):
         self._to_process.append((msg.timestamp, camera_frame))
         # Track if we have a tracker ready to accept new frames.
         if self._ready_to_update:
-            self.__track_bboxes_on_frame(camera_frame, msg.timestamp, False)
+            self.__track_bboxes_on_frame(
+                camera_frame, msg.timestamp, False, obstacle_tracking_stream)
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
                                                      self._name, msg.timestamp,
                                                      runtime))
 
-    def on_obstacles_msg(self, msg):
+    def on_obstacles_msg(self, msg, obstacle_tracking_stream):
         """ Invoked when obstacles are received on the stream."""
         self._logger.debug('@{}: {} received obstacles'.format(
             msg.timestamp, self._name))
@@ -98,12 +102,12 @@ class ObjectTrackerOperator(erdos.Operator):
                 msg.timestamp, self._to_process[0][0], msg.timestamp))
             self._to_process.popleft()
 
-        tracked_obstacles = []
+        detected_obstacles = []
         for obstacle in msg.obstacles:
             if obstacle.label in self._tracked_labels:
-                tracked_obstacles.append(obstacle)
+                detected_obstacles.append(obstacle)
 
-        if len(tracked_obstacles) > 0:
+        if len(detected_obstacles) > 0:
             if len(self._to_process) > 0:
                 # Found the frame corresponding to the bounding boxes.
                 (timestamp, camera_frame) = self._to_process.popleft()
@@ -113,22 +117,30 @@ class ObjectTrackerOperator(erdos.Operator):
                 self._ready_to_update_timestamp = timestamp
                 self._logger.debug(
                     'Restarting trackers at frame {}'.format(timestamp))
-                self._tracker.reinitialize(camera_frame, tracked_obstacles)
+                self._tracker.reinitialize(camera_frame, detected_obstacles)
                 self._logger.debug(
                     'Trackers have {} frames to catch-up'.format(
                         len(self._to_process)))
                 for (timestamp, camera_frame) in self._to_process:
                     if self._ready_to_update:
-                        self.__track_bboxes_on_frame(camera_frame, timestamp,
-                                                     True)
+                        self.__track_bboxes_on_frame(
+                            camera_frame,
+                            msg.timestamp,
+                            True,
+                            obstacle_tracking_stream)
             else:
                 self._logger.debug(
                     '@{}: received bboxes update, but no frame to process'.
                     format(msg.timestamp))
 
-    def __track_bboxes_on_frame(self, camera_frame, timestamp, catch_up):
+    def __track_bboxes_on_frame(self, 
+                                camera_frame, 
+                                timestamp, 
+                                catch_up, 
+                                obstacle_tracking_stream):
         self._logger.debug('Processing frame {}'.format(timestamp))
         # Sequentually update state for each bounding box.
+        start_time = time.time()
         ok, tracked_obstacles = self._tracker.track(camera_frame)
         if not ok:
             self._logger.error(
@@ -137,6 +149,10 @@ class ObjectTrackerOperator(erdos.Operator):
             # The tracker must be reinitialized.
             self._ready_to_update = False
         else:
+            # Get runtime in ms.
+            runtime = (time.time() - start_time) * 1000
+            obstacle_tracking_stream.send(
+                ObstaclesMessage(timestamp, tracked_obstacles, runtime))
             if self._flags.visualize_tracker_output and not catch_up:
                 # tracked obstacles have no label, draw white bbox.
                 camera_frame.annotate_with_bounding_boxes(

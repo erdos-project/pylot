@@ -109,6 +109,8 @@ flags.DEFINE_bool('visualize_prediction', False,
 # Accuracy evaluation flags.
 flags.DEFINE_bool('evaluate_obstacle_detection', False,
                   'True to enable object detection accuracy evaluation')
+flags.DEFINE_bool('evaluate_obstacle_tracking', False,
+                  'True to enable object tracking evaluation')
 flags.DEFINE_bool('evaluate_prediction', False,
                   'True to enable prediction evaluation')
 flags.DEFINE_bool('evaluate_fusion', False, 'True to enable fusion evaluation')
@@ -279,6 +281,25 @@ flags.register_multi_flags_validator(
     message='--obstacle_detection, --perfect_obstacle_detection, or '
     '--carla_obstacle_detection must be set when --obstacle_tracking is'
     ' enabled')
+
+
+def obstacle_tracking_evaluation_validator(flags_dict):
+    if flags_dict['evaluate_obstacle_tracking']:
+        return (flags_dict['obstacle_tracking']
+                and (flags_dict['perfect_obstacle_detection']
+                     or flags_dict['obstacle_detection']))
+    return True
+
+
+flags.register_multi_flags_validator(
+    [
+        'obstacle_tracking', 'evaluate_obstacle_tracking',
+        'perfect_obstacle_detection', 'obstacle_detection'
+    ],
+    obstacle_tracking_evaluation_validator,
+    message='--obstacle_tracking and either --obstacle_detection or '
+    '--perfect_obstacle_detection must be set when --evaluate_obstacle_tracking'
+    ' is enabled')
 
 
 def fusion_evaluation_validator(flags_dict):

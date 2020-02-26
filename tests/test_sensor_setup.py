@@ -1,10 +1,10 @@
 import pytest
 
+from pylot.drivers.sensor_setup import *
 from pylot.utils import Location, Rotation, Transform
-from pylot.simulation.sensor_setup import *
 
 
-## CameraSetup tests
+# CameraSetup tests
 def test_camera_setup_failed_initialization():
     """
     Ensure that the CameraSetup constructor fails when wrong values or values

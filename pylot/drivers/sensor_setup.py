@@ -21,7 +21,7 @@ def create_rgb_camera_setup(camera_name,
         fov (float): The field of view of the image returned by the camera.
 
     Returns:
-        :py:class:`~pylot.simulation.sensor_setup.RGBCameraSetup`: A camera
+        :py:class:`~pylot.drivers.sensor_setup.RGBCameraSetup`: A camera
         setup with the given parameters.
     """
     transform = Transform(camera_location, Rotation())
@@ -47,7 +47,7 @@ def create_depth_camera_setup(camera_name_prefix,
         fov (float): The field of view of the image returned by the camera.
 
     Returns:
-        :py:class:`~pylot.simulation.sensor_setup.DepthCameraSetup`: A camera
+        :py:class:`~pylot.drivers.sensor_setup.DepthCameraSetup`: A camera
         setup with the given parameters.
     """
     transform = Transform(camera_location, Rotation())
@@ -77,7 +77,7 @@ def create_segmented_camera_setup(camera_name_prefix,
         fov (float): The field of view of the image returned by the camera.
 
     Returns:
-        :py:class:`~pylot.simulation.sensor_setup.SegmentedCameraSetup`: A
+        :py:class:`~pylot.drivers.sensor_setup.SegmentedCameraSetup`: A
         camera setup with the given parameters.
     """
     transform = Transform(camera_location, Rotation())
@@ -112,7 +112,7 @@ def create_left_right_camera_setups(camera_name_prefix,
 
     Returns:
         tuple: A tuple containing two instances of
-        :py:class:`~pylot.simulation.sensor_setup.RGBCameraSetup` for the left
+        :py:class:`~pylot.drivers.sensor_setup.RGBCameraSetup` for the left
         and right camera setups with the given parameters.
     """
     rotation = Rotation()
@@ -143,7 +143,7 @@ def create_center_lidar_setup(location):
             LIDAR with respect to the center of the vehicle.
 
     Returns:
-        :py:class:`~pylot.simulation.sensor_setup.LidarSetup`: A LidarSetup
+        :py:class:`~pylot.drivers.sensor_setup.LidarSetup`: A LidarSetup
         with the given location.
     """
     rotation = Rotation()

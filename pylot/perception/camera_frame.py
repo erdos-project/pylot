@@ -12,13 +12,13 @@ class CameraFrame(object):
 
     Args:
         frame: A numpy array storring the frame.
-        camera_setup (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`):
+        camera_setup (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
             The camera setup used by the sensor that generated this frame.
 
     Attributes:
         frame: A numpy array storring the frame.
         encoding (:obj:`str`): The encoding of the frame (BGR | RGB).
-        camera_setup (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`):
+        camera_setup (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
             The camera setup used by the sensor that generated this frame.
     """
     def __init__(self, frame, encoding, camera_setup=None):

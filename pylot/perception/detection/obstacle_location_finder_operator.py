@@ -28,7 +28,7 @@ class ObstacleLocationFinderOperator(erdos.Operator):
             location set.
         name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
-        camera_setup (:py:class:`~pylot.simulation.sensor_setup.CameraSetup`):
+        camera_setup (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
             The setup of the center camera. This setup is used to calculate the
             real-world location of the camera, which in turn is used to convert
             detected obstacles from camera coordinates to real-world

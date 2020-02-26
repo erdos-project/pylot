@@ -7,18 +7,26 @@ from pylot.simulation.utils import get_world, set_synchronous_mode
 from pylot.utils import Transform, Vector3D
 
 
-class IMUDriverOperator(erdos.Operator):
-    """ Publishes carla.IMUMeasurements (transform, acceleration, gyro and
+class CarlaIMUDriverOperator(erdos.Operator):
+    """Publishes carla.IMUMeasurements (transform, acceleration, gyro and
     compass) from IMU (inertial measurement unit) sensor.
 
     This operator attaches to a vehicle at the required position with respect
     to the vehicle, registers callback functions to retrieve the IMU
     measurements and publishes it to downstream operators.
 
-    Attributes:
-        _imu_setup: An IMUSetup tuple.
-        _imu: Handle to the IMU inside the simulation.
-        _vehicle: Handle to the simulated hero vehicle.
+    Args:
+        ground_vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on
+            which the operator receives the id of the ego vehicle. It uses this
+            id to get a Carla handle to the vehicle.
+        imu_stream (:py:class:`erdos.WriteStream`): Stream on which the
+            operator sends IMU info.
+        name (:obj:`str`): The name of the operator.
+        imu_setup (:py:class:`pylot.drivers.sensor_setup.IMUSetup`):
+            Setup of the IMU sensor.
+        flags (absl.flags): Object to be used to access absl flags.
+        log_file_name (:obj:`str`, optional): Name of file where log messages
+            are written to. If None, then messages are written to stdout.
     """
     def __init__(self,
                  ground_vehicle_id_stream,
@@ -27,16 +35,6 @@ class IMUDriverOperator(erdos.Operator):
                  imu_setup,
                  flags,
                  log_file_name=None):
-        """ Initializes the camera inside the simulation with the given
-        parameters.
-
-        Args:
-            name: The unique name of the operator.
-            imu_setup: A IMUSetup tuple.
-            flags: A handle to the global flags instance to retrieve the
-                configuration.
-            log_file_name: The file to log the required information to.
-        """
         self._vehicle_id_stream = ground_vehicle_id_stream
         self._imu_stream = imu_stream
         # The operator does not pass watermarks by defaults.
@@ -57,7 +55,8 @@ class IMUDriverOperator(erdos.Operator):
         return [imu_stream]
 
     def process_imu(self, imu_msg):
-        """ Invoked when an IMU message is received from the simulator.
+        """Invoked when an IMU message is received from the simulator.
+
         Sends IMU measurements to downstream operators.
 
         Args:
@@ -84,7 +83,7 @@ class IMUDriverOperator(erdos.Operator):
         vehicle_id_msg = self._vehicle_id_stream.read()
         vehicle_id = vehicle_id_msg.data
         self._logger.debug(
-            "The IMUDriverOperator received the vehicle id: {}".format(
+            "The CarlaIMUDriverOperator received the vehicle id: {}".format(
                 vehicle_id))
 
         # Connect to the world. We connect here instead of in the constructor
