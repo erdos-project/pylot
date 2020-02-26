@@ -149,8 +149,8 @@ class FOTPlanningOperator(erdos.Operator):
             "c_d": c_d,
             "c_d_d": c_d_d,
             "c_d_dd": c_d_dd,
-            "wx": wx,
-            "wy": wy,
+            "wx": wx.tolist(),
+            "wy": wy.tolist(),
             "obstacle_list": obstacle_list.tolist(),
             "x": can_bus_msg.data.transform.location.x,
             "y": can_bus_msg.data.transform.location.y,
@@ -169,16 +169,12 @@ class FOTPlanningOperator(erdos.Operator):
         """
         path_transforms = []
         target_speeds = []
-        if success:
+        if not success:
             self._logger.debug("@{}: Frenet Optimal Trajectory failed. "
                                "Sending emergency stop.".format(timestamp))
             for wp in itertools.islice(self._waypoints, 0,
                                        DEFAULT_NUM_WAYPOINTS):
-                path_transforms.append(
-                    Transform(
-                        location=wp,
-                        rotation=Rotation(),
-                    ))
+                path_transforms.append(wp)
                 target_speeds.append(0)
         else:
             self._logger.debug("@{}: Frenet Optimal Trajectory succeeded."
@@ -204,7 +200,6 @@ class FOTPlanningOperator(erdos.Operator):
         y = can_bus_msg.data.transform.location.y
         vx = can_bus_msg.data.velocity_vector.x
         vy = can_bus_msg.data.velocity_vector.y
-
         return compute_initial_conditions(self.s0, x, y, vx, vy,
                                           can_bus_msg.data.forward_speed, wx,
                                           wy)
@@ -234,4 +229,7 @@ class FOTPlanningOperator(erdos.Operator):
                     break
                 elif dist_to_ego < DEFAULT_DISTANCE_THRESHOLD:
                     obstacle_list.append(obstacle_origin)
+
+        if len(obstacle_list) == 0:
+            return np.empty((0, 2))
         return np.array(obstacle_list)
