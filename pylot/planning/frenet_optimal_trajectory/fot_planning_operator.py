@@ -3,7 +3,6 @@ Author: Edward Fang
 Email: edward.fang@berkeley.edu
 """
 import numpy as np
-import shapely.geometry as geom
 import itertools
 from collections import deque
 
