@@ -237,16 +237,14 @@ class FOTPlanningOperator(erdos.Operator):
         # look over all predictions
         for prediction in prediction_msg.predictions:
             # use all prediction times as potential obstacles
-            location = prediction.bounding_box.transform.location
-            extent = prediction.bounding_box.extent
-            start_location = location - extent
-            end_location = location + extent
             for transform in prediction.trajectory:
-                global_transform = vehicle_transform * transform
+                global_obstacle = vehicle_transform * transform
+                obstacle_origin = [global_obstacle.location.x,
+                                   global_obstacle.location.y]
                 dist_to_ego = np.linalg.norm([vehicle_transform.location.x -
-                                              global_transform.location.x,
+                                              obstacle_origin[0],
                                               vehicle_transform.location.y -
-                                              global_transform.location.y])
+                                              obstacle_origin[1]])
                 # TODO (@fangedward): Fix this hack
                 # Prediction also sends a prediction for ego vehicle
                 # This will always be the closest to the ego vehicle
@@ -254,12 +252,5 @@ class FOTPlanningOperator(erdos.Operator):
                 if dist_to_ego < 2:  # this allows max vel to be 20m/s
                     break
                 elif dist_to_ego < DEFAULT_DISTANCE_THRESHOLD:
-                    start_transform = global_transform.transform_points(
-                        [start_location])[0]
-                    end_transform = global_transform.transform_points(
-                        [end_location])[0]
-                    obstacle_list.append(((start_transform.x,
-                                          start_transform.y),
-                                         (end_transform.x,
-                                          end_transform.y)))
+                    obstacle_list.append(obstacle_origin)
         return np.array(obstacle_list)
