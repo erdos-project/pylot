@@ -1,3 +1,7 @@
 #!/bin/bash
-
-cmake --build cmake-build-debug --target all -- -j 8
+if [ ! -d "build" ]; then
+  mkdir build
+fi
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . --target all -- -j 8

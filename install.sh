@@ -1,5 +1,16 @@
 #!/bin/bash
 # Assumes the script is called from PYLOT_HOME directory
+###### Build the FrenetOptimalTrajectory Planner ######
+PYLOT_HOME=$(pwd)
+cd pylot/planning/frenet_optimal_trajectory/FrenetOptimalTrajectory/
+if [ ! -d "build" ]; then
+  mkdir build
+fi
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . --target all -- -j 8
+
+cd ${PYLOT_HOME}
 
 sudo apt-get -y update
 sudo apt-get install -y git wget python3-pip
@@ -68,7 +79,7 @@ cd AnyNet/models/spn_t1/ ; python3 setup.py clean ; python3 setup.py build
 cd ../../../
 
 ###### Download the Carla simulator ######
-if [ "$1" != 'challenge' ]; then
+if [ "$1" != 'challenge' ] && [ ! -d "CARLA_0.9.6" ]; then
     mkdir CARLA_0.9.6
     cd CARLA_0.9.6
     wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.6.tar.gz

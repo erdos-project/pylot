@@ -1,4 +1,4 @@
 .idea
-cmake-build-debug/
+build/
 __pycache__/
 venv
