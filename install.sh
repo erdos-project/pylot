@@ -2,6 +2,7 @@
 # Assumes the script is called from PYLOT_HOME directory
 ###### Build the FrenetOptimalTrajectory Planner ######
 PYLOT_HOME=$(pwd)
+sudo apt-get install -y libeigen3-dev
 cd pylot/planning/frenet_optimal_trajectory/FrenetOptimalTrajectory/
 if [ ! -d "build" ]; then
   mkdir build

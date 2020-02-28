@@ -1,4 +1,5 @@
 #!/bin/bash
+sudo apt-get install -y libeigen3-dev
 if [ ! -d "build" ]; then
   mkdir build
 fi
