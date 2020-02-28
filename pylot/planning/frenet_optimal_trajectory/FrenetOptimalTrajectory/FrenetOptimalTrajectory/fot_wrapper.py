@@ -2,7 +2,7 @@ import ctypes
 import numpy as np
 from ctypes import c_double, c_int
 
-cdll = ctypes.CDLL("pylot/planning/frenet_optimal_trajectory/FrenetOptimalTrajectory/cmake-build-debug/libFrenetOptimalTrajectory.so")
+cdll = ctypes.CDLL("pylot/planning/frenet_optimal_trajectory/FrenetOptimalTrajectory/build/libFrenetOptimalTrajectory.so")
 _get_fot_frenet_space = cdll.get_fot_frenet_space
 _get_fot_frenet_space.argtypes = (
     c_double, c_double, c_double, c_double, c_double,  # s0, c_speed, c_d, c_d_d, c_d_dd
