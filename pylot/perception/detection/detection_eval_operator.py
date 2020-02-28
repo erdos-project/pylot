@@ -20,7 +20,6 @@ class DetectionEvalOperator(erdos.Operator):
         ground_obstacles_stream: The stream on which
             :py:class:`~pylot.perception.messages.ObstaclesMessage` are
             received from the simulator.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         log_file_name (:obj:`str`, optional): Name of file where log messages
             are written to. If None, then messages are written to stdout.
@@ -30,7 +29,6 @@ class DetectionEvalOperator(erdos.Operator):
     def __init__(self,
                  obstacles_stream,
                  ground_obstacles_stream,
-                 name,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
@@ -38,11 +36,10 @@ class DetectionEvalOperator(erdos.Operator):
         ground_obstacles_stream.add_callback(self.on_ground_obstacles)
         erdos.add_watermark_callback(
             [obstacles_stream, ground_obstacles_stream], [], self.on_watermark)
-        self._name = name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+            self.name + '-csv', csv_file_name)
         self._last_notification = None
         # Buffer of detected obstacles.
         self._detected_obstacles = []
@@ -98,10 +95,10 @@ class DetectionEvalOperator(erdos.Operator):
                     # Get runtime in ms
                     runtime = (time.time() - op_start_time) * 1000
                     self._csv_logger.info('{},{},{},{}'.format(
-                        time_epoch_ms(), self._name, 'runtime', runtime))
+                        time_epoch_ms(), self.name, 'runtime', runtime))
                     self._logger.info('mAP is: {}'.format(mAP))
                     self._csv_logger.info('{},{},{},{}'.format(
-                        time_epoch_ms(), self._name, 'mAP', mAP))
+                        time_epoch_ms(), self.name, 'mAP', mAP))
                 self._logger.debug('Computing accuracy for {} {}'.format(
                     end_time, start_time))
             else:

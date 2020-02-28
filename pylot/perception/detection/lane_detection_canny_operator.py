@@ -29,7 +29,6 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
             the operator sends
             :py:class:`~pylot.perception.messages.DetectedLaneMessage`
             messages.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         log_file_name (:obj:`str`, optional): Name of file where log messages
             are written to. If None, then messages are written to stdout.
@@ -39,17 +38,15 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
     def __init__(self,
                  camera_stream,
                  detected_lanes_stream,
-                 name,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
         camera_stream.add_callback(self.on_msg_camera_stream,
                                    [detected_lanes_stream])
-        self._name = name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self._name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            self._name + '-csv', csv_file_name)
+            self.name + '-csv', csv_file_name)
         self._kernel_size = 7
 
     @staticmethod
@@ -79,7 +76,7 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
                 messages.
         """
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self._name))
+            msg.timestamp, self.name))
         start_time = time.time()
         assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
         # Make a copy of the image coming into the operator.
@@ -117,14 +114,14 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
-                                                     self._name, msg.timestamp,
+                                                     self.name, msg.timestamp,
                                                      runtime))
 
         if self._flags.visualize_lane_detection:
             final_img = np.copy(msg.frame.as_numpy_array())
             final_img = cv2.addWeighted(final_img, 0.8, image, 1.0, 0.0)
             frame = CameraFrame(final_img, 'BGR', msg.frame.camera_setup)
-            frame.visualize(self._name, msg.timestamp)
+            frame.visualize(self.name, msg.timestamp)
 
         detected_lanes_stream.send(erdos.Message(msg.timestamp, image))
 

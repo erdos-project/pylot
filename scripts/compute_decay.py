@@ -1,11 +1,12 @@
 from absl import app
 from absl import flags
+
 import erdos
 
-from pylot.control.messages import ControlMessage
 import pylot.flags
 import pylot.operator_creator
 import pylot.utils
+from pylot.control.messages import ControlMessage
 
 FLAGS = flags.FLAGS
 
@@ -89,6 +90,7 @@ def main(argv):
         (control_stream, ) = erdos.connect(
             SynchronizerOperator,
             [stream_to_sync_on],
+            'synchronizer_operator',
             False,  # Does not flow watermarks.
             FLAGS)
         control_loop_stream.set(control_stream)

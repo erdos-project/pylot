@@ -27,7 +27,6 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
             the operator publishes
             :py:class:`~pylot.perception.messages.TrafficLightsMessage`
             messages for traffic lights.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         log_file_name (:obj:`str`, optional): Name of file where log messages
             are written to. If None, then messages are written to stdout.
@@ -51,7 +50,6 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
                  segmented_camera_stream,
                  can_bus_stream,
                  traffic_lights_stream,
-                 name,
                  flags,
                  log_file_name=None):
         ground_traffic_lights_stream.add_callback(self.on_traffic_light_update)
@@ -63,8 +61,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
             ground_traffic_lights_stream, tl_camera_stream,
             depth_camera_stream, segmented_camera_stream, can_bus_stream
         ], [traffic_lights_stream], self.on_watermark)
-        self._name = name
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._flags = flags
 
         self._traffic_lights = deque()
@@ -124,7 +121,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
             bgr_msg.frame.annotate_with_bounding_boxes(bgr_msg.timestamp,
                                                        det_traffic_lights)
             if self._flags.visualize_detected_traffic_lights:
-                bgr_msg.frame.visualize(self._name)
+                bgr_msg.frame.visualize(self.name)
             if self._flags.log_detector_output:
                 bgr_msg.frame.save(bgr_msg.timestamp.coordinates[0],
                                    self._flags.data_path, 'perfect-detector')

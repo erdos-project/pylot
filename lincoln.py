@@ -1,20 +1,21 @@
-from absl import app, flags
 import csv
 import erdos
 import sys
 import time
 
+from absl import app, flags
+
+import pylot.drivers.sensor_setup
+import pylot.flags
+import pylot.operator_creator
+import pylot.utils
 from pylot.drivers.drive_by_wire_operator import DriveByWireOperator
 from pylot.drivers.grasshopper3_driver_operator import \
     Grasshopper3DriverOperator
-import pylot.drivers.sensor_setup
 from pylot.drivers.velodyne_driver_operator import VelodyneDriverOperator
-import pylot.flags
 from pylot.localization.ndt_autoware_operator import NDTAutowareOperator
-import pylot.operator_creator
-from pylot.perception.messages import ObstaclesMessage, \
-    ObstacleTrajectoriesMessage, TrafficLightsMessage
-import pylot.utils
+from pylot.perception.messages import ObstacleTrajectoriesMessage, \
+    ObstaclesMessage, TrafficLightsMessage
 
 FLAGS = flags.FLAGS
 
@@ -42,8 +43,8 @@ def add_grasshopper3_camera(transform,
         name, FLAGS.camera_image_width, FLAGS.camera_image_height, transform,
         fov)
     [camera_stream] = erdos.connect(Grasshopper3DriverOperator, [],
-                                    False,
                                     camera_setup.get_name() + '_operator',
+                                    False,
                                     camera_setup,
                                     topic_name,
                                     FLAGS,
@@ -57,8 +58,8 @@ def add_velodyne_lidar(transform, name='velodyne', topic_name='/points_raw'):
                                                         lidar_type='velodyne',
                                                         transform=transform)
     [point_cloud_stream] = erdos.connect(VelodyneDriverOperator, [],
-                                         False,
                                          lidar_setup.get_name() + '_operator',
+                                         False,
                                          lidar_setup,
                                          topic_name,
                                          FLAGS,
@@ -69,8 +70,8 @@ def add_velodyne_lidar(transform, name='velodyne', topic_name='/points_raw'):
 
 def add_localization():
     [can_bus_stream] = erdos.connect(NDTAutowareOperator, [],
-                                     False,
                                      'ndt_localizer_operator',
+                                     False,
                                      FLAGS,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_file_name=FLAGS.csv_log_file_name)
@@ -79,8 +80,8 @@ def add_localization():
 
 def add_drive_by_wire_operator(control_stream):
     erdos.connect(DriveByWireOperator, [control_stream],
-                  False,
                   'drive_by_wire_operator',
+                  False,
                   FLAGS,
                   log_file_name=FLAGS.log_file_name,
                   csv_file_name=FLAGS.csv_log_file_name)

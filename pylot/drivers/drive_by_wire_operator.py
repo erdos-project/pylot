@@ -21,7 +21,6 @@ class DriveByWireOperator(erdos.Operator):
     Args:
         control_stream (:py:class:`erdos.ReadStream`): Stream on which the
             operator receives control commands.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         log_file_name (:obj:`str`, optional): Name of file where log messages
             are written to. If None, then messages are written to stdout.
@@ -30,16 +29,14 @@ class DriveByWireOperator(erdos.Operator):
     """
     def __init__(self,
                  control_stream,
-                 name,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-        self._name = name
         self._control_stream = control_stream
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+            self.name + '-csv', csv_file_name)
 
         # ROS Publishers to publish the commands to ADAS.
         self.enable_pub, self.disable_pub = None, None
@@ -61,7 +58,7 @@ class DriveByWireOperator(erdos.Operator):
         self.steering_pub = rospy.Publisher(STEERING_TOPIC,
                                             SteeringCmd,
                                             queue_size=10)
-        rospy.init_node(self._name, anonymous=True, disable_signals=True)
+        rospy.init_node(self.name, anonymous=True, disable_signals=True)
 
         # Enable the ADAS.
         #self.enable_pub.publish(Empty())

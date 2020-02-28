@@ -28,7 +28,6 @@ class PIDAgentOperator(erdos.Operator):
         control_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends :py:class:`~pylot.control.messages.ControlMessage`
             messages.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         log_file_name (:obj:`str`, optional): Name of file where log messages
             are written to. If None, then messages are written to stdout.
@@ -39,7 +38,6 @@ class PIDAgentOperator(erdos.Operator):
                  can_bus_stream,
                  waypoints_stream,
                  control_stream,
-                 name,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
@@ -47,12 +45,11 @@ class PIDAgentOperator(erdos.Operator):
         waypoints_stream.add_callback(self.on_waypoints_update)
         erdos.add_watermark_callback([can_bus_stream, waypoints_stream],
                                      [control_stream], self.on_watermark)
-        self._name = name
         self._flags = flags
         self._log_file_name = log_file_name
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+            self.name + '-csv', csv_file_name)
         self._pid = PID(p=self._flags.pid_p,
                         i=self._flags.pid_i,
                         d=self._flags.pid_d)
@@ -112,7 +109,7 @@ class PIDAgentOperator(erdos.Operator):
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
-                                                     self._name, timestamp,
+                                                     self.name, timestamp,
                                                      runtime))
         self._logger.debug(
             '@{}: speed {}, location {}, steer {}, throttle {}, brake {}'.

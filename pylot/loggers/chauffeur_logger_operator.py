@@ -26,12 +26,10 @@ class ChauffeurLoggerOperator(erdos.Operator):
     """ Logs data in Chauffeur format. """
     def __init__(self, vehicle_id_stream, can_bus_stream,
                  obstacle_tracking_stream, top_down_camera_stream,
-                 top_down_segmentation_stream, name, flags,
-                 top_down_camera_setup):
+                 top_down_segmentation_stream, flags, top_down_camera_setup):
         """ Initializes the operator with the given parameters.
 
         Args:
-            name: The name of the operator.
             flags: A handle to the global flags instance to retrieve the
                 configuration.
             top_down_camera_setup: The setup of the top down camera.

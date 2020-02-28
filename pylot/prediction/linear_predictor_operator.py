@@ -21,7 +21,6 @@ class LinearPredictorOperator(erdos.Operator):
         linear_prediction_stream (:py:class:`erdos.WriteStream`): Stream on
             which the operator sends
             :py:class:`~pylot.prediction.messages.PredictionMessage` messages.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         log_file_name (:obj:`str`, optional): Name of file where log messages
             are written to. If None, then messages are written to stdout.
@@ -29,12 +28,11 @@ class LinearPredictorOperator(erdos.Operator):
     def __init__(self,
                  tracking_stream,
                  linear_prediction_stream,
-                 name,
                  flags,
                  log_file_name=None):
         tracking_stream.add_callback(self.generate_predicted_trajectories,
                                      [linear_prediction_stream])
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._flags = flags
 
     @staticmethod

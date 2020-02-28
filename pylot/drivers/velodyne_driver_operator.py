@@ -16,7 +16,6 @@ class VelodyneDriverOperator(erdos.Operator):
     Args:
         point_cloud_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends point clouds.
-        name (:obj:`str`): The name of the operator.
         lidar_setup (:py:class:`pylot.drivers.sensor_setup.LidarSetup`):
             Setup of the Lidar.
         topic_name (:obj:`str`): The name of the ROS topic on which to listen
@@ -29,20 +28,18 @@ class VelodyneDriverOperator(erdos.Operator):
     """
     def __init__(self,
                  point_cloud_stream,
-                 name,
                  lidar_setup,
                  topic_name,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
         self._point_cloud_stream = point_cloud_stream
-        self._name = name
         self._lidar_setup = lidar_setup
         self._topic_name = topic_name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+            self.name + '-csv', csv_file_name)
         self._modulo_to_send = LIDAR_FREQUENCY // self._flags.sensor_frequency
         self._counter = 0
         self._msg_cnt = 0
@@ -71,6 +68,6 @@ class VelodyneDriverOperator(erdos.Operator):
         self._msg_cnt += 1
 
     def run(self):
-        rospy.init_node(self._name, anonymous=True, disable_signals=True)
+        rospy.init_node(self.name, anonymous=True, disable_signals=True)
         rospy.Subscriber(self._topic_name, PointCloud2, self.on_point_cloud)
         rospy.spin()

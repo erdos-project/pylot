@@ -47,7 +47,6 @@ class DepthEstimationOperator(erdos.Operator):
             right camera frames are received.
         depth_camera_stream (:py:class:`erdos.WriteStream`): Stream on which
             the operator sends computed depth frames.
-        name (:obj:`str`): The name of the operator.
         transform (:py:class:`~pylot.utils.Transform`): Transform of the center
             camera relative to the ego-vehicle.
         fov(:obj:`int`): Field of view of the center camera.
@@ -61,7 +60,6 @@ class DepthEstimationOperator(erdos.Operator):
                  left_camera_stream,
                  right_camera_stream,
                  depth_estimation_stream,
-                 name,
                  transform,
                  fov,
                  flags,
@@ -73,13 +71,12 @@ class DepthEstimationOperator(erdos.Operator):
         erdos.add_watermark_callback([left_camera_stream, right_camera_stream],
                                      [depth_estimation_stream],
                                      self.compute_depth)
-        self._name = name
         self._flags = flags
         self._left_imgs = {}
         self._right_imgs = {}
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+            self.name + '-csv', csv_file_name)
         self._transform = transform
         self._fov = fov
         # Load AnyNet
@@ -120,7 +117,7 @@ class DepthEstimationOperator(erdos.Operator):
 
     def on_left_camera_msg(self, msg):
         self._logger.debug('@{}: {} received left camera message'.format(
-            msg.timestamp, self._name))
+            msg.timestamp, self.name))
         img = Image.fromarray(msg.frame.as_rgb_numpy_array().astype('uint8'),
                               'RGB')
         w, h = img.size
@@ -132,7 +129,7 @@ class DepthEstimationOperator(erdos.Operator):
 
     def on_right_camera_msg(self, msg):
         self._logger.debug('@{}: {} received right camera message'.format(
-            msg.timestamp, self._name))
+            msg.timestamp, self.name))
         img = Image.fromarray(msg.frame.as_rgb_numpy_array().astype('uint8'),
                               'RGB')
         #        img = preprocess.scale_crop(img)
@@ -144,7 +141,7 @@ class DepthEstimationOperator(erdos.Operator):
 
     def compute_depth(self, timestamp, depth_estimation_stream):
         self._logger.debug('@{}: {} received watermark'.format(
-            timestamp, self._name))
+            timestamp, self.name))
         start_time = time.time()
 
         imgL = self._left_imgs.pop(timestamp)
@@ -163,10 +160,10 @@ class DepthEstimationOperator(erdos.Operator):
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
-                                                     self._name, timestamp,
+                                                     self.name, timestamp,
                                                      runtime))
 
-        cv2.imshow(self._name, output)
+        cv2.imshow(self.name, output)
         cv2.waitKey(1)
 
         # camera_setup = CameraSetup("depth_estimation",

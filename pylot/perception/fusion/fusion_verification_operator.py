@@ -7,11 +7,10 @@ class FusionVerificationOperator(erdos.Operator):
     def __init__(self,
                  ground_obstacles_stream,
                  fusion_stream,
-                 name,
                  log_file_name=None):
         ground_obstacles_stream.add_callback(self.on_obstacles_update)
         fusion_stream.add_callback(self.on_fusion_update)
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self.vehicles = deque()
 
     @staticmethod

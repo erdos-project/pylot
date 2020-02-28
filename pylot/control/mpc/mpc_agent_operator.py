@@ -14,7 +14,6 @@ class MPCAgentOperator(erdos.Operator):
                  can_bus_stream,
                  waypoints_stream,
                  control_stream,
-                 name,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
@@ -22,11 +21,10 @@ class MPCAgentOperator(erdos.Operator):
         waypoints_stream.add_callback(self.on_waypoints_update)
         erdos.add_watermark_callback([can_bus_stream, waypoints_stream],
                                      [control_stream], self.on_watermark)
-        self._name = name
         self._log_file_name = log_file_name
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+            self.name + '-csv', csv_file_name)
         self._flags = flags
         self._config = global_config
         self._pid = PID(p=flags.pid_p, i=flags.pid_i, d=flags.pid_d)

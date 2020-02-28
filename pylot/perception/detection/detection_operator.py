@@ -34,7 +34,6 @@ class DetectionOperator(erdos.Operator):
             operator sends
             :py:class:`~pylot.perception.messages.ObstaclesMessage` messages.
         model_path(:obj:`str`): Path to the model pb file.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         log_file_name (:obj:`str`, optional): Name of file where log messages
             are written to. If None, then messages are written to stdout.
@@ -44,18 +43,16 @@ class DetectionOperator(erdos.Operator):
     def __init__(self,
                  camera_stream,
                  obstacles_stream,
-                 name,
                  model_path,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
         camera_stream.add_callback(self.on_msg_camera_stream,
                                    [obstacles_stream])
-        self._name = name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+            self.name + '-csv', csv_file_name)
         self._detection_graph = tf.Graph()
         # Load the model from the model file.
         set_tf_loglevel(logging.ERROR)
@@ -119,7 +116,7 @@ class DetectionOperator(erdos.Operator):
                 messages.
         """
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self._name))
+            msg.timestamp, self.name))
         start_time = time.time()
         # The models expect BGR images.
         assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
@@ -162,23 +159,23 @@ class DetectionOperator(erdos.Operator):
                     res_classes[i]))
 
         self._logger.debug('@{}: {} obstacles: {}'.format(
-            msg.timestamp, self._name, obstacles))
+            msg.timestamp, self.name, obstacles))
 
         if (self._flags.visualize_detected_obstacles
                 or self._flags.log_detector_output):
             msg.frame.annotate_with_bounding_boxes(msg.timestamp, obstacles,
                                                    self._bbox_colors)
             if self._flags.visualize_detected_obstacles:
-                msg.frame.visualize(self._name)
+                msg.frame.visualize(self.name)
             if self._flags.log_detector_output:
                 msg.frame.save(msg.timestamp.coordinates[0],
                                self._flags.data_path,
-                               'detector-{}'.format(self._name))
+                               'detector-{}'.format(self.name))
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
-                                                     self._name, msg.timestamp,
+                                                     self.name, msg.timestamp,
                                                      runtime))
         # Send out obstacles.
         obstacles_stream.send(

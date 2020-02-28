@@ -20,13 +20,11 @@ class TrackVisualizerOperator(erdos.Operator):
         segmented_camera_stream: The stream on which top-down
             :py:class:`~pylot.perception.messages.SegmentedFrameMessage` are
             received.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         log_file_name (:obj:`str`, optional): Name of file where log messages
             are written to. If None, then messages are written to stdout.
 
     Attributes:
-        _name (:obj:`str`): The name of the operator.
         _logger (:obj:`logging.Logger`): Instance to be used to log messages.
         _flags (absl.flags): Object to be used to access absl flags.
     """
@@ -34,7 +32,6 @@ class TrackVisualizerOperator(erdos.Operator):
                  obstacle_tracking_stream,
                  prediction_stream,
                  segmented_camera_stream,
-                 name,
                  flags,
                  log_file_name=None):
         obstacle_tracking_stream.add_callback(self.on_tracking_update)
@@ -45,8 +42,7 @@ class TrackVisualizerOperator(erdos.Operator):
             obstacle_tracking_stream, prediction_stream,
             segmented_camera_stream
         ], [], self.on_watermark)
-        self._name = name
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._flags = flags
         self._past_colors = {'person': [255, 0, 0], 'vehicle': [128, 128, 0]}
         self._future_colors = {'person': [0, 0, 255], 'vehicle': [0, 255, 0]}
@@ -95,7 +91,7 @@ class TrackVisualizerOperator(erdos.Operator):
                 the watermark.
         """
         self._logger.debug('@{}: {} received watermark'.format(
-            timestamp, self._name))
+            timestamp, self.name))
         tracking_msg = self._tracking_msgs.popleft()
         segmentation_msg = self._top_down_segmentation_msgs.popleft()
         prediction_msg = self._prediction_msgs.popleft()
@@ -126,8 +122,8 @@ class TrackVisualizerOperator(erdos.Operator):
         # Obstacle trajectory points.
         screen_points = []
         for transform in obstacle.trajectory:
-            screen_point = transform.location.to_camera_view(extrinsic_matrix,
-                                                             intrinsic_matrix)
+            screen_point = transform.location.to_camera_view(
+                extrinsic_matrix, intrinsic_matrix)
             screen_points.append(screen_point)
 
         # Draw trajectory on segmented image.

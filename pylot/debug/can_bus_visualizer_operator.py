@@ -15,19 +15,17 @@ class CanBusVisualizerOperator(erdos.Operator):
     Attributes:
         _world: A handle to the world to draw the locations on.
     """
-    def __init__(self, can_bus_stream, name, flags, log_file_name=None):
+    def __init__(self, can_bus_stream, flags, log_file_name=None):
         """ Initializes the CanBusVisualizerOperator with the given
         parameters.
 
         Args:
-            name: The name of the operator.
             flags: A handle to the global flags instance to retrieve the
                 configuration.
             log_file_name: The file to log the required information to.
         """
         can_bus_stream.add_callback(self.on_can_bus_update)
-        self._name = name
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._flags = flags
 
     @staticmethod
@@ -53,7 +51,7 @@ class CanBusVisualizerOperator(erdos.Operator):
             msg: CanBus message
         """
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self._name))
+            msg.timestamp, self.name))
         vehicle_transform = msg.data.transform
         # Draw position. We add 0.5 to z to ensure that the point is above the
         # road surface.

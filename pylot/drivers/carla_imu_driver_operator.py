@@ -21,7 +21,6 @@ class CarlaIMUDriverOperator(erdos.Operator):
             id to get a Carla handle to the vehicle.
         imu_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends IMU info.
-        name (:obj:`str`): The name of the operator.
         imu_setup (:py:class:`pylot.drivers.sensor_setup.IMUSetup`):
             Setup of the IMU sensor.
         flags (absl.flags): Object to be used to access absl flags.
@@ -31,16 +30,14 @@ class CarlaIMUDriverOperator(erdos.Operator):
     def __init__(self,
                  ground_vehicle_id_stream,
                  imu_stream,
-                 name,
                  imu_setup,
                  flags,
                  log_file_name=None):
         self._vehicle_id_stream = ground_vehicle_id_stream
         self._imu_stream = imu_stream
         # The operator does not pass watermarks by defaults.
-        self._name = name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._imu_setup = imu_setup
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None

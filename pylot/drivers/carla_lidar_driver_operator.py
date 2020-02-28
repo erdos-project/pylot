@@ -20,7 +20,6 @@ class CarlaLidarDriverOperator(erdos.Operator):
             id to get a Carla handle to the vehicle.
         lidar_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends point cloud messages.
-        name (:obj:`str`): The name of the operator.
         lidar_setup (:py:class:`pylot.drivers.sensor_setup.LidarSetup`):
             Setup of the lidar sensor.
         flags (absl.flags): Object to be used to access absl flags.
@@ -30,15 +29,13 @@ class CarlaLidarDriverOperator(erdos.Operator):
     def __init__(self,
                  ground_vehicle_id_stream,
                  lidar_stream,
-                 name,
                  lidar_setup,
                  flags,
                  log_file_name=None):
         self._vehicle_id_stream = ground_vehicle_id_stream
         self._lidar_stream = lidar_stream
-        self._name = name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._lidar_setup = lidar_setup
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None

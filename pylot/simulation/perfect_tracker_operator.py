@@ -14,7 +14,6 @@ class PerfectTrackerOperator(erdos.Operator):
                  ground_obstacles_stream,
                  can_bus_stream,
                  ground_tracking_stream,
-                 name,
                  flags,
                  log_file_name=None):
         """Initializes the PerfectTracker Operator. """
@@ -23,8 +22,7 @@ class PerfectTrackerOperator(erdos.Operator):
         erdos.add_watermark_callback([ground_obstacles_stream, can_bus_stream],
                                      [ground_tracking_stream],
                                      self.on_watermark)
-        self._name = name
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._flags = flags
         # Queues of incoming data.
         self._obstacles_raw_msgs = deque()

@@ -16,7 +16,6 @@ class PerfectLaneDetectionOperator(erdos.Operator):
             the operator writes
             :py:class:`~pylot.perception.messages.DetectedLaneMessage`
             messages.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         log_file_name (:obj:`str`, optional): Name of file where log messages
             are written to. If None, then messages are written to stdout.
@@ -24,14 +23,12 @@ class PerfectLaneDetectionOperator(erdos.Operator):
     def __init__(self,
                  can_bus_stream,
                  detected_lane_stream,
-                 name,
                  flags,
                  log_file_name=None):
         can_bus_stream.add_callback(self.on_position_update,
                                     [detected_lane_stream])
-        self._name = name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._waypoint_precision = 0.05
 
     @staticmethod

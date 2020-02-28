@@ -35,7 +35,6 @@ class WaypointPlanningOperator(erdos.Operator):
             which the scenario runner publishes waypoints.
         waypoints_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends waypoints the ego vehicle must follow.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         goal_location (:py:class:`~pylot.utils.Location`): The goal location of
             the ego vehicle.
@@ -51,7 +50,6 @@ class WaypointPlanningOperator(erdos.Operator):
                  obstacles_stream,
                  traffic_lights_stream,
                  waypoints_stream,
-                 name,
                  flags,
                  goal_location=None,
                  log_file_name=None,
@@ -66,9 +64,9 @@ class WaypointPlanningOperator(erdos.Operator):
             [waypoints_stream], self.on_watermark)
 
         self._log_file_name = log_file_name
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+            self.name + '-csv', csv_file_name)
         self._flags = flags
         # Initialize the state of the behaviour planner.
         # XXX(ionel): The behaviour planner is not ready yet.

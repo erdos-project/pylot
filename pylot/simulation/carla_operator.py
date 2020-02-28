@@ -18,6 +18,12 @@ class CarlaOperator(erdos.Operator):
     simulation world, initializes the required number of actors, and the
     vehicle that the rest of the pipeline drives.
 
+    Args:
+        flags: A handle to the global flags instance to retrieve the
+            configuration.
+        log_file_name: The file to log the required information to.
+        csv_file_name: The file to log info to in csv format.
+
     Attributes:
         _client: A connection to the simulator.
         _world: A handle to the world running inside the simulation.
@@ -33,19 +39,9 @@ class CarlaOperator(erdos.Operator):
                  vehicle_id_stream,
                  open_drive_stream,
                  global_trajectory_stream,
-                 name,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
-        """ Initializes the CarlaOperator with the given name.
-
-        Args:
-            name: The unique name of the operator.
-            flags: A handle to the global flags instance to retrieve the
-                configuration.
-            log_file_name: The file to log the required information to.
-            csv_file_name: The file to log info to in csv format.
-        """
         if flags.random_seed:
             random.seed(flags.random_seed)
         # Register callback on control stream.
@@ -59,11 +55,10 @@ class CarlaOperator(erdos.Operator):
         self.open_drive_stream = open_drive_stream
         self.global_trajectory_stream = global_trajectory_stream
 
-        self._name = name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+            self.name + '-csv', csv_file_name)
         # Connect to CARLA and retrieve the world running.
         self._client, self._world = get_world(self._flags.carla_host,
                                               self._flags.carla_port,

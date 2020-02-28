@@ -26,7 +26,6 @@ class ObstacleLocationFinderOperator(erdos.Operator):
         obstacles_output_stream (:py:class:`erdos.WriteStream`): Stream on
             which the operator sends detected obstacles with their world
             location set.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         camera_setup (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
             The setup of the center camera. This setup is used to calculate the
@@ -43,7 +42,6 @@ class ObstacleLocationFinderOperator(erdos.Operator):
                  point_cloud_stream,
                  can_bus_stream,
                  obstacles_output_stream,
-                 name,
                  flags,
                  camera_setup,
                  log_file_name=None,
@@ -54,12 +52,11 @@ class ObstacleLocationFinderOperator(erdos.Operator):
         erdos.add_watermark_callback(
             [obstacles_stream, point_cloud_stream, can_bus_stream],
             [obstacles_output_stream], self.on_watermark)
-        self._name = name
         self._flags = flags
         self._camera_setup = camera_setup
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+            self.name + '-csv', csv_file_name)
         # Queues in which received messages are stored.
         self._obstacles_msgs = deque()
         self._point_cloud_msgs = deque()

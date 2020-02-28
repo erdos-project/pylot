@@ -18,7 +18,6 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
                  obstacles_stream,
                  ground_obstacles_stream,
                  control_stream,
-                 name,
                  goal,
                  flags,
                  log_file_name=None,
@@ -26,7 +25,6 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
         """ Initializes the operator with the given information.
 
         Args:
-            name: The name to be used for the operator in the data-flow graph.
             goal: The destination pylot.utils.Location used to plan until.
             flags: The command line flags passed to the driver.
             log_file_name: The file name to log to.
@@ -38,10 +36,9 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
         erdos.add_watermark_callback([can_bus_stream, obstacles_stream],
                                      [control_stream], self.on_watermark)
 
-        self._name = name
-        self._logger = erdos.utils.setup_logging(self._name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            self._name + '-csv', csv_file_name)
+            self.name + '-csv', csv_file_name)
         self._flags = flags
         self._goal = goal
 
@@ -147,11 +144,11 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
                     if obstacle.label == 'person':
                         self._csv_logger.info(
                             "{},{},detected a person {}m away".format(
-                                self._name, self.SPEED,
+                                self.name, self.SPEED,
                                 person.distance(ego_transform)))
                         self._csv_logger.info(
                             "{},{},vehicle speed {} m/s.".format(
-                                self._name, self.SPEED,
+                                self.name, self.SPEED,
                                 can_bus_msg.data.forward_speed))
 
         # Figure out the location of the ego vehicle and compute the next

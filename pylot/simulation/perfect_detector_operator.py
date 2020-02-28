@@ -34,7 +34,6 @@ class PerfectDetectorOperator(erdos.Operator):
             operator publishes
             :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
             for detected obstacles.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         log_file_name (:obj:`str`, optional): Name of file where log messages
             are written to. If None, then messages are written to stdout.
@@ -65,7 +64,6 @@ class PerfectDetectorOperator(erdos.Operator):
                  ground_speed_limit_signs_stream,
                  ground_stop_signs_stream,
                  obstacles_stream,
-                 name,
                  flags,
                  log_file_name=None):
         depth_camera_stream.add_callback(self.on_depth_camera_update)
@@ -84,8 +82,7 @@ class PerfectDetectorOperator(erdos.Operator):
             ground_speed_limit_signs_stream, ground_stop_signs_stream
         ], [obstacles_stream], self.on_watermark)
 
-        self._name = name
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._flags = flags
         # Queues of incoming data.
         self._bgr_msgs = deque()
@@ -157,7 +154,7 @@ class PerfectDetectorOperator(erdos.Operator):
             bgr_msg.frame.annotate_with_bounding_boxes(bgr_msg.timestamp,
                                                        det_obstacles)
             if self._flags.visualize_detected_obstacles:
-                bgr_msg.frame.visualize(self._name)
+                bgr_msg.frame.visualize(self.name)
             if self._flags.log_detector_output:
                 bgr_msg.frame.save(bgr_msg.timestamp.coordinates[0],
                                    self._flags.data_path, 'perfect-detector')

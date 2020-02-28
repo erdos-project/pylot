@@ -39,7 +39,6 @@ class RRTStarPlanningOperator(erdos.Operator):
                  can_bus_stream,
                  prediction_stream,
                  waypoints_stream,
-                 name,
                  flags,
                  goal_location,
                  log_file_name=None,
@@ -48,7 +47,6 @@ class RRTStarPlanningOperator(erdos.Operator):
         Initialize the RRT* planner. Setup logger and map attributes.
 
         Args:
-            name: Name of the operator.
             flags: Config flags.
             goal_location: Goal pylot.utils.Location for planner to route to.
         """
@@ -56,11 +54,10 @@ class RRTStarPlanningOperator(erdos.Operator):
         prediction_stream.add_callback(self.on_prediction_update)
         erdos.add_watermark_callback([can_bus_stream, prediction_stream],
                                      [waypoints_stream], self.on_watermark)
-        self._name = name
         self._log_file_name = log_file_name
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+            self.name + '-csv', csv_file_name)
         self._flags = flags
 
         self._wp_index = DEFAULT_TARGET_WAYPOINT
@@ -116,7 +113,7 @@ class RRTStarPlanningOperator(erdos.Operator):
             path_transforms = []
             for point in path:
                 p_loc = self._hd_map.get_closest_lane_waypoint(
-                        Location(x=point[0], y=point[1], z=0)).location
+                    Location(x=point[0], y=point[1], z=0)).location
                 path_transforms.append(
                     Transform(
                         location=Location(x=point[0], y=point[1], z=p_loc.z),
@@ -134,10 +131,10 @@ class RRTStarPlanningOperator(erdos.Operator):
         waypoints = collections.deque(
             itertools.islice(waypoints, 0,
                              DEFAULT_NUM_WAYPOINTS))  # only take 50 meters
-        target_speeds = deque([self._flags.target_speed
-                               for _ in range(len(waypoints))])
-        waypoints_stream.send(WaypointsMessage(timestamp, waypoints,
-                                               target_speeds))
+        target_speeds = deque(
+            [self._flags.target_speed for _ in range(len(waypoints))])
+        waypoints_stream.send(
+            WaypointsMessage(timestamp, waypoints, target_speeds))
 
     def _build_obstacle_map(self, vehicle_transform, prediction_msg):
         """

@@ -28,7 +28,6 @@ class FOTPlanningOperator(erdos.Operator):
     `~pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory.py`.
 
      Args:
-        name(:obj:`str`): The name of the operator
         flags(:absl.flags:): Object to be used to access absl flags
         goal_location(:pylot.utils.Location:): Goal location for route planning
     """
@@ -36,7 +35,6 @@ class FOTPlanningOperator(erdos.Operator):
                  can_bus_stream,
                  prediction_stream,
                  waypoints_stream,
-                 name,
                  flags,
                  goal_location,
                  log_file_name=None,
@@ -45,11 +43,10 @@ class FOTPlanningOperator(erdos.Operator):
         prediction_stream.add_callback(self.on_prediction_update)
         erdos.add_watermark_callback([can_bus_stream, prediction_stream],
                                      [waypoints_stream], self.on_watermark)
-        self._name = name
         self._log_file_name = log_file_name
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+            self.name + '-csv', csv_file_name)
         self._flags = flags
 
         self._waypoints = None
@@ -103,12 +100,12 @@ class FOTPlanningOperator(erdos.Operator):
             self._compute_optimal_frenet_trajectory(can_bus_msg, obstacle_list)
 
         if path:
-            self._logger.debug("@{}: Frenet Path X: {}".format(timestamp,
-                                                               path.x))
-            self._logger.debug("@{}: Frenet Path Y: {}".format(timestamp,
-                                                               path.y))
-            self._logger.debug("@{}: Frenet Path V: {}".format(timestamp,
-                                                               path.s_d))
+            self._logger.debug("@{}: Frenet Path X: {}".format(
+                timestamp, path.x))
+            self._logger.debug("@{}: Frenet Path Y: {}".format(
+                timestamp, path.y))
+            self._logger.debug("@{}: Frenet Path V: {}".format(
+                timestamp, path.s_d))
 
         # construct and send waypoint message
         waypoints_message = self._construct_waypoints(timestamp, path, csp, s0)
@@ -130,8 +127,8 @@ class FOTPlanningOperator(erdos.Operator):
         s0, c_speed, c_d, c_d_d, c_d_dd = \
             self._compute_initial_conditions(can_bus_msg, wx, wy, csp)
         target_speed = (c_speed + self._flags.target_speed) / 2
-        path = frenet_optimal_planning(
-            csp, s0, c_speed, c_d, c_d_d, c_d_dd, obstacle_list, target_speed)
+        path = frenet_optimal_planning(csp, s0, c_speed, c_d, c_d_d, c_d_dd,
+                                       obstacle_list, target_speed)
 
         # log initial conditions for debugging
         initial_conditions = {
@@ -149,8 +146,8 @@ class FOTPlanningOperator(erdos.Operator):
             "vy": can_bus_msg.data.velocity_vector.y,
         }
         timestamp = can_bus_msg.timestamp
-        self._logger.debug("@{}: Initial conditions: {}"
-                           .format(timestamp, initial_conditions))
+        self._logger.debug("@{}: Initial conditions: {}".format(
+            timestamp, initial_conditions))
 
         return path, csp, s0
 
@@ -174,8 +171,8 @@ class FOTPlanningOperator(erdos.Operator):
                     ))
                 target_speeds.append(0)
         else:
-            self._logger.debug("@{}: Frenet Optimal Trajectory succeeded."
-                               .format(timestamp))
+            self._logger.debug(
+                "@{}: Frenet Optimal Trajectory succeeded.".format(timestamp))
             for point in zip(path.x, path.y, path.s_d):
                 p_loc = self._hd_map.get_closest_lane_waypoint(
                     Location(x=point[0], y=point[1], z=0)).location
@@ -207,7 +204,7 @@ class FOTPlanningOperator(erdos.Operator):
         # compute tangent / normal spline vectors
         x0, y0 = csp.calc_position(self.s0)
         x1, y1 = csp.calc_position(self.s0 + 2)
-        svec = np.array([x1-x0, y1-y0])
+        svec = np.array([x1 - x0, y1 - y0])
         svec = svec / np.linalg.norm(svec)  # unit vector tangent to spline
         tvec = np.array([svec[1], -svec[0]])  # unit vector orthog. to spline
 
@@ -239,12 +236,13 @@ class FOTPlanningOperator(erdos.Operator):
             # use all prediction times as potential obstacles
             for transform in prediction.trajectory:
                 global_obstacle = vehicle_transform * transform
-                obstacle_origin = [global_obstacle.location.x,
-                                   global_obstacle.location.y]
-                dist_to_ego = np.linalg.norm([vehicle_transform.location.x -
-                                              obstacle_origin[0],
-                                              vehicle_transform.location.y -
-                                              obstacle_origin[1]])
+                obstacle_origin = [
+                    global_obstacle.location.x, global_obstacle.location.y
+                ]
+                dist_to_ego = np.linalg.norm([
+                    vehicle_transform.location.x - obstacle_origin[0],
+                    vehicle_transform.location.y - obstacle_origin[1]
+                ])
                 # TODO (@fangedward): Fix this hack
                 # Prediction also sends a prediction for ego vehicle
                 # This will always be the closest to the ego vehicle

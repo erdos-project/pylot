@@ -17,7 +17,6 @@ class Grasshopper3DriverOperator(erdos.Operator):
     Args:
         camera_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends camera frames.
-        name (:obj:`str`): The name of the operator.
         camera_setup (:py:class:`pylot.drivers.sensor_setup.RGBCameraSetup`):
             Setup of the camera.
         topic_name (:obj:`str`): The name of the ROS topic on which to listen
@@ -30,20 +29,18 @@ class Grasshopper3DriverOperator(erdos.Operator):
     """
     def __init__(self,
                  camera_stream,
-                 name,
                  camera_setup,
                  topic_name,
                  flags,
                  log_file_name=None,
                  csv_file_name=None):
         self._camera_stream = camera_stream
-        self._name = name
         self._camera_setup = camera_setup
         self._topic_name = topic_name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+            self.name + '-csv', csv_file_name)
         self._bridge = cv_bridge.CvBridge()
         self._modulo_to_send = CAMERA_FPS // self._flags.sensor_frequency
         self._counter = 0
@@ -69,6 +66,6 @@ class Grasshopper3DriverOperator(erdos.Operator):
         self._msg_cnt += 1
 
     def run(self):
-        rospy.init_node(self._name, anonymous=True, disable_signals=True)
+        rospy.init_node(self.name, anonymous=True, disable_signals=True)
         rospy.Subscriber(self._topic_name, Image, self.on_camera_frame)
         rospy.spin()

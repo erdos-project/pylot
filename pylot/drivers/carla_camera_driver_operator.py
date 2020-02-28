@@ -23,7 +23,6 @@ class CarlaCameraDriverOperator(erdos.Operator):
             id to get a Carla handle to the vehicle.
         camera_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends camera frames.
-        name (:obj:`str`): The name of the operator.
         camera_setup (:py:class:`pylot.drivers.sensor_setup.RGBCameraSetup`):
             Setup of the camera.
         flags (absl.flags): Object to be used to access absl flags.
@@ -33,15 +32,13 @@ class CarlaCameraDriverOperator(erdos.Operator):
     def __init__(self,
                  ground_vehicle_id_stream,
                  camera_stream,
-                 name,
                  camera_setup,
                  flags,
                  log_file_name=None):
         self._vehicle_id_stream = ground_vehicle_id_stream
         self._camera_stream = camera_stream
-        self._name = name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._camera_setup = camera_setup
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None
