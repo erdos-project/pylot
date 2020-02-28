@@ -40,7 +40,7 @@ flags.DEFINE_bool('log_top_down_segmentation', False,
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
 
 
-def driver():
+def main(argv):
     transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                       pylot.utils.Rotation())
 
@@ -206,9 +206,8 @@ def driver():
             "Must be in auto pilot mode. Pass --control_agent=carla_auto_pilot"
         )
 
-
-def main(argv):
-    erdos.run(driver)
+    # Run the data-flow.
+    erdos.run()
 
 
 if __name__ == '__main__':

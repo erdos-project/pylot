@@ -106,6 +106,7 @@ def driver():
                                                   point_cloud_stream,
                                                   ground_segmented_stream,
                                                   imu_stream, can_bus_stream)
+    erdos.run()
 
 
 def main(args):
@@ -117,7 +118,7 @@ def main(args):
         raise ValueError("There was an issue connecting to the simulator.")
 
     try:
-        erdos.run(driver)
+        driver()
     except KeyboardInterrupt:
         set_asynchronous_mode(world)
     except Exception:

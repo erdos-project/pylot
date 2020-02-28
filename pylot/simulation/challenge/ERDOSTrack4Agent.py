@@ -20,7 +20,11 @@ class ERDOSTrack4Agent(AutonomousAgent):
     Warning:
         The agent is designed to work on track 4 only.
     """
-    def __init_attributes(self, path_to_conf_file):
+    def setup(self, path_to_conf_file):
+        """Setup phase code.
+
+        Invoked by the scenario runner.
+        """
         flags.FLAGS([__file__, '--flagfile={}'.format(path_to_conf_file)])
         self._logger = erdos.utils.setup_logging('erdos_agent',
                                                  FLAGS.log_file_name)
@@ -31,18 +35,13 @@ class ERDOSTrack4Agent(AutonomousAgent):
         # Stores the open drive string we get when we run in track 3.
         self._open_drive_data = None
         (can_bus_stream, global_trajectory_stream, open_drive_stream,
-         control_stream) = erdos.run_async(create_data_flow)
+         control_stream) = create_data_flow()
         self._can_bus_stream = can_bus_stream
         self._global_trajectory_stream = global_trajectory_stream
         self._open_drive_stream = open_drive_stream
         self._control_stream = control_stream
-
-    def setup(self, path_to_conf_file):
-        """Setup phase code.
-
-        Invoked by the scenario runner.
-        """
-        self.__init_attributes(path_to_conf_file)
+        # Execute the data-flow.
+        erdos.run_async()
 
     def destroy(self):
         """Code to clean-up the agent.
@@ -142,12 +141,12 @@ class ERDOSTrack4Agent(AutonomousAgent):
         forward_speed = data['speed']
         yaw = vehicle_transform.rotation.yaw
         velocity_vector = pylot.utils.Vector3D(forward_speed * np.cos(yaw),
-                                               forward_speed * np.sin(yaw),
-                                               0)
+                                               forward_speed * np.sin(yaw), 0)
         self._can_bus_stream.send(
-            erdos.Message(timestamp,
-                          pylot.utils.CanBus(vehicle_transform,
-                                             forward_speed, velocity_vector)))
+            erdos.Message(
+                timestamp,
+                pylot.utils.CanBus(vehicle_transform, forward_speed,
+                                   velocity_vector)))
         self._can_bus_stream.send(erdos.WatermarkMessage(timestamp))
 
     def send_waypoints_msg(self, timestamp):

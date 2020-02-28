@@ -38,7 +38,8 @@ class ERDOSAgent(AutonomousAgent):
         _waypoints (list(:py:class:`~pylot.utils.Transform`)): List of
             waypoints the agent receives from the challenge planner.
     """
-    def __init_attributes(self, path_to_conf_file):
+    def setup(self, path_to_conf_file):
+        """Setup phase. Invoked by the scenario runner."""
         flags.FLAGS([__file__, '--flagfile={}'.format(path_to_conf_file)])
         self._logger = erdos.utils.setup_logging('erdos_agent',
                                                  FLAGS.log_file_name)
@@ -54,20 +55,18 @@ class ERDOSAgent(AutonomousAgent):
         self._open_drive_data = None
         (camera_streams, can_bus_stream, global_trajectory_stream,
          open_drive_stream, point_cloud_stream,
-         control_stream) = erdos.run_async(create_data_flow)
+         control_stream) = create_data_flow()
         self._camera_streams = camera_streams
         self._can_bus_stream = can_bus_stream
         self._global_trajectory_stream = global_trajectory_stream
         self._open_drive_stream = open_drive_stream
         self._point_cloud_stream = point_cloud_stream
         self._control_stream = control_stream
-
-    def setup(self, path_to_conf_file):
-        """ Setup phase. Invoked by the scenario runner."""
-        self.__init_attributes(path_to_conf_file)
+        # Execute the data-flow.
+        erdos.run_async()
 
     def destroy(self):
-        """ Clean-up the agent. Invoked between different runs."""
+        """Clean-up the agent. Invoked between different runs."""
         self._logger.info('ERDOSAgent destroy method invoked')
 
     def sensors(self):

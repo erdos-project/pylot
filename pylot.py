@@ -14,7 +14,7 @@ flags.DEFINE_list('goal_location', '234, 59, 39', 'Ego-vehicle goal location')
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
 
 
-def driver():
+def main(argv):
     transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                       pylot.utils.Rotation())
 
@@ -99,10 +99,7 @@ def driver():
                                                   point_cloud_stream,
                                                   ground_segmented_stream,
                                                   imu_stream, can_bus_stream)
-
-
-def main(argv):
-    erdos.run(driver)
+    erdos.run()
 
 
 if __name__ == '__main__':

@@ -195,8 +195,9 @@ def read_waypoints():
 
 def main(argv):
     (obstacles_stream, traffic_lights_stream, obstacles_tracking_stream,
-     open_drive_stream,
-     global_trajectory_stream) = erdos.run_async(create_data_flow)
+     open_drive_stream, global_trajectory_stream) = create_data_flow()
+    # Run the data-flow.
+    erdos.run_async()
 
     top_timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
     open_drive_stream.send(erdos.WatermarkMessage(top_timestamp))

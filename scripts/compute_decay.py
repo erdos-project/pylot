@@ -41,7 +41,7 @@ class SynchronizerOperator(erdos.Operator):
         control_stream.send(control_msg)
 
 
-def driver():
+def main(argv):
     """ Computes ground obstacle detection and segmentation decay."""
     transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                       pylot.utils.Rotation())
@@ -97,9 +97,7 @@ def driver():
             "Must be in auto pilot mode. Pass --control_agent=carla_auto_pilot"
         )
 
-
-def main(argv):
-    erdos.run(driver)
+    erdos.run()
 
 
 if __name__ == '__main__':
