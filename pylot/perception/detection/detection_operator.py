@@ -42,8 +42,6 @@ class DetectionOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.config.name + '-csv', self.config.csv_log_file_name)
         self._detection_graph = tf.Graph()
         # Load the model from the model file.
         set_tf_loglevel(logging.ERROR)
@@ -95,6 +93,7 @@ class DetectionOperator(erdos.Operator):
         obstacles_stream = erdos.WriteStream()
         return [obstacles_stream]
 
+    @erdos.profile_method
     def on_msg_camera_stream(self, msg, obstacles_stream):
         """Invoked whenever a frame message is received on the stream.
 
@@ -165,9 +164,6 @@ class DetectionOperator(erdos.Operator):
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
-                                                     self.config.name,
-                                                     msg.timestamp, runtime))
         # Send out obstacles.
         obstacles_stream.send(
             ObstaclesMessage(msg.timestamp, obstacles, runtime))

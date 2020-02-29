@@ -41,8 +41,6 @@ class SegmentationDRNOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.config.name + '-csv', self.config.csv_log_file_name)
         arch = "drn_d_22"
         classes = 19
         self._pallete = drn.segment.CARLA_CITYSCAPE_PALETTE
@@ -71,6 +69,7 @@ class SegmentationDRNOperator(erdos.Operator):
         segmented_stream = erdos.WriteStream()
         return [segmented_stream]
 
+    @erdos.profile_method
     def on_msg_camera_stream(self, msg, segmented_stream):
         """Invoked upon the receipt of a message on the camera stream.
 
@@ -98,9 +97,6 @@ class SegmentationDRNOperator(erdos.Operator):
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
-                                                     self.config.name,
-                                                     msg.timestamp, runtime))
         frame = SegmentedFrame(image_np, 'cityscapes', msg.frame.camera_setup)
         if self._flags.visualize_segmentation_output:
             frame.visualize(self.config.name, msg.timestamp)

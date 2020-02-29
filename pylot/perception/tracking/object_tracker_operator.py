@@ -20,8 +20,6 @@ class ObjectTrackerOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.config.name + '-csv', self.config.csv_log_file_name)
         self._tracker_type = tracker_type
         try:
             if tracker_type == 'cv2':
@@ -61,11 +59,11 @@ class ObjectTrackerOperator(erdos.Operator):
         obstacle_tracking_stream = erdos.WriteStream()
         return [obstacle_tracking_stream]
 
+    @erdos.profile_method
     def on_frame_msg(self, msg, obstacle_tracking_stream):
         """ Invoked when a FrameMessage is received on the camera stream."""
         self._logger.debug('@{}: {} received frame'.format(
             msg.timestamp, self.config.name))
-        start_time = time.time()
         assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
         camera_frame = msg.frame
         # Store frames so that they can be re-processed once we receive the
@@ -75,12 +73,8 @@ class ObjectTrackerOperator(erdos.Operator):
         if self._ready_to_update:
             self.__track_bboxes_on_frame(camera_frame, msg.timestamp, False,
                                          obstacle_tracking_stream)
-        # Get runtime in ms.
-        runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
-                                                     self.config.name,
-                                                     msg.timestamp, runtime))
 
+    @erdos.profile_method
     def on_obstacles_msg(self, msg, obstacle_tracking_stream):
         """ Invoked when obstacles are received on the stream."""
         self._logger.debug('@{}: {} received obstacles'.format(

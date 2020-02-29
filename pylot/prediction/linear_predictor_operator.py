@@ -46,6 +46,7 @@ class LinearPredictorOperator(erdos.Operator):
         linear_prediction_stream = erdos.WriteStream()
         return [linear_prediction_stream]
 
+    @erdos.profile_method
     def generate_predicted_trajectories(self, msg, linear_prediction_stream):
         self._logger.debug('@{}: received trajectories message'.format(
             msg.timestamp))

@@ -159,6 +159,7 @@ class WaypointPlanningOperator(erdos.Operator):
         self._logger.debug('@{}: traffic lights update'.format(msg.timestamp))
         self._traffic_light_msgs.append(msg)
 
+    @erdos.profile_method
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
 

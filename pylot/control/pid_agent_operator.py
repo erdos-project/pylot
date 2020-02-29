@@ -4,7 +4,6 @@ from collections import deque
 import erdos
 import math
 from pid_controller.pid import PID
-import time
 
 # Pylot imports
 import pylot.control.utils
@@ -39,8 +38,6 @@ class PIDAgentOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.config.name + '-csv', self.config.csv_log_file_name)
         self._pid = PID(p=self._flags.pid_p,
                         i=self._flags.pid_i,
                         d=self._flags.pid_d)
@@ -53,6 +50,7 @@ class PIDAgentOperator(erdos.Operator):
         control_stream = erdos.WriteStream()
         return [control_stream]
 
+    @erdos.profile_method
     def on_watermark(self, timestamp, control_stream):
         """Computes and sends the control command on the control stream.
 
@@ -63,7 +61,6 @@ class PIDAgentOperator(erdos.Operator):
                 the watermark.
         """
         self._logger.debug('@{}: received watermark'.format(timestamp))
-        start_time = time.time()
         can_bus_msg = self._can_bus_msgs.popleft()
         vehicle_transform = can_bus_msg.data.transform
         # Vehicle sped in m/s
@@ -97,11 +94,6 @@ class PIDAgentOperator(erdos.Operator):
             self._logger.warning('Braking! No more waypoints to follow.')
             throttle, brake = 0.0, 0.5
             steer = 0.0
-        # Get runtime in ms.
-        runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
-                                                     self.config.name,
-                                                     timestamp, runtime))
         self._logger.debug(
             '@{}: speed {}, location {}, steer {}, throttle {}, brake {}'.
             format(timestamp, current_speed, vehicle_transform, steer,

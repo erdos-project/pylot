@@ -55,6 +55,7 @@ class ObstacleLocationFinderOperator(erdos.Operator):
         obstacles_output_stream = erdos.WriteStream()
         return [obstacles_output_stream]
 
+    @erdos.profile_method
     def on_watermark(self, timestamp, obstacles_output_stream):
         """Invoked when all input streams have received a watermark.
 

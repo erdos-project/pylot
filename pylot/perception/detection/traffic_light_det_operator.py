@@ -5,13 +5,12 @@ import erdos
 import logging
 import numpy as np
 import tensorflow as tf
-import time
 
 from pylot.perception.detection.traffic_light import TrafficLight, \
     TrafficLightColor
 from pylot.perception.detection.utils import BoundingBox2D
 from pylot.perception.messages import TrafficLightsMessage
-from pylot.utils import set_tf_loglevel, time_epoch_ms
+from pylot.utils import set_tf_loglevel
 
 flags.DEFINE_string(
     'traffic_light_det_model_path',
@@ -44,8 +43,6 @@ class TrafficLightDetOperator(erdos.Operator):
         camera_stream.add_callback(self.on_frame, [traffic_lights_stream])
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.config.name + '-csv', self.config.csv_log_file_name)
         self._flags = flags
         self._detection_graph = tf.Graph()
         # Load the model from the model file.
@@ -99,6 +96,7 @@ class TrafficLightDetOperator(erdos.Operator):
         traffic_lights_stream = erdos.WriteStream()
         return [traffic_lights_stream]
 
+    @erdos.profile_method
     def on_frame(self, msg, traffic_lights_stream):
         """Invoked whenever a frame message is received on the stream.
 
@@ -111,7 +109,6 @@ class TrafficLightDetOperator(erdos.Operator):
         """
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self.config.name))
-        start_time = time.time()
         assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
         # Expand dimensions since the model expects images to have
         # shape: [1, None, None, 3]
@@ -146,12 +143,6 @@ class TrafficLightDetOperator(erdos.Operator):
                 msg.frame.save(msg.timestamp.coordinates[0],
                                self._flags.data_path,
                                'tl-detector-{}'.format(self.config.name))
-
-        # Get runtime in ms.
-        runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
-                                                     self.config.name,
-                                                     msg.timestamp, runtime))
 
         traffic_lights_stream.send(
             TrafficLightsMessage(msg.timestamp, traffic_lights))
