@@ -4,9 +4,9 @@ import random
 import sys
 import time
 
+import pylot.utils
 from pylot.perception.messages import ObstaclesMessage, SpeedSignsMessage, \
     StopSignsMessage, TrafficLightsMessage
-import pylot.utils
 from pylot.simulation.utils import extract_data_in_pylot_format, \
     get_weathers, get_world, reset_world, set_synchronous_mode
 
@@ -21,27 +21,17 @@ class CarlaOperator(erdos.Operator):
     Args:
         flags: A handle to the global flags instance to retrieve the
             configuration.
-        log_file_name: The file to log the required information to.
-        csv_file_name: The file to log info to in csv format.
 
     Attributes:
         _client: A connection to the simulator.
         _world: A handle to the world running inside the simulation.
         _vehicles: A list of identifiers of the vehicles inside the simulation.
     """
-    def __init__(self,
-                 control_stream,
-                 can_bus_stream,
-                 ground_traffic_lights_stream,
-                 ground_obstacles_stream,
-                 ground_speed_limit_signs_stream,
-                 ground_stop_signs_stream,
-                 vehicle_id_stream,
-                 open_drive_stream,
-                 global_trajectory_stream,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, control_stream, can_bus_stream,
+                 ground_traffic_lights_stream, ground_obstacles_stream,
+                 ground_speed_limit_signs_stream, ground_stop_signs_stream,
+                 vehicle_id_stream, open_drive_stream,
+                 global_trajectory_stream, flags):
         if flags.random_seed:
             random.seed(flags.random_seed)
         # Register callback on control stream.

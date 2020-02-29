@@ -32,20 +32,9 @@ class ObstacleLocationFinderOperator(erdos.Operator):
             real-world location of the camera, which in turn is used to convert
             detected obstacles from camera coordinates to real-world
             coordinates.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 obstacles_stream,
-                 point_cloud_stream,
-                 can_bus_stream,
-                 obstacles_output_stream,
-                 flags,
-                 camera_setup,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, obstacles_stream, point_cloud_stream, can_bus_stream,
+                 obstacles_output_stream, flags, camera_setup):
         obstacles_stream.add_callback(self.on_obstacles_update)
         point_cloud_stream.add_callback(self.on_point_cloud_update)
         can_bus_stream.add_callback(self.on_can_bus_update)

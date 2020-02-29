@@ -26,8 +26,6 @@ class WaypointVisualizerOperator(erdos.Operator):
         camera_stream (:py:class:`erdos.ReadStream`): The stream on which
             camera frames are received.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
 
     Attributes:
         _logger (:obj:`logging.Logger`): Instance to be used to log messages.
@@ -40,12 +38,7 @@ class WaypointVisualizerOperator(erdos.Operator):
             bus messages.
         _world (carla.World): A handle to the world to draw the waypoints on.
     """
-    def __init__(self,
-                 waypoints_stream,
-                 camera_stream,
-                 can_bus_stream,
-                 flags,
-                 log_file_name=None):
+    def __init__(self, waypoints_stream, camera_stream, can_bus_stream, flags):
         waypoints_stream.add_callback(self.on_wp_update)
         camera_stream.add_callback(self.on_bgr_frame)
         can_bus_stream.add_callback(self.on_can_bus_update)

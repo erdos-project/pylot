@@ -51,21 +51,9 @@ class DepthEstimationOperator(erdos.Operator):
             camera relative to the ego-vehicle.
         fov(:obj:`int`): Field of view of the center camera.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 left_camera_stream,
-                 right_camera_stream,
-                 depth_estimation_stream,
-                 transform,
-                 fov,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
-
+    def __init__(self, left_camera_stream, right_camera_stream,
+                 depth_estimation_stream, transform, fov, flags):
         left_camera_stream.add_callback(self.on_left_camera_msg)
         right_camera_stream.add_callback(self.on_right_camera_msg)
         erdos.add_watermark_callback([left_camera_stream, right_camera_stream],

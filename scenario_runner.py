@@ -22,16 +22,14 @@ CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
 
 def add_avoidance_agent(can_bus_stream, obstacles_stream,
                         ground_obstacles_stream, goal_location):
-    [control_stream] = erdos.connect(
-        PersonAvoidanceAgentOperator,
-        [can_bus_stream, obstacles_stream, ground_obstacles_stream],
-        True,
-        FLAGS.obstacle_detection_model_names[0] + '_agent',
-        goal_location,
-        FLAGS,
+    op_config = erdos.OperatorConfig(
+        name=FLAGS.obstacle_detection_model_names[0] + '_agent',
         log_file_name=FLAGS.log_file_name,
         csv_file_name=FLAGS.csv_log_file_name)
-
+    [control_stream] = erdos.connect(
+        PersonAvoidanceAgentOperator, op_config,
+        [can_bus_stream, obstacles_stream, ground_obstacles_stream],
+        goal_location, FLAGS)
     return control_stream
 
 

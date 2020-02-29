@@ -28,8 +28,6 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
             :py:class:`~pylot.perception.messages.TrafficLightsMessage`
             messages for traffic lights.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
 
     Attributes:
         _town_name (:obj:`str`): Name of the Carla town.
@@ -43,15 +41,9 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         _can_bus_msgs (:obj:`collections.deque`): Buffer of can bus messages.
         _frame_cnt (:obj:`int`): Number of messages received.
     """
-    def __init__(self,
-                 ground_traffic_lights_stream,
-                 tl_camera_stream,
-                 depth_camera_stream,
-                 segmented_camera_stream,
-                 can_bus_stream,
-                 traffic_lights_stream,
-                 flags,
-                 log_file_name=None):
+    def __init__(self, ground_traffic_lights_stream, tl_camera_stream,
+                 depth_camera_stream, segmented_camera_stream, can_bus_stream,
+                 traffic_lights_stream, flags):
         ground_traffic_lights_stream.add_callback(self.on_traffic_light_update)
         tl_camera_stream.add_callback(self.on_bgr_camera_update)
         depth_camera_stream.add_callback(self.on_depth_camera_update)

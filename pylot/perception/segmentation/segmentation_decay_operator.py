@@ -18,17 +18,8 @@ class SegmentationDecayOperator(erdos.Operator):
         iou_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator publishes IoU accuracy results.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 ground_segmented_stream,
-                 iou_stream,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, ground_segmented_stream, iou_stream, flags):
         ground_segmented_stream.add_callback(self.on_ground_segmented_frame,
                                              [iou_stream])
         self._flags = flags

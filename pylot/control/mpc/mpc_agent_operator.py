@@ -3,25 +3,19 @@ import erdos
 import numpy as np
 from pid_controller.pid import PID
 
+import pylot.control.utils
 from pylot.control.messages import ControlMessage
 from pylot.control.mpc.mpc import ModelPredictiveController
-from pylot.control.mpc.utils import zero_to_2_pi, global_config, CubicSpline2D
-import pylot.control.utils
+from pylot.control.mpc.utils import CubicSpline2D, global_config, zero_to_2_pi
 
 
 class MPCAgentOperator(erdos.Operator):
-    def __init__(self,
-                 can_bus_stream,
-                 waypoints_stream,
-                 control_stream,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, can_bus_stream, waypoints_stream, control_stream,
+                 flags):
         can_bus_stream.add_callback(self.on_can_bus_update)
         waypoints_stream.add_callback(self.on_waypoints_update)
         erdos.add_watermark_callback([can_bus_stream, waypoints_stream],
                                      [control_stream], self.on_watermark)
-        self._log_file_name = log_file_name
         self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
             self.name + '-csv', csv_file_name)

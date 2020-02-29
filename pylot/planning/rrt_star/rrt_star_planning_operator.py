@@ -34,27 +34,18 @@ DEFAULT_TARGET_WAYPOINT = 9  # Use the 10th waypoint for computing speed
 
 
 class RRTStarPlanningOperator(erdos.Operator):
-    """ RRTStar Planning operator for Carla 0.9.x."""
-    def __init__(self,
-                 can_bus_stream,
-                 prediction_stream,
-                 waypoints_stream,
-                 flags,
-                 goal_location,
-                 log_file_name=None,
-                 csv_file_name=None):
-        """
-        Initialize the RRT* planner. Setup logger and map attributes.
+    """RRTStar Planning operator for Carla 0.9.x.
 
-        Args:
-            flags: Config flags.
-            goal_location: Goal pylot.utils.Location for planner to route to.
-        """
+    Args:
+        flags: Config flags.
+        goal_location: Goal pylot.utils.Location for planner to route to.
+    """
+    def __init__(self, can_bus_stream, prediction_stream, waypoints_stream,
+                 flags, goal_location):
         can_bus_stream.add_callback(self.on_can_bus_update)
         prediction_stream.add_callback(self.on_prediction_update)
         erdos.add_watermark_callback([can_bus_stream, prediction_stream],
                                      [waypoints_stream], self.on_watermark)
-        self._log_file_name = log_file_name
         self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
             self.name + '-csv', csv_file_name)
@@ -78,7 +69,7 @@ class RRTStarPlanningOperator(erdos.Operator):
         # we get the map here we're sure it is up-to-date.
         self._hd_map = HDMap(
             get_map(self._flags.carla_host, self._flags.carla_port,
-                    self._flags.carla_timeout), self._log_file_name)
+                    self._flags.carla_timeout))
 
     def on_can_bus_update(self, msg):
         self._logger.debug('@{}: received can bus message'.format(

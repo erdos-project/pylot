@@ -1,21 +1,17 @@
 from collections import defaultdict, deque
 import erdos
 
-from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
-from pylot.perception.messages import ObstacleTrajectoriesMessage
 import pylot.utils
+from pylot.perception.messages import ObstacleTrajectoriesMessage
+from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 
 
 class PerfectTrackerOperator(erdos.Operator):
     """Operator that gives past trajectories of other agents in the environment,
        i.e. their past (x,y,z) locations from an ego-vehicle perspective.
     """
-    def __init__(self,
-                 ground_obstacles_stream,
-                 can_bus_stream,
-                 ground_tracking_stream,
-                 flags,
-                 log_file_name=None):
+    def __init__(self, ground_obstacles_stream, can_bus_stream,
+                 ground_tracking_stream, flags):
         """Initializes the PerfectTracker Operator. """
         ground_obstacles_stream.add_callback(self.on_obstacles_update)
         can_bus_stream.add_callback(self.on_can_bus_update)

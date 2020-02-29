@@ -38,10 +38,6 @@ class WaypointPlanningOperator(erdos.Operator):
         flags (absl.flags): Object to be used to access absl flags.
         goal_location (:py:class:`~pylot.utils.Location`): The goal location of
             the ego vehicle.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
     def __init__(self,
                  can_bus_stream,
@@ -51,9 +47,7 @@ class WaypointPlanningOperator(erdos.Operator):
                  traffic_lights_stream,
                  waypoints_stream,
                  flags,
-                 goal_location=None,
-                 log_file_name=None,
-                 csv_file_name=None):
+                 goal_location=None):
         can_bus_stream.add_callback(self.on_can_bus_update)
         open_drive_stream.add_callback(self.on_opendrive_map)
         global_trajectory_stream.add_callback(self.on_global_trajectory)
@@ -63,7 +57,6 @@ class WaypointPlanningOperator(erdos.Operator):
             [can_bus_stream, obstacles_stream, traffic_lights_stream],
             [waypoints_stream], self.on_watermark)
 
-        self._log_file_name = log_file_name
         self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
             self.name + '-csv', csv_file_name)
@@ -102,7 +95,7 @@ class WaypointPlanningOperator(erdos.Operator):
             from pylot.simulation.utils import get_map
             self._map = HDMap(
                 get_map(self._flags.carla_host, self._flags.carla_port,
-                        self._flags.carla_timeout), self._log_file_name)
+                        self._flags.carla_timeout))
             self._logger.info('Planner running in stand-alone mode')
             # Recompute waypoints upon each run.
             self._recompute_waypoints = True
@@ -125,7 +118,7 @@ class WaypointPlanningOperator(erdos.Operator):
             raise Exception('Error importing carla.')
         self._logger.info('Initializing HDMap from open drive stream')
         from pylot.map.hd_map import HDMap
-        self._map = HDMap(carla.Map('map', msg.data), self._log_file_name)
+        self._map = HDMap(carla.Map('map', msg.data))
 
     def on_global_trajectory(self, msg):
         """Invoked whenever a message is received on the trajectory stream.

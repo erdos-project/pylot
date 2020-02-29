@@ -38,17 +38,8 @@ class TrafficLightDetOperator(erdos.Operator):
             :py:class:`~pylot.perception.messages.TrafficLightsMessage`
             messages.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 camera_stream,
-                 traffic_lights_stream,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, camera_stream, traffic_lights_stream, flags):
         # Register a callback on the camera input stream.
         camera_stream.add_callback(self.on_frame, [traffic_lights_stream])
         self._logger = erdos.utils.setup_logging(self.name, log_file_name)

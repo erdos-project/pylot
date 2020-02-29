@@ -22,18 +22,8 @@ class Grasshopper3DriverOperator(erdos.Operator):
         topic_name (:obj:`str`): The name of the ROS topic on which to listen
             for camera frames.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 camera_stream,
-                 camera_setup,
-                 topic_name,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, camera_stream, camera_setup, topic_name, flags):
         self._camera_stream = camera_stream
         self._camera_setup = camera_setup
         self._topic_name = topic_name

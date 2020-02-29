@@ -15,15 +15,7 @@ class CanBusVisualizerOperator(erdos.Operator):
     Attributes:
         _world: A handle to the world to draw the locations on.
     """
-    def __init__(self, can_bus_stream, flags, log_file_name=None):
-        """ Initializes the CanBusVisualizerOperator with the given
-        parameters.
-
-        Args:
-            flags: A handle to the global flags instance to retrieve the
-                configuration.
-            log_file_name: The file to log the required information to.
-        """
+    def __init__(self, can_bus_stream, flags):
         can_bus_stream.add_callback(self.on_can_bus_update)
         self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._flags = flags

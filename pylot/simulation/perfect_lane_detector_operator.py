@@ -1,9 +1,9 @@
 import erdos
 
+import pylot.utils
 from pylot.perception.detection.utils import DetectedLane
 from pylot.perception.messages import DetectedLaneMessage
 from pylot.simulation.utils import get_map
-import pylot.utils
 
 
 class PerfectLaneDetectionOperator(erdos.Operator):
@@ -17,14 +17,8 @@ class PerfectLaneDetectionOperator(erdos.Operator):
             :py:class:`~pylot.perception.messages.DetectedLaneMessage`
             messages.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 can_bus_stream,
-                 detected_lane_stream,
-                 flags,
-                 log_file_name=None):
+    def __init__(self, can_bus_stream, detected_lane_stream, flags):
         can_bus_stream.add_callback(self.on_position_update,
                                     [detected_lane_stream])
         self._flags = flags

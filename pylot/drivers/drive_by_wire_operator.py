@@ -22,16 +22,8 @@ class DriveByWireOperator(erdos.Operator):
         control_stream (:py:class:`erdos.ReadStream`): Stream on which the
             operator receives control commands.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 control_stream,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, control_stream, flags):
         self._control_stream = control_stream
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.name, log_file_name)

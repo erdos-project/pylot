@@ -3,8 +3,8 @@
 import carla
 import erdos
 
-import pylot.utils
 import pylot.simulation.utils
+import pylot.utils
 
 
 class IMUVisualizerOperator(erdos.Operator):
@@ -14,15 +14,13 @@ class IMUVisualizerOperator(erdos.Operator):
         imu_stream: (:py:class:`erdos.ReadStream`): The stream on which
             :py:class:`~pylot.perception.messages.IMUMessage` are received.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
 
     Attributes:
         _logger (:obj:`logging.Logger`): Instance to be used to log messages.
         _flags (absl.flags): Object to be used to access absl flags.
         _world (carla.World): Object used to draw in the Carla world.
     """
-    def __init__(self, imu_stream, flags, log_file_name=None):
+    def __init__(self, imu_stream, flags):
         imu_stream.add_callback(self.on_imu_update)
         self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._flags = flags

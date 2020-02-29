@@ -23,15 +23,9 @@ class CarlaLidarDriverOperator(erdos.Operator):
         lidar_setup (:py:class:`pylot.drivers.sensor_setup.LidarSetup`):
             Setup of the lidar sensor.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 ground_vehicle_id_stream,
-                 lidar_stream,
-                 lidar_setup,
-                 flags,
-                 log_file_name=None):
+    def __init__(self, ground_vehicle_id_stream, lidar_stream, lidar_setup,
+                 flags):
         self._vehicle_id_stream = ground_vehicle_id_stream
         self._lidar_stream = lidar_stream
         self._flags = flags

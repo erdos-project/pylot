@@ -4,11 +4,11 @@ import sys
 import threading
 import time
 
+import pylot.simulation.utils
+import pylot.utils
 from pylot.perception.messages import ObstaclesMessage, SpeedSignsMessage, \
     StopSignsMessage, TrafficLightsMessage
-import pylot.utils
-from pylot.simulation.utils import get_world, extract_data_in_pylot_format
-import pylot.simulation.utils
+from pylot.simulation.utils import extract_data_in_pylot_format, get_world
 
 flags.DEFINE_float('carla_replay_start_time', 0.0,
                    'The time at which to start replaying')
@@ -29,16 +29,9 @@ class CarlaReplayOperator(erdos.Operator):
         _client: A connection to the simulator.
         _world: A handle to the world running inside the simulation.
     """
-    def __init__(self,
-                 can_bus_stream,
-                 ground_traffic_lights_stream,
-                 ground_obstacles_stream,
-                 ground_speed_limit_signs_stream,
-                 ground_stop_signs_stream,
-                 vehicle_id_stream,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, can_bus_stream, ground_traffic_lights_stream,
+                 ground_obstacles_stream, ground_speed_limit_signs_stream,
+                 ground_stop_signs_stream, vehicle_id_stream, flags):
         self._can_bus_stream = can_bus_stream
         self._ground_traffic_lights_stream = ground_traffic_lights_stream
         self._ground_obstacles_stream = ground_obstacles_stream

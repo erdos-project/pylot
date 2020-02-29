@@ -7,8 +7,8 @@ from pid_controller.pid import PID
 import time
 
 # Pylot imports
-from pylot.control.messages import ControlMessage
 import pylot.control.utils
+from pylot.control.messages import ControlMessage
 from pylot.utils import time_epoch_ms
 
 
@@ -29,24 +29,14 @@ class PIDAgentOperator(erdos.Operator):
             operator sends :py:class:`~pylot.control.messages.ControlMessage`
             messages.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 can_bus_stream,
-                 waypoints_stream,
-                 control_stream,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, can_bus_stream, waypoints_stream, control_stream,
+                 flags):
         can_bus_stream.add_callback(self.on_can_bus_update)
         waypoints_stream.add_callback(self.on_waypoints_update)
         erdos.add_watermark_callback([can_bus_stream, waypoints_stream],
                                      [control_stream], self.on_watermark)
         self._flags = flags
-        self._log_file_name = log_file_name
         self._logger = erdos.utils.setup_logging(self.name, log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
             self.name + '-csv', csv_file_name)

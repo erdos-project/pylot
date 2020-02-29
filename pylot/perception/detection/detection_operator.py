@@ -35,18 +35,8 @@ class DetectionOperator(erdos.Operator):
             :py:class:`~pylot.perception.messages.ObstaclesMessage` messages.
         model_path(:obj:`str`): Path to the model pb file.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 camera_stream,
-                 obstacles_stream,
-                 model_path,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, camera_stream, obstacles_stream, model_path, flags):
         camera_stream.add_callback(self.on_msg_camera_stream,
                                    [obstacles_stream])
         self._flags = flags

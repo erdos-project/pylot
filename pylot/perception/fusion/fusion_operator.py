@@ -23,8 +23,6 @@ class FusionOperator(erdos.Operator):
                  depth_camera_stream,
                  fused_stream,
                  flags,
-                 log_file_name=None,
-                 csv_file_name=None,
                  camera_fov=np.pi / 4,
                  rgbd_max_range=1000):
         self.can_bus_stream = can_bus_stream

@@ -12,12 +12,7 @@ NDT_FREQUENCY = 10
 
 
 class NDTAutowareOperator(erdos.Operator):
-    def __init__(self,
-                 can_bus_stream,
-                 flags,
-                 topic_name='/ndt_pose',
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, can_bus_stream, flags, topic_name='/ndt_pose'):
         self._can_bus_stream = can_bus_stream
         self._flags = flags
         self._topic_name = topic_name

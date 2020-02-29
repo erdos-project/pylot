@@ -11,14 +11,8 @@ flags.DEFINE_bool('visualize_tracker_output', False,
 
 
 class ObjectTrackerOperator(erdos.Operator):
-    def __init__(self,
-                 obstacles_stream,
-                 camera_stream,
-                 obstacle_tracking_stream,
-                 tracker_type,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, obstacles_stream, camera_stream,
+                 obstacle_tracking_stream, tracker_type, flags):
         obstacles_stream.add_callback(self.on_obstacles_msg,
                                       [obstacle_tracking_stream])
         camera_stream.add_callback(self.on_frame_msg,

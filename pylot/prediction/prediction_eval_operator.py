@@ -23,18 +23,9 @@ class PredictionEvalOperator(erdos.Operator):
             :py:class:`~pylot.prediction.messages.PredictionMessage` are
             received from the prediction operator.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 can_bus_stream,
-                 tracking_stream,
-                 prediction_stream,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, can_bus_stream, tracking_stream, prediction_stream,
+                 flags):
         can_bus_stream.add_callback(self._on_can_bus_update)
         tracking_stream.add_callback(self._on_tracking_update)
         prediction_stream.add_callback(self._on_prediction_update)
