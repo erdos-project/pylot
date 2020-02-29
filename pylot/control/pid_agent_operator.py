@@ -37,9 +37,10 @@ class PIDAgentOperator(erdos.Operator):
         erdos.add_watermark_callback([can_bus_stream, waypoints_stream],
                                      [control_stream], self.on_watermark)
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         self._pid = PID(p=self._flags.pid_p,
                         i=self._flags.pid_i,
                         d=self._flags.pid_d)
@@ -99,8 +100,8 @@ class PIDAgentOperator(erdos.Operator):
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
-                                                     self.name, timestamp,
-                                                     runtime))
+                                                     self.config.name,
+                                                     timestamp, runtime))
         self._logger.debug(
             '@{}: speed {}, location {}, steer {}, throttle {}, brake {}'.
             format(timestamp, current_speed, vehicle_transform, steer,

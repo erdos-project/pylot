@@ -28,9 +28,8 @@ class Grasshopper3DriverOperator(erdos.Operator):
         self._camera_setup = camera_setup
         self._topic_name = topic_name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._bridge = cv_bridge.CvBridge()
         self._modulo_to_send = CAMERA_FPS // self._flags.sensor_frequency
         self._counter = 0
@@ -56,6 +55,6 @@ class Grasshopper3DriverOperator(erdos.Operator):
         self._msg_cnt += 1
 
     def run(self):
-        rospy.init_node(self.name, anonymous=True, disable_signals=True)
+        rospy.init_node(self.config.name, anonymous=True, disable_signals=True)
         rospy.Subscriber(self._topic_name, Image, self.on_camera_frame)
         rospy.spin()

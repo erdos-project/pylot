@@ -31,9 +31,10 @@ class SegmentationEvalOperator(erdos.Operator):
         erdos.add_watermark_callback(
             [ground_segmented_stream, segmented_stream], [], self.on_watermark)
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         # Buffer of ground truth segmented frames.
         self._ground_frames = []
         # Buffer of segmentation output frames.
@@ -134,7 +135,7 @@ class SegmentationEvalOperator(erdos.Operator):
         self._logger.info('IoU class scores: {}'.format(class_iou))
         self._logger.info('mean IoU score: {}'.format(mean_iou))
         self._csv_logger.info('{},{},{},{}'.format(
-            time_epoch_ms(), self.name, self._flags.segmentation_metric,
+            time_epoch_ms(), self.config.name, self._flags.segmentation_metric,
             mean_iou))
 
     def __get_ground_segmentation_at(self, timestamp):

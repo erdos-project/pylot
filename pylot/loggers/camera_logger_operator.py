@@ -22,7 +22,8 @@ class CameraLoggerOperator(erdos.Operator):
     """
     def __init__(self, camera_stream, flags, filename_prefix):
         camera_stream.add_callback(self.on_frame)
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
         self._frame_cnt = 0
         self._filename_prefix = filename_prefix
@@ -39,7 +40,7 @@ class CameraLoggerOperator(erdos.Operator):
     def on_frame(self, msg):
         """Invoked whenever a frame message is received on the stream."""
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.name))
+            msg.timestamp, self.config.name))
         self._frame_cnt += 1
         if self._frame_cnt % self._flags.log_every_nth_message != 0:
             return

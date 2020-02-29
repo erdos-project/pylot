@@ -32,9 +32,10 @@ class FusionOperator(erdos.Operator):
         obstacles_stream.add_callback(self.update_obstacles)
         depth_camera_stream.add_callback(self.update_distances)
         self._fused_stream = fused_stream
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         self._flags = flags
         self._segments = []
         self._rgbd_max_range = rgbd_max_range
@@ -104,8 +105,8 @@ class FusionOperator(erdos.Operator):
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},{}'.format(time_epoch_ms(), self.name,
-                                                runtime))
+        self._csv_logger.info('{},{},{}'.format(time_epoch_ms(),
+                                                self.config.name, runtime))
 
         output_msg = ObstaclePositionsSpeedsMessage(timestamp,
                                                     obstacle_positions)
@@ -125,7 +126,7 @@ class FusionOperator(erdos.Operator):
         self._logger.info("Received update obstacles")
         vehicle_bounds = []
         for obstacle in msg.obstacles:
-            self._logger.info("%s received: %s ", self.name, obstacle)
+            self._logger.info("%s received: %s ", self.config.name, obstacle)
             # TODO(ionel): Deal with different types of labels.
             if obstacle.label in {"truck", "car"}:
                 vehicle_bounds.append(obstacle.bounding_box)

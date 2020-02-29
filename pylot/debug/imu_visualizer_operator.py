@@ -22,7 +22,8 @@ class IMUVisualizerOperator(erdos.Operator):
     """
     def __init__(self, imu_stream, flags):
         imu_stream.add_callback(self.on_imu_update)
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
 
     @staticmethod
@@ -49,7 +50,7 @@ class IMUVisualizerOperator(erdos.Operator):
                 be drawn on the screen.
         """
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.name))
+            msg.timestamp, self.config.name))
         transform = msg.transform
         # Acceleration measured in ego frame, not global
         # z acceleration not useful for visualization so set to 0

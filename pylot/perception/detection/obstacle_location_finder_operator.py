@@ -2,8 +2,8 @@ from collections import deque
 import copy
 import erdos
 
-from pylot.utils import Rotation, Transform
 from pylot.perception.messages import ObstaclesMessage
+from pylot.utils import Rotation, Transform
 
 
 class ObstacleLocationFinderOperator(erdos.Operator):
@@ -43,9 +43,8 @@ class ObstacleLocationFinderOperator(erdos.Operator):
             [obstacles_output_stream], self.on_watermark)
         self._flags = flags
         self._camera_setup = camera_setup
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         # Queues in which received messages are stored.
         self._obstacles_msgs = deque()
         self._point_cloud_msgs = deque()

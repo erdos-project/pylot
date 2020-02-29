@@ -29,7 +29,8 @@ class CarlaLidarDriverOperator(erdos.Operator):
         self._vehicle_id_stream = ground_vehicle_id_stream
         self._lidar_stream = lidar_stream
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._lidar_setup = lidar_setup
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None

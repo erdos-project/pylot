@@ -39,9 +39,8 @@ class CarlaReplayOperator(erdos.Operator):
         self._ground_stop_signs_stream = ground_stop_signs_stream
         self._vehicle_id_stream = vehicle_id_stream
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._client = None
         self._world = None
         # Lock to ensure that the callbacks do not execute simultaneously.

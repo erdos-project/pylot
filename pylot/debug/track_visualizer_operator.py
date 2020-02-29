@@ -36,7 +36,8 @@ class TrackVisualizerOperator(erdos.Operator):
             obstacle_tracking_stream, prediction_stream,
             segmented_camera_stream
         ], [], self.on_watermark)
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
         self._past_colors = {'person': [255, 0, 0], 'vehicle': [128, 128, 0]}
         self._future_colors = {'person': [0, 0, 255], 'vehicle': [0, 255, 0]}
@@ -85,7 +86,7 @@ class TrackVisualizerOperator(erdos.Operator):
                 the watermark.
         """
         self._logger.debug('@{}: {} received watermark'.format(
-            timestamp, self.name))
+            timestamp, self.config.name))
         tracking_msg = self._tracking_msgs.popleft()
         segmentation_msg = self._top_down_segmentation_msgs.popleft()
         prediction_msg = self._prediction_msgs.popleft()

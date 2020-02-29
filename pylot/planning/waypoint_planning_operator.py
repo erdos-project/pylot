@@ -5,9 +5,9 @@ import erdos
 import itertools
 
 import pylot.planning.cost_functions
+import pylot.utils
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.utils import BehaviorPlannerState
-import pylot.utils
 
 DEFAULT_NUM_WAYPOINTS = 50  # 50 waypoints / 50 meters of planning ahead
 DEFAULT_TARGET_WAYPOINT = 9  # Use the 10th waypoint for computing speed
@@ -57,9 +57,8 @@ class WaypointPlanningOperator(erdos.Operator):
             [can_bus_stream, obstacles_stream, traffic_lights_stream],
             [waypoints_stream], self.on_watermark)
 
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
         # Initialize the state of the behaviour planner.
         # XXX(ionel): The behaviour planner is not ready yet.

@@ -26,7 +26,8 @@ class LinearPredictorOperator(erdos.Operator):
     def __init__(self, tracking_stream, linear_prediction_stream, flags):
         tracking_stream.add_callback(self.generate_predicted_trajectories,
                                      [linear_prediction_stream])
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
 
     @staticmethod

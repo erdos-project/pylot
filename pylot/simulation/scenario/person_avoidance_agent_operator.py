@@ -27,9 +27,10 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
         erdos.add_watermark_callback([can_bus_stream, obstacles_stream],
                                      [control_stream], self.on_watermark)
 
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         self._flags = flags
         self._goal = goal
 
@@ -135,11 +136,11 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
                     if obstacle.label == 'person':
                         self._csv_logger.info(
                             "{},{},detected a person {}m away".format(
-                                self.name, self.SPEED,
+                                self.config.name, self.SPEED,
                                 person.distance(ego_transform)))
                         self._csv_logger.info(
                             "{},{},vehicle speed {} m/s.".format(
-                                self.name, self.SPEED,
+                                self.config.name, self.SPEED,
                                 can_bus_msg.data.forward_speed))
 
         # Figure out the location of the ego vehicle and compute the next

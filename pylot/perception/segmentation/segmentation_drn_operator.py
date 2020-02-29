@@ -39,9 +39,10 @@ class SegmentationDRNOperator(erdos.Operator):
         camera_stream.add_callback(self.on_msg_camera_stream,
                                    [segmented_stream])
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         arch = "drn_d_22"
         classes = 19
         self._pallete = drn.segment.CARLA_CITYSCAPE_PALETTE
@@ -81,7 +82,7 @@ class SegmentationDRNOperator(erdos.Operator):
                 messages.
         """
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.name))
+            msg.timestamp, self.config.name))
         start_time = time.time()
         assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
         image = torch.from_numpy(msg.frame.frame.transpose(
@@ -98,10 +99,10 @@ class SegmentationDRNOperator(erdos.Operator):
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
-                                                     self.name, msg.timestamp,
-                                                     runtime))
+                                                     self.config.name,
+                                                     msg.timestamp, runtime))
         frame = SegmentedFrame(image_np, 'cityscapes', msg.frame.camera_setup)
         if self._flags.visualize_segmentation_output:
-            frame.visualize(self.name, msg.timestamp)
+            frame.visualize(self.config.name, msg.timestamp)
         segmented_stream.send(
             SegmentedFrameMessage(msg.timestamp, frame, runtime))

@@ -30,7 +30,8 @@ class CarlaIMUDriverOperator(erdos.Operator):
         self._imu_stream = imu_stream
         # The operator does not pass watermarks by defaults.
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._imu_setup = imu_setup
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None

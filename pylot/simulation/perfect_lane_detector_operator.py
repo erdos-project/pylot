@@ -22,7 +22,8 @@ class PerfectLaneDetectionOperator(erdos.Operator):
         can_bus_stream.add_callback(self.on_position_update,
                                     [detected_lane_stream])
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._waypoint_precision = 0.05
 
     @staticmethod

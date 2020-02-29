@@ -27,9 +27,8 @@ class VelodyneDriverOperator(erdos.Operator):
         self._lidar_setup = lidar_setup
         self._topic_name = topic_name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._modulo_to_send = LIDAR_FREQUENCY // self._flags.sensor_frequency
         self._counter = 0
         self._msg_cnt = 0
@@ -58,6 +57,6 @@ class VelodyneDriverOperator(erdos.Operator):
         self._msg_cnt += 1
 
     def run(self):
-        rospy.init_node(self.name, anonymous=True, disable_signals=True)
+        rospy.init_node(self.config.name, anonymous=True, disable_signals=True)
         rospy.Subscriber(self._topic_name, PointCloud2, self.on_point_cloud)
         rospy.spin()

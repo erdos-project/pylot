@@ -2,12 +2,12 @@ import erdos
 import threading
 import time
 
-from pylot.perception.messages import FrameMessage, DepthFrameMessage, \
-    SegmentedFrameMessage
-from pylot.simulation.utils import get_world, set_synchronous_mode
-from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.depth_frame import DepthFrame
+from pylot.perception.messages import DepthFrameMessage, FrameMessage, \
+    SegmentedFrameMessage
+from pylot.perception.segmentation.segmented_frame import SegmentedFrame
+from pylot.simulation.utils import get_world, set_synchronous_mode
 
 
 class CarlaCameraDriverOperator(erdos.Operator):
@@ -32,7 +32,8 @@ class CarlaCameraDriverOperator(erdos.Operator):
         self._vehicle_id_stream = ground_vehicle_id_stream
         self._camera_stream = camera_stream
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._camera_setup = camera_setup
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None

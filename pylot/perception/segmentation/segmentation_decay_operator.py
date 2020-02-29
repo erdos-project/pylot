@@ -23,9 +23,10 @@ class SegmentationDecayOperator(erdos.Operator):
         ground_segmented_stream.add_callback(self.on_ground_segmented_frame,
                                              [iou_stream])
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         self._ground_frames = deque()
 
     @staticmethod
@@ -68,7 +69,7 @@ class SegmentationDecayOperator(erdos.Operator):
                     'Segmentation ground latency {} ; mean IoU {}'.format(
                         time_diff, mean_iou))
                 self._csv_logger.info('{},{},mIoU,{},{}'.format(
-                    cur_time, self.name, time_diff, mean_iou))
+                    cur_time, self.config.name, time_diff, mean_iou))
                 iou_stream.send(
                     erdos.Message(msg.timestamp, (time_diff, mean_iou)))
                 person_key = 4
@@ -77,7 +78,8 @@ class SegmentationDecayOperator(erdos.Operator):
                         'Segmentation ground latency {} ; person IoU {}'.
                         format(time_diff, class_iou[person_key]))
                     self._csv_logger.info('{},{},personIoU,{},{}'.format(
-                        cur_time, self.name, time_diff, class_iou[person_key]))
+                        cur_time, self.config.name, time_diff,
+                        class_iou[person_key]))
 
                 vehicle_key = 10
                 if vehicle_key in class_iou:
@@ -85,7 +87,7 @@ class SegmentationDecayOperator(erdos.Operator):
                         'Segmentation ground latency {} ; vehicle IoU {}'.
                         format(time_diff, class_iou[vehicle_key]))
                     self._csv_logger.info('{},{},vehicleIoU,{},{}'.format(
-                        cur_time, self.name, time_diff,
+                        cur_time, self.config.name, time_diff,
                         class_iou[vehicle_key]))
 
         # Append the processed image to the buffer.

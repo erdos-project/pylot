@@ -16,9 +16,8 @@ class NDTAutowareOperator(erdos.Operator):
         self._can_bus_stream = can_bus_stream
         self._flags = flags
         self._topic_name = topic_name
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._forward_speed = 0
         self._modulo_to_send = NDT_FREQUENCY // self._flags.sensor_frequency
         self._counter = 0
@@ -52,7 +51,7 @@ class NDTAutowareOperator(erdos.Operator):
         self._forward_speed = data.data
 
     def run(self):
-        rospy.init_node(self.name, anonymous=True, disable_signals=True)
+        rospy.init_node(self.config.name, anonymous=True, disable_signals=True)
         rospy.Subscriber(self._topic_name, PoseStamped, self.on_pose_update)
         rospy.Subscriber('/estimated_vel_mps', Float32,
                          self.on_velocity_update)

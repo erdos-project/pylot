@@ -25,7 +25,7 @@ def add_avoidance_agent(can_bus_stream, obstacles_stream,
     op_config = erdos.OperatorConfig(
         name=FLAGS.obstacle_detection_model_names[0] + '_agent',
         log_file_name=FLAGS.log_file_name,
-        csv_file_name=FLAGS.csv_log_file_name)
+        csv_log_file_name=FLAGS.csv_log_file_name)
     [control_stream] = erdos.connect(
         PersonAvoidanceAgentOperator, op_config,
         [can_bus_stream, obstacles_stream, ground_obstacles_stream],

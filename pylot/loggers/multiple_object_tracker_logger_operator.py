@@ -21,7 +21,8 @@ class MultipleObjectTrackerLoggerOperator(erdos.Operator):
     def __init__(self, obstacles_stream, flags):
         # Register a callback on obstacles data stream.
         obstacles_stream.add_callback(self.on_obstacles_msg)
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
         self._msg_cnt = 0
 
@@ -39,7 +40,7 @@ class MultipleObjectTrackerLoggerOperator(erdos.Operator):
                 Received message.
         """
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.name))
+            msg.timestamp, self.config.name))
         self._msg_cnt += 1
         if self._msg_cnt % self._flags.log_every_nth_message != 0:
             return

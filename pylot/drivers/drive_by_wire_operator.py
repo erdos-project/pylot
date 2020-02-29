@@ -26,9 +26,8 @@ class DriveByWireOperator(erdos.Operator):
     def __init__(self, control_stream, flags):
         self._control_stream = control_stream
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
 
         # ROS Publishers to publish the commands to ADAS.
         self.enable_pub, self.disable_pub = None, None
@@ -50,7 +49,7 @@ class DriveByWireOperator(erdos.Operator):
         self.steering_pub = rospy.Publisher(STEERING_TOPIC,
                                             SteeringCmd,
                                             queue_size=10)
-        rospy.init_node(self.name, anonymous=True, disable_signals=True)
+        rospy.init_node(self.config.name, anonymous=True, disable_signals=True)
 
         # Enable the ADAS.
         #self.enable_pub.publish(Empty())

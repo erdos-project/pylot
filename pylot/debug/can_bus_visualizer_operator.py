@@ -17,7 +17,8 @@ class CanBusVisualizerOperator(erdos.Operator):
     """
     def __init__(self, can_bus_stream, flags):
         can_bus_stream.add_callback(self.on_can_bus_update)
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
 
     @staticmethod
@@ -43,7 +44,7 @@ class CanBusVisualizerOperator(erdos.Operator):
             msg: CanBus message
         """
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.name))
+            msg.timestamp, self.config.name))
         vehicle_transform = msg.data.transform
         # Draw position. We add 0.5 to z to ensure that the point is above the
         # road surface.

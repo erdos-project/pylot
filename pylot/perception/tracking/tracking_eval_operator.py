@@ -34,9 +34,10 @@ class TrackingEvalOperator(erdos.Operator):
             [obstacle_tracking_stream, ground_obstacles_stream], [],
             self.on_watermark)
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         self._last_notification = None
         # Buffer of detected obstacles.
         self._tracked_obstacles = []
@@ -94,12 +95,12 @@ class TrackingEvalOperator(erdos.Operator):
                     # Get runtime in ms
                     runtime = (time.time() - op_start_time) * 1000
                     self._csv_logger.info("{},{},{},{}".format(
-                        time_epoch_ms(), self.name, "runtime", runtime))
+                        time_epoch_ms(), self.config.name, "runtime", runtime))
                     # Write metrics to csv log file
                     for metric_name in self._flags.tracking_metrics:
                         if metric_name in metrics_summary_df.columns:
                             self._csv_logger.info("{},{},{},{}".format(
-                                time_epoch_ms(), self.name, metric_name,
+                                time_epoch_ms(), self.config.name, metric_name,
                                 metrics_summary_df[metric_name].values[0]))
                         else:
                             raise ValueError(

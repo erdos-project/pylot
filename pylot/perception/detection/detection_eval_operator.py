@@ -28,9 +28,10 @@ class DetectionEvalOperator(erdos.Operator):
         erdos.add_watermark_callback(
             [obstacles_stream, ground_obstacles_stream], [], self.on_watermark)
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         self._last_notification = None
         # Buffer of detected obstacles.
         self._detected_obstacles = []
@@ -86,10 +87,10 @@ class DetectionEvalOperator(erdos.Operator):
                     # Get runtime in ms
                     runtime = (time.time() - op_start_time) * 1000
                     self._csv_logger.info('{},{},{},{}'.format(
-                        time_epoch_ms(), self.name, 'runtime', runtime))
+                        time_epoch_ms(), self.config.name, 'runtime', runtime))
                     self._logger.info('mAP is: {}'.format(mAP))
                     self._csv_logger.info('{},{},{},{}'.format(
-                        time_epoch_ms(), self.name, 'mAP', mAP))
+                        time_epoch_ms(), self.config.name, 'mAP', mAP))
                 self._logger.debug('Computing accuracy for {} {}'.format(
                     end_time, start_time))
             else:

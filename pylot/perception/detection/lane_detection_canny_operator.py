@@ -6,9 +6,7 @@ import cv2
 import erdos
 import numpy as np
 import math
-import time
 
-from pylot.utils import time_epoch_ms
 from pylot.perception.camera_frame import CameraFrame
 
 flags.DEFINE_bool('visualize_lane_detection', False,
@@ -35,9 +33,8 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
         camera_stream.add_callback(self.on_msg_camera_stream,
                                    [detected_lanes_stream])
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._kernel_size = 7
 
     @staticmethod
@@ -67,8 +64,7 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
                 messages.
         """
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.name))
-        start_time = time.time()
+            msg.timestamp, self.config.name))
         assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
         # Make a copy of the image coming into the operator.
         image = np.copy(msg.frame.as_numpy_array())
@@ -102,17 +98,11 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
         # Hough lines.
         image = self._draw_lines(image)
 
-        # Get runtime in ms.
-        runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
-                                                     self.name, msg.timestamp,
-                                                     runtime))
-
         if self._flags.visualize_lane_detection:
             final_img = np.copy(msg.frame.as_numpy_array())
             final_img = cv2.addWeighted(final_img, 0.8, image, 1.0, 0.0)
             frame = CameraFrame(final_img, 'BGR', msg.frame.camera_setup)
-            frame.visualize(self.name, msg.timestamp)
+            frame.visualize(self.config.name, msg.timestamp)
 
         detected_lanes_stream.send(erdos.Message(msg.timestamp, image))
 

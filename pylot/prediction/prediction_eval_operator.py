@@ -33,9 +33,10 @@ class PredictionEvalOperator(erdos.Operator):
             [can_bus_stream, tracking_stream, prediction_stream], [],
             self.on_watermark)
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         # Message buffers.
         self._prediction_msgs = deque()
         self._tracking_msgs = deque()
@@ -180,15 +181,21 @@ class PredictionEvalOperator(erdos.Operator):
         self._logger.info('Person ADE is: {}'.format(person_ade))
         self._logger.info('Person FDE is: {}'.format(person_fde))
 
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(), self.name,
+        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                   self.config.name,
                                                    'vehicle-MSD', vehicle_msd))
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(), self.name,
+        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                   self.config.name,
                                                    'vehicle-ADE', vehicle_ade))
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(), self.name,
+        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                   self.config.name,
                                                    'vehicle-FDE', vehicle_fde))
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(), self.name,
+        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                   self.config.name,
                                                    'person-MSD', person_msd))
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(), self.name,
+        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                   self.config.name,
                                                    'person-ADE', person_ade))
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(), self.name,
+        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                   self.config.name,
                                                    'person-FDE', person_fde))

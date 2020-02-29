@@ -15,7 +15,8 @@ class CameraVisualizerOperator(erdos.Operator):
     """
     def __init__(self, camera_stream):
         camera_stream.add_callback(self.display_frame)
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
 
     @staticmethod
     def connect(camera_stream):
@@ -23,5 +24,5 @@ class CameraVisualizerOperator(erdos.Operator):
 
     def display_frame(self, msg):
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.name))
-        msg.frame.visualize(self.name, msg.timestamp)
+            msg.timestamp, self.config.name))
+        msg.frame.visualize(self.config.name, msg.timestamp)

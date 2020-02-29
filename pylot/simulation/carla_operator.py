@@ -46,9 +46,8 @@ class CarlaOperator(erdos.Operator):
         self.global_trajectory_stream = global_trajectory_stream
 
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         # Connect to CARLA and retrieve the world running.
         self._client, self._world = get_world(self._flags.carla_host,
                                               self._flags.carla_port,

@@ -40,9 +40,10 @@ class DetectionOperator(erdos.Operator):
         camera_stream.add_callback(self.on_msg_camera_stream,
                                    [obstacles_stream])
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         self._detection_graph = tf.Graph()
         # Load the model from the model file.
         set_tf_loglevel(logging.ERROR)
@@ -106,7 +107,7 @@ class DetectionOperator(erdos.Operator):
                 messages.
         """
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.name))
+            msg.timestamp, self.config.name))
         start_time = time.time()
         # The models expect BGR images.
         assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
@@ -149,24 +150,24 @@ class DetectionOperator(erdos.Operator):
                     res_classes[i]))
 
         self._logger.debug('@{}: {} obstacles: {}'.format(
-            msg.timestamp, self.name, obstacles))
+            msg.timestamp, self.config.name, obstacles))
 
         if (self._flags.visualize_detected_obstacles
                 or self._flags.log_detector_output):
             msg.frame.annotate_with_bounding_boxes(msg.timestamp, obstacles,
                                                    self._bbox_colors)
             if self._flags.visualize_detected_obstacles:
-                msg.frame.visualize(self.name)
+                msg.frame.visualize(self.config.name)
             if self._flags.log_detector_output:
                 msg.frame.save(msg.timestamp.coordinates[0],
                                self._flags.data_path,
-                               'detector-{}'.format(self.name))
+                               'detector-{}'.format(self.config.name))
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
-                                                     self.name, msg.timestamp,
-                                                     runtime))
+                                                     self.config.name,
+                                                     msg.timestamp, runtime))
         # Send out obstacles.
         obstacles_stream.send(
             ObstaclesMessage(msg.timestamp, obstacles, runtime))

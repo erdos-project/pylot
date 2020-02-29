@@ -18,9 +18,10 @@ class ObjectTrackerOperator(erdos.Operator):
         camera_stream.add_callback(self.on_frame_msg,
                                    [obstacle_tracking_stream])
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         self._tracker_type = tracker_type
         try:
             if tracker_type == 'cv2':
@@ -63,7 +64,7 @@ class ObjectTrackerOperator(erdos.Operator):
     def on_frame_msg(self, msg, obstacle_tracking_stream):
         """ Invoked when a FrameMessage is received on the camera stream."""
         self._logger.debug('@{}: {} received frame'.format(
-            msg.timestamp, self.name))
+            msg.timestamp, self.config.name))
         start_time = time.time()
         assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
         camera_frame = msg.frame
@@ -77,13 +78,13 @@ class ObjectTrackerOperator(erdos.Operator):
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
-                                                     self.name, msg.timestamp,
-                                                     runtime))
+                                                     self.config.name,
+                                                     msg.timestamp, runtime))
 
     def on_obstacles_msg(self, msg, obstacle_tracking_stream):
         """ Invoked when obstacles are received on the stream."""
         self._logger.debug('@{}: {} received obstacles'.format(
-            msg.timestamp, self.name))
+            msg.timestamp, self.config.name))
         self._ready_to_update = False
         self._logger.debug("@{}: received {} bounding boxes".format(
             msg.timestamp, len(msg.obstacles)))
@@ -144,4 +145,4 @@ class ObjectTrackerOperator(erdos.Operator):
                 # tracked obstacles have no label, draw white bbox.
                 camera_frame.annotate_with_bounding_boxes(
                     timestamp, tracked_obstacles)
-                camera_frame.visualize(self.name)
+                camera_frame.visualize(self.config.name)

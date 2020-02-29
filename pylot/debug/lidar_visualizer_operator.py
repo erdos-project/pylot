@@ -17,7 +17,8 @@ class LidarVisualizerOperator(erdos.Operator):
     """
     def __init__(self, point_cloud_stream):
         point_cloud_stream.add_callback(self.display_point_cloud)
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
 
     @staticmethod
     def connect(point_cloud_stream):
@@ -25,5 +26,5 @@ class LidarVisualizerOperator(erdos.Operator):
 
     def display_point_cloud(self, msg):
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.name))
+            msg.timestamp, self.config.name))
         pptk.viewer(msg.point_cloud.points)

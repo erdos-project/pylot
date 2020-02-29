@@ -73,7 +73,8 @@ class PerfectDetectorOperator(erdos.Operator):
             ground_speed_limit_signs_stream, ground_stop_signs_stream
         ], [obstacles_stream], self.on_watermark)
 
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
         # Queues of incoming data.
         self._bgr_msgs = deque()
@@ -145,7 +146,7 @@ class PerfectDetectorOperator(erdos.Operator):
             bgr_msg.frame.annotate_with_bounding_boxes(bgr_msg.timestamp,
                                                        det_obstacles)
             if self._flags.visualize_detected_obstacles:
-                bgr_msg.frame.visualize(self.name)
+                bgr_msg.frame.visualize(self.config.name)
             if self._flags.log_detector_output:
                 bgr_msg.frame.save(bgr_msg.timestamp.coordinates[0],
                                    self._flags.data_path, 'perfect-detector')
