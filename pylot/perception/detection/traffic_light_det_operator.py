@@ -96,7 +96,7 @@ class TrafficLightDetOperator(erdos.Operator):
         traffic_lights_stream = erdos.WriteStream()
         return [traffic_lights_stream]
 
-    @erdos.profile_method
+    @erdos.profile_method()
     def on_frame(self, msg, traffic_lights_stream):
         """Invoked whenever a frame message is received on the stream.
 

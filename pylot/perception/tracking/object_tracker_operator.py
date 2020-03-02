@@ -59,7 +59,7 @@ class ObjectTrackerOperator(erdos.Operator):
         obstacle_tracking_stream = erdos.WriteStream()
         return [obstacle_tracking_stream]
 
-    @erdos.profile_method
+    @erdos.profile_method()
     def on_frame_msg(self, msg, obstacle_tracking_stream):
         """ Invoked when a FrameMessage is received on the camera stream."""
         self._logger.debug('@{}: {} received frame'.format(
@@ -74,7 +74,7 @@ class ObjectTrackerOperator(erdos.Operator):
             self.__track_bboxes_on_frame(camera_frame, msg.timestamp, False,
                                          obstacle_tracking_stream)
 
-    @erdos.profile_method
+    @erdos.profile_method()
     def on_obstacles_msg(self, msg, obstacle_tracking_stream):
         """ Invoked when obstacles are received on the stream."""
         self._logger.debug('@{}: {} received obstacles'.format(

@@ -93,7 +93,7 @@ class DetectionOperator(erdos.Operator):
         obstacles_stream = erdos.WriteStream()
         return [obstacles_stream]
 
-    @erdos.profile_method
+    @erdos.profile_method()
     def on_msg_camera_stream(self, msg, obstacles_stream):
         """Invoked whenever a frame message is received on the stream.
 

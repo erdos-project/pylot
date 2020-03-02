@@ -50,7 +50,7 @@ class PIDAgentOperator(erdos.Operator):
         control_stream = erdos.WriteStream()
         return [control_stream]
 
-    @erdos.profile_method
+    @erdos.profile_method()
     def on_watermark(self, timestamp, control_stream):
         """Computes and sends the control command on the control stream.
 

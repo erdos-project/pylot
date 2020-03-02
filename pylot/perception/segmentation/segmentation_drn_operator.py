@@ -69,7 +69,7 @@ class SegmentationDRNOperator(erdos.Operator):
         segmented_stream = erdos.WriteStream()
         return [segmented_stream]
 
-    @erdos.profile_method
+    @erdos.profile_method()
     def on_msg_camera_stream(self, msg, segmented_stream):
         """Invoked upon the receipt of a message on the camera stream.
 

@@ -125,7 +125,7 @@ class DepthEstimationOperator(erdos.Operator):
         img = processed(img)
         self._right_imgs[msg.timestamp] = img
 
-    @erdos.profile_method
+    @erdos.profile_method()
     def compute_depth(self, timestamp, depth_estimation_stream):
         self._logger.debug('@{}: {} received watermark'.format(
             timestamp, self.config.name))

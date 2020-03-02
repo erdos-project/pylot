@@ -89,7 +89,7 @@ class CarlaOperator(erdos.Operator):
             global_trajectory_stream
         ]
 
-    @erdos.profile_method
+    @erdos.profile_method()
     def on_control_msg(self, msg):
         """ Invoked when a ControlMessage is received.
 
@@ -355,7 +355,7 @@ class CarlaOperator(erdos.Operator):
             driving_vehicle.set_autopilot(True)
         return driving_vehicle
 
-    @erdos.profile_method
+    @erdos.profile_method()
     def publish_world_data(self, msg):
         """ Callback function that gets called when the world is ticked.
         This function sends a WatermarkMessage to the downstream operators as

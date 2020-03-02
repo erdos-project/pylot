@@ -80,7 +80,7 @@ class RRTStarPlanningOperator(erdos.Operator):
             msg.timestamp))
         self._prediction_msgs.append(msg)
 
-    @erdos.profile_method
+    @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         # get ego info

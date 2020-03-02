@@ -40,7 +40,7 @@ class MPCAgentOperator(erdos.Operator):
         self._logger.debug('@{}: can bus update'.format(msg.timestamp))
         self._can_bus_msgs.append(msg)
 
-    @erdos.profile_method
+    @erdos.profile_method()
     def on_watermark(self, timestamp, control_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
 

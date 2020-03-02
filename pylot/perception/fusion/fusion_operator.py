@@ -85,7 +85,7 @@ class FusionOperator(erdos.Operator):
             while queue[0][0] < oldest_timestamp:
                 queue.popleft()
 
-    @erdos.profile_method
+    @erdos.profile_method()
     def fuse(self):
         # Return if we don't have car position, distances or obstacles.
         if min(

@@ -43,7 +43,7 @@ class CarlaLidarDriverOperator(erdos.Operator):
         lidar_stream = erdos.WriteStream()
         return [lidar_stream]
 
-    @erdos.profile_method
+    @erdos.profile_method()
     def process_point_clouds(self, carla_pc):
         """ Invoked when a pointcloud is received from the simulator.
 

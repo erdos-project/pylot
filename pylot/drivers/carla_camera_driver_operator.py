@@ -99,7 +99,7 @@ class CarlaCameraDriverOperator(erdos.Operator):
         # while True:
         #     time.sleep(0.01)
 
-    @erdos.profile_method
+    @erdos.profile_method()
     def process_images(self, carla_image):
         """ Invoked when an image is received from the simulator.
 

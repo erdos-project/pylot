@@ -53,7 +53,7 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
         detected_lanes_stream = erdos.WriteStream()
         return [detected_lanes_stream]
 
-    @erdos.profile_method
+    @erdos.profile_method()
     def on_msg_camera_stream(self, msg, detected_lanes_stream):
         """Invoked whenever a frame message is received on the stream.
 
