@@ -26,8 +26,6 @@ class WaypointVisualizerOperator(erdos.Operator):
         camera_stream (:py:class:`erdos.ReadStream`): The stream on which
             camera frames are received.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
 
     Attributes:
         _logger (:obj:`logging.Logger`): Instance to be used to log messages.
@@ -40,18 +38,14 @@ class WaypointVisualizerOperator(erdos.Operator):
             bus messages.
         _world (carla.World): A handle to the world to draw the waypoints on.
     """
-    def __init__(self,
-                 waypoints_stream,
-                 camera_stream,
-                 can_bus_stream,
-                 flags,
-                 log_file_name=None):
+    def __init__(self, waypoints_stream, camera_stream, can_bus_stream, flags):
         waypoints_stream.add_callback(self.on_wp_update)
         camera_stream.add_callback(self.on_bgr_frame)
         can_bus_stream.add_callback(self.on_can_bus_update)
         erdos.add_watermark_callback([camera_stream, waypoints_stream], [],
                                      self.on_watermark)
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
         self._bgr_msgs = deque()
         self._waypoints_msgs = deque()
@@ -95,7 +89,7 @@ class WaypointVisualizerOperator(erdos.Operator):
                 pixel_location = waypoint.location.to_camera_view(
                     extrinsic_matrix, intrinsic_matrix)
                 bgr_frame.draw_point(pixel_location, [0, 0, 0])
-            bgr_frame.visualize(self.name)
+            bgr_frame.visualize(self.config.name)
 
     def on_bgr_frame(self, msg):
         """Invoked when a msg on the camera stream is received.
@@ -105,7 +99,7 @@ class WaypointVisualizerOperator(erdos.Operator):
                 Received message.
         """
         self._logger.debug('@{}: {} received bgr message'.format(
-            msg.timestamp, self.name))
+            msg.timestamp, self.config.name))
         self._bgr_msgs.append(msg)
 
     def on_wp_update(self, msg):
@@ -118,7 +112,7 @@ class WaypointVisualizerOperator(erdos.Operator):
                 message containing waypoints to be drawn on the screen.
         """
         self._logger.debug('@{}: {} received waypoints message'.format(
-            msg.timestamp, self.name))
+            msg.timestamp, self.config.name))
         self._waypoints_msgs.append(msg)
         if self._flags.draw_waypoints_on_world:
             for waypoint in msg.waypoints:
@@ -138,5 +132,5 @@ class WaypointVisualizerOperator(erdos.Operator):
                 message contains the :py:class:`~pylot.utils.CanBus` object.
         """
         self._logger.debug('@{}: {} received can bus message'.format(
-            msg.timestamp, self.name))
+            msg.timestamp, self.config.name))
         self._can_bus_msgs.append(msg)

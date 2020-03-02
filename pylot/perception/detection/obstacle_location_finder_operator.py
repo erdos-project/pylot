@@ -2,8 +2,8 @@ from collections import deque
 import copy
 import erdos
 
-from pylot.utils import Rotation, Transform
 from pylot.perception.messages import ObstaclesMessage
+from pylot.utils import Rotation, Transform
 
 
 class ObstacleLocationFinderOperator(erdos.Operator):
@@ -32,20 +32,9 @@ class ObstacleLocationFinderOperator(erdos.Operator):
             real-world location of the camera, which in turn is used to convert
             detected obstacles from camera coordinates to real-world
             coordinates.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 obstacles_stream,
-                 point_cloud_stream,
-                 can_bus_stream,
-                 obstacles_output_stream,
-                 flags,
-                 camera_setup,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, obstacles_stream, point_cloud_stream, can_bus_stream,
+                 obstacles_output_stream, flags, camera_setup):
         obstacles_stream.add_callback(self.on_obstacles_update)
         point_cloud_stream.add_callback(self.on_point_cloud_update)
         can_bus_stream.add_callback(self.on_can_bus_update)
@@ -54,9 +43,8 @@ class ObstacleLocationFinderOperator(erdos.Operator):
             [obstacles_output_stream], self.on_watermark)
         self._flags = flags
         self._camera_setup = camera_setup
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         # Queues in which received messages are stored.
         self._obstacles_msgs = deque()
         self._point_cloud_msgs = deque()
@@ -67,6 +55,7 @@ class ObstacleLocationFinderOperator(erdos.Operator):
         obstacles_output_stream = erdos.WriteStream()
         return [obstacles_output_stream]
 
+    @erdos.profile_method()
     def on_watermark(self, timestamp, obstacles_output_stream):
         """Invoked when all input streams have received a watermark.
 

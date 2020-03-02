@@ -1,9 +1,9 @@
 from collections import deque
 import erdos
 
+import pylot.simulation.utils
 from pylot.perception.detection.utils import DetectedObstacle
 from pylot.perception.messages import ObstaclesMessage
-import pylot.simulation.utils
 
 
 class PerfectDetectorOperator(erdos.Operator):
@@ -35,8 +35,6 @@ class PerfectDetectorOperator(erdos.Operator):
             :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
             for detected obstacles.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
 
     Attributes:
         _bgr_msgs (:obj:`collections.deque`): Buffer of received ground BGR
@@ -55,17 +53,10 @@ class PerfectDetectorOperator(erdos.Operator):
             received from Carla.
         _frame_cnt (:obj:`int`): Number of messages received.
     """
-    def __init__(self,
-                 depth_camera_stream,
-                 center_camera_stream,
-                 segmented_camera_stream,
-                 can_bus_stream,
-                 ground_obstacles_stream,
-                 ground_speed_limit_signs_stream,
-                 ground_stop_signs_stream,
-                 obstacles_stream,
-                 flags,
-                 log_file_name=None):
+    def __init__(self, depth_camera_stream, center_camera_stream,
+                 segmented_camera_stream, can_bus_stream,
+                 ground_obstacles_stream, ground_speed_limit_signs_stream,
+                 ground_stop_signs_stream, obstacles_stream, flags):
         depth_camera_stream.add_callback(self.on_depth_camera_update)
         center_camera_stream.add_callback(self.on_bgr_camera_update)
         segmented_camera_stream.add_callback(self.on_segmented_frame)
@@ -82,7 +73,8 @@ class PerfectDetectorOperator(erdos.Operator):
             ground_speed_limit_signs_stream, ground_stop_signs_stream
         ], [obstacles_stream], self.on_watermark)
 
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
         # Queues of incoming data.
         self._bgr_msgs = deque()
@@ -103,6 +95,7 @@ class PerfectDetectorOperator(erdos.Operator):
         # Stream on which to output bounding boxes.
         return [obstacles_stream]
 
+    @erdos.profile_method()
     def on_watermark(self, timestamp, obstacles_stream):
         """Invoked when all input streams have received a watermark.
 
@@ -154,7 +147,7 @@ class PerfectDetectorOperator(erdos.Operator):
             bgr_msg.frame.annotate_with_bounding_boxes(bgr_msg.timestamp,
                                                        det_obstacles)
             if self._flags.visualize_detected_obstacles:
-                bgr_msg.frame.visualize(self.name)
+                bgr_msg.frame.visualize(self.config.name)
             if self._flags.log_detector_output:
                 bgr_msg.frame.save(bgr_msg.timestamp.coordinates[0],
                                    self._flags.data_path, 'perfect-detector')

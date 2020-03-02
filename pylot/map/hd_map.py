@@ -11,8 +11,6 @@ import carla
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 
-from erdos.utils import setup_logging
-
 import pylot.utils
 
 
@@ -25,15 +23,12 @@ class HDMap(object):
 
     Args:
         carla_map (carla.Map): An instance of a CARLA map.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
 
     Attributes:
         _map (carla.Map): An instance of a CARLA map.
         _grp: An instance of a CARLA global route planner (uses A*).
-        _logger (:obj:`logging.Logger`): Instance to be used to log messages.
     """
-    def __init__(self, carla_map, log_file_name=None):
+    def __init__(self, carla_map):
         self._map = carla_map
         # Setup global planner.
         self._grp = GlobalRoutePlanner(
@@ -42,7 +37,6 @@ class HDMap(object):
                 1.0  # Distance between waypoints
             ))
         self._grp.setup()
-        self._logger = setup_logging('hd_map', log_file_name)
 
     def get_closest_lane_waypoint(self, location):
         """Returns the road closest waypoint to location.

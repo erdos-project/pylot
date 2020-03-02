@@ -12,8 +12,6 @@ class LidarLoggerOperator(erdos.Operator):
         flags (absl.flags): Object to be used to access absl flags.
         filename_prefix (:obj:`str`): Used to build the names of the files it
             logs to.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
 
     Attributes:
         _logger (:obj:`logging.Logger`): Instance to be used to log messages.
@@ -22,13 +20,10 @@ class LidarLoggerOperator(erdos.Operator):
         _filename_prefix (:obj:`str`): Used to construct the names of the files
              it logs to.
     """
-    def __init__(self,
-                 lidar_stream,
-                 flags,
-                 filename_prefix,
-                 log_file_name=None):
+    def __init__(self, lidar_stream, flags, filename_prefix):
         lidar_stream.add_callback(self.on_lidar_frame)
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
         self._pc_msg_cnt = 0
         self._filename_prefix = filename_prefix
@@ -45,7 +40,7 @@ class LidarLoggerOperator(erdos.Operator):
                 Received message.
         """
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.name))
+            msg.timestamp, self.config.name))
         self._pc_msg_cnt += 1
         if self._pc_msg_cnt % self._flags.log_every_nth_message != 0:
             return

@@ -25,26 +25,19 @@ class TrackingEvalOperator(erdos.Operator):
             :py:class:`~pylot.perception.messages.ObstaclesMessage` are
             received from the simulator.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 obstacle_tracking_stream,
-                 ground_obstacles_stream,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, obstacle_tracking_stream, ground_obstacles_stream,
+                 flags):
         obstacle_tracking_stream.add_callback(self.on_tracker_obstacles)
         ground_obstacles_stream.add_callback(self.on_ground_obstacles)
         erdos.add_watermark_callback(
             [obstacle_tracking_stream, ground_obstacles_stream], [],
             self.on_watermark)
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         self._last_notification = None
         # Buffer of detected obstacles.
         self._tracked_obstacles = []
@@ -61,8 +54,8 @@ class TrackingEvalOperator(erdos.Operator):
         """Connects the operator to other streams.
 
         Args:
-            obstacle_tracking_stream (:py:class:`erdos.ReadStream`): The stream on
-                which obstacle tracks are received from object trackers.
+            obstacle_tracking_stream (:py:class:`erdos.ReadStream`): The stream
+                on which obstacle tracks are received from object trackers.
             ground_obstacles_stream: The stream on which
                 :py:class:`~pylot.perception.messages.ObstaclesMessage` are
                 received from the simulator.
@@ -102,12 +95,12 @@ class TrackingEvalOperator(erdos.Operator):
                     # Get runtime in ms
                     runtime = (time.time() - op_start_time) * 1000
                     self._csv_logger.info("{},{},{},{}".format(
-                        time_epoch_ms(), self.name, "runtime", runtime))
+                        time_epoch_ms(), self.config.name, "runtime", runtime))
                     # Write metrics to csv log file
                     for metric_name in self._flags.tracking_metrics:
                         if metric_name in metrics_summary_df.columns:
                             self._csv_logger.info("{},{},{},{}".format(
-                                time_epoch_ms(), self.name, metric_name,
+                                time_epoch_ms(), self.config.name, metric_name,
                                 metrics_summary_df[metric_name].values[0]))
                         else:
                             raise ValueError(

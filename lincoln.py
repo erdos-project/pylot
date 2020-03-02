@@ -42,14 +42,14 @@ def add_grasshopper3_camera(transform,
     camera_setup = pylot.drivers.sensor_setup.RGBCameraSetup(
         name, FLAGS.camera_image_width, FLAGS.camera_image_height, transform,
         fov)
-    [camera_stream] = erdos.connect(Grasshopper3DriverOperator, [],
-                                    camera_setup.get_name() + '_operator',
-                                    False,
-                                    camera_setup,
-                                    topic_name,
-                                    FLAGS,
-                                    log_file_name=FLAGS.log_file_name,
-                                    csv_file_name=FLAGS.csv_log_file_name)
+    op_config = erdos.OperatorConfig(name=camera_setup.get_name() +
+                                     '_operator',
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [camera_stream] = erdos.connect(Grasshopper3DriverOperator, op_config, [],
+                                    camera_setup, topic_name, FLAGS)
     return (camera_stream, camera_setup)
 
 
@@ -57,34 +57,33 @@ def add_velodyne_lidar(transform, name='velodyne', topic_name='/points_raw'):
     lidar_setup = pylot.drivers.sensor_setup.LidarSetup(name=name,
                                                         lidar_type='velodyne',
                                                         transform=transform)
-    [point_cloud_stream] = erdos.connect(VelodyneDriverOperator, [],
-                                         lidar_setup.get_name() + '_operator',
-                                         False,
-                                         lidar_setup,
-                                         topic_name,
-                                         FLAGS,
-                                         log_file_name=FLAGS.log_file_name,
-                                         csv_file_name=FLAGS.csv_log_file_name)
+    op_config = erdos.OperatorConfig(name=lidar_setup.get_name() + '_operator',
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [point_cloud_stream] = erdos.connect(VelodyneDriverOperator, op_config, [],
+                                         lidar_setup, topic_name, FLAGS)
     return (point_cloud_stream, lidar_setup)
 
 
 def add_localization():
-    [can_bus_stream] = erdos.connect(NDTAutowareOperator, [],
-                                     'ndt_localizer_operator',
-                                     False,
-                                     FLAGS,
+    op_config = erdos.OperatorConfig(name='ndt_localizer_operator',
+                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
-                                     csv_file_name=FLAGS.csv_log_file_name)
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [can_bus_stream] = erdos.connect(NDTAutowareOperator, op_config, [], FLAGS)
     return can_bus_stream
 
 
 def add_drive_by_wire_operator(control_stream):
-    erdos.connect(DriveByWireOperator, [control_stream],
-                  'drive_by_wire_operator',
-                  False,
-                  FLAGS,
-                  log_file_name=FLAGS.log_file_name,
-                  csv_file_name=FLAGS.csv_log_file_name)
+    op_config = erdos.OperatorConfig(name='drive_by_wire_operator',
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(DriveByWireOperator, op_config, [control_stream], FLAGS)
 
 
 def create_data_flow():

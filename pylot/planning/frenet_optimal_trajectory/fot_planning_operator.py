@@ -14,7 +14,7 @@ from pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory \
     import generate_target_course, frenet_optimal_planning
 from pylot.planning.messages import WaypointsMessage
 from pylot.simulation.utils import get_map
-from pylot.utils import Location, Transform, Rotation
+from pylot.utils import Location, Rotation, Transform
 
 DEFAULT_DISTANCE_THRESHOLD = 30  # 30 meters radius around of ego
 DEFAULT_NUM_WAYPOINTS = 100  # 100 waypoints to plan for
@@ -31,22 +31,14 @@ class FOTPlanningOperator(erdos.Operator):
         flags(:absl.flags:): Object to be used to access absl flags
         goal_location(:pylot.utils.Location:): Goal location for route planning
     """
-    def __init__(self,
-                 can_bus_stream,
-                 prediction_stream,
-                 waypoints_stream,
-                 flags,
-                 goal_location,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, can_bus_stream, prediction_stream, waypoints_stream,
+                 flags, goal_location):
         can_bus_stream.add_callback(self.on_can_bus_update)
         prediction_stream.add_callback(self.on_prediction_update)
         erdos.add_watermark_callback([can_bus_stream, prediction_stream],
                                      [waypoints_stream], self.on_watermark)
-        self._log_file_name = log_file_name
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
 
         self._waypoints = None
@@ -67,7 +59,7 @@ class FOTPlanningOperator(erdos.Operator):
         # we get the map here we're sure it is up-to-date.
         self._hd_map = HDMap(
             get_map(self._flags.carla_host, self._flags.carla_port,
-                    self._flags.carla_timeout), self._log_file_name)
+                    self._flags.carla_timeout))
 
     def on_can_bus_update(self, msg):
         self._logger.debug('@{}: received can bus message'.format(
@@ -79,6 +71,7 @@ class FOTPlanningOperator(erdos.Operator):
             msg.timestamp))
         self._prediction_msgs.append(msg)
 
+    @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
 

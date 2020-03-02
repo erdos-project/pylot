@@ -87,12 +87,10 @@ def main(argv):
         stream_to_sync_on = iou_stream
         if map_stream is not None:
             stream_to_sync_on = map_stream
-        (control_stream, ) = erdos.connect(
-            SynchronizerOperator,
-            [stream_to_sync_on],
-            'synchronizer_operator',
-            False,  # Does not flow watermarks.
-            FLAGS)
+        op_config = erdos.OperatorConfig(name='synchronizer_operator',
+                                         flow_watermarks=False)
+        (control_stream, ) = erdos.connect(SynchronizerOperator, op_config,
+                                           [stream_to_sync_on], FLAGS)
         control_loop_stream.set(control_stream)
     else:
         raise ValueError(

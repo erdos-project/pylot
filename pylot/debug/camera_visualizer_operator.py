@@ -9,15 +9,14 @@ class CameraVisualizerOperator(erdos.Operator):
     Args:
         camera_stream (:py:class:`erdos.ReadStream`): The stream on which
             camera frames are received.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
 
     Attributes:
         _logger (:obj:`logging.Logger`): Instance to be used to log messages.
     """
-    def __init__(self, camera_stream, log_file_name=None):
+    def __init__(self, camera_stream):
         camera_stream.add_callback(self.display_frame)
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
 
     @staticmethod
     def connect(camera_stream):
@@ -25,5 +24,5 @@ class CameraVisualizerOperator(erdos.Operator):
 
     def display_frame(self, msg):
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.name))
-        msg.frame.visualize(self.name, msg.timestamp)
+            msg.timestamp, self.config.name))
+        msg.frame.visualize(self.config.name, msg.timestamp)

@@ -3,8 +3,8 @@ import rospy
 from sensor_msgs.msg import PointCloud2
 import sensor_msgs.point_cloud2 as pc2
 
-from pylot.perception.messages import PointCloudMessage
 import pylot.perception.point_cloud
+from pylot.perception.messages import PointCloudMessage
 from pylot.utils import Location
 
 LIDAR_FREQUENCY = 10
@@ -21,25 +21,14 @@ class VelodyneDriverOperator(erdos.Operator):
         topic_name (:obj:`str`): The name of the ROS topic on which to listen
             for point cloud messages.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 point_cloud_stream,
-                 lidar_setup,
-                 topic_name,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, point_cloud_stream, lidar_setup, topic_name, flags):
         self._point_cloud_stream = point_cloud_stream
         self._lidar_setup = lidar_setup
         self._topic_name = topic_name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._modulo_to_send = LIDAR_FREQUENCY // self._flags.sensor_frequency
         self._counter = 0
         self._msg_cnt = 0
@@ -48,6 +37,7 @@ class VelodyneDriverOperator(erdos.Operator):
     def connect():
         return [erdos.WriteStream()]
 
+    @erdos.profile_method()
     def on_point_cloud(self, data):
         self._counter += 1
         if self._counter % self._modulo_to_send != 0:
@@ -68,6 +58,6 @@ class VelodyneDriverOperator(erdos.Operator):
         self._msg_cnt += 1
 
     def run(self):
-        rospy.init_node(self.name, anonymous=True, disable_signals=True)
+        rospy.init_node(self.config.name, anonymous=True, disable_signals=True)
         rospy.Subscriber(self._topic_name, PointCloud2, self.on_point_cloud)
         rospy.spin()

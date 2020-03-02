@@ -1,17 +1,16 @@
 """Implements an operator that detects traffic lights."""
-
 from absl import flags
+
 import erdos
 import logging
 import numpy as np
 import tensorflow as tf
-import time
 
-from pylot.perception.detection.utils import BoundingBox2D
 from pylot.perception.detection.traffic_light import TrafficLight, \
     TrafficLightColor
+from pylot.perception.detection.utils import BoundingBox2D
 from pylot.perception.messages import TrafficLightsMessage
-from pylot.utils import set_tf_loglevel, time_epoch_ms
+from pylot.utils import set_tf_loglevel
 
 flags.DEFINE_string(
     'traffic_light_det_model_path',
@@ -38,22 +37,12 @@ class TrafficLightDetOperator(erdos.Operator):
             :py:class:`~pylot.perception.messages.TrafficLightsMessage`
             messages.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 camera_stream,
-                 traffic_lights_stream,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, camera_stream, traffic_lights_stream, flags):
         # Register a callback on the camera input stream.
         camera_stream.add_callback(self.on_frame, [traffic_lights_stream])
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
         self._detection_graph = tf.Graph()
         # Load the model from the model file.
@@ -107,6 +96,7 @@ class TrafficLightDetOperator(erdos.Operator):
         traffic_lights_stream = erdos.WriteStream()
         return [traffic_lights_stream]
 
+    @erdos.profile_method()
     def on_frame(self, msg, traffic_lights_stream):
         """Invoked whenever a frame message is received on the stream.
 
@@ -118,8 +108,7 @@ class TrafficLightDetOperator(erdos.Operator):
                 messages for traffic lights.
         """
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.name))
-        start_time = time.time()
+            msg.timestamp, self.config.name))
         assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
         # Expand dimensions since the model expects images to have
         # shape: [1, None, None, 3]
@@ -142,24 +131,18 @@ class TrafficLightDetOperator(erdos.Operator):
             msg.frame.camera_setup.width)
 
         self._logger.debug('@{}: {} detected traffic lights {}'.format(
-            msg.timestamp, self.name, traffic_lights))
+            msg.timestamp, self.config.name, traffic_lights))
 
         if (self._flags.visualize_detected_traffic_lights
                 or self._flags.log_traffic_light_detector_output):
             msg.frame.annotate_with_bounding_boxes(msg.timestamp,
                                                    traffic_lights)
             if self._flags.visualize_detected_traffic_lights:
-                msg.frame.visualize(self.name)
+                msg.frame.visualize(self.config.name)
             if self._flags.log_traffic_light_detector_output:
                 msg.frame.save(msg.timestamp.coordinates[0],
                                self._flags.data_path,
-                               'tl-detector-{}'.format(self.name))
-
-        # Get runtime in ms.
-        runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
-                                                     self.name, msg.timestamp,
-                                                     runtime))
+                               'tl-detector-{}'.format(self.config.name))
 
         traffic_lights_stream.send(
             TrafficLightsMessage(msg.timestamp, traffic_lights))

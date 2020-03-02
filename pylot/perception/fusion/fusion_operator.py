@@ -1,7 +1,6 @@
 from collections import deque
 import erdos
 import numpy as np
-import time
 
 from pylot.perception.messages import ObstaclePositionsSpeedsMessage
 from pylot.utils import time_epoch_ms
@@ -23,8 +22,6 @@ class FusionOperator(erdos.Operator):
                  depth_camera_stream,
                  fused_stream,
                  flags,
-                 log_file_name=None,
-                 csv_file_name=None,
                  camera_fov=np.pi / 4,
                  rgbd_max_range=1000):
         self.can_bus_stream = can_bus_stream
@@ -34,9 +31,8 @@ class FusionOperator(erdos.Operator):
         obstacles_stream.add_callback(self.update_obstacles)
         depth_camera_stream.add_callback(self.update_distances)
         self._fused_stream = fused_stream
-        self._logger = erdos.utils.setup_logging(self.name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
         self._segments = []
         self._rgbd_max_range = rgbd_max_range
@@ -89,9 +85,9 @@ class FusionOperator(erdos.Operator):
             while queue[0][0] < oldest_timestamp:
                 queue.popleft()
 
+    @erdos.profile_method()
     def fuse(self):
         # Return if we don't have car position, distances or obstacles.
-        start_time = time.time()
         if min(
                 map(len,
                     [self._car_positions, self._distances, self._obstacles
@@ -103,11 +99,6 @@ class FusionOperator(erdos.Operator):
             self._car_positions[0][1][0],
             np.arccos(self._car_positions[0][1][1][0]))
         timestamp = self._obstacles[0][0]
-
-        # Get runtime in ms.
-        runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},{}'.format(time_epoch_ms(), self.name,
-                                                runtime))
 
         output_msg = ObstaclePositionsSpeedsMessage(timestamp,
                                                     obstacle_positions)
@@ -127,7 +118,7 @@ class FusionOperator(erdos.Operator):
         self._logger.info("Received update obstacles")
         vehicle_bounds = []
         for obstacle in msg.obstacles:
-            self._logger.info("%s received: %s ", self.name, obstacle)
+            self._logger.info("%s received: %s ", self.config.name, obstacle)
             # TODO(ionel): Deal with different types of labels.
             if obstacle.label in {"truck", "car"}:
                 vehicle_bounds.append(obstacle.bounding_box)

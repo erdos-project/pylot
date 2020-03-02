@@ -1,5 +1,6 @@
 from absl import flags
 
+import copy
 import erdos
 
 import pylot.utils
@@ -61,12 +62,11 @@ FLAGS = flags.FLAGS
 
 def add_carla_bridge(control_stream):
     from pylot.simulation.carla_operator import CarlaOperator
-    return erdos.connect(CarlaOperator, [control_stream],
-                         'carla_operator',
-                         True,
-                         FLAGS,
-                         log_file_name=FLAGS.log_file_name,
-                         csv_file_name=FLAGS.csv_log_file_name)
+    op_config = erdos.OperatorConfig(name='carla_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    return erdos.connect(CarlaOperator, op_config, [control_stream], FLAGS)
 
 
 def add_obstacle_detection(camera_stream, csv_file_name=None):
@@ -74,14 +74,13 @@ def add_obstacle_detection(camera_stream, csv_file_name=None):
     if csv_file_name is None:
         csv_file_name = FLAGS.csv_log_file_name
     for i in range(0, len(FLAGS.obstacle_detection_model_paths)):
-        obstacles_streams += erdos.connect(
-            DetectionOperator, [camera_stream],
-            FLAGS.obstacle_detection_model_names[i],
-            True,
-            FLAGS.obstacle_detection_model_paths[i],
-            FLAGS,
+        op_config = erdos.OperatorConfig(
+            name=FLAGS.obstacle_detection_model_names[i],
             log_file_name=FLAGS.log_file_name,
-            csv_file_name=csv_file_name)
+            csv_log_file_name=csv_file_name)
+        obstacles_streams += erdos.connect(
+            DetectionOperator, op_config, [camera_stream],
+            FLAGS.obstacle_detection_model_paths[i], FLAGS)
     return obstacles_streams
 
 
@@ -104,89 +103,86 @@ def add_obstacle_location_finder(obstacles_stream, point_cloud_stream,
         :py:class:`~pylot.perception.messages.ObstaclesMessage` messages with
         world locations are published.
     """
+    op_config = erdos.OperatorConfig(name=camera_setup.get_name() +
+                                     '_location_finder_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
     [obstacles_with_loc_stream
-     ] = erdos.connect(ObstacleLocationFinderOperator,
+     ] = erdos.connect(ObstacleLocationFinderOperator, op_config,
                        [obstacles_stream, point_cloud_stream, can_bus_stream],
-                       camera_setup.name + '_location_finder_operator',
-                       True,
-                       FLAGS,
-                       camera_setup,
-                       log_file_name=FLAGS.log_file_name,
-                       csv_file_name=FLAGS.csv_log_file_name)
+                       FLAGS, camera_setup)
     return obstacles_with_loc_stream
 
 
 def add_detection_decay(ground_obstacles_stream):
-    [map_stream] = erdos.connect(DetectionDecayOperator,
-                                 [ground_obstacles_stream],
-                                 'detection_decay_operator',
-                                 True,
-                                 FLAGS,
-                                 log_file_name=FLAGS.log_file_name,
-                                 csv_file_name=FLAGS.csv_log_file_name)
+    op_config = erdos.OperatorConfig(name='detection_decay_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [map_stream] = erdos.connect(DetectionDecayOperator, op_config,
+                                 [ground_obstacles_stream], FLAGS)
     return map_stream
 
 
 def add_detection_evaluation(obstacles_stream,
                              ground_obstacles_stream,
                              name='detection_eval_operator'):
-    erdos.connect(DetectionEvalOperator,
-                  [obstacles_stream, ground_obstacles_stream],
-                  name,
-                  True,
-                  FLAGS,
-                  log_file_name=FLAGS.log_file_name,
-                  csv_file_name=FLAGS.csv_log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(DetectionEvalOperator, op_config,
+                  [obstacles_stream, ground_obstacles_stream], FLAGS)
 
 
 def add_traffic_light_detector(traffic_light_camera_stream):
-    [traffic_lights_stream
-     ] = erdos.connect(TrafficLightDetOperator, [traffic_light_camera_stream],
-                       'traffic_light_detector_operator',
-                       True,
-                       FLAGS,
-                       log_file_name=FLAGS.log_file_name,
-                       csv_file_name=FLAGS.csv_log_file_name)
+    op_config = erdos.OperatorConfig(name='traffic_light_detector_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [traffic_lights_stream] = erdos.connect(TrafficLightDetOperator, op_config,
+                                            [traffic_light_camera_stream],
+                                            FLAGS)
     return traffic_lights_stream
 
 
 def add_canny_edge_lane_detection(bgr_camera_stream,
                                   name='canny_edge_lane_detection'):
-    [lane_detection_stream
-     ] = erdos.connect(CannyEdgeLaneDetectionOperator, [bgr_camera_stream],
-                       name,
-                       True,
-                       FLAGS,
-                       log_file_name=FLAGS.log_file_name,
-                       csv_file_name=FLAGS.csv_log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [lane_detection_stream] = erdos.connect(CannyEdgeLaneDetectionOperator,
+                                            op_config, [bgr_camera_stream],
+                                            FLAGS)
     return lane_detection_stream
 
 
 def add_obstacle_tracking(obstacles_stream,
                           bgr_camera_stream,
                           name_prefix='tracker_'):
+    op_config = erdos.OperatorConfig(name=name_prefix + FLAGS.tracker_type,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+
     [obstacle_tracking_stream
-     ] = erdos.connect(ObjectTrackerOperator,
+     ] = erdos.connect(ObjectTrackerOperator, op_config,
                        [obstacles_stream, bgr_camera_stream],
-                       name_prefix + FLAGS.tracker_type,
-                       True,
-                       FLAGS.tracker_type,
-                       FLAGS,
-                       log_file_name=FLAGS.log_file_name,
-                       csv_file_name=FLAGS.csv_log_file_name)
+                       FLAGS.tracker_type, FLAGS)
     return obstacle_tracking_stream
 
 
 def add_tracking_evaluation(obstacle_tracking_stream,
                             ground_obstacles_stream,
                             name='tracking_eval_operator'):
-    erdos.connect(TrackingEvalOperator,
-                  [obstacle_tracking_stream, ground_obstacles_stream],
-                  name,
-                  True,
-                  FLAGS,
-                  log_file_name=FLAGS.log_file_name,
-                  csv_file_name=FLAGS.csv_log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(TrackingEvalOperator, op_config,
+                  [obstacle_tracking_stream, ground_obstacles_stream], FLAGS)
 
 
 def add_depth_estimation(left_camera_stream,
@@ -198,62 +194,57 @@ def add_depth_estimation(left_camera_stream,
             import DepthEstimationOperator
     except ImportError:
         raise Exception("Error importing AnyNet depth estimation.")
-
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
     [depth_estimation_stream
-     ] = erdos.connect(DepthEstimationOperator,
+     ] = erdos.connect(DepthEstimationOperator, op_config,
                        [left_camera_stream, right_camera_stream],
-                       name,
-                       True,
                        center_camera_setup.get_transform(),
-                       center_camera_setup.get_fov(),
-                       FLAGS,
-                       log_file_name=FLAGS.log_file_name,
-                       csv_file_name=FLAGS.csv_log_file_name)
+                       center_camera_setup.get_fov(), FLAGS)
     return depth_estimation_stream
 
 
 def add_segmentation(bgr_camera_stream, name='drn_segmentation_operator'):
-    [segmented_stream] = erdos.connect(SegmentationDRNOperator,
-                                       [bgr_camera_stream],
-                                       name,
-                                       True,
-                                       FLAGS,
-                                       log_file_name=FLAGS.log_file_name,
-                                       csv_file_name=FLAGS.csv_log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [segmented_stream] = erdos.connect(SegmentationDRNOperator, op_config,
+                                       [bgr_camera_stream], FLAGS)
     return segmented_stream
 
 
 def add_segmentation_evaluation(ground_segmented_stream,
                                 segmented_stream,
                                 name='segmentation_evaluation_operator'):
-    erdos.connect(SegmentationEvalOperator,
-                  [ground_segmented_stream, segmented_stream],
-                  name,
-                  True,
-                  FLAGS,
-                  log_file_name=FLAGS.log_file_name,
-                  csv_file_name=FLAGS.csv_log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(SegmentationEvalOperator, op_config,
+                  [ground_segmented_stream, segmented_stream], FLAGS)
 
 
 def add_segmentation_decay(ground_segmented_stream,
                            name='segmentation_decay_operator'):
-    [iou_stream] = erdos.connect(SegmentationDecayOperator,
-                                 [ground_segmented_stream],
-                                 name,
-                                 True,
-                                 FLAGS,
-                                 log_file_name=FLAGS.log_file_name,
-                                 csv_file_name=FLAGS.csv_log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [iou_stream] = erdos.connect(SegmentationDecayOperator, op_config,
+                                 [ground_segmented_stream], FLAGS)
     return iou_stream
 
 
 def add_linear_prediction(tracking_stream):
-    [prediction_stream] = erdos.connect(LinearPredictorOperator,
-                                        [tracking_stream],
-                                        'linear_prediction_operator',
-                                        True,
-                                        FLAGS,
-                                        log_file_name=FLAGS.log_file_name)
+    op_config = erdos.OperatorConfig(name='linear_prediction_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [prediction_stream] = erdos.connect(LinearPredictorOperator, op_config,
+                                        [tracking_stream], FLAGS)
     return prediction_stream
 
 
@@ -261,13 +252,12 @@ def add_prediction_evaluation(can_bus_stream,
                               tracking_stream,
                               prediction_stream,
                               name='prediction_eval_operator'):
-    erdos.connect(PredictionEvalOperator,
-                  [can_bus_stream, tracking_stream, prediction_stream],
-                  name,
-                  True,
-                  FLAGS,
-                  log_file_name=FLAGS.log_file_name,
-                  csv_file_name=FLAGS.csv_log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(PredictionEvalOperator, op_config,
+                  [can_bus_stream, tracking_stream, prediction_stream], FLAGS)
 
 
 def add_fot_planning(can_bus_stream,
@@ -276,14 +266,13 @@ def add_fot_planning(can_bus_stream,
                      name='fot_planning_operator'):
     from pylot.planning.frenet_optimal_trajectory.fot_planning_operator \
         import FOTPlanningOperator
-    [waypoints_stream] = erdos.connect(FOTPlanningOperator,
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [waypoints_stream] = erdos.connect(FOTPlanningOperator, op_config,
                                        [can_bus_stream, prediction_stream],
-                                       name,
-                                       True,
-                                       FLAGS,
-                                       goal_location,
-                                       log_file_name=FLAGS.log_file_name,
-                                       csv_file_name=FLAGS.csv_log_file_name)
+                                       FLAGS, goal_location)
     return waypoints_stream
 
 
@@ -293,14 +282,13 @@ def add_rrt_star_planning(can_bus_stream,
                           name='rrt_star_planning_operator'):
     from pylot.planning.rrt_star.rrt_star_planning_operator import \
         RRTStarPlanningOperator
-    [waypoints_stream] = erdos.connect(RRTStarPlanningOperator,
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [waypoints_stream] = erdos.connect(RRTStarPlanningOperator, op_config,
                                        [can_bus_stream, prediction_stream],
-                                       name,
-                                       True,
-                                       FLAGS,
-                                       goal_location,
-                                       log_file_name=FLAGS.log_file_name,
-                                       csv_file_name=FLAGS.csv_log_file_name)
+                                       FLAGS, goal_location)
     return waypoints_stream
 
 
@@ -311,16 +299,14 @@ def add_waypoint_planning(can_bus_stream,
                           traffic_lights_stream,
                           goal_location,
                           name='waypoint_planning_operator'):
-    [waypoints_stream] = erdos.connect(WaypointPlanningOperator, [
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [waypoints_stream] = erdos.connect(WaypointPlanningOperator, op_config, [
         can_bus_stream, open_drive_stream, global_trajectory_stream,
         obstacles_stream, traffic_lights_stream
-    ],
-                                       name,
-                                       True,
-                                       FLAGS,
-                                       goal_location,
-                                       log_file_name=FLAGS.log_file_name,
-                                       csv_file_name=FLAGS.csv_log_file_name)
+    ], FLAGS, goal_location)
     return waypoints_stream
 
 
@@ -378,14 +364,14 @@ def add_left_right_cameras(transform, vehicle_id_stream, fov=90):
 def _add_camera_driver(vehicle_id_stream, camera_setup):
     from pylot.drivers.carla_camera_driver_operator import \
         CarlaCameraDriverOperator
-    [camera_stream] = erdos.connect(CarlaCameraDriverOperator,
-                                    [vehicle_id_stream],
-                                    camera_setup.get_name() + "_operator",
-                                    False,
-                                    camera_setup,
-                                    FLAGS,
-                                    log_file_name=FLAGS.log_file_name)
-
+    op_config = erdos.OperatorConfig(name=camera_setup.get_name() +
+                                     '_operator',
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [camera_stream] = erdos.connect(CarlaCameraDriverOperator, op_config,
+                                    [vehicle_id_stream], camera_setup, FLAGS)
     return camera_stream
 
 
@@ -399,144 +385,153 @@ def add_lidar(transform, vehicle_id_stream, name='center_lidar'):
 def _add_lidar_driver(vehicle_id_stream, lidar_setup):
     from pylot.drivers.carla_lidar_driver_operator import \
         CarlaLidarDriverOperator
-    [point_cloud_stream] = erdos.connect(CarlaLidarDriverOperator,
-                                         [vehicle_id_stream],
-                                         lidar_setup.get_name() + "_operator",
-                                         False,
-                                         lidar_setup,
-                                         FLAGS,
-                                         log_file_name=FLAGS.log_file_name)
+    op_config = erdos.OperatorConfig(name=lidar_setup.get_name() + '_operator',
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [point_cloud_stream] = erdos.connect(CarlaLidarDriverOperator, op_config,
+                                         [vehicle_id_stream], lidar_setup,
+                                         FLAGS)
     return point_cloud_stream
 
 
 def add_imu(transform, vehicle_id_stream, name='imu'):
     from pylot.drivers.carla_imu_driver_operator import CarlaIMUDriverOperator
     imu_setup = pylot.drivers.sensor_setup.IMUSetup(name, transform)
-    [imu_stream] = erdos.connect(CarlaIMUDriverOperator, [vehicle_id_stream],
-                                 imu_setup.get_name() + "_operator",
-                                 False,
-                                 imu_setup,
-                                 FLAGS,
-                                 log_file_name=FLAGS.log_file_name)
+    op_config = erdos.OperatorConfig(name=imu_setup.get_name() + '_operator',
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [imu_stream] = erdos.connect(CarlaIMUDriverOperator, op_config,
+                                 [vehicle_id_stream], imu_setup, FLAGS)
     return (imu_stream, imu_setup)
 
 
 def add_fusion(can_bus_stream, obstacles_stream, depth_stream,
                ground_obstacles_stream):
+    op_config = erdos.OperatorConfig(name='fusion_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
     [obstacle_pos_stream
-     ] = erdos.connect(FusionOperator,
-                       [can_bus_stream, obstacles_stream, depth_stream],
-                       'fusion_operator',
-                       True,
-                       FLAGS,
-                       log_file_name=FLAGS.log_file_name,
-                       csv_file_name=FLAGS.csv_log_file_name)
+     ] = erdos.connect(FusionOperator, op_config,
+                       [can_bus_stream, obstacles_stream, depth_stream], FLAGS)
 
     if FLAGS.evaluate_fusion:
-        erdos.connect(FusionVerificationOperator,
-                      [ground_obstacles_stream, obstacle_pos_stream],
-                      'fusion_verification_operator',
-                      True,
-                      log_file_name=FLAGS.log_file_name)
+        eval_op_config = erdos.OperatorConfig(
+            name='fusion_verification_operator',
+            log_file_name=FLAGS.log_file_name,
+            csv_log_file_name=FLAGS.csv_log_file_name,
+            profile_file_name=FLAGS.profile_file_name)
+        erdos.connect(FusionVerificationOperator, eval_op_config,
+                      [ground_obstacles_stream, obstacle_pos_stream])
     return obstacle_pos_stream
 
 
 def add_mpc_agent(can_bus_stream, waypoints_stream):
-    [control_stream] = erdos.connect(MPCAgentOperator,
-                                     [can_bus_stream, waypoints_stream],
-                                     'mpc_agent_operator',
-                                     True,
-                                     FLAGS,
+    op_config = erdos.OperatorConfig(name='mpc_agent_operator',
                                      log_file_name=FLAGS.log_file_name,
-                                     csv_file_name=FLAGS.csv_log_file_name)
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [control_stream] = erdos.connect(MPCAgentOperator, op_config,
+                                     [can_bus_stream, waypoints_stream], FLAGS)
     return control_stream
 
 
 def add_pid_agent(can_bus_stream, waypoints_stream):
-    input_streams = [can_bus_stream, waypoints_stream]
-    [control_stream] = erdos.connect(PIDAgentOperator,
-                                     input_streams,
-                                     'pid_agent_operator',
-                                     True,
-                                     FLAGS,
+    op_config = erdos.OperatorConfig(name='pid_agent_operator',
                                      log_file_name=FLAGS.log_file_name,
-                                     csv_file_name=FLAGS.csv_log_file_name)
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [control_stream] = erdos.connect(PIDAgentOperator, op_config,
+                                     [can_bus_stream, waypoints_stream], FLAGS)
     return control_stream
 
 
 def add_synchronizer(stream_to_sync_on):
-    (control_stream, ) = erdos.connect(
-        SynchronizerOperator,
-        [stream_to_sync_on],
-        'synchronizer_operator',
-        False,  # Does not flow watermarks.
-        FLAGS)
+    op_config = erdos.OperatorConfig(name='synchronizer_operator',
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    (control_stream, ) = erdos.connect(SynchronizerOperator, op_config,
+                                       [stream_to_sync_on], FLAGS)
     return control_stream
 
 
 def add_bounding_box_logging(obstacles_stream,
                              name='bounding_box_logger_operator'):
-    erdos.connect(BoundingBoxLoggerOperator, [obstacles_stream],
-                  name,
-                  True,
-                  FLAGS,
-                  log_file_name=FLAGS.log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(BoundingBoxLoggerOperator, op_config, [obstacles_stream],
+                  FLAGS)
 
 
 def add_camera_logging(stream, name, filename_prefix):
-    erdos.connect(CameraLoggerOperator, [stream],
-                  name,
-                  True,
-                  FLAGS,
-                  filename_prefix,
-                  log_file_name=FLAGS.log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(CameraLoggerOperator, op_config, [stream], FLAGS,
+                  filename_prefix)
 
 
 def add_chauffeur_logging(vehicle_id_stream, can_bus_stream,
                           obstacle_tracking_stream, top_down_camera_stream,
                           top_down_segmentation_stream, top_down_camera_setup):
     from pylot.loggers.chauffeur_logger_operator import ChauffeurLoggerOperator
-    erdos.connect(ChauffeurLoggerOperator, [
+    op_config = erdos.OperatorConfig(name='chauffeur_logger_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+
+    erdos.connect(ChauffeurLoggerOperator, op_config, [
         vehicle_id_stream, can_bus_stream, obstacle_tracking_stream,
         top_down_camera_stream, top_down_segmentation_stream
-    ], 'chauffeur_logger_operator', True, FLAGS, top_down_camera_setup)
+    ], FLAGS, top_down_camera_setup)
 
 
 def add_imu_logging(imu_stream, name='imu_logger_operator'):
-    erdos.connect(IMULoggerOperator, [imu_stream],
-                  name,
-                  True,
-                  FLAGS,
-                  log_file_name=FLAGS.log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(IMULoggerOperator, op_config, [imu_stream], FLAGS)
 
 
 def add_lidar_logging(point_cloud_stream,
                       name='lidar_logger_operator',
                       filename_prefix='carla-lidar-'):
-    erdos.connect(LidarLoggerOperator, [point_cloud_stream],
-                  name,
-                  True,
-                  FLAGS,
-                  filename_prefix,
-                  log_file_name=FLAGS.log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(LidarLoggerOperator, op_config, [point_cloud_stream], FLAGS,
+                  filename_prefix)
 
 
 def add_multiple_object_tracker_logging(
     obstacles_stream, name='multiple_object_tracker_logger_operator'):
-    erdos.connect(MultipleObjectTrackerLoggerOperator, [obstacles_stream],
-                  name,
-                  True,
-                  FLAGS,
-                  log_file_name=FLAGS.log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(MultipleObjectTrackerLoggerOperator, op_config,
+                  [obstacles_stream], FLAGS)
 
 
 def add_trajectory_logging(obstacles_tracking_stream,
                            name='trajectory_logger_operator'):
-    erdos.connect(TrajectoryLoggerOperator, [obstacles_tracking_stream],
-                  name,
-                  True,
-                  FLAGS,
-                  log_file_name=FLAGS.log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(TrajectoryLoggerOperator, op_config,
+                  [obstacles_tracking_stream], FLAGS)
 
 
 def add_sensor_visualizers(camera_stream, depth_camera_stream,
@@ -558,34 +553,36 @@ def add_sensor_visualizers(camera_stream, depth_camera_stream,
 
 
 def add_lidar_visualizer(point_cloud_stream, name='lidar_visualizer_operator'):
-    erdos.connect(LidarVisualizerOperator, [point_cloud_stream],
-                  name,
-                  True,
-                  log_file_name=FLAGS.log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(LidarVisualizerOperator, op_config, [point_cloud_stream])
 
 
 def add_camera_visualizer(camera_stream, name):
-    erdos.connect(CameraVisualizerOperator, [camera_stream],
-                  name,
-                  True,
-                  log_file_name=FLAGS.log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(CameraVisualizerOperator, op_config, [camera_stream])
 
 
 def add_imu_visualizer(imu_stream, name='imu_visualizer_operator'):
     from pylot.debug.imu_visualizer_operator import IMUVisualizerOperator
-    erdos.connect(IMUVisualizerOperator, [imu_stream],
-                  name,
-                  True,
-                  FLAGS,
-                  log_file_name=FLAGS.log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(IMUVisualizerOperator, op_config, [imu_stream], FLAGS)
 
 
 def add_can_bus_visualizer(can_bus_stream, name='can_bus_visualizer_operator'):
-    erdos.connect(CanBusVisualizerOperator, [can_bus_stream],
-                  name,
-                  True,
-                  FLAGS,
-                  log_file_name=FLAGS.log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(CanBusVisualizerOperator, op_config, [can_bus_stream], FLAGS)
 
 
 def add_prediction_visualizer(obstacle_tracking_stream,
@@ -602,27 +599,26 @@ def add_prediction_visualizer(obstacle_tracking_stream,
             vehicle_id_stream,
             name='top_down_segmented_camera',
             fov=90)
-
-    erdos.connect(TrackVisualizerOperator, [
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(TrackVisualizerOperator, op_config, [
         obstacle_tracking_stream, prediction_stream,
         top_down_segmented_camera_stream
-    ],
-                  name,
-                  True,
-                  FLAGS,
-                  log_file_name=FLAGS.log_file_name)
+    ], FLAGS)
 
 
 def add_waypoint_visualizer(waypoints_stream,
                             camera_stream,
                             can_bus_stream,
                             name='waypoint_visualizer_operator'):
-    erdos.connect(WaypointVisualizerOperator,
-                  [waypoints_stream, camera_stream, can_bus_stream],
-                  name,
-                  True,
-                  FLAGS,
-                  log_file_name=FLAGS.log_file_name)
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(WaypointVisualizerOperator, op_config,
+                  [waypoints_stream, camera_stream, can_bus_stream], FLAGS)
 
 
 def add_perfect_detector(depth_camera_stream, center_camera_stream,
@@ -632,15 +628,15 @@ def add_perfect_detector(depth_camera_stream, center_camera_stream,
                          ground_stop_signs_stream):
     from pylot.simulation.perfect_detector_operator import \
         PerfectDetectorOperator
-    [obstacles_stream] = erdos.connect(PerfectDetectorOperator, [
+    op_config = erdos.OperatorConfig(name='perfect_detector_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [obstacles_stream] = erdos.connect(PerfectDetectorOperator, op_config, [
         depth_camera_stream, center_camera_stream, segmented_camera_stream,
         can_bus_stream, ground_obstacles_stream,
         ground_speed_limit_signs_stream, ground_stop_signs_stream
-    ],
-                                       'perfect_detector_operator',
-                                       True,
-                                       FLAGS,
-                                       log_file_name=FLAGS.log_file_name)
+    ], FLAGS)
     return obstacles_stream
 
 
@@ -651,38 +647,39 @@ def add_perfect_traffic_light_detector(ground_traffic_lights_stream,
                                        can_bus_stream):
     from pylot.simulation.perfect_traffic_light_detector_operator import \
         PerfectTrafficLightDetectorOperator
+    op_config = erdos.OperatorConfig(
+        name='perfect_traffic_light_detector_operator',
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
     [traffic_lights_stream
-     ] = erdos.connect(PerfectTrafficLightDetectorOperator, [
+     ] = erdos.connect(PerfectTrafficLightDetectorOperator, op_config, [
          ground_traffic_lights_stream, center_camera_stream,
          depth_camera_stream, segmented_camera_stream, can_bus_stream
-     ],
-                       'perfect_traffic_light_detector_operator',
-                       True,
-                       FLAGS,
-                       log_file_name=FLAGS.log_file_name)
+     ], FLAGS)
     return traffic_lights_stream
 
 
 def add_perfect_lane_detector(can_bus_stream):
     from pylot.simulation.perfect_lane_detector_operator import \
         PerfectLaneDetectionOperator
+    op_config = erdos.OperatorConfig(name='perfect_lane_detection_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
     [detected_lanes_stream] = erdos.connect(PerfectLaneDetectionOperator,
-                                            [can_bus_stream],
-                                            'perfect_lane_detection_operator',
-                                            True,
-                                            FLAGS,
-                                            log_file_name=FLAGS.log_file_name)
+                                            op_config, [can_bus_stream], FLAGS)
     return detected_lanes_stream
 
 
 def add_perfect_tracking(ground_obstacles_stream, can_bus_stream):
     from pylot.simulation.perfect_tracker_operator import \
         PerfectTrackerOperator
+    op_config = erdos.OperatorConfig(name='perfect_tracking_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
     [ground_tracking_stream
-     ] = erdos.connect(PerfectTrackerOperator,
-                       [ground_obstacles_stream, can_bus_stream],
-                       'perfect_tracking_operator',
-                       True,
-                       FLAGS,
-                       log_file_name=FLAGS.log_file_name)
+     ] = erdos.connect(PerfectTrackerOperator, op_config,
+                       [ground_obstacles_stream, can_bus_stream], FLAGS)
     return ground_tracking_stream
