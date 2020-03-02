@@ -1,6 +1,6 @@
 from absl import app, flags
 import erdos
-
+import carla
 import pylot.flags
 import pylot.component_creator
 import pylot.operator_creator
@@ -14,7 +14,7 @@ flags.DEFINE_list('goal_location', '234, 59, 39', 'Ego-vehicle goal location')
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
 
 
-def main(argv):
+def driver():
     transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                       pylot.utils.Rotation())
 
@@ -105,6 +105,8 @@ def main(argv):
                                                   point_cloud_stream,
                                                   ground_segmented_stream,
                                                   imu_stream, can_bus_stream)
+def main(argv):
+    driver()
     erdos.run()
 
 
