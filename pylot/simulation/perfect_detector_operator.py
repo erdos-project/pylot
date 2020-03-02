@@ -129,19 +129,16 @@ class PerfectDetectorOperator(erdos.Operator):
                                              vehicle_transform,
                                              depth_msg.frame,
                                              segmented_msg.frame)
-
-        det_speed_limits = pylot.simulation.utils.get_detected_speed_limits(
-            speed_limit_signs_msg.speed_signs, depth_msg.frame,
-            segmented_msg.frame)
-
+        #det_speed_limits = pylot.simulation.utils.get_detected_speed_limits(
+        #    speed_limit_signs_msg.speed_signs, depth_msg.frame,
+        #    segmented_msg.frame)
+        det_speed_limits = []
         det_stop_signs = pylot.simulation.utils.get_detected_traffic_stops(
             stop_signs_msg.stop_signs, depth_msg.frame)
-
         det_obstacles = det_obstacles + det_speed_limits + det_stop_signs
 
         # Send the detected obstacles.
         obstacles_stream.send(ObstaclesMessage(timestamp, det_obstacles))
-
         if (self._flags.visualize_detected_obstacles
                 or self._flags.log_detector_output):
             bgr_msg.frame.annotate_with_bounding_boxes(bgr_msg.timestamp,
