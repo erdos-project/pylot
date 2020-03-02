@@ -44,6 +44,7 @@ class PerfectLaneDetectionOperator(erdos.Operator):
         shifted = transform.location + shift * transform.get_forward_vector()
         return pylot.utils.Location.from_carla_location(shifted)
 
+    @erdos.profile_method
     def on_position_update(self, can_bus_msg, detected_lane_stream):
         """ Invoked on the receipt of an update to the position of the vehicle.
 

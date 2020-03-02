@@ -78,6 +78,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
                             self._flags.carla_timeout)
         self._town_name = world_map.name
 
+    @erdos.profile_method
     def on_watermark(self, timestamp, traffic_lights_stream):
         """Invoked when all input streams have received a watermark.
 

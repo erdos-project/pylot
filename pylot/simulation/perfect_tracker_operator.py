@@ -37,6 +37,7 @@ class PerfectTrackerOperator(erdos.Operator):
         ground_tracking_stream = erdos.WriteStream()
         return [ground_tracking_stream]
 
+    @erdos.profile_method
     def on_watermark(self, timestamp, ground_tracking_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         obstacles_msg = self._obstacles_raw_msgs.popleft()

@@ -95,6 +95,7 @@ class PerfectDetectorOperator(erdos.Operator):
         # Stream on which to output bounding boxes.
         return [obstacles_stream]
 
+    @erdos.profile_method
     def on_watermark(self, timestamp, obstacles_stream):
         """Invoked when all input streams have received a watermark.
 

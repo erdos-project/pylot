@@ -39,6 +39,7 @@ class Grasshopper3DriverOperator(erdos.Operator):
     def connect():
         return [erdos.WriteStream()]
 
+    @erdos.profile_method
     def on_camera_frame(self, data):
         self._counter += 1
         if self._counter % self._modulo_to_send != 0:
