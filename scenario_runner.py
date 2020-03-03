@@ -40,6 +40,7 @@ def driver():
     transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                       pylot.utils.Rotation())
     control_loop_stream = erdos.LoopStream()
+    time_to_decision_loop_stream = erdos.LoopStream()
     # Create carla operator.
     (pose_stream, ground_traffic_lights_stream, ground_obstacles_stream,
      ground_speed_limit_signs_stream, ground_stop_signs_stream,
@@ -91,7 +92,8 @@ def driver():
     obstacles_stream = pylot.component_creator.add_obstacle_detection(
         center_camera_stream, center_camera_setup, pose_stream, depth_stream,
         depth_camera_stream, ground_segmented_stream, ground_obstacles_stream,
-        ground_speed_limit_signs_stream, ground_stop_signs_stream)
+        ground_speed_limit_signs_stream, ground_stop_signs_stream,
+        time_to_decision_loop_stream)
 
     traffic_lights_stream = \
         pylot.component_creator.add_traffic_light_detection(
@@ -137,13 +139,17 @@ def driver():
 
         # Add the traffic light invasion sensor.
         traffic_light_invasion_stream = \
-                pylot.operator_creator.add_traffic_light_invasion_sensor(
-            vehicle_id_stream, pose_stream)
+            pylot.operator_creator.add_traffic_light_invasion_sensor(
+                vehicle_id_stream, pose_stream)
 
         # Add the evaluation logger.
         pylot.operator_creator.add_eval_metric_logging(
             collision_stream, lane_invasion_stream,
             traffic_light_invasion_stream, imu_stream)
+
+    time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
+        pose_stream, obstacles_stream)
+    time_to_decision_loop_stream.set(time_to_decision_stream)
 
     pylot.operator_creator.add_sensor_visualizers(center_camera_stream,
                                                   depth_camera_stream,

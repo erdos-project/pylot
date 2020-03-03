@@ -13,7 +13,8 @@ def add_obstacle_detection(center_camera_stream,
                            segmented_camera_stream=None,
                            ground_obstacles_stream=None,
                            ground_speed_limit_signs_stream=None,
-                           ground_stop_signs_stream=None):
+                           ground_stop_signs_stream=None,
+                           time_to_decision_stream=None):
     """Adds operators for obstacle detection to the data-flow.
 
     If the `--perfect_obstacle_detection` flag is set, the method adds a
@@ -61,9 +62,8 @@ def add_obstacle_detection(center_camera_stream,
     if FLAGS.obstacle_detection:
         # TODO: Only returns the first obstacles stream.
         obstacles_streams = pylot.operator_creator.add_obstacle_detection(
-            center_camera_stream)
+            center_camera_stream, time_to_decision_stream)
         obstacles_stream_wo_depth = obstacles_streams[0]
-
         # Adds an operator that finds the world locations of the obstacles.
         obstacles_stream = pylot.operator_creator.add_obstacle_location_finder(
             obstacles_stream_wo_depth, depth_stream, pose_stream,

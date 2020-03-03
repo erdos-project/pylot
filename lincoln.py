@@ -94,6 +94,8 @@ def create_data_flow():
     velodyne_transform = pylot.utils.Transform(VELODYNE_LOCATION,
                                                pylot.utils.Rotation())
 
+    time_to_decision_loop_stream = erdos.LoopStream()
+
     (left_camera_stream, left_camera_setup) = add_grasshopper3_camera(
         left_camera_transform,
         name='left_grasshopper',
@@ -112,7 +114,7 @@ def create_data_flow():
 
     if FLAGS.obstacle_detection:
         obstacles_streams = pylot.operator_creator.add_obstacle_detection(
-            left_camera_stream)
+            left_camera_stream, time_to_decision_loop_stream)
         obstacles_stream = obstacles_streams[0]
         # Adds an operator that finds the world locations of the obstacles.
         obstacles_stream = pylot.operator_creator.add_obstacle_location_finder(
@@ -193,6 +195,10 @@ def create_data_flow():
         pylot.operator_creator.add_waypoint_visualizer(waypoints_stream,
                                                        left_camera_stream,
                                                        pose_stream)
+
+    time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
+        pose_stream, obstacles_stream)
+    time_to_decision_loop_stream.set(time_to_decision_stream)
 
     return (obstacles_stream, traffic_lights_stream, obstacles_tracking_stream,
             open_drive_stream, global_trajectory_stream)

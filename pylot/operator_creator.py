@@ -4,6 +4,7 @@ import copy
 import erdos
 
 import pylot.utils
+
 FLAGS = flags.FLAGS
 
 
@@ -16,7 +17,9 @@ def add_carla_bridge(control_stream):
     return erdos.connect(CarlaOperator, op_config, [control_stream], FLAGS)
 
 
-def add_obstacle_detection(camera_stream, csv_file_name=None):
+def add_obstacle_detection(camera_stream,
+                           time_to_decision_stream,
+                           csv_file_name=None):
     from pylot.perception.detection.detection_operator import DetectionOperator
     obstacles_streams = []
     if csv_file_name is None:
@@ -28,7 +31,8 @@ def add_obstacle_detection(camera_stream, csv_file_name=None):
             csv_log_file_name=csv_file_name,
             profile_file_name=FLAGS.profile_file_name)
         obstacles_streams += erdos.connect(
-            DetectionOperator, op_config, [camera_stream],
+            DetectionOperator, op_config,
+            [camera_stream, time_to_decision_stream],
             FLAGS.obstacle_detection_model_paths[i], FLAGS)
     return obstacles_streams
 
@@ -674,7 +678,7 @@ def add_lidar_logging(point_cloud_stream,
 
 
 def add_multiple_object_tracker_logging(
-        obstacles_stream, name='multiple_object_tracker_logger_operator'):
+    obstacles_stream, name='multiple_object_tracker_logger_operator'):
     from pylot.loggers.multiple_object_tracker_logger_operator import \
         MultipleObjectTrackerLoggerOperator
     op_config = erdos.OperatorConfig(name=name,
@@ -852,3 +856,15 @@ def add_perfect_tracking(vehicle_id_stream, ground_obstacles_stream,
         PerfectTrackerOperator, op_config,
         [vehicle_id_stream, ground_obstacles_stream, pose_stream], FLAGS)
     return ground_tracking_stream
+
+
+def add_time_to_decision(pose_stream, obstacles_stream):
+    from pylot.control.time_to_decision_operator import TimeToDecisionOperator
+    op_config = erdos.OperatorConfig(name='time_to_decision_operator',
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [time_to_decision] = erdos.connect(TimeToDecisionOperator, op_config,
+                                       [pose_stream, obstacles_stream], FLAGS)
+    return time_to_decision
