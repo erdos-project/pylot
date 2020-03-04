@@ -33,9 +33,9 @@ CubicSpline1D::CubicSpline1D(const vector<double>& v1,
 
     // construct attribute b, d
     for (int i = 0; i < nx - 1; i++) {
-        d.push_back((c[i+1] - c[i]) / (3.0 * deltas[i]));
-        b.push_back((a[i+1] - a[i]) / deltas[i] - deltas[i] *
-        (c[i+1] + 2.0 * c[i]) / 3.0);
+        d.push_back((c[i + 1] - c[i]) / (3.0 * deltas[i]));
+        b.push_back((a[i + 1] - a[i]) / deltas[i] - deltas[i] *
+        (c[i + 1] + 2.0 * c[i]) / 3.0);
     }
 }
 
@@ -79,22 +79,22 @@ void CubicSpline1D::matrix_a(vector<double> &deltas, MatrixXd &result) {
     result(0, 0) = 1;
     for (int i = 0; i < nx - 1; i++) {
         if (i != nx - 2) {
-            result(i+1, i+1) = 2.0 * (deltas[i] + deltas[i+1]);
+            result(i + 1, i + 1) = 2.0 * (deltas[i] + deltas[i + 1]);
         }
-        result(i+1, i) = deltas[i];
-        result(i, i+1) = deltas[i];
+        result(i + 1, i) = deltas[i];
+        result(i, i + 1) = deltas[i];
     }
 
     result(0, 1) = 0.0;
-    result(nx-1, nx-2) = 0.0;
-    result(nx-1, nx-1) = 1.0;
+    result(nx - 1, nx - 2) = 0.0;
+    result(nx - 1, nx - 1) = 1.0;
 }
 
 // Create the 1st derivative vector b used in spline construction
 void CubicSpline1D::vector_b(vector<double> &deltas, VectorXd &result) {
     for (int i = 0; i < nx - 2; i++) {
-        result(i+1) = 3.0 * (a[i+2] - a[i+1]) / deltas[i+1] - 3.0 *
-                (a[i+1] - a[i]) / deltas[i];
+        result(i + 1) = 3.0 * (a[i + 2] - a[i + 1]) / deltas[i + 1] - 3.0 *
+                (a[i + 1] - a[i]) / deltas[i];
     }
 }
 
