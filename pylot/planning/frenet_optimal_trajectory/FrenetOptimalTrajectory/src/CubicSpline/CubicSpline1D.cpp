@@ -11,7 +11,8 @@ using namespace Eigen;
 CubicSpline1D::CubicSpline1D() = default;
 
 // Construct the 1-dimensional cubic spline.
-CubicSpline1D::CubicSpline1D(vector<double>& v1, vector<double>& v2) {
+CubicSpline1D::CubicSpline1D(const vector<double>& v1,
+                             const vector<double>& v2) {
     // set attributes x, y, nx
     a = v2;
     x = v1;

@@ -11,15 +11,16 @@ using namespace std;
 CubicSpline2D::CubicSpline2D() = default;
 
 // Construct the 2-dimensional cubic spline
-CubicSpline2D::CubicSpline2D(std::vector<double> &x, std::vector<double> &y) {
-    calc_s(x, y, s);
+CubicSpline2D::CubicSpline2D(const std::vector<double> &x,
+                             const std::vector<double> &y) {
+    calc_s(x, y);
     sx = CubicSpline1D(s, x);
     sy = CubicSpline1D(s, y);
 }
 
 // Calculate the s values for interpolation given x, y
-void CubicSpline2D::calc_s(std::vector<double>& x, std::vector<double>& y,
-        std::vector<double>& result) {
+void CubicSpline2D::calc_s(const std::vector<double>& x,
+                           const std::vector<double>& y) {
     int nx = x.size();
     vector<double> dx (nx);
     vector<double> dy (nx);
@@ -29,12 +30,12 @@ void CubicSpline2D::calc_s(std::vector<double>& x, std::vector<double>& y,
     dy.erase(dy.begin());
 
     double cum_sum = 0.0;
-    result.push_back(cum_sum);
+    s.push_back(cum_sum);
     for (int i = 0; i < nx - 1; i++) {
         cum_sum += norm(dx[i], dy[i]);
-        result.push_back(cum_sum);
+        s.push_back(cum_sum);
     }
-    result.erase(unique(result.begin(), result.end()), result.end());
+    s.erase(unique(s.begin(), s.end()), s.end());
 }
 
 // Calculate the x position along the spline at given t

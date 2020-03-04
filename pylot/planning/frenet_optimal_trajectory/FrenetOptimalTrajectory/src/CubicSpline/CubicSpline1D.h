@@ -10,7 +10,7 @@ class CubicSpline1D {
 public:
     int nx{};
     CubicSpline1D();
-    CubicSpline1D (std::vector<double>& v1, std::vector<double>& v2);
+    CubicSpline1D (const std::vector<double>& v1, const std::vector<double>& v2);
     double calc_der0 (double t);
     double calc_der1 (double t);
     double calc_der2 (double t);

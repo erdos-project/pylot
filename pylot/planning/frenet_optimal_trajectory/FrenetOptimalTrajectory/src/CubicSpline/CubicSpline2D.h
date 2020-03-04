@@ -10,7 +10,7 @@
 class CubicSpline2D {
 public:
     CubicSpline2D();
-    CubicSpline2D(std::vector<double> &x, std::vector<double> &y);
+    CubicSpline2D(const std::vector<double> &x, const std::vector<double> &y);
     double calc_x(double t);
     double calc_y(double t);
     double calc_curvature(double t);
@@ -20,8 +20,8 @@ public:
 private:
     std::vector<double> s;
     CubicSpline1D sx, sy;
-    static void calc_s(std::vector<double>& x, std::vector<double>& y,
-                       std::vector<double>& result);
+    void calc_s(const std::vector<double>& x,
+                               const std::vector<double>& y);
 };
 
 #endif //FRENET_OPTIMAL_TRAJECTORY_CUBICSPLINE2D_H
