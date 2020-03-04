@@ -110,7 +110,12 @@ class FOTPlanningOperator(erdos.Operator):
             )
             self._logger.debug("@{}: Frenet Path Y: {}".format(
                 timestamp,
-                path_y))
+                path_y.tolist())
+            )
+            self._logger.debug("@{}: Frenet Speeds: {}".format(
+                timestamp,
+                speeds.tolist())
+            )
 
         # construct and send waypoint message
         waypoints_message = self._construct_waypoints(
