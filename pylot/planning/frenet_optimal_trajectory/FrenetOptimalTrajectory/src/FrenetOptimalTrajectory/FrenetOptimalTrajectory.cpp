@@ -14,17 +14,12 @@ using namespace std;
 FrenetOptimalTrajectory::FrenetOptimalTrajectory(vector<double>& x_,
         vector<double>& y_, double s0_, double c_speed_, double c_d_,
         double c_d_d_, double c_d_dd_, double target_speed_,
-        vector<tuple<double, double>>& obstacles_) {
-    x = move(x_);
-    y = move(y_);
+        vector<tuple<double, double>>& obstacles_):
+        x(x_), y(y_), s0(s0_),
+        c_speed(c_speed_), c_d(c_d_), c_d_d(c_d_d_), c_d_dd(c_d_dd_),
+        target_speed(target_speed_), obstacles(obstacles_) {
+
     csp = CubicSpline2D(x, y);
-    s0 = s0_;
-    c_speed = c_speed_;
-    c_d = c_d_;
-    c_d_d = c_d_d_;
-    c_d_dd = c_d_dd_;
-    target_speed = target_speed_;
-    obstacles = obstacles_;
 
     // calculate the trajectories
     calc_frenet_paths();

@@ -6,9 +6,8 @@
 using namespace Eigen;
 
 QuarticPolynomial::QuarticPolynomial(double xs, double vxs, double axs,
-        double vxe, double axe, double t) {
-    a0 = xs;
-    a1 = vxs;
+        double vxe, double axe, double t):
+        a0(xs), a1(vxs) {
     a2 = axs / 2.0;
     Matrix2d A;
     Vector2d B;

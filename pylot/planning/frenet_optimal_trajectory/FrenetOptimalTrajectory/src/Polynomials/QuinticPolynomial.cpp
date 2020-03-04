@@ -6,9 +6,8 @@
 using namespace Eigen;
 
 QuinticPolynomial::QuinticPolynomial(double xs, double vxs, double axs,
-        double xe, double vxe, double axe, double t) {
-    a0 = xs;
-    a1 = vxs;
+        double xe, double vxe, double axe, double t):
+        a0(xs), a1(vxs) {
     a2 = axs / 2.0;
     Matrix3d A;
     Vector3d B;
