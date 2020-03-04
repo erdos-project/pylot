@@ -18,6 +18,6 @@ inline void unit_vector(std::tuple<double, double>& vec) {
 
 inline double dot(std::tuple<double, double>& vec1, std::tuple<double, double>& vec2) {
     return std::get<0>(vec1) * std::get<0>(vec2) +
-            std::get<1>(vec1) * std::get<1>(vec2);
+           std::get<1>(vec1) * std::get<1>(vec2);
 }
 #endif //FRENET_OPTIMAL_TRAJECTORY_UTILS_H
