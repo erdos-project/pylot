@@ -1,18 +1,6 @@
 #!/bin/bash
 # Assumes the script is called from PYLOT_HOME directory
 ###### Build the FrenetOptimalTrajectory Planner ######
-PYLOT_HOME=$(pwd)
-sudo apt-get install -y libeigen3-dev
-cd pylot/planning/frenet_optimal_trajectory/FrenetOptimalTrajectory/
-if [ ! -d "build" ]; then
-  mkdir build
-fi
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build . --target all -- -j 8
-
-cd ${PYLOT_HOME}
-
 sudo apt-get -y update
 sudo apt-get install -y git wget python3-pip
 pip3 install gdown
