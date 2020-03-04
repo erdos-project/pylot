@@ -19,8 +19,6 @@
 
 #include <vector>
 
-// The FrenetOptimalTrajectory class.
-// See the references above for details.
 class FrenetOptimalTrajectory {
 public:
     CubicSpline2D csp;
