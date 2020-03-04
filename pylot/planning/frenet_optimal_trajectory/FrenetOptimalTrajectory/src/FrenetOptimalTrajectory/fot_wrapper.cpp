@@ -1,6 +1,6 @@
 #include "FrenetOptimalTrajectory.h"
-#include "../CubicSpline/CubicSpline2D.h"
-#include "../utils.h"
+#include "CubicSpline2D.h"
+#include "utils.h"
 
 #include <iostream>
 #include <vector>

@@ -1,5 +1,5 @@
 #include "CubicSpline2D.h"
-#include "../utils.h"
+#include "utils.h"
 
 #include <algorithm>
 #include <numeric>

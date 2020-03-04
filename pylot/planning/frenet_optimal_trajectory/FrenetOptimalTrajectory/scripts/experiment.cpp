@@ -2,7 +2,7 @@
 #include <ctime>
 #include <vector>
 #include <tuple>
-#include "../src/FrenetOptimalTrajectory/FrenetOptimalTrajectory.h"
+#include "FrenetOptimalTrajectory.h"
 
 using namespace std;
 

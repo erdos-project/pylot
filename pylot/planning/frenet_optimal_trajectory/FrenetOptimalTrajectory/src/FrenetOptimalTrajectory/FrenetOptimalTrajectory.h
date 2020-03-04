@@ -15,7 +15,7 @@
 #define FRENET_OPTIMAL_TRAJECTORY_FRENET_OPTIMAL_TRAJECTORY_H
 
 #include "FrenetPath.h"
-#include "../CubicSpline/CubicSpline2D.h"
+#include "CubicSpline2D.h"
 
 #include <vector>
 

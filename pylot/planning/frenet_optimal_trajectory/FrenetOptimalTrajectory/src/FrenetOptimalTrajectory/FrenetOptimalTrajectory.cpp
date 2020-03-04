@@ -1,8 +1,8 @@
 #include "FrenetOptimalTrajectory.h"
-#include "../constants.h"
-#include "../Polynomials/QuarticPolynomial.h"
-#include "../Polynomials/QuinticPolynomial.h"
-#include "../utils.h"
+#include "constants.h"
+#include "QuarticPolynomial.h"
+#include "QuinticPolynomial.h"
+#include "utils.h"
 
 #include <cmath>
 #include <iostream>
