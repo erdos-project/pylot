@@ -1,5 +1,5 @@
-#ifndef FRENETOPTIMALTRAJECTORY_CONSTANTS_H
-#define FRENETOPTIMALTRAJECTORY_CONSTANTS_H
+#ifndef FRENET_OPTIMAL_TRAJECTORY_CONSTANTS_H
+#define FRENET_OPTIMAL_TRAJECTORY_CONSTANTS_H
 // Parameter
 const double MAX_SPEED = 25.0;            // maximum speed [m/s]
 const double MAX_ACCEL = 6.0;             // maximum acceleration [m/ss]
@@ -19,4 +19,4 @@ const double KT = 0.1;                    // time cost
 const double KD = 1.0;                    // end state cost
 const double KLAT = 1.0;                  // lateral cost
 const double KLON = 1.0;                  // longitudinal cost
-#endif //FRENETOPTIMALTRAJECTORY_CONSTANTS_H
+#endif //FRENET_OPTIMAL_TRAJECTORY_CONSTANTS_H

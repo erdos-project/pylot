@@ -1,8 +1,9 @@
-#ifndef FRENETOPTIMALTRAJECTORY_CUBICSPLINE2D_H
-#define FRENETOPTIMALTRAJECTORY_CUBICSPLINE2D_H
+#ifndef FRENET_OPTIMAL_TRAJECTORY_CUBICSPLINE2D_H
+#define FRENET_OPTIMAL_TRAJECTORY_CUBICSPLINE2D_H
+
+#include "CubicSpline1D.h"
 
 #include <vector>
-#include "CubicSpline1D.h"
 
 // 2-dimensional cubic spline class.
 // For technical details see: http://mathworld.wolfram.com/CubicSpline.html
@@ -23,4 +24,4 @@ private:
                        std::vector<double>& result);
 };
 
-#endif //FRENETOPTIMALTRAJECTORY_CUBICSPLINE2D_H
+#endif //FRENET_OPTIMAL_TRAJECTORY_CUBICSPLINE2D_H

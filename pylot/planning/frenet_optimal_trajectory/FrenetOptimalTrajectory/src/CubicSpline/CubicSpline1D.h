@@ -1,8 +1,8 @@
-#ifndef FRENETOPTIMALTRAJECTORY_CUBICSPLINE1D_H
-#define FRENETOPTIMALTRAJECTORY_CUBICSPLINE1D_H
+#ifndef FRENET_OPTIMAL_TRAJECTORY_CUBICSPLINE1D_H
+#define FRENET_OPTIMAL_TRAJECTORY_CUBICSPLINE1D_H
 
-#include <vector>
 #include <Eigen/LU>
+#include <vector>
 
 // 1-dimensional cubic spline class.
 // For technical details see: http://mathworld.wolfram.com/CubicSpline.html
@@ -21,4 +21,4 @@ private:
     void vector_b (std::vector<double>& deltas, Eigen::VectorXd& result);
 };
 
-#endif //FRENETOPTIMALTRAJECTORY_CUBICSPLINE1D_H
+#endif //FRENET_OPTIMAL_TRAJECTORY_CUBICSPLINE1D_H

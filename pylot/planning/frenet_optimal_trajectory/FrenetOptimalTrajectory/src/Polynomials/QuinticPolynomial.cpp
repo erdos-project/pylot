@@ -1,6 +1,7 @@
-#include <cmath>
-#include <Eigen/LU>
 #include "QuinticPolynomial.h"
+
+#include <Eigen/LU>
+#include <cmath>
 
 using namespace Eigen;
 

@@ -1,7 +1,8 @@
+#include "CubicSpline1D.h"
+
 #include <algorithm>
 #include <numeric>
 #include <cmath>
-#include "CubicSpline1D.h"
 
 using namespace std;
 using namespace Eigen;

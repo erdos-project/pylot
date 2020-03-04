@@ -11,12 +11,13 @@
 // - [Optimal trajectory generation for dynamic street scenarios in a Frenet Frame]
 // (https://www.youtube.com/watch?v=Cj6tAQe7UCY)
 
-#ifndef FRENETOPTIMALTRAJECTORY_FRENETOPTIMALTRAJECTORY_H
-#define FRENETOPTIMALTRAJECTORY_FRENETOPTIMALTRAJECTORY_H
+#ifndef FRENET_OPTIMAL_TRAJECTORY_FRENET_OPTIMAL_TRAJECTORY_H
+#define FRENET_OPTIMAL_TRAJECTORY_FRENET_OPTIMAL_TRAJECTORY_H
+
+#include "FrenetPath.h"
+#include "../CubicSpline/CubicSpline2D.h"
 
 #include <vector>
-#include "../CubicSpline/CubicSpline2D.h"
-#include "FrenetPath.h"
 
 // The FrenetOptimalTrajectory class.
 // See the references above for details.
@@ -41,4 +42,4 @@ private:
 };
 
 
-#endif //FRENETOPTIMALTRAJECTORY_FRENETOPTIMALTRAJECTORY_H
+#endif //FRENET_OPTIMAL_TRAJECTORY_FRENET_OPTIMAL_TRAJECTORY_H

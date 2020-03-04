@@ -1,11 +1,12 @@
-#include <iostream>
-#include <cmath>
-#include <utility>
+#include "FrenetOptimalTrajectory.h"
 #include "../constants.h"
 #include "../Polynomials/QuarticPolynomial.h"
 #include "../Polynomials/QuinticPolynomial.h"
 #include "../utils.h"
-#include "FrenetOptimalTrajectory.h"
+
+#include <cmath>
+#include <iostream>
+#include <utility>
 
 using namespace std;
 

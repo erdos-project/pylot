@@ -1,5 +1,5 @@
-#ifndef FRENETOPTIMALTRAJECTORY_UTILS_H
-#define FRENETOPTIMALTRAJECTORY_UTILS_H
+#ifndef FRENET_OPTIMAL_TRAJECTORY_UTILS_H
+#define FRENET_OPTIMAL_TRAJECTORY_UTILS_H
 
 #include <cmath>
 #include <tuple>
@@ -20,4 +20,4 @@ inline double dot(std::tuple<double, double>& vec1, std::tuple<double, double>& 
     return std::get<0>(vec1) * std::get<0>(vec2) +
             std::get<1>(vec1) * std::get<1>(vec2);
 }
-#endif //FRENETOPTIMALTRAJECTORY_UTILS_H
+#endif //FRENET_OPTIMAL_TRAJECTORY_UTILS_H

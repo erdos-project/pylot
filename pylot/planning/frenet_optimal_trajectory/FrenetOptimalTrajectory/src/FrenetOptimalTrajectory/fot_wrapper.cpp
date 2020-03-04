@@ -1,8 +1,9 @@
-#include <vector>
-#include <iostream>
-#include "../utils.h"
-#include "../CubicSpline/CubicSpline2D.h"
 #include "FrenetOptimalTrajectory.h"
+#include "../CubicSpline/CubicSpline2D.h"
+#include "../utils.h"
+
+#include <iostream>
+#include <vector>
 
 using namespace std;
 
