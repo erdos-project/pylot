@@ -4,7 +4,7 @@
 #include <cmath>
 #include <tuple>
 
-inline double norm (double x, double y) {
+inline double norm(double x, double y) {
     return sqrt(pow(x, 2) + pow(y, 2));
 }
 

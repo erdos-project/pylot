@@ -21,7 +21,7 @@ private:
     std::vector<double> s;
     CubicSpline1D sx, sy;
     void calc_s(const std::vector<double>& x,
-                               const std::vector<double>& y);
+                const std::vector<double>& y);
 };
 
 #endif //FRENET_OPTIMAL_TRAJECTORY_CUBICSPLINE2D_H
