@@ -25,6 +25,7 @@ public:
             double s0, double c_speed, double c_d, double c_d_d, double
             c_d_dd, double target_speed,
             std::vector<std::tuple<double, double>>& obstacles);
+    ~FrenetOptimalTrajectory();
     FrenetPath* getBestPath();
 private:
     FrenetPath* best_frenet_path;

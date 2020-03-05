@@ -46,10 +46,9 @@ extern "C" {
         FrenetOptimalTrajectory fot = FrenetOptimalTrajectory(wx, wy, s0,
                 c_speed, c_d, c_d_d, c_d_dd, target_speed, obstacles);
         FrenetPath* best_frenet_path = fot.getBestPath();
-        if (best_frenet_path->x.empty()) {
-            return 0;
-        } else {
 
+        int success = 0;
+        if (!best_frenet_path->x.empty()){
             int last = 0;
             for (int i = 0; i < best_frenet_path->x.size(); i++) {
                 x_path[i] = best_frenet_path->x[i];
@@ -68,8 +67,9 @@ extern "C" {
             misc[2] = best_frenet_path->d[1];
             misc[3] = best_frenet_path->d_d[1];
             misc[4] = best_frenet_path->d_dd[1];
-            return 1;
+            success = 1;
         }
+        return success;
     }
 
     // Convert the initial conditions from cartesian space to frenet space
@@ -80,19 +80,19 @@ extern "C" {
             ) {
         vector<double> wx (xp, xp + np);
         vector<double> wy (yp, yp + np);
-        CubicSpline2D csp = CubicSpline2D(wx, wy);
+        CubicSpline2D* csp = new CubicSpline2D(wx, wy);
 
         // get distance from car to spline and projection
-        double s = csp.find_s(x, y, s0);
-        double distance = norm(csp.calc_x(s) - x, csp.calc_y(s) - y);
-        tuple<double, double> bvec ((csp.calc_x(s) - x) / distance,
-                (csp.calc_y(s) - y) / distance);
+        double s = csp->find_s(x, y, s0);
+        double distance = norm(csp->calc_x(s) - x, csp->calc_y(s) - y);
+        tuple<double, double> bvec ((csp->calc_x(s) - x) / distance,
+                (csp->calc_y(s) - y) / distance);
 
         // normal spline vector
-        double x0 = csp.calc_x(s0);
-        double y0 = csp.calc_y(s0);
-        double x1 = csp.calc_x(s0 + 2);
-        double y1 = csp.calc_y(s0 + 2);
+        double x0 = csp->calc_x(s0);
+        double y0 = csp->calc_y(s0);
+        double x1 = csp->calc_x(s0 + 2);
+        double y1 = csp->calc_y(s0 + 2);
 
         // unit vector orthog. to spline
         tuple<double, double> tvec (y1-y0, -(x1-x0));
@@ -111,5 +111,7 @@ extern "C" {
         initial_conditions[3] = forward_speed * dot(tvec, fvec);
         initial_conditions[4] = 0.0; // lateral acceleration c_d_dd [m/s^2]
         // TODO: add lateral acceleration when CARLA 9.7 is patched (IMU)
+
+        delete csp;
     }
 }

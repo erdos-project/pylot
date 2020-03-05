@@ -32,6 +32,15 @@ FrenetOptimalTrajectory::FrenetOptimalTrajectory(vector<double>& x_,
     }
 }
 
+FrenetOptimalTrajectory::~FrenetOptimalTrajectory() {
+    delete csp;
+    for (FrenetPath* fp : frenet_paths) {
+        delete fp;
+    }
+    frenet_paths.clear();
+    frenet_paths.resize(0);
+}
+
 // Return the best path
 FrenetPath* FrenetOptimalTrajectory::getBestPath() {
     return best_frenet_path;

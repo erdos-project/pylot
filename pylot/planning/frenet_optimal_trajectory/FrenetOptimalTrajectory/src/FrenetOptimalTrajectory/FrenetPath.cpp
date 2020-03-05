@@ -6,6 +6,38 @@
 
 using namespace std;
 
+FrenetPath::~FrenetPath() {
+    t.clear();
+    d.clear();
+    d_d.clear();
+    d_dd.clear();
+    d_ddd.clear();
+    s.clear();
+    s_d.clear();
+    s_dd.clear();
+    s_ddd.clear();
+    x.clear();
+    y.clear();
+    yaw.clear();
+    ds.clear();
+    c.clear();
+
+    t.resize(0);
+    d.resize(0);
+    d_d.resize(0);
+    d_dd.resize(0);
+    d_ddd.resize(0);
+    s.resize(0);
+    s_d.resize(0);
+    s_dd.resize(0);
+    s_ddd.resize(0);
+    x.resize(0);
+    y.resize(0);
+    yaw.resize(0);
+    ds.resize(0);
+    c.resize(0);
+}
+
 // Convert the frenet path to global path in terms of x, y, yaw, velocity
 void FrenetPath::to_global_path(CubicSpline2D* csp) {
     double ix, iy, iyaw, di, fx, fy, dx, dy;
