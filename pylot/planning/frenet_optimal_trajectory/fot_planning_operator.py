@@ -54,6 +54,7 @@ class FOTPlanningOperator(erdos.Operator):
         self._flags = flags
 
         self._waypoints = None
+        self._prev_waypoints = None
         self._goal_location = goal_location
 
         self._can_bus_msgs = deque()
@@ -176,7 +177,7 @@ class FOTPlanningOperator(erdos.Operator):
         if not success:
             self._logger.debug("@{}: Frenet Optimal Trajectory failed. "
                                "Sending emergency stop.".format(timestamp))
-            for wp in itertools.islice(self._waypoints, 0,
+            for wp in itertools.islice(self._prev_waypoints, 0,
                                        DEFAULT_NUM_WAYPOINTS):
                 path_transforms.append(wp)
                 target_speeds.append(0)
@@ -194,6 +195,7 @@ class FOTPlanningOperator(erdos.Operator):
                 target_speeds.append(point[2])
 
         waypoints = deque(path_transforms)
+        self._prev_waypoints = waypoints
         return WaypointsMessage(timestamp, waypoints, target_speeds)
 
     def _compute_initial_conditions(self, can_bus_msg, wx, wy):

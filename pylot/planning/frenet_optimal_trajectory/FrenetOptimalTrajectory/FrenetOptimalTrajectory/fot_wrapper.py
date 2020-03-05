@@ -49,6 +49,8 @@ def get_fot_frenet_space(s0, c_speed, c_d, c_d_d, c_d_dd, wx, wy, obs,
     result_y = np.zeros(100)
     speeds = np.zeros(100)
     misc = np.zeros(5)
+    if obs.shape[0] == 0:
+        obs = np.empty((0, 2))
     success = _get_fot_frenet_space(
         c_double(s0), c_double(c_speed), c_double(c_d),
         c_double(c_d_d), c_double(c_d_dd),

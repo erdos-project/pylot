@@ -90,8 +90,8 @@ extern "C" {
         // normal spline vector
         double x0 = csp.calc_x(s0);
         double y0 = csp.calc_y(s0);
-        double x1 = csp.calc_x(s0 + 1);
-        double y1 = csp.calc_x(s0 + 1);
+        double x1 = csp.calc_x(s0 + 2);
+        double y1 = csp.calc_y(s0 + 2);
 
         // unit vector orthog. to spline
         tuple<double, double> tvec (y1-y0, -(x1-x0));
