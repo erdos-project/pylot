@@ -1,4 +1,5 @@
 #include "FrenetOptimalTrajectory.h"
+#include "FrenetPath.h"
 #include "CubicSpline2D.h"
 #include "utils.h"
 
@@ -44,16 +45,16 @@ extern "C" {
 
         FrenetOptimalTrajectory fot = FrenetOptimalTrajectory(wx, wy, s0,
                 c_speed, c_d, c_d_d, c_d_dd, target_speed, obstacles);
-
-        if (fot.best_frenet_path.x.empty()) {
+        FrenetPath* best_frenet_path = fot.getBestPath();
+        if (best_frenet_path->x.empty()) {
             return 0;
         } else {
 
             int last = 0;
-            for (int i = 0; i < fot.best_frenet_path.x.size(); i++) {
-                x_path[i] = fot.best_frenet_path.x[i];
-                y_path[i] = fot.best_frenet_path.y[i];
-                speeds[i] = fot.best_frenet_path.s_d[i];
+            for (int i = 0; i < best_frenet_path->x.size(); i++) {
+                x_path[i] = best_frenet_path->x[i];
+                y_path[i] = best_frenet_path->y[i];
+                speeds[i] = best_frenet_path->s_d[i];
                 last += 1;
             }
 
@@ -62,11 +63,11 @@ extern "C" {
             y_path[last] = NAN;
             speeds[last] = NAN;
 
-            misc[0] = fot.best_frenet_path.s[1];
-            misc[1] = fot.best_frenet_path.s_d[1];
-            misc[2] = fot.best_frenet_path.d[1];
-            misc[3] = fot.best_frenet_path.d_d[1];
-            misc[4] = fot.best_frenet_path.d_dd[1];
+            misc[0] = best_frenet_path->s[1];
+            misc[1] = best_frenet_path->s_d[1];
+            misc[2] = best_frenet_path->d[1];
+            misc[3] = best_frenet_path->d_d[1];
+            misc[4] = best_frenet_path->d_dd[1];
             return 1;
         }
     }

@@ -10,7 +10,7 @@ include_directories("${CMAKE_SOURCE_DIR}/src"
                     "${CMAKE_SOURCE_DIR}/src/FrenetOptimalTrajectory")
 
 add_library(FrenetOptimalTrajectory SHARED
-            scripts/experiment.cpp src/Polynomials/QuarticPolynomial.cpp
+            src/Polynomials/QuarticPolynomial.cpp
             src/Polynomials/QuarticPolynomial.h
             src/Polynomials/QuinticPolynomial.cpp
             src/Polynomials/QuinticPolynomial.h

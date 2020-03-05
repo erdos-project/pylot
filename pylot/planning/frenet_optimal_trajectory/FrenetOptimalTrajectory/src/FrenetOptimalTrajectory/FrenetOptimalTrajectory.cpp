@@ -34,6 +34,12 @@ FrenetOptimalTrajectory::FrenetOptimalTrajectory(vector<double>& x_,
     }
 }
 
+
+// Return the best path
+FrenetPath* FrenetOptimalTrajectory::getBestPath() {
+    return &best_frenet_path;
+}
+
 // Calculate frenet paths
 void FrenetOptimalTrajectory::calc_frenet_paths() {
     double t, ti, tv, jp, js, ds;

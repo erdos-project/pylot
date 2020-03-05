@@ -21,12 +21,13 @@
 
 class FrenetOptimalTrajectory {
 public:
-    FrenetPath best_frenet_path;
     FrenetOptimalTrajectory(std::vector<double>& x, std::vector<double>& y,
             double s0, double c_speed, double c_d, double c_d_d, double
             c_d_dd, double target_speed,
             std::vector<std::tuple<double, double>>& obstacles);
+    FrenetPath* getBestPath();
 private:
+    FrenetPath best_frenet_path;
     CubicSpline2D csp;
     std::vector<std::tuple<double, double>> obstacles;
     std::vector<double> x, y;
