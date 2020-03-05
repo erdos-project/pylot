@@ -27,7 +27,7 @@ public:
             std::vector<std::tuple<double, double>>& obstacles);
     FrenetPath* getBestPath();
 private:
-    FrenetPath best_frenet_path;
+    FrenetPath* best_frenet_path;
     CubicSpline2D* csp;
     std::vector<std::tuple<double, double>> obstacles;
     std::vector<double> x, y;

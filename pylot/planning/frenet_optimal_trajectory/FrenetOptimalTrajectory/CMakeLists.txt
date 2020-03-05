@@ -10,11 +10,14 @@ include_directories("${CMAKE_SOURCE_DIR}/src"
                     "${CMAKE_SOURCE_DIR}/src/FrenetOptimalTrajectory")
 
 add_library(FrenetOptimalTrajectory SHARED
+            src/main.cpp
+            src/utils.h
+            src/constants.h
             src/Polynomials/QuarticPolynomial.cpp
             src/Polynomials/QuarticPolynomial.h
             src/Polynomials/QuinticPolynomial.cpp
             src/Polynomials/QuinticPolynomial.h
-            src/constants.h src/CubicSpline/CubicSpline1D.cpp
+            src/CubicSpline/CubicSpline1D.cpp
             src/CubicSpline/CubicSpline1D.h
             src/CubicSpline/CubicSpline2D.cpp
             src/CubicSpline/CubicSpline2D.h
@@ -22,6 +25,23 @@ add_library(FrenetOptimalTrajectory SHARED
             src/FrenetOptimalTrajectory/FrenetOptimalTrajectory.h
             src/FrenetOptimalTrajectory/FrenetPath.cpp
             src/FrenetOptimalTrajectory/FrenetPath.h
-            src/utils.h
             src/FrenetOptimalTrajectory/fot_wrapper.cpp)
+add_executable(FrenetOptimalTrajectoryTest
+               src/main.cpp
+               src/utils.h
+               src/constants.h
+               src/Polynomials/QuarticPolynomial.cpp
+               src/Polynomials/QuarticPolynomial.h
+               src/Polynomials/QuinticPolynomial.cpp
+               src/Polynomials/QuinticPolynomial.h
+               src/CubicSpline/CubicSpline1D.cpp
+               src/CubicSpline/CubicSpline1D.h
+               src/CubicSpline/CubicSpline2D.cpp
+               src/CubicSpline/CubicSpline2D.h
+               src/FrenetOptimalTrajectory/FrenetOptimalTrajectory.cpp
+               src/FrenetOptimalTrajectory/FrenetOptimalTrajectory.h
+               src/FrenetOptimalTrajectory/FrenetPath.cpp
+               src/FrenetOptimalTrajectory/FrenetPath.h
+               src/FrenetOptimalTrajectory/fot_wrapper.cpp)
 target_link_libraries(FrenetOptimalTrajectory Eigen3::Eigen)
+target_link_libraries(FrenetOptimalTrajectoryTest Eigen3::Eigen)

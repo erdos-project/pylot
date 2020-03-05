@@ -27,15 +27,14 @@ FrenetOptimalTrajectory::FrenetOptimalTrajectory(vector<double>& x_,
     for (FrenetPath* fp : frenet_paths) {
         if (fp->cf <= mincost) {
             mincost = fp->cf;
-            best_frenet_path = *fp;
+            best_frenet_path = fp;
         }
     }
 }
 
-
 // Return the best path
 FrenetPath* FrenetOptimalTrajectory::getBestPath() {
-    return &best_frenet_path;
+    return best_frenet_path;
 }
 
 // Calculate frenet paths
