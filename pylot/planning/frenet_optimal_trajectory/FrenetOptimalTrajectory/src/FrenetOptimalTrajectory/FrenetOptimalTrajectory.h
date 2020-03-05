@@ -28,16 +28,12 @@ public:
     FrenetPath* getBestPath();
 private:
     FrenetPath best_frenet_path;
-    CubicSpline2D csp;
+    CubicSpline2D* csp;
     std::vector<std::tuple<double, double>> obstacles;
     std::vector<double> x, y;
     double s0, c_speed, c_d, c_d_d, c_d_dd, target_speed;
     std::vector<FrenetPath*> frenet_paths;
-    std::vector<FrenetPath*> result_frenet_paths;
     void calc_frenet_paths();
-    void calc_global_paths();
-    void validate_paths();
-    bool is_collision(FrenetPath& frenet_path);
 };
 
 
