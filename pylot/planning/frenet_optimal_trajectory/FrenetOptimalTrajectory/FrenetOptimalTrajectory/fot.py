@@ -82,6 +82,8 @@ def main():
                 lambda event: [exit(0) if event.key == 'escape' else None]
             )
             plt.plot(wx, wy)
+            if obs.shape[0] == 0:
+                obs = obs.empty((0, 2))
             plt.scatter(obs[:, 0], obs[:, 1], marker='o', s=(3*6)**2)
             plt.plot(result_x[1:], result_y[1:], "-or")
             plt.plot(result_x[1], result_y[1], "vc")
