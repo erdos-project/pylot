@@ -130,10 +130,9 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
                 obstacle_bbox = obstacle.bounding_box
                 tracker_bbox = tracker.obstacle.bounding_box
                 iou = obstacle_bbox.calculate_iou(tracker_bbox)
-                # If track is too far from detection, mark pairing impossible
+                # If track too far from det, mark pair impossible with np.nan
                 if iou > ASSOCIATION_THRESHOLD:
                     cost_matrix[i][j] = iou
                 else:
                     cost_matrix[i][j] = np.nan
-                cost_matrix[i][j] = obstacle_bbox.calculate_iou(tracker_bbox)
         return np.array(cost_matrix)
