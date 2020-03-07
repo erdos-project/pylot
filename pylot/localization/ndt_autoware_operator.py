@@ -1,7 +1,8 @@
 import erdos
-from geometry_msgs.msg import PoseStamped
 import numpy as np
 import rospy
+
+from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32
 from tf.transformations import euler_from_quaternion
 
@@ -11,20 +12,12 @@ NDT_FREQUENCY = 10
 
 
 class NDTAutowareOperator(erdos.Operator):
-    def __init__(self,
-                 can_bus_stream,
-                 name,
-                 flags,
-                 topic_name='/ndt_pose',
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, can_bus_stream, flags, topic_name='/ndt_pose'):
         self._can_bus_stream = can_bus_stream
-        self._name = name
         self._flags = flags
         self._topic_name = topic_name
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._forward_speed = 0
         self._modulo_to_send = NDT_FREQUENCY // self._flags.sensor_frequency
         self._counter = 0
@@ -58,7 +51,7 @@ class NDTAutowareOperator(erdos.Operator):
         self._forward_speed = data.data
 
     def run(self):
-        rospy.init_node(self._name, anonymous=True, disable_signals=True)
+        rospy.init_node(self.config.name, anonymous=True, disable_signals=True)
         rospy.Subscriber(self._topic_name, PoseStamped, self.on_pose_update)
         rospy.Subscriber('/estimated_vel_mps', Float32,
                          self.on_velocity_update)

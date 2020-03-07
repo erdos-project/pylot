@@ -14,7 +14,7 @@ from pylot.planning.frenet_optimal_trajectory.FrenetOptimalTrajectory. \
     import compute_initial_conditions, get_fot_frenet_space
 from pylot.planning.messages import WaypointsMessage
 from pylot.simulation.utils import get_map
-from pylot.utils import Location, Transform, Rotation
+from pylot.utils import Location, Rotation, Transform
 
 DEFAULT_DISTANCE_THRESHOLD = 30  # 30 meters radius around of ego
 DEFAULT_NUM_WAYPOINTS = 100  # 100 waypoints to plan for
@@ -28,11 +28,9 @@ class FOTPlanningOperator(erdos.Operator):
     `~pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory.py`.
 
      Args:
-        name(:obj:`str`): The name of the operator
         flags(:absl.flags:): Object to be used to access absl flags
         goal_location(:pylot.utils.Location:): Goal location for route planning
     """
-
     def __init__(self,
                  can_bus_stream,
                  prediction_stream,
@@ -46,11 +44,8 @@ class FOTPlanningOperator(erdos.Operator):
         prediction_stream.add_callback(self.on_prediction_update)
         erdos.add_watermark_callback([can_bus_stream, prediction_stream],
                                      [waypoints_stream], self.on_watermark)
-        self._name = name
-        self._log_file_name = log_file_name
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
 
         self._waypoints = None
@@ -72,7 +67,7 @@ class FOTPlanningOperator(erdos.Operator):
         # we get the map here we're sure it is up-to-date.
         self._hd_map = HDMap(
             get_map(self._flags.carla_host, self._flags.carla_port,
-                    self._flags.carla_timeout), self._log_file_name)
+                    self._flags.carla_timeout))
 
     def on_can_bus_update(self, msg):
         self._logger.debug('@{}: received can bus message'.format(
@@ -84,6 +79,7 @@ class FOTPlanningOperator(erdos.Operator):
             msg.timestamp))
         self._prediction_msgs.append(msg)
 
+    @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
 
@@ -163,8 +159,8 @@ class FOTPlanningOperator(erdos.Operator):
             "vy": can_bus_msg.data.velocity_vector.y,
         }
         timestamp = can_bus_msg.timestamp
-        self._logger.debug("@{}: Initial conditions: {}"
-                           .format(timestamp, initial_conditions))
+        self._logger.debug("@{}: Initial conditions: {}".format(
+            timestamp, initial_conditions))
 
         return path_x, path_y, speeds, params, success, s0
 
@@ -221,12 +217,13 @@ class FOTPlanningOperator(erdos.Operator):
             # use all prediction times as potential obstacles
             for transform in prediction.trajectory:
                 global_obstacle = vehicle_transform * transform
-                obstacle_origin = [global_obstacle.location.x,
-                                   global_obstacle.location.y]
-                dist_to_ego = np.linalg.norm([vehicle_transform.location.x -
-                                              obstacle_origin[0],
-                                              vehicle_transform.location.y -
-                                              obstacle_origin[1]])
+                obstacle_origin = [
+                    global_obstacle.location.x, global_obstacle.location.y
+                ]
+                dist_to_ego = np.linalg.norm([
+                    vehicle_transform.location.x - obstacle_origin[0],
+                    vehicle_transform.location.y - obstacle_origin[1]
+                ])
                 # TODO (@fangedward): Fix this hack
                 # Prediction also sends a prediction for ego vehicle
                 # This will always be the closest to the ego vehicle

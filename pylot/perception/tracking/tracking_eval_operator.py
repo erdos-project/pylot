@@ -9,10 +9,10 @@ import time
 
 from pylot.utils import time_epoch_ms
 
-flags.DEFINE_list('tracking_metrics',
-                  ['num_misses', 'num_switches', 'num_false_positives', 'mota',
-                   'motp', 'mostly_tracked', 'mostly_lost', 'idf1'],
-                  'Tracking evaluation metrics')
+flags.DEFINE_list('tracking_metrics', [
+    'num_misses', 'num_switches', 'num_false_positives', 'mota', 'motp',
+    'mostly_tracked', 'mostly_lost', 'idf1'
+], 'Tracking evaluation metrics')
 
 
 class TrackingEvalOperator(erdos.Operator):
@@ -24,30 +24,20 @@ class TrackingEvalOperator(erdos.Operator):
         ground_obstacles_stream: The stream on which
             :py:class:`~pylot.perception.messages.ObstaclesMessage` are
             received from the simulator.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 obstacle_tracking_stream,
-                 ground_obstacles_stream,
-                 name,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, obstacle_tracking_stream, ground_obstacles_stream,
+                 flags):
         obstacle_tracking_stream.add_callback(self.on_tracker_obstacles)
         ground_obstacles_stream.add_callback(self.on_ground_obstacles)
         erdos.add_watermark_callback(
             [obstacle_tracking_stream, ground_obstacles_stream], [],
             self.on_watermark)
-        self._name = name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         self._last_notification = None
         # Buffer of detected obstacles.
         self._tracked_obstacles = []
@@ -64,8 +54,8 @@ class TrackingEvalOperator(erdos.Operator):
         """Connects the operator to other streams.
 
         Args:
-            obstacle_tracking_stream (:py:class:`erdos.ReadStream`): The stream on
-                which obstacle tracks are received from object trackers.
+            obstacle_tracking_stream (:py:class:`erdos.ReadStream`): The stream
+                on which obstacle tracks are received from object trackers.
             ground_obstacles_stream: The stream on which
                 :py:class:`~pylot.perception.messages.ObstaclesMessage` are
                 received from the simulator.
@@ -105,18 +95,17 @@ class TrackingEvalOperator(erdos.Operator):
                     # Get runtime in ms
                     runtime = (time.time() - op_start_time) * 1000
                     self._csv_logger.info("{},{},{},{}".format(
-                        time_epoch_ms(), self._name, "runtime", runtime))
+                        time_epoch_ms(), self.config.name, "runtime", runtime))
                     # Write metrics to csv log file
                     for metric_name in self._flags.tracking_metrics:
                         if metric_name in metrics_summary_df.columns:
                             self._csv_logger.info("{},{},{},{}".format(
-                                time_epoch_ms(),
-                                self._name,
-                                metric_name,
+                                time_epoch_ms(), self.config.name, metric_name,
                                 metrics_summary_df[metric_name].values[0]))
                         else:
                             raise ValueError(
-                                "Unexpected tracking metric: {}".format(metric_name))
+                                "Unexpected tracking metric: {}".format(
+                                    metric_name))
                 self._logger.debug('Computing accuracy for {} {}'.format(
                     end_time, start_time))
             else:
@@ -188,10 +177,12 @@ class TrackingEvalOperator(erdos.Operator):
         """
         ground_ids = [ob.id for ob in ground_obstacles]
         track_ids = [ob.id for ob in tracked_obstacles]
-        ground_bboxes = np.array(
-            [ob.bounding_box.as_width_height_bbox() for ob in ground_obstacles])
-        tracked_bboxes = np.array(
-            [ob.bounding_box.as_width_height_bbox() for ob in tracked_obstacles])
+        ground_bboxes = np.array([
+            ob.bounding_box.as_width_height_bbox() for ob in ground_obstacles
+        ])
+        tracked_bboxes = np.array([
+            ob.bounding_box.as_width_height_bbox() for ob in tracked_obstacles
+        ])
         cost_matrix = mm.distances.iou_matrix(ground_bboxes,
                                               tracked_bboxes,
                                               max_iou=0.5)
@@ -199,7 +190,7 @@ class TrackingEvalOperator(erdos.Operator):
         # Calculate all motchallenge metrics by default. Logged metrics
         # determined by list passed to --tracking_metrics
         tracker_metrics_df = self._metrics_host.compute(
-                self._accumulator, metrics=mm.metrics.motchallenge_metrics)
+            self._accumulator, metrics=mm.metrics.motchallenge_metrics)
         return tracker_metrics_df
 
     def __compute_closest_frame_time(self, time):

@@ -33,27 +33,14 @@ class SegmentationDRNOperator(erdos.Operator):
             operator sends
             :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
             messages.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 camera_stream,
-                 segmented_stream,
-                 name,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, camera_stream, segmented_stream, flags):
         camera_stream.add_callback(self.on_msg_camera_stream,
                                    [segmented_stream])
-        self._name = name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         arch = "drn_d_22"
         classes = 19
         self._pallete = drn.segment.CARLA_CITYSCAPE_PALETTE
@@ -82,6 +69,7 @@ class SegmentationDRNOperator(erdos.Operator):
         segmented_stream = erdos.WriteStream()
         return [segmented_stream]
 
+    @erdos.profile_method()
     def on_msg_camera_stream(self, msg, segmented_stream):
         """Invoked upon the receipt of a message on the camera stream.
 
@@ -93,7 +81,7 @@ class SegmentationDRNOperator(erdos.Operator):
                 messages.
         """
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self._name))
+            msg.timestamp, self.config.name))
         start_time = time.time()
         assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
         image = torch.from_numpy(msg.frame.frame.transpose(
@@ -109,11 +97,8 @@ class SegmentationDRNOperator(erdos.Operator):
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
-                                                     self._name, msg.timestamp,
-                                                     runtime))
         frame = SegmentedFrame(image_np, 'cityscapes', msg.frame.camera_setup)
         if self._flags.visualize_segmentation_output:
-            frame.visualize(self._name, msg.timestamp)
+            frame.visualize(self.config.name, msg.timestamp)
         segmented_stream.send(
             SegmentedFrameMessage(msg.timestamp, frame, runtime))

@@ -15,8 +15,8 @@ import math
 import numpy as np
 
 # parameter
-MAX_T = 100.0  # maximum time to the goal [s]
-MIN_T = 5.0  # minimum time to the goal[s]
+MAX_T = 20.0  # maximum time to the goal [s]
+MIN_T = 1.0  # minimum time to the goal[s]
 
 
 class QuinticPolynomial:

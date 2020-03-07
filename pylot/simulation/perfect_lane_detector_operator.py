@@ -1,9 +1,9 @@
 import erdos
 
+import pylot.utils
 from pylot.perception.detection.utils import DetectedLane
 from pylot.perception.messages import DetectedLaneMessage
 from pylot.simulation.utils import get_map
-import pylot.utils
 
 
 class PerfectLaneDetectionOperator(erdos.Operator):
@@ -16,22 +16,14 @@ class PerfectLaneDetectionOperator(erdos.Operator):
             the operator writes
             :py:class:`~pylot.perception.messages.DetectedLaneMessage`
             messages.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 can_bus_stream,
-                 detected_lane_stream,
-                 name,
-                 flags,
-                 log_file_name=None):
+    def __init__(self, can_bus_stream, detected_lane_stream, flags):
         can_bus_stream.add_callback(self.on_position_update,
                                     [detected_lane_stream])
-        self._name = name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._waypoint_precision = 0.05
 
     @staticmethod
@@ -52,6 +44,7 @@ class PerfectLaneDetectionOperator(erdos.Operator):
         shifted = transform.location + shift * transform.get_forward_vector()
         return pylot.utils.Location.from_carla_location(shifted)
 
+    @erdos.profile_method()
     def on_position_update(self, can_bus_msg, detected_lane_stream):
         """ Invoked on the receipt of an update to the position of the vehicle.
 

@@ -27,10 +27,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
             the operator publishes
             :py:class:`~pylot.perception.messages.TrafficLightsMessage`
             messages for traffic lights.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
 
     Attributes:
         _town_name (:obj:`str`): Name of the Carla town.
@@ -44,16 +41,9 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         _can_bus_msgs (:obj:`collections.deque`): Buffer of can bus messages.
         _frame_cnt (:obj:`int`): Number of messages received.
     """
-    def __init__(self,
-                 ground_traffic_lights_stream,
-                 tl_camera_stream,
-                 depth_camera_stream,
-                 segmented_camera_stream,
-                 can_bus_stream,
-                 traffic_lights_stream,
-                 name,
-                 flags,
-                 log_file_name=None):
+    def __init__(self, ground_traffic_lights_stream, tl_camera_stream,
+                 depth_camera_stream, segmented_camera_stream, can_bus_stream,
+                 traffic_lights_stream, flags):
         ground_traffic_lights_stream.add_callback(self.on_traffic_light_update)
         tl_camera_stream.add_callback(self.on_bgr_camera_update)
         depth_camera_stream.add_callback(self.on_depth_camera_update)
@@ -63,8 +53,8 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
             ground_traffic_lights_stream, tl_camera_stream,
             depth_camera_stream, segmented_camera_stream, can_bus_stream
         ], [traffic_lights_stream], self.on_watermark)
-        self._name = name
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
 
         self._traffic_lights = deque()
@@ -88,6 +78,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
                             self._flags.carla_timeout)
         self._town_name = world_map.name
 
+    @erdos.profile_method()
     def on_watermark(self, timestamp, traffic_lights_stream):
         """Invoked when all input streams have received a watermark.
 
@@ -124,7 +115,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
             bgr_msg.frame.annotate_with_bounding_boxes(bgr_msg.timestamp,
                                                        det_traffic_lights)
             if self._flags.visualize_detected_traffic_lights:
-                bgr_msg.frame.visualize(self._name)
+                bgr_msg.frame.visualize(self.config.name)
             if self._flags.log_detector_output:
                 bgr_msg.frame.save(bgr_msg.timestamp.coordinates[0],
                                    self._flags.data_path, 'perfect-detector')

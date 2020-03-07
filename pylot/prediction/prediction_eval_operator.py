@@ -22,32 +22,21 @@ class PredictionEvalOperator(erdos.Operator):
         prediction_stream (:py:class:`erdos.ReadStream`): Stream on
             :py:class:`~pylot.prediction.messages.PredictionMessage` are
             received from the prediction operator.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 can_bus_stream,
-                 tracking_stream,
-                 prediction_stream,
-                 name,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, can_bus_stream, tracking_stream, prediction_stream,
+                 flags):
         can_bus_stream.add_callback(self._on_can_bus_update)
         tracking_stream.add_callback(self._on_tracking_update)
         prediction_stream.add_callback(self._on_prediction_update)
         erdos.add_watermark_callback(
             [can_bus_stream, tracking_stream, prediction_stream], [],
             self.on_watermark)
-        self._name = name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(self._name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            self._name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         # Message buffers.
         self._prediction_msgs = deque()
         self._tracking_msgs = deque()
@@ -192,15 +181,21 @@ class PredictionEvalOperator(erdos.Operator):
         self._logger.info('Person ADE is: {}'.format(person_ade))
         self._logger.info('Person FDE is: {}'.format(person_fde))
 
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(), self._name,
+        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                   self.config.name,
                                                    'vehicle-MSD', vehicle_msd))
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(), self._name,
+        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                   self.config.name,
                                                    'vehicle-ADE', vehicle_ade))
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(), self._name,
+        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                   self.config.name,
                                                    'vehicle-FDE', vehicle_fde))
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(), self._name,
+        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                   self.config.name,
                                                    'person-MSD', person_msd))
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(), self._name,
+        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                   self.config.name,
                                                    'person-ADE', person_ade))
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(), self._name,
+        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                   self.config.name,
                                                    'person-FDE', person_fde))

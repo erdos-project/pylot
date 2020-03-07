@@ -22,30 +22,19 @@ class SegmentationEvalOperator(erdos.Operator):
             segmented
             :py:class:`~pylot.perception.messages.SegmentedFrameMessage` are
             received.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 ground_segmented_stream,
-                 segmented_stream,
-                 name,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, ground_segmented_stream, segmented_stream, flags):
         ground_segmented_stream.add_callback(self.on_ground_segmented_frame)
         segmented_stream.add_callback(self.on_segmented_frame)
         # Register a watermark callback.
         erdos.add_watermark_callback(
             [ground_segmented_stream, segmented_stream], [], self.on_watermark)
-        self._name = name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         # Buffer of ground truth segmented frames.
         self._ground_frames = []
         # Buffer of segmentation output frames.
@@ -146,7 +135,7 @@ class SegmentationEvalOperator(erdos.Operator):
         self._logger.info('IoU class scores: {}'.format(class_iou))
         self._logger.info('mean IoU score: {}'.format(mean_iou))
         self._csv_logger.info('{},{},{},{}'.format(
-            time_epoch_ms(), self._name, self._flags.segmentation_metric,
+            time_epoch_ms(), self.config.name, self._flags.segmentation_metric,
             mean_iou))
 
     def __get_ground_segmentation_at(self, timestamp):

@@ -4,8 +4,8 @@ import erdos
 import numpy as np
 from pid_controller.pid import PID
 
-from pylot.control.messages import ControlMessage
 import pylot.control.utils
+from pylot.control.messages import ControlMessage
 from pylot.simulation.utils import get_world
 
 flags.DEFINE_enum('avoidance_behavior', 'stop', ['stop', 'swerve'],
@@ -13,24 +13,13 @@ flags.DEFINE_enum('avoidance_behavior', 'stop', ['stop', 'swerve'],
 
 
 class PersonAvoidanceAgentOperator(erdos.Operator):
-    def __init__(self,
-                 can_bus_stream,
-                 obstacles_stream,
-                 ground_obstacles_stream,
-                 control_stream,
-                 name,
-                 goal,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, can_bus_stream, obstacles_stream,
+                 ground_obstacles_stream, control_stream, goal, flags):
         """ Initializes the operator with the given information.
 
         Args:
-            name: The name to be used for the operator in the data-flow graph.
             goal: The destination pylot.utils.Location used to plan until.
             flags: The command line flags passed to the driver.
-            log_file_name: The file name to log to.
-            csv_file_name: The file name to log the experimental results to.
         """
         can_bus_stream.add_callback(self.on_can_bus_update)
         obstacles_stream.add_callback(self.on_obstacles_update)
@@ -38,10 +27,10 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
         erdos.add_watermark_callback([can_bus_stream, obstacles_stream],
                                      [control_stream], self.on_watermark)
 
-        self._name = name
-        self._logger = erdos.utils.setup_logging(self._name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            self._name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         self._flags = flags
         self._goal = goal
 
@@ -147,11 +136,11 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
                     if obstacle.label == 'person':
                         self._csv_logger.info(
                             "{},{},detected a person {}m away".format(
-                                self._name, self.SPEED,
+                                self.config.name, self.SPEED,
                                 person.distance(ego_transform)))
                         self._csv_logger.info(
                             "{},{},vehicle speed {} m/s.".format(
-                                self._name, self.SPEED,
+                                self.config.name, self.SPEED,
                                 can_bus_msg.data.forward_speed))
 
         # Figure out the location of the ego vehicle and compute the next

@@ -17,27 +17,16 @@ class SegmentationDecayOperator(erdos.Operator):
             received.
         iou_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator publishes IoU accuracy results.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 ground_segmented_stream,
-                 iou_stream,
-                 name,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, ground_segmented_stream, iou_stream, flags):
         ground_segmented_stream.add_callback(self.on_ground_segmented_frame,
                                              [iou_stream])
-        self._name = name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         self._ground_frames = deque()
 
     @staticmethod
@@ -80,7 +69,7 @@ class SegmentationDecayOperator(erdos.Operator):
                     'Segmentation ground latency {} ; mean IoU {}'.format(
                         time_diff, mean_iou))
                 self._csv_logger.info('{},{},mIoU,{},{}'.format(
-                    cur_time, self._name, time_diff, mean_iou))
+                    cur_time, self.config.name, time_diff, mean_iou))
                 iou_stream.send(
                     erdos.Message(msg.timestamp, (time_diff, mean_iou)))
                 person_key = 4
@@ -89,7 +78,7 @@ class SegmentationDecayOperator(erdos.Operator):
                         'Segmentation ground latency {} ; person IoU {}'.
                         format(time_diff, class_iou[person_key]))
                     self._csv_logger.info('{},{},personIoU,{},{}'.format(
-                        cur_time, self._name, time_diff,
+                        cur_time, self.config.name, time_diff,
                         class_iou[person_key]))
 
                 vehicle_key = 10
@@ -98,7 +87,7 @@ class SegmentationDecayOperator(erdos.Operator):
                         'Segmentation ground latency {} ; vehicle IoU {}'.
                         format(time_diff, class_iou[vehicle_key]))
                     self._csv_logger.info('{},{},vehicleIoU,{},{}'.format(
-                        cur_time, self._name, time_diff,
+                        cur_time, self.config.name, time_diff,
                         class_iou[vehicle_key]))
 
         # Append the processed image to the buffer.

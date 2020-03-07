@@ -13,25 +13,14 @@ class DetectionDecayOperator(erdos.Operator):
             detected obstacles are received.
         map_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator publishes mAP accuracy results.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 obstacles_stream,
-                 map_stream,
-                 name,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, obstacles_stream, map_stream, flags):
         obstacles_stream.add_callback(self.on_ground_obstacles, [map_stream])
-        self._name = name
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+            self.config.name + '-csv', self.config.csv_log_file_name)
         self._flags = flags
         self._ground_bboxes = deque()
         self._iou_thresholds = [0.1 * i for i in range(1, 10)]
@@ -85,7 +74,7 @@ class DetectionDecayOperator(erdos.Operator):
                     "The latency is {} and the average precision is {}".format(
                         latency, avg_precision))
                 self._csv_logger.info('{},{},{},{}'.format(
-                    time_epoch_ms(), self._name, latency, avg_precision))
+                    time_epoch_ms(), self.config.name, latency, avg_precision))
                 map_stream.send(
                     erdos.Message(msg.timestamp, (latency, avg_precision)))
 

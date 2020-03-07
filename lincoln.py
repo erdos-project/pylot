@@ -1,20 +1,21 @@
-from absl import app, flags
 import csv
 import erdos
 import sys
 import time
 
+from absl import app, flags
+
+import pylot.drivers.sensor_setup
+import pylot.flags
+import pylot.operator_creator
+import pylot.utils
 from pylot.drivers.drive_by_wire_operator import DriveByWireOperator
 from pylot.drivers.grasshopper3_driver_operator import \
     Grasshopper3DriverOperator
-import pylot.drivers.sensor_setup
 from pylot.drivers.velodyne_driver_operator import VelodyneDriverOperator
-import pylot.flags
 from pylot.localization.ndt_autoware_operator import NDTAutowareOperator
-import pylot.operator_creator
-from pylot.perception.messages import ObstaclesMessage, \
-    ObstacleTrajectoriesMessage, TrafficLightsMessage
-import pylot.utils
+from pylot.perception.messages import ObstacleTrajectoriesMessage, \
+    ObstaclesMessage, TrafficLightsMessage
 
 FLAGS = flags.FLAGS
 
@@ -41,14 +42,14 @@ def add_grasshopper3_camera(transform,
     camera_setup = pylot.drivers.sensor_setup.RGBCameraSetup(
         name, FLAGS.camera_image_width, FLAGS.camera_image_height, transform,
         fov)
-    [camera_stream] = erdos.connect(Grasshopper3DriverOperator, [],
-                                    False,
-                                    camera_setup.get_name() + '_operator',
-                                    camera_setup,
-                                    topic_name,
-                                    FLAGS,
-                                    log_file_name=FLAGS.log_file_name,
-                                    csv_file_name=FLAGS.csv_log_file_name)
+    op_config = erdos.OperatorConfig(name=camera_setup.get_name() +
+                                     '_operator',
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [camera_stream] = erdos.connect(Grasshopper3DriverOperator, op_config, [],
+                                    camera_setup, topic_name, FLAGS)
     return (camera_stream, camera_setup)
 
 
@@ -56,34 +57,33 @@ def add_velodyne_lidar(transform, name='velodyne', topic_name='/points_raw'):
     lidar_setup = pylot.drivers.sensor_setup.LidarSetup(name=name,
                                                         lidar_type='velodyne',
                                                         transform=transform)
-    [point_cloud_stream] = erdos.connect(VelodyneDriverOperator, [],
-                                         False,
-                                         lidar_setup.get_name() + '_operator',
-                                         lidar_setup,
-                                         topic_name,
-                                         FLAGS,
-                                         log_file_name=FLAGS.log_file_name,
-                                         csv_file_name=FLAGS.csv_log_file_name)
+    op_config = erdos.OperatorConfig(name=lidar_setup.get_name() + '_operator',
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [point_cloud_stream] = erdos.connect(VelodyneDriverOperator, op_config, [],
+                                         lidar_setup, topic_name, FLAGS)
     return (point_cloud_stream, lidar_setup)
 
 
 def add_localization():
-    [can_bus_stream] = erdos.connect(NDTAutowareOperator, [],
-                                     False,
-                                     'ndt_localizer_operator',
-                                     FLAGS,
+    op_config = erdos.OperatorConfig(name='ndt_localizer_operator',
+                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
-                                     csv_file_name=FLAGS.csv_log_file_name)
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [can_bus_stream] = erdos.connect(NDTAutowareOperator, op_config, [], FLAGS)
     return can_bus_stream
 
 
 def add_drive_by_wire_operator(control_stream):
-    erdos.connect(DriveByWireOperator, [control_stream],
-                  False,
-                  'drive_by_wire_operator',
-                  FLAGS,
-                  log_file_name=FLAGS.log_file_name,
-                  csv_file_name=FLAGS.csv_log_file_name)
+    op_config = erdos.OperatorConfig(name='drive_by_wire_operator',
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(DriveByWireOperator, op_config, [control_stream], FLAGS)
 
 
 def create_data_flow():
@@ -195,8 +195,9 @@ def read_waypoints():
 
 def main(argv):
     (obstacles_stream, traffic_lights_stream, obstacles_tracking_stream,
-     open_drive_stream,
-     global_trajectory_stream) = erdos.run_async(create_data_flow)
+     open_drive_stream, global_trajectory_stream) = create_data_flow()
+    # Run the data-flow.
+    erdos.run_async()
 
     top_timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
     open_drive_stream.send(erdos.WatermarkMessage(top_timestamp))

@@ -7,8 +7,8 @@ class ObstacleTrajectory(object):
     Args:
         label (:obj:`str`): The label of the obstacle.
         id (:obj:`int`): The identifier of the obstacle.
-        bounding_box (:py:class:`~pylot.utisl.BoundingBox3D`): Bounding box
-            of the obstacle.
+        bounding_box (:py:class:`~pylot.perception.detection.utils.BoundingBox3D`):
+            Bounding box of the obstacle.
         trajectory (list(:py:class:`~pylot.utils.Transform`)): List of past
             transforms.
     """

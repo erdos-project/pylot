@@ -1,11 +1,12 @@
 from absl import app
 from absl import flags
+
 import erdos
 
-from pylot.control.messages import ControlMessage
 import pylot.flags
 import pylot.operator_creator
 import pylot.utils
+from pylot.control.messages import ControlMessage
 
 FLAGS = flags.FLAGS
 
@@ -41,7 +42,7 @@ class SynchronizerOperator(erdos.Operator):
         control_stream.send(control_msg)
 
 
-def driver():
+def main(argv):
     """ Computes ground obstacle detection and segmentation decay."""
     transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                       pylot.utils.Rotation())
@@ -86,20 +87,17 @@ def driver():
         stream_to_sync_on = iou_stream
         if map_stream is not None:
             stream_to_sync_on = map_stream
-        (control_stream, ) = erdos.connect(
-            SynchronizerOperator,
-            [stream_to_sync_on],
-            False,  # Does not flow watermarks.
-            FLAGS)
+        op_config = erdos.OperatorConfig(name='synchronizer_operator',
+                                         flow_watermarks=False)
+        (control_stream, ) = erdos.connect(SynchronizerOperator, op_config,
+                                           [stream_to_sync_on], FLAGS)
         control_loop_stream.set(control_stream)
     else:
         raise ValueError(
             "Must be in auto pilot mode. Pass --control_agent=carla_auto_pilot"
         )
 
-
-def main(argv):
-    erdos.run(driver)
+    erdos.run()
 
 
 if __name__ == '__main__':

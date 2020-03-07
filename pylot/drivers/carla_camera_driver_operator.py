@@ -2,12 +2,12 @@ import erdos
 import threading
 import time
 
-from pylot.perception.messages import FrameMessage, DepthFrameMessage, \
-    SegmentedFrameMessage
-from pylot.simulation.utils import get_world, set_synchronous_mode
-from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.depth_frame import DepthFrame
+from pylot.perception.messages import DepthFrameMessage, FrameMessage, \
+    SegmentedFrameMessage
+from pylot.perception.segmentation.segmented_frame import SegmentedFrame
+from pylot.simulation.utils import get_world, set_synchronous_mode
 
 
 class CarlaCameraDriverOperator(erdos.Operator):
@@ -23,25 +23,17 @@ class CarlaCameraDriverOperator(erdos.Operator):
             id to get a Carla handle to the vehicle.
         camera_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends camera frames.
-        name (:obj:`str`): The name of the operator.
         camera_setup (:py:class:`pylot.drivers.sensor_setup.RGBCameraSetup`):
             Setup of the camera.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 ground_vehicle_id_stream,
-                 camera_stream,
-                 name,
-                 camera_setup,
-                 flags,
-                 log_file_name=None):
+    def __init__(self, ground_vehicle_id_stream, camera_stream, camera_setup,
+                 flags):
         self._vehicle_id_stream = ground_vehicle_id_stream
         self._camera_stream = camera_stream
-        self._name = name
         self._flags = flags
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._camera_setup = camera_setup
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None
@@ -107,6 +99,7 @@ class CarlaCameraDriverOperator(erdos.Operator):
         # while True:
         #     time.sleep(0.01)
 
+    @erdos.profile_method()
     def process_images(self, carla_image):
         """ Invoked when an image is received from the simulator.
 

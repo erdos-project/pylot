@@ -4,11 +4,10 @@ from collections import deque
 import erdos
 import math
 from pid_controller.pid import PID
-import time
 
 # Pylot imports
-from pylot.control.messages import ControlMessage
 import pylot.control.utils
+from pylot.control.messages import ControlMessage
 from pylot.utils import time_epoch_ms
 
 
@@ -28,31 +27,17 @@ class PIDAgentOperator(erdos.Operator):
         control_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends :py:class:`~pylot.control.messages.ControlMessage`
             messages.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
-    def __init__(self,
-                 can_bus_stream,
-                 waypoints_stream,
-                 control_stream,
-                 name,
-                 flags,
-                 log_file_name=None,
-                 csv_file_name=None):
+    def __init__(self, can_bus_stream, waypoints_stream, control_stream,
+                 flags):
         can_bus_stream.add_callback(self.on_can_bus_update)
         waypoints_stream.add_callback(self.on_waypoints_update)
         erdos.add_watermark_callback([can_bus_stream, waypoints_stream],
                                      [control_stream], self.on_watermark)
-        self._name = name
         self._flags = flags
-        self._log_file_name = log_file_name
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._pid = PID(p=self._flags.pid_p,
                         i=self._flags.pid_i,
                         d=self._flags.pid_d)
@@ -65,6 +50,7 @@ class PIDAgentOperator(erdos.Operator):
         control_stream = erdos.WriteStream()
         return [control_stream]
 
+    @erdos.profile_method()
     def on_watermark(self, timestamp, control_stream):
         """Computes and sends the control command on the control stream.
 
@@ -75,7 +61,6 @@ class PIDAgentOperator(erdos.Operator):
                 the watermark.
         """
         self._logger.debug('@{}: received watermark'.format(timestamp))
-        start_time = time.time()
         can_bus_msg = self._can_bus_msgs.popleft()
         vehicle_transform = can_bus_msg.data.transform
         # Vehicle sped in m/s
@@ -109,11 +94,6 @@ class PIDAgentOperator(erdos.Operator):
             self._logger.warning('Braking! No more waypoints to follow.')
             throttle, brake = 0.0, 0.5
             steer = 0.0
-        # Get runtime in ms.
-        runtime = (time.time() - start_time) * 1000
-        self._csv_logger.info('{},{},"{}",{}'.format(time_epoch_ms(),
-                                                     self._name, timestamp,
-                                                     runtime))
         self._logger.debug(
             '@{}: speed {}, location {}, steer {}, throttle {}, brake {}'.
             format(timestamp, current_speed, vehicle_transform, steer,

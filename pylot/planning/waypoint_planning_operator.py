@@ -5,9 +5,9 @@ import erdos
 import itertools
 
 import pylot.planning.cost_functions
+import pylot.utils
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.utils import BehaviorPlannerState
-import pylot.utils
 
 DEFAULT_NUM_WAYPOINTS = 50  # 50 waypoints / 50 meters of planning ahead
 DEFAULT_TARGET_WAYPOINT = 9  # Use the 10th waypoint for computing speed
@@ -35,14 +35,9 @@ class WaypointPlanningOperator(erdos.Operator):
             which the scenario runner publishes waypoints.
         waypoints_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends waypoints the ego vehicle must follow.
-        name (:obj:`str`): The name of the operator.
         flags (absl.flags): Object to be used to access absl flags.
         goal_location (:py:class:`~pylot.utils.Location`): The goal location of
             the ego vehicle.
-        log_file_name (:obj:`str`, optional): Name of file where log messages
-            are written to. If None, then messages are written to stdout.
-        csv_file_name (:obj:`str`, optional): Name of file where stats logs are
-            written to. If None, then messages are written to stdout.
     """
     def __init__(self,
                  can_bus_stream,
@@ -51,11 +46,8 @@ class WaypointPlanningOperator(erdos.Operator):
                  obstacles_stream,
                  traffic_lights_stream,
                  waypoints_stream,
-                 name,
                  flags,
-                 goal_location=None,
-                 log_file_name=None,
-                 csv_file_name=None):
+                 goal_location=None):
         can_bus_stream.add_callback(self.on_can_bus_update)
         open_drive_stream.add_callback(self.on_opendrive_map)
         global_trajectory_stream.add_callback(self.on_global_trajectory)
@@ -65,10 +57,8 @@ class WaypointPlanningOperator(erdos.Operator):
             [can_bus_stream, obstacles_stream, traffic_lights_stream],
             [waypoints_stream], self.on_watermark)
 
-        self._log_file_name = log_file_name
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            name + '-csv', csv_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
         # Initialize the state of the behaviour planner.
         # XXX(ionel): The behaviour planner is not ready yet.
@@ -104,7 +94,7 @@ class WaypointPlanningOperator(erdos.Operator):
             from pylot.simulation.utils import get_map
             self._map = HDMap(
                 get_map(self._flags.carla_host, self._flags.carla_port,
-                        self._flags.carla_timeout), self._log_file_name)
+                        self._flags.carla_timeout))
             self._logger.info('Planner running in stand-alone mode')
             # Recompute waypoints upon each run.
             self._recompute_waypoints = True
@@ -127,7 +117,7 @@ class WaypointPlanningOperator(erdos.Operator):
             raise Exception('Error importing carla.')
         self._logger.info('Initializing HDMap from open drive stream')
         from pylot.map.hd_map import HDMap
-        self._map = HDMap(carla.Map('map', msg.data), self._log_file_name)
+        self._map = HDMap(carla.Map('map', msg.data))
 
     def on_global_trajectory(self, msg):
         """Invoked whenever a message is received on the trajectory stream.
@@ -169,6 +159,7 @@ class WaypointPlanningOperator(erdos.Operator):
         self._logger.debug('@{}: traffic lights update'.format(msg.timestamp))
         self._traffic_light_msgs.append(msg)
 
+    @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
 

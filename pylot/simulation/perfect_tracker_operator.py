@@ -1,30 +1,25 @@
 from collections import defaultdict, deque
 import erdos
 
-from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
-from pylot.perception.messages import ObstacleTrajectoriesMessage
 import pylot.utils
+from pylot.perception.messages import ObstacleTrajectoriesMessage
+from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 
 
 class PerfectTrackerOperator(erdos.Operator):
     """Operator that gives past trajectories of other agents in the environment,
        i.e. their past (x,y,z) locations from an ego-vehicle perspective.
     """
-    def __init__(self,
-                 ground_obstacles_stream,
-                 can_bus_stream,
-                 ground_tracking_stream,
-                 name,
-                 flags,
-                 log_file_name=None):
+    def __init__(self, ground_obstacles_stream, can_bus_stream,
+                 ground_tracking_stream, flags):
         """Initializes the PerfectTracker Operator. """
         ground_obstacles_stream.add_callback(self.on_obstacles_update)
         can_bus_stream.add_callback(self.on_can_bus_update)
         erdos.add_watermark_callback([ground_obstacles_stream, can_bus_stream],
                                      [ground_tracking_stream],
                                      self.on_watermark)
-        self._name = name
-        self._logger = erdos.utils.setup_logging(name, log_file_name)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._flags = flags
         # Queues of incoming data.
         self._obstacles_raw_msgs = deque()
@@ -42,6 +37,7 @@ class PerfectTrackerOperator(erdos.Operator):
         ground_tracking_stream = erdos.WriteStream()
         return [ground_tracking_stream]
 
+    @erdos.profile_method()
     def on_watermark(self, timestamp, ground_tracking_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         obstacles_msg = self._obstacles_raw_msgs.popleft()

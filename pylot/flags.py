@@ -10,6 +10,9 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('log_file_name', None, 'Name of the log file')
 flags.DEFINE_string('csv_log_file_name', None,
                     'csv file into which to log runtime stats')
+flags.DEFINE_string(
+    'profile_file_name', 'pylot_profile.json',
+    'file into which to log runtime profile stats in Chrome trace format')
 
 ######################################################################
 # Perception
