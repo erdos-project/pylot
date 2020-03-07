@@ -37,8 +37,6 @@ FrenetOptimalTrajectory::~FrenetOptimalTrajectory() {
     for (FrenetPath* fp : frenet_paths) {
         delete fp;
     }
-    frenet_paths.clear();
-    frenet_paths.resize(0);
 }
 
 // Return the best path

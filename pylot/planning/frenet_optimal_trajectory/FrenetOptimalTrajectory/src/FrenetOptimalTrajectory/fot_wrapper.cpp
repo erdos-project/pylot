@@ -96,11 +96,11 @@ extern "C" {
 
         // unit vector orthog. to spline
         tuple<double, double> tvec (y1-y0, -(x1-x0));
-        unit_vector(tvec);
+        as_unit_vector(tvec);
 
         // compute tangent / normal car vectors
         tuple<double, double> fvec (vx, vy);
-        unit_vector(fvec);
+        as_unit_vector(fvec);
 
         // get initial conditions in frenet frame
         initial_conditions[0] = s; // current longitudinal position s
