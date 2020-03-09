@@ -10,3 +10,6 @@ dependencies/
 .idea/
 venv/
 erdos_pylot.egg-info/
+
+# Submodules handled by install.sh
+frenet-optimal-trajectory-planner/

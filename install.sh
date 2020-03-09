@@ -1,6 +1,13 @@
 #!/bin/bash
 # Assumes the script is called from PYLOT_HOME directory
 ###### Build the FrenetOptimalTrajectory Planner ######
+export PYLOT_HOME=$(pwd)
+cd pylot/planning/frenet_optimal_trajectory/
+git clone https://github.com/erdos-project/frenet-optimal-trajectory-planner.git
+cd frenet-optimal-trajectory-planner
+bash build.sh
+cd $PYLOT_HOME
+
 sudo apt-get -y update
 sudo apt-get install -y git wget python3-pip
 pip3 install gdown
