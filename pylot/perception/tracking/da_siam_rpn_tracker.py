@@ -16,7 +16,7 @@ flags.DEFINE_string('da_siam_rpn_model_path',
                     'Path to the model')
 
 ASSOCIATION_THRESHOLD = 0.1
-MAX_TRACKER_AGE = 3
+MAX_MISSED_DETECTIONS = 2
 
 
 class SingleObjectDaSiamRPNTracker(object):
@@ -109,7 +109,7 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
         # Add 1 to age of any unmatched trackers, filter old ones
         for tracker in unmatched_trackers:
             tracker.missed_det_updates += 1
-            if tracker.missed_det_updates < MAX_TRACKER_AGE:
+            if tracker.missed_det_updates < MAX_MISSED_DETECTIONS:
                 updated_trackers.append(tracker)
             else:
                 self._logger.debug(
