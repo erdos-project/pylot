@@ -11,12 +11,12 @@ class DepthFrame(object):
     """Class that stores depth frames.
 
     Args:
-        frame: A numpy array storring the depth frame.
+        frame: A numpy array storing the depth frame.
         camera_setup (:py:class:`~pylot.drivers.sensor_setup.DepthCameraSetup`):
             The camera setup used by the sensor that generated this frame.
 
     Attributes:
-        frame: A numpy array storring the depth frame.
+        frame: A numpy array storing the depth frame.
         camera_setup (:py:class:`~pylot.drivers.sensor_setup.DepthCameraSetup`):
             The camera setup used by the sensor that generated this frame.
     """
@@ -78,10 +78,7 @@ class DepthFrame(object):
         p3d *= normalized_depth * far
 
         # [[X1,Y1,Z1],[X2,Y2,Z2], ... [Xn,Yn,Zn]]
-        locations = [
-            pylot.utils.Location(x, y, z)
-            for x, y, z in np.asarray(np.transpose(p3d))
-        ]
+        locations = np.asarray(np.transpose(p3d))
         # Transform the points in 3D world coordinates.
         to_world_transform = self.camera_setup.get_unreal_transform()
         point_cloud = to_world_transform.transform_points(locations)
@@ -97,10 +94,12 @@ class DepthFrame(object):
         """
         if self._cached_point_cloud is None:
             self._cached_point_cloud = self.as_point_cloud()
-        return [
+        pixel_locations = [
             self._cached_point_cloud[pixel.y * self.camera_setup.width +
                                      pixel.x] for pixel in pixels
         ]
+        return [pylot.utils.Location(loc[0], loc[1], loc[2])
+                    for loc in pixel_locations]
 
     def save(self, timestamp, data_path, file_base):
         """Saves the depth frame to a file.

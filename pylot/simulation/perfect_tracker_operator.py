@@ -59,7 +59,7 @@ class PerfectTrackerOperator(erdos.Operator):
                 # box, in relation to the CanBus measurement.
                 v_transform = past_obstacle_loc.transform * \
                                 past_obstacle_loc.bounding_box.transform
-                new_location = can_bus_transform.inverse_transform_points(
+                new_location = can_bus_transform.inverse_transform_locations(
                     [v_transform.location])[0]
                 cur_obstacle_trajectory.append(
                     pylot.utils.Transform(location=new_location,

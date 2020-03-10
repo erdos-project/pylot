@@ -103,15 +103,15 @@ class ChauffeurLoggerOperator(erdos.Operator):
 
         # Transform to previous and back to current frame
         self._waypoints = [
-            self._current_transform.transform_points(
-                self._previous_transform.inverse_transform_points(
+            self._current_transform.transform_locations(
+                self._previous_transform.inverse_transform_locations(
                     [wp.location]))[0] for wp in self._waypoints
         ]
 
         # Center first point at 0, 0
         center_transform = pylot.utils.Transform(self._waypoints[0], rotation)
         self._waypoints = [
-            center_transform.inverse_transform_points([wp])[0]
+            center_transform.inverse_transform_locations([wp])[0]
             for wp in self._waypoints
         ]
 
@@ -196,7 +196,7 @@ class ChauffeurLoggerOperator(erdos.Operator):
                 self._draw_trigger_volume(self._world, tl_actor)
 
         # Record traffic light masks
-        img = np.uint8(msg.frame)
+        img = np.uint8(msg.frame.as_rgb_numpy_array())
         tl_mask = self._get_traffic_light_channel_from_top_down_rgb(img)
         tl_img = Image.fromarray(tl_mask)
         tl_img = tl_img.convert('RGB')

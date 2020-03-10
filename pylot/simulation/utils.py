@@ -296,7 +296,7 @@ def get_detected_traffic_stops(traffic_stops, depth_frame):
                                  y=-bbox3d.extent.y,
                                  z=ext_z_value),
         ]
-        bbox = bbox3d.transform.transform_points(ext)
+        bbox = bbox3d.transform.transform_locations(ext)
         camera_transform = depth_frame.camera_setup.get_transform()
         coords = []
         for loc in bbox:

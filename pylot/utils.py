@@ -402,15 +402,13 @@ class Transform(object):
         space relative to the transform (using inv(self.matrix))
 
         Args:
-            points (list(:py:class:`.Location`)): list of points.
+            points: An n by 3 numpy array, where each row is the
+                (x, y, z) coordinates of a point.
             matrix: The matrix of the transformation to apply.
 
         Returns:
-            list(:py:class:`.Location`): List of transformed points.
+            An n by 3 numpy array of transformed points.
         """
-        # Retrieve the locations as numpy arrays.
-        points = np.array([loc.as_numpy_array() for loc in points])
-
         # Needed format: [[X0,..Xn],[Y0,..Yn],[Z0,..Zn]].
         # So let's transpose the point matrix.
         points = points.transpose()
@@ -424,10 +422,10 @@ class Transform(object):
         # Get all but the last row in array form.
         points = np.asarray(points[0:3].transpose())
 
-        return [Location(x, y, z) for x, y, z in points]
+        return points
 
     def transform_points(self, points):
-        """Transforms the given set of locations (specified in the coordinate
+        """Transforms the given set of points (specified in the coordinate
         space of the current transform) to be in the world coordinate space.
 
         For example, if the transform is at location (3, 0, 0) and the
@@ -436,15 +434,16 @@ class Transform(object):
         coordinate space.
 
         Args:
-            points (list(:py:class:`.Location`)): list of points.
+            points: A (number of points) by 3 numpy array, where each row is
+                the (x, y, z) coordinates of a point.
 
         Returns:
-            list(:py:class:`.Location`): List of transformed points.
+            An n by 3 numpy array of transformed points.
         """
         return self.__transform(points, self.matrix)
 
     def inverse_transform_points(self, points):
-        """Transforms the given set of locations (specified in world coordinate
+        """Transforms the given set of points (specified in world coordinate
         space) to be relative to the given transform.
 
         For example, if the transform is at location (3, 0, 0) and the location
@@ -453,12 +452,53 @@ class Transform(object):
         transform.
 
         Args:
-            points (list(:py:class:`.Location`)): list of points.
+            points: A (number of points) by 3 numpy array, where each row is
+                the (x, y, z) coordinates of a point.
+
+        Returns:
+            An n by 3 numpy array of transformed points.
+        """
+        return self.__transform(points, np.linalg.inv(self.matrix))
+
+    def transform_locations(self, locations):
+        """Transforms the given set of locations (specified in the coordinate
+        space of the current transform) to be in the world coordinate space.
+
+        This method has the same functionality as transform_points, and
+        is provided for convenience; when dealing with a large number of
+        points, it is advised to use transform_points to avoid the slow
+        conversion between a numpy array and list of locations.
+
+        Args:
+            points (list(:py:class:`.Location`)): List of locations.
 
         Returns:
             list(:py:class:`.Location`): List of transformed points.
         """
-        return self.__transform(points, np.linalg.inv(self.matrix))
+        points = np.array([loc.as_numpy_array() for loc in locations])
+        transformed_points = self.__transform(points, self.matrix)
+        return [Location(x, y, z) for x, y, z in transformed_points]
+
+    def inverse_transform_locations(self, locations):
+        """Transforms the given set of locations (specified in world coordinate
+        space) to be relative to the given transform.
+
+        This method has the same functionality as inverse_transform_points,
+        and is provided for convenience; when dealing with a large number of
+        points, it is advised to use inverse_transform_points to avoid the slow
+        conversion between a numpy array and list of locations.
+
+        Args:
+            points (list(:py:class:`.Location`)): List of locations.
+
+        Returns:
+            list(:py:class:`.Location`): List of transformed points.
+        """
+
+        points = np.array([loc.as_numpy_array() for loc in locations])
+        transformed_points = self.__transform(points, np.linalg.inv(self.matrix))
+        return [Location(x, y, z) for x, y, z in transformed_points]
+
 
     def as_carla_transform(self):
         """Converts the transform to a carla transform.
