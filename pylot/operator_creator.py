@@ -77,7 +77,8 @@ def add_obstacle_detection(camera_stream, csv_file_name=None):
         op_config = erdos.OperatorConfig(
             name=FLAGS.obstacle_detection_model_names[i],
             log_file_name=FLAGS.log_file_name,
-            csv_log_file_name=csv_file_name)
+            csv_log_file_name=csv_file_name,
+            profile_file_name=FLAGS.profile_file_name)
         obstacles_streams += erdos.connect(
             DetectionOperator, op_config, [camera_stream],
             FLAGS.obstacle_detection_model_paths[i], FLAGS)

@@ -59,6 +59,9 @@ class CarlaOperator(erdos.Operator):
             # Load the appropriate town.
             self._initialize_world()
 
+        # Save the spectator handle so that we don't have to repeteadly get the
+        # handle (which is slow).
+        self._spectator = self._world.get_spectator()
         self._send_world_messages()
 
         # Turn on the synchronous mode so we can control the simulation.
@@ -391,6 +394,7 @@ class CarlaOperator(erdos.Operator):
         self._world.on_tick(self.publish_world_data)
         self._tick_simulator()
 
+    @erdos.profile_method()
     def __publish_hero_vehicle_data(self, timestamp, watermark_msg):
         vec_transform = pylot.utils.Transform.from_carla_transform(
             self._driving_vehicle.get_transform())
@@ -406,7 +410,7 @@ class CarlaOperator(erdos.Operator):
         v_pose = self._driving_vehicle.get_transform()
         v_pose.location -= 10 * carla.Location(v_pose.get_forward_vector())
         v_pose.location.z = 5
-        self._world.get_spectator().set_transform(v_pose)
+        self._spectator.set_transform(v_pose)
 
     def __publish_ground_actors_data(self, timestamp, watermark_msg):
         # Get all the actors in the simulation.
