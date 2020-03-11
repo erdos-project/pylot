@@ -23,13 +23,14 @@ def test_pixel_has_same_depth(x, y, z, threshold, expected):
 
 @pytest.mark.parametrize("depth_frame, expected", [
     (np.array([[0.4, 0.3], [0.2, 0.1]]), \
-        [Location(400, -400, 400), Location(300, 300, 300), \
-         Location(200, -200, -200), Location(100, 100, -100)]),
-    (np.array([[0.1, 0.2]]), [Location(100, -100, 0), Location(200, 200, 0)]),
+        np.array([[400, -400, 400], [300, 300, 300], \
+                  [200, -200, -200], [100, 100, -100]])),
+    (np.array([[0.1, 0.2]]),
+        np.array([[100, -100, 0], [200, 200, 0]])),
     (0.01 * np.ones((3,3)), \
-        [Location(10, -10, 10), Location(10, 0, 10), Location(10, 10, 10),
-         Location(10, -10, 0), Location(10, 0, 0), Location(10, 10, 0),
-         Location(10, -10, -10), Location(10, 0, -10), Location(10, 10, -10)])
+        np.array([[10, -10, 10], [10, 0, 10], [10, 10, 10],
+                  [10, -10, 0], [10, 0, 0], [10, 10, 0],
+                  [10, -10, -10], [10, 0, -10], [10, 10, -10]]))
 ])
 def test_depth_to_point_cloud(depth_frame, expected):
     height, width = depth_frame.shape
@@ -44,18 +45,19 @@ def test_depth_to_point_cloud(depth_frame, expected):
     # Resulting unreal coordinates.
     point_cloud = depth_frame.as_point_cloud()
     for i in range(width * height):
-        assert np.isclose(point_cloud[i].x, expected[i].x), 'Returned x '
-        'value is not the same as expected'
-        assert np.isclose(point_cloud[i].y, expected[i].y), 'Returned y '
-        'value is not the same as expected'
-        assert np.isclose(point_cloud[i].z, expected[i].z), 'Returned z '
-        'value is not the same as expected'
+            assert np.isclose(point_cloud[i][0], expected[i][0]), \
+                'Returned x value is not the same as expected'
+            assert np.isclose(point_cloud[i][1], expected[i][1]), \
+                'Returned y value is not the same as expected'
+            assert np.isclose(point_cloud[i][2], expected[i][2]), \
+                'Returned z value is not the same as expected'
 
 
 @pytest.mark.parametrize(
     "depth_frame, expected",
-    [(np.array([[0.1, 0.1]]), [Location(110, -80, 30),
-                               Location(110, 120, 30)])])
+    [(np.array([[0.1, 0.1]]), np.array([[110, -80, 30],
+                                        [110, 120, 30]]))
+])
 def test_depth_to_point_cloud_nonzero_camera_loc(depth_frame, expected):
     height, width = depth_frame.shape
     camera_setup = CameraSetup('test_setup',
@@ -70,11 +72,11 @@ def test_depth_to_point_cloud_nonzero_camera_loc(depth_frame, expected):
     point_cloud = depth_frame.as_point_cloud()
     print(point_cloud)
     for i in range(width * height):
-        assert np.isclose(point_cloud[i].x, expected[i].x), 'Returned x '
+        assert np.isclose(point_cloud[i][0], expected[i][0]), 'Returned x '
         'value is not the same as expected'
-        assert np.isclose(point_cloud[i].y, expected[i].y), 'Returned y '
+        assert np.isclose(point_cloud[i][1], expected[i][1]), 'Returned y '
         'value is not the same as expected'
-        assert np.isclose(point_cloud[i].z, expected[i].z), 'Returned z '
+        assert np.isclose(point_cloud[i][2], expected[i][2]), 'Returned z '
         'value is not the same as expected'
 
 
@@ -106,12 +108,12 @@ def test_get_pixel_locations(depth_frame, pixels, expected):
 ## Point Cloud Tests
 
 
-@pytest.mark.parametrize("points, expected", [([
-    Location(1, 0, 0),
-    Location(0, 1, 0),
-    Location(0, 0, 1),
-    Location(1, 2, 3)
-], [[1, 0, 0], [0, 0, -1], [0, 1, 0], [1, 3, -2]])])
+@pytest.mark.parametrize("points, expected", [(
+    np.array([[1, 0, 0],
+              [0, 1, 0],
+              [0, 0, 1],
+              [1, 2, 3]
+]), [[1, 0, 0], [0, 0, -1], [0, 1, 0], [1, 3, -2]])])
 def test_initialize_point_cloud(points, expected):
     point_cloud = PointCloud(points, Transform(Location(), Rotation()))
     for i in range(len(expected)):
@@ -133,17 +135,17 @@ def test_initialize_point_cloud(points, expected):
         # converting the query pixel to unreal coordinates gives (1, -0.5, 0).
 
         # Lidar Points are left middle and right middle, same depth.
-        ([Location(-1, -1, 0), Location(1, -1, 0)], Vector2D(
+        (np.array([[-1, -1, 0], [1, -1, 0]]), Vector2D(
             200, 300), Location(1, -0.5, 0)),
-        ([Location(-1, -1, 0), Location(1, -1, 0)], Vector2D(
+        (np.array([[-1, -1, 0], [1, -1, 0]]), Vector2D(
             600, 300), Location(1, 0.5, 0)),
         # Lidar points are left middle and right middle, different depth.
-        ([Location(-2, -2, 0), Location(1, -1, 0)], Vector2D(
+        (np.array([[-2, -2, 0], [1, -1, 0]]), Vector2D(
             200, 300), Location(2, -1, 0)),
-        ([Location(-2, -2, 0), Location(1, -1, 0)], Vector2D(
+        (np.array([[-2, -2, 0], [1, -1, 0]]), Vector2D(
             600, 300), Location(1, 0.5, 0)),
         # Lidar points are top left and bottom right, same depth.
-        ([Location(-2, -2, -1.5), Location(2, -2, 1.5)], Vector2D(
+        (np.array([[-2, -2, -1.5], [2, -2, 1.5]]), Vector2D(
             200, 150), Location(2, -1, 0.75)),
     ])
 def test_point_cloud_get_pixel_location(lidar_points, pixel, expected):

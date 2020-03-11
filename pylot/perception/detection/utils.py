@@ -226,14 +226,14 @@ class BoundingBox3D(object):
             pylot.utils.Location(x=+extent.x, y=+extent.y, z=+extent.z),
             pylot.utils.Location(x=-extent.x, y=+extent.y, z=+extent.z),
             pylot.utils.Location(x=-extent.x, y=-extent.y, z=+extent.z),
-            pylot.utils.Location(x=+extent.x, y=-extent.y, z=+extent.z),
+            pylot.utils.Location(x=+extent.x, y=-extent.y, z=+extent.z)
         ])
 
         # Transform the vertices with respect to the bounding box transform.
-        bbox = self.transform.transform_points(bbox)
+        bbox = self.transform.transform_locations(bbox)
 
         # Convert the bounding box relative to the world.
-        bbox = obstacle_transform.transform_points(bbox)
+        bbox = obstacle_transform.transform_locations(bbox)
 
         # Obstacle's transform is relative to the world. Thus, the bbox
         # contains the 3D bounding box vertices relative to the world.

@@ -134,8 +134,8 @@ class TrackVisualizerOperator(erdos.Operator):
             start_points = []
             end_points = []
             for transform in obstacle.trajectory:
-                start_transform = transform.transform_points([start_location])
-                end_transform = transform.transform_points([end_location])
+                start_transform = transform.transform_locations([start_location])
+                end_transform = transform.transform_locations([end_location])
                 start_point = start_transform[0]\
                     .to_camera_view(extrinsic_matrix, intrinsic_matrix)
                 end_point = end_transform[0]\

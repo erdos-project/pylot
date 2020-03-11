@@ -150,7 +150,7 @@ def main(argv):
     top_down_segmented_stream = None
     top_down_camera_setup = None
     if FLAGS.log_chauffeur or FLAGS.log_top_down_segmentation:
-        top_down_transform = pylot.simulation.utils.get_top_down_transform(
+        top_down_transform = pylot.utils.get_top_down_transform(
             transform, FLAGS.top_down_lateral_view)
         (top_down_segmented_stream, _) = \
             pylot.operator_creator.add_segmented_camera(

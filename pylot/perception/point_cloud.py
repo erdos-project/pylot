@@ -10,12 +10,14 @@ class PointCloud(object):
     """Class that stores points clouds.
 
     Args:
-        points (list(:py:class:`~pylot.utils.Location`)): A list locations.
+        points: A (number of points) by 3 numpy array, where each row is
+            the (x, y, z) coordinates of a point.
         transform (:py:class:`~pylot.utils.Transform`): Transform of the
             point cloud, relative to the ego-vehicle.
 
     Attributes:
-        points: A numpy array of locations represented as lists.
+        points: A (number of points) by 3 numpy array, where each row is
+            the (x, y, z) coordinates of a point.
         transform (:py:class:`~pylot.utils.Transform`): Transform of the
             point cloud, relative to the ego-vehicle.
     """
@@ -34,8 +36,7 @@ class PointCloud(object):
         points = np.frombuffer(carla_pc.raw_data, dtype=np.dtype('f4'))
         points = copy.deepcopy(points)
         points = np.reshape(points, (int(points.shape[0] / 3), 3))
-        point_cloud = [Location(x, y, z) for x, y, z in np.asarray(points)]
-        return cls(point_cloud, transform)
+        return cls(points, transform)
 
     def _to_camera_coordinates(self, points):
         # Converts points in lidar coordinates to points in camera coordinates.
@@ -44,8 +45,7 @@ class PointCloud(object):
         to_camera_transform = Transform(matrix=np.array(
             [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
         transformed_points = to_camera_transform.transform_points(points)
-        return np.asarray([[loc.x, loc.y, loc.z]
-                           for loc in transformed_points])
+        return transformed_points
 
     def get_pixel_location(self, pixel, camera_setup):
         """ Gets the 3D world location from pixel coordinates.
@@ -68,13 +68,14 @@ class PointCloud(object):
             Vector2D(p3d[0], p3d[1]))
         # Normalize our point to have the same depth as our closest point.
         p3d *= np.array([location.z])
-        p3d_locations = [
-            Location(px, py, pz) for px, py, pz in np.asarray(p3d.transpose())
-        ]
+        p3d = p3d.transpose()
         # Convert from camera to unreal coordinates.
         to_world_transform = camera_setup.get_unreal_transform()
-        camera_point_cloud = to_world_transform.transform_points(p3d_locations)
-        return camera_point_cloud[0]
+        camera_point_cloud = to_world_transform.transform_points(p3d)[0]
+        pixel_location = Location(camera_point_cloud[0],
+                                  camera_point_cloud[1],
+                                  camera_point_cloud[2])
+        return pixel_location
 
     def _get_closest_point_in_point_cloud(self, pixel):
         """Finds the closest depth normalized point cloud point.
