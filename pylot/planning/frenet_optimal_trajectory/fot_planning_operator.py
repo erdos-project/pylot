@@ -3,15 +3,15 @@ Author: Edward Fang
 Email: edward.fang@berkeley.edu
 """
 import numpy as np
-import shapely.geometry as geom
 import itertools
 from collections import deque
 
 import erdos
 
 from pylot.map.hd_map import HDMap
-from pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory \
-    import generate_target_course, frenet_optimal_planning
+from pylot.planning.frenet_optimal_trajectory.FrenetOptimalTrajectory. \
+    FrenetOptimalTrajectory.fot_wrapper \
+    import compute_initial_conditions, get_fot_frenet_space
 from pylot.planning.messages import WaypointsMessage
 from pylot.simulation.utils import get_map
 from pylot.utils import Location, Rotation, Transform
@@ -31,8 +31,15 @@ class FOTPlanningOperator(erdos.Operator):
         flags(:absl.flags:): Object to be used to access absl flags
         goal_location(:pylot.utils.Location:): Goal location for route planning
     """
-    def __init__(self, can_bus_stream, prediction_stream, waypoints_stream,
-                 flags, goal_location):
+    def __init__(self,
+                 can_bus_stream,
+                 prediction_stream,
+                 waypoints_stream,
+                 name,
+                 flags,
+                 goal_location,
+                 log_file_name=None,
+                 csv_file_name=None):
         can_bus_stream.add_callback(self.on_can_bus_update)
         prediction_stream.add_callback(self.on_prediction_update)
         erdos.add_watermark_callback([can_bus_stream, prediction_stream],
@@ -42,6 +49,7 @@ class FOTPlanningOperator(erdos.Operator):
         self._flags = flags
 
         self._waypoints = None
+        self._prev_waypoints = None
         self._goal_location = goal_location
 
         self._can_bus_msgs = deque()
@@ -89,19 +97,27 @@ class FOTPlanningOperator(erdos.Operator):
                 vehicle_transform.location, self._goal_location)
 
         # compute optimal frenet trajectory
-        path, csp, s0 = \
+        path_x, path_y, speeds, params, success, s0 = \
             self._compute_optimal_frenet_trajectory(can_bus_msg, obstacle_list)
 
-        if path:
+        if success:
             self._logger.debug("@{}: Frenet Path X: {}".format(
-                timestamp, path.x))
+                timestamp,
+                path_x.tolist())
+            )
             self._logger.debug("@{}: Frenet Path Y: {}".format(
-                timestamp, path.y))
-            self._logger.debug("@{}: Frenet Path V: {}".format(
-                timestamp, path.s_d))
+                timestamp,
+                path_y.tolist())
+            )
+            self._logger.debug("@{}: Frenet Speeds: {}".format(
+                timestamp,
+                speeds.tolist())
+            )
 
         # construct and send waypoint message
-        waypoints_message = self._construct_waypoints(timestamp, path, csp, s0)
+        waypoints_message = self._construct_waypoints(
+            timestamp, path_x, path_y, speeds, success
+        )
         waypoints_stream.send(waypoints_message)
 
     def _compute_optimal_frenet_trajectory(self, can_bus_msg, obstacle_list):
@@ -114,14 +130,18 @@ class FOTPlanningOperator(erdos.Operator):
         for wp in itertools.islice(self._waypoints, 0, DEFAULT_NUM_WAYPOINTS):
             wx.append(wp.location.x)
             wy.append(wp.location.y)
-        tx, ty, tyaw, tc, csp = generate_target_course(wx, wy)
+        wx = np.array(wx)
+        wy = np.array(wy)
 
         # compute frenet optimal trajectory
         s0, c_speed, c_d, c_d_d, c_d_dd = \
-            self._compute_initial_conditions(can_bus_msg, wx, wy, csp)
+            self._compute_initial_conditions(can_bus_msg, wx, wy)
+        self.s0 = s0
         target_speed = (c_speed + self._flags.target_speed) / 2
-        path = frenet_optimal_planning(csp, s0, c_speed, c_d, c_d_d, c_d_dd,
-                                       obstacle_list, target_speed)
+        path_x, path_y, speeds, params, success = get_fot_frenet_space(
+            s0, c_speed, c_d, c_d_d, c_d_dd,
+            wx, wy, obstacle_list, target_speed
+        )
 
         # log initial conditions for debugging
         initial_conditions = {
@@ -130,8 +150,8 @@ class FOTPlanningOperator(erdos.Operator):
             "c_d": c_d,
             "c_d_d": c_d_d,
             "c_d_dd": c_d_dd,
-            "wx": wx,
-            "wy": wy,
+            "wx": wx.tolist(),
+            "wy": wy.tolist(),
             "obstacle_list": obstacle_list.tolist(),
             "x": can_bus_msg.data.transform.location.x,
             "y": can_bus_msg.data.transform.location.y,
@@ -142,31 +162,25 @@ class FOTPlanningOperator(erdos.Operator):
         self._logger.debug("@{}: Initial conditions: {}".format(
             timestamp, initial_conditions))
 
-        return path, csp, s0
+        return path_x, path_y, speeds, params, success, s0
 
-    def _construct_waypoints(self, timestamp, path, csp, s0):
+    def _construct_waypoints(self, timestamp, path_x, path_y, speeds, success):
         """
         Convert the optimal frenet path into a waypoints message.
         """
         path_transforms = []
         target_speeds = []
-        if path is None:
+        if not success:
             self._logger.debug("@{}: Frenet Optimal Trajectory failed. "
                                "Sending emergency stop.".format(timestamp))
-            for s in np.arange(s0, csp.s[-1], 1):
-                x, y = csp.calc_position(s)
-                p_loc = self._hd_map.get_closest_lane_waypoint(
-                    Location(x=x, y=y, z=0)).location
-                path_transforms.append(
-                    Transform(
-                        location=Location(x=x, y=y, z=p_loc.z),
-                        rotation=Rotation(),
-                    ))
+            for wp in itertools.islice(self._prev_waypoints, 0,
+                                       DEFAULT_NUM_WAYPOINTS):
+                path_transforms.append(wp)
                 target_speeds.append(0)
         else:
-            self._logger.debug(
-                "@{}: Frenet Optimal Trajectory succeeded.".format(timestamp))
-            for point in zip(path.x, path.y, path.s_d):
+            self._logger.debug("@{}: Frenet Optimal Trajectory succeeded."
+                               .format(timestamp))
+            for point in zip(path_x, path_y, speeds):
                 p_loc = self._hd_map.get_closest_lane_waypoint(
                     Location(x=point[0], y=point[1], z=0)).location
                 path_transforms.append(
@@ -177,9 +191,10 @@ class FOTPlanningOperator(erdos.Operator):
                 target_speeds.append(point[2])
 
         waypoints = deque(path_transforms)
+        self._prev_waypoints = waypoints
         return WaypointsMessage(timestamp, waypoints, target_speeds)
 
-    def _compute_initial_conditions(self, can_bus_msg, wx, wy, csp):
+    def _compute_initial_conditions(self, can_bus_msg, wx, wy):
         """
         Convert the initial conditions of vehicle into frenet frame parameters.
         """
@@ -187,36 +202,9 @@ class FOTPlanningOperator(erdos.Operator):
         y = can_bus_msg.data.transform.location.y
         vx = can_bus_msg.data.velocity_vector.x
         vy = can_bus_msg.data.velocity_vector.y
-
-        # get distance from car to spline and projection
-        line = geom.LineString(zip(wx, wy))
-        point = geom.Point(x, y)
-        distance = point.distance(line)
-        point_on_line = line.interpolate(line.project(point))
-
-        # compute tangent / normal spline vectors
-        x0, y0 = csp.calc_position(self.s0)
-        x1, y1 = csp.calc_position(self.s0 + 2)
-        svec = np.array([x1 - x0, y1 - y0])
-        svec = svec / np.linalg.norm(svec)  # unit vector tangent to spline
-        tvec = np.array([svec[1], -svec[0]])  # unit vector orthog. to spline
-
-        # compute tangent / normal car vectors
-        fvec = np.array([vx, vy])
-        fvec = fvec / np.linalg.norm(fvec)  # unit vector tangent to velocity
-        bvec = np.array([point_on_line.x - x, point_on_line.y - y])
-        bvec = bvec / np.linalg.norm(bvec)  # unit vector between car, spline
-
-        # get initial conditions in frenet frame
-        s0 = csp.find_s(x, y, self.s0)  # course position
-        c_speed = can_bus_msg.data.forward_speed  # speed [m/s]
-        c_d = np.sign(np.dot(tvec, bvec)) * distance  # lateral position [m]
-        c_d_d = c_speed * np.dot(tvec, fvec)  # lateral speed [m\s]
-        c_d_dd = 0.0  # lateral acceleration [m\s]
-        # TODO (@fangedward) add IMU for lat. acc. when 0.9.7 is fixed
-
-        self.s0 = s0
-        return s0, c_speed, c_d, c_d_d, c_d_dd
+        return compute_initial_conditions(self.s0, x, y, vx, vy,
+                                          can_bus_msg.data.forward_speed, wx,
+                                          wy)
 
     @staticmethod
     def _build_obstacle_list(vehicle_transform, prediction_msg):
@@ -244,4 +232,7 @@ class FOTPlanningOperator(erdos.Operator):
                     break
                 elif dist_to_ego < DEFAULT_DISTANCE_THRESHOLD:
                     obstacle_list.append(obstacle_origin)
+
+        if len(obstacle_list) == 0:
+            return np.empty((0, 2))
         return np.array(obstacle_list)
