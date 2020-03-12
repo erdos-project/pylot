@@ -58,26 +58,28 @@ class PointCloud(object):
             :py:class:`~pylot.utils.Location`: The 3D world location, or None
             if all the point cloud points are behind.
         """
-        if len(self.points) == 0:
+        # Select only points that are in front.
+        fwd_points = self.points[np.where(self.points[:, 2] > 0.0)]
+        if len(fwd_points) == 0:
             return None
         intrinsic_mat = camera_setup.get_intrinsic_matrix()
         # Project our 2D pixel location into 3D space, onto the z=1 plane.
         p3d = np.dot(inv(intrinsic_mat), np.array([[pixel.x], [pixel.y],
                                                    [1.0]]))
-        location = self._get_closest_point_in_point_cloud(
-            Vector2D(p3d[0], p3d[1]))
+        location = PointCloud.get_closest_point_in_point_cloud(
+            fwd_points, Vector2D(p3d[0], p3d[1]))
         # Normalize our point to have the same depth as our closest point.
         p3d *= np.array([location.z])
         p3d = p3d.transpose()
         # Convert from camera to unreal coordinates.
         to_world_transform = camera_setup.get_unreal_transform()
         camera_point_cloud = to_world_transform.transform_points(p3d)[0]
-        pixel_location = Location(camera_point_cloud[0],
-                                  camera_point_cloud[1],
+        pixel_location = Location(camera_point_cloud[0], camera_point_cloud[1],
                                   camera_point_cloud[2])
         return pixel_location
 
-    def _get_closest_point_in_point_cloud(self, pixel):
+    @staticmethod
+    def get_closest_point_in_point_cloud(fwd_points, pixel):
         """Finds the closest depth normalized point cloud point.
 
         Args:
@@ -86,8 +88,6 @@ class PointCloud(object):
         Returns:
             :py:class:`~pylot.utils.Location`: Closest point cloud point.
         """
-        # Select only points that are in front.
-        fwd_points = self.points[np.where(self.points[:, 2] > 0.0)]
         # Select x and y.
         pc_xy = fwd_points[:, 0:2]
         # Select z

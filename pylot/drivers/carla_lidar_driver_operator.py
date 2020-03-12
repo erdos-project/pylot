@@ -55,7 +55,7 @@ class CarlaLidarDriverOperator(erdos.Operator):
             game_time = int(carla_pc.timestamp * 1000)
             timestamp = erdos.Timestamp(coordinates=[game_time])
             watermark_msg = erdos.WatermarkMessage(timestamp)
-
+            assert len(carla_pc.raw_data) > 0, 'Lidar did not send any points'
             # Include the transform relative to the vehicle.
             # Carla carla_pc.transform returns the world transform, but
             # we do not use it directly.
@@ -118,7 +118,7 @@ class CarlaLidarDriverOperator(erdos.Operator):
         lidar_blueprint.set_attribute('lower_fov',
                                       str(self._lidar_setup.lower_fov))
         # XXX(ionel): Set sensor tick.
-        # lidar_blueprint.set_attribute('sensor_tick')
+        lidar_blueprint.set_attribute('sensor_tick', '0.0')
 
         transform = self._lidar_setup.get_transform().as_carla_transform()
 
