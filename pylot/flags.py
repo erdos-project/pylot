@@ -129,6 +129,27 @@ flags.DEFINE_bool('log_detector_output', False,
 flags.DEFINE_bool('log_traffic_light_detector_output', False,
                   'Enable recording of bbox annotated tl detector images')
 
+
+def must_add_depth_camera_sensor():
+    """Returns true if the depth camera sensor must be added.
+
+    We don't add all sensors by default because they slow donwn the simulation
+    """
+    return (FLAGS.perfect_obstacle_detection
+            or FLAGS.evaluate_obstacle_detection
+            or FLAGS.perfect_depth_estimation or FLAGS.visualize_depth_camera)
+
+
+def must_add_segmented_camera_sensor():
+    """Returns true if the segmented camera sensor must be added.
+
+    We don't add all sensors by default because they slow donwn the simulation
+    """
+    return (FLAGS.visualize_segmentation or FLAGS.evaluate_segmentation
+            or FLAGS.perfect_segmentation or FLAGS.perfect_obstacle_detection
+            or FLAGS.evaluate_obstacle_detection)
+
+
 # Flag validators.
 flags.register_multi_flags_validator(
     [

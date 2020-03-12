@@ -48,12 +48,18 @@ def driver():
     (center_camera_stream,
      center_camera_setup) = pylot.operator_creator.add_rgb_camera(
          transform, vehicle_id_stream)
-    (depth_camera_stream,
-     depth_camera_setup) = pylot.operator_creator.add_depth_camera(
-         transform, vehicle_id_stream)
-    (ground_segmented_stream,
-     _) = pylot.operator_creator.add_segmented_camera(transform,
-                                                      vehicle_id_stream)
+    if pylot.flags.must_add_depth_camera_sensor():
+        (depth_camera_stream,
+         depth_camera_setup) = pylot.operator_creator.add_depth_camera(
+             transform, vehicle_id_stream)
+    else:
+        depth_camera_stream = None
+    if pylot.flags.must_add_segmented_camera_sensor():
+        (ground_segmented_stream,
+         _) = pylot.operator_creator.add_segmented_camera(
+             transform, vehicle_id_stream)
+    else:
+        ground_segmented_stream = None
     # Place Lidar sensor in the same location as the center camera.
     (point_cloud_stream,
      lidar_setup) = pylot.operator_creator.add_lidar(transform,
