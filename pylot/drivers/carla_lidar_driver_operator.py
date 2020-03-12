@@ -103,7 +103,8 @@ class CarlaLidarDriverOperator(erdos.Operator):
 
         lidar_blueprint.set_attribute('channels',
                                       str(self._lidar_setup.channels))
-        if self._flags.carla_version == '0.9.7':
+        if (self._flags.carla_version == '0.9.7'
+                or self._flags.carla_version == '0.9.8'):
             lidar_blueprint.set_attribute(
                 'range', str(self._lidar_setup.get_range_in_meters()))
         else:

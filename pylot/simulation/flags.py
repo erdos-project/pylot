@@ -3,7 +3,8 @@ from absl import flags
 ######################################################################
 # Carla flags
 ######################################################################
-flags.DEFINE_enum('carla_version', '0.9.6', ['0.9.5', '0.9.6', '0.9.7'],
+flags.DEFINE_enum('carla_version', '0.9.6',
+                  ['0.9.5', '0.9.6', '0.9.7', '0.9.8'],
                   'Carla simulator version')
 flags.DEFINE_string('carla_host', 'localhost', 'Carla host.')
 flags.DEFINE_integer('carla_port', 2000, 'Carla port.')
@@ -40,7 +41,5 @@ flags.DEFINE_integer(
     'top_down_lateral_view', 20,
     'Distance in meters to the left and right of the '
     'ego-vehicle that the top-down camera shows.')
-flags.DEFINE_integer(
-    'random_seed', None,
-    'Random seed for populating the simulation.'
-)
+flags.DEFINE_integer('random_seed', None,
+                     'Random seed for populating the simulation.')

@@ -156,7 +156,8 @@ class CarlaOperator(erdos.Operator):
         self._driving_vehicle = self._spawn_driving_vehicle()
 
         if (self._flags.carla_version == '0.9.6'
-                or self._flags.carla_version == '0.9.7'):
+                or self._flags.carla_version == '0.9.7'
+                or self._flags.carla_version == '0.9.8'):
             # People are do not move in versions older than 0.9.6.
             (self._people, ped_control_ids) = self._spawn_people(
                 self._flags.carla_num_people)
@@ -168,7 +169,8 @@ class CarlaOperator(erdos.Operator):
 
         # Start people
         if (self._flags.carla_version == '0.9.6'
-                or self._flags.carla_version == '0.9.7'):
+                or self._flags.carla_version == '0.9.7'
+                or self._flags.carla_version == '0.9.8'):
             self._start_people(ped_control_ids)
 
     def _wait_for_ego_vehicle(self):
@@ -317,7 +319,7 @@ class CarlaOperator(erdos.Operator):
 
         # Apply the batch and retrieve the identifiers.
         vehicle_ids = []
-        for response in self._client.apply_batch_sync(batch):
+        for response in self._client.apply_batch_sync(batch, True):
             if response.error:
                 self._logger.info(
                     'Received an error while spawning a vehicle: {}'.format(
