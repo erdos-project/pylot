@@ -12,6 +12,7 @@ from pylot.planning.utils import BehaviorPlannerState
 DEFAULT_NUM_WAYPOINTS = 50  # 50 waypoints / 50 meters of planning ahead
 DEFAULT_TARGET_WAYPOINT = 9  # Use the 10th waypoint for computing speed
 WAYPOINT_COMPLETION_THRESHOLD = 0.9
+RECOMPUTE_WAYPOINT_EVERY_N_WATERMARKS = 5
 
 
 class WaypointPlanningOperator(erdos.Operator):
@@ -96,11 +97,12 @@ class WaypointPlanningOperator(erdos.Operator):
                 get_map(self._flags.carla_host, self._flags.carla_port,
                         self._flags.carla_timeout))
             self._logger.info('Planner running in stand-alone mode')
-            # Recompute waypoints upon each run.
+            # Recompute waypoints every RECOMPUTE_WAYPOINT_EVERY_N_WATERMARKS.
             self._recompute_waypoints = True
         else:
             # Do not recompute waypoints upon each run.
             self._recompute_waypoints = False
+        self._watermark_cnt = 0
 
     def on_opendrive_map(self, msg):
         """Invoked whenever a message is received on the open drive stream.
@@ -162,14 +164,15 @@ class WaypointPlanningOperator(erdos.Operator):
     @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
-
+        self._watermark_cnt += 1
         # Get hero vehicle info.
         can_bus_msg = self._can_bus_msgs.popleft()
         self._vehicle_transform = can_bus_msg.data.transform
         tl_msg = self._traffic_light_msgs.popleft()
         obstacles_msg = self._obstacles_msgs.popleft()
 
-        if self._recompute_waypoints:
+        if (self._recompute_waypoints and self._watermark_cnt %
+                RECOMPUTE_WAYPOINT_EVERY_N_WATERMARKS == 0):
             self._waypoints = self._map.compute_waypoints(
                 self._vehicle_transform.location, self._goal_location)
         self.__remove_completed_waypoints()
