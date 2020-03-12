@@ -60,16 +60,18 @@ class Obstacle(object):
         if not isinstance(actor, (carla.Vehicle, carla.Walker)):
             raise ValueError("The actor should be of type carla.Vehicle or "
                              "carla.Walker to initialize the Obstacle class.")
+        # We do not use everywhere from_carla* methods in order to reduce
+        # runtime.
         # Convert the transform provided by the simulation to the Pylot class.
         transform = pylot.utils.Transform.from_carla_transform(
             actor.get_transform())
+        extent = pylot.utils.Vector3D.from_carla_vector(
+            actor.bounding_box.extent)
         # Convert the bounding box from the simulation to the Pylot one.
-        bounding_box = BoundingBox3D.from_carla_bounding_box(
-            actor.bounding_box)
+        bounding_box = BoundingBox3D(transform, extent)
         # Get the speed of the obstacle.
-        velocity_vector = pylot.utils.Vector3D.from_carla_vector(
-            actor.get_velocity())
-        forward_speed = velocity_vector.magnitude()
+        vel = actor.get_velocity()
+        forward_speed = np.linalg.norm(np.array([vel.x, vel.y, vel.z]))
         if isinstance(actor, carla.Vehicle):
             label = 'vehicle'
         else:
