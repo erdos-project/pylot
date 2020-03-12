@@ -154,11 +154,11 @@ def create_center_lidar_setup(location):
         lidar_type='sensor.lidar.ray_cast',
         transform=lidar_transform,
         range=5000,  # in centimers
-        rotation_frequency=20,
+        rotation_frequency=10,
         channels=32,
         upper_fov=15,
         lower_fov=-30,
-        points_per_second=500000)
+        points_per_second=250000)
 
 
 class CameraSetup(object):
