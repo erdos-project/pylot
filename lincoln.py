@@ -154,8 +154,15 @@ def create_data_flow():
         waypoints_stream = pylot.operator_creator.add_waypoint_planning(
             can_bus_stream, open_drive_stream, global_trajectory_stream,
             obstacles_stream, traffic_lights_stream, None)
+    elif FLAGS.planning_type == 'frenet_optimal_trajectory':
+        waypoints_stream = pylot.operator_creator.add_fot_planning(
+            can_bus_stream, prediction_stream, None)
+    elif FLAGS.planning_type == 'rrt_star':
+        waypoints_stream = pylot.operator_creator.add_rrt_star_planning(
+            can_bus_stream, prediction_stream, None)
     else:
-        raise ValueError('Only waypoint planning is currently supported')
+        raise ValueError(
+            'Unsupport planning type {}'.format(FLAGS.planning_type))
 
     if FLAGS.control_agent == 'pid':
         control_stream = pylot.operator_creator.add_pid_agent(
