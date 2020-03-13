@@ -9,7 +9,7 @@ from collections import deque
 import erdos
 
 from pylot.map.hd_map import HDMap
-from pylot.planning.frenet_optimal_trajectory.FrenetOptimalTrajectory. \
+from pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory_planner. \
     FrenetOptimalTrajectory.fot_wrapper \
     import compute_initial_conditions, get_fot_frenet_space
 from pylot.planning.messages import WaypointsMessage
