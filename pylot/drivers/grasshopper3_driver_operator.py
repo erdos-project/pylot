@@ -45,7 +45,10 @@ class Grasshopper3DriverOperator(erdos.Operator):
         if self._counter % self._modulo_to_send != 0:
             return
         cv2_image = self._bridge.imgmsg_to_cv2(data, "bgr8")
-        resized_image = cv2.resize(cv2.flip(cv2_image, 0), (512, 512))
+        resized_image = cv2.resize(
+            cv2.flip(cv2_image, 0),
+            (self._flags.camera_image_width,
+             self._flags.camera_image_height))
         numpy_array = np.asarray(resized_image)
         timestamp = erdos.Timestamp(coordinates=[self._msg_cnt])
         camera_frame = CameraFrame(numpy_array, 'BGR', self._camera_setup)
