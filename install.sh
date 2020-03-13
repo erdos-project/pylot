@@ -3,8 +3,8 @@
 ###### Build the FrenetOptimalTrajectory Planner ######
 export PYLOT_HOME=$(pwd)
 cd pylot/planning/frenet_optimal_trajectory/
-git clone https://github.com/erdos-project/frenet-optimal-trajectory-planner.git
-cd frenet-optimal-trajectory-planner
+git clone https://github.com/erdos-project/frenet_optimal_trajectory_planner.git
+cd frenet_optimal_trajectory_planner
 bash build.sh
 cd $PYLOT_HOME
 
