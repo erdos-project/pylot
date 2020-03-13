@@ -54,7 +54,11 @@ cd ../../
 mkdir -p depth_estimation/AnyNet ; cd depth_estimation/AnyNet
 gdown https://drive.google.com/uc?id=18Vi68rQO-vcBn3882vkumIWtGggZQDoU
 unzip checkpoint.zip
+cd ../../
 
+###### Download DeepSort pedestrian model ######
+mkdir -p tracking/deep-sort ; cd tracking/deep-sort
+gdown https://drive.google.com/uc?id=1bB66hP9voDXuoBoaCcKYY7a8IYzMMs4P
 cd ../../../
 
 ###### Get DeepSORT and SORT tracker code bases
