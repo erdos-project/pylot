@@ -8,12 +8,10 @@ from collections import deque
 
 import erdos
 
-from pylot.map.hd_map import HDMap
 from pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory_planner. \
     FrenetOptimalTrajectory.fot_wrapper \
     import compute_initial_conditions, get_fot_frenet_space
 from pylot.planning.messages import WaypointsMessage
-from pylot.simulation.utils import get_map
 from pylot.utils import Location, Rotation, Transform
 
 DEFAULT_DISTANCE_THRESHOLD = 30  # 30 meters radius around of ego
@@ -35,19 +33,22 @@ class FOTPlanningOperator(erdos.Operator):
                  can_bus_stream,
                  prediction_stream,
                  waypoints_stream,
+                 global_trajectory_stream,
                  name,
                  flags,
-                 goal_location,
+                 goal_location=None,
                  log_file_name=None,
                  csv_file_name=None):
         can_bus_stream.add_callback(self.on_can_bus_update)
         prediction_stream.add_callback(self.on_prediction_update)
+        global_trajectory_stream.add_callback(self.on_global_trajectory)
         erdos.add_watermark_callback([can_bus_stream, prediction_stream],
                                      [waypoints_stream], self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
 
+        self._hd_map = None
         self._waypoints = None
         self._prev_waypoints = None
         self._goal_location = goal_location
@@ -65,9 +66,13 @@ class FOTPlanningOperator(erdos.Operator):
         # Run method is invoked after all operators finished initializing,
         # including the CARLA operator, which reloads the world. Thus, if
         # we get the map here we're sure it is up-to-date.
-        self._hd_map = HDMap(
-            get_map(self._flags.carla_host, self._flags.carla_port,
-                    self._flags.carla_timeout))
+        if not hasattr(self._flags, 'track'):
+            from pylot.map.hd_map import HDMap
+            from pylot.simulation.utils import get_map
+            self._hd_map = HDMap(
+                get_map(self._flags.carla_host, self._flags.carla_port,
+                        self._flags.carla_timeout))
+            self._logger.info('Planner running in stand-alone mode')
 
     def on_can_bus_update(self, msg):
         self._logger.debug('@{}: received can bus message'.format(
@@ -78,6 +83,27 @@ class FOTPlanningOperator(erdos.Operator):
         self._logger.debug('@{}: received prediction message'.format(
             msg.timestamp))
         self._prediction_msgs.append(msg)
+
+    def on_global_trajectory(self, msg):
+        """Invoked whenever a message is received on the trajectory stream.
+
+        Args:
+            msg (:py:class:`~erdos.message.Message`): Message that contains
+                a list of waypoints to the goal location.
+        """
+        self._logger.debug('@{}: global trajectory has {} waypoints'.format(
+            msg.timestamp, len(msg.data)))
+        if len(msg.data) > 0:
+            # The last waypoint is the goal location.
+            self._goal_location = msg.data[-1][0].location
+        else:
+            # Trajectory does not contain any waypoints. We assume we have
+            # arrived at destionation.
+            self._goal_location = self._vehicle_transform.location
+        assert self._goal_location, 'Planner does not have a goal'
+        self._waypoints = deque()
+        for waypoint_option in msg.data:
+            self._waypoints.append(waypoint_option[0])
 
     @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
@@ -93,8 +119,20 @@ class FOTPlanningOperator(erdos.Operator):
                                                   prediction_msg)
         # update waypoints
         if not self._waypoints:
-            self._waypoints = self._hd_map.compute_waypoints(
-                vehicle_transform.location, self._goal_location)
+            # running in CARLA
+            if self._hd_map is not None:
+                self._waypoints = self._hd_map.compute_waypoints(
+                    vehicle_transform.location, self._goal_location)
+            # haven't received waypoints from global trajectory stream
+            else:
+                self._logger.debug("@{}: Sending target speed 0, haven't"
+                                   "received global trajectory"
+                                   .format(timestamp))
+                head_waypoints = deque([vehicle_transform])
+                target_speeds = deque([0])
+                waypoints_stream.send(
+                    WaypointsMessage(timestamp, head_waypoints, target_speeds))
+                return
 
         # compute optimal frenet trajectory
         path_x, path_y, speeds, params, success, s0 = \
