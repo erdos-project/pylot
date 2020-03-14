@@ -219,8 +219,11 @@ class FOTPlanningOperator(erdos.Operator):
             self._logger.debug("@{}: Frenet Optimal Trajectory succeeded."
                                .format(timestamp))
             for point in zip(path_x, path_y, speeds):
-                p_loc = self._hd_map.get_closest_lane_waypoint(
-                    Location(x=point[0], y=point[1], z=0)).location
+                if self._hd_map is not None:
+                    p_loc = self._hd_map.get_closest_lane_waypoint(
+                        Location(x=point[0], y=point[1], z=0)).location
+                else:
+                    p_loc = Location(x=point[0], y=point[1], z=0)
                 path_transforms.append(
                     Transform(
                         location=Location(x=point[0], y=point[1], z=p_loc.z),
