@@ -48,6 +48,7 @@ class FOTPlanningOperator(erdos.Operator):
                                                  self.config.log_file_name)
         self._flags = flags
 
+        self._vehicle_transform = None
         self._hd_map = None
         self._waypoints = None
         self._prev_waypoints = None
@@ -112,6 +113,7 @@ class FOTPlanningOperator(erdos.Operator):
         # get ego info
         can_bus_msg = self._can_bus_msgs.popleft()
         vehicle_transform = can_bus_msg.data.transform
+        self._vehicle_transform = vehicle_transform
 
         # get obstacles
         prediction_msg = self._prediction_msgs.popleft()
