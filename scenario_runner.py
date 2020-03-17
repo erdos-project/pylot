@@ -1,13 +1,14 @@
 from absl import app
 from absl import flags
+
 import erdos
 
 import pylot.flags
 import pylot.component_creator
 import pylot.operator_creator
-from pylot.simulation.utils import get_world, set_asynchronous_mode
 from pylot.simulation.scenario.person_avoidance_agent_operator \
     import PersonAvoidanceAgentOperator
+from pylot.simulation.utils import get_world, set_asynchronous_mode
 
 FLAGS = flags.FLAGS
 flags.DEFINE_list('goal_location', '17.73, 327.07, 0.5',
@@ -24,6 +25,7 @@ def add_avoidance_agent(can_bus_stream, obstacles_stream,
                         ground_obstacles_stream, goal_location):
     op_config = erdos.OperatorConfig(
         name=FLAGS.obstacle_detection_model_names[0] + '_agent',
+        flow_watermarks=False,
         log_file_name=FLAGS.log_file_name,
         csv_log_file_name=FLAGS.csv_log_file_name,
         profile_file_name=FLAGS.profile_file_name)
