@@ -8,12 +8,12 @@ import cv2
 import pptk
 import time
 
-from pylot.drivers.sensor_setup import CameraSetup
-from pylot.perception.depth_frame import DepthFrame
+import pylot.utils
+from pylot.drivers.sensor_setup import CameraSetup, LidarSetup
 from pylot.perception.camera_frame import CameraFrame
+from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.point_cloud import PointCloud
 from pylot.simulation.utils import get_world
-import pylot.utils
 
 FLAGS = flags.FLAGS
 
@@ -28,7 +28,10 @@ def on_lidar_msg(carla_pc):
     print("Received lidar msg {}".format(game_time))
     lidar_transform = pylot.utils.Transform.from_carla_transform(
         carla_pc.transform)
-    point_cloud = PointCloud.from_carla_point_cloud(carla_pc, lidar_transform)
+    lidar_setup = LidarSetup('lidar',
+                             lidar_type='sensor.lidar.ray_cast',
+                             transform=lidar_transform)
+    point_cloud = PointCloud.from_carla_point_cloud(carla_pc, lidar_setup)
     camera_setup = CameraSetup("lidar_camera",
                                "sensor.camera.depth",
                                800,

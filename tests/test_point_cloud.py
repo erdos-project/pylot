@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from pylot.drivers.sensor_setup import CameraSetup
+from pylot.drivers.sensor_setup import CameraSetup, LidarSetup
 from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.point_cloud import PointCloud
 from pylot.utils import Location, Rotation, Transform, Vector2D
@@ -45,19 +45,17 @@ def test_depth_to_point_cloud(depth_frame, expected):
     # Resulting unreal coordinates.
     point_cloud = depth_frame.as_point_cloud()
     for i in range(width * height):
-            assert np.isclose(point_cloud[i][0], expected[i][0]), \
-                'Returned x value is not the same as expected'
-            assert np.isclose(point_cloud[i][1], expected[i][1]), \
-                'Returned y value is not the same as expected'
-            assert np.isclose(point_cloud[i][2], expected[i][2]), \
-                'Returned z value is not the same as expected'
+        assert np.isclose(point_cloud[i][0], expected[i][0]), \
+            'Returned x value is not the same as expected'
+        assert np.isclose(point_cloud[i][1], expected[i][1]), \
+            'Returned y value is not the same as expected'
+        assert np.isclose(point_cloud[i][2], expected[i][2]), \
+            'Returned z value is not the same as expected'
 
 
 @pytest.mark.parametrize(
     "depth_frame, expected",
-    [(np.array([[0.1, 0.1]]), np.array([[110, -80, 30],
-                                        [110, 120, 30]]))
-])
+    [(np.array([[0.1, 0.1]]), np.array([[110, -80, 30], [110, 120, 30]]))])
 def test_depth_to_point_cloud_nonzero_camera_loc(depth_frame, expected):
     height, width = depth_frame.shape
     camera_setup = CameraSetup('test_setup',
@@ -108,14 +106,14 @@ def test_get_pixel_locations(depth_frame, pixels, expected):
 ## Point Cloud Tests
 
 
-@pytest.mark.parametrize("points, expected", [(
-    np.array([[1, 0, 0],
-              [0, 1, 0],
-              [0, 0, 1],
-              [1, 2, 3]
-]), [[1, 0, 0], [0, 0, -1], [0, 1, 0], [1, 3, -2]])])
+@pytest.mark.parametrize(
+    "points, expected",
+    [(np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 2, 3]
+                ]), [[1, 0, 0], [0, 0, -1], [0, 1, 0], [1, 3, -2]])])
 def test_initialize_point_cloud(points, expected):
-    point_cloud = PointCloud(points, Transform(Location(), Rotation()))
+    lidar_setup = LidarSetup('lidar', 'sensor.lidar.ray_cast',
+                             Transform(Location(), Rotation()))
+    point_cloud = PointCloud(points, lidar_setup)
     for i in range(len(expected)):
         assert all(np.isclose(point_cloud.points[i], expected[i]))
 
@@ -156,7 +154,9 @@ def test_point_cloud_get_pixel_location(lidar_points, pixel, expected):
         601,  # width, height
         Transform(location=Location(0, 0, 0), rotation=Rotation(0, 0, 0)),
         fov=90)
-    point_cloud = PointCloud(lidar_points, Transform(Location(), Rotation()))
+    lidar_setup = LidarSetup('lidar', 'sensor.lidar.ray_cast',
+                             Transform(Location(), Rotation()))
+    point_cloud = PointCloud(lidar_points, lidar_setup)
     location = point_cloud.get_pixel_location(pixel, camera_setup)
     assert np.isclose(location.x,
                       expected.x), 'Returned x value is not the same '

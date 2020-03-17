@@ -38,7 +38,7 @@ VELODYNE_LOCATION = pylot.utils.Location(1.47, 0, 1.8)
 def add_grasshopper3_camera(transform,
                             name='grasshopper3',
                             topic_name='/pg_0/image_color',
-                            fov=90):
+                            fov=72):
     camera_setup = pylot.drivers.sensor_setup.RGBCameraSetup(
         name, FLAGS.camera_image_width, FLAGS.camera_image_height, transform,
         fov)

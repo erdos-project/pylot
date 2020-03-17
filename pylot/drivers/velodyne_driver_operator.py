@@ -51,7 +51,7 @@ class VelodyneDriverOperator(erdos.Operator):
             points.append([data[0], data[1], data[2]])
         points = np.array(points)
         point_cloud = pylot.perception.point_cloud.PointCloud(
-            points, self._lidar_setup.transform)
+            points, self._lidar_setup)
         msg = PointCloudMessage(timestamp, point_cloud)
         self._point_cloud_stream.send(msg)
         watermark_msg = erdos.WatermarkMessage(timestamp)
