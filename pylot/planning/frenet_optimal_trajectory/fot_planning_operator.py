@@ -35,7 +35,6 @@ class FOTPlanningOperator(erdos.Operator):
                  can_bus_stream,
                  prediction_stream,
                  waypoints_stream,
-                 name,
                  flags,
                  goal_location,
                  log_file_name=None,

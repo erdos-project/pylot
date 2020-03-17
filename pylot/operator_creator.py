@@ -443,6 +443,7 @@ def add_mpc_agent(can_bus_stream, waypoints_stream):
 
 def add_pid_agent(can_bus_stream, waypoints_stream):
     op_config = erdos.OperatorConfig(name='pid_agent_operator',
+                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
