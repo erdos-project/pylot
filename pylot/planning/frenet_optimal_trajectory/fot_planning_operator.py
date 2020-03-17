@@ -34,7 +34,6 @@ class FOTPlanningOperator(erdos.Operator):
                  prediction_stream,
                  waypoints_stream,
                  global_trajectory_stream,
-                 name,
                  flags,
                  goal_location=None,
                  log_file_name=None,

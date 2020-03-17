@@ -21,13 +21,14 @@ class PointCloud(object):
         transform (:py:class:`~pylot.utils.Transform`): Transform of the
             point cloud, relative to the ego-vehicle.
     """
-    def __init__(self, points, transform):
+    def __init__(self, points, lidar_setup):
         # Transform point cloud from lidar to camera coordinates.
+        self._lidar_setup = lidar_setup
         self.points = self._to_camera_coordinates(points)
-        self.transform = transform
+        self.transform = lidar_setup.get_transform()
 
     @classmethod
-    def from_carla_point_cloud(cls, carla_pc, transform):
+    def from_carla_point_cloud(cls, carla_pc, lidar_setup):
         """Creates a pylot point cloud from a carla point cloud.
 
         Returns:
@@ -36,14 +37,32 @@ class PointCloud(object):
         points = np.frombuffer(carla_pc.raw_data, dtype=np.dtype('f4'))
         points = copy.deepcopy(points)
         points = np.reshape(points, (int(points.shape[0] / 3), 3))
-        return cls(points, transform)
+        return cls(points, lidar_setup)
 
     def _to_camera_coordinates(self, points):
         # Converts points in lidar coordinates to points in camera coordinates.
         # See CameraSetup in pylot/drivers/sensor_setup.py for coordinate
         # axis orientations.
-        to_camera_transform = Transform(matrix=np.array(
-            [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
+        #
+        # The CARLA Lidar coordinate space is defined as:
+        # +x to right, +y out of the screen, +z down.
+        #
+        # The Velodyne coordinate space is defined as:
+        # +x into the screen, +y to the left, and +z up.
+        #
+        # Note: We're using the ROS velodyne driver coordinate
+        # system, not the one specified in the Velodyne manual.
+        # Link to the ROS coordinate system:
+        # https://www.ros.org/reps/rep-0103.html#axis-orientation
+        if self._lidar_setup.lidar_type == 'sensor.lidar.ray_cast':
+            to_camera_transform = Transform(matrix=np.array(
+                [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
+        elif self._lidar_setup.lidar_type == 'velodyne':
+            to_camera_transform = Transform(matrix=np.array(
+                [[0, -1, 0, 0], [0, 0, -1, 0], [1, 0, 0, 0], [0, 0, 0, 1]]))
+        else:
+            raise ValueError('Unexpected lidar type {}'.format(
+                self._lidar_setup.lidar_type))
         transformed_points = to_camera_transform.transform_points(points)
         return transformed_points
 

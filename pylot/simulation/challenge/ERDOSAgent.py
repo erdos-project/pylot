@@ -7,10 +7,10 @@ import numpy as np
 import pylot.flags
 import pylot.operator_creator
 import pylot.perception.messages
+import pylot.utils
+from pylot.drivers.sensor_setup import LidarSetup, RGBCameraSetup
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.point_cloud import PointCloud
-from pylot.drivers.sensor_setup import RGBCameraSetup
-import pylot.utils
 
 from srunner.challenge.autoagents.autonomous_agent import AutonomousAgent,\
     Track
@@ -49,6 +49,8 @@ class ERDOSAgent(AutonomousAgent):
         # Set the lidar in the same position as the center camera.
         self._lidar_transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                                       pylot.utils.Rotation())
+        self._lidar_setup = LidarSetup('lidar', 'sensor.lidar.ray_cast',
+                                       self._lidar_transform)
         # Stores the waypoints we get from the challenge planner.
         self._waypoints = None
         # Stores the open drive string we get when we run in track 3.
@@ -204,7 +206,7 @@ class ERDOSAgent(AutonomousAgent):
     def send_lidar_msg(self, carla_pc, transform, timestamp):
         points = [pylot.utils.Location(x, y, z) for x, y, z in carla_pc]
         msg = pylot.perception.messages.PointCloudMessage(
-            timestamp, PointCloud(points, transform))
+            timestamp, PointCloud(points, self._lidar_setup))
         self._point_cloud_stream.send(msg)
         self._point_cloud_stream.send(erdos.WatermarkMessage(timestamp))
 

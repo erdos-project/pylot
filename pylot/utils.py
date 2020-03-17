@@ -326,7 +326,8 @@ class Transform(object):
                                            self.matrix[1, 0], self.matrix[2,
                                                                           0])
             pitch_r = math.asin(self.forward_vector.z)
-            yaw_r = math.acos(self.forward_vector.x / math.cos(pitch_r))
+            yaw_r = math.acos(np.clip(
+                self.forward_vector.x / math.cos(pitch_r), -1, 1))
             roll_r = math.asin(matrix[2, 1] / (-1 * math.cos(pitch_r)))
             self.rotation = Rotation(math.degrees(pitch_r),
                                      math.degrees(yaw_r), math.degrees(roll_r))
