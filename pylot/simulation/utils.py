@@ -242,7 +242,7 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
             elif yaw_diff >= 360:
                 yaw_diff -= 360
             if best_dist < 5**2 and yaw_diff > 30 and yaw_diff < 150:
-                best_ts.set_bounding_box(bbox)
+                best_ts.bounding_box = bbox
                 result.append(best_ts)
         return result
 

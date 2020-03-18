@@ -287,15 +287,20 @@ class DetectedObstacle(object):
         return (self.label, (self.bounding_box.get_min_point(),
                              self.bounding_box.get_max_point()))
 
-    def visualize_on_img(self, image_np, bbox_color_map, text=None):
+    def visualize_on_img(self,
+                         image_np,
+                         bbox_color_map,
+                         ego_transform=None,
+                         text=None):
         """Annotate the image with the bounding box of the obstacle."""
         txt_font = cv2.FONT_HERSHEY_SIMPLEX
         if text is None:
+            text = '{}{:.1f}'.format(self.label, self.confidence)
             if self.id != -1:
-                text = '{}{:.1f}, id:{}'.format(self.label, self.confidence,
-                                                self.id)
-            else:
-                text = '{}{:.1f}'.format(self.label, self.confidence)
+                text += ', id:{}'.format(self.id)
+            if ego_transform is not None and self.transform is not None:
+                text += ', {:.1f}m'.format(
+                    ego_transform.location.distance(self.transform.location))
         txt_size = cv2.getTextSize(text, txt_font, 0.5, 2)[0]
         color = bbox_color_map[self.label]
         # Show bounding box.
