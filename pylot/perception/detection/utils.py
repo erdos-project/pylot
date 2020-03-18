@@ -302,7 +302,10 @@ class DetectedObstacle(object):
                 text += ', {:.1f}m'.format(
                     ego_transform.location.distance(self.transform.location))
         txt_size = cv2.getTextSize(text, txt_font, 0.5, 2)[0]
-        color = bbox_color_map[self.label]
+        if self.label in bbox_color_map:
+            color = bbox_color_map[self.label]
+        else:
+            color = [255, 255, 255]
         # Show bounding box.
         cv2.rectangle(image_np, self.bounding_box.get_min_point(),
                       self.bounding_box.get_max_point(), color, 2)

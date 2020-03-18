@@ -68,7 +68,9 @@ class CameraFrame(object):
         bbox_color_map=pylot.perception.detection.utils.GROUND_COLOR_MAP):
         pylot.utils.add_timestamp(self.frame, timestamp)
         for obstacle in detected_obstacles:
-            obstacle.visualize_on_img(self.frame, bbox_color_map, transform)
+            obstacle.visualize_on_img(self.frame,
+                                      bbox_color_map,
+                                      ego_transform=transform)
 
     def visualize(self, window_name, timestamp=None):
         """Creates a cv2 window to visualize the camera frame."""
