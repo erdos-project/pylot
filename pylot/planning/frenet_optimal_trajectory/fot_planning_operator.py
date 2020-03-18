@@ -32,8 +32,9 @@ class FOTPlanningOperator(erdos.Operator):
     def __init__(self,
                  can_bus_stream,
                  prediction_stream,
-                 waypoints_stream,
                  global_trajectory_stream,
+                 open_drive_stream,
+                 waypoints_stream,
                  flags,
                  goal_location=None,
                  log_file_name=None,
@@ -41,6 +42,7 @@ class FOTPlanningOperator(erdos.Operator):
         can_bus_stream.add_callback(self.on_can_bus_update)
         prediction_stream.add_callback(self.on_prediction_update)
         global_trajectory_stream.add_callback(self.on_global_trajectory)
+        open_drive_stream.add_callback(self.on_opendrive_map)
         erdos.add_watermark_callback([can_bus_stream, prediction_stream],
                                      [waypoints_stream], self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -48,7 +50,7 @@ class FOTPlanningOperator(erdos.Operator):
         self._flags = flags
 
         self._vehicle_transform = None
-        self._hd_map = None
+        self._map = None
         self._waypoints = None
         self._prev_waypoints = None
         self._goal_location = goal_location
@@ -58,7 +60,8 @@ class FOTPlanningOperator(erdos.Operator):
         self.s0 = 0
 
     @staticmethod
-    def connect(can_bus_stream, prediction_stream):
+    def connect(can_bus_stream, prediction_stream, global_trajectory_stream,
+                open_drive_stream):
         waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
 
@@ -69,7 +72,7 @@ class FOTPlanningOperator(erdos.Operator):
         if not hasattr(self._flags, 'track'):
             from pylot.map.hd_map import HDMap
             from pylot.simulation.utils import get_map
-            self._hd_map = HDMap(
+            self._map = HDMap(
                 get_map(self._flags.carla_host, self._flags.carla_port,
                         self._flags.carla_timeout))
             self._logger.info('Planner running in stand-alone mode')
@@ -105,6 +108,23 @@ class FOTPlanningOperator(erdos.Operator):
         for waypoint_option in msg.data:
             self._waypoints.append(waypoint_option[0])
 
+    def on_opendrive_map(self, msg):
+        """Invoked whenever a message is received on the open drive stream.
+
+        Args:
+            msg (:py:class:`~erdos.message.Message`): Message that contains
+                the open drive string.
+        """
+        self._logger.debug('@{}: received open drive message'.format(
+            msg.timestamp))
+        try:
+            import carla
+        except ImportError:
+            raise Exception('Error importing carla.')
+        self._logger.info('Initializing HDMap from open drive stream')
+        from pylot.map.hd_map import HDMap
+        self._map = HDMap(carla.Map('map', msg.data))
+
     @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
@@ -121,8 +141,8 @@ class FOTPlanningOperator(erdos.Operator):
         # update waypoints
         if not self._waypoints:
             # running in CARLA
-            if self._hd_map is not None:
-                self._waypoints = self._hd_map.compute_waypoints(
+            if self._map is not None:
+                self._waypoints = self._map.compute_waypoints(
                     vehicle_transform.location, self._goal_location)
             # haven't received waypoints from global trajectory stream
             else:
@@ -220,8 +240,8 @@ class FOTPlanningOperator(erdos.Operator):
             self._logger.debug("@{}: Frenet Optimal Trajectory succeeded."
                                .format(timestamp))
             for point in zip(path_x, path_y, speeds):
-                if self._hd_map is not None:
-                    p_loc = self._hd_map.get_closest_lane_waypoint(
+                if self._map is not None:
+                    p_loc = self._map.get_closest_lane_waypoint(
                         Location(x=point[0], y=point[1], z=0)).location
                 else:
                     p_loc = Location(x=point[0], y=point[1], z=0)
