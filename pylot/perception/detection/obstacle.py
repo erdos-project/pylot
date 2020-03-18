@@ -65,10 +65,9 @@ class Obstacle(object):
         # Convert the transform provided by the simulation to the Pylot class.
         transform = pylot.utils.Transform.from_carla_transform(
             actor.get_transform())
-        extent = pylot.utils.Vector3D.from_carla_vector(
-            actor.bounding_box.extent)
         # Convert the bounding box from the simulation to the Pylot one.
-        bounding_box = BoundingBox3D(transform, extent)
+        bounding_box = BoundingBox3D.from_carla_bounding_box(
+            actor.bounding_box)
         # Get the speed of the obstacle.
         vel = actor.get_velocity()
         forward_speed = np.linalg.norm(np.array([vel.x, vel.y, vel.z]))
