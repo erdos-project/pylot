@@ -86,7 +86,7 @@ def add_obstacle_detection(camera_stream, csv_file_name=None):
 
 
 def add_obstacle_location_finder(obstacles_stream, point_cloud_stream,
-                                 can_bus_stream, camera_setup):
+                                 can_bus_stream, camera_stream, camera_setup):
     """Adds an operator that finds the world locations of the obstacles.
 
     Args:
@@ -96,6 +96,8 @@ def add_obstacle_location_finder(obstacles_stream, point_cloud_stream,
             which point cloud messages are received.
         can_bus_stream (:py:class:`erdos.ReadStream`, optional): Stream on
             which can bus info is received.
+        camera_stream (:py:class:`erdos.ReadStream`): The stream on which
+            camera frames are received.
         camera_setup (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
             The setup of the center camera.
 
@@ -109,10 +111,10 @@ def add_obstacle_location_finder(obstacles_stream, point_cloud_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [obstacles_with_loc_stream
-     ] = erdos.connect(ObstacleLocationFinderOperator, op_config,
-                       [obstacles_stream, point_cloud_stream, can_bus_stream],
-                       FLAGS, camera_setup)
+    [obstacles_with_loc_stream] = erdos.connect(
+        ObstacleLocationFinderOperator, op_config,
+        [obstacles_stream, point_cloud_stream, can_bus_stream, camera_stream],
+        FLAGS, camera_setup)
     return obstacles_with_loc_stream
 
 

@@ -23,6 +23,8 @@ class ObstacleLocationFinderOperator(erdos.Operator):
             point cloud messages are received.
         can_bus_stream (:py:class:`erdos.ReadStream`): Stream on which can
             bus info is received.
+        camera_stream (:py:class:`erdos.ReadStream`): The stream on which
+            camera frames are received.
         obstacles_output_stream (:py:class:`erdos.WriteStream`): Stream on
             which the operator sends detected obstacles with their world
             location set.
@@ -34,13 +36,14 @@ class ObstacleLocationFinderOperator(erdos.Operator):
             coordinates.
     """
     def __init__(self, obstacles_stream, point_cloud_stream, can_bus_stream,
-                 obstacles_output_stream, flags, camera_setup):
+                 camera_stream, obstacles_output_stream, flags, camera_setup):
         obstacles_stream.add_callback(self.on_obstacles_update)
         point_cloud_stream.add_callback(self.on_point_cloud_update)
         can_bus_stream.add_callback(self.on_can_bus_update)
-        erdos.add_watermark_callback(
-            [obstacles_stream, point_cloud_stream, can_bus_stream],
-            [obstacles_output_stream], self.on_watermark)
+        camera_stream.add_callback(self.on_camera_update)
+        erdos.add_watermark_callback([
+            obstacles_stream, point_cloud_stream, can_bus_stream, camera_stream
+        ], [obstacles_output_stream], self.on_watermark)
         self._flags = flags
         self._camera_setup = camera_setup
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -49,9 +52,11 @@ class ObstacleLocationFinderOperator(erdos.Operator):
         self._obstacles_msgs = deque()
         self._point_cloud_msgs = deque()
         self._can_bus_msgs = deque()
+        self._frame_msgs = deque()
 
     @staticmethod
-    def connect(obstacles_stream, point_cloud_stream, can_bus_stream):
+    def connect(obstacles_stream, point_cloud_stream, can_bus_stream,
+                camera_stream):
         obstacles_output_stream = erdos.WriteStream()
         return [obstacles_output_stream]
 
@@ -67,6 +72,7 @@ class ObstacleLocationFinderOperator(erdos.Operator):
         obstacles_msg = self._obstacles_msgs.popleft()
         point_cloud = self._point_cloud_msgs.popleft().point_cloud
         vehicle_transform = self._can_bus_msgs.popleft().data.transform
+        frame_msg = self._frame_msgs.popleft()
 
         transformed_camera_setup = copy.deepcopy(self._camera_setup)
         transformed_camera_setup.set_transform(
@@ -85,6 +91,11 @@ class ObstacleLocationFinderOperator(erdos.Operator):
                     'Could not find world location for obstacle {}'.format(
                         obstacle))
 
+        if self._flags.visualize_obstacles_with_distance:
+            frame_msg.frame.annotate_with_bounding_boxes(
+                timestamp, obstacles_with_location, vehicle_transform)
+            frame_msg.frame.visualize(self.config.name)
+
         obstacles_output_stream.send(
             ObstaclesMessage(timestamp, obstacles_with_location))
 
@@ -99,3 +110,7 @@ class ObstacleLocationFinderOperator(erdos.Operator):
     def on_can_bus_update(self, msg):
         self._logger.debug('@{}: can bus update'.format(msg.timestamp))
         self._can_bus_msgs.append(msg)
+
+    def on_camera_update(self, msg):
+        self._logger.debug('@{}: camera update'.format(msg.timestamp))
+        self._frame_msgs.append(msg)

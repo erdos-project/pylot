@@ -104,6 +104,9 @@ flags.DEFINE_bool('visualize_detected_obstacles', False,
                   'True to enable visualization of detected obstacles')
 flags.DEFINE_bool('visualize_detected_traffic_lights', False,
                   'True to enable visualization of detected traffic lights')
+flags.DEFINE_bool(
+    'visualize_obstacles_with_distance', False,
+    'True to include distance into the visualization of obstacles')
 flags.DEFINE_bool('visualize_waypoints', False,
                   'True to enable visualization of waypoing planning')
 flags.DEFINE_bool('visualize_prediction', False,

@@ -268,7 +268,7 @@ def create_data_flow():
     # Adds an operator that finds the world locations of the obstacles.
     obstacles_stream = pylot.operator_creator.add_obstacle_location_finder(
         obstacles_stream, point_cloud_stream, can_bus_stream,
-        camera_setups[CENTER_CAMERA_NAME])
+        camera_streams[CENTER_CAMERA_NAME], camera_setups[CENTER_CAMERA_NAME])
 
     traffic_lights_stream = pylot.operator_creator.add_traffic_light_detector(
         camera_streams[TL_CAMERA_NAME])
@@ -276,7 +276,7 @@ def create_data_flow():
     traffic_lights_stream = \
         pylot.operator_creator.add_obstacle_location_finder(
             traffic_lights_stream, point_cloud_stream, can_bus_stream,
-            camera_setups[TL_CAMERA_NAME])
+            camera_streams[TL_CAMERA_NAME], camera_setups[TL_CAMERA_NAME])
 
     waypoints_stream = pylot.operator_creator.add_waypoint_planning(
         can_bus_stream, open_drive_stream, global_trajectory_stream,

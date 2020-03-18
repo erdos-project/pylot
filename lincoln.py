@@ -117,7 +117,7 @@ def create_data_flow():
         # Adds an operator that finds the world locations of the obstacles.
         obstacles_stream = pylot.operator_creator.add_obstacle_location_finder(
             obstacles_stream, point_cloud_stream, can_bus_stream,
-            left_camera_setup)
+            left_camera_stream, left_camera_setup)
     else:
         obstacles_stream = erdos.IngestStream()
 
@@ -129,7 +129,7 @@ def create_data_flow():
         traffic_lights_stream = \
             pylot.operator_creator.add_obstacle_location_finder(
                 traffic_lights_stream, point_cloud_stream, can_bus_stream,
-                right_camera_setup)
+                right_camera_stream, right_camera_setup)
     else:
         traffic_lights_stream = erdos.IngestStream()
 
@@ -161,8 +161,8 @@ def create_data_flow():
         waypoints_stream = pylot.operator_creator.add_rrt_star_planning(
             can_bus_stream, prediction_stream, None)
     else:
-        raise ValueError(
-            'Unsupport planning type {}'.format(FLAGS.planning_type))
+        raise ValueError('Unsupport planning type {}'.format(
+            FLAGS.planning_type))
 
     if FLAGS.control_agent == 'pid':
         control_stream = pylot.operator_creator.add_pid_agent(
