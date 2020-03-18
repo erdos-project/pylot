@@ -285,9 +285,9 @@ class RRTStarPlanningOperator(erdos.Operator):
                         end_location = \
                             prediction.bounding_box.transform.location + \
                             prediction.bounding_box.extent
-                        start_transform = (vehicle_transform * transform).transform_locations(
+                        start_transform = global_obstacle.transform_locations(
                             [start_location])
-                        end_transform = (vehicle_transform * transform).transform_locations(
+                        end_transform = global_obstacle.transform_locations(
                             [end_location])
                     else:
                         start_transform = [
