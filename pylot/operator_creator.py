@@ -265,6 +265,8 @@ def add_prediction_evaluation(can_bus_stream,
 
 def add_fot_planning(can_bus_stream,
                      prediction_stream,
+                     global_trajectory_stream,
+                     open_drive_stream,
                      goal_location,
                      name='fot_planning_operator'):
     from pylot.planning.frenet_optimal_trajectory.fot_planning_operator \
@@ -273,9 +275,12 @@ def add_fot_planning(can_bus_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [waypoints_stream] = erdos.connect(FOTPlanningOperator, op_config,
-                                       [can_bus_stream, prediction_stream],
-                                       FLAGS, goal_location)
+    [waypoints_stream] = erdos.connect(
+        FOTPlanningOperator, op_config,
+        [can_bus_stream, prediction_stream, global_trajectory_stream,
+         open_drive_stream],
+        FLAGS, goal_location
+    )
     return waypoints_stream
 
 
