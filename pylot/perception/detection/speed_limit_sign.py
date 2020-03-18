@@ -60,7 +60,7 @@ class SpeedLimitSign(DetectedObstacle):
         text = '{} {} {:.1f}'.format(self.speed_limit, self.label,
                                      self.confidence)
         super(SpeedLimitSign, self).visualize_on_img(image_np, bbox_color_map,
-                                                     text)
+                                                     None, text)
 
     def __repr__(self):
         return self.__str__()

@@ -1,16 +1,17 @@
 """Implements an operator that detects obstacles."""
 
-from absl import flags
-import erdos
 import logging
-import numpy as np
-import tensorflow as tf
 import time
 
+from absl import flags
+import erdos
+import numpy as np
+import tensorflow as tf
+
 from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle,\
-    load_coco_labels, load_coco_bbox_colors
+    load_coco_bbox_colors, load_coco_labels
 from pylot.perception.messages import ObstaclesMessage
-from pylot.utils import set_tf_loglevel, time_epoch_ms
+from pylot.utils import set_tf_loglevel
 
 flags.DEFINE_float(
     'obstacle_detection_gpu_memory_fraction', 0.3,
@@ -154,7 +155,7 @@ class DetectionOperator(erdos.Operator):
         if (self._flags.visualize_detected_obstacles
                 or self._flags.log_detector_output):
             msg.frame.annotate_with_bounding_boxes(msg.timestamp, obstacles,
-                                                   self._bbox_colors)
+                                                   None, self._bbox_colors)
             if self._flags.visualize_detected_obstacles:
                 msg.frame.visualize(self.config.name)
             if self._flags.log_detector_output:

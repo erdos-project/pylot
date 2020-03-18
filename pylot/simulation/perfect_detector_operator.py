@@ -145,7 +145,8 @@ class PerfectDetectorOperator(erdos.Operator):
         if (self._flags.visualize_detected_obstacles
                 or self._flags.log_detector_output):
             bgr_msg.frame.annotate_with_bounding_boxes(bgr_msg.timestamp,
-                                                       det_obstacles)
+                                                       det_obstacles,
+                                                       vehicle_transform)
             if self._flags.visualize_detected_obstacles:
                 bgr_msg.frame.visualize(self.config.name)
             if self._flags.log_detector_output:
