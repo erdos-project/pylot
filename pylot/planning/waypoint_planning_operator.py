@@ -135,7 +135,7 @@ class WaypointPlanningOperator(erdos.Operator):
             self._goal_location = msg.data[-1][0].location
         else:
             # Trajectory does not contain any waypoints. We assume we have
-            # arrived at destionation.
+            # arrived at destination.
             self._goal_location = self._vehicle_transform.location
         assert self._goal_location, 'Planner does not have a goal'
         self._waypoints = deque()
@@ -188,7 +188,7 @@ class WaypointPlanningOperator(erdos.Operator):
 
         speed_factor, _ = pylot.planning.utils.stop_for_agents(
             self._vehicle_transform.location, wp_angle, wp_vector,
-            obstacles_msg.obstacles, tl_msg.obstacles, self._flags,
+            obstacles_msg.obstacles, tl_msg.traffic_lights, self._flags,
             self._logger, self._map, timestamp)
 
         target_speed = speed_factor * self._flags.target_speed
@@ -202,6 +202,7 @@ class WaypointPlanningOperator(erdos.Operator):
             [target_speed for _ in range(len(head_waypoints))])
         waypoints_stream.send(
             WaypointsMessage(timestamp, head_waypoints, target_speeds))
+ 
 
     def __remove_completed_waypoints(self):
         """Removes waypoints that the ego vehicle has already completed.

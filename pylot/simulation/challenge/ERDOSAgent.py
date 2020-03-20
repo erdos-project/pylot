@@ -204,9 +204,8 @@ class ERDOSAgent(AutonomousAgent):
         self._can_bus_stream.send(erdos.WatermarkMessage(timestamp))
 
     def send_lidar_msg(self, carla_pc, transform, timestamp):
-        points = [pylot.utils.Location(x, y, z) for x, y, z in carla_pc]
         msg = pylot.perception.messages.PointCloudMessage(
-            timestamp, PointCloud(points, self._lidar_setup))
+            timestamp, PointCloud(carla_pc, self._lidar_setup))
         self._point_cloud_stream.send(msg)
         self._point_cloud_stream.send(erdos.WatermarkMessage(timestamp))
 

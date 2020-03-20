@@ -231,8 +231,8 @@ class HDMap(object):
             lane_type=carla.LaneType.Bidirectional)
         return not waypoint
 
-    def must_obbey_traffic_light(self, ego_location, tl_location):
-        """Checks if an ego vehicle must obbey a traffic light.
+    def must_obey_traffic_light(self, ego_location, tl_location):
+        """Checks if an ego vehicle must obey a traffic light.
 
         Args:
             ego_location (:py:class:`~pylot.utils.Location`): Location of the
@@ -241,13 +241,13 @@ class HDMap(object):
                 traffic light in world coordinates.
 
         Returns:
-            bool: True if the ego vehicle must obbey the traffic light.
+            bool: True if the ego vehicle must obey the traffic light.
         """
         waypoint = self._map.get_waypoint(ego_location.as_carla_location(),
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Any)
         if waypoint and waypoint.is_intersection:
-            # Do not obbey traffic light if ego is already in the intersection.
+            # Do not obey traffic light if ego is already in the intersection.
             return False
 
         # TODO(ionel): Implement.
@@ -262,7 +262,7 @@ class HDMap(object):
 
         return True
 
-    def _must_obbey_european_traffic_light(self, ego_transform, tl_locations,
+    def _must_obey_european_traffic_light(self, ego_transform, tl_locations,
                                            tl_max_dist_thresh):
         ego_loc = ego_transform.location.as_carla_location()
         ego_waypoint = self._map.get_waypoint(ego_loc,
@@ -282,7 +282,7 @@ class HDMap(object):
                 return (True, tl_loc)
         return (False, None)
 
-    def _must_obbey_american_traffic_light(self, ego_transform, tl_locations,
+    def _must_obey_american_traffic_light(self, ego_transform, tl_locations,
                                            tl_max_dist_thresh):
         ego_loc = ego_transform.location.as_carla_location()
         ego_waypoint = self._map.get_waypoint(ego_loc,
