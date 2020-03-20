@@ -38,7 +38,6 @@ class ERDOSTrack4Agent(AutonomousAgent):
 
         Invoked by the scenario runner.
         """
-        print ("Initializing Track 4 Agent")
         flags.FLAGS([__file__, '--flagfile={}'.format(path_to_conf_file)])
         self._logger = erdos.utils.setup_logging('erdos_agent',
                                                  FLAGS.log_file_name)
@@ -151,57 +150,80 @@ class ERDOSTrack4Agent(AutonomousAgent):
         # Currently, we don't do anything with the road_id and lane_id of the
         # hero vehicle. This could potentially be useful in conjunction with the
         # data in scene_layout.
-        self._logger.debug('Hero vehicle id: {}'.format(hero_vehicle['id']))
+        #self._logger.debug('Hero vehicle id: {}'.format(hero_vehicle['id']))
 
+        vehicles_list = self.parse_vehicles(data['vehicles'], hero_vehicle['id'])
+        people_list = self.parse_people(data['walkers'])
+        traffic_lights_list = self.parse_traffic_lights(data['traffic_lights'])
+        stop_signs_list = self.parse_stop_signs(data['stop_signs'])
+        speed_limit_signs_list = self.parse_speed_limit_signs(data['speed_limits'])
+        static_obstacles_list = self.parse_static_obstacles(data['static_obstacles'])
 
-        # data['vehicles'] is a dictionary that maps each vehicle's id to
+        # Send messages.
+        self._ground_obstacles_stream.send(
+            pylot.perception.messages.ObstaclesMessage(
+                timestamp,
+                vehicles_list + people_list + speed_limit_signs_list + \
+                    stop_signs_list + static_obstacles_list))
+        self._ground_obstacles_stream.send(erdos.WatermarkMessage(timestamp))
+        self._traffic_lights_stream.send(
+            pylot.perception.messages.TrafficLightsMessage(
+                timestamp, traffic_lights_list))
+        self._traffic_lights_stream.send(erdos.WatermarkMessage(timestamp))
+
+    def parse_vehicles(self, vehicles, ego_vehicle_id):
+        # vehicles is a dictionary that maps each vehicle's id to
         # a dictionary of information about that vehicle. Each such dictionary
         # contains four items: the vehicle's id, position, orientation, and
         # bounding_box (represented as four points in GPS coordinates).
         #
         # Positions are originally represented as (latitude, longitude, altitude)
         # before they are converted using _gps_to_location.
-
-        vehicles = data['vehicles']
+        vehicles_list = []
         for veh_dict in vehicles.values():
             vehicle_id = veh_dict['id']
             location = _gps_to_location(*veh_dict['position'])
             roll, pitch, yaw = veh_dict['orientation']
             rotation = pylot.utils.Rotation(pitch, yaw, roll)
-            if vehicle_id == hero_vehicle['id']:
+            if vehicle_id == ego_vehicle_id:
                 # Can compare against canbus output to check that
                 # transformations are working.
-                self._logger.debug('{} Ego vehicle location with ground_obstacles: {}'.format(timestamp, location))
+                self._logger.debug('Ego vehicle location with ground_obstacles: {}'.format(location))
             else:
-                dynamic_obstacles_list.append(
+                vehicles_list.append(
                     DetectedObstacle(None, # We currently don't use bounding box
                                      1.0, # confidence
                                      'vehicle',
                                      vehicle_id,
                                      pylot.utils.Transform(location, rotation)
                 ))
+        return vehicles_list
 
+    def parse_people(self, people):
         # Similar to vehicles, each entry of people is a dictionary that
         # contains four items, the person's id, position, orientation,
         # and bounding box.
-        people = data['walkers']
+        people_list = []
         for person_dict in people.values():
             person_id = person_dict['id']
             location = _gps_to_location(*person_dict['position'])
             roll, pitch, yaw = person_dict['orientation']
             rotation = pylot.utils.Rotation(pitch, yaw, roll)
-            dynamic_obstacles_list.append(
+            people_list.append(
                 DetectedObstacle(None, # bounding box
                                  1.0, # confidence
                                  'person',
                                  person_id,
                                  pylot.utils.Transform(location, rotation)
             ))
+        return people_list
+
+    def parse_traffic_lights(self, traffic_lights):
         # Each entry of traffic lights is a dictionary that contains four items,
         # the id, state, position, and trigger volume of the traffic light.
         # WARNING: Some of the methods in the TrafficLight class may not work here
         # (e.g. methods that depend knowing the town we are in).
-        traffic_lights = data['traffic_lights']
+        traffic_lights_list = []
         traffic_light_labels = {
             0: TrafficLightColor.RED,
             1: TrafficLightColor.YELLOW,
@@ -220,9 +242,11 @@ class ERDOSTrack4Agent(AutonomousAgent):
                              pylot.utils.Transform(location,
                                                    pylot.utils.Rotation()) # No rotation given
             ))
+        return traffic_lights_list
 
+    def parse_stop_signs(self, stop_signs):
         # Each stop sign has an id, position, and trigger volume.
-        stop_signs = data['stop_signs']
+        stop_signs_list = []
         for stop_sign_dict in stop_signs.values():
             stop_sign_id = stop_sign_dict['id']
             location = _gps_to_location(*stop_sign_dict['position'])
@@ -235,9 +259,11 @@ class ERDOSTrack4Agent(AutonomousAgent):
                          pylot.utils.Transform(location,
                                                pylot.utils.Rotation()) # No rotation given
             ))
+        return stop_signs_list
 
+    def parse_speed_limit_signs(self, speed_limits):
         # Each speed limit sign has an id, position, and speed.
-        speed_limits = data['speed_limits']
+        speed_limit_signs_list = []
         for speed_limit_dict in speed_limits.values():
             speed_limit_id = speed_limit_dict['id']
             location = _gps_to_location(*speed_limit_dict['position'])
@@ -250,9 +276,11 @@ class ERDOSTrack4Agent(AutonomousAgent):
                                pylot.utils.Transform(location,
                                                      pylot.utils.Rotation())
             ))
+        return speed_limit_signs_list
 
+    def parse_static_obstacles(self, static_obstacles):
         # Each static obstacle has an id and position.
-        static_obstacles = data['static_obstacles']
+        static_obstacles_list = []
         for static_obstacle_dict in static_obstacles.values():
             static_obstacle_id = static_obstacle_dict['id']
             location = _gps_to_location(*static_obstacle_dict['position'])
@@ -264,18 +292,7 @@ class ERDOSTrack4Agent(AutonomousAgent):
                                  pylot.utils.Transform(location,
                                                        pylot.utils.Rotation())
             ))
-
-        # Send messages.
-        self._ground_obstacles_stream.send(
-            pylot.perception.messages.ObstaclesMessage(
-                timestamp,
-                dynamic_obstacles_list + speed_limit_signs_list + \
-                    stop_signs_list + static_obstacles_list))
-        self._ground_obstacles_stream.send(erdos.WatermarkMessage(timestamp))
-        self._traffic_lights_stream.send(
-            pylot.perception.messages.TrafficLightsMessage(
-                timestamp, traffic_lights_list))
-        self._traffic_lights_stream.send(erdos.WatermarkMessage(timestamp))
+        return static_obstacles_list
 
     def send_scene_layout(self, data, timestamp):
         # data is a dictionary describing the scene layout. Each key is a waypoint
