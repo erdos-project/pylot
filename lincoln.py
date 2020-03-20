@@ -146,6 +146,11 @@ def create_data_flow():
     if FLAGS.prediction:
         prediction_stream = pylot.operator_creator.add_linear_prediction(
             obstacles_tracking_stream)
+    else:
+        assert FLAGS.planning_type != 'frenet_optimal_trajectory', \
+            "FLAGS.prediction must be true if using frenet optimal trajectory"
+        assert FLAGS.planning_type != 'rrt_star', \
+            "FLAGS.prediction must be true if using rrt star"
 
     open_drive_stream = erdos.IngestStream()
     global_trajectory_stream = erdos.IngestStream()
@@ -156,7 +161,8 @@ def create_data_flow():
             obstacles_stream, traffic_lights_stream, None)
     elif FLAGS.planning_type == 'frenet_optimal_trajectory':
         waypoints_stream = pylot.operator_creator.add_fot_planning(
-            can_bus_stream, prediction_stream, None)
+            can_bus_stream, prediction_stream,
+            global_trajectory_stream, open_drive_stream, None)
     elif FLAGS.planning_type == 'rrt_star':
         waypoints_stream = pylot.operator_creator.add_rrt_star_planning(
             can_bus_stream, prediction_stream, global_trajectory_stream,

@@ -31,12 +31,12 @@ cd dependencies/models
 ###### Download object detection models from TensorFlow zoo ######
 mkdir obstacle_detection ; cd obstacle_detection
 mkdir faster-rcnn ; cd faster-rcnn
-wget https://www.dropbox.com/s/s3pdfw34jd41mna/frozen_inference_graph.pb ; cd ../
-mkdir ssd-mobilenet-fpn-640 ; cd ssd-mobilenet-fpn-640
-wget https://www.dropbox.com/s/tcom898p9os6kzc/frozen_inference_graph.pb ; cd ../
-mkdir ssdlite-mobilenet-v2 ; cd ssdlite-mobilenet-v2
-wget https://www.dropbox.com/s/09dmldz7d7zfmrl/frozen_inference_graph.pb ; cd ../
+mkdir ssd-mobilenet-v1 ; cd ssd-mobilenet-v1
+wget https://www.dropbox.com/s/9amx26kiyvvnl8h/frozen_inference_graph.pb ; cd ../
+mkdir ssd-mobilenet-v1-fpn ; cd ssd-mobilenet-v1-fpn
+wget https://www.dropbox.com/s/5w887e03fdjxeft/frozen_inference_graph.pb ; cd ../
 cd ../
+
 ###### Download the traffic light model ######
 mkdir -p traffic_light_detection/faster-rcnn ; cd traffic_light_detection/faster-rcnn
 wget https://www.dropbox.com/s/63ig79xrkubigpu/frozen_inference_graph.pb
