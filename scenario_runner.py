@@ -67,6 +67,9 @@ def driver():
      lidar_setup) = pylot.operator_creator.add_lidar(transform,
                                                      vehicle_id_stream)
     imu_stream = None
+    if FLAGS.imu:
+        (imu_stream,
+         _) = pylot.operator_creator.add_imu(transform, vehicle_id_stream)
 
     obstacles_stream = pylot.component_creator.add_obstacle_detection(
         center_camera_stream, center_camera_setup, can_bus_stream,
