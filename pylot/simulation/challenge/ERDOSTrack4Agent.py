@@ -27,6 +27,7 @@ flags.DEFINE_integer('track', 4, 'Agent for track 4')
 LAT_REF = 49.0
 LON_REF = 8.0
 
+
 class ERDOSTrack4Agent(AutonomousAgent):
     """Agent class that interacts with the CARLA challenge scenario runner.
 
@@ -53,12 +54,12 @@ class ERDOSTrack4Agent(AutonomousAgent):
         self._ground_obstacles_stream = ground_obstacles_stream
         self._traffic_lights_stream = traffic_lights_stream
         self._open_drive_stream = open_drive_stream
+        self._sent_open_drive = False
         self._control_stream = control_stream
 
         # These are used for the timestamp hack.
         self._past_timestamp = None
         self._past_control_message = None
-
         # Execute the data-flow.
         erdos.run_async()
 
@@ -68,12 +69,6 @@ class ERDOSTrack4Agent(AutonomousAgent):
         Invoked by the scenario runner between different runs.
         """
         self._logger.info('ERDOSTrack4Agent destroy method invoked')
-
-    def run(self):
-        # We do not have access to the open drive map. Send top watermark.
-        top_timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
-        open_drive_stream.send(
-            erdos.WatermarkMessage(top_timestamp))
 
     def sensors(self):
         """Defines the sensor suite required by the agent."""
@@ -106,6 +101,12 @@ class ERDOSTrack4Agent(AutonomousAgent):
         game_time = int(timestamp * 1000)
         self._logger.debug("Current game time {}".format(game_time))
         erdos_timestamp = erdos.Timestamp(coordinates=[game_time])
+
+        if not self._sent_open_drive:
+            # We do not have access to the open drive map. Send top watermark.
+            self._sent_open_drive = True
+            top_timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
+            self._open_drive_stream.send(erdos.WatermarkMessage(top_timestamp))
 
         self.send_waypoints_msg(erdos_timestamp)
 
@@ -152,12 +153,15 @@ class ERDOSTrack4Agent(AutonomousAgent):
         # data in scene_layout.
         #self._logger.debug('Hero vehicle id: {}'.format(hero_vehicle['id']))
 
-        vehicles_list = self.parse_vehicles(data['vehicles'], hero_vehicle['id'])
+        vehicles_list = self.parse_vehicles(data['vehicles'],
+                                            hero_vehicle['id'])
         people_list = self.parse_people(data['walkers'])
         traffic_lights_list = self.parse_traffic_lights(data['traffic_lights'])
         stop_signs_list = self.parse_stop_signs(data['stop_signs'])
-        speed_limit_signs_list = self.parse_speed_limit_signs(data['speed_limits'])
-        static_obstacles_list = self.parse_static_obstacles(data['static_obstacles'])
+        speed_limit_signs_list = self.parse_speed_limit_signs(
+            data['speed_limits'])
+        static_obstacles_list = self.parse_static_obstacles(
+            data['static_obstacles'])
 
         # Send messages.
         self._ground_obstacles_stream.send(
@@ -188,15 +192,17 @@ class ERDOSTrack4Agent(AutonomousAgent):
             if vehicle_id == ego_vehicle_id:
                 # Can compare against canbus output to check that
                 # transformations are working.
-                self._logger.debug('Ego vehicle location with ground_obstacles: {}'.format(location))
+                self._logger.debug(
+                    'Ego vehicle location with ground_obstacles: {}'.format(
+                        location))
             else:
                 vehicles_list.append(
-                    DetectedObstacle(None, # We currently don't use bounding box
-                                     1.0, # confidence
-                                     'vehicle',
-                                     vehicle_id,
-                                     pylot.utils.Transform(location, rotation)
-                ))
+                    DetectedObstacle(
+                        None,  # We currently don't use bounding box
+                        1.0,  # confidence
+                        'vehicle',
+                        vehicle_id,
+                        pylot.utils.Transform(location, rotation)))
         return vehicles_list
 
     def parse_people(self, people):
@@ -210,12 +216,12 @@ class ERDOSTrack4Agent(AutonomousAgent):
             roll, pitch, yaw = person_dict['orientation']
             rotation = pylot.utils.Rotation(pitch, yaw, roll)
             people_list.append(
-                DetectedObstacle(None, # bounding box
-                                 1.0, # confidence
-                                 'person',
-                                 person_id,
-                                 pylot.utils.Transform(location, rotation)
-            ))
+                DetectedObstacle(
+                    None,  # bounding box
+                    1.0,  # confidence
+                    'person',
+                    person_id,
+                    pylot.utils.Transform(location, rotation)))
         return people_list
 
     def parse_traffic_lights(self, traffic_lights):
@@ -231,17 +237,19 @@ class ERDOSTrack4Agent(AutonomousAgent):
         }
         for traffic_light_dict in traffic_lights.values():
             traffic_light_id = traffic_light_dict['id']
-            traffic_light_state = traffic_light_labels[traffic_light_dict['state']]
+            traffic_light_state = traffic_light_labels[
+                traffic_light_dict['state']]
             # Trigger volume is currently unused.
             traffic_light_trigger_volume = traffic_light_dict['trigger_volume']
             location = _gps_to_location(*traffic_light_dict['position'])
             traffic_lights_list.append(
-                TrafficLight(1.0, # confidence
-                             traffic_light_state,
-                             traffic_light_id,
-                             pylot.utils.Transform(location,
-                                                   pylot.utils.Rotation()) # No rotation given
-            ))
+                TrafficLight(
+                    1.0,  # confidence
+                    traffic_light_state,
+                    traffic_light_id,
+                    pylot.utils.Transform(
+                        location, pylot.utils.Rotation())  # No rotation given
+                ))
         return traffic_lights_list
 
     def parse_stop_signs(self, stop_signs):
@@ -253,12 +261,13 @@ class ERDOSTrack4Agent(AutonomousAgent):
             # Trigger volume is currently unused.
             trigger_volume = stop_sign_dict['trigger_volume']
             stop_signs_list.append(
-                StopSign(1.0, # confidence
-                         None, # bounding box
-                         stop_sign_id,
-                         pylot.utils.Transform(location,
-                                               pylot.utils.Rotation()) # No rotation given
-            ))
+                StopSign(
+                    1.0,  # confidence
+                    None,  # bounding box
+                    stop_sign_id,
+                    pylot.utils.Transform(
+                        location, pylot.utils.Rotation())  # No rotation given
+                ))
         return stop_signs_list
 
     def parse_speed_limit_signs(self, speed_limits):
@@ -269,13 +278,12 @@ class ERDOSTrack4Agent(AutonomousAgent):
             location = _gps_to_location(*speed_limit_dict['position'])
             speed_limit = speed_limit_dict['speed']
             speed_limit_signs_list.append(
-                SpeedLimitSign(speed_limit,
-                               1.0, # confidence
-                               None, # bounding box
-                               speed_limit_id,
-                               pylot.utils.Transform(location,
-                                                     pylot.utils.Rotation())
-            ))
+                SpeedLimitSign(
+                    speed_limit,
+                    1.0,  # confidence
+                    None,  # bounding box
+                    speed_limit_id,
+                    pylot.utils.Transform(location, pylot.utils.Rotation())))
         return speed_limit_signs_list
 
     def parse_static_obstacles(self, static_obstacles):
@@ -285,13 +293,12 @@ class ERDOSTrack4Agent(AutonomousAgent):
             static_obstacle_id = static_obstacle_dict['id']
             location = _gps_to_location(*static_obstacle_dict['position'])
             static_obstacles_list.append(
-                DetectedObstacle(None, # bounding box
-                                 1.0, # confidence
-                                 'static_obstacle',
-                                 static_obstacle_id,
-                                 pylot.utils.Transform(location,
-                                                       pylot.utils.Rotation())
-            ))
+                DetectedObstacle(
+                    None,  # bounding box
+                    1.0,  # confidence
+                    'static_obstacle',
+                    static_obstacle_id,
+                    pylot.utils.Transform(location, pylot.utils.Rotation())))
         return static_obstacles_list
 
     def send_scene_layout(self, data, timestamp):
@@ -335,7 +342,8 @@ class ERDOSTrack4Agent(AutonomousAgent):
                 timestamp,
                 pylot.utils.CanBus(vehicle_transform, forward_speed,
                                    velocity_vector)))
-        self._logger.debug('{} Ego vehicle location with CanBus: {}'.format(timestamp, vehicle_transform))
+        self._logger.debug('{} Ego vehicle location with CanBus: {}'.format(
+            timestamp, vehicle_transform))
         self._can_bus_stream.send(erdos.WatermarkMessage(timestamp))
 
     def send_waypoints_msg(self, timestamp):
@@ -389,6 +397,7 @@ def enable_logging():
     import logging
     logging.root.setLevel(logging.NOTSET)
 
+
 def _gps_to_location(lat, lon, altitude):
     """
     Converts gps coordinates (latitude, longitude, altitude) to locations.
@@ -399,12 +408,14 @@ def _gps_to_location(lat, lon, altitude):
     EARTH_RADIUS_EQUA = 6378137.0
     scale = math.cos(LAT_REF * math.pi / 180.0)
     basex = scale * math.pi * EARTH_RADIUS_EQUA / 180.0 * LON_REF
-    basey = scale * EARTH_RADIUS_EQUA * math.log(math.tan((90.0 + LAT_REF) * math.pi / 360.0))
+    basey = scale * EARTH_RADIUS_EQUA * math.log(
+        math.tan((90.0 + LAT_REF) * math.pi / 360.0))
 
     x = scale * math.pi * EARTH_RADIUS_EQUA / 180.0 * lon - basex
-    y = scale * EARTH_RADIUS_EQUA * math.log(math.tan((90.0 + lat) * math.pi / 360.0)) - basey
+    y = scale * EARTH_RADIUS_EQUA * math.log(
+        math.tan((90.0 + lat) * math.pi / 360.0)) - basey
 
     # This wasn't in the original carla method, but seems to be necessary.
     y *= -1
 
-    return pylot.utils.Location(x,y,altitude)
+    return pylot.utils.Location(x, y, altitude)
