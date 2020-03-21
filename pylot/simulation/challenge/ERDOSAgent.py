@@ -62,6 +62,7 @@ class ERDOSAgent(AutonomousAgent):
         self._can_bus_stream = can_bus_stream
         self._global_trajectory_stream = global_trajectory_stream
         self._open_drive_stream = open_drive_stream
+        self._sent_open_drive = False
         self._point_cloud_stream = point_cloud_stream
         self._control_stream = control_stream
         # Execute the data-flow.
@@ -135,6 +136,13 @@ class ERDOSAgent(AutonomousAgent):
         game_time = int(timestamp * 1000)
         self._logger.debug("Current game time {}".format(game_time))
         erdos_timestamp = erdos.Timestamp(coordinates=[game_time])
+
+        if not self._sent_open_drive and \
+               self.track != Track.ALL_SENSORS_HDMAP_WAYPOINTS:
+            # We do not have access to the open drive map. Send top watermark.
+            self._sent_open_drive = True
+            top_timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
+            self._open_drive_stream.send(erdos.WatermarkMessage(top_timestamp))
 
         self.send_waypoints_msg(erdos_timestamp)
 
@@ -248,10 +256,6 @@ def create_data_flow():
     can_bus_stream = erdos.IngestStream()
     global_trajectory_stream = erdos.IngestStream()
     open_drive_stream = erdos.IngestStream()
-    if track != Track.ALL_SENSORS_HDMAP_WAYPOINTS:
-        # We do not have access to the open drive map. Send top watermark.
-        open_drive_stream.send(
-            erdos.WatermarkMessage(erdos.Timestamp(coordinates=[sys.maxsize])))
 
     if (track == Track.ALL_SENSORS
             or track == Track.ALL_SENSORS_HDMAP_WAYPOINTS):
