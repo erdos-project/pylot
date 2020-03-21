@@ -179,12 +179,12 @@ def stop_for_agents(ego_vehicle_location,
 
     if flags.stop_for_traffic_lights:
         for tl in traffic_lights:
-            if ((not hd_map or hd_map.must_obbey_traffic_light(
+            if ((not hd_map or hd_map.must_obey_traffic_light(
                     ego_vehicle_location, tl.transform.location))
                     and _is_traffic_light_visible(
                         ego_vehicle_location, tl.transform.location, flags)):
                 logger.debug(
-                    '@{}: ego vehicle is obbeying traffic light {}'.format(
+                    '@{}: ego vehicle is obeying traffic light {}'.format(
                         timestamp, ego_vehicle_location, tl))
                 new_speed_factor_tl = stop_traffic_light(
                     ego_vehicle_location, tl.transform.location, tl.state,
