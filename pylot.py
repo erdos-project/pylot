@@ -5,6 +5,7 @@ import pylot.flags
 import pylot.component_creator
 import pylot.operator_creator
 import pylot.utils
+from pylot.simulation.utils import get_world, set_asynchronous_mode
 
 FLAGS = flags.FLAGS
 
@@ -14,7 +15,7 @@ flags.DEFINE_list('goal_location', '234, 59, 39', 'Ego-vehicle goal location')
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
 
 
-def main(argv):
+def driver():
     transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                       pylot.utils.Rotation())
 
@@ -106,6 +107,23 @@ def main(argv):
                                                   ground_segmented_stream,
                                                   imu_stream, can_bus_stream)
     erdos.run()
+
+
+def main(args):
+    # Connect an instance to the simulator to make sure that we can turn the
+    # synchronous mode off after the script finishes running.
+    client, world = get_world(FLAGS.carla_host, FLAGS.carla_port,
+                              FLAGS.carla_timeout)
+    if client is None or world is None:
+        raise ValueError("There was an issue connecting to the simulator.")
+
+    try:
+        driver()
+    except KeyboardInterrupt:
+        set_asynchronous_mode(world)
+    except Exception:
+        set_asynchronous_mode(world)
+        raise
 
 
 if __name__ == '__main__':
