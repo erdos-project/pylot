@@ -261,12 +261,12 @@ class TrafficLightsMessage(erdos.Message):
     """
     def __init__(self, timestamp, traffic_lights):
         super(TrafficLightsMessage, self).__init__(timestamp, None)
-        self.traffic_lights = traffic_lights
+        self.obstacles = traffic_lights
 
     def __str__(self):
         return 'TrafficLightsMessage(timestamp: {}, ' \
             'traffic lights: {})'.format(
-                self.timestamp, self.traffic_lights)
+                self.timestamp, self.obstacles)
 
 
 class StopSignsMessage(erdos.Message):

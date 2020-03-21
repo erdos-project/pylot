@@ -188,7 +188,7 @@ class WaypointPlanningOperator(erdos.Operator):
 
         speed_factor, _ = pylot.planning.utils.stop_for_agents(
             self._vehicle_transform.location, wp_angle, wp_vector,
-            obstacles_msg.obstacles, tl_msg.traffic_lights, self._flags,
+            obstacles_msg.obstacles, tl_msg.obstacles, self._flags,
             self._logger, self._map, timestamp)
 
         target_speed = speed_factor * self._flags.target_speed
