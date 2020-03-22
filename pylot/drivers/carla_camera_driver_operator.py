@@ -1,13 +1,13 @@
 import erdos
 import threading
-import time
 
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.messages import DepthFrameMessage, FrameMessage, \
     SegmentedFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
-from pylot.simulation.utils import get_world, set_synchronous_mode
+from pylot.simulation.utils import get_vehicle_handle, get_world, \
+    set_synchronous_mode
 
 
 class CarlaCameraDriverOperator(erdos.Operator):
@@ -64,15 +64,7 @@ class CarlaCameraDriverOperator(erdos.Operator):
         if self._flags.carla_synchronous_mode:
             set_synchronous_mode(world, self._flags.carla_fps)
 
-        num_tries = 0
-        while self._vehicle is None and num_tries < 30:
-            self._vehicle = world.get_actors().find(vehicle_id)
-            self._logger.debug(
-                "Could not find vehicle. Try {}".format(num_tries))
-            time.sleep(1)
-            num_tries += 1
-        if self._vehicle is None:
-            raise ValueError("There was an issue finding the vehicle.")
+        self._vehicle = get_vehicle_handle(world, vehicle_id)
 
         # Install the camera.
         camera_blueprint = world.get_blueprint_library().find(

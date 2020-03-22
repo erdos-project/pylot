@@ -51,6 +51,8 @@ from pylot.perception.tracking.object_tracker_operator import \
 from pylot.perception.tracking.tracking_eval_operator import \
     TrackingEvalOperator
 # Planning operators.
+from pylot.planning.frenet_optimal_trajectory.fot_planning_operator \
+    import FOTPlanningOperator
 from pylot.planning.waypoint_planning_operator import WaypointPlanningOperator
 # Prediction operators.
 from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
@@ -269,18 +271,14 @@ def add_fot_planning(can_bus_stream,
                      open_drive_stream,
                      goal_location,
                      name='fot_planning_operator'):
-    from pylot.planning.frenet_optimal_trajectory.fot_planning_operator \
-        import FOTPlanningOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [waypoints_stream] = erdos.connect(
-        FOTPlanningOperator, op_config,
-        [can_bus_stream, prediction_stream, global_trajectory_stream,
-         open_drive_stream],
-        FLAGS, goal_location
-    )
+    [waypoints_stream] = erdos.connect(FOTPlanningOperator, op_config, [
+        can_bus_stream, prediction_stream, global_trajectory_stream,
+        open_drive_stream
+    ], FLAGS, goal_location)
     return waypoints_stream
 
 
@@ -503,6 +501,17 @@ def add_chauffeur_logging(vehicle_id_stream, can_bus_stream,
         vehicle_id_stream, can_bus_stream, obstacle_tracking_stream,
         top_down_camera_stream, top_down_segmentation_stream
     ], FLAGS, top_down_camera_setup)
+
+
+def add_carla_collision_logging(vehicle_id_stream, can_bus_stream):
+    from pylot.loggers.carla_collision_logger_operator import \
+        CarlaCollisionLoggerOperator
+    op_config = erdos.OperatorConfig(name='carla_collision_logger_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(CarlaCollisionLoggerOperator, op_config,
+                  [vehicle_id_stream, can_bus_stream], FLAGS)
 
 
 def add_imu_logging(imu_stream, name='imu_logger_operator'):

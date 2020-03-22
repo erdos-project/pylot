@@ -1,6 +1,7 @@
 import carla
 from collections import namedtuple
 import re
+import time
 
 import pylot.utils
 from pylot.perception.depth_frame import DepthFrame
@@ -331,3 +332,14 @@ def get_detected_traffic_stops(traffic_stops, depth_frame):
             stop_sign.bounding_box = bbox_2d
             det_stop_signs.append(stop_sign)
     return det_stop_signs
+
+
+def get_vehicle_handle(world, vehicle_id):
+    num_tries = 0
+    while num_tries < 30:
+        vehicle = world.get_actors().find(vehicle_id)
+        if vehicle:
+            return vehicle
+        time.sleep(1)
+        num_tries += 1
+    raise ValueError("There was an issue finding the vehicle.")
