@@ -31,7 +31,10 @@ flags.DEFINE_integer('carla_camera_image_width', 1920,
                      'Carla camera image width')
 flags.DEFINE_integer('carla_camera_image_height', 1080,
                      'Carla camera image height')
-
+flags.DEFINE_integer('carla_vehicle_mass', None,
+                     'Modifies the mass of the ego-vehicle')
+flags.DEFINE_integer('carla_vehicle_moi', None,
+                     'Modifies the moment of inertia of the ego-vehicle')
 flags.DEFINE_integer(
     'perfect_tracking_num_steps', None,
     'Limit on number of past steps returned by the perfect object tracker.')

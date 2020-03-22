@@ -185,11 +185,12 @@ class CarlaOperator(erdos.Operator):
                     self._driving_vehicle = actor
                     break
             self._world.tick()
-        # Fix the physics of the vehicle to increase the max speed.
-        physics_control = self._driving_vehicle.get_physics_control()
-        physics_control.moi = 0.1
-        physics_control.mass = 100
-        self._driving_vehicle.apply_physics_control(physics_control)
+        if self._flags.carla_vehicle_moi and self._flags.carla_vehicle_mass:
+            # Fix the physics of the vehicle to increase the max speed.
+            physics_control = self._driving_vehicle.get_physics_control()
+            physics_control.moi = 0.1
+            physics_control.mass = 100
+            self._driving_vehicle.apply_physics_control(physics_control)
 
     def _tick_simulator(self):
         if (not self._flags.carla_synchronous_mode
