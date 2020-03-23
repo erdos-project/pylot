@@ -3,10 +3,11 @@
 from collections import deque
 import erdos
 
+from pylot.perception.detection.utils import VEHICLE_LABELS
 from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 from pylot.prediction.messages import PredictionMessage
 from pylot.prediction.obstacle_prediction import ObstaclePrediction
-from pylot.utils import time_epoch_ms
+from pylot.utils import time_epoch_ms, Vector2D
 
 
 class PredictionEvalOperator(erdos.Operator):
@@ -68,6 +69,9 @@ class PredictionEvalOperator(erdos.Operator):
         tracking_msg = self._tracking_msgs.popleft()
         prediction_msg = self._prediction_msgs.popleft()
         vehicle_transform = self._can_bus_msgs.popleft().data.transform
+
+        # TODO: The evaluator assumes that the obstacle tracker assigns the
+        # same ids to the obstacles as they have in the CARLA simulation.
 
         # Start calculating metrics when we've taken sufficiently many steps.
         if len(self._predictions) == self._flags.prediction_num_future_steps:
@@ -133,9 +137,17 @@ class PredictionEvalOperator(erdos.Operator):
         person_fde = 0.0
 
         for obstacle in predictions:
-            predicted_trajectory = obstacle.trajectory
-            ground_trajectory = ground_trajectories[obstacle.id].trajectory
-            if obstacle.label == 'vehicle':
+            # We remove altitude from the accuracy calculation because the
+            # prediction operators do not currently predict altitude.
+            predicted_trajectory = [
+                Vector2D(transform.location.x, transform.location.y)
+                for transform in obstacle.trajectory
+            ]
+            ground_trajectory = [
+                Vector2D(transform.location.x, transform.location.y)
+                for transform in ground_trajectories[obstacle.id].trajectory
+            ]
+            if obstacle.label in VEHICLE_LABELS:
                 vehicle_cnt += 1
             elif obstacle.label == 'person':
                 person_cnt += 1
@@ -146,16 +158,15 @@ class PredictionEvalOperator(erdos.Operator):
             l1_distance = 0.0
             for idx in range(1, len(predicted_trajectory) + 1):
                 # Calculate MSD
-                l2_distance += predicted_trajectory[-idx].location.distance(
-                    ground_trajectory[-idx].location)
+                l2_distance += predicted_trajectory[-idx].l2_distance(
+                    ground_trajectory[-idx])
                 # Calculate ADE
-                l1_distance += predicted_trajectory[-idx].location.l1_distance(
-                    ground_trajectory[-idx].location)
+                l1_distance += predicted_trajectory[-idx].l1_distance(
+                    ground_trajectory[-idx])
             l2_distance /= len(predicted_trajectory)
             l1_distance /= len(predicted_trajectory)
-            fde = predicted_trajectory[-1].location.l1_distance(
-                ground_trajectory[-1].location)
-            if obstacle.label == 'vehicle':
+            fde = predicted_trajectory[-1].l1_distance(ground_trajectory[-1])
+            if obstacle.label in VEHICLE_LABELS:
                 vehicle_msd += l2_distance
                 vehicle_ade += l1_distance
                 vehicle_fde += fde
@@ -172,37 +183,25 @@ class PredictionEvalOperator(erdos.Operator):
             person_msd /= person_cnt
             person_ade /= person_cnt
             person_fde /= person_cnt
-            self._logger.info('Person MSD is: {}'.format(person_msd))
-            self._logger.info('Person ADE is: {}'.format(person_ade))
-            self._logger.info('Person FDE is: {}'.format(person_fde))
-            self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
-                                                       self.config.name,
-                                                       'person-MSD',
-                                                       person_msd))
-            self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
-                                                       self.config.name,
-                                                       'person-ADE',
-                                                       person_ade))
-            self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
-                                                       self.config.name,
-                                                       'person-FDE',
-                                                       person_fde))
+            self._logger.info('Person MSD is: {:.2f}'.format(person_msd))
+            self._logger.info('Person ADE is: {:.2f}'.format(person_ade))
+            self._logger.info('Person FDE is: {:.2f}'.format(person_fde))
+            self._csv_logger.info('{},{},{},{:.2f}'.format(
+                time_epoch_ms(), self.config.name, 'person-MSD', person_msd))
+            self._csv_logger.info('{},{},{},{:.2f}'.format(
+                time_epoch_ms(), self.config.name, 'person-ADE', person_ade))
+            self._csv_logger.info('{},{},{},{:.2f}'.format(
+                time_epoch_ms(), self.config.name, 'person-FDE', person_fde))
         if vehicle_cnt > 0:
             vehicle_msd /= vehicle_cnt
             vehicle_ade /= vehicle_cnt
             vehicle_fde /= vehicle_cnt
-            self._logger.info('Vehicle MSD is: {}'.format(vehicle_msd))
-            self._logger.info('Vehicle ADE is: {}'.format(vehicle_ade))
-            self._logger.info('Vehicle FDE is: {}'.format(vehicle_fde))
-            self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
-                                                       self.config.name,
-                                                       'vehicle-MSD',
-                                                       vehicle_msd))
-            self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
-                                                       self.config.name,
-                                                       'vehicle-ADE',
-                                                       vehicle_ade))
-            self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
-                                                       self.config.name,
-                                                       'vehicle-FDE',
-                                                       vehicle_fde))
+            self._logger.info('Vehicle MSD is: {:.2f}'.format(vehicle_msd))
+            self._logger.info('Vehicle ADE is: {:.2f}'.format(vehicle_ade))
+            self._logger.info('Vehicle FDE is: {:.2f}'.format(vehicle_fde))
+            self._csv_logger.info('{},{},{},{:.2f}'.format(
+                time_epoch_ms(), self.config.name, 'vehicle-MSD', vehicle_msd))
+            self._csv_logger.info('{},{},{},{:.2f}'.format(
+                time_epoch_ms(), self.config.name, 'vehicle-ADE', vehicle_ade))
+            self._csv_logger.info('{},{},{},{:.2f}'.format(
+                time_epoch_ms(), self.config.name, 'vehicle-FDE', vehicle_fde))

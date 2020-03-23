@@ -183,6 +183,23 @@ class Vector2D(object):
             vec = vec / magnitude
         return Vector2D(vec[0], vec[1]), magnitude
 
+    def l1_distance(self, other):
+        """Calculates the L1 distance between the given point and the other
+        point.
+
+        Args:
+            other (:py:class:`~.Vector2D`): The other vector used to
+                calculate the L1 distance to.
+
+        Returns:
+            :obj:`float`: The L1 distance between the two points.
+        """
+        return abs(self.x - other.x) + abs(self.y - other.y)
+
+    def l2_distance(self, other):
+        vec = np.array([self.x - other.x, self.y - other.y])
+        return np.linalg.norm(vec)
+
     def __add__(self, other):
         """Adds the two vectors together and returns the result. """
         return type(self)(x=self.x + other.x, y=self.y + other.y)

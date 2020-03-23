@@ -691,14 +691,15 @@ def add_perfect_lane_detector(can_bus_stream):
     return detected_lanes_stream
 
 
-def add_perfect_tracking(ground_obstacles_stream, can_bus_stream):
+def add_perfect_tracking(vehicle_id_stream, ground_obstacles_stream,
+                         can_bus_stream):
     from pylot.simulation.perfect_tracker_operator import \
         PerfectTrackerOperator
     op_config = erdos.OperatorConfig(name='perfect_tracking_operator',
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [ground_tracking_stream
-     ] = erdos.connect(PerfectTrackerOperator, op_config,
-                       [ground_obstacles_stream, can_bus_stream], FLAGS)
+    [ground_tracking_stream] = erdos.connect(
+        PerfectTrackerOperator, op_config,
+        [vehicle_id_stream, ground_obstacles_stream, can_bus_stream], FLAGS)
     return ground_tracking_stream

@@ -10,9 +10,10 @@ class PerfectTrackerOperator(erdos.Operator):
     """Operator that gives past trajectories of other agents in the environment,
        i.e. their past (x,y,z) locations from an ego-vehicle perspective.
     """
-    def __init__(self, ground_obstacles_stream, can_bus_stream,
-                 ground_tracking_stream, flags):
+    def __init__(self, vehicle_id_stream, ground_obstacles_stream,
+                 can_bus_stream, ground_tracking_stream, flags):
         """Initializes the PerfectTracker Operator. """
+        self._vehicle_id_stream = vehicle_id_stream
         ground_obstacles_stream.add_callback(self.on_obstacles_update)
         can_bus_stream.add_callback(self.on_can_bus_update)
         erdos.add_watermark_callback([ground_obstacles_stream, can_bus_stream],
@@ -33,7 +34,7 @@ class PerfectTrackerOperator(erdos.Operator):
         self._obstacles = defaultdict(trajectory)
 
     @staticmethod
-    def connect(ground_obstacles_stream, can_bus_stream):
+    def connect(vehicle_id_stream, ground_obstacles_stream, can_bus_stream):
         ground_tracking_stream = erdos.WriteStream()
         return [ground_tracking_stream]
 
@@ -51,6 +52,9 @@ class PerfectTrackerOperator(erdos.Operator):
         # Only consider obstacles which still exist at the most recent
         # timestamp.
         for obstacle in obstacles_msg.obstacles:
+            if obstacle.id == self._vehicle_id:
+                # Do no track the ego-vehicle.
+                continue
             self._obstacles[obstacle.id].append(obstacle)
             cur_obstacle_trajectory = []
             # Iterate through past frames of this obstacle.
@@ -82,3 +86,8 @@ class PerfectTrackerOperator(erdos.Operator):
         self._logger.debug('@{}: received can bus message'.format(
             msg.timestamp))
         self._can_bus_msgs.append(msg)
+
+    def run(self):
+        # Read the vehicle id from the vehicle id stream
+        vehicle_id_msg = self._vehicle_id_stream.read()
+        self._vehicle_id = vehicle_id_msg.data

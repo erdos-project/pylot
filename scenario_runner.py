@@ -86,8 +86,8 @@ def driver():
             ground_traffic_lights_stream)
 
     obstacles_tracking_stream = pylot.component_creator.add_obstacle_tracking(
-        center_camera_stream, obstacles_stream, can_bus_stream,
-        ground_obstacles_stream)
+        center_camera_stream, obstacles_stream, vehicle_id_stream,
+        can_bus_stream, ground_obstacles_stream)
 
     prediction_stream = pylot.component_creator.add_prediction(
         obstacles_tracking_stream, vehicle_id_stream, transform,

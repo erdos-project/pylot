@@ -229,6 +229,7 @@ def add_lane_detection(center_camera_stream, can_bus_stream=None):
 
 def add_obstacle_tracking(center_camera_stream,
                           obstacles_stream,
+                          vehicle_id_stream=None,
                           can_bus_stream=None,
                           ground_obstacles_stream=None):
     """Adds operators for obstacle tracking.
@@ -243,6 +244,8 @@ def add_obstacle_tracking(center_camera_stream,
             camera frames are received.
         obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
             detected obstacles are received.
+        vehicle_id_stream (:py:class:`erdos.ReadStream`, optional): A stream on
+             which the simulator publishes Carla ego-vehicle id.
         can_bus_stream (:py:class:`erdos.ReadStream`, optional): A stream on
             which can bus info is received.
         ground_obstacles_stream (:py:class:`erdos.ReadStream`, optional):
@@ -268,7 +271,7 @@ def add_obstacle_tracking(center_camera_stream,
         # while our existing trackers use camera coordinates. Fix!
         obstacles_tracking_stream = \
             pylot.operator_creator.add_perfect_tracking(
-                ground_obstacles_stream, can_bus_stream)
+                vehicle_id_stream, ground_obstacles_stream, can_bus_stream)
 
     if FLAGS.evaluate_obstacle_tracking:
         pylot.operator_creator.add_tracking_evaluation(

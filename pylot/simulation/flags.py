@@ -23,7 +23,11 @@ flags.DEFINE_float(
     'commands should be applied as fast as possible.')
 flags.DEFINE_integer('carla_num_vehicles', 20, 'Carla num vehicles.')
 flags.DEFINE_integer('carla_num_people', 40, 'Carla num people.')
-flags.DEFINE_string('carla_weather', 'ClearNoon', 'Carla Weather Presets')
+flags.DEFINE_string(
+    'carla_weather', 'ClearNoon',
+    'Carla Weather Presets: ClearNoon, ClearSunset, CloudyNoon, CloudySunset, '
+    'HardRainNoon, HardRainSunset, MidRainSunset, MidRainyNoon, SoftRainNoon, '
+    'SoftRainSunset, WetCloudyNoon, WetCloudySunset, WetNoon, WetSunset')
 flags.DEFINE_integer(
     'carla_spawn_point_index', -1,
     'Index of spawn point where to place ego vehicle. -1 to randomly assign.')
@@ -33,8 +37,8 @@ flags.DEFINE_integer('carla_camera_image_height', 1080,
                      'Carla camera image height')
 flags.DEFINE_integer('carla_vehicle_mass', None,
                      'Modifies the mass of the ego-vehicle')
-flags.DEFINE_integer('carla_vehicle_moi', None,
-                     'Modifies the moment of inertia of the ego-vehicle')
+flags.DEFINE_float('carla_vehicle_moi', None,
+                   'Modifies the moment of inertia of the ego-vehicle')
 flags.DEFINE_integer(
     'perfect_tracking_num_steps', None,
     'Limit on number of past steps returned by the perfect object tracker.')
