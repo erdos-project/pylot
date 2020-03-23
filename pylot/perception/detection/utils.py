@@ -276,16 +276,18 @@ class DetectedObstacle(object):
         transform (:py:class:`~pylot.utils.Transform`): Transform of the
             obstacle in the world.
     """
-    def __init__(self, bounding_box, confidence, label, id=-1, transform=None):
+    def __init__(self, bounding_box, confidence, label, id=-1, transform=None, detailed_label=None):
         self.bounding_box = bounding_box
         self.confidence = confidence
         self.label = label
         self.id = id
         self.transform = transform
+        self.detailed_label = detailed_label
 
     def get_bbox_label(self):
-        return (self.label, (self.bounding_box.get_min_point(),
-                             self.bounding_box.get_max_point()))
+        return (self.label, self.detailed_label, self.id,
+                (self.bounding_box.get_min_point(),
+                 self.bounding_box.get_max_point()))
 
     def visualize_on_img(self,
                          image_np,
