@@ -1,8 +1,11 @@
 """Implements an operator that eveluates detection output."""
 
-from absl import flags
-import erdos
 import heapq
+import time
+
+from absl import flags
+
+import erdos
 
 import pylot.perception.detection.utils
 from pylot.utils import time_epoch_ms
@@ -46,8 +49,8 @@ class DetectionEvalOperator(erdos.Operator):
         """Connects the operator to other streams.
 
         Args:
-            obstacles_stream (:py:class:`erdos.ReadStream`): The stream on 
-                which detected obstacles are received.
+            obstacles_stream (:py:class:`erdos.ReadStream`): The stream
+                on which detected obstacles are received.
             ground_obstacles_stream: The stream on which
                 :py:class:`~pylot.perception.messages.ObstaclesMessage` are
                 received from the simulator.
@@ -141,6 +144,8 @@ class DetectionEvalOperator(erdos.Operator):
             self._ground_obstacles = self._ground_obstacles[index:]
 
     def on_obstacles(self, msg):
+        self._logger.debug('@{}: {} received obstacles'.format(
+            msg.timestamp, self.config.name))
         game_time = msg.timestamp.coordinates[0]
         vehicles, people, _ = self.__get_obstacles_by_category(msg.obstacles)
         self._detected_obstacles.append((game_time, vehicles + people))
@@ -163,6 +168,8 @@ class DetectionEvalOperator(erdos.Operator):
                 self._flags.detection_metric))
 
     def on_ground_obstacles(self, msg):
+        self._logger.debug('@{}: {} received ground obstacles'.format(
+            msg.timestamp, self.config.name))
         game_time = msg.timestamp.coordinates[0]
         vehicles, people, _ = self.__get_obstacles_by_category(msg.obstacles)
         self._ground_obstacles.append((game_time, people + vehicles))

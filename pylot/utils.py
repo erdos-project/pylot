@@ -326,8 +326,8 @@ class Transform(object):
                                            self.matrix[1, 0], self.matrix[2,
                                                                           0])
             pitch_r = math.asin(self.forward_vector.z)
-            yaw_r = math.acos(np.clip(
-                self.forward_vector.x / math.cos(pitch_r), -1, 1))
+            yaw_r = math.acos(
+                np.clip(self.forward_vector.x / math.cos(pitch_r), -1, 1))
             roll_r = math.asin(matrix[2, 1] / (-1 * math.cos(pitch_r)))
             self.rotation = Rotation(math.degrees(pitch_r),
                                      math.degrees(yaw_r), math.degrees(roll_r))
@@ -497,9 +497,9 @@ class Transform(object):
         """
 
         points = np.array([loc.as_numpy_array() for loc in locations])
-        transformed_points = self.__transform(points, np.linalg.inv(self.matrix))
+        transformed_points = self.__transform(points,
+                                              np.linalg.inv(self.matrix))
         return [Location(x, y, z) for x, y, z in transformed_points]
-
 
     def as_carla_transform(self):
         """Converts the transform to a carla transform.
@@ -557,6 +557,9 @@ class Transform(object):
     def __mul__(self, other):
         new_matrix = np.dot(self.matrix, other.matrix)
         return Transform(matrix=new_matrix)
+
+    def __repr__(self):
+        return self.__str__()
 
     def __str__(self):
         if self.location:

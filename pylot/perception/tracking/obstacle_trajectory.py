@@ -20,6 +20,9 @@ class ObstacleTrajectory(object):
         self.bounding_box = bounding_box
         self.trajectory = trajectory
 
+    def __repr__(self):
+        return self.__str__()
+
     def __str__(self):
         return 'Obstacle {}, label: {}, bbox: {}, trajectory {}'.format(
             self.id, self.label, self.bounding_box, self.trajectory)

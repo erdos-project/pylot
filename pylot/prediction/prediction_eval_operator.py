@@ -167,35 +167,42 @@ class PredictionEvalOperator(erdos.Operator):
                 raise ValueError('Unexpected obstacle label {}'.format(
                     obstacle.label))
 
-        vehicle_msd /= vehicle_cnt
-        vehicle_ade /= vehicle_cnt
-        vehicle_fde /= vehicle_cnt
-        person_msd /= person_cnt
-        person_ade /= person_cnt
-        person_fde /= person_cnt
         # Log metrics.
-        self._logger.info('Vehicle MSD is: {}'.format(vehicle_msd))
-        self._logger.info('Vehicle ADE is: {}'.format(vehicle_ade))
-        self._logger.info('Vehicle FDE is: {}'.format(vehicle_fde))
-        self._logger.info('Person MSD is: {}'.format(person_msd))
-        self._logger.info('Person ADE is: {}'.format(person_ade))
-        self._logger.info('Person FDE is: {}'.format(person_fde))
-
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
-                                                   self.config.name,
-                                                   'vehicle-MSD', vehicle_msd))
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
-                                                   self.config.name,
-                                                   'vehicle-ADE', vehicle_ade))
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
-                                                   self.config.name,
-                                                   'vehicle-FDE', vehicle_fde))
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
-                                                   self.config.name,
-                                                   'person-MSD', person_msd))
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
-                                                   self.config.name,
-                                                   'person-ADE', person_ade))
-        self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
-                                                   self.config.name,
-                                                   'person-FDE', person_fde))
+        if person_cnt > 0:
+            person_msd /= person_cnt
+            person_ade /= person_cnt
+            person_fde /= person_cnt
+            self._logger.info('Person MSD is: {}'.format(person_msd))
+            self._logger.info('Person ADE is: {}'.format(person_ade))
+            self._logger.info('Person FDE is: {}'.format(person_fde))
+            self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                       self.config.name,
+                                                       'person-MSD',
+                                                       person_msd))
+            self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                       self.config.name,
+                                                       'person-ADE',
+                                                       person_ade))
+            self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                       self.config.name,
+                                                       'person-FDE',
+                                                       person_fde))
+        if vehicle_cnt > 0:
+            vehicle_msd /= vehicle_cnt
+            vehicle_ade /= vehicle_cnt
+            vehicle_fde /= vehicle_cnt
+            self._logger.info('Vehicle MSD is: {}'.format(vehicle_msd))
+            self._logger.info('Vehicle ADE is: {}'.format(vehicle_ade))
+            self._logger.info('Vehicle FDE is: {}'.format(vehicle_fde))
+            self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                       self.config.name,
+                                                       'vehicle-MSD',
+                                                       vehicle_msd))
+            self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                       self.config.name,
+                                                       'vehicle-ADE',
+                                                       vehicle_ade))
+            self._csv_logger.info('{},{},{},{}'.format(time_epoch_ms(),
+                                                       self.config.name,
+                                                       'vehicle-FDE',
+                                                       vehicle_fde))

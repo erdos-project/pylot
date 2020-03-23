@@ -28,6 +28,9 @@ class FrameMessage(erdos.Message):
                 'frame should be of type perception.camera_frame.CameraFrame')
         self.frame = frame
 
+    def __repr__(self):
+        return self.__str__()
+
     def __str__(self):
         return 'FrameMessage(timestamp: {}, frame: {})'.format(
             self.timestamp, self.frame)
@@ -52,6 +55,9 @@ class DepthFrameMessage(erdos.Message):
             raise ValueError(
                 'frame should be of type perception.depth_frame.DepthFrame')
         self.frame = frame
+
+    def __repr__(self):
+        return self.__str__()
 
     def __str__(self):
         return 'DepthMessage(timestamp: {}, depth_frame: {})'.format(
@@ -82,6 +88,9 @@ class SegmentedFrameMessage(erdos.Message):
         self.frame = frame
         self.runtime = runtime
 
+    def __repr__(self):
+        return self.__str__()
+
     def __str__(self):
         return 'SegmentedFrameMessage(timestamp {}, frame: {})'.format(
             self.timestamp, self.frame)
@@ -106,6 +115,9 @@ class PointCloudMessage(erdos.Message):
             raise ValueError(
                 'pc should be of type perception.point_cloud.PointCloud')
         self.point_cloud = pc
+
+    def __repr__(self):
+        return self.__str__()
 
     def __str__(self):
         return 'PointCloudMessage(timestamp: {}, point cloud: {})'.format(
@@ -142,6 +154,9 @@ class IMUMessage(erdos.Message):
         self.gyro = gyro
         self.compass = compass
 
+    def __repr__(self):
+        return self.__str__()
+
     def __str__(self):
         return 'IMUMessage(timestamp: {}, transform: {}, acceleration: {}, '\
             'gyro: {}, compass: {})'.format(
@@ -172,6 +187,9 @@ class ObstaclesMessage(erdos.Message):
         self.obstacles = obstacles
         self.runtime = runtime
 
+    def __repr__(self):
+        return self.__str__()
+
     def __str__(self):
         return 'ObstaclesMessage(timestamp: {}, runtime: {}, '\
             'obstacles: {})'.format(
@@ -192,6 +210,9 @@ class ObstaclePositionsSpeedsMessage(erdos.Message):
     def __init__(self, timestamp, obstacle_positions_speeds):
         super(ObstaclePositionsSpeedsMessage, self).__init__(timestamp, None)
         self.obstacle_positions_speeds = obstacle_positions_speeds
+
+    def __repr__(self):
+        return self.__str__()
 
     def __str__(self):
         return ('ObstaclePositionsSpeedsMessage(timestamp {}, '
@@ -215,6 +236,9 @@ class ObstacleTrajectoriesMessage(erdos.Message):
     def __init__(self, timestamp, obstacle_trajectories):
         super(ObstacleTrajectoriesMessage, self).__init__(timestamp, None)
         self.obstacle_trajectories = obstacle_trajectories
+
+    def __repr__(self):
+        return self.__str__()
 
     def __str__(self):
         trajectories_str = '\n'.join(
@@ -240,6 +264,9 @@ class DetectedLaneMessage(erdos.Message):
         super(DetectedLaneMessage, self).__init__(timestamp, None)
         self.detected_lanes = detected_lanes
 
+    def __repr__(self):
+        return self.__str__()
+
     def __str__(self):
         return 'DetectedLaneMessage(timestamp: {}, '\
                 'detected_lanes: {})'.format(
@@ -262,6 +289,9 @@ class TrafficLightsMessage(erdos.Message):
     def __init__(self, timestamp, traffic_lights):
         super(TrafficLightsMessage, self).__init__(timestamp, None)
         self.obstacles = traffic_lights
+
+    def __repr__(self):
+        return self.__str__()
 
     def __str__(self):
         return 'TrafficLightsMessage(timestamp: {}, ' \
@@ -286,6 +316,9 @@ class StopSignsMessage(erdos.Message):
         super(StopSignsMessage, self).__init__(timestamp, None)
         self.stop_signs = stop_signs
 
+    def __repr__(self):
+        return self.__str__()
+
     def __str__(self):
         return 'StopSignsMessage(timestamp: {}, stop signs: {})'.format(
             self.timestamp, self.stop_signs)
@@ -307,6 +340,9 @@ class SpeedSignsMessage(erdos.Message):
     def __init__(self, timestamp, speed_signs):
         super(SpeedSignsMessage, self).__init__(timestamp, None)
         self.speed_signs = speed_signs
+
+    def __repr__(self):
+        return self.__str__()
 
     def __str__(self):
         return 'SpeedSignsMessage(timestamp: {}, speed signs: {})'.format(

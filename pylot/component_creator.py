@@ -62,11 +62,11 @@ def add_obstacle_detection(center_camera_stream,
         # TODO: Only returns the first obstacles stream.
         obstacles_streams = pylot.operator_creator.add_obstacle_detection(
             center_camera_stream)
-        obstacles_stream = obstacles_streams[0]
+        obstacles_stream_wo_depth = obstacles_streams[0]
 
         # Adds an operator that finds the world locations of the obstacles.
         obstacles_stream = pylot.operator_creator.add_obstacle_location_finder(
-            obstacles_stream, point_cloud_stream, can_bus_stream,
+            obstacles_stream_wo_depth, point_cloud_stream, can_bus_stream,
             center_camera_stream, center_camera_setup)
 
     if FLAGS.perfect_obstacle_detection or FLAGS.evaluate_obstacle_detection:
@@ -81,7 +81,7 @@ def add_obstacle_detection(center_camera_stream,
             ground_speed_limit_signs_stream, ground_stop_signs_stream)
         if FLAGS.evaluate_obstacle_detection:
             pylot.operator_creator.add_detection_evaluation(
-                obstacles_stream, perfect_obstacles_stream)
+                obstacles_stream_wo_depth, perfect_obstacles_stream)
         if FLAGS.perfect_obstacle_detection:
             obstacles_stream = perfect_obstacles_stream
 

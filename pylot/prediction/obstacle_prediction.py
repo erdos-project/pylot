@@ -37,6 +37,9 @@ class ObstaclePrediction(object):
         self.probability = probability
         self.trajectory = trajectory
 
+    def __repr__(self):
+        return self.__str__()
+
     def __str__(self):
         return ('Prediction for obstacle {}, label {}, probability {}, '
                 'trajectory {}'.format(self.id, self.label, self.probability,
