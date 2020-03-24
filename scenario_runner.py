@@ -2,12 +2,9 @@ from absl import app
 from absl import flags
 
 import erdos
-import carla
 import pylot.flags
 import pylot.component_creator
 import pylot.operator_creator
-from pylot.simulation.carla_operator import CarlaOperator
-from pylot.simulation.perfect_detector_operator import PerfectDetectorOperator
 from pylot.simulation.scenario.person_avoidance_agent_operator \
     import PersonAvoidanceAgentOperator
 from pylot.simulation.utils import get_world, set_asynchronous_mode
@@ -16,7 +13,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_list('goal_location', '17.73, 327.07, 0.5',
                   'Ego-vehicle goal location')
 flags.DEFINE_bool(
-    'avoidance_agent', False,
+    'avoidance_agent', True,
     'True to enable scenario avoidance agent planner and controller')
 
 # The location of the center camera relative to the ego-vehicle.
@@ -118,10 +115,10 @@ def driver():
                                                   point_cloud_stream,
                                                   ground_segmented_stream,
                                                   imu_stream, can_bus_stream)
-    #erdos.run()
+    erdos.run()
 
 
-def main(argv):
+def main(args):
     # Connect an instance to the simulator to make sure that we can turn the
     # synchronous mode off after the script finishes running.
     client, world = get_world(FLAGS.carla_host, FLAGS.carla_port,
@@ -131,7 +128,6 @@ def main(argv):
 
     try:
         driver()
-        erdos.run()
     except KeyboardInterrupt:
         set_asynchronous_mode(world)
     except Exception:

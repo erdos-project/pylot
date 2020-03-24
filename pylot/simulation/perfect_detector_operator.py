@@ -6,9 +6,10 @@ import pylot.simulation.utils
 from pylot.perception.detection.utils import DetectedObstacle
 from pylot.perception.messages import ObstaclesMessage
 
-flags.DEFINE_integer('perfect_detection_max_distance', 125,
-                     'Limit perfect detection to a distance of'
-                     'this amount of meters')
+flags.DEFINE_integer(
+    'perfect_detection_max_distance', 125,
+    'Limit perfect detection to a distance of'
+    'this amount of meters')
 
 
 class PerfectDetectorOperator(erdos.Operator):
@@ -134,10 +135,10 @@ class PerfectDetectorOperator(erdos.Operator):
                                              vehicle_transform,
                                              depth_msg.frame,
                                              segmented_msg.frame)
-        #det_speed_limits = pylot.simulation.utils.get_detected_speed_limits(
-        #    speed_limit_signs_msg.speed_signs, depth_msg.frame,
-        #    segmented_msg.frame)
-        det_speed_limits = []
+        det_speed_limits = pylot.simulation.utils.get_detected_speed_limits(
+            speed_limit_signs_msg.speed_signs, depth_msg.frame,
+            segmented_msg.frame)
+
         det_stop_signs = pylot.simulation.utils.get_detected_traffic_stops(
             stop_signs_msg.stop_signs, depth_msg.frame)
         det_obstacles = det_obstacles + det_speed_limits + det_stop_signs
@@ -210,9 +211,11 @@ class PerfectDetectorOperator(erdos.Operator):
         det_obstacles = []
         for obstacle in obstacles:
             # Calculate the distance of the obstacle from the vehicle, and
-            # convert to camera view if it is less than perfect_detection_max_distance
-            # metres away.
-            if obstacle.distance(vehicle_transform) > self._flags.perfect_detection_max_distance:
+            # convert to camera view if it is less than
+            # perfect_detection_max_distance metres away.
+            if obstacle.distance(
+                    vehicle_transform
+            ) > self._flags.perfect_detection_max_distance:
                 bbox = None
             else:
                 bbox = obstacle.to_camera_view(depth_frame, segmented_frame)

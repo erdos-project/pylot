@@ -29,7 +29,13 @@ class Obstacle(object):
             the obstacle.
         forward_speed (:obj:`float`): Forward speed of the obstacle (in m/s).
     """
-    def __init__(self, id, label, transform, bounding_box, forward_speed, detailed_label=None):
+    def __init__(self,
+                 id,
+                 label,
+                 transform,
+                 bounding_box,
+                 forward_speed,
+                 detailed_label=''):
         self.id = id
         self.transform = transform
         self.bounding_box = bounding_box
@@ -80,7 +86,8 @@ class Obstacle(object):
         detailed_label = actor.type_id
         # TODO (Sukrit): Move from vehicles and people to separate classes
         # for bicycles, motorcycles, cars and persons.
-        return cls(actor.id, label, transform, bounding_box, forward_speed, detailed_label)
+        return cls(actor.id, label, transform, bounding_box, forward_speed,
+                   detailed_label)
 
     def distance(self, other_transform):
         """Computes the distance from the obstacle to the other transform.

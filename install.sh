@@ -56,9 +56,14 @@ gdown https://drive.google.com/uc?id=18Vi68rQO-vcBn3882vkumIWtGggZQDoU
 unzip checkpoint.zip
 cd ../../
 
-###### Download DeepSort pedestrian model ######
+###### Download DeepSort models ######
+# Download the real-world model.
 mkdir -p tracking/deep-sort ; cd tracking/deep-sort
 gdown https://drive.google.com/uc?id=1bB66hP9voDXuoBoaCcKYY7a8IYzMMs4P
+cd ../
+# Download the CARLA model.
+mkdir deep-sort-carla ; cd deep-sort-carla
+wget https://www.dropbox.com/s/svdjcqoqxrxpg3k/ped_feature_extractor
 cd ../../../
 
 ###### Get DeepSORT and SORT tracker code bases

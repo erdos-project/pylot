@@ -20,8 +20,6 @@ class ObjectTrackerOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
-        self._csv_logger = erdos.utils.setup_csv_logging(
-            self.config.name + '-csv', self.config.csv_log_file_name)
         self._tracker_type = tracker_type
         try:
             if tracker_type == 'cv2':
@@ -67,7 +65,6 @@ class ObjectTrackerOperator(erdos.Operator):
         self._logger.debug('@{}: {} received frame'.format(
             msg.timestamp, self.config.name))
         assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
-        start_time = time.time()
         camera_frame = msg.frame
         # Store frames so that they can be re-processed once we receive the
         # next update from the detector.
@@ -76,10 +73,6 @@ class ObjectTrackerOperator(erdos.Operator):
         if self._ready_to_update:
             self.__track_bboxes_on_frame(camera_frame, msg.timestamp, False,
                                          obstacle_tracking_stream)
-            runtime = (time.time() - start_time) * 1000
-            self._csv_logger.debug('{},{},{},{}'.format(
-                time_epoch_ms(), 'tracker_' + self._tracker_type + '_on_frame',
-                'runtime', runtime))
 
     @erdos.profile_method()
     def on_obstacles_msg(self, msg, obstacle_tracking_stream):
@@ -123,7 +116,8 @@ class ObjectTrackerOperator(erdos.Operator):
                                                      obstacle_tracking_stream)
                 runtime = (time.time() - start_time) * 1000
                 self._csv_logger.debug('{},{},{},{}'.format(
-                    time_epoch_ms(), 'tracker_' + self._tracker_type + '_on_obstacles',
+                    time_epoch_ms(),
+                    'tracker_' + self._tracker_type + '_on_obstacles',
                     'runtime', runtime))
             else:
                 self._logger.debug(
@@ -147,8 +141,6 @@ class ObjectTrackerOperator(erdos.Operator):
             runtime = (time.time() - start_time) * 1000
             obstacle_tracking_stream.send(
                 ObstaclesMessage(timestamp, tracked_obstacles, runtime))
-            self._csv_logger.info('{},{},{},{}'.format(
-                time_epoch_ms(), 'tracker_' + self._tracker_type, 'runtime', runtime))
             if self._flags.visualize_tracker_output and not catch_up:
                 # tracked obstacles have no label, draw white bbox.
                 camera_frame.annotate_with_bounding_boxes(

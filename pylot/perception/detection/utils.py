@@ -276,7 +276,13 @@ class DetectedObstacle(object):
         transform (:py:class:`~pylot.utils.Transform`): Transform of the
             obstacle in the world.
     """
-    def __init__(self, bounding_box, confidence, label, id=-1, transform=None, detailed_label=None):
+    def __init__(self,
+                 bounding_box,
+                 confidence,
+                 label,
+                 id=-1,
+                 transform=None,
+                 detailed_label=''):
         self.bounding_box = bounding_box
         self.confidence = confidence
         self.label = label
