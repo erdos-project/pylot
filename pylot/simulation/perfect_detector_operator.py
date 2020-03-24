@@ -1,9 +1,15 @@
+from absl import flags
 from collections import deque
 import erdos
 
 import pylot.simulation.utils
 from pylot.perception.detection.utils import DetectedObstacle
 from pylot.perception.messages import ObstaclesMessage
+
+flags.DEFINE_integer(
+    'perfect_detection_max_distance', 125,
+    'Limit perfect detection to a distance of'
+    'this amount of meters')
 
 
 class PerfectDetectorOperator(erdos.Operator):
@@ -208,13 +214,17 @@ class PerfectDetectorOperator(erdos.Operator):
         det_obstacles = []
         for obstacle in obstacles:
             # Calculate the distance of the obstacle from the vehicle, and
-            # convert to camera view if it is less than 125 metres away.
-            if obstacle.distance(vehicle_transform) > 125:
+            # convert to camera view if it is less than
+            # perfect_detection_max_distance metres away.
+            if obstacle.distance(
+                    vehicle_transform
+            ) > self._flags.perfect_detection_max_distance:
                 bbox = None
             else:
                 bbox = obstacle.to_camera_view(depth_frame, segmented_frame)
                 if bbox:
                     det_obstacles.append(
                         DetectedObstacle(bbox, 1.0, obstacle.label,
-                                         obstacle.id, obstacle.transform))
+                                         obstacle.id, obstacle.transform,
+                                         obstacle.detailed_label))
         return det_obstacles

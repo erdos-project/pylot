@@ -16,7 +16,7 @@ flags.DEFINE_string('da_siam_rpn_model_path',
                     'Path to the model')
 
 ASSOCIATION_THRESHOLD = 0.1
-MAX_TRACKER_AGE = 3
+MAX_MISSED_DETECTIONS = 2
 
 
 class SingleObjectDaSiamRPNTracker(object):
@@ -109,7 +109,7 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
         # Add 1 to age of any unmatched trackers, filter old ones
         for tracker in unmatched_trackers:
             tracker.missed_det_updates += 1
-            if tracker.missed_det_updates < MAX_TRACKER_AGE:
+            if tracker.missed_det_updates < MAX_MISSED_DETECTIONS:
                 updated_trackers.append(tracker)
             else:
                 self._logger.debug(
@@ -130,10 +130,9 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
                 obstacle_bbox = obstacle.bounding_box
                 tracker_bbox = tracker.obstacle.bounding_box
                 iou = obstacle_bbox.calculate_iou(tracker_bbox)
-                # If track is too far from detection, mark pairing impossible
+                # If track too far from det, mark pair impossible with np.nan
                 if iou > ASSOCIATION_THRESHOLD:
                     cost_matrix[i][j] = iou
                 else:
                     cost_matrix[i][j] = np.nan
-                cost_matrix[i][j] = obstacle_bbox.calculate_iou(tracker_bbox)
         return np.array(cost_matrix)

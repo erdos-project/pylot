@@ -1,12 +1,13 @@
 from absl import flags
 
 from nanonets_object_tracking.deepsort import deepsort_rbc
+
 from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 flags.DEFINE_string(
     'deep_sort_tracker_person_weights_path',
-    'dependencies/nanonets_object_tracking/ped_feature_extractor',
+    'dependencies/models/tracking/deep-sort-carla/ped_feature_extractor',
     'Path to weights for person feature extractor model')
 
 
