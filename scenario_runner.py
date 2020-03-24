@@ -62,10 +62,22 @@ def driver():
              transform, vehicle_id_stream)
     else:
         ground_segmented_stream = None
-    # Place Lidar sensor in the same location as the center camera.
-    (point_cloud_stream,
-     lidar_setup) = pylot.operator_creator.add_lidar(transform,
-                                                     vehicle_id_stream)
+    if pylot.flags.must_add_lidar_sensor():
+        # Place Lidar sensor in the same location as the center camera.
+        (point_cloud_stream, lidar_setup) = pylot.operator_creator.add_lidar(
+            transform, vehicle_id_stream)
+    else:
+        point_cloud_stream = None
+
+    if FLAGS.obstacle_location_finder_sensor == 'lidar':
+        depth_stream = point_cloud_stream
+    elif FLAGS.obstacle_location_finder_sensor == 'depth_camera':
+        depth_stream = depth_camera_stream
+    else:
+        raise ValueError(
+            'Unknown --obstacle_location_finder_sensor value {}'.format(
+                FLAGS.obstacle_location_finder_sensor))
+
     imu_stream = None
     if FLAGS.imu:
         (imu_stream,
@@ -76,13 +88,13 @@ def driver():
 
     obstacles_stream = pylot.component_creator.add_obstacle_detection(
         center_camera_stream, center_camera_setup, can_bus_stream,
-        point_cloud_stream, depth_camera_stream, ground_segmented_stream,
+        depth_stream, depth_camera_stream, ground_segmented_stream,
         ground_obstacles_stream, ground_speed_limit_signs_stream,
         ground_stop_signs_stream)
 
     traffic_lights_stream = \
         pylot.component_creator.add_traffic_light_detection(
-            transform, vehicle_id_stream, can_bus_stream, point_cloud_stream,
+            transform, vehicle_id_stream, can_bus_stream, depth_stream,
             ground_traffic_lights_stream)
 
     obstacles_tracking_stream = pylot.component_creator.add_obstacle_tracking(

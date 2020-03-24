@@ -52,6 +52,9 @@ flags.DEFINE_bool('segmentation', False,
                   'True to enable segmentation operator')
 flags.DEFINE_bool('perfect_segmentation', False,
                   'True to enable perfect segmentation')
+flags.DEFINE_enum('obstacle_location_finder_sensor', 'lidar',
+                  ['lidar', 'depth_camera'],
+                  'Sets which sensor to use to compute obstacle locations')
 flags.DEFINE_bool('depth_estimation', False,
                   'True to estimate depth using cameras')
 flags.DEFINE_bool('perfect_depth_estimation', False,
@@ -140,7 +143,8 @@ def must_add_depth_camera_sensor():
     """
     return (FLAGS.perfect_obstacle_detection
             or FLAGS.evaluate_obstacle_detection
-            or FLAGS.perfect_depth_estimation or FLAGS.visualize_depth_camera)
+            or FLAGS.perfect_depth_estimation or FLAGS.visualize_depth_camera
+            or FLAGS.obstacle_location_finder_sensor == 'depth_camera')
 
 
 def must_add_segmented_camera_sensor():
@@ -151,6 +155,15 @@ def must_add_segmented_camera_sensor():
     return (FLAGS.visualize_segmentation or FLAGS.evaluate_segmentation
             or FLAGS.perfect_segmentation or FLAGS.perfect_obstacle_detection
             or FLAGS.evaluate_obstacle_detection)
+
+
+def must_add_lidar_sensor():
+    """Returns true if the lidar sensor must be added.
+
+    We don't add all sensors by default because they slow donwn the simulation
+    """
+    return (FLAGS.visualize_lidar
+            or FLAGS.obstacle_location_finder_sensor == 'lidar')
 
 
 # Flag validators.

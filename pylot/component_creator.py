@@ -8,7 +8,7 @@ FLAGS = flags.FLAGS
 def add_obstacle_detection(center_camera_stream,
                            center_camera_setup=None,
                            can_bus_stream=None,
-                           point_cloud_stream=None,
+                           depth_stream=None,
                            depth_camera_stream=None,
                            segmented_camera_stream=None,
                            ground_obstacles_stream=None,
@@ -30,8 +30,8 @@ def add_obstacle_detection(center_camera_stream,
             real-world location of the obstacles.
         can_bus_stream (:py:class:`erdos.ReadStream`, optional): Stream on
             which can bus info is received.
-        point_cloud_stream (:py:class:`erdos.ReadStream`, optional): Stream on
-            which point cloud messages are received.
+        depth_stream (:py:class:`erdos.ReadStream`, optional): Stream on
+            which point cloud or depth frame messages are received.
         depth_camera_stream (:py:class:`erdos.ReadStream`, optional): Stream
             on which depth frames are received.
         segmented_camera__stream (:py:class:`erdos.ReadStream`, optional):
@@ -66,7 +66,7 @@ def add_obstacle_detection(center_camera_stream,
 
         # Adds an operator that finds the world locations of the obstacles.
         obstacles_stream = pylot.operator_creator.add_obstacle_location_finder(
-            obstacles_stream_wo_depth, point_cloud_stream, can_bus_stream,
+            obstacles_stream_wo_depth, depth_stream, can_bus_stream,
             center_camera_stream, center_camera_setup)
 
     if FLAGS.perfect_obstacle_detection or FLAGS.evaluate_obstacle_detection:
@@ -94,7 +94,7 @@ def add_obstacle_detection(center_camera_stream,
 def add_traffic_light_detection(tl_transform,
                                 vehicle_id_stream,
                                 can_bus_stream=None,
-                                point_cloud_stream=None,
+                                depth_stream=None,
                                 ground_traffic_lights_stream=None):
     """Adds traffic light detection operators.
 
@@ -112,8 +112,8 @@ def add_traffic_light_detection(tl_transform,
             the simulator publishes Carla ego-vehicle id.
         can_bus_stream (:py:class:`erdos.ReadStream`, optional): A stream
             on which can bus info is received.
-        point_cloud_stream (:py:class:`erdos.ReadStream`, optional): Stream on
-            which point cloud messages are received.
+        depth_stream (:py:class:`erdos.ReadStream`, optional): Stream on
+            which point cloud messages or depth frames are received.
 
     Returns:
         :py:class:`erdos.ReadStream`: Stream on which
@@ -134,7 +134,7 @@ def add_traffic_light_detection(tl_transform,
         # Adds operator that finds the world locations of the traffic lights.
         traffic_lights_stream = \
             pylot.operator_creator.add_obstacle_location_finder(
-                traffic_lights_stream, point_cloud_stream, can_bus_stream,
+                traffic_lights_stream, depth_stream, can_bus_stream,
                 tl_camera_stream, tl_camera_setup)
 
     if FLAGS.perfect_traffic_light_detection:

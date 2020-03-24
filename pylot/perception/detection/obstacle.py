@@ -160,3 +160,11 @@ class Obstacle(object):
                 if abs(depth - mean_depth) <= self.__depth_threshold:
                     return bbox_2d
         return None
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return 'Obstacle(id: {}, label: {}, transform: {}, ' \
+            'bounding_box: {})'.format(
+                self.id, self.label, self.transform, self.bounding_box)
