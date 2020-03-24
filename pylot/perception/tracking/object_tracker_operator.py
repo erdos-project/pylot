@@ -79,7 +79,6 @@ class ObjectTrackerOperator(erdos.Operator):
         """ Invoked when obstacles are received on the stream."""
         self._logger.debug('@{}: {} received obstacles'.format(
             msg.timestamp, self.config.name))
-        start_time = time.time()
         self._ready_to_update = False
         self._logger.debug("@{}: received {} bounding boxes".format(
             msg.timestamp, len(msg.obstacles)))
@@ -114,11 +113,6 @@ class ObjectTrackerOperator(erdos.Operator):
                         self.__track_bboxes_on_frame(camera_frame,
                                                      msg.timestamp, True,
                                                      obstacle_tracking_stream)
-                runtime = (time.time() - start_time) * 1000
-                self._csv_logger.debug('{},{},{},{}'.format(
-                    time_epoch_ms(),
-                    'tracker_' + self._tracker_type + '_on_obstacles',
-                    'runtime', runtime))
             else:
                 self._logger.debug(
                     '@{}: received bboxes update, but no frame to process'.
