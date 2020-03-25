@@ -1,36 +1,27 @@
 """
 Author: Edward Fang
 Email: edward.fang@berkeley.edu
-
-An RRT* planning operator that runs the RRT* algorithm defined under
-pylot/planning/rrt_star/rrt_star.py.
-
-Planner steps:
-1. Get ego vehicle information from can_bus stream
-2. Compute the potential obstacles using the predictions from prediction stream
-3. Compute the target waypoint to reach
-4. Construct state_space, target_space, start_state and run RRT*
-5. Construct waypoints message and output on waypoints stream
 """
-import collections
 from collections import deque
-import erdos
+
 import itertools
+import numpy as np
+
+import erdos
 
 from pylot.map.hd_map import HDMap
+from pylot.perception.detection.obstacle import BoundingBox3D
 from pylot.planning.messages import WaypointsMessage
-from pylot.planning.rrt_star.rrt_star import apply_rrt_star
-from pylot.planning.rrt_star.utils import start_target_to_space
+from pylot.planning.rrt_star.rrt_star_planning.RRTStar.rrt_star_wrapper import apply_rrt_star
 from pylot.simulation.utils import get_map
 from pylot.utils import Location, Rotation, Transform
 
-DEFAULT_OBSTACLE_LENGTH = 3  # 3 meters from front to back
-DEFAULT_OBSTACLE_WIDTH = 2  # 2 meters from side to side
-DEFAULT_TARGET_LENGTH = 1  # 1.5 meters from front to back
-DEFAULT_TARGET_WIDTH = 1  # 1 meters from side to side
-DEFAULT_DISTANCE_THRESHOLD = 20  # 20 meters ahead of ego
-DEFAULT_NUM_WAYPOINTS = 50  # 50 waypoints to plan for
-DEFAULT_TARGET_WAYPOINT = 9  # Use the 10th waypoint for computing speed
+STEP_SIZE = 0.5
+MAX_ITERATIONS = 2000
+DEFAULT_DISTANCE_THRESHOLD = 30  # 30 meters radius around of ego
+DEFAULT_NUM_WAYPOINTS = 100  # 100 waypoints to plan for
+DEFAULT_OBSTACLE_SIZE = 2  # 2 x 2 meter square
+DEFAULT_TARGET_WAYPOINT = 20  # use the 20th waypoint as a target
 
 
 class RRTStarPlanningOperator(erdos.Operator):
@@ -40,25 +31,37 @@ class RRTStarPlanningOperator(erdos.Operator):
         flags: Config flags.
         goal_location: Goal pylot.utils.Location for planner to route to.
     """
-    def __init__(self, can_bus_stream, prediction_stream, waypoints_stream,
-                 flags, goal_location):
+    def __init__(self,
+                 can_bus_stream,
+                 prediction_stream,
+                 global_trajectory_stream,
+                 open_drive_stream,
+                 waypoints_stream,
+                 flags,
+                 goal_location=None,
+                 log_file_name=None,
+                 csv_file_name=None):
         can_bus_stream.add_callback(self.on_can_bus_update)
         prediction_stream.add_callback(self.on_prediction_update)
+        global_trajectory_stream.add_callback(self.on_global_trajectory)
+        open_drive_stream.add_callback(self.on_opendrive_map)
         erdos.add_watermark_callback([can_bus_stream, prediction_stream],
                                      [waypoints_stream], self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
 
-        self._wp_index = DEFAULT_TARGET_WAYPOINT
+        self._vehicle_transform = None
+        self._map = None
         self._waypoints = None
+        self._prev_waypoints = None
         self._goal_location = goal_location
-
         self._can_bus_msgs = deque()
         self._prediction_msgs = deque()
 
     @staticmethod
-    def connect(can_bus_stream, prediction_stream):
+    def connect(can_bus_stream, prediction_stream, global_trajectory_stream,
+                open_drive_stream):
         waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
 
@@ -66,9 +69,13 @@ class RRTStarPlanningOperator(erdos.Operator):
         # Run method is invoked after all operators finished initializing,
         # including the CARLA operator, which reloads the world. Thus, if
         # we get the map here we're sure it is up-to-date.
-        self._hd_map = HDMap(
-            get_map(self._flags.carla_host, self._flags.carla_port,
-                    self._flags.carla_timeout))
+        if not hasattr(self._flags, 'track'):
+            from pylot.map.hd_map import HDMap
+            from pylot.simulation.utils import get_map
+            self._map = HDMap(
+                get_map(self._flags.carla_host, self._flags.carla_port,
+                        self._flags.carla_timeout))
+            self._logger.info('Planner running in stand-alone mode')
 
     def on_can_bus_update(self, msg):
         self._logger.debug('@{}: received can bus message'.format(
@@ -80,138 +87,237 @@ class RRTStarPlanningOperator(erdos.Operator):
             msg.timestamp))
         self._prediction_msgs.append(msg)
 
+    def on_global_trajectory(self, msg):
+        """Invoked whenever a message is received on the trajectory stream.
+        Args:
+            msg (:py:class:`~erdos.message.Message`): Message that contains
+                a list of waypoints to the goal location.
+        """
+        self._logger.debug('@{}: global trajectory has {} waypoints'.format(
+            msg.timestamp, len(msg.data)))
+        if len(msg.data) > 0:
+            # The last waypoint is the goal location.
+            self._goal_location = msg.data[-1][0].location
+        else:
+            # Trajectory does not contain any waypoints. We assume we have
+            # arrived at destionation.
+            self._goal_location = self._vehicle_transform.location
+        assert self._goal_location, 'Planner does not have a goal'
+        self._waypoints = deque()
+        for waypoint_option in msg.data:
+            self._waypoints.append(waypoint_option[0])
+
+    def on_opendrive_map(self, msg):
+        """Invoked whenever a message is received on the open drive stream.
+        Args:
+            msg (:py:class:`~erdos.message.Message`): Message that contains
+                the open drive string.
+        """
+        self._logger.debug('@{}: received open drive message'.format(
+            msg.timestamp))
+        try:
+            import carla
+        except ImportError:
+            raise Exception('Error importing carla.')
+        self._logger.info('Initializing HDMap from open drive stream')
+        from pylot.map.hd_map import HDMap
+        self._map = HDMap(carla.Map('map', msg.data))
+
     @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
+
         # get ego info
         can_bus_msg = self._can_bus_msgs.popleft()
         vehicle_transform = can_bus_msg.data.transform
+        self._vehicle_transform = vehicle_transform
 
         # get obstacles
         prediction_msg = self._prediction_msgs.popleft()
-        obstacle_map = self._build_obstacle_map(vehicle_transform,
-                                                prediction_msg)
+        obstacle_list = self._build_obstacle_list(vehicle_transform,
+                                                  prediction_msg)
 
-        # compute goals
-        target_location = self._compute_target_location(vehicle_transform)
+        # update waypoints
+        if not self._waypoints:
+            # running in CARLA
+            if self._map is not None:
+                self._waypoints = self._map.compute_waypoints(
+                    vehicle_transform.location, self._goal_location)
+            else:
+                # haven't received waypoints from global trajectory stream
+                self._logger.debug("@{}: Sending target speed 0, haven't"
+                                   "received global trajectory"
+                                   .format(timestamp))
+                head_waypoints = deque([vehicle_transform])
+                target_speeds = deque([0])
+                waypoints_stream.send(
+                    WaypointsMessage(timestamp, head_waypoints, target_speeds))
+                return
 
-        # run rrt*
-        path, cost = self._run_rrt_star(vehicle_transform, target_location,
-                                        obstacle_map)
+        # run rrt star
+        # RRT* does not take into account the driveable region
+        # it constructs search space as a top down, minimum bounding rectangle
+        # with padding in each dimension
+        success, (path_x, path_y) = \
+            self._apply_rrt_star(obstacle_list, timestamp)
 
-        # convert to waypoints if path found, else use default waypoints
-        if cost is not None:
-            path_transforms = []
-            for point in path:
-                p_loc = self._hd_map.get_closest_lane_waypoint(
-                    Location(x=point[0], y=point[1], z=0)).location
+        speeds = [0]
+        if success:
+            speeds = [self._flags.target_speed] * len(path_x)
+            self._logger.debug("@{}: RRT* Path X: {}".format(
+                timestamp,
+                path_x.tolist())
+            )
+            self._logger.debug("@{}: RRT* Path Y: {}".format(
+                timestamp,
+                path_y.tolist())
+            )
+            self._logger.debug("@{}: RRT* Speeds: {}".format(
+                timestamp,
+                [self._flags.target_speed] * len(path_x))
+            )
+
+        # construct and send waypoint message
+        waypoint_message = self._construct_waypoints(
+            timestamp, path_x, path_y, speeds, success
+        )
+        waypoints_stream.send(waypoint_message)
+
+    def _get_closest_index(self, start):
+        min_dist = np.infty
+        mindex = 0
+        for ind, wp in enumerate(self._waypoints):
+            dist = np.linalg.norm([start[0] - wp.location.x,
+                                   start[1] - wp.location.y])
+            if dist <= min_dist:
+                mindex = ind
+                min_dist = dist
+        return mindex
+
+    def _apply_rrt_star(self, obstacles, timestamp):
+        start = [
+            self._vehicle_transform.location.x,
+            self._vehicle_transform.location.y
+        ]
+
+        # find the closest point to current location
+        mindex = self._get_closest_index(start)
+        end_ind = min(mindex + DEFAULT_TARGET_WAYPOINT, len(self._waypoints) - 1)
+        end = [
+            self._waypoints[end_ind].location.x,
+            self._waypoints[end_ind].location.y
+        ]
+
+        # log initial conditions for debugging
+        initial_conditions = {
+            "start": start,
+            "end": end,
+            "obstacles": obstacles.tolist(),
+            "step_size": STEP_SIZE,
+            "max_iterations": MAX_ITERATIONS,
+        }
+        self._logger.debug("@{}: Initial conditions: {}".format(
+            timestamp, initial_conditions))
+        return apply_rrt_star(start, end, STEP_SIZE, MAX_ITERATIONS, obstacles)
+
+    def _construct_waypoints(self, timestamp, path_x, path_y, speeds, success):
+        """
+        Convert the rrt* path into a waypoints message.
+        """
+        path_transforms = []
+        target_speeds = []
+        if not success:
+            self._logger.error("@{}: RRT* failed. "
+                               "Sending emergency stop.".format(timestamp))
+            for wp in itertools.islice(self._prev_waypoints, 0,
+                                       DEFAULT_NUM_WAYPOINTS):
+                path_transforms.append(wp)
+                target_speeds.append(0)
+        else:
+            self._logger.debug("@{}: RRT* succeeded."
+                               .format(timestamp))
+            for point in zip(path_x, path_y, speeds):
+                if self._map is not None:
+                    p_loc = self._map.get_closest_lane_waypoint(
+                        Location(x=point[0], y=point[1], z=0)).location
+                else:
+                    # RRT* does not take into account the driveable region
+                    # it constructs search space as a top down, minimum bounding rectangle
+                    # with padding in each dimension
+                    p_loc = Location(x=point[0], y=point[1], z=0)
                 path_transforms.append(
                     Transform(
                         location=Location(x=point[0], y=point[1], z=p_loc.z),
                         rotation=Rotation(),
                     ))
-            waypoints = deque(path_transforms)
-            waypoints.extend(
-                itertools.islice(self._waypoints, self._wp_index,
-                                 len(self._waypoints))
-            )  # add the remaining global route for future
-        else:
-            waypoints = self._waypoints
+                target_speeds.append(point[2])
 
-        # construct waypoints message
-        waypoints = collections.deque(
-            itertools.islice(waypoints, 0,
-                             DEFAULT_NUM_WAYPOINTS))  # only take 50 meters
-        target_speeds = deque(
-            [self._flags.target_speed for _ in range(len(waypoints))])
-        waypoints_stream.send(
-            WaypointsMessage(timestamp, waypoints, target_speeds))
-
-    def _build_obstacle_map(self, vehicle_transform, prediction_msg):
-        """
-        Construct an obstacle map given vehicle_transform.
-
-        Args:
-            vehicle_transform: pylot.utils.Transform of vehicle from can_bus
-                stream
-
-        Returns:
-            an obstacle map that maps
-                {id_time: (obstacle_origin, obstacle_range)}
-            only obstacles within DEFAULT_DISTANCE_THRESHOLD in front of the
-            ego vehicle are considered to save computation cost.
-        """
-        obstacle_map = {}
-        # look over all predictions
-        for prediction in prediction_msg.predictions:
-            time = 0
-            # use all prediction times as potential obstacles
-            for transform in prediction.trajectory:
-                if vehicle_transform.is_within_distance_ahead(
-                        transform.location, DEFAULT_DISTANCE_THRESHOLD):
-                    # compute the obstacle origin and range of the obstacle
-                    obstacle_origin = ((transform.location.x -
-                                        DEFAULT_OBSTACLE_LENGTH / 2,
-                                        transform.location.y -
-                                        DEFAULT_OBSTACLE_WIDTH / 2),
-                                       (DEFAULT_OBSTACLE_LENGTH,
-                                        DEFAULT_OBSTACLE_WIDTH))
-                    # TODO (@fangedward): this doesn't consider the orientation
-                    # of the car, so unless the dimensions are square then
-                    # the prediction will be incorrect. Consider sending car
-                    # shapes along with predictions.
-                    obs_id = str("{}_{}".format(prediction.id, time))
-                    obstacle_map[obs_id] = obstacle_origin
-                time += 1
-        return obstacle_map
-
-    def _compute_target_location(self, vehicle_transform):
-        """
-        Update the global waypoint route and compute the target location for
-        RRT* search to plan for.
-
-        Args:
-            vehicle_transform: pylot.utils.Transform of vehicle from can_bus
-                stream
-
-        Returns:
-            target location
-        """
-        self._waypoints = self._hd_map.compute_waypoints(
-            vehicle_transform.location, self._goal_location)
-        target_waypoint = self._waypoints[self._wp_index]
-        target_location = target_waypoint.location
-        return target_location
+        waypoints = deque(path_transforms)
+        self._prev_waypoints = waypoints
+        return WaypointsMessage(timestamp, waypoints, target_speeds)
 
     @staticmethod
-    def _run_rrt_star(vehicle_transform, target_location, obstacle_map):
+    def _build_obstacle_list(vehicle_transform, prediction_msg):
         """
-        Run the RRT* algorithm given the vehicle_transform, target_location,
-        and obstacle_map.
-
-        Args:
-            vehicle_transform: pylot.utils.Transform of vehicle from can_bus
-                stream
-            target_location: Location target
-            obstacle_map: an obstacle map that maps
-                {id_time: (obstacle_origin, obstacle_range)}
-
-        Returns:
-            np.ndarray, float
-            return the path in form [[x0, y0],...] and final cost
-            if solution not found, returns the path to the closest point to the
-            target space and final cost is none
+        Construct an obstacle list of proximal objects given vehicle_transform.
         """
-        starting_state = (vehicle_transform.location.x,
-                          vehicle_transform.location.y)
-        target_space = ((target_location.x - DEFAULT_TARGET_LENGTH / 2,
-                         target_location.y - DEFAULT_TARGET_WIDTH / 2),
-                        (DEFAULT_TARGET_LENGTH, DEFAULT_TARGET_WIDTH))
-        state_space = start_target_to_space(starting_state, target_space,
-                                            DEFAULT_TARGET_LENGTH,
-                                            DEFAULT_TARGET_WIDTH)
-        path, cost = apply_rrt_star(state_space=state_space,
-                                    starting_state=starting_state,
-                                    target_space=target_space,
-                                    obstacle_map=obstacle_map)
-        return path, cost
+        obstacle_list = []
+        # look over all predictions
+        for prediction in prediction_msg.predictions:
+            # use all prediction times as potential obstacles
+            for transform in prediction.trajectory:
+                global_obstacle = vehicle_transform * transform
+                obstacle_origin = [
+                    global_obstacle.location.x, global_obstacle.location.y
+                ]
+                dist_to_ego = np.linalg.norm([
+                    vehicle_transform.location.x - obstacle_origin[0],
+                    vehicle_transform.location.y - obstacle_origin[1]
+                ])
+                # TODO (@fangedward): Fix this hack
+                # Prediction also sends a prediction for ego vehicle
+                # This will always be the closest to the ego vehicle
+                # Filter out until this is removed from prediction
+                if dist_to_ego < 2:  # this allows max vel to be 20m/s
+                    break
+                elif dist_to_ego < DEFAULT_DISTANCE_THRESHOLD:
+                    # use 3d bounding boxes if available, otherwise use default
+                    if isinstance(prediction.bounding_box, BoundingBox3D):
+                        start_location = \
+                            prediction.bounding_box.transform.location - \
+                            prediction.bounding_box.extent
+                        end_location = \
+                            prediction.bounding_box.transform.location + \
+                            prediction.bounding_box.extent
+                        start_transform = global_obstacle.transform_locations(
+                            [start_location])
+                        end_transform = global_obstacle.transform_locations(
+                            [end_location])
+                    else:
+                        start_transform = [
+                            Location(
+                                obstacle_origin[0] - DEFAULT_OBSTACLE_SIZE,
+                                obstacle_origin[1] - DEFAULT_OBSTACLE_SIZE,
+                                0
+                            )
+                        ]
+                        end_transform = [
+                            Location(
+                                obstacle_origin[0] + DEFAULT_OBSTACLE_SIZE,
+                                obstacle_origin[1] + DEFAULT_OBSTACLE_SIZE,
+                                0
+                            )
+                        ]
+                    obstacle_list.append([min(start_transform[0].x,
+                                              end_transform[0].x),
+                                          min(start_transform[0].y,
+                                              end_transform[0].y),
+                                          max(start_transform[0].x,
+                                              end_transform[0].x),
+                                          max(start_transform[0].y,
+                                              end_transform[0].y)])
+
+        if len(obstacle_list) == 0:
+            return np.empty((0, 4))
+
+        return np.array(obstacle_list)
