@@ -21,7 +21,7 @@ MAX_ITERATIONS = 2000
 DEFAULT_DISTANCE_THRESHOLD = 30  # 30 meters radius around of ego
 DEFAULT_NUM_WAYPOINTS = 100  # 100 waypoints to plan for
 DEFAULT_OBSTACLE_SIZE = 2  # 2 x 2 meter square
-DEFAULT_TARGET_WAYPOINT = 20  # use the 30th waypoint as a target
+DEFAULT_TARGET_WAYPOINT = 20  # use the 20th waypoint as a target
 
 
 class RRTStarPlanningOperator(erdos.Operator):
@@ -139,14 +139,12 @@ class RRTStarPlanningOperator(erdos.Operator):
 
         # update waypoints
         if not self._waypoints:
-            self._waypoints = self._map.compute_waypoints(
-                vehicle_transform.location, self._goal_location)
             # running in CARLA
             if self._map is not None:
                 self._waypoints = self._map.compute_waypoints(
                     vehicle_transform.location, self._goal_location)
-            # haven't received waypoints from global trajectory stream
             else:
+                # haven't received waypoints from global trajectory stream
                 self._logger.debug("@{}: Sending target speed 0, haven't"
                                    "received global trajectory"
                                    .format(timestamp))
@@ -226,7 +224,7 @@ class RRTStarPlanningOperator(erdos.Operator):
         path_transforms = []
         target_speeds = []
         if not success:
-            self._logger.debug("@{}: RRT* failed. "
+            self._logger.error("@{}: RRT* failed. "
                                "Sending emergency stop.".format(timestamp))
             for wp in itertools.islice(self._prev_waypoints, 0,
                                        DEFAULT_NUM_WAYPOINTS):
@@ -240,6 +238,8 @@ class RRTStarPlanningOperator(erdos.Operator):
                     p_loc = self._map.get_closest_lane_waypoint(
                         Location(x=point[0], y=point[1], z=0)).location
                 else:
+                    # lane width is statically set, we currently do not take
+                    # into account the driveable region
                     p_loc = Location(x=point[0], y=point[1], z=0)
                 path_transforms.append(
                     Transform(
