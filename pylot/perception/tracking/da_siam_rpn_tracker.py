@@ -24,7 +24,8 @@ class SingleObjectDaSiamRPNTracker(object):
         """ Construct a single obstacle tracker.
 
         Args:
-            frame: perception.camera_frame.CameraFrame to track in.
+            frame (:py:class:`~pylot.perception.camera_frame.CameraFrame`):
+                Frame to reinitialize with.
             obstacle: perception.detection.utils.DetectedObstacle.
         """
         self.obstacle = obstacle
@@ -42,7 +43,8 @@ class SingleObjectDaSiamRPNTracker(object):
         """ Tracks obstacles in a frame.
 
         Args:
-            frame: perception.camera_frame.CameraFrame to track in.
+            frame (:py:class:`~pylot.perception.camera_frame.CameraFrame`):
+                Frame to track in.
         """
         self._tracker = SiamRPN_track(self._tracker, frame.frame)
         target_pos = self._tracker['target_pos']
@@ -88,19 +90,24 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
             frame.frame, obstacles)
         # Run linear assignment (Hungarian Algo) with matrix
         row_ids, col_ids = solve_dense(cost_matrix)
-        matched_obstacle_indices, matched_tracker_indices = set(row_ids), set(col_ids)
+        matched_obstacle_indices, matched_tracker_indices = set(row_ids), set(
+            col_ids)
 
         updated_trackers = []
         # Separate matched and unmatched tracks
         unmatched_tracker_indices = \
             set(range(len(self._trackers))) - matched_tracker_indices
         matched_trackers = [self._trackers[i] for i in matched_tracker_indices]
-        unmatched_trackers = [self._trackers[i] for i in unmatched_tracker_indices]
+        unmatched_trackers = [
+            self._trackers[i] for i in unmatched_tracker_indices
+        ]
         # Separate matched and unmatched detections
         unmatched_obstacle_indices = \
             set(range(len(obstacles))) - matched_obstacle_indices
         matched_obstacles = [obstacles[i] for i in matched_obstacle_indices]
-        unmatched_obstacles = [obstacles[i] for i in unmatched_obstacle_indices]
+        unmatched_obstacles = [
+            obstacles[i] for i in unmatched_obstacle_indices
+        ]
 
         # Add successfully matched trackers to updated_trackers
         for tracker in matched_trackers:
@@ -112,8 +119,8 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
             if tracker.missed_det_updates < MAX_MISSED_DETECTIONS:
                 updated_trackers.append(tracker)
             else:
-                self._logger.debug(
-                    "Dropping tracker with id {}".format(tracker.obstacle.id))
+                self._logger.debug("Dropping tracker with id {}".format(
+                    tracker.obstacle.id))
 
         for obstacle in unmatched_obstacles:
             updated_trackers.append(

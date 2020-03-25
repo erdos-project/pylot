@@ -15,8 +15,8 @@ class ObstacleTrajectory(object):
     def __init__(self, label, id, bounding_box, trajectory):
         self.label = label
         self.id = id
-        if not isinstance(bounding_box, BoundingBox3D):
-            raise ValueError('bounding box should be of type BoundingBox3D')
+        # if not isinstance(bounding_box, BoundingBox3D):
+        #     raise ValueError('bounding box should be of type BoundingBox3D')
         self.bounding_box = bounding_box
         self.trajectory = trajectory
 

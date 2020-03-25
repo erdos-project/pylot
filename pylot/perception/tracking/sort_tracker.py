@@ -1,6 +1,7 @@
 import numpy as np
 
 from sort.sort import *
+
 from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
@@ -13,8 +14,9 @@ class MultiObjectSORTTracker(MultiObjectTracker):
         """ Reinitializes a multiple obstacle tracker.
 
         Args:
-            frame: perception.camera_frame.CameraFrame to reinitialize with.
-            obstacles: List of perception.detection.utils.DetectedObstacle.
+            frame (:py:class:`~pylot.perception.camera_frame.CameraFrame`):
+                Frame to reinitialize with.
+            obstacles : List of perception.detection.utils.DetectedObstacle.
         """
         detections = self.convert_detections_for_sort_alg(obstacles)
         self.tracker.update(detections)
@@ -23,7 +25,8 @@ class MultiObjectSORTTracker(MultiObjectTracker):
         """ Tracks obstacles in a frame.
 
         Args:
-            frame: perception.camera_frame.CameraFrame to track in.
+            frame (:py:class:`~pylot.perception.camera_frame.CameraFrame`):
+                Frame to track in.
         """
         # each track in tracks has format ([xmin, ymin, xmax, ymax], id)
         obstacles = []

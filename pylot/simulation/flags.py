@@ -39,9 +39,6 @@ flags.DEFINE_integer('carla_vehicle_mass', None,
                      'Modifies the mass of the ego-vehicle')
 flags.DEFINE_float('carla_vehicle_moi', None,
                    'Modifies the moment of inertia of the ego-vehicle')
-flags.DEFINE_integer(
-    'perfect_tracking_num_steps', None,
-    'Limit on number of past steps returned by the perfect object tracker.')
 
 # Other flags
 flags.DEFINE_integer(
@@ -50,3 +47,6 @@ flags.DEFINE_integer(
     'ego-vehicle that the top-down camera shows.')
 flags.DEFINE_integer('random_seed', None,
                      'Random seed for populating the simulation.')
+flags.DEFINE_integer(
+    'perfect_detection_max_distance', 125,
+    'Limit perfect detection to a distance of this amount of meters')

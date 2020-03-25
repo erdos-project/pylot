@@ -29,8 +29,7 @@ class PerfectTrackerOperator(erdos.Operator):
         # Processed data. Key is actor id, value is deque containing the past
         # trajectory of the corresponding actor. Trajectory is stored in world
         # coordinates, for ease of transformation.
-        trajectory = lambda: deque(maxlen=self._flags.
-                                   perfect_tracking_num_steps)
+        trajectory = lambda: deque(maxlen=self._flags.tracking_num_steps)
         self._obstacles = defaultdict(trajectory)
 
     @staticmethod

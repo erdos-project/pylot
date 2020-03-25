@@ -15,6 +15,7 @@ setup(
         "cvxpy",
         "erdos>=0.2.0",
         "gdown",
+        "lapsolver",
         "matplotlib==2.2.4",
         "networkx==2.2",
         "numpy<1.17",  # Update to newer numpy version once we switch to tf2

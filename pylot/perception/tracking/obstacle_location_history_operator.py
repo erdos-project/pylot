@@ -1,50 +1,21 @@
-from collections import deque
+from collections import deque, defaultdict
 import erdos
 
 from pylot.perception.detection.utils import get_obstacle_locations
-from pylot.perception.messages import ObstaclesMessage
+from pylot.perception.messages import ObstacleTrajectoriesMessage
+from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 
 
-class ObstacleLocationFinderOperator(erdos.Operator):
-    """Computes the world location of the obstacle.
-
-    The operator uses a point cloud, which may come from a depth frame to
-    compute the world location of an obstacle. It populates the location
-    attribute in each obstacle object.
-
-    Warning:
-        An obstacle will be ignored if the operator cannot find its location.
-
-    Args:
-        obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
-            detected obstacles are received.
-        depth_stream (:py:class:`erdos.ReadStream`): Stream on which
-            either point cloud messages or depth frames are received. The
-            message type differs dependening on how data-flow operators are
-            connected.
-        can_bus_stream (:py:class:`erdos.ReadStream`): Stream on which can
-            bus info is received.
-        camera_stream (:py:class:`erdos.ReadStream`): The stream on which
-            camera frames are received.
-        obstacles_output_stream (:py:class:`erdos.WriteStream`): Stream on
-            which the operator sends detected obstacles with their world
-            location set.
-        flags (absl.flags): Object to be used to access absl flags.
-        camera_setup (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
-            The setup of the center camera. This setup is used to calculate the
-            real-world location of the camera, which in turn is used to convert
-            detected obstacles from camera coordinates to real-world
-            coordinates.
-    """
+class ObstacleLocationHistoryOperator(erdos.Operator):
     def __init__(self, obstacles_stream, depth_stream, can_bus_stream,
-                 camera_stream, obstacles_output_stream, flags, camera_setup):
+                 camera_stream, tracked_obstacles_stream, flags, camera_setup):
         obstacles_stream.add_callback(self.on_obstacles_update)
         depth_stream.add_callback(self.on_depth_update)
         can_bus_stream.add_callback(self.on_can_bus_update)
         camera_stream.add_callback(self.on_camera_update)
         erdos.add_watermark_callback(
             [obstacles_stream, depth_stream, can_bus_stream, camera_stream],
-            [obstacles_output_stream], self.on_watermark)
+            [tracked_obstacles_stream], self.on_watermark)
         self._flags = flags
         self._camera_setup = camera_setup
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -54,14 +25,19 @@ class ObstacleLocationFinderOperator(erdos.Operator):
         self._depth_msgs = deque()
         self._can_bus_msgs = deque()
         self._frame_msgs = deque()
+        self._obstacle_history = defaultdict(deque)
+        self._timestamp_history = deque()
+        # Stores the id of obstacles that have values for a given timestamp.
+        # This is used to GC the state from timestamp_history.
+        self._timestamp_to_id = defaultdict(list)
 
     @staticmethod
     def connect(obstacles_stream, depth_stream, can_bus_stream, camera_stream):
-        obstacles_output_stream = erdos.WriteStream()
-        return [obstacles_output_stream]
+        tracked_obstacles_stream = erdos.WriteStream()
+        return [tracked_obstacles_stream]
 
     @erdos.profile_method()
-    def on_watermark(self, timestamp, obstacles_output_stream):
+    def on_watermark(self, timestamp, tracked_obstacles_stream):
         """Invoked when all input streams have received a watermark.
 
         Args:
@@ -78,13 +54,37 @@ class ObstacleLocationFinderOperator(erdos.Operator):
             obstacles_msg.obstacles, depth_msg, vehicle_transform,
             self._camera_setup, self._logger)
 
+        ids_cur_timestamp = []
+        obstacle_trajectories = []
+        for obstacle in obstacles_with_location:
+            ids_cur_timestamp.append(obstacle.id)
+            self._obstacle_history[obstacle.id].append(obstacle)
+            cur_obstacle_trajectory = [
+                obstacle.transform
+                for obstacle in self._obstacle_history[obstacle.id]
+            ]
+            obstacle_trajectories.append(
+                ObstacleTrajectory(obstacle.label, obstacle.id,
+                                   obstacle.bounding_box,
+                                   cur_obstacle_trajectory))
+
+        tracked_obstacles_stream.send(
+            ObstacleTrajectoriesMessage(timestamp, obstacle_trajectories))
+
+        self._timestamp_history.append(timestamp)
+        self._timestamp_to_id[timestamp] = ids_cur_timestamp
+        if len(self._timestamp_history) >= self._flags.tracking_num_steps:
+            gc_timestamp = self._timestamp_history.popleft()
+            for obstacle_id in self._timestamp_to_id[gc_timestamp]:
+                self._obstacle_history[obstacle_id].popleft()
+                if len(self._obstacle_history[obstacle_id]) == 0:
+                    del self._obstacle_history[obstacle_id]
+            del self._timestamp_to_id[gc_timestamp]
+
         if self._flags.visualize_obstacles_with_distance:
             frame_msg.frame.annotate_with_bounding_boxes(
                 timestamp, obstacles_with_location, vehicle_transform)
             frame_msg.frame.visualize(self.config.name)
-
-        obstacles_output_stream.send(
-            ObstaclesMessage(timestamp, obstacles_with_location))
 
     def on_obstacles_update(self, msg):
         self._logger.debug('@{}: obstacles update'.format(msg.timestamp))

@@ -48,6 +48,8 @@ from pylot.perception.segmentation.segmentation_eval_operator import \
     SegmentationEvalOperator
 from pylot.perception.tracking.object_tracker_operator import \
     ObjectTrackerOperator
+from pylot.perception.tracking.obstacle_location_history_operator import \
+    ObstacleLocationHistoryOperator
 from pylot.perception.tracking.tracking_eval_operator import \
     TrackingEvalOperator
 # Planning operators.
@@ -87,15 +89,17 @@ def add_obstacle_detection(camera_stream, csv_file_name=None):
     return obstacles_streams
 
 
-def add_obstacle_location_finder(obstacles_stream, point_cloud_stream,
+def add_obstacle_location_finder(obstacles_stream, depth_stream,
                                  can_bus_stream, camera_stream, camera_setup):
     """Adds an operator that finds the world locations of the obstacles.
 
     Args:
         obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
             detected obstacles are received.
-        point_cloud_stream (:py:class:`erdos.ReadStream`): Stream on
-            which point cloud messages are received.
+        depth_stream (:py:class:`erdos.ReadStream`): Stream on which
+            either point cloud messages or depth frames are received. The
+            message type differs dependening on how data-flow operators are
+            connected.
         can_bus_stream (:py:class:`erdos.ReadStream`, optional): Stream on
             which can bus info is received.
         camera_stream (:py:class:`erdos.ReadStream`): The stream on which
@@ -115,9 +119,44 @@ def add_obstacle_location_finder(obstacles_stream, point_cloud_stream,
                                      profile_file_name=FLAGS.profile_file_name)
     [obstacles_with_loc_stream] = erdos.connect(
         ObstacleLocationFinderOperator, op_config,
-        [obstacles_stream, point_cloud_stream, can_bus_stream, camera_stream],
-        FLAGS, camera_setup)
+        [obstacles_stream, depth_stream, can_bus_stream, camera_stream], FLAGS,
+        camera_setup)
     return obstacles_with_loc_stream
+
+
+def add_obstacle_location_history(obstacles_stream, depth_stream,
+                                  can_bus_stream, camera_stream, camera_setup):
+    """Adds an operator that finds obstacle trajectories in world coordinates.
+
+    Args:
+        obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
+            detected obstacles are received.
+        depth_stream (:py:class:`erdos.ReadStream`): Stream on which
+            either point cloud messages or depth frames are received. The
+            message type differs dependening on how data-flow operators are
+            connected.
+        can_bus_stream (:py:class:`erdos.ReadStream`, optional): Stream on
+            which can bus info is received.
+        camera_stream (:py:class:`erdos.ReadStream`): The stream on which
+            camera frames are received.
+        camera_setup (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
+            The setup of the center camera.
+
+    Returns:
+        :py:class:`erdos.ReadStream`: Stream on which
+        :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
+        messages are published.
+    """
+    op_config = erdos.OperatorConfig(name=camera_setup.get_name() +
+                                     '_location_finder_history_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [tracked_obstacles] = erdos.connect(
+        ObstacleLocationHistoryOperator, op_config,
+        [obstacles_stream, depth_stream, can_bus_stream, camera_stream], FLAGS,
+        camera_setup)
+    return tracked_obstacles
 
 
 def add_detection_decay(ground_obstacles_stream):

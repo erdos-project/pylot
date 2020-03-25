@@ -37,6 +37,9 @@ flags.DEFINE_bool('perfect_obstacle_tracking', False,
 flags.DEFINE_enum('tracker_type', 'cv2',
                   ['cv2', 'da_siam_rpn', 'deep_sort', 'sort'],
                   'Sets which obstacle tracker to use')
+flags.DEFINE_integer(
+    'tracking_num_steps', 10,
+    'Limit on number of past steps returned by the object tracker.')
 flags.DEFINE_bool('lane_detection', False, 'True to enable lane detection')
 flags.DEFINE_bool('perfect_lane_detection', False,
                   'True to enable perfect lane detection')
@@ -196,12 +199,12 @@ flags.register_multi_flags_validator(
 flags.register_multi_flags_validator(
     [
         'evaluate_prediction', 'prediction_num_future_steps',
-        'perfect_tracking_num_steps'
+        'tracking_num_steps'
     ],
-    lambda flags_dict: (not flags_dict['evaluate_prediction'] or
-                        (flags_dict['evaluate_prediction'] and flags_dict[
-                            'prediction_num_future_steps'] <= flags_dict[
-                                'perfect_tracking_num_steps'])),
+    lambda flags_dict:
+    (not flags_dict['evaluate_prediction'] or
+     (flags_dict['evaluate_prediction'] and flags_dict[
+         'prediction_num_future_steps'] <= flags_dict['tracking_num_steps'])),
     message='must track at least as many steps as we predict when'
     ' --evaluate_prediction is enabled')
 

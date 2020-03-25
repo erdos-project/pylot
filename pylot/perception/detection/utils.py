@@ -1,3 +1,4 @@
+import copy
 import cv2
 import numpy as np
 try:
@@ -589,3 +590,42 @@ def get_mAP(ground_obstacles, obstacles):
             max_precision = max(max_precision, precision)
             last_recall = recall
     return avg_precision
+
+
+def get_obstacle_locations(obstacles, depth_msg, ego_transform, camera_setup,
+                           logger):
+    from pylot.perception.messages import DepthFrameMessage, PointCloudMessage
+    if isinstance(depth_msg, PointCloudMessage):
+        point_cloud = depth_msg.point_cloud
+        transformed_camera_setup = copy.deepcopy(camera_setup)
+        transformed_camera_setup.set_transform(
+            ego_transform * transformed_camera_setup.transform)
+
+        obstacles_with_location = []
+        for obstacle in obstacles:
+            location = point_cloud.get_pixel_location(
+                obstacle.bounding_box.get_center_point(),
+                transformed_camera_setup)
+            if location is not None:
+                obstacle.transform = pylot.utils.Transform(
+                    location, pylot.utils.Rotation())
+                obstacles_with_location.append(obstacle)
+            else:
+                logger.error(
+                    'Could not find world location for obstacle {}'.format(
+                        obstacle))
+        return obstacles_with_location
+    elif isinstance(depth_msg, DepthFrameMessage):
+        depth_frame = depth_msg.frame
+        depth_frame.camera_setup.set_transform(
+            ego_transform * depth_frame.camera_setup.transform)
+        center_points = [
+            obstacle.bounding_box.get_center_point() for obstacle in obstacles
+        ]
+        locations = depth_frame.get_pixel_locations(center_points)
+        for index, obstacle in enumerate(obstacles):
+            obstacle.transform = pylot.utils.Transform(locations[index],
+                                                       pylot.utils.Rotation())
+        return obstacles
+    else:
+        raise ValueError('Unexpected depth message type')

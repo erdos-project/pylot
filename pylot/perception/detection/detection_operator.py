@@ -78,6 +78,8 @@ class DetectionOperator(erdos.Operator):
             'person', 'stop sign', 'parking meter', 'cat', 'dog',
             'speed limit 30', 'speed limit 60', 'speed limit 90'
         }
+        # Unique bounding box id. Incremented for each bounding box.
+        self._unique_id = 0
 
     @staticmethod
     def connect(camera_stream):
@@ -134,17 +136,19 @@ class DetectionOperator(erdos.Operator):
                         and self._coco_labels[
                             res_classes[i]] in self._important_labels):
                     obstacles.append(
-                        DetectedObstacle(
-                            BoundingBox2D(
-                                int(res_boxes[i][1] *
-                                    msg.frame.camera_setup.width),
-                                int(res_boxes[i][3] *
-                                    msg.frame.camera_setup.width),
-                                int(res_boxes[i][0] *
-                                    msg.frame.camera_setup.height),
-                                int(res_boxes[i][2] *
-                                    msg.frame.camera_setup.height)),
-                            res_scores[i], self._coco_labels[res_classes[i]]))
+                        DetectedObstacle(BoundingBox2D(
+                            int(res_boxes[i][1] *
+                                msg.frame.camera_setup.width),
+                            int(res_boxes[i][3] *
+                                msg.frame.camera_setup.width),
+                            int(res_boxes[i][0] *
+                                msg.frame.camera_setup.height),
+                            int(res_boxes[i][2] *
+                                msg.frame.camera_setup.height)),
+                                         res_scores[i],
+                                         self._coco_labels[res_classes[i]],
+                                         id=self._unique_id))
+                    self._unique_id += 1
             else:
                 self._logger.warning('Filtering unknown class: {}'.format(
                     res_classes[i]))

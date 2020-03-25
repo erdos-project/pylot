@@ -6,11 +6,6 @@ import pylot.simulation.utils
 from pylot.perception.detection.utils import DetectedObstacle
 from pylot.perception.messages import ObstaclesMessage
 
-flags.DEFINE_integer(
-    'perfect_detection_max_distance', 125,
-    'Limit perfect detection to a distance of'
-    'this amount of meters')
-
 
 class PerfectDetectorOperator(erdos.Operator):
     """Uses info from the simulator to perfectly detect obstacles, stop and

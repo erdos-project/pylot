@@ -228,7 +228,9 @@ def add_lane_detection(center_camera_stream, can_bus_stream=None):
 
 
 def add_obstacle_tracking(center_camera_stream,
+                          center_camera_setup,
                           obstacles_stream,
+                          depth_stream=None,
                           vehicle_id_stream=None,
                           can_bus_stream=None,
                           ground_obstacles_stream=None):
@@ -242,8 +244,14 @@ def add_obstacle_tracking(center_camera_stream,
     Args:
         center_camera_stream (:py:class:`erdos.ReadStream`): Stream on which
             camera frames are received.
+        center_camera_setup
+            (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`, optional):
+            The setup of the center camera. This setup is used to calculate the
+            real-world location of the obstacles.
         obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
             detected obstacles are received.
+        depth_stream (:py:class:`erdos.ReadStream`, optional): Stream on
+            which point cloud or depth frame messages are received.
         vehicle_id_stream (:py:class:`erdos.ReadStream`, optional): A stream on
              which the simulator publishes Carla ego-vehicle id.
         can_bus_stream (:py:class:`erdos.ReadStream`, optional): A stream on
@@ -260,10 +268,14 @@ def add_obstacle_tracking(center_camera_stream,
     """
     obstacles_tracking_stream = None
     if FLAGS.obstacle_tracking:
-        obstacles_tracking_stream = \
+        obstacles_wo_history_tracking_stream = \
             pylot.operator_creator.add_obstacle_tracking(
                 obstacles_stream,
                 center_camera_stream)
+        obstacles_tracking_stream = \
+            pylot.operator_creator.add_obstacle_location_history(
+                obstacles_wo_history_tracking_stream, depth_stream,
+                can_bus_stream, center_camera_stream, center_camera_setup)
     if FLAGS.perfect_obstacle_tracking:
         assert (can_bus_stream is not None
                 and ground_obstacles_stream is not None)
@@ -275,7 +287,7 @@ def add_obstacle_tracking(center_camera_stream,
 
     if FLAGS.evaluate_obstacle_tracking:
         pylot.operator_creator.add_tracking_evaluation(
-            obstacles_tracking_stream, obstacles_stream)
+            obstacles_wo_history_tracking_stream, obstacles_stream)
 
     return obstacles_tracking_stream
 

@@ -22,7 +22,8 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
         """ Reinitializes a multiple obstacle tracker.
 
         Args:
-            frame: perception.camera_frame.CameraFrame to reinitialize with.
+            frame (:py:class:`~pylot.perception.camera_frame.CameraFrame`):
+                Frame to reinitialize with.
             obstacles: List of perception.detection.utils.DetectedObstacle.
         """
         # update tracker with new detections
@@ -32,7 +33,8 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
         """ Tracks obstacles in a frame.
 
         Args:
-            frame: perception.camera_frame.CameraFrame to track in.
+            frame (:py:class:`~pylot.perception.camera_frame.CameraFrame`):
+                Frame to track in.
         """
         if obstacles:
             bboxes = [
