@@ -155,6 +155,9 @@ class RRTStarPlanningOperator(erdos.Operator):
                 return
 
         # run rrt star
+        # RRT* does not take into account the driveable region
+        # it constructs search space as a top down, minimum bounding rectangle
+        # with padding in each dimension
         success, (path_x, path_y) = \
             self._apply_rrt_star(obstacle_list, timestamp)
 
@@ -238,8 +241,9 @@ class RRTStarPlanningOperator(erdos.Operator):
                     p_loc = self._map.get_closest_lane_waypoint(
                         Location(x=point[0], y=point[1], z=0)).location
                 else:
-                    # lane width is statically set, we currently do not take
-                    # into account the driveable region
+                    # RRT* does not take into account the driveable region
+                    # it constructs search space as a top down, minimum bounding rectangle
+                    # with padding in each dimension
                     p_loc = Location(x=point[0], y=point[1], z=0)
                 path_transforms.append(
                     Transform(
