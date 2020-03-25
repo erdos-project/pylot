@@ -138,8 +138,13 @@ def create_data_flow():
             left_camera_stream)
 
     if FLAGS.obstacle_tracking:
-        obstacles_tracking_stream = pylot.operator_creator.add_obstacle_tracking(
-            obstacles_stream, left_camera_stream)
+        obstacles_wo_history_tracking_stream = \
+            pylot.operator_creator.add_obstacle_tracking(
+                obstacles_stream, left_camera_stream)
+        obstacles_tracking_stream = \
+            pylot.operator_creator.add_obstacle_location_history(
+                obstacles_wo_history_tracking_stream, point_cloud_stream,
+                can_bus_stream, left_camera_stream, left_camera_setup)
     else:
         obstacles_tracking_stream = erdos.IngestStream()
 

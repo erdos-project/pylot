@@ -52,10 +52,13 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
                 # Converts x, y, w, h bbox to tlbr bbox (top left and bottom
                 # right coords).
                 bbox = track.to_tlbr()
+                # TODO: DeepSort doesn't maintain labels of tracked obstacled.
+                # Hence, we tag tracked obstacles as actors.
                 # Converts to xmin, xmax, ymin, ymax format.
                 obstacles.append(
                     DetectedObstacle(
                         BoundingBox2D(int(bbox[0]), int(bbox[2]), int(bbox[1]),
-                                      int(bbox[3])), 0, "", track.track_id))
+                                      int(bbox[3])), 0, 'actor',
+                        track.track_id))
             return True, obstacles
         return False, []

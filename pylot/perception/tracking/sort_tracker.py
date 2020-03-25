@@ -18,8 +18,8 @@ class MultiObjectSORTTracker(MultiObjectTracker):
                 Frame to reinitialize with.
             obstacles : List of perception.detection.utils.DetectedObstacle.
         """
-        detections = self.convert_detections_for_sort_alg(obstacles)
-        self.tracker.update(detections)
+        detections, labels = self.convert_detections_for_sort_alg(obstacles)
+        self.tracker.update(detections, labels)
 
     def track(self, frame):
         """ Tracks obstacles in a frame.
@@ -35,11 +35,12 @@ class MultiObjectSORTTracker(MultiObjectTracker):
             # changing to xmin, xmax, ymin, ymax format
             bbox = BoundingBox2D(int(coords[0]), int(coords[2]),
                                  int(coords[1]), int(coords[3]))
-            obstacles.append(DetectedObstacle(bbox, 0, "", track.id))
+            obstacles.append(DetectedObstacle(bbox, 0, track.label, track.id))
         return True, obstacles
 
     def convert_detections_for_sort_alg(self, obstacles):
         converted_detections = []
+        labels = []
         for obstacle in obstacles:
             bbox = [
                 obstacle.bounding_box.x_min, obstacle.bounding_box.y_min,
@@ -47,4 +48,5 @@ class MultiObjectSORTTracker(MultiObjectTracker):
                 obstacle.confidence
             ]
             converted_detections.append(bbox)
-        return np.array(converted_detections)
+            labels.append(obstacle.label)
+        return (np.array(converted_detections), labels)

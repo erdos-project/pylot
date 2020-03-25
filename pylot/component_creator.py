@@ -279,8 +279,6 @@ def add_obstacle_tracking(center_camera_stream,
     if FLAGS.perfect_obstacle_tracking:
         assert (can_bus_stream is not None
                 and ground_obstacles_stream is not None)
-        # TODO: The perfect tracker returns ego-vehicle (x,y,z) coordinates,
-        # while our existing trackers use camera coordinates. Fix!
         obstacles_tracking_stream = \
             pylot.operator_creator.add_perfect_tracking(
                 vehicle_id_stream, ground_obstacles_stream, can_bus_stream)

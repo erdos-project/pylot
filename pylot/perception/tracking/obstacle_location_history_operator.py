@@ -4,6 +4,7 @@ import erdos
 from pylot.perception.detection.utils import get_obstacle_locations
 from pylot.perception.messages import ObstacleTrajectoriesMessage
 from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
+import pylot.utils
 
 
 class ObstacleLocationHistoryOperator(erdos.Operator):
@@ -58,6 +59,13 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
         obstacle_trajectories = []
         for obstacle in obstacles_with_location:
             ids_cur_timestamp.append(obstacle.id)
+            # Transform obstacle location from global world coordinates to
+            # ego-centric coordinates.
+            location_ego_relative = \
+                vehicle_transform.inverse_transform_locations(
+                    [obstacle.transform.location])
+            obstacle.transform = pylot.utils.Transform(
+                location_ego_relative[0], pylot.utils.Rotation())
             self._obstacle_history[obstacle.id].append(obstacle)
             cur_obstacle_trajectory = [
                 obstacle.transform
