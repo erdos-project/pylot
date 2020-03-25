@@ -284,6 +284,8 @@ def add_fot_planning(can_bus_stream,
 
 def add_rrt_star_planning(can_bus_stream,
                           prediction_stream,
+                          global_trajectory_stream,
+                          open_drive_stream,
                           goal_location,
                           name='rrt_star_planning_operator'):
     from pylot.planning.rrt_star.rrt_star_planning_operator import \
@@ -292,9 +294,12 @@ def add_rrt_star_planning(can_bus_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [waypoints_stream] = erdos.connect(RRTStarPlanningOperator, op_config,
-                                       [can_bus_stream, prediction_stream],
-                                       FLAGS, goal_location)
+    [waypoints_stream] = erdos.connect(
+        RRTStarPlanningOperator, op_config,
+        [can_bus_stream, prediction_stream, global_trajectory_stream,
+         open_drive_stream],
+        FLAGS, goal_location
+    )
     return waypoints_stream
 
 

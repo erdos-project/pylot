@@ -8,6 +8,13 @@ cd frenet_optimal_trajectory_planner
 bash build.sh
 cd $PYLOT_HOME
 
+###### Build the RRTStar Planner ######
+cd pylot/planning/rrt_star/
+git clone https://github.com/erdos-project/rrt_star_planning
+cd rrt_star_planning
+bash build.sh
+cd $PYLOT_HOME
+
 sudo apt-get -y update
 sudo apt-get install -y git wget python3-pip
 pip3 install gdown
