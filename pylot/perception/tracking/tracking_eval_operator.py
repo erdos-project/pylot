@@ -11,7 +11,7 @@ from pylot.utils import time_epoch_ms
 
 flags.DEFINE_list('tracking_metrics', [
     'num_misses', 'num_switches', 'num_false_positives', 'mota', 'motp',
-    'mostly_tracked', 'mostly_lost', 'idf1'
+    'mostly_tracked', 'mostly_lost', 'partially_tracked', 'idf1'
 ], 'Tracking evaluation metrics')
 
 
@@ -94,17 +94,41 @@ class TrackingEvalOperator(erdos.Operator):
                         tracker_obstacles, ground_obstacles)
                     # Get runtime in ms
                     runtime = (time.time() - op_start_time) * 1000
-                    self._csv_logger.info("{},{},{},{}".format(
-                        time_epoch_ms(), self.config.name, "runtime", runtime))
+                    self._csv_logger.info('{},{},{},{}'.format(
+                        time_epoch_ms(), self.config.name, 'runtime', runtime))
                     # Write metrics to csv log file
                     for metric_name in self._flags.tracking_metrics:
                         if metric_name in metrics_summary_df.columns:
-                            self._csv_logger.info("{},{},{},{}".format(
-                                time_epoch_ms(), self.config.name, metric_name,
-                                metrics_summary_df[metric_name].values[0]))
+                            if (metric_name == 'mostly_tracked'
+                                    or metric_name == 'mostly_lost'
+                                    or metric_name == 'partially_tracked'):
+                                ratio = metrics_summary_df[metric_name].values[
+                                    0] / metrics_summary_df[
+                                        'num_unique_objects'].values[0]
+                                self._csv_logger.info("{},{},{},{:.2f}".format(
+                                    time_epoch_ms(), self.config.name,
+                                    'ratio_' + metric_name, ratio))
+                            elif metric_name == 'motp':
+                                # See https://github.com/cheind/py-motmetrics/issues/92
+                                motp = (1 - metrics_summary_df[metric_name].
+                                        values[0]) * 100
+                                self._csv_logger.info('{},{},{},{}'.format(
+                                    time_epoch_ms(), self.config.name,
+                                    metric_name, motp))
+                            elif metric_name == 'idf1' or metric_name == 'mota':
+                                metric_val = metrics_summary_df[
+                                    metric_name].values[0] * 100
+                                self._csv_logger.info('{},{},{},{:.2f}'.format(
+                                    time_epoch_ms(), self.config.name,
+                                    metric_name, metric_val))
+                            else:
+                                self._csv_logger.info('{},{},{},{}'.format(
+                                    time_epoch_ms(), self.config.name,
+                                    metric_name,
+                                    metrics_summary_df[metric_name].values[0]))
                         else:
                             raise ValueError(
-                                "Unexpected tracking metric: {}".format(
+                                'Unexpected tracking metric: {}'.format(
                                     metric_name))
                 self._logger.debug('Computing accuracy for {} {}'.format(
                     end_time, start_time))
