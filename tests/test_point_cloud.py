@@ -139,12 +139,12 @@ def test_initialize_point_cloud(points, expected):
             600, 300), Location(1, 0.5, 0)),
         # Lidar points are left middle and right middle, different depth.
         (np.array([[-2, -2, 0], [1, -1, 0]]), Vector2D(
-            200, 300), Location(2, -1, 0)),
+            200, 300), Location(2, -0.5, 0)),
         (np.array([[-2, -2, 0], [1, -1, 0]]), Vector2D(
             600, 300), Location(1, 0.5, 0)),
         # Lidar points are top left and bottom right, same depth.
         (np.array([[-2, -2, -1.5], [2, -2, 1.5]]), Vector2D(
-            200, 150), Location(2, -1, 0.75)),
+            200, 150), Location(2, -1, 0.375)),
     ])
 def test_point_cloud_get_pixel_location(lidar_points, pixel, expected):
     camera_setup = CameraSetup(
