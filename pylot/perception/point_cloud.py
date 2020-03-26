@@ -21,6 +21,7 @@ class PointCloud(object):
         transform (:py:class:`~pylot.utils.Transform`): Transform of the
             point cloud, relative to the ego-vehicle.
     """
+
     def __init__(self, points, lidar_setup):
         # Transform point cloud from lidar to camera coordinates.
         self._lidar_setup = lidar_setup
@@ -87,19 +88,26 @@ class PointCloud(object):
                                                    [1.0]]))
         location = PointCloud.get_closest_point_in_point_cloud(
             fwd_points, Vector2D(p3d[0], p3d[1]))
-        # Normalize our point to have the same depth as our closest point.
-        p3d *= np.array([location.z])
+
+        # Use the depth from the retrieved location.
+        p3d[2] = location.z
         p3d = p3d.transpose()
-        # Convert from camera to unreal coordinates.
-        to_world_transform = camera_setup.get_unreal_transform()
-        camera_point_cloud = to_world_transform.transform_points(p3d)[0]
-        pixel_location = Location(camera_point_cloud[0], camera_point_cloud[1],
-                                  camera_point_cloud[2])
+
+        if self._lidar_setup.lidar_type == 'sensor.lidar.ray_cast':
+            # Convert from camera to unreal coordinates if the lidar type is
+            # sensor.lidar.ray_cast
+            to_world_transform = camera_setup.get_unreal_transform()
+            camera_point_cloud = to_world_transform.transform_points(p3d)[0]
+            pixel_location = Location(camera_point_cloud[0],
+                                      camera_point_cloud[1],
+                                      camera_point_cloud[2])
+        elif self._lidar_setup.lidar_type == 'velodyne':
+            pixel_location = Location(p3d[0, 0], p3d[0, 1], p3d[0, 2])
         return pixel_location
 
     @staticmethod
     def get_closest_point_in_point_cloud(fwd_points, pixel):
-        """Finds the closest depth normalized point cloud point.
+        """Finds the closest point in the point cloud to the given point.
 
         Args:
             pixel (:py:class:`~pylot.utils.Vector2D`): Camera coordinates.
@@ -109,15 +117,16 @@ class PointCloud(object):
         """
         # Select x and y.
         pc_xy = fwd_points[:, 0:2]
-        # Select z
-        pc_z = fwd_points[:, 2]
-        # Divize x, y by z
-        normalized_pc = pc_xy / pc_z[:, None]
+
+        # Create an array from the x, y coordinates of the point.
         xy = np.array([pixel.x, pixel.y]).transpose()
+
         # Compute distance
-        dist = np.sum((normalized_pc - xy)**2, axis=1)
+        dist = np.sum((pc_xy - xy)**2, axis=1)
+
         # Select index of the closest point.
         closest_index = np.argmin(dist)
+
         # Return the closest point.
         return Location(fwd_points[closest_index][0],
                         fwd_points[closest_index][1],
