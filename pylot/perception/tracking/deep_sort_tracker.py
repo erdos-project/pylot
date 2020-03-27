@@ -37,13 +37,13 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
                 Frame to track in.
         """
         if obstacles:
-            bboxes = [
-                obstacle.bounding_box.as_width_height_bbox()
-                for obstacle in obstacles
-            ]
-            confidence_scores = [obstacle.confidence for obstacle in obstacles]
+            bboxes, labels, confidence_scores = [], [], []
+            for obstacle in obstacles:
+                bboxes.append(obstacle.bounding_box.as_width_height_bbox())
+                labels.append(obstacle.label)
+                confidence_scores.append(obstacle.confidence)
             self.tracker, detections_class = self._deepsort.run_deep_sort(
-                frame.frame, confidence_scores, bboxes)
+                frame.frame, confidence_scores, bboxes, labels)
         if self.tracker:
             obstacles = []
             for track in self.tracker.tracks:
@@ -52,13 +52,10 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
                 # Converts x, y, w, h bbox to tlbr bbox (top left and bottom
                 # right coords).
                 bbox = track.to_tlbr()
-                # TODO: DeepSort doesn't maintain labels of tracked obstacled.
-                # Hence, we tag tracked obstacles as actors.
                 # Converts to xmin, xmax, ymin, ymax format.
+                bbox_2d = BoundingBox2D(
+                    int(bbox[0]), int(bbox[2]), int(bbox[1]), int(bbox[3]))
                 obstacles.append(
-                    DetectedObstacle(
-                        BoundingBox2D(int(bbox[0]), int(bbox[2]), int(bbox[1]),
-                                      int(bbox[3])), 0, 'actor',
-                        track.track_id))
+                    DetectedObstacle(bbox_2d, 0, track.label, track.track_id))
             return True, obstacles
         return False, []
