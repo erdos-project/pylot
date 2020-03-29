@@ -453,4 +453,8 @@ def add_control(can_bus_stream, waypoints_stream):
     else:
         raise ValueError('Unexpected control_agent {}'.format(
             FLAGS.control_agent))
+
+    if FLAGS.evaluate_control:
+        pylot.operator_creator.add_control_evaluation(can_bus_stream,
+                                                      waypoints_stream)
     return control_stream

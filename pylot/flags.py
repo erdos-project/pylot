@@ -125,6 +125,8 @@ flags.DEFINE_bool('evaluate_obstacle_tracking', False,
                   'True to enable object tracking evaluation')
 flags.DEFINE_bool('evaluate_prediction', False,
                   'True to enable prediction evaluation')
+flags.DEFINE_bool('evaluate_control', False,
+                  'True to enable control evaluation')
 flags.DEFINE_bool('evaluate_fusion', False, 'True to enable fusion evaluation')
 flags.DEFINE_bool('evaluate_segmentation', False,
                   'True to enable segmentation evaluation')

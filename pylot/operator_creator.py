@@ -180,6 +180,18 @@ def add_detection_evaluation(obstacles_stream,
                   [obstacles_stream, ground_obstacles_stream], FLAGS)
 
 
+def add_control_evaluation(can_bus_stream,
+                           waypoints_stream,
+                           name='control_eval_operator'):
+    from pylot.control.control_eval_operator import ControlEvalOperator
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(ControlEvalOperator, op_config,
+                  [can_bus_stream, waypoints_stream], FLAGS)
+
+
 def add_traffic_light_detector(traffic_light_camera_stream):
     op_config = erdos.OperatorConfig(name='traffic_light_detector_operator',
                                      log_file_name=FLAGS.log_file_name,
