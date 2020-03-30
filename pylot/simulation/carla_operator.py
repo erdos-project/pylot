@@ -192,7 +192,10 @@ class CarlaOperator(erdos.Operator):
 
     def _tick_simulator(self):
         if (self._flags.carla_mode == 'asynchronous'
-                or self._flags.carla_step_frequency == -1):
+                or self._flags.carla_mode == 'asynchronous-fixed-time-step'):
+            # No need to tick when running in these modes.
+            return
+        if self._flags.carla_step_frequency == -1:
             # Run as fast as possible.
             self._world.tick()
             return

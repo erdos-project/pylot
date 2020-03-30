@@ -78,7 +78,7 @@ def set_simulation_mode(world, flags):
     elif flags.carla_mode == 'asynchronous-fixed-time-step':
         set_asynchronous_fixed_time_step_mode(world, flags.carla_fps)
     elif flags.carla_mode == 'asynchronous':
-        set_asynchronous_mode(world, flags.carla_fps)
+        set_asynchronous_mode(world)
     else:
         raise ValueError('Unexpected simulation mode {}'.format(
             flags.carla_mode))

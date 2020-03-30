@@ -53,21 +53,24 @@ class CarlaIMUDriverOperator(erdos.Operator):
         Args:
             imu_msg: carla.IMUMeasurement
         """
-        with self._lock:
-            game_time = int(imu_msg.timestamp * 1000)
-            timestamp = erdos.Timestamp(coordinates=[game_time])
-            watermark_msg = erdos.WatermarkMessage(timestamp)
-
-            msg = IMUMessage(timestamp,
-                             Transform.from_carla_transform(imu_msg.transform),
-                             Vector3D.from_carla_vector(imu_msg.accelerometer),
-                             Vector3D.from_carla_vector(imu_msg.gyroscope),
-                             imu_msg.compass)
-            self._imu_stream.send(msg)
-            # Note: The operator is set not to automatically propagate
-            # watermark messages received on input streams. Thus, we can
-            # issue watermarks only after the Carla callback is invoked.
-            self._imu_stream.send(watermark_msg)
+        game_time = int(imu_msg.timestamp * 1000)
+        with erdos.profile(self.config.name + '.process_imu',
+                           self,
+                           event_data={'timestamp': str(game_time)}):
+            with self._lock:
+                timestamp = erdos.Timestamp(coordinates=[game_time])
+                watermark_msg = erdos.WatermarkMessage(timestamp)
+                msg = IMUMessage(
+                    timestamp,
+                    Transform.from_carla_transform(imu_msg.transform),
+                    Vector3D.from_carla_vector(imu_msg.accelerometer),
+                    Vector3D.from_carla_vector(imu_msg.gyroscope),
+                    imu_msg.compass)
+                self._imu_stream.send(msg)
+                # Note: The operator is set not to automatically propagate
+                # watermark messages received on input streams. Thus, we can
+                # issue watermarks only after the Carla callback is invoked.
+                self._imu_stream.send(watermark_msg)
 
     def run(self):
         # Read the vehicle id from the vehicle id stream

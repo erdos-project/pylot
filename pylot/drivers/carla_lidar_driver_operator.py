@@ -43,31 +43,35 @@ class CarlaLidarDriverOperator(erdos.Operator):
         lidar_stream = erdos.WriteStream()
         return [lidar_stream]
 
-    @erdos.profile_method()
     def process_point_clouds(self, carla_pc):
         """ Invoked when a pointcloud is received from the simulator.
 
         Args:
             carla_pc: a carla.SensorData object.
         """
-        # Ensure that the code executes serially
-        with self._lock:
-            game_time = int(carla_pc.timestamp * 1000)
-            timestamp = erdos.Timestamp(coordinates=[game_time])
-            watermark_msg = erdos.WatermarkMessage(timestamp)
-            assert len(carla_pc.raw_data) > 0, 'Lidar did not send any points'
-            # Include the transform relative to the vehicle.
-            # Carla carla_pc.transform returns the world transform, but
-            # we do not use it directly.
-            msg = PointCloudMessage(
-                timestamp,
-                PointCloud.from_carla_point_cloud(carla_pc, self._lidar_setup))
+        game_time = int(carla_pc.timestamp * 1000)
+        with erdos.profile(self.config.name + '.process_point_clouds',
+                           self,
+                           event_data={'timestamp': str(game_time)}):
+            # Ensure that the code executes serially
+            with self._lock:
+                timestamp = erdos.Timestamp(coordinates=[game_time])
+                watermark_msg = erdos.WatermarkMessage(timestamp)
+                assert len(
+                    carla_pc.raw_data) > 0, 'Lidar did not send any points'
+                # Include the transform relative to the vehicle.
+                # Carla carla_pc.transform returns the world transform, but
+                # we do not use it directly.
+                msg = PointCloudMessage(
+                    timestamp,
+                    PointCloud.from_carla_point_cloud(carla_pc,
+                                                      self._lidar_setup))
 
-            self._lidar_stream.send(msg)
-            # Note: The operator is set not to automatically propagate
-            # watermark messages received on input streams. Thus, we can
-            # issue watermarks only after the Carla callback is invoked.
-            self._lidar_stream.send(watermark_msg)
+                self._lidar_stream.send(msg)
+                # Note: The operator is set not to automatically propagate
+                # watermark messages received on input streams. Thus, we can
+                # issue watermarks only after the Carla callback is invoked.
+                self._lidar_stream.send(watermark_msg)
 
     def run(self):
         # Read the vehicle id from the vehicle id stream

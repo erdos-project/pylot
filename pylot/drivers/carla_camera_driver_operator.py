@@ -75,7 +75,7 @@ class CarlaCameraDriverOperator(erdos.Operator):
         camera_blueprint.set_attribute('image_size_y',
                                        str(self._camera_setup.height))
         camera_blueprint.set_attribute('fov', str(self._camera_setup.fov))
-
+        camera_blueprint.set_attribute('sensor_tick', '0.0')
         transform = self._camera_setup.get_transform().as_carla_transform()
 
         self._logger.debug("Spawning a camera: {}".format(self._camera_setup))
@@ -91,42 +91,44 @@ class CarlaCameraDriverOperator(erdos.Operator):
         # while True:
         #     time.sleep(0.01)
 
-    @erdos.profile_method()
     def process_images(self, carla_image):
         """ Invoked when an image is received from the simulator.
 
         Args:
             carla_image: a carla.Image.
         """
-        # Ensure that the code executes serially
-        with self._lock:
-            game_time = int(carla_image.timestamp * 1000)
-            timestamp = erdos.Timestamp(coordinates=[game_time])
-            watermark_msg = erdos.WatermarkMessage(timestamp)
+        game_time = int(carla_image.timestamp * 1000)
+        with erdos.profile(self.config.name + '.process_images',
+                           self,
+                           event_data={'timestamp': str(game_time)}):
+            # Ensure that the code executes serially
+            with self._lock:
+                timestamp = erdos.Timestamp(coordinates=[game_time])
+                watermark_msg = erdos.WatermarkMessage(timestamp)
 
-            msg = None
-            if self._camera_setup.camera_type == 'sensor.camera.rgb':
-                msg = FrameMessage(
-                    timestamp,
-                    CameraFrame.from_carla_frame(carla_image,
-                                                 self._camera_setup))
-            elif self._camera_setup.camera_type == 'sensor.camera.depth':
-                # Include the transform relative to the vehicle.
-                # Carla carla_image.transform returns the world transform, but
-                # we do not use it directly.
-                msg = DepthFrameMessage(
-                    timestamp,
-                    DepthFrame.from_carla_frame(carla_image,
-                                                self._camera_setup))
-            elif self._camera_setup.camera_type == \
-                 'sensor.camera.semantic_segmentation':
-                msg = SegmentedFrameMessage(
-                    timestamp,
-                    SegmentedFrame.from_carla_image(carla_image,
+                msg = None
+                if self._camera_setup.camera_type == 'sensor.camera.rgb':
+                    msg = FrameMessage(
+                        timestamp,
+                        CameraFrame.from_carla_frame(carla_image,
+                                                     self._camera_setup))
+                elif self._camera_setup.camera_type == 'sensor.camera.depth':
+                    # Include the transform relative to the vehicle.
+                    # Carla carla_image.transform returns the world transform,
+                    # but we do not use it directly.
+                    msg = DepthFrameMessage(
+                        timestamp,
+                        DepthFrame.from_carla_frame(carla_image,
                                                     self._camera_setup))
-            # Send the message containing the frame.
-            self._camera_stream.send(msg)
-            # Note: The operator is set not to automatically propagate
-            # watermark messages received on input streams. Thus, we can
-            # issue watermarks only after the Carla callback is invoked.
-            self._camera_stream.send(watermark_msg)
+                elif self._camera_setup.camera_type == \
+                     'sensor.camera.semantic_segmentation':
+                    msg = SegmentedFrameMessage(
+                        timestamp,
+                        SegmentedFrame.from_carla_image(
+                            carla_image, self._camera_setup))
+                # Send the message containing the frame.
+                self._camera_stream.send(msg)
+                # Note: The operator is set not to automatically propagate
+                # watermark messages received on input streams. Thus, we can
+                # issue watermarks only after the Carla callback is invoked.
+                self._camera_stream.send(watermark_msg)
