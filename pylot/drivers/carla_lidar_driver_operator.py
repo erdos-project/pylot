@@ -83,7 +83,7 @@ class CarlaLidarDriverOperator(erdos.Operator):
                              self._flags.carla_timeout)
         if world is None:
             raise ValueError("There was an issue connecting to the simulator.")
-        if self._flags.carla_synchronous_mode:
+        if self._flags.carla_mode == 'synchronous':
             set_synchronous_mode(world, self._flags.carla_fps)
 
         self._vehicle = get_vehicle_handle(world, vehicle_id)

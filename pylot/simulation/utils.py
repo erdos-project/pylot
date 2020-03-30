@@ -71,6 +71,19 @@ def get_weathers():
     return weathers
 
 
+def set_simulation_mode(world, flags):
+    # Turn on the synchronous mode so we can control the simulation.
+    if flags.carla_mode == 'synchronous':
+        set_synchronous_mode(world, flags.carla_fps)
+    elif flags.carla_mode == 'asynchronous-fixed-time-step':
+        set_asynchronous_fixed_time_step_mode(world, flags.carla_fps)
+    elif flags.carla_mode == 'asynchronous':
+        set_asynchronous_mode(world, flags.carla_fps)
+    else:
+        raise ValueError('Unexpected simulation mode {}'.format(
+            flags.carla_mode))
+
+
 def set_synchronous_mode(world, fps):
     """Sets Carla to run in synchronous mode.
 
@@ -81,6 +94,13 @@ def set_synchronous_mode(world, fps):
     """
     settings = world.get_settings()
     settings.synchronous_mode = True
+    settings.fixed_delta_seconds = 1.0 / fps
+    world.apply_settings(settings)
+
+
+def set_asynchronous_fixed_time_step_mode(world, fps):
+    settings = world.get_settings()
+    settings.synchronous_mode = False
     settings.fixed_delta_seconds = 1.0 / fps
     world.apply_settings(settings)
 

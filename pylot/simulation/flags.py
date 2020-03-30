@@ -10,8 +10,10 @@ flags.DEFINE_string('carla_host', 'localhost', 'Carla host.')
 flags.DEFINE_integer('carla_port', 2000, 'Carla port.')
 flags.DEFINE_integer('carla_timeout', 10,
                      'Timeout for connecting to the Carla simulator.')
-flags.DEFINE_bool('carla_synchronous_mode', True,
-                  'Run Carla in synchronous mode.')
+flags.DEFINE_enum(
+    'carla_mode', 'synchronous',
+    ['synchronous', 'asynchronous', 'asynchronous-fixed-time-step'],
+    'Sets the way in which to run the simulator')
 flags.DEFINE_bool('carla_scenario_runner', False,
                   'True to enable running a scenario.')
 flags.DEFINE_integer('carla_town', 1, 'Sets which Carla town to use.')
@@ -23,11 +25,12 @@ flags.DEFINE_float(
     'commands should be applied as fast as possible.')
 flags.DEFINE_integer('carla_num_vehicles', 20, 'Carla num vehicles.')
 flags.DEFINE_integer('carla_num_people', 40, 'Carla num people.')
-flags.DEFINE_string(
-    'carla_weather', 'ClearNoon',
-    'Carla Weather Presets: ClearNoon, ClearSunset, CloudyNoon, CloudySunset, '
-    'HardRainNoon, HardRainSunset, MidRainSunset, MidRainyNoon, SoftRainNoon, '
-    'SoftRainSunset, WetCloudyNoon, WetCloudySunset, WetNoon, WetSunset')
+flags.DEFINE_enum('carla_weather', 'ClearNoon', [
+    'ClearNoon', 'ClearSunset', 'CloudyNoon', 'CloudySunset', 'HardRainNoon',
+    'HardRainSunset', 'MidRainSunset', 'MidRainyNoon', 'SoftRainNoon',
+    'SoftRainSunset', 'WetCloudyNoon', 'WetCloudySunset', 'WetNoon',
+    'WetSunset'
+], 'Carla Weather Presets')
 flags.DEFINE_integer(
     'carla_spawn_point_index', -1,
     'Index of spawn point where to place ego vehicle. -1 to randomly assign.')

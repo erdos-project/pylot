@@ -8,7 +8,7 @@ import pylot.utils
 from pylot.perception.messages import ObstaclesMessage, SpeedSignsMessage, \
     StopSignsMessage, TrafficLightsMessage
 from pylot.simulation.utils import extract_data_in_pylot_format, \
-    get_weathers, get_world, reset_world, set_synchronous_mode
+    get_weathers, get_world, reset_world, set_simulation_mode
 
 
 class CarlaOperator(erdos.Operator):
@@ -64,9 +64,7 @@ class CarlaOperator(erdos.Operator):
         self._spectator = self._world.get_spectator()
         self._send_world_messages()
 
-        # Turn on the synchronous mode so we can control the simulation.
-        if self._flags.carla_synchronous_mode:
-            set_synchronous_mode(self._world, self._flags.carla_fps)
+        set_simulation_mode(self._world, self._flags)
 
         if self._flags.carla_scenario_runner:
             # Waits until the ego vehicle is spawned by the scenario runner.
@@ -193,7 +191,7 @@ class CarlaOperator(erdos.Operator):
             self._driving_vehicle.apply_physics_control(physics_control)
 
     def _tick_simulator(self):
-        if (not self._flags.carla_synchronous_mode
+        if (self._flags.carla_mode == 'asynchronous'
                 or self._flags.carla_step_frequency == -1):
             # Run as fast as possible.
             self._world.tick()
@@ -361,7 +359,6 @@ class CarlaOperator(erdos.Operator):
             driving_vehicle.set_autopilot(True)
         return driving_vehicle
 
-    @erdos.profile_method()
     def publish_world_data(self, msg):
         """ Callback function that gets called when the world is ticked.
         This function sends a WatermarkMessage to the downstream operators as
@@ -372,11 +369,13 @@ class CarlaOperator(erdos.Operator):
         """
         game_time = int(msg.elapsed_seconds * 1000)
         self._logger.info('The world is at the timestamp {}'.format(game_time))
-        # Create a timestamp and send a WatermarkMessage on the output stream.
-        timestamp = erdos.Timestamp(coordinates=[game_time])
-        watermark_msg = erdos.WatermarkMessage(timestamp)
-        self.__publish_hero_vehicle_data(timestamp, watermark_msg)
-        self.__publish_ground_actors_data(timestamp, watermark_msg)
+        with erdos.profile(self.config.name + '.publish_world_data',
+                           self,
+                           event_data={'timestamp': str(game_time)}):
+            timestamp = erdos.Timestamp(coordinates=[game_time])
+            watermark_msg = erdos.WatermarkMessage(timestamp)
+            self.__publish_hero_vehicle_data(timestamp, watermark_msg)
+            self.__publish_ground_actors_data(timestamp, watermark_msg)
 
     def run(self):
         # Register a callback function and a function that ticks the world.
@@ -393,11 +392,10 @@ class CarlaOperator(erdos.Operator):
         # give them sufficient time to register a callback.
         time.sleep(3)
         self._tick_simulator()
-        time.sleep(3)
+        time.sleep(5)
         self._world.on_tick(self.publish_world_data)
         self._tick_simulator()
 
-    @erdos.profile_method()
     def __publish_hero_vehicle_data(self, timestamp, watermark_msg):
         vec_transform = pylot.utils.Transform.from_carla_transform(
             self._driving_vehicle.get_transform())
