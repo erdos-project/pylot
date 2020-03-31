@@ -4,63 +4,6 @@ import copy
 import erdos
 
 import pylot.utils
-# Control operators.
-from pylot.control.mpc.mpc_agent_operator import MPCAgentOperator
-from pylot.control.pid_agent_operator import PIDAgentOperator
-# Visualizing operators.
-from pylot.debug.camera_visualizer_operator import CameraVisualizerOperator
-from pylot.debug.pose_visualizer_operator import PoseVisualizerOperator
-from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
-from pylot.debug.track_visualizer_operator import TrackVisualizerOperator
-from pylot.debug.waypoint_visualizer_operator import WaypointVisualizerOperator
-# Sensor setups.
-from pylot.drivers.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
-    SegmentedCameraSetup
-# Logging operators.
-from pylot.loggers.bounding_box_logger_operator import \
-    BoundingBoxLoggerOperator
-from pylot.loggers.camera_logger_operator import CameraLoggerOperator
-from pylot.loggers.imu_logger_operator import IMULoggerOperator
-from pylot.loggers.lidar_logger_operator import LidarLoggerOperator
-from pylot.loggers.multiple_object_tracker_logger_operator import \
-    MultipleObjectTrackerLoggerOperator
-from pylot.loggers.trajectory_logger_operator import TrajectoryLoggerOperator
-# Perception operators.
-from pylot.perception.detection.detection_decay_operator import \
-    DetectionDecayOperator
-from pylot.perception.detection.detection_eval_operator import \
-    DetectionEvalOperator
-from pylot.perception.detection.detection_operator import DetectionOperator
-from pylot.perception.detection.lane_detection_canny_operator import \
-    CannyEdgeLaneDetectionOperator
-from pylot.perception.detection.obstacle_location_finder_operator import \
-    ObstacleLocationFinderOperator
-from pylot.perception.detection.traffic_light_det_operator import \
-    TrafficLightDetOperator
-from pylot.perception.fusion.fusion_operator import FusionOperator
-from pylot.perception.fusion.fusion_verification_operator import \
-    FusionVerificationOperator
-from pylot.perception.segmentation.segmentation_decay_operator import \
-    SegmentationDecayOperator
-from pylot.perception.segmentation.segmentation_drn_operator import\
-    SegmentationDRNOperator
-from pylot.perception.segmentation.segmentation_eval_operator import \
-    SegmentationEvalOperator
-from pylot.perception.tracking.object_tracker_operator import \
-    ObjectTrackerOperator
-from pylot.perception.tracking.obstacle_location_history_operator import \
-    ObstacleLocationHistoryOperator
-from pylot.perception.tracking.tracking_eval_operator import \
-    TrackingEvalOperator
-# Planning operators.
-from pylot.planning.frenet_optimal_trajectory.fot_planning_operator \
-    import FOTPlanningOperator
-from pylot.planning.waypoint_planning_operator import WaypointPlanningOperator
-# Prediction operators.
-from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
-from pylot.prediction.prediction_eval_operator import PredictionEvalOperator
-from pylot.simulation.synchronizer_operator import SynchronizerOperator
-
 FLAGS = flags.FLAGS
 
 
@@ -74,6 +17,7 @@ def add_carla_bridge(control_stream):
 
 
 def add_obstacle_detection(camera_stream, csv_file_name=None):
+    from pylot.perception.detection.detection_operator import DetectionOperator
     obstacles_streams = []
     if csv_file_name is None:
         csv_file_name = FLAGS.csv_log_file_name
@@ -112,6 +56,8 @@ def add_obstacle_location_finder(obstacles_stream, depth_stream, pose_stream,
         :py:class:`~pylot.perception.messages.ObstaclesMessage` messages with
         world locations are published.
     """
+    from pylot.perception.detection.obstacle_location_finder_operator import \
+        ObstacleLocationFinderOperator
     op_config = erdos.OperatorConfig(name=camera_setup.get_name() +
                                      '_location_finder_operator',
                                      log_file_name=FLAGS.log_file_name,
@@ -147,6 +93,8 @@ def add_obstacle_location_history(obstacles_stream, depth_stream, pose_stream,
         :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
         messages are published.
     """
+    from pylot.perception.tracking.obstacle_location_history_operator import \
+        ObstacleLocationHistoryOperator
     op_config = erdos.OperatorConfig(name=camera_setup.get_name() +
                                      '_location_finder_history_operator',
                                      log_file_name=FLAGS.log_file_name,
@@ -160,6 +108,8 @@ def add_obstacle_location_history(obstacles_stream, depth_stream, pose_stream,
 
 
 def add_detection_decay(ground_obstacles_stream):
+    from pylot.perception.detection.detection_decay_operator import \
+        DetectionDecayOperator
     op_config = erdos.OperatorConfig(name='detection_decay_operator',
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -172,6 +122,8 @@ def add_detection_decay(ground_obstacles_stream):
 def add_detection_evaluation(obstacles_stream,
                              ground_obstacles_stream,
                              name='detection_eval_operator'):
+    from pylot.perception.detection.detection_eval_operator import \
+        DetectionEvalOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -193,6 +145,8 @@ def add_control_evaluation(pose_stream,
 
 
 def add_traffic_light_detector(traffic_light_camera_stream):
+    from pylot.perception.detection.traffic_light_det_operator import \
+        TrafficLightDetOperator
     op_config = erdos.OperatorConfig(name='traffic_light_detector_operator',
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -205,6 +159,8 @@ def add_traffic_light_detector(traffic_light_camera_stream):
 
 def add_canny_edge_lane_detection(bgr_camera_stream,
                                   name='canny_edge_lane_detection'):
+    from pylot.perception.detection.lane_detection_canny_operator import \
+        CannyEdgeLaneDetectionOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -218,6 +174,8 @@ def add_canny_edge_lane_detection(bgr_camera_stream,
 def add_obstacle_tracking(obstacles_stream,
                           bgr_camera_stream,
                           name_prefix='tracker_'):
+    from pylot.perception.tracking.object_tracker_operator import \
+        ObjectTrackerOperator
     op_config = erdos.OperatorConfig(name=name_prefix + FLAGS.tracker_type,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -233,6 +191,8 @@ def add_obstacle_tracking(obstacles_stream,
 def add_tracking_evaluation(obstacle_tracking_stream,
                             ground_obstacles_stream,
                             name='tracking_eval_operator'):
+    from pylot.perception.tracking.tracking_eval_operator import \
+        TrackingEvalOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -263,6 +223,8 @@ def add_depth_estimation(left_camera_stream,
 
 
 def add_segmentation(bgr_camera_stream, name='drn_segmentation_operator'):
+    from pylot.perception.segmentation.segmentation_drn_operator import\
+        SegmentationDRNOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -275,6 +237,8 @@ def add_segmentation(bgr_camera_stream, name='drn_segmentation_operator'):
 def add_segmentation_evaluation(ground_segmented_stream,
                                 segmented_stream,
                                 name='segmentation_evaluation_operator'):
+    from pylot.perception.segmentation.segmentation_eval_operator import \
+        SegmentationEvalOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -285,6 +249,8 @@ def add_segmentation_evaluation(ground_segmented_stream,
 
 def add_segmentation_decay(ground_segmented_stream,
                            name='segmentation_decay_operator'):
+    from pylot.perception.segmentation.segmentation_decay_operator import \
+        SegmentationDecayOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -295,6 +261,8 @@ def add_segmentation_decay(ground_segmented_stream,
 
 
 def add_linear_prediction(tracking_stream):
+    from pylot.prediction.linear_predictor_operator import \
+            LinearPredictorOperator
     op_config = erdos.OperatorConfig(name='linear_prediction_operator',
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -308,6 +276,8 @@ def add_prediction_evaluation(pose_stream,
                               tracking_stream,
                               prediction_stream,
                               name='prediction_eval_operator'):
+    from pylot.prediction.prediction_eval_operator import \
+            PredictionEvalOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -322,6 +292,8 @@ def add_fot_planning(pose_stream,
                      open_drive_stream,
                      goal_location,
                      name='fot_planning_operator'):
+    from pylot.planning.frenet_optimal_trajectory.fot_planning_operator \
+        import FOTPlanningOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -359,6 +331,8 @@ def add_waypoint_planning(pose_stream,
                           traffic_lights_stream,
                           goal_location,
                           name='waypoint_planning_operator'):
+    from pylot.planning.waypoint_planning_operator import \
+            WaypointPlanningOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -374,6 +348,7 @@ def add_rgb_camera(transform,
                    vehicle_id_stream,
                    name='center_rgb_camera',
                    fov=90):
+    from pylot.drivers.sensor_setup import RGBCameraSetup
     rgb_camera_setup = RGBCameraSetup(name, FLAGS.carla_camera_image_width,
                                       FLAGS.carla_camera_image_height,
                                       transform, fov)
@@ -385,6 +360,7 @@ def add_depth_camera(transform,
                      vehicle_id_stream,
                      name='center_depth_camera',
                      fov=90):
+    from pylot.drivers.sensor_setup import DepthCameraSetup
     depth_camera_setup = DepthCameraSetup(name, FLAGS.carla_camera_image_width,
                                           FLAGS.carla_camera_image_height,
                                           transform, fov)
@@ -397,6 +373,7 @@ def add_segmented_camera(transform,
                          vehicle_id_stream,
                          name='center_segmented_camera',
                          fov=90):
+    from pylot.drivers.sensor_setup import SegmentedCameraSetup
     segmented_camera_setup = SegmentedCameraSetup(
         name, FLAGS.carla_camera_image_width, FLAGS.carla_camera_image_height,
         transform, fov)
@@ -471,6 +448,9 @@ def add_imu(transform, vehicle_id_stream, name='imu'):
 
 def add_fusion(pose_stream, obstacles_stream, depth_stream,
                ground_obstacles_stream):
+    from pylot.perception.fusion.fusion_operator import FusionOperator
+    from pylot.perception.fusion.fusion_verification_operator import \
+        FusionVerificationOperator
     op_config = erdos.OperatorConfig(name='fusion_operator',
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -491,6 +471,7 @@ def add_fusion(pose_stream, obstacles_stream, depth_stream,
 
 
 def add_mpc_agent(pose_stream, waypoints_stream):
+    from pylot.control.mpc.mpc_agent_operator import MPCAgentOperator
     op_config = erdos.OperatorConfig(name='mpc_agent_operator',
                                      flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
@@ -502,6 +483,7 @@ def add_mpc_agent(pose_stream, waypoints_stream):
 
 
 def add_pid_agent(pose_stream, waypoints_stream):
+    from pylot.control.pid_agent_operator import PIDAgentOperator
     op_config = erdos.OperatorConfig(name='pid_agent_operator',
                                      flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
@@ -513,6 +495,7 @@ def add_pid_agent(pose_stream, waypoints_stream):
 
 
 def add_synchronizer(stream_to_sync_on):
+    from pylot.simulation.synchronizer_operator import SynchronizerOperator
     op_config = erdos.OperatorConfig(name='synchronizer_operator',
                                      flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
@@ -525,6 +508,8 @@ def add_synchronizer(stream_to_sync_on):
 
 def add_bounding_box_logging(obstacles_stream,
                              name='bounding_box_logger_operator'):
+    from pylot.loggers.bounding_box_logger_operator import \
+            BoundingBoxLoggerOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -534,6 +519,7 @@ def add_bounding_box_logging(obstacles_stream,
 
 
 def add_camera_logging(stream, name, filename_prefix):
+    from pylot.loggers.camera_logger_operator import CameraLoggerOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -569,6 +555,7 @@ def add_carla_collision_logging(vehicle_id_stream, pose_stream):
 
 
 def add_imu_logging(imu_stream, name='imu_logger_operator'):
+    from pylot.loggers.imu_logger_operator import IMULoggerOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -579,6 +566,7 @@ def add_imu_logging(imu_stream, name='imu_logger_operator'):
 def add_lidar_logging(point_cloud_stream,
                       name='lidar_logger_operator',
                       filename_prefix='carla-lidar-'):
+    from pylot.loggers.lidar_logger_operator import LidarLoggerOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -588,7 +576,9 @@ def add_lidar_logging(point_cloud_stream,
 
 
 def add_multiple_object_tracker_logging(
-    obstacles_stream, name='multiple_object_tracker_logger_operator'):
+        obstacles_stream, name='multiple_object_tracker_logger_operator'):
+    from pylot.loggers.multiple_object_tracker_logger_operator import \
+        MultipleObjectTrackerLoggerOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -599,6 +589,8 @@ def add_multiple_object_tracker_logging(
 
 def add_trajectory_logging(obstacles_tracking_stream,
                            name='trajectory_logger_operator'):
+    from pylot.loggers.trajectory_logger_operator import \
+            TrajectoryLoggerOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -626,6 +618,7 @@ def add_sensor_visualizers(camera_stream, depth_camera_stream,
 
 
 def add_lidar_visualizer(point_cloud_stream, name='lidar_visualizer_operator'):
+    from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -634,6 +627,7 @@ def add_lidar_visualizer(point_cloud_stream, name='lidar_visualizer_operator'):
 
 
 def add_camera_visualizer(camera_stream, name):
+    from pylot.debug.camera_visualizer_operator import CameraVisualizerOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -651,6 +645,7 @@ def add_imu_visualizer(imu_stream, name='imu_visualizer_operator'):
 
 
 def add_pose_visualizer(pose_stream, name='pose_visualizer_operator'):
+    from pylot.debug.pose_visualizer_operator import PoseVisualizerOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -663,6 +658,7 @@ def add_prediction_visualizer(obstacle_tracking_stream,
                               vehicle_id_stream,
                               camera_transform,
                               name='top_down_tracking_visualizer_operator'):
+    from pylot.debug.track_visualizer_operator import TrackVisualizerOperator
     top_down_transform = pylot.utils.get_top_down_transform(
         camera_transform, FLAGS.top_down_lateral_view)
     (top_down_segmented_camera_stream,
@@ -686,6 +682,8 @@ def add_waypoint_visualizer(waypoints_stream,
                             camera_stream,
                             pose_stream,
                             name='waypoint_visualizer_operator'):
+    from pylot.debug.waypoint_visualizer_operator import\
+            WaypointVisualizerOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
