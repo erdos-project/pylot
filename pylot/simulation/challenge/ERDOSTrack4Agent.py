@@ -2,7 +2,6 @@ from absl import flags
 import carla
 import erdos
 import math
-import sys
 import numpy as np
 
 import pylot.flags
@@ -105,8 +104,8 @@ class ERDOSTrack4Agent(AutonomousAgent):
         if not self._sent_open_drive:
             # We do not have access to the open drive map. Send top watermark.
             self._sent_open_drive = True
-            top_timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
-            self._open_drive_stream.send(erdos.WatermarkMessage(top_timestamp))
+            self._open_drive_stream.send(
+                erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
         self.send_waypoints_msg(erdos_timestamp)
 
@@ -356,8 +355,7 @@ class ERDOSTrack4Agent(AutonomousAgent):
                     for (transform, road_option) in self._waypoints]
             self._global_trajectory_stream.send(erdos.Message(timestamp, data))
             self._global_trajectory_stream.send(
-                erdos.WatermarkMessage(
-                    erdos.Timestamp(coordinates=[sys.maxsize])))
+                erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
 
 def create_data_flow():

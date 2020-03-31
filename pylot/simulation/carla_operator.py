@@ -1,7 +1,6 @@
 import carla
 import erdos
 import random
-import sys
 import time
 
 import pylot.utils
@@ -118,7 +117,7 @@ class CarlaOperator(erdos.Operator):
     def _send_world_messages(self):
         """ Sends initial open drive and trajectory messages."""
         # Send open drive string.
-        top_timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
+        top_timestamp = erdos.Timestamp(is_top=True)
         self.open_drive_stream.send(
             erdos.Message(top_timestamp,
                           self._world.get_map().to_opendrive()))
@@ -381,8 +380,7 @@ class CarlaOperator(erdos.Operator):
 
     def run(self):
         # Register a callback function and a function that ticks the world.
-        # TODO(ionel): We do not currently have a top message.
-        timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
+        timestamp = erdos.Timestamp(is_top=True)
         self.vehicle_id_stream.send(
             erdos.Message(timestamp, self._driving_vehicle.id))
         self.vehicle_id_stream.send(erdos.WatermarkMessage(timestamp))
