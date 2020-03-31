@@ -6,23 +6,23 @@ import pylot.utils
 DEFAULT_VIS_TIME = 30000.0
 
 
-class CanBusVisualizerOperator(erdos.Operator):
-    """ CanBusVisualizerOperator visualizes the CanBus locations.
+class PoseVisualizerOperator(erdos.Operator):
+    """ PoseVisualizerOperator visualizes the Pose locations.
 
-    This operator listens on the `can_bus` feed and draws the locations on the
+    This operator listens on the pose stream and draws the locations on the
     world simulation screen.
 
     Attributes:
         _world: A handle to the world to draw the locations on.
     """
-    def __init__(self, can_bus_stream, flags):
-        can_bus_stream.add_callback(self.on_can_bus_update)
+    def __init__(self, pose_stream, flags):
+        pose_stream.add_callback(self.on_pose_update)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
 
     @staticmethod
-    def connect(can_bus_stream):
+    def connect(pose_stream):
         return []
 
     def run(self):
@@ -36,12 +36,12 @@ class CanBusVisualizerOperator(erdos.Operator):
         if self._world is None:
             raise ValueError("Error connecting to the simulator.")
 
-    def on_can_bus_update(self, msg):
+    def on_pose_update(self, msg):
         """ The callback function that gets called upon receipt of the
-        CanBus location to be drawn on the screen.
+        Pose location to be drawn on the screen.
 
         Args:
-            msg: CanBus message
+            msg: Pose message
         """
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self.config.name))

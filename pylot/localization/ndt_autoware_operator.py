@@ -6,14 +6,14 @@ from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32
 from tf.transformations import euler_from_quaternion
 
-from pylot.utils import CanBus, Location, Rotation, Transform
+from pylot.utils import Location, Pose, Rotation, Transform
 
 NDT_FREQUENCY = 10
 
 
 class NDTAutowareOperator(erdos.Operator):
-    def __init__(self, can_bus_stream, flags, topic_name='/ndt_pose'):
-        self._can_bus_stream = can_bus_stream
+    def __init__(self, pose_stream, flags, topic_name='/ndt_pose'):
+        self._pose_stream = pose_stream
         self._flags = flags
         self._topic_name = topic_name
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -41,10 +41,10 @@ class NDTAutowareOperator(erdos.Operator):
         rotation = Rotation(np.degrees(pitch), np.degrees(yaw),
                             np.degrees(roll))
         timestamp = erdos.Timestamp(coordinates=[self._msg_cnt])
-        can_bus = CanBus(Transform(loc, rotation), self._forward_speed)
-        self._logger.debug('NDT localization {}'.format(can_bus))
-        self._can_bus_stream.send(erdos.Message(timestamp, can_bus))
-        self._can_bus_stream.send(erdos.WatermarkMessage(timestamp))
+        pose = Pose(Transform(loc, rotation), self._forward_speed)
+        self._logger.debug('NDT localization {}'.format(pose))
+        self._pose_stream.send(erdos.Message(timestamp, pose))
+        self._pose_stream.send(erdos.WatermarkMessage(timestamp))
         self._msg_cnt += 1
 
     def on_velocity_update(self, data):

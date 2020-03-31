@@ -10,7 +10,7 @@ class PerfectLaneDetectionOperator(erdos.Operator):
     """Operator that uses the Carla world to perfectly detect lanes.
 
     Args:
-        can_bus_stream (:py:class:`erdos.ReadStream`): Stream on which can bus
+        pose_stream (:py:class:`erdos.ReadStream`): Stream on which pose
             info is received.
         detected_lane_stream (:py:class:`erdos.WriteStream`): Stream on which
             the operator writes
@@ -18,16 +18,16 @@ class PerfectLaneDetectionOperator(erdos.Operator):
             messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, can_bus_stream, detected_lane_stream, flags):
-        can_bus_stream.add_callback(self.on_position_update,
-                                    [detected_lane_stream])
+    def __init__(self, pose_stream, detected_lane_stream, flags):
+        pose_stream.add_callback(self.on_position_update,
+                                 [detected_lane_stream])
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._waypoint_precision = 0.05
 
     @staticmethod
-    def connect(can_bus_stream):
+    def connect(pose_stream):
         detected_lane_stream = erdos.WriteStream()
         return [detected_lane_stream]
 
@@ -45,18 +45,18 @@ class PerfectLaneDetectionOperator(erdos.Operator):
         return pylot.utils.Location.from_carla_location(shifted)
 
     @erdos.profile_method()
-    def on_position_update(self, can_bus_msg, detected_lane_stream):
+    def on_position_update(self, pose_msg, detected_lane_stream):
         """ Invoked on the receipt of an update to the position of the vehicle.
 
         Uses the position of the vehicle to get future waypoints and draw
         lane markings using those waypoints.
 
         Args:
-            can_bus_msg: Contains the current location of the ego vehicle.
+            pose_msg: Contains the current location of the ego vehicle.
         """
-        self._logger.debug('@{}: received can bus message'.format(
-            can_bus_msg.timestamp))
-        vehicle_location = can_bus_msg.data.transform.location
+        self._logger.debug('@{}: received pose message'.format(
+            pose_msg.timestamp))
+        vehicle_location = pose_msg.data.transform.location
         lane_waypoints = []
         next_wp = [
             self._world_map.get_waypoint(vehicle_location.as_carla_location())
@@ -81,5 +81,5 @@ class PerfectLaneDetectionOperator(erdos.Operator):
             DetectedLane(left, right)
             for left, right in zip(left_markings, right_markings)
         ]
-        output_msg = DetectedLaneMessage(can_bus_msg.timestamp, detected_lanes)
+        output_msg = DetectedLaneMessage(pose_msg.timestamp, detected_lanes)
         detected_lane_stream.send(output_msg)

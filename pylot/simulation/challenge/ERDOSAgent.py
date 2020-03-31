@@ -55,11 +55,11 @@ class ERDOSAgent(AutonomousAgent):
         self._waypoints = None
         # Stores the open drive string we get when we run in track 3.
         self._open_drive_data = None
-        (camera_streams, can_bus_stream, global_trajectory_stream,
+        (camera_streams, pose_stream, global_trajectory_stream,
          open_drive_stream, point_cloud_stream,
          control_stream) = create_data_flow()
         self._camera_streams = camera_streams
-        self._can_bus_stream = can_bus_stream
+        self._pose_stream = pose_stream
         self._global_trajectory_stream = global_trajectory_stream
         self._open_drive_stream = open_drive_stream
         self._sent_open_drive = False
@@ -158,7 +158,7 @@ class ERDOSAgent(AutonomousAgent):
                 self._camera_streams[key].send(
                     erdos.WatermarkMessage(erdos_timestamp))
             elif key == 'can_bus':
-                self.send_can_bus_msg(val[1], erdos_timestamp)
+                self.send_pose_msg(val[1], erdos_timestamp)
             elif key == 'hdmap':
                 self.send_hd_map_msg(val[1], erdos_timestamp)
             elif key == 'LIDAR':
@@ -195,7 +195,7 @@ class ERDOSAgent(AutonomousAgent):
         # TODO: Send point cloud data.
         # pc_file = data['map_file']
 
-    def send_can_bus_msg(self, data, timestamp):
+    def send_pose_msg(self, data, timestamp):
         # The can bus dict contains other fields as well, but we don't use
         # them yet.
         vehicle_transform = pylot.utils.Transform.from_carla_transform(
@@ -204,12 +204,12 @@ class ERDOSAgent(AutonomousAgent):
         yaw = vehicle_transform.rotation.yaw
         velocity_vector = pylot.utils.Vector3D(forward_speed * np.cos(yaw),
                                                forward_speed * np.sin(yaw), 0)
-        self._can_bus_stream.send(
+        self._pose_stream.send(
             erdos.Message(
                 timestamp,
-                pylot.utils.CanBus(vehicle_transform, forward_speed,
-                                   velocity_vector)))
-        self._can_bus_stream.send(erdos.WatermarkMessage(timestamp))
+                pylot.utils.Pose(vehicle_transform, forward_speed,
+                                 velocity_vector)))
+        self._pose_stream.send(erdos.WatermarkMessage(timestamp))
 
     def send_lidar_msg(self, carla_pc, transform, timestamp):
         msg = pylot.perception.messages.PointCloudMessage(
@@ -253,7 +253,7 @@ def create_data_flow():
     camera_streams = {}
     for name in camera_setups:
         camera_streams[name] = erdos.IngestStream()
-    can_bus_stream = erdos.IngestStream()
+    pose_stream = erdos.IngestStream()
     global_trajectory_stream = erdos.IngestStream()
     open_drive_stream = erdos.IngestStream()
 
@@ -270,7 +270,7 @@ def create_data_flow():
         camera_streams[CENTER_CAMERA_NAME])[0]
     # Adds an operator that finds the world locations of the obstacles.
     obstacles_stream = pylot.operator_creator.add_obstacle_location_finder(
-        obstacles_stream, point_cloud_stream, can_bus_stream,
+        obstacles_stream, point_cloud_stream, pose_stream,
         camera_streams[CENTER_CAMERA_NAME], camera_setups[CENTER_CAMERA_NAME])
 
     traffic_lights_stream = pylot.operator_creator.add_traffic_light_detector(
@@ -278,11 +278,11 @@ def create_data_flow():
     # Adds an operator that finds the world locations of the traffic lights.
     traffic_lights_stream = \
         pylot.operator_creator.add_obstacle_location_finder(
-            traffic_lights_stream, point_cloud_stream, can_bus_stream,
+            traffic_lights_stream, point_cloud_stream, pose_stream,
             camera_streams[TL_CAMERA_NAME], camera_setups[TL_CAMERA_NAME])
 
     waypoints_stream = pylot.operator_creator.add_waypoint_planning(
-        can_bus_stream, open_drive_stream, global_trajectory_stream,
+        pose_stream, open_drive_stream, global_trajectory_stream,
         obstacles_stream, traffic_lights_stream, None)
 
     if FLAGS.visualize_rgb_camera:
@@ -290,9 +290,9 @@ def create_data_flow():
             camera_streams[CENTER_CAMERA_NAME], CENTER_CAMERA_NAME)
 
     control_stream = pylot.operator_creator.add_pid_agent(
-        can_bus_stream, waypoints_stream)
+        pose_stream, waypoints_stream)
     extract_control_stream = erdos.ExtractStream(control_stream)
-    return (camera_streams, can_bus_stream, global_trajectory_stream,
+    return (camera_streams, pose_stream, global_trajectory_stream,
             open_drive_stream, point_cloud_stream, extract_control_stream)
 
 

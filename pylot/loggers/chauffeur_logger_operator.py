@@ -24,7 +24,7 @@ TL_BBOX_LIFETIME_BUFFER = 0.1
 
 class ChauffeurLoggerOperator(erdos.Operator):
     """ Logs data in Chauffeur format. """
-    def __init__(self, vehicle_id_stream, can_bus_stream,
+    def __init__(self, vehicle_id_stream, pose_stream,
                  obstacle_tracking_stream, top_down_camera_stream,
                  top_down_segmentation_stream, flags, top_down_camera_setup):
         """ Initializes the operator with the given parameters.
@@ -35,7 +35,7 @@ class ChauffeurLoggerOperator(erdos.Operator):
             top_down_camera_setup: The setup of the top down camera.
         """
         vehicle_id_stream.add_callback(self.on_ground_vehicle_id_update)
-        can_bus_stream.add_callback(self.on_can_bus_update)
+        pose_stream.add_callback(self.on_pose_update)
         obstacle_tracking_stream.add_callback(self.on_tracking_update)
         top_down_camera_stream.add_callback(self.on_top_down_camera_update)
         top_down_segmentation_stream.add_callback(
@@ -51,7 +51,7 @@ class ChauffeurLoggerOperator(erdos.Operator):
         self._top_down_camera_setup = top_down_camera_setup
 
     @staticmethod
-    def connect(vehicle_id_stream, can_bus_stream, obstacle_tracking_stream,
+    def connect(vehicle_id_stream, pose_stream, obstacle_tracking_stream,
                 top_down_camera_stream, top_down_segmentation_stream):
         return []
 
@@ -162,7 +162,7 @@ class ChauffeurLoggerOperator(erdos.Operator):
     def on_ground_vehicle_id_update(self, msg):
         self._ground_vehicle_id = msg.data
 
-    def on_can_bus_update(self, msg):
+    def on_pose_update(self, msg):
         assert len(msg.timestamp.coordinates) == 1
         # Make sure transforms deque is full
         self._current_transform = msg.data.transform

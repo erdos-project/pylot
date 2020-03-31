@@ -73,8 +73,8 @@ def add_localization():
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [can_bus_stream] = erdos.connect(NDTAutowareOperator, op_config, [], FLAGS)
-    return can_bus_stream
+    [pose_stream] = erdos.connect(NDTAutowareOperator, op_config, [], FLAGS)
+    return pose_stream
 
 
 def add_drive_by_wire_operator(control_stream):
@@ -108,7 +108,7 @@ def create_data_flow():
      lidar_setup) = add_velodyne_lidar(velodyne_transform,
                                        topic_name='/points_raw')
 
-    can_bus_stream = add_localization()
+    pose_stream = add_localization()
 
     if FLAGS.obstacle_detection:
         obstacles_streams = pylot.operator_creator.add_obstacle_detection(
@@ -116,7 +116,7 @@ def create_data_flow():
         obstacles_stream = obstacles_streams[0]
         # Adds an operator that finds the world locations of the obstacles.
         obstacles_stream = pylot.operator_creator.add_obstacle_location_finder(
-            obstacles_stream, point_cloud_stream, can_bus_stream,
+            obstacles_stream, point_cloud_stream, pose_stream,
             left_camera_stream, left_camera_setup)
     else:
         obstacles_stream = erdos.IngestStream()
@@ -128,7 +128,7 @@ def create_data_flow():
         # Adds operator that finds the world locations of the traffic lights.
         traffic_lights_stream = \
             pylot.operator_creator.add_obstacle_location_finder(
-                traffic_lights_stream, point_cloud_stream, can_bus_stream,
+                traffic_lights_stream, point_cloud_stream, pose_stream,
                 right_camera_stream, right_camera_setup)
     else:
         traffic_lights_stream = erdos.IngestStream()
@@ -144,7 +144,7 @@ def create_data_flow():
         obstacles_tracking_stream = \
             pylot.operator_creator.add_obstacle_location_history(
                 obstacles_wo_history_tracking_stream, point_cloud_stream,
-                can_bus_stream, left_camera_stream, left_camera_setup)
+                pose_stream, left_camera_stream, left_camera_setup)
     else:
         obstacles_tracking_stream = erdos.IngestStream()
 
@@ -162,15 +162,15 @@ def create_data_flow():
 
     if FLAGS.planning_type == 'waypoint':
         waypoints_stream = pylot.operator_creator.add_waypoint_planning(
-            can_bus_stream, open_drive_stream, global_trajectory_stream,
+            pose_stream, open_drive_stream, global_trajectory_stream,
             obstacles_stream, traffic_lights_stream, None)
     elif FLAGS.planning_type == 'frenet_optimal_trajectory':
         waypoints_stream = pylot.operator_creator.add_fot_planning(
-            can_bus_stream, prediction_stream, global_trajectory_stream,
+            pose_stream, prediction_stream, global_trajectory_stream,
             open_drive_stream, None)
     elif FLAGS.planning_type == 'rrt_star':
         waypoints_stream = pylot.operator_creator.add_rrt_star_planning(
-            can_bus_stream, prediction_stream, global_trajectory_stream,
+            pose_stream, prediction_stream, global_trajectory_stream,
             open_drive_stream, None)
     else:
         raise ValueError('Unsupport planning type {}'.format(
@@ -178,7 +178,7 @@ def create_data_flow():
 
     if FLAGS.control_agent == 'pid':
         control_stream = pylot.operator_creator.add_pid_agent(
-            can_bus_stream, waypoints_stream)
+            pose_stream, waypoints_stream)
     else:
         raise ValueError('Only PID control is currently supported')
 
@@ -192,7 +192,7 @@ def create_data_flow():
     if FLAGS.visualize_waypoints:
         pylot.operator_creator.add_waypoint_visualizer(waypoints_stream,
                                                        left_camera_stream,
-                                                       can_bus_stream)
+                                                       pose_stream)
 
     return (obstacles_stream, traffic_lights_stream, obstacles_tracking_stream,
             open_drive_stream, global_trajectory_stream)

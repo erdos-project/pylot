@@ -101,7 +101,8 @@ flags.DEFINE_bool('visualize_lidar', False,
                   'True to enable CARLA Lidar visualizer operator')
 flags.DEFINE_bool('visualize_imu', False,
                   'True to enable CARLA IMU visualizer operator')
-flags.DEFINE_bool('visualize_can_bus', False, 'True to visualize can bus.')
+flags.DEFINE_bool('visualize_pose', False,
+                  'True to visualize ego-vehicle pose')
 
 ######################################################################
 # Visualizing flags for components.

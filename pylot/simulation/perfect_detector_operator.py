@@ -20,8 +20,8 @@ class PerfectDetectorOperator(erdos.Operator):
         segmented_camera__stream (:py:class:`erdos.ReadStream`): Stream on
             which :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
             are received.
-        can_bus_stream (:py:class:`erdos.ReadStream`):
-            Stream on which can bus info is received.
+        pose_stream (:py:class:`erdos.ReadStream`): Stream on which pose info
+            is received.
         ground_obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
             :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
             are received.
@@ -40,8 +40,8 @@ class PerfectDetectorOperator(erdos.Operator):
     Attributes:
         _bgr_msgs (:obj:`collections.deque`): Buffer of received ground BGR
             image messages.
-        _can_bus_msgs (:obj:`collections.deque`): Buffer of received ground
-            can bus messages.
+        _pose_msgs (:obj:`collections.deque`): Buffer of received ground
+            pose messages.
         _depth_frame_msgs (:obj:`collections.deque`): Buffer of received depth
             frame messages.
         _obstacles (:obj:`collections.deque`): Buffer of obstacle messages
@@ -55,13 +55,13 @@ class PerfectDetectorOperator(erdos.Operator):
         _frame_cnt (:obj:`int`): Number of messages received.
     """
     def __init__(self, depth_camera_stream, center_camera_stream,
-                 segmented_camera_stream, can_bus_stream,
-                 ground_obstacles_stream, ground_speed_limit_signs_stream,
-                 ground_stop_signs_stream, obstacles_stream, flags):
+                 segmented_camera_stream, pose_stream, ground_obstacles_stream,
+                 ground_speed_limit_signs_stream, ground_stop_signs_stream,
+                 obstacles_stream, flags):
         depth_camera_stream.add_callback(self.on_depth_camera_update)
         center_camera_stream.add_callback(self.on_bgr_camera_update)
         segmented_camera_stream.add_callback(self.on_segmented_frame)
-        can_bus_stream.add_callback(self.on_can_bus_update)
+        pose_stream.add_callback(self.on_pose_update)
         ground_obstacles_stream.add_callback(self.on_obstacles_update)
         ground_speed_limit_signs_stream.add_callback(
             self.on_speed_limit_signs_update)
@@ -70,7 +70,7 @@ class PerfectDetectorOperator(erdos.Operator):
         # after all the messages with a given timestamp have been received.
         erdos.add_watermark_callback([
             depth_camera_stream, center_camera_stream, segmented_camera_stream,
-            can_bus_stream, ground_obstacles_stream,
+            pose_stream, ground_obstacles_stream,
             ground_speed_limit_signs_stream, ground_stop_signs_stream
         ], [obstacles_stream], self.on_watermark)
 
@@ -79,7 +79,7 @@ class PerfectDetectorOperator(erdos.Operator):
         self._flags = flags
         # Queues of incoming data.
         self._bgr_msgs = deque()
-        self._can_bus_msgs = deque()
+        self._pose_msgs = deque()
         self._depth_frame_msgs = deque()
         self._obstacles = deque()
         self._segmented_msgs = deque()
@@ -89,9 +89,8 @@ class PerfectDetectorOperator(erdos.Operator):
 
     @staticmethod
     def connect(depth_camera_stream, center_camera_stream,
-                segmented_camera_stream, can_bus_stream,
-                ground_obstacles_stream, ground_speed_limit_signs_stream,
-                ground_stop_signs_stream):
+                segmented_camera_stream, pose_stream, ground_obstacles_stream,
+                ground_speed_limit_signs_stream, ground_stop_signs_stream):
         obstacles_stream = erdos.WriteStream()
         # Stream on which to output bounding boxes.
         return [obstacles_stream]
@@ -108,7 +107,7 @@ class PerfectDetectorOperator(erdos.Operator):
         depth_msg = self._depth_frame_msgs.popleft()
         bgr_msg = self._bgr_msgs.popleft()
         segmented_msg = self._segmented_msgs.popleft()
-        can_bus_msg = self._can_bus_msgs.popleft()
+        pose_msg = self._pose_msgs.popleft()
         obstacles_msg = self._obstacles.popleft()
         speed_limit_signs_msg = self._speed_limit_signs.popleft()
         stop_signs_msg = self._stop_signs.popleft()
@@ -119,7 +118,7 @@ class PerfectDetectorOperator(erdos.Operator):
             # data, and only logging every nth frame.
             obstacles_stream.send(ObstaclesMessage(timestamp, []))
             return
-        vehicle_transform = can_bus_msg.data.transform
+        vehicle_transform = pose_msg.data.transform
 
         # The camera setup sent with the image is relative to the car, we need
         # to transform it relative to the world.
@@ -154,10 +153,9 @@ class PerfectDetectorOperator(erdos.Operator):
                 bgr_msg.frame.save(bgr_msg.timestamp.coordinates[0],
                                    self._flags.data_path, 'perfect-detector')
 
-    def on_can_bus_update(self, msg):
-        self._logger.debug('@{}: received can bus message'.format(
-            msg.timestamp))
-        self._can_bus_msgs.append(msg)
+    def on_pose_update(self, msg):
+        self._logger.debug('@{}: received pose message'.format(msg.timestamp))
+        self._pose_msgs.append(msg)
 
     def on_speed_limit_signs_update(self, msg):
         self._logger.debug('@{}: received ground speed limits update'.format(

@@ -9,11 +9,9 @@ import numpy as np
 
 import erdos
 
-from pylot.map.hd_map import HDMap
 from pylot.perception.detection.obstacle import BoundingBox3D
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.rrt_star.rrt_star_planning.RRTStar.rrt_star_wrapper import apply_rrt_star
-from pylot.simulation.utils import get_map
 from pylot.utils import Location, Rotation, Transform
 
 STEP_SIZE = 0.5
@@ -32,7 +30,7 @@ class RRTStarPlanningOperator(erdos.Operator):
         goal_location: Goal pylot.utils.Location for planner to route to.
     """
     def __init__(self,
-                 can_bus_stream,
+                 pose_stream,
                  prediction_stream,
                  global_trajectory_stream,
                  open_drive_stream,
@@ -41,11 +39,11 @@ class RRTStarPlanningOperator(erdos.Operator):
                  goal_location=None,
                  log_file_name=None,
                  csv_file_name=None):
-        can_bus_stream.add_callback(self.on_can_bus_update)
+        pose_stream.add_callback(self.on_pose_update)
         prediction_stream.add_callback(self.on_prediction_update)
         global_trajectory_stream.add_callback(self.on_global_trajectory)
         open_drive_stream.add_callback(self.on_opendrive_map)
-        erdos.add_watermark_callback([can_bus_stream, prediction_stream],
+        erdos.add_watermark_callback([pose_stream, prediction_stream],
                                      [waypoints_stream], self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -56,11 +54,11 @@ class RRTStarPlanningOperator(erdos.Operator):
         self._waypoints = None
         self._prev_waypoints = None
         self._goal_location = goal_location
-        self._can_bus_msgs = deque()
+        self._pose_msgs = deque()
         self._prediction_msgs = deque()
 
     @staticmethod
-    def connect(can_bus_stream, prediction_stream, global_trajectory_stream,
+    def connect(pose_stream, prediction_stream, global_trajectory_stream,
                 open_drive_stream):
         waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
@@ -77,10 +75,9 @@ class RRTStarPlanningOperator(erdos.Operator):
                         self._flags.carla_timeout))
             self._logger.info('Planner running in stand-alone mode')
 
-    def on_can_bus_update(self, msg):
-        self._logger.debug('@{}: received can bus message'.format(
-            msg.timestamp))
-        self._can_bus_msgs.append(msg)
+    def on_pose_update(self, msg):
+        self._logger.debug('@{}: received pose message'.format(msg.timestamp))
+        self._pose_msgs.append(msg)
 
     def on_prediction_update(self, msg):
         self._logger.debug('@{}: received prediction message'.format(
@@ -128,8 +125,8 @@ class RRTStarPlanningOperator(erdos.Operator):
         self._logger.debug('@{}: received watermark'.format(timestamp))
 
         # get ego info
-        can_bus_msg = self._can_bus_msgs.popleft()
-        vehicle_transform = can_bus_msg.data.transform
+        pose_msg = self._pose_msgs.popleft()
+        vehicle_transform = pose_msg.data.transform
         self._vehicle_transform = vehicle_transform
 
         # get obstacles
@@ -145,9 +142,9 @@ class RRTStarPlanningOperator(erdos.Operator):
                     vehicle_transform.location, self._goal_location)
             else:
                 # haven't received waypoints from global trajectory stream
-                self._logger.debug("@{}: Sending target speed 0, haven't"
-                                   "received global trajectory"
-                                   .format(timestamp))
+                self._logger.debug(
+                    "@{}: Sending target speed 0, haven't"
+                    "received global trajectory".format(timestamp))
                 head_waypoints = deque([vehicle_transform])
                 target_speeds = deque([0])
                 waypoints_stream.send(
@@ -165,30 +162,23 @@ class RRTStarPlanningOperator(erdos.Operator):
         if success:
             speeds = [self._flags.target_speed] * len(path_x)
             self._logger.debug("@{}: RRT* Path X: {}".format(
-                timestamp,
-                path_x.tolist())
-            )
+                timestamp, path_x.tolist()))
             self._logger.debug("@{}: RRT* Path Y: {}".format(
-                timestamp,
-                path_y.tolist())
-            )
+                timestamp, path_y.tolist()))
             self._logger.debug("@{}: RRT* Speeds: {}".format(
-                timestamp,
-                [self._flags.target_speed] * len(path_x))
-            )
+                timestamp, [self._flags.target_speed] * len(path_x)))
 
         # construct and send waypoint message
-        waypoint_message = self._construct_waypoints(
-            timestamp, path_x, path_y, speeds, success
-        )
+        waypoint_message = self._construct_waypoints(timestamp, path_x, path_y,
+                                                     speeds, success)
         waypoints_stream.send(waypoint_message)
 
     def _get_closest_index(self, start):
         min_dist = np.infty
         mindex = 0
         for ind, wp in enumerate(self._waypoints):
-            dist = np.linalg.norm([start[0] - wp.location.x,
-                                   start[1] - wp.location.y])
+            dist = np.linalg.norm(
+                [start[0] - wp.location.x, start[1] - wp.location.y])
             if dist <= min_dist:
                 mindex = ind
                 min_dist = dist
@@ -202,7 +192,8 @@ class RRTStarPlanningOperator(erdos.Operator):
 
         # find the closest point to current location
         mindex = self._get_closest_index(start)
-        end_ind = min(mindex + DEFAULT_TARGET_WAYPOINT, len(self._waypoints) - 1)
+        end_ind = min(mindex + DEFAULT_TARGET_WAYPOINT,
+                      len(self._waypoints) - 1)
         end = [
             self._waypoints[end_ind].location.x,
             self._waypoints[end_ind].location.y
@@ -234,8 +225,7 @@ class RRTStarPlanningOperator(erdos.Operator):
                 path_transforms.append(wp)
                 target_speeds.append(0)
         else:
-            self._logger.debug("@{}: RRT* succeeded."
-                               .format(timestamp))
+            self._logger.debug("@{}: RRT* succeeded.".format(timestamp))
             for point in zip(path_x, path_y, speeds):
                 if self._map is not None:
                     p_loc = self._map.get_closest_lane_waypoint(
@@ -297,25 +287,19 @@ class RRTStarPlanningOperator(erdos.Operator):
                         start_transform = [
                             Location(
                                 obstacle_origin[0] - DEFAULT_OBSTACLE_SIZE,
-                                obstacle_origin[1] - DEFAULT_OBSTACLE_SIZE,
-                                0
-                            )
+                                obstacle_origin[1] - DEFAULT_OBSTACLE_SIZE, 0)
                         ]
                         end_transform = [
                             Location(
                                 obstacle_origin[0] + DEFAULT_OBSTACLE_SIZE,
-                                obstacle_origin[1] + DEFAULT_OBSTACLE_SIZE,
-                                0
-                            )
+                                obstacle_origin[1] + DEFAULT_OBSTACLE_SIZE, 0)
                         ]
-                    obstacle_list.append([min(start_transform[0].x,
-                                              end_transform[0].x),
-                                          min(start_transform[0].y,
-                                              end_transform[0].y),
-                                          max(start_transform[0].x,
-                                              end_transform[0].x),
-                                          max(start_transform[0].y,
-                                              end_transform[0].y)])
+                    obstacle_list.append([
+                        min(start_transform[0].x, end_transform[0].x),
+                        min(start_transform[0].y, end_transform[0].y),
+                        max(start_transform[0].x, end_transform[0].x),
+                        max(start_transform[0].y, end_transform[0].y)
+                    ])
 
         if len(obstacle_list) == 0:
             return np.empty((0, 4))

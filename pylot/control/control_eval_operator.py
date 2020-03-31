@@ -11,21 +11,19 @@ class ControlEvalOperator(erdos.Operator):
     and the achieved waypoints.
 
     Args:
-       can_bus_stream (:py:class:`erdos.ReadStream`): The stream on which the
+       pose_stream (:py:class:`erdos.ReadStream`): The stream on which the
            vehicle transform is received.
         waypoints_stream (:py:class:`erdos.ReadStream`): The stream on which
            the waypoints are received from the planner.
         flags (absl.flags): Object to be used to access absl flags.
     """
-
-    def __init__(self, can_bus_stream, waypoints_stream, flags):
-        # Register callbacks to retrieve data from the CAN bus message and the
-        # waypoint message.
-        can_bus_stream.add_callback(self.on_can_bus_update)
+    def __init__(self, pose_stream, waypoints_stream, flags):
+        # Register callbacks to retrieve pose and waypoints messages.
+        pose_stream.add_callback(self.on_pose_update)
         waypoints_stream.add_callback(self.on_waypoint_update)
 
-        # Add a watermark callback on CAN bus stream and waypoints stream.
-        erdos.add_watermark_callback([can_bus_stream, waypoints_stream], [],
+        # Add a watermark callback on pose stream and waypoints stream.
+        erdos.add_watermark_callback([pose_stream, waypoints_stream], [],
                                      self.on_watermark)
 
         # Initialize state.
@@ -35,28 +33,28 @@ class ControlEvalOperator(erdos.Operator):
             self.config.name + '-csv', self.config.csv_log_file_name)
         self._flags = flags
         self._waypoints = deque()
-        self._can_bus_messages = deque()
+        self._pose_messages = deque()
 
         # Keep track of the last 2 waypoints that the ego vehicle was
         # supposed to achieve.
         self.last_waypoints = deque(maxlen=2)
 
     @staticmethod
-    def connect(can_bus_stream, waypoints_stream):
+    def connect(pose_stream, waypoints_stream):
         # This operator does not have any write streams.
         return []
 
-    def on_can_bus_update(self, msg):
-        """ Callback function for the CAN bus update messages.
+    def on_pose_update(self, msg):
+        """ Callback function for the pose update messages.
 
         This function appends the received message to the operator state.
 
         Args:
             msg (:py:class:`erdos.Message`): The message contains an instance
-                of :py:class:`pylot.utils.CanBus`.
+                of :py:class:`pylot.utils.Pose`.
         """
-        self._logger.debug('@{}: can bus update.'.format(msg.timestamp))
-        self._can_bus_messages.append(msg)
+        self._logger.debug('@{}: pose update.'.format(msg.timestamp))
+        self._pose_messages.append(msg)
 
     def on_waypoint_update(self, msg):
         """ Callback function for the waypoint update messages.
@@ -92,8 +90,8 @@ class ControlEvalOperator(erdos.Operator):
         self._logger.debug('@{}: received watermark.'.format(timestamp))
 
         # Get the transform of the ego vehicle.
-        can_bus_msg = self._can_bus_messages.popleft()
-        vehicle_transform = can_bus_msg.data.transform
+        pose_msg = self._pose_messages.popleft()
+        vehicle_transform = pose_msg.data.transform
 
         if len(self.last_waypoints) == 2:
             # Compute the metrics of accuracy using the last two waypoints.
@@ -102,8 +100,8 @@ class ControlEvalOperator(erdos.Operator):
                     timestamp, vehicle_transform.location,
                     self.last_waypoints))
             crosstrack_err, heading_err = ControlEvalOperator.\
-                    compute_control_metrics(vehicle_transform,
-                            self.last_waypoints)
+                compute_control_metrics(vehicle_transform,
+                                        self.last_waypoints)
 
             self._csv_logger.info("{}, {}, {}".format(time_epoch_ms(),
                                                       crosstrack_err,

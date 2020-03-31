@@ -30,7 +30,7 @@ class FOTPlanningOperator(erdos.Operator):
         goal_location(:pylot.utils.Location:): Goal location for route planning
     """
     def __init__(self,
-                 can_bus_stream,
+                 pose_stream,
                  prediction_stream,
                  global_trajectory_stream,
                  open_drive_stream,
@@ -39,11 +39,11 @@ class FOTPlanningOperator(erdos.Operator):
                  goal_location=None,
                  log_file_name=None,
                  csv_file_name=None):
-        can_bus_stream.add_callback(self.on_can_bus_update)
+        pose_stream.add_callback(self.on_pose_update)
         prediction_stream.add_callback(self.on_prediction_update)
         global_trajectory_stream.add_callback(self.on_global_trajectory)
         open_drive_stream.add_callback(self.on_opendrive_map)
-        erdos.add_watermark_callback([can_bus_stream, prediction_stream],
+        erdos.add_watermark_callback([pose_stream, prediction_stream],
                                      [waypoints_stream], self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -55,12 +55,12 @@ class FOTPlanningOperator(erdos.Operator):
         self._prev_waypoints = None
         self._goal_location = goal_location
 
-        self._can_bus_msgs = deque()
+        self._pose_msgs = deque()
         self._prediction_msgs = deque()
         self.s0 = 0
 
     @staticmethod
-    def connect(can_bus_stream, prediction_stream, global_trajectory_stream,
+    def connect(pose_stream, prediction_stream, global_trajectory_stream,
                 open_drive_stream):
         waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
@@ -77,10 +77,9 @@ class FOTPlanningOperator(erdos.Operator):
                         self._flags.carla_timeout))
             self._logger.info('Planner running in stand-alone mode')
 
-    def on_can_bus_update(self, msg):
-        self._logger.debug('@{}: received can bus message'.format(
-            msg.timestamp))
-        self._can_bus_msgs.append(msg)
+    def on_pose_update(self, msg):
+        self._logger.debug('@{}: received pose message'.format(msg.timestamp))
+        self._pose_msgs.append(msg)
 
     def on_prediction_update(self, msg):
         self._logger.debug('@{}: received prediction message'.format(
@@ -130,8 +129,8 @@ class FOTPlanningOperator(erdos.Operator):
         self._logger.debug('@{}: received watermark'.format(timestamp))
 
         # get ego info
-        can_bus_msg = self._can_bus_msgs.popleft()
-        vehicle_transform = can_bus_msg.data.transform
+        pose_msg = self._pose_msgs.popleft()
+        vehicle_transform = pose_msg.data.transform
         self._vehicle_transform = vehicle_transform
 
         # get obstacles
@@ -146,9 +145,9 @@ class FOTPlanningOperator(erdos.Operator):
                     vehicle_transform.location, self._goal_location)
             # haven't received waypoints from global trajectory stream
             else:
-                self._logger.debug("@{}: Sending target speed 0, haven't"
-                                   "received global trajectory"
-                                   .format(timestamp))
+                self._logger.debug(
+                    "@{}: Sending target speed 0, haven't"
+                    "received global trajectory".format(timestamp))
                 head_waypoints = deque([vehicle_transform])
                 target_speeds = deque([0])
                 waypoints_stream.send(
@@ -157,29 +156,22 @@ class FOTPlanningOperator(erdos.Operator):
 
         # compute optimal frenet trajectory
         path_x, path_y, speeds, params, success, s0 = \
-            self._compute_optimal_frenet_trajectory(can_bus_msg, obstacle_list)
+            self._compute_optimal_frenet_trajectory(pose_msg, obstacle_list)
 
         if success:
             self._logger.debug("@{}: Frenet Path X: {}".format(
-                timestamp,
-                path_x.tolist())
-            )
+                timestamp, path_x.tolist()))
             self._logger.debug("@{}: Frenet Path Y: {}".format(
-                timestamp,
-                path_y.tolist())
-            )
+                timestamp, path_y.tolist()))
             self._logger.debug("@{}: Frenet Speeds: {}".format(
-                timestamp,
-                speeds.tolist())
-            )
+                timestamp, speeds.tolist()))
 
         # construct and send waypoint message
-        waypoints_message = self._construct_waypoints(
-            timestamp, path_x, path_y, speeds, success
-        )
+        waypoints_message = self._construct_waypoints(timestamp, path_x,
+                                                      path_y, speeds, success)
         waypoints_stream.send(waypoints_message)
 
-    def _compute_optimal_frenet_trajectory(self, can_bus_msg, obstacle_list):
+    def _compute_optimal_frenet_trajectory(self, pose_msg, obstacle_list):
         """
         Compute the optimal frenet trajectory, given current environment info.
         """
@@ -194,13 +186,12 @@ class FOTPlanningOperator(erdos.Operator):
 
         # compute frenet optimal trajectory
         s0, c_speed, c_d, c_d_d, c_d_dd = \
-            self._compute_initial_conditions(can_bus_msg, wx, wy)
+            self._compute_initial_conditions(pose_msg, wx, wy)
         self.s0 = s0
         target_speed = (c_speed + self._flags.target_speed) / 2
         path_x, path_y, speeds, params, success = get_fot_frenet_space(
-            s0, c_speed, c_d, c_d_d, c_d_dd,
-            wx, wy, obstacle_list, target_speed
-        )
+            s0, c_speed, c_d, c_d_d, c_d_dd, wx, wy, obstacle_list,
+            target_speed)
 
         # log initial conditions for debugging
         initial_conditions = {
@@ -212,12 +203,12 @@ class FOTPlanningOperator(erdos.Operator):
             "wx": wx.tolist(),
             "wy": wy.tolist(),
             "obstacle_list": obstacle_list.tolist(),
-            "x": can_bus_msg.data.transform.location.x,
-            "y": can_bus_msg.data.transform.location.y,
-            "vx": can_bus_msg.data.velocity_vector.x,
-            "vy": can_bus_msg.data.velocity_vector.y,
+            "x": pose_msg.data.transform.location.x,
+            "y": pose_msg.data.transform.location.y,
+            "vx": pose_msg.data.velocity_vector.x,
+            "vy": pose_msg.data.velocity_vector.y,
         }
-        timestamp = can_bus_msg.timestamp
+        timestamp = pose_msg.timestamp
         self._logger.debug("@{}: Initial conditions: {}".format(
             timestamp, initial_conditions))
 
@@ -237,8 +228,8 @@ class FOTPlanningOperator(erdos.Operator):
                 path_transforms.append(wp)
                 target_speeds.append(0)
         else:
-            self._logger.debug("@{}: Frenet Optimal Trajectory succeeded."
-                               .format(timestamp))
+            self._logger.debug(
+                "@{}: Frenet Optimal Trajectory succeeded.".format(timestamp))
             for point in zip(path_x, path_y, speeds):
                 if self._map is not None:
                     p_loc = self._map.get_closest_lane_waypoint(
@@ -256,17 +247,16 @@ class FOTPlanningOperator(erdos.Operator):
         self._prev_waypoints = waypoints
         return WaypointsMessage(timestamp, waypoints, target_speeds)
 
-    def _compute_initial_conditions(self, can_bus_msg, wx, wy):
+    def _compute_initial_conditions(self, pose_msg, wx, wy):
         """
         Convert the initial conditions of vehicle into frenet frame parameters.
         """
-        x = can_bus_msg.data.transform.location.x
-        y = can_bus_msg.data.transform.location.y
-        vx = can_bus_msg.data.velocity_vector.x
-        vy = can_bus_msg.data.velocity_vector.y
+        x = pose_msg.data.transform.location.x
+        y = pose_msg.data.transform.location.y
+        vx = pose_msg.data.velocity_vector.x
+        vy = pose_msg.data.velocity_vector.y
         return compute_initial_conditions(self.s0, x, y, vx, vy,
-                                          can_bus_msg.data.forward_speed, wx,
-                                          wy)
+                                          pose_msg.data.forward_speed, wx, wy)
 
     @staticmethod
     def _build_obstacle_list(vehicle_transform, prediction_msg):

@@ -14,11 +14,11 @@ from pylot.utils import time_epoch_ms
 class PIDAgentOperator(erdos.Operator):
     """Agent operator that uses PID to follow a list of waystops.
 
-    The agent waits for the can bus and waypoint streams to receive a watermark
+    The agent waits for the pose and waypoint streams to receive a watermark
     message for timestamp t, and then it computes and sends a control command.
 
     Args:
-        can_bus_stream (:py:class:`erdos.ReadStream`): Stream on which can bus
+        pose_stream (:py:class:`erdos.ReadStream`): Stream on which pose
             info is received.
         waypoints_stream (:py:class:`erdos.ReadStream`): Stream on which
             :py:class:`~pylot.planning.messages.WaypointMessage` messages are
@@ -29,11 +29,10 @@ class PIDAgentOperator(erdos.Operator):
             messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, can_bus_stream, waypoints_stream, control_stream,
-                 flags):
-        can_bus_stream.add_callback(self.on_can_bus_update)
+    def __init__(self, pose_stream, waypoints_stream, control_stream, flags):
+        pose_stream.add_callback(self.on_pose_update)
         waypoints_stream.add_callback(self.on_waypoints_update)
-        erdos.add_watermark_callback([can_bus_stream, waypoints_stream],
+        erdos.add_watermark_callback([pose_stream, waypoints_stream],
                                      [control_stream], self.on_watermark)
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -43,10 +42,10 @@ class PIDAgentOperator(erdos.Operator):
                         d=self._flags.pid_d)
         # Queues in which received messages are stored.
         self._waypoint_msgs = deque()
-        self._can_bus_msgs = deque()
+        self._pose_msgs = deque()
 
     @staticmethod
-    def connect(can_bus_stream, waypoints_stream):
+    def connect(pose_stream, waypoints_stream):
         control_stream = erdos.WriteStream()
         return [control_stream]
 
@@ -61,10 +60,10 @@ class PIDAgentOperator(erdos.Operator):
                 the watermark.
         """
         self._logger.debug('@{}: received watermark'.format(timestamp))
-        can_bus_msg = self._can_bus_msgs.popleft()
-        vehicle_transform = can_bus_msg.data.transform
+        pose_msg = self._pose_msgs.popleft()
+        vehicle_transform = pose_msg.data.transform
         # Vehicle sped in m/s
-        current_speed = can_bus_msg.data.forward_speed
+        current_speed = pose_msg.data.forward_speed
         waypoint_msg = self._waypoint_msgs.popleft()
         if current_speed < 0:
             self._logger.warning(
@@ -105,6 +104,6 @@ class PIDAgentOperator(erdos.Operator):
         self._logger.debug('@{}: waypoints update'.format(msg.timestamp))
         self._waypoint_msgs.append(msg)
 
-    def on_can_bus_update(self, msg):
-        self._logger.debug('@{}: can bus update'.format(msg.timestamp))
-        self._can_bus_msgs.append(msg)
+    def on_pose_update(self, msg):
+        self._logger.debug('@{}: pose update'.format(msg.timestamp))
+        self._pose_msgs.append(msg)

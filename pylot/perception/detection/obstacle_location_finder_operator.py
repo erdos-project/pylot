@@ -22,8 +22,8 @@ class ObstacleLocationFinderOperator(erdos.Operator):
             either point cloud messages or depth frames are received. The
             message type differs dependening on how data-flow operators are
             connected.
-        can_bus_stream (:py:class:`erdos.ReadStream`): Stream on which can
-            bus info is received.
+        pose_stream (:py:class:`erdos.ReadStream`): Stream on which pose
+            info is received.
         camera_stream (:py:class:`erdos.ReadStream`): The stream on which
             camera frames are received.
         obstacles_output_stream (:py:class:`erdos.WriteStream`): Stream on
@@ -36,14 +36,14 @@ class ObstacleLocationFinderOperator(erdos.Operator):
             detected obstacles from camera coordinates to real-world
             coordinates.
     """
-    def __init__(self, obstacles_stream, depth_stream, can_bus_stream,
+    def __init__(self, obstacles_stream, depth_stream, pose_stream,
                  camera_stream, obstacles_output_stream, flags, camera_setup):
         obstacles_stream.add_callback(self.on_obstacles_update)
         depth_stream.add_callback(self.on_depth_update)
-        can_bus_stream.add_callback(self.on_can_bus_update)
+        pose_stream.add_callback(self.on_pose_update)
         camera_stream.add_callback(self.on_camera_update)
         erdos.add_watermark_callback(
-            [obstacles_stream, depth_stream, can_bus_stream, camera_stream],
+            [obstacles_stream, depth_stream, pose_stream, camera_stream],
             [obstacles_output_stream], self.on_watermark)
         self._flags = flags
         self._camera_setup = camera_setup
@@ -52,11 +52,11 @@ class ObstacleLocationFinderOperator(erdos.Operator):
         # Queues in which received messages are stored.
         self._obstacles_msgs = deque()
         self._depth_msgs = deque()
-        self._can_bus_msgs = deque()
+        self._pose_msgs = deque()
         self._frame_msgs = deque()
 
     @staticmethod
-    def connect(obstacles_stream, depth_stream, can_bus_stream, camera_stream):
+    def connect(obstacles_stream, depth_stream, pose_stream, camera_stream):
         obstacles_output_stream = erdos.WriteStream()
         return [obstacles_output_stream]
 
@@ -71,7 +71,7 @@ class ObstacleLocationFinderOperator(erdos.Operator):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         obstacles_msg = self._obstacles_msgs.popleft()
         depth_msg = self._depth_msgs.popleft()
-        vehicle_transform = self._can_bus_msgs.popleft().data.transform
+        vehicle_transform = self._pose_msgs.popleft().data.transform
         frame_msg = self._frame_msgs.popleft()
 
         obstacles_with_location = get_obstacle_locations(
@@ -94,9 +94,9 @@ class ObstacleLocationFinderOperator(erdos.Operator):
         self._logger.debug('@{}: depth update'.format(msg.timestamp))
         self._depth_msgs.append(msg)
 
-    def on_can_bus_update(self, msg):
-        self._logger.debug('@{}: can bus update'.format(msg.timestamp))
-        self._can_bus_msgs.append(msg)
+    def on_pose_update(self, msg):
+        self._logger.debug('@{}: pose update'.format(msg.timestamp))
+        self._pose_msgs.append(msg)
 
     def on_camera_update(self, msg):
         self._logger.debug('@{}: camera update'.format(msg.timestamp))

@@ -29,10 +29,10 @@ class CarlaReplayOperator(erdos.Operator):
         _client: A connection to the simulator.
         _world: A handle to the world running inside the simulation.
     """
-    def __init__(self, can_bus_stream, ground_traffic_lights_stream,
+    def __init__(self, pose_stream, ground_traffic_lights_stream,
                  ground_obstacles_stream, ground_speed_limit_signs_stream,
                  ground_stop_signs_stream, vehicle_id_stream, flags):
-        self._can_bus_stream = can_bus_stream
+        self._pose_stream = pose_stream
         self._ground_traffic_lights_stream = ground_traffic_lights_stream
         self._ground_obstacles_stream = ground_obstacles_stream
         self._ground_speed_limit_signs_stream = ground_speed_limit_signs_stream
@@ -48,16 +48,16 @@ class CarlaReplayOperator(erdos.Operator):
 
     @staticmethod
     def connect():
-        can_bus_stream = erdos.WriteStream()
+        pose_stream = erdos.WriteStream()
         ground_traffic_lights_stream = erdos.WriteStream()
         ground_obstacles_stream = erdos.WriteStream()
         ground_speed_limit_signs_stream = erdos.WriteStream()
         ground_stop_signs_stream = erdos.WriteStream()
         vehicle_id_stream = erdos.WriteStream()
         return [
-            can_bus_stream, ground_traffic_lights_stream,
-            ground_obstacles_stream, ground_speed_limit_signs_stream,
-            ground_stop_signs_stream, vehicle_id_stream
+            pose_stream, ground_traffic_lights_stream, ground_obstacles_stream,
+            ground_speed_limit_signs_stream, ground_stop_signs_stream,
+            vehicle_id_stream
         ]
 
     def on_world_tick(self, msg):
@@ -83,10 +83,9 @@ class CarlaReplayOperator(erdos.Operator):
         velocity_vector = pylot.utils.Vector3D.from_carla_vector(
             self._driving_vehicle.get_velocity())
         forward_speed = velocity_vector.magnitude()
-        can_bus = pylot.utils.CanBus(vec_transform, forward_speed,
-                                     velocity_vector)
-        self._can_bus_stream.send(erdos.Message(timestamp, can_bus))
-        self._can_bus_stream.send(watermark_msg)
+        pose = pylot.utils.Pose(vec_transform, forward_speed, velocity_vector)
+        self._pose_stream.send(erdos.Message(timestamp, pose))
+        self._pose_stream.send(watermark_msg)
 
     def __publish_ground_actors_data(self, timestamp, watermark_msg):
         # Get all the actors in the simulation.

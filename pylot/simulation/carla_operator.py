@@ -27,7 +27,7 @@ class CarlaOperator(erdos.Operator):
         _world: A handle to the world running inside the simulation.
         _vehicles: A list of identifiers of the vehicles inside the simulation.
     """
-    def __init__(self, control_stream, can_bus_stream,
+    def __init__(self, control_stream, pose_stream,
                  ground_traffic_lights_stream, ground_obstacles_stream,
                  ground_speed_limit_signs_stream, ground_stop_signs_stream,
                  vehicle_id_stream, open_drive_stream,
@@ -36,7 +36,7 @@ class CarlaOperator(erdos.Operator):
             random.seed(flags.random_seed)
         # Register callback on control stream.
         control_stream.add_callback(self.on_control_msg)
-        self.can_bus_stream = can_bus_stream
+        self.pose_stream = pose_stream
         self.ground_traffic_lights_stream = ground_traffic_lights_stream
         self.ground_obstacles_stream = ground_obstacles_stream
         self.ground_speed_limit_signs_stream = ground_speed_limit_signs_stream
@@ -75,7 +75,7 @@ class CarlaOperator(erdos.Operator):
 
     @staticmethod
     def connect(control_stream):
-        can_bus_stream = erdos.WriteStream()
+        pose_stream = erdos.WriteStream()
         ground_traffic_lights_stream = erdos.WriteStream()
         ground_obstacles_stream = erdos.WriteStream()
         ground_speed_limit_signs_stream = erdos.WriteStream()
@@ -84,10 +84,9 @@ class CarlaOperator(erdos.Operator):
         open_drive_stream = erdos.WriteStream()
         global_trajectory_stream = erdos.WriteStream()
         return [
-            can_bus_stream, ground_traffic_lights_stream,
-            ground_obstacles_stream, ground_speed_limit_signs_stream,
-            ground_stop_signs_stream, vehicle_id_stream, open_drive_stream,
-            global_trajectory_stream
+            pose_stream, ground_traffic_lights_stream, ground_obstacles_stream,
+            ground_speed_limit_signs_stream, ground_stop_signs_stream,
+            vehicle_id_stream, open_drive_stream, global_trajectory_stream
         ]
 
     @erdos.profile_method()
@@ -405,10 +404,9 @@ class CarlaOperator(erdos.Operator):
         velocity_vector = pylot.utils.Vector3D.from_carla_vector(
             self._driving_vehicle.get_velocity())
         forward_speed = velocity_vector.magnitude()
-        can_bus = pylot.utils.CanBus(vec_transform, forward_speed,
-                                     velocity_vector)
-        self.can_bus_stream.send(erdos.Message(timestamp, can_bus))
-        self.can_bus_stream.send(erdos.WatermarkMessage(timestamp))
+        pose = pylot.utils.Pose(vec_transform, forward_speed, velocity_vector)
+        self.pose_stream.send(erdos.Message(timestamp, pose))
+        self.pose_stream.send(erdos.WatermarkMessage(timestamp))
 
         # Set the world simulation view with respect to the vehicle.
         v_pose = self._driving_vehicle.get_transform()

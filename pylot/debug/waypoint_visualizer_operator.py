@@ -34,14 +34,14 @@ class WaypointVisualizerOperator(erdos.Operator):
             image messages.
         _waypoints_msgs (:obj:`collections.deque`): Buffer of received
             waypoints messages.
-        _can_bus_msgs (:obj:`collections.deque`): Buffer of received ground can
-            bus messages.
+        _pose_msgs (:obj:`collections.deque`): Buffer of received ground pose
+            messages.
         _world (carla.World): A handle to the world to draw the waypoints on.
     """
-    def __init__(self, waypoints_stream, camera_stream, can_bus_stream, flags):
+    def __init__(self, waypoints_stream, camera_stream, pose_stream, flags):
         waypoints_stream.add_callback(self.on_wp_update)
         camera_stream.add_callback(self.on_bgr_frame)
-        can_bus_stream.add_callback(self.on_can_bus_update)
+        pose_stream.add_callback(self.on_pose_update)
         erdos.add_watermark_callback([camera_stream, waypoints_stream], [],
                                      self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -49,10 +49,10 @@ class WaypointVisualizerOperator(erdos.Operator):
         self._flags = flags
         self._bgr_msgs = deque()
         self._waypoints_msgs = deque()
-        self._can_bus_msgs = deque()
+        self._pose_msgs = deque()
 
     @staticmethod
-    def connect(waypoints_stream, camera_stream, can_bus_stream):
+    def connect(waypoints_stream, camera_stream, pose_stream):
         return []
 
     def run(self):
@@ -77,9 +77,9 @@ class WaypointVisualizerOperator(erdos.Operator):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         bgr_msg = self._bgr_msgs.popleft()
         waypoints_msg = self._waypoints_msgs.popleft()
-        can_bus_msg = self._can_bus_msgs.popleft()
+        pose_msg = self._pose_msgs.popleft()
         bgr_frame = bgr_msg.frame
-        vehicle_transform = can_bus_msg.data.transform
+        vehicle_transform = pose_msg.data.transform
         if self._flags.draw_waypoints_on_camera_frames:
             bgr_frame.camera_setup.set_transform(
                 vehicle_transform * bgr_frame.camera_setup.transform)
@@ -124,13 +124,13 @@ class WaypointVisualizerOperator(erdos.Operator):
                                              size=0.1,
                                              life_time=DEFAULT_VIS_TIME)
 
-    def on_can_bus_update(self, msg):
-        """Invoked when a msg on the can bus stream is received.
+    def on_pose_update(self, msg):
+        """Invoked when a msg on the pose stream is received.
 
         Args:
             msg (:py:class:`erdos.message.Message`): The data field of the
-                message contains the :py:class:`~pylot.utils.CanBus` object.
+                message contains the :py:class:`~pylot.utils.Pose` object.
         """
-        self._logger.debug('@{}: {} received can bus message'.format(
+        self._logger.debug('@{}: {} received pose message'.format(
             msg.timestamp, self.config.name))
-        self._can_bus_msgs.append(msg)
+        self._pose_msgs.append(msg)

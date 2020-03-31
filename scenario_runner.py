@@ -21,8 +21,8 @@ flags.DEFINE_bool(
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
 
 
-def add_avoidance_agent(can_bus_stream, obstacles_stream,
-                        ground_obstacles_stream, goal_location):
+def add_avoidance_agent(pose_stream, obstacles_stream, ground_obstacles_stream,
+                        goal_location):
     op_config = erdos.OperatorConfig(
         name=FLAGS.obstacle_detection_model_names[0] + '_agent',
         flow_watermarks=False,
@@ -31,7 +31,7 @@ def add_avoidance_agent(can_bus_stream, obstacles_stream,
         profile_file_name=FLAGS.profile_file_name)
     [control_stream] = erdos.connect(
         PersonAvoidanceAgentOperator, op_config,
-        [can_bus_stream, obstacles_stream, ground_obstacles_stream],
+        [pose_stream, obstacles_stream, ground_obstacles_stream],
         goal_location, FLAGS)
     return control_stream
 
@@ -41,7 +41,7 @@ def driver():
                                       pylot.utils.Rotation())
     control_loop_stream = erdos.LoopStream()
     # Create carla operator.
-    (can_bus_stream, ground_traffic_lights_stream, ground_obstacles_stream,
+    (pose_stream, ground_traffic_lights_stream, ground_obstacles_stream,
      ground_speed_limit_signs_stream, ground_stop_signs_stream,
      vehicle_id_stream, open_drive_stream, global_trajectory_stream
      ) = pylot.operator_creator.add_carla_bridge(control_loop_stream)
@@ -84,38 +84,35 @@ def driver():
          _) = pylot.operator_creator.add_imu(transform, vehicle_id_stream)
 
     pylot.operator_creator.add_carla_collision_logging(vehicle_id_stream,
-                                                       can_bus_stream)
+                                                       pose_stream)
 
     obstacles_stream = pylot.component_creator.add_obstacle_detection(
-        center_camera_stream, center_camera_setup, can_bus_stream,
-        depth_stream, depth_camera_stream, ground_segmented_stream,
-        ground_obstacles_stream, ground_speed_limit_signs_stream,
-        ground_stop_signs_stream)
+        center_camera_stream, center_camera_setup, pose_stream, depth_stream,
+        depth_camera_stream, ground_segmented_stream, ground_obstacles_stream,
+        ground_speed_limit_signs_stream, ground_stop_signs_stream)
 
     traffic_lights_stream = \
         pylot.component_creator.add_traffic_light_detection(
-            transform, vehicle_id_stream, can_bus_stream, depth_stream,
+            transform, vehicle_id_stream, pose_stream, depth_stream,
             ground_traffic_lights_stream)
 
     obstacles_tracking_stream = pylot.component_creator.add_obstacle_tracking(
         center_camera_stream, center_camera_setup, obstacles_stream,
-        depth_stream, vehicle_id_stream, can_bus_stream,
-        ground_obstacles_stream)
+        depth_stream, vehicle_id_stream, pose_stream, ground_obstacles_stream)
 
     prediction_stream = pylot.component_creator.add_prediction(
-        obstacles_tracking_stream, vehicle_id_stream, transform,
-        can_bus_stream)
+        obstacles_tracking_stream, vehicle_id_stream, transform, pose_stream)
 
     goal_location = pylot.utils.Location(float(FLAGS.goal_location[0]),
                                          float(FLAGS.goal_location[1]),
                                          float(FLAGS.goal_location[2]))
     waypoints_stream = pylot.component_creator.add_planning(
-        goal_location, can_bus_stream, prediction_stream, center_camera_stream,
+        goal_location, pose_stream, prediction_stream, center_camera_stream,
         obstacles_stream, traffic_lights_stream, open_drive_stream,
         global_trajectory_stream)
 
     if FLAGS.avoidance_agent:
-        control_stream = add_avoidance_agent(can_bus_stream, obstacles_stream,
+        control_stream = add_avoidance_agent(pose_stream, obstacles_stream,
                                              ground_obstacles_stream,
                                              goal_location)
     else:
@@ -123,7 +120,7 @@ def driver():
             'Cannot use CARLA auto pilot in a scenario'
         # Add the behaviour planning and control operator.
         control_stream = pylot.component_creator.add_control(
-            can_bus_stream, waypoints_stream)
+            pose_stream, waypoints_stream)
 
     control_loop_stream.set(control_stream)
 
@@ -131,7 +128,7 @@ def driver():
                                                   depth_camera_stream,
                                                   point_cloud_stream,
                                                   ground_segmented_stream,
-                                                  imu_stream, can_bus_stream)
+                                                  imu_stream, pose_stream)
     erdos.run()
 
 

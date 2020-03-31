@@ -49,7 +49,7 @@ def main(argv):
 
     control_loop_stream = erdos.LoopStream()
     # Create carla operator.
-    (can_bus_stream, ground_traffic_lights_stream, ground_obstacles_stream,
+    (pose_stream, ground_traffic_lights_stream, ground_obstacles_stream,
      ground_speed_limit_signs_stream, ground_stop_signs_stream,
      vehicle_id_stream, open_drive_stream, global_trajectory_stream
      ) = pylot.operator_creator.add_carla_bridge(control_loop_stream)
@@ -69,7 +69,7 @@ def main(argv):
     if FLAGS.compute_detection_decay:
         obstacles_stream = pylot.operator_creator.add_perfect_detector(
             depth_camera_stream, center_camera_stream, segmented_stream,
-            can_bus_stream, ground_obstacles_stream,
+            pose_stream, ground_obstacles_stream,
             ground_speed_limit_signs_stream, ground_stop_signs_stream)
         map_stream = pylot.operator_creator.add_detection_decay(
             obstacles_stream)

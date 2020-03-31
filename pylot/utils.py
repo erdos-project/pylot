@@ -586,7 +586,7 @@ class Transform(object):
             return "Transform({})".format(str(self.matrix))
 
 
-class CanBus(object):
+class Pose(object):
     """Class used to wrap ego-vehicle information.
 
     Args:
@@ -616,7 +616,7 @@ class CanBus(object):
         return self.__str__()
 
     def __str__(self):
-        return "CanBus(transform: {}, forward speed: {}, velocity vector: {})"\
+        return "Pose(transform: {}, forward speed: {}, velocity vector: {})"\
             .format(self.transform, self.forward_speed, self.velocity_vector)
 
 

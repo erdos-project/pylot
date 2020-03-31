@@ -21,7 +21,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
             Stream on which
             :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
             are received.
-        can_bus_stream (:py:class:`erdos.ReadStream`): Stream on which can bus
+        pose_stream (:py:class:`erdos.ReadStream`): Stream on which pose
             info is received.
         traffic_lights_stream (:py:class:`erdos.WriteStream`): Stream on which
             the operator publishes
@@ -38,20 +38,20 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
             depth messages.
         _segmented_msgs (:obj:`collections.deque`): Buffer of ground segmented
             messages.
-        _can_bus_msgs (:obj:`collections.deque`): Buffer of can bus messages.
+        _pose_msgs (:obj:`collections.deque`): Buffer of pose messages.
         _frame_cnt (:obj:`int`): Number of messages received.
     """
     def __init__(self, ground_traffic_lights_stream, tl_camera_stream,
-                 depth_camera_stream, segmented_camera_stream, can_bus_stream,
+                 depth_camera_stream, segmented_camera_stream, pose_stream,
                  traffic_lights_stream, flags):
         ground_traffic_lights_stream.add_callback(self.on_traffic_light_update)
         tl_camera_stream.add_callback(self.on_bgr_camera_update)
         depth_camera_stream.add_callback(self.on_depth_camera_update)
         segmented_camera_stream.add_callback(self.on_segmented_frame)
-        can_bus_stream.add_callback(self.on_can_bus_update)
+        pose_stream.add_callback(self.on_pose_update)
         erdos.add_watermark_callback([
             ground_traffic_lights_stream, tl_camera_stream,
-            depth_camera_stream, segmented_camera_stream, can_bus_stream
+            depth_camera_stream, segmented_camera_stream, pose_stream
         ], [traffic_lights_stream], self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -61,12 +61,12 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         self._bgr_msgs = deque()
         self._depth_frame_msgs = deque()
         self._segmented_msgs = deque()
-        self._can_bus_msgs = deque()
+        self._pose_msgs = deque()
         self._frame_cnt = 0
 
     @staticmethod
     def connect(ground_traffic_lights_stream, tl_camera_stream,
-                depth_camera_stream, segmented_camera_stream, can_bus_stream):
+                depth_camera_stream, segmented_camera_stream, pose_stream):
         traffic_lights_stream = erdos.WriteStream()
         return [traffic_lights_stream]
 
@@ -91,8 +91,8 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         bgr_msg = self._bgr_msgs.popleft()
         depth_msg = self._depth_frame_msgs.popleft()
         segmented_msg = self._segmented_msgs.popleft()
-        can_bus_msg = self._can_bus_msgs.popleft()
-        vehicle_transform = can_bus_msg.data.transform
+        pose_msg = self._pose_msgs.popleft()
+        vehicle_transform = pose_msg.data.transform
         self._frame_cnt += 1
         if (hasattr(self._flags, 'log_every_nth_message')
                 and self._frame_cnt % self._flags.log_every_nth_message != 0):
@@ -125,10 +125,9 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         traffic_lights_stream.send(
             TrafficLightsMessage(timestamp, det_traffic_lights))
 
-    def on_can_bus_update(self, msg):
-        self._logger.debug('@{}: received can bus message'.format(
-            msg.timestamp))
-        self._can_bus_msgs.append(msg)
+    def on_pose_update(self, msg):
+        self._logger.debug('@{}: received pose message'.format(msg.timestamp))
+        self._pose_msgs.append(msg)
 
     def on_traffic_light_update(self, msg):
         self._logger.debug('@{}: received ground traffic lights update'.format(

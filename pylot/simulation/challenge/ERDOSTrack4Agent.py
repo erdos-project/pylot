@@ -46,10 +46,10 @@ class ERDOSTrack4Agent(AutonomousAgent):
         self.track = Track.SCENE_LAYOUT
         # Stores the waypoints we get from the challenge planner.
         self._waypoints = None
-        (can_bus_stream, global_trajectory_stream, ground_obstacles_stream,
+        (pose_stream, global_trajectory_stream, ground_obstacles_stream,
          traffic_lights_stream, open_drive_stream,
          control_stream) = create_data_flow()
-        self._can_bus_stream = can_bus_stream
+        self._pose_stream = pose_stream
         self._global_trajectory_stream = global_trajectory_stream
         self._ground_obstacles_stream = ground_obstacles_stream
         self._traffic_lights_stream = traffic_lights_stream
@@ -116,7 +116,7 @@ class ERDOSTrack4Agent(AutonomousAgent):
             elif key == 'scene_layout':
                 self.send_scene_layout(val[1], erdos_timestamp)
             elif key == 'can_bus':
-                self.send_can_bus_msg(val[1], erdos_timestamp)
+                self.send_pose_msg(val[1], erdos_timestamp)
             elif key == 'gnss':
                 self.send_gnss_data(val[1], erdos_timestamp)
             else:
@@ -328,7 +328,7 @@ class ERDOSTrack4Agent(AutonomousAgent):
         # the ego-vehicle's GPS coordinates.
         pass
 
-    def send_can_bus_msg(self, data, timestamp):
+    def send_pose_msg(self, data, timestamp):
         # The can bus dict contains other fields as well, but we don't use
         # them yet.
         vehicle_transform = pylot.utils.Transform.from_carla_transform(
@@ -337,14 +337,14 @@ class ERDOSTrack4Agent(AutonomousAgent):
         yaw = vehicle_transform.rotation.yaw
         velocity_vector = pylot.utils.Vector3D(forward_speed * np.cos(yaw),
                                                forward_speed * np.sin(yaw), 0)
-        self._can_bus_stream.send(
+        self._pose_stream.send(
             erdos.Message(
                 timestamp,
-                pylot.utils.CanBus(vehicle_transform, forward_speed,
-                                   velocity_vector)))
-        self._logger.debug('{} Ego vehicle location with CanBus: {}'.format(
+                pylot.utils.Pose(vehicle_transform, forward_speed,
+                                 velocity_vector)))
+        self._logger.debug('{} Ego vehicle location with Pose: {}'.format(
             timestamp, vehicle_transform))
-        self._can_bus_stream.send(erdos.WatermarkMessage(timestamp))
+        self._pose_stream.send(erdos.WatermarkMessage(timestamp))
 
     def send_waypoints_msg(self, timestamp):
         # Send once the global waypoints.
@@ -368,7 +368,7 @@ def create_data_flow():
         which the agent can send input data. The last stream is the control
         stream on which the agent receives control commands.
     """
-    can_bus_stream = erdos.IngestStream()
+    pose_stream = erdos.IngestStream()
     open_drive_stream = erdos.IngestStream()
     global_trajectory_stream = erdos.IngestStream()
     # Currently, we do not use the scene layout information.
@@ -378,13 +378,13 @@ def create_data_flow():
 
     # Add waypoint planner.
     waypoints_stream = pylot.operator_creator.add_waypoint_planning(
-        can_bus_stream, open_drive_stream, global_trajectory_stream,
+        pose_stream, open_drive_stream, global_trajectory_stream,
         ground_obstacles_stream, traffic_lights_stream, None)
     control_stream = pylot.operator_creator.add_pid_agent(
-        can_bus_stream, waypoints_stream)
+        pose_stream, waypoints_stream)
     extract_control_stream = erdos.ExtractStream(control_stream)
 
-    return (can_bus_stream, global_trajectory_stream, ground_obstacles_stream,
+    return (pose_stream, global_trajectory_stream, ground_obstacles_stream,
             traffic_lights_stream, open_drive_stream, extract_control_stream)
 
 

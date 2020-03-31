@@ -17,17 +17,17 @@ class FusionOperator(erdos.Operator):
             FOV must be identical for both.
     """
     def __init__(self,
-                 can_bus_stream,
+                 pose_stream,
                  obstacles_stream,
                  depth_camera_stream,
                  fused_stream,
                  flags,
                  camera_fov=np.pi / 4,
                  rgbd_max_range=1000):
-        self.can_bus_stream = can_bus_stream
+        self.pose_stream = pose_stream
         self.obstacles_stream = obstacles_stream
         self.depth_camera_stream = depth_camera_stream
-        can_bus_stream.add_callback(self.update_pos)
+        pose_stream.add_callback(self.update_pos)
         obstacles_stream.add_callback(self.update_obstacles)
         depth_camera_stream.add_callback(self.update_distances)
         self._fused_stream = fused_stream
@@ -43,7 +43,7 @@ class FusionOperator(erdos.Operator):
         self._obstacles = deque()
 
     @staticmethod
-    def connect(can_bus_stream, obstacles_stream, depth_camera_stream):
+    def connect(pose_stream, obstacles_stream, depth_camera_stream):
         fused_stream = erdos.WriteStream()
         return [fused_stream]
 
@@ -129,10 +129,10 @@ class FusionOperator(erdos.Operator):
 
     def run(self):
         while True:
-            can_bus_msg = self.can_bus_stream.read()
+            pose_msg = self.pose_stream.read()
             obstacles_msg = self.obstacles_stream.read()
             depth_camera_msg = self.depth_camera_stream.read()
-            self.update_pos(can_bus_msg)
+            self.update_pos(pose_msg)
             self.update_obstacles(obstacles_msg)
             self.update_distances(depth_camera_msg)
             self.fuse()

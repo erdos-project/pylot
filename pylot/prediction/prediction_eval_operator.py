@@ -14,8 +14,8 @@ class PredictionEvalOperator(erdos.Operator):
     """Operator that calculates accuracy metrics for predicted trajectories.
 
     Args:
-        can_bus_stream (:py:class:`erdos.ReadStream`): The stream on which can
-            bus info is received.
+        pose_stream (:py:class:`erdos.ReadStream`): The stream on which pose
+            info is received.
         tracking_stream (:py:class:`erdos.ReadStream`): The stream on which
             perfect
             :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
@@ -25,13 +25,12 @@ class PredictionEvalOperator(erdos.Operator):
             received from the prediction operator.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, can_bus_stream, tracking_stream, prediction_stream,
-                 flags):
-        can_bus_stream.add_callback(self._on_can_bus_update)
+    def __init__(self, pose_stream, tracking_stream, prediction_stream, flags):
+        pose_stream.add_callback(self._on_pose_update)
         tracking_stream.add_callback(self._on_tracking_update)
         prediction_stream.add_callback(self._on_prediction_update)
         erdos.add_watermark_callback(
-            [can_bus_stream, tracking_stream, prediction_stream], [],
+            [pose_stream, tracking_stream, prediction_stream], [],
             self.on_watermark)
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -41,13 +40,13 @@ class PredictionEvalOperator(erdos.Operator):
         # Message buffers.
         self._prediction_msgs = deque()
         self._tracking_msgs = deque()
-        self._can_bus_msgs = deque()
+        self._pose_msgs = deque()
         # Accumulated list of predictions, from oldest to newest.
         self._predictions = deque(
             maxlen=self._flags.prediction_num_future_steps)
 
     @staticmethod
-    def connect(can_bus_stream, tracking_stream, prediction_stream):
+    def connect(pose_stream, tracking_stream, prediction_stream):
         return []
 
     def _on_prediction_update(self, msg):
@@ -56,8 +55,8 @@ class PredictionEvalOperator(erdos.Operator):
     def _on_tracking_update(self, msg):
         self._tracking_msgs.append(msg)
 
-    def _on_can_bus_update(self, msg):
-        self._can_bus_msgs.append(msg)
+    def _on_pose_update(self, msg):
+        self._pose_msgs.append(msg)
 
     def on_watermark(self, timestamp):
         """Invoked when all input streams have received a watermark.
@@ -68,7 +67,7 @@ class PredictionEvalOperator(erdos.Operator):
         """
         tracking_msg = self._tracking_msgs.popleft()
         prediction_msg = self._prediction_msgs.popleft()
-        vehicle_transform = self._can_bus_msgs.popleft().data.transform
+        vehicle_transform = self._pose_msgs.popleft().data.transform
 
         # TODO: The evaluator assumes that the obstacle tracker assigns the
         # same ids to the obstacles as they have in the CARLA simulation.

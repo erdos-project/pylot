@@ -21,7 +21,7 @@ def driver():
 
     control_loop_stream = erdos.LoopStream()
     # Create carla operator.
-    (can_bus_stream, ground_traffic_lights_stream, ground_obstacles_stream,
+    (pose_stream, ground_traffic_lights_stream, ground_obstacles_stream,
      ground_speed_limit_signs_stream, ground_stop_signs_stream,
      vehicle_id_stream, open_drive_stream, global_trajectory_stream
      ) = pylot.operator_creator.add_carla_bridge(control_loop_stream)
@@ -66,21 +66,21 @@ def driver():
 
     obstacles_stream = \
         pylot.component_creator.add_obstacle_detection(
-            center_camera_stream, rgb_camera_setup, can_bus_stream,
+            center_camera_stream, rgb_camera_setup, pose_stream,
             depth_stream, depth_camera_stream, ground_segmented_stream,
             ground_obstacles_stream, ground_speed_limit_signs_stream,
             ground_stop_signs_stream)
     traffic_lights_stream = \
         pylot.component_creator.add_traffic_light_detection(
-            transform, vehicle_id_stream, can_bus_stream, depth_stream,
+            transform, vehicle_id_stream, pose_stream, depth_stream,
             ground_traffic_lights_stream)
 
     lane_detection_stream = pylot.component_creator.add_lane_detection(
-        center_camera_stream, can_bus_stream)
+        center_camera_stream, pose_stream)
 
     obstacles_tracking_stream = pylot.component_creator.add_obstacle_tracking(
         center_camera_stream, rgb_camera_setup, obstacles_stream, depth_stream,
-        vehicle_id_stream, can_bus_stream, ground_obstacles_stream)
+        vehicle_id_stream, pose_stream, ground_obstacles_stream)
 
     segmented_stream = pylot.component_creator.add_segmentation(
         center_camera_stream, ground_segmented_stream)
@@ -91,33 +91,32 @@ def driver():
                                                      depth_camera_stream)
 
     if FLAGS.fusion:
-        pylot.operator_creator.add_fusion(can_bus_stream, obstacles_stream,
+        pylot.operator_creator.add_fusion(pose_stream, obstacles_stream,
                                           depth_stream,
                                           ground_obstacles_stream)
 
     prediction_stream = pylot.component_creator.add_prediction(
-        obstacles_tracking_stream, vehicle_id_stream, transform,
-        can_bus_stream)
+        obstacles_tracking_stream, vehicle_id_stream, transform, pose_stream)
 
     # Add planning operators.
     goal_location = pylot.utils.Location(float(FLAGS.goal_location[0]),
                                          float(FLAGS.goal_location[1]),
                                          float(FLAGS.goal_location[2]))
     waypoints_stream = pylot.component_creator.add_planning(
-        goal_location, can_bus_stream, prediction_stream, center_camera_stream,
+        goal_location, pose_stream, prediction_stream, center_camera_stream,
         obstacles_stream, traffic_lights_stream, open_drive_stream,
         global_trajectory_stream)
 
     # Add the behaviour planning and control operator.
     control_stream = pylot.component_creator.add_control(
-        can_bus_stream, waypoints_stream)
+        pose_stream, waypoints_stream)
     control_loop_stream.set(control_stream)
 
     pylot.operator_creator.add_sensor_visualizers(center_camera_stream,
                                                   depth_camera_stream,
                                                   point_cloud_stream,
                                                   ground_segmented_stream,
-                                                  imu_stream, can_bus_stream)
+                                                  imu_stream, pose_stream)
     erdos.run()
 
 

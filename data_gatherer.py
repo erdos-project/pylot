@@ -46,7 +46,7 @@ def main(argv):
 
     control_loop_stream = erdos.LoopStream()
     # Create carla operator.
-    (can_bus_stream, ground_traffic_lights_stream, ground_obstacles_stream,
+    (pose_stream, ground_traffic_lights_stream, ground_obstacles_stream,
      ground_speed_limit_signs_stream, ground_stop_signs_stream,
      vehicle_id_stream, open_drive_stream, global_trajectory_stream
      ) = pylot.operator_creator.add_carla_bridge(control_loop_stream)
@@ -106,7 +106,7 @@ def main(argv):
                 traffic_light_camera_stream,
                 traffic_light_depth_camera_stream,
                 traffic_light_segmented_camera_stream,
-                can_bus_stream)
+                pose_stream)
         pylot.operator_creator.add_bounding_box_logging(traffic_lights_stream)
 
     if FLAGS.log_left_right_cameras:
@@ -129,7 +129,7 @@ def main(argv):
     if FLAGS.log_obstacles:
         obstacles_stream = pylot.operator_creator.add_perfect_detector(
             depth_camera_stream, center_camera_stream, segmented_stream,
-            can_bus_stream, ground_obstacles_stream,
+            pose_stream, ground_obstacles_stream,
             ground_speed_limit_signs_stream, ground_stop_signs_stream)
         pylot.operator_creator.add_bounding_box_logging(obstacles_stream)
 
@@ -142,7 +142,7 @@ def main(argv):
         obstacles_tracking_stream = \
             pylot.operator_creator.add_perfect_tracking(
                 ground_obstacles_stream,
-                can_bus_stream)
+                pose_stream)
         if FLAGS.log_trajectories:
             pylot.operator_creator.add_trajectory_logging(
                 obstacles_tracking_stream)
@@ -174,7 +174,7 @@ def main(argv):
                     name='top_down_rgb_camera',
                     fov=90)
             pylot.operator_creator.add_chauffeur_logging(
-                vehicle_id_stream, can_bus_stream, obstacles_tracking_stream,
+                vehicle_id_stream, pose_stream, obstacles_tracking_stream,
                 top_down_camera_stream, top_down_segmented_stream,
                 top_down_camera_setup)
 
@@ -182,7 +182,7 @@ def main(argv):
                                                   depth_camera_stream,
                                                   point_cloud_stream,
                                                   segmented_stream, imu_stream,
-                                                  can_bus_stream)
+                                                  pose_stream)
 
     # TODO: Hack! We synchronize on a single stream, based on a guesestimate
     # of which stream is slowest. Instead, We should synchronize on all output

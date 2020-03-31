@@ -27,7 +27,7 @@ class WaypointPlanningOperator(erdos.Operator):
     avoidance policy.
 
     Args:
-        can_bus_stream (:py:class:`erdos.ReadStream`): Stream on which can bus
+        pose_stream (:py:class:`erdos.ReadStream`): Stream on which pose
             info is received.
         open_drive_stream (:py:class:`erdos.ReadStream`): Stream on which open
             drive string representations are received. The operator can
@@ -41,7 +41,7 @@ class WaypointPlanningOperator(erdos.Operator):
             the ego vehicle.
     """
     def __init__(self,
-                 can_bus_stream,
+                 pose_stream,
                  open_drive_stream,
                  global_trajectory_stream,
                  obstacles_stream,
@@ -49,13 +49,13 @@ class WaypointPlanningOperator(erdos.Operator):
                  waypoints_stream,
                  flags,
                  goal_location=None):
-        can_bus_stream.add_callback(self.on_can_bus_update)
+        pose_stream.add_callback(self.on_pose_update)
         open_drive_stream.add_callback(self.on_opendrive_map)
         global_trajectory_stream.add_callback(self.on_global_trajectory)
         obstacles_stream.add_callback(self.on_obstacles_update)
         traffic_lights_stream.add_callback(self.on_traffic_lights_update)
         erdos.add_watermark_callback(
-            [can_bus_stream, obstacles_stream, traffic_lights_stream],
+            [pose_stream, obstacles_stream, traffic_lights_stream],
             [waypoints_stream], self.on_watermark)
 
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -73,12 +73,12 @@ class WaypointPlanningOperator(erdos.Operator):
         # scenario runner, or computed using the Carla global planner when
         # running in stand-alone mode. The waypoints are Pylot transforms.
         self._waypoints = deque()
-        self._can_bus_msgs = deque()
+        self._pose_msgs = deque()
         self._obstacles_msgs = deque()
         self._traffic_light_msgs = deque()
 
     @staticmethod
-    def connect(can_bus_stream, open_drive_stream, global_trajectory_stream,
+    def connect(pose_stream, open_drive_stream, global_trajectory_stream,
                 obstacles_stream, traffic_lights_stream):
         waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
@@ -142,16 +142,15 @@ class WaypointPlanningOperator(erdos.Operator):
         for waypoint_option in msg.data:
             self._waypoints.append(waypoint_option[0])
 
-    def on_can_bus_update(self, msg):
-        """Invoked whenever a message is received on the can bus stream.
+    def on_pose_update(self, msg):
+        """Invoked whenever a message is received on the pose stream.
 
         Args:
             msg (:py:class:`~erdos.message.Message`): Message that contains
                 info about the ego vehicle.
         """
-        self._logger.debug('@{}: received can bus message'.format(
-            msg.timestamp))
-        self._can_bus_msgs.append(msg)
+        self._logger.debug('@{}: received pose message'.format(msg.timestamp))
+        self._pose_msgs.append(msg)
 
     def on_obstacles_update(self, msg):
         self._logger.debug('@{}: obstacles update'.format(msg.timestamp))
@@ -166,8 +165,8 @@ class WaypointPlanningOperator(erdos.Operator):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         self._watermark_cnt += 1
         # Get hero vehicle info.
-        can_bus_msg = self._can_bus_msgs.popleft()
-        self._vehicle_transform = can_bus_msg.data.transform
+        pose_msg = self._pose_msgs.popleft()
+        self._vehicle_transform = pose_msg.data.transform
         tl_msg = self._traffic_light_msgs.popleft()
         obstacles_msg = self._obstacles_msgs.popleft()
 
@@ -202,7 +201,6 @@ class WaypointPlanningOperator(erdos.Operator):
             [target_speed for _ in range(len(head_waypoints))])
         waypoints_stream.send(
             WaypointsMessage(timestamp, head_waypoints, target_speeds))
- 
 
     def __remove_completed_waypoints(self):
         """Removes waypoints that the ego vehicle has already completed.

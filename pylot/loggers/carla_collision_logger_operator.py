@@ -6,8 +6,8 @@ from pylot.simulation.utils import get_vehicle_handle, get_world
 
 
 class CarlaCollisionLoggerOperator(erdos.Operator):
-    def __init__(self, vehicle_id_stream, can_bus_stream, flags):
-        can_bus_stream.add_callback(self.on_can_bus_update)
+    def __init__(self, vehicle_id_stream, pose_stream, flags):
+        pose_stream.add_callback(self.on_pose_update)
         self._vehicle_id_stream = vehicle_id_stream
         self._flags = flags
         self._csv_logger = erdos.utils.setup_csv_logging(
@@ -18,10 +18,10 @@ class CarlaCollisionLoggerOperator(erdos.Operator):
         self._ego_transform = None
 
     @staticmethod
-    def connect(vehicle_id_stream, can_bus_stream):
+    def connect(vehicle_id_stream, pose_stream):
         return []
 
-    def on_can_bus_update(self, msg):
+    def on_pose_update(self, msg):
         self._ego_transform = msg.data.transform
 
     def on_collision(self, event):

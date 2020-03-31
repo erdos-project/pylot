@@ -13,18 +13,18 @@ flags.DEFINE_enum('avoidance_behavior', 'stop', ['stop', 'swerve'],
 
 
 class PersonAvoidanceAgentOperator(erdos.Operator):
-    def __init__(self, can_bus_stream, obstacles_stream,
-                 ground_obstacles_stream, control_stream, goal, flags):
+    def __init__(self, pose_stream, obstacles_stream, ground_obstacles_stream,
+                 control_stream, goal, flags):
         """ Initializes the operator with the given information.
 
         Args:
             goal: The destination pylot.utils.Location used to plan until.
             flags: The command line flags passed to the driver.
         """
-        can_bus_stream.add_callback(self.on_can_bus_update)
+        pose_stream.add_callback(self.on_pose_update)
         obstacles_stream.add_callback(self.on_obstacles_update)
         ground_obstacles_stream.add_callback(self.on_ground_obstacles_update)
-        erdos.add_watermark_callback([can_bus_stream, obstacles_stream],
+        erdos.add_watermark_callback([pose_stream, obstacles_stream],
                                      [control_stream], self.on_watermark)
 
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -35,7 +35,7 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
         self._goal = goal
 
         # Input retrieved from the various input streams.
-        self._can_bus_msgs = collections.deque()
+        self._pose_msgs = collections.deque()
         self._ground_obstacles_msgs = collections.deque()
         self._obstacle_msgs = collections.deque()
 
@@ -52,7 +52,7 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
         self._goal_reached = False
 
     @staticmethod
-    def connect(can_bus_stream, obstacles_stream, ground_obstacles_stream):
+    def connect(pose_stream, obstacles_stream, ground_obstacles_stream):
         control_stream = erdos.WriteStream()
         return [control_stream]
 
@@ -77,15 +77,14 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
             msg.timestamp))
         self._obstacle_msgs.append(msg)
 
-    def on_can_bus_update(self, msg):
-        """ Receives the CAN Bus update and adds it to the queue of messages.
+    def on_pose_update(self, msg):
+        """ Receives the pose update and adds it to the queue of messages.
 
         Args:
             msg: The message received for the given timestamp.
         """
-        self._logger.debug('@{}: received can bus message'.format(
-            msg.timestamp))
-        self._can_bus_msgs.append(msg)
+        self._logger.debug('@{}: received pose message'.format(msg.timestamp))
+        self._pose_msgs.append(msg)
 
     def on_ground_obstacles_update(self, msg):
         """ Receives the ground obstacles update and adds it to the queue of
@@ -110,15 +109,15 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
             control_stream: Output stream on which the callback can write to.
         """
         self._logger.debug('@{}: received watermark'.format(timestamp))
-        can_bus_msg = self._can_bus_msgs.popleft()
+        pose_msg = self._pose_msgs.popleft()
         ground_obstacles_msg = self._ground_obstacles_msgs.popleft()
         obstacle_msg = self._obstacle_msgs.popleft()
 
         self._logger.debug(
             "The vehicle is travelling at a speed of {} m/s.".format(
-                can_bus_msg.data.forward_speed))
+                pose_msg.data.forward_speed))
 
-        ego_transform = can_bus_msg.data.transform
+        ego_transform = pose_msg.data.transform
         ego_location = ego_transform.location
         ego_wp = self._map.get_waypoint(ego_location.as_carla_location())
 
@@ -141,7 +140,7 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
                         self._csv_logger.info(
                             "{},{},vehicle speed {} m/s.".format(
                                 self.config.name, self.SPEED,
-                                can_bus_msg.data.forward_speed))
+                                pose_msg.data.forward_speed))
 
         # Figure out the location of the ego vehicle and compute the next
         # waypoint.
@@ -214,7 +213,7 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
                 ego_transform.get_vector_magnitude_angle(
                     pylot.utils.Location.from_carla_location(
                         wp_steer.transform.location))
-            current_speed = max(0, can_bus_msg.data.forward_speed)
+            current_speed = max(0, pose_msg.data.forward_speed)
             steer = pylot.control.utils.radians_to_steer(
                 wp_steer_angle, self._flags.steer_gain)
             # target_speed = self.SPEED if not in_swerve else self.SPEED / 5.0
