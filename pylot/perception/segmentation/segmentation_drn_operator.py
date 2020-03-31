@@ -1,6 +1,4 @@
 """Implements an operator that semantically segments frames."""
-
-from absl import flags
 import drn.segment
 from drn.segment import DRNSeg
 import erdos
@@ -11,13 +9,6 @@ import torch
 from pylot.perception.messages import SegmentedFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.utils import time_epoch_ms
-
-flags.DEFINE_string(
-    'segmentation_model_path',
-    'dependencies/models/segmentation/drn/drn_d_22_cityscapes.pth',
-    'Path to the model')
-flags.DEFINE_bool('visualize_segmentation_output', False,
-                  'True to enable visualization of segmentation output')
 
 
 class SegmentationDRNOperator(erdos.Operator):
@@ -35,6 +26,7 @@ class SegmentationDRNOperator(erdos.Operator):
             messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
+
     def __init__(self, camera_stream, segmented_stream, flags):
         camera_stream.add_callback(self.on_msg_camera_stream,
                                    [segmented_stream])

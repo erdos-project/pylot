@@ -1,8 +1,10 @@
 from absl import flags
 
+import pylot.perception.flags
 import pylot.control.flags
 import pylot.prediction.flags
 import pylot.simulation.flags
+import pylot.debug.flags
 
 FLAGS = flags.FLAGS
 
@@ -178,10 +180,10 @@ flags.register_multi_flags_validator(
         'obstacle_detection', 'obstacle_detection_model_paths',
         'obstacle_detection_model_names'
     ],
-    lambda flags_dict: (not flags_dict['obstacle_detection'] or
-                        (flags_dict['obstacle_detection'] and
-                         (len(flags_dict['obstacle_detection_model_paths']) ==
-                          len(flags_dict['obstacle_detection_model_names'])))),
+    lambda flags_dict: (not flags_dict['obstacle_detection'] or (flags_dict[
+        'obstacle_detection'] and (len(flags_dict[
+            'obstacle_detection_model_paths']) == len(flags_dict[
+                'obstacle_detection_model_names'])))),
     message='--obstacle_detection_model_paths and '
     '--obstacle_detection_model_names must have the same length')
 
@@ -204,10 +206,10 @@ flags.register_multi_flags_validator(
         'evaluate_prediction', 'prediction_num_future_steps',
         'tracking_num_steps'
     ],
-    lambda flags_dict:
-    (not flags_dict['evaluate_prediction'] or
-     (flags_dict['evaluate_prediction'] and flags_dict[
-         'prediction_num_future_steps'] <= flags_dict['tracking_num_steps'])),
+    lambda flags_dict: (not flags_dict['evaluate_prediction'] or (flags_dict[
+        'evaluate_prediction'] and flags_dict[
+            'prediction_num_future_steps'] <= flags_dict['tracking_num_steps'])
+                        ),
     message='must track at least as many steps as we predict when'
     ' --evaluate_prediction is enabled')
 

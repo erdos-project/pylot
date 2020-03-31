@@ -1,6 +1,4 @@
 """Implements an operator that detects lanes."""
-
-from absl import flags
 from collections import namedtuple
 import cv2
 import erdos
@@ -8,9 +6,6 @@ import numpy as np
 import math
 
 from pylot.perception.camera_frame import CameraFrame
-
-flags.DEFINE_bool('visualize_lane_detection', False,
-                  'True to visualize lane detection')
 
 Line = namedtuple("Line", "x1, y1, x2, y2, slope")
 
@@ -29,6 +24,7 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
             messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
+
     def __init__(self, camera_stream, detected_lanes_stream, flags):
         camera_stream.add_callback(self.on_msg_camera_stream,
                                    [detected_lanes_stream])
@@ -175,9 +171,10 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
 
         # Sort the lines by their slopes after filtering lines whose slopes
         # are > 20 or < -20.
-        cmp_lines = sorted(filter(
-            lambda line: line.slope > 20 or line.slope < -20, cmp_lines),
-                           key=lambda line: line.slope)
+        cmp_lines = sorted(
+            filter(lambda line: line.slope > 20 or line.slope < -20,
+                   cmp_lines),
+            key=lambda line: line.slope)
 
         if len(cmp_lines) == 0:
             return line_img

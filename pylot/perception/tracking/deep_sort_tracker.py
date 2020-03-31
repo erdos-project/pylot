@@ -1,14 +1,7 @@
-from absl import flags
-
 from nanonets_object_tracking.deepsort import deepsort_rbc
 
 from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
-
-flags.DEFINE_string(
-    'deep_sort_tracker_person_weights_path',
-    'dependencies/models/tracking/deep-sort-carla/ped_feature_extractor',
-    'Path to weights for person feature extractor model')
 
 
 class MultiObjectDeepSORTTracker(MultiObjectTracker):
@@ -47,8 +40,8 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
         if obstacles:
             # If obstacles is empty, this should move existing tracks one step
             # ahead. Otherwise, it will update trackers with detections.
-            self._deepsort.run_deep_sort(
-                frame.frame, confidence_scores, bboxes, labels)
+            self._deepsort.run_deep_sort(frame.frame, confidence_scores,
+                                         bboxes, labels)
         tracked_obstacles = []
         for track in self._deepsort.tracker.tracks:
             if not track.is_confirmed() or track.time_since_update > 1:
@@ -57,8 +50,8 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
             # right coords).
             bbox = track.to_tlbr()
             # Converts to xmin, xmax, ymin, ymax format.
-            bbox_2d = BoundingBox2D(
-                int(bbox[0]), int(bbox[2]), int(bbox[1]), int(bbox[3]))
+            bbox_2d = BoundingBox2D(int(bbox[0]), int(bbox[2]), int(bbox[1]),
+                                    int(bbox[3]))
             tracked_obstacles.append(
                 DetectedObstacle(bbox_2d, 0, track.label, track.track_id))
         return True, tracked_obstacles

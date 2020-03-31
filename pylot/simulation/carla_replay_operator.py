@@ -1,4 +1,3 @@
-from absl import flags
 import erdos
 import sys
 import threading
@@ -9,14 +8,6 @@ import pylot.utils
 from pylot.perception.messages import ObstaclesMessage, SpeedSignsMessage, \
     StopSignsMessage, TrafficLightsMessage
 from pylot.simulation.utils import extract_data_in_pylot_format, get_world
-
-flags.DEFINE_float('carla_replay_start_time', 0.0,
-                   'The time at which to start replaying')
-flags.DEFINE_float('carla_replay_duration', 0.0,
-                   'The duration of the replay run')
-flags.DEFINE_integer('carla_replay_id', 0,
-                     'The actor id to follow during the replay')
-flags.DEFINE_string('carla_replay_file', '', 'Path to the Carla log file')
 
 
 class CarlaReplayOperator(erdos.Operator):
@@ -29,6 +20,7 @@ class CarlaReplayOperator(erdos.Operator):
         _client: A connection to the simulator.
         _world: A handle to the world running inside the simulation.
     """
+
     def __init__(self, pose_stream, ground_traffic_lights_stream,
                  ground_obstacles_stream, ground_speed_limit_signs_stream,
                  ground_stop_signs_stream, vehicle_id_stream, flags):
@@ -117,11 +109,10 @@ class CarlaReplayOperator(erdos.Operator):
 
         # Replayer time factor is only available in > 0.9.5.
         # self._client.set_replayer_time_factor(0.1)
-        print(
-            self._client.replay_file(self._flags.carla_replay_file,
-                                     self._flags.carla_replay_start_time,
-                                     self._flags.carla_replay_duration,
-                                     self._flags.carla_replay_id))
+        print(self._client.replay_file(self._flags.carla_replay_file,
+                                       self._flags.carla_replay_start_time,
+                                       self._flags.carla_replay_duration,
+                                       self._flags.carla_replay_id))
         # Sleep a bit to allow the server to start the replay.
         time.sleep(1)
         self._driving_vehicle = self._world.get_actors().find(

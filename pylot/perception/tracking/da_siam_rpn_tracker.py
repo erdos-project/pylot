@@ -1,4 +1,3 @@
-from absl import flags
 import cv2
 import erdos
 from lapsolver import solve_dense
@@ -10,10 +9,6 @@ from DaSiamRPN.code.run_SiamRPN import SiamRPN_init, SiamRPN_track
 
 from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
-
-flags.DEFINE_string('da_siam_rpn_model_path',
-                    'dependencies/models/tracking/DASiamRPN/SiamRPNVOT.model',
-                    'Path to the model')
 
 ASSOCIATION_THRESHOLD = 0.1
 MAX_MISSED_DETECTIONS = 2
