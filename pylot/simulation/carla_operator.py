@@ -3,11 +3,10 @@ import erdos
 import random
 import time
 
+import pylot.simulation.utils
 import pylot.utils
 from pylot.perception.messages import ObstaclesMessage, SpeedSignsMessage, \
     StopSignsMessage, TrafficLightsMessage
-from pylot.simulation.utils import extract_data_in_pylot_format, \
-    get_weathers, get_world, reset_world, set_simulation_mode
 
 
 class CarlaOperator(erdos.Operator):
@@ -48,9 +47,9 @@ class CarlaOperator(erdos.Operator):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         # Connect to CARLA and retrieve the world running.
-        self._client, self._world = get_world(self._flags.carla_host,
-                                              self._flags.carla_port,
-                                              self._flags.carla_timeout)
+        self._client, self._world = pylot.simulation.utils.get_world(
+            self._flags.carla_host, self._flags.carla_port,
+            self._flags.carla_timeout)
         if self._client is None or self._world is None:
             raise ValueError('There was an issue connecting to the simulator.')
 
@@ -63,7 +62,7 @@ class CarlaOperator(erdos.Operator):
         self._spectator = self._world.get_spectator()
         self._send_world_messages()
 
-        set_simulation_mode(self._world, self._flags)
+        pylot.simulation.utils.set_simulation_mode(self._world, self._flags)
 
         if self._flags.carla_scenario_runner:
             # Waits until the ego vehicle is spawned by the scenario runner.
@@ -71,6 +70,10 @@ class CarlaOperator(erdos.Operator):
         else:
             # Spawns the person and vehicle actors.
             self._spawn_actors()
+
+        pylot.simulation.utils.set_vehicle_physics(
+            self._driving_vehicle, self._flags.carla_vehicle_moi,
+            self._flags.carla_vehicle_mass)
 
     @staticmethod
     def connect(control_stream):
@@ -117,11 +120,10 @@ class CarlaOperator(erdos.Operator):
     def _send_world_messages(self):
         """ Sends initial open drive and trajectory messages."""
         # Send open drive string.
-        top_timestamp = erdos.Timestamp(is_top=True)
         self.open_drive_stream.send(
-            erdos.Message(top_timestamp,
+            erdos.Message(erdos.Timestamp(coordinates=[0]),
                           self._world.get_map().to_opendrive()))
-        top_watermark = erdos.WatermarkMessage(top_timestamp)
+        top_watermark = erdos.WatermarkMessage(erdos.Timestamp(is_top=True))
         self.open_drive_stream.send(top_watermark)
         self.global_trajectory_stream.send(top_watermark)
 
@@ -133,30 +135,34 @@ class CarlaOperator(erdos.Operator):
             # previous runs of the simulation may persist. We need to clean
             # them up right now. In future, move this logic to a seperate
             # destroy function.
-            reset_world(self._world)
+            pylot.simulation.utils.reset_world(self._world)
         else:
             self._world = self._client.load_world('Town{:02d}'.format(
                 self._flags.carla_town))
-        # Set the weather.
-        weather = get_weathers()[self._flags.carla_weather]
         self._logger.info('Setting the weather to {}'.format(
             self._flags.carla_weather))
-        self._world.set_weather(weather)
+        pylot.simulation.utils.set_weather(self._world,
+                                           self._flags.carla_weather)
 
     def _spawn_actors(self):
         # Spawn the required number of vehicles.
-        self._vehicles = self._spawn_vehicles(self._flags.carla_num_vehicles)
+        self._vehicles = pylot.simulation.utils.spawn_vehicles(
+            self._client, self._world, self._flags.carla_num_vehicles,
+            self._logger)
 
-        # Spawn the vehicle that the pipeline has to drive and send it to
-        # the downstream operators.
-        self._driving_vehicle = self._spawn_driving_vehicle()
+        # Spawn the ego vehicle and send it to the downstream operators.
+        self._driving_vehicle = pylot.simulation.utils.spawn_ego_vehicle(
+            self._world, self._flags.carla_spawn_point_index,
+            self._flags.control_agent == 'carla_auto_pilot')
 
         if (self._flags.carla_version == '0.9.6'
                 or self._flags.carla_version == '0.9.7'
                 or self._flags.carla_version == '0.9.8'):
             # People are do not move in versions older than 0.9.6.
-            (self._people, ped_control_ids) = self._spawn_people(
-                self._flags.carla_num_people)
+            (self._people,
+             ped_control_ids) = pylot.simulation.utils.spawn_people(
+                 self._client, self._world, self._flags.carla_num_people,
+                 self._logger)
 
         # Tick once to ensure that the actors are spawned before the data-flow
         # starts.
@@ -181,12 +187,6 @@ class CarlaOperator(erdos.Operator):
                     self._driving_vehicle = actor
                     break
             self._world.tick()
-        if self._flags.carla_vehicle_moi and self._flags.carla_vehicle_mass:
-            # Fix the physics of the vehicle to increase the max speed.
-            physics_control = self._driving_vehicle.get_physics_control()
-            physics_control.moi = 0.1
-            physics_control.mass = 100
-            self._driving_vehicle.apply_physics_control(physics_control)
 
     def _tick_simulator(self):
         if (self._flags.carla_mode == 'asynchronous'
@@ -206,68 +206,6 @@ class CarlaOperator(erdos.Operator):
         self._tick_at += 1.0 / self._flags.carla_step_frequency
         self._world.tick()
 
-    def _spawn_people(self, num_people):
-        """ Spawns people at random locations inside the world.
-
-        Args:
-            num_people: The number of people to spawn.
-        """
-        p_blueprints = self._world.get_blueprint_library().filter(
-            'walker.pedestrian.*')
-        unique_locs = set([])
-        spawn_points = []
-        # Get unique spawn points.
-        for i in range(num_people):
-            attempt = 0
-            while attempt < 10:
-                spawn_point = carla.Transform()
-                loc = self._world.get_random_location_from_navigation()
-                if loc is not None:
-                    # Transform to tuple so that location is comparable.
-                    p_loc = (loc.x, loc.y, loc.z)
-                    if p_loc not in unique_locs:
-                        spawn_point.location = loc
-                        spawn_points.append(spawn_point)
-                        unique_locs.add(p_loc)
-                        break
-                attempt += 1
-            if attempt == 10:
-                self._logger.error('Could not find unique person spawn point')
-        # Spawn the people.
-        batch = []
-        for spawn_point in spawn_points:
-            p_blueprint = random.choice(p_blueprints)
-            if p_blueprint.has_attribute('is_invincible'):
-                p_blueprint.set_attribute('is_invincible', 'false')
-            batch.append(carla.command.SpawnActor(p_blueprint, spawn_point))
-        # Apply the batch and retrieve the identifiers.
-        ped_ids = []
-        for response in self._client.apply_batch_sync(batch, True):
-            if response.error:
-                self._logger.info(
-                    'Received an error while spawning a person: {}'.format(
-                        response.error))
-            else:
-                ped_ids.append(response.actor_id)
-        # Spawn the person controllers
-        ped_controller_bp = self._world.get_blueprint_library().find(
-            'controller.ai.walker')
-        batch = []
-        for ped_id in ped_ids:
-            batch.append(
-                carla.command.SpawnActor(ped_controller_bp, carla.Transform(),
-                                         ped_id))
-        ped_control_ids = []
-        for response in self._client.apply_batch_sync(batch, True):
-            if response.error:
-                self._logger.info(
-                    'Error while spawning a person controller: {}'.format(
-                        response.error))
-            else:
-                ped_control_ids.append(response.actor_id)
-
-        return (ped_ids, ped_control_ids)
-
     def _start_people(self, ped_control_ids):
         ped_actors = self._world.get_actors(ped_control_ids)
         for i, ped_control_id in enumerate(ped_control_ids):
@@ -275,90 +213,6 @@ class CarlaOperator(erdos.Operator):
             ped_actors[i].start()
             ped_actors[i].go_to_location(
                 self._world.get_random_location_from_navigation())
-
-    def _spawn_vehicles(self, num_vehicles):
-        """ Spawns vehicles at random locations inside the world.
-
-        Args:
-            num_vehicles: The number of vehicles to spawn.
-        """
-        self._logger.debug('Trying to spawn {} vehicles.'.format(num_vehicles))
-
-        # Get the spawn points and ensure that the number of vehicles
-        # requested are less than the number of spawn points.
-        spawn_points = self._world.get_map().get_spawn_points()
-        if num_vehicles >= len(spawn_points):
-            self._logger.warning(
-                'Requested {} vehicles but only found {} spawn points'.format(
-                    num_vehicles, len(spawn_points)))
-            num_vehicles = len(spawn_points)
-        else:
-            random.shuffle(spawn_points)
-
-        # Get all the possible vehicle blueprints inside the world.
-        v_blueprints = self._world.get_blueprint_library().filter('vehicle.*')
-
-        # Construct a batch message that spawns the vehicles.
-        batch = []
-        for transform in spawn_points[:num_vehicles]:
-            blueprint = random.choice(v_blueprints)
-
-            # Change the color of the vehicle.
-            if blueprint.has_attribute('color'):
-                color = random.choice(
-                    blueprint.get_attribute('color').recommended_values)
-                blueprint.set_attribute('color', color)
-
-            # Let the vehicle drive itself.
-            blueprint.set_attribute('role_name', 'autopilot')
-
-            batch.append(
-                carla.command.SpawnActor(blueprint, transform).then(
-                    carla.command.SetAutopilot(carla.command.FutureActor,
-                                               True)))
-
-        # Apply the batch and retrieve the identifiers.
-        vehicle_ids = []
-        for response in self._client.apply_batch_sync(batch, True):
-            if response.error:
-                self._logger.info(
-                    'Received an error while spawning a vehicle: {}'.format(
-                        response.error))
-            else:
-                vehicle_ids.append(response.actor_id)
-        return vehicle_ids
-
-    def _spawn_driving_vehicle(self):
-        """ Spawns the ego vehicle.
-
-        Returns:
-            A handle to the ego vehicle.
-        """
-        self._logger.debug('Spawning the vehicle to be driven around.')
-
-        # Set our vehicle to be the one used in the CARLA challenge.
-        v_blueprint = self._world.get_blueprint_library().filter(
-            'vehicle.lincoln.mkz2017')[0]
-
-        driving_vehicle = None
-
-        while not driving_vehicle:
-            if self._flags.carla_spawn_point_index == -1:
-                # Pick a random spawn point.
-                start_pose = random.choice(
-                    self._world.get_map().get_spawn_points())
-            else:
-                spawn_points = self._world.get_map().get_spawn_points()
-                assert self._flags.carla_spawn_point_index < len(spawn_points), \
-                    'Spawn point index is too big. ' \
-                    'Town does not have sufficient spawn points.'
-                start_pose = spawn_points[self._flags.carla_spawn_point_index]
-
-            driving_vehicle = self._world.try_spawn_actor(
-                v_blueprint, start_pose)
-        if self._flags.control_agent == 'carla_auto_pilot':
-            driving_vehicle.set_autopilot(True)
-        return driving_vehicle
 
     def publish_world_data(self, msg):
         """ Callback function that gets called when the world is ticked.
@@ -380,10 +234,11 @@ class CarlaOperator(erdos.Operator):
 
     def run(self):
         # Register a callback function and a function that ticks the world.
-        timestamp = erdos.Timestamp(is_top=True)
         self.vehicle_id_stream.send(
-            erdos.Message(timestamp, self._driving_vehicle.id))
-        self.vehicle_id_stream.send(erdos.WatermarkMessage(timestamp))
+            erdos.Message(erdos.Timestamp(coordinates=[0]),
+                          self._driving_vehicle.id))
+        self.vehicle_id_stream.send(
+            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
         # XXX(ionel): Hack to fix a race condition. Driver operators
         # register a carla listen callback only after they've received
@@ -416,8 +271,8 @@ class CarlaOperator(erdos.Operator):
         # Get all the actors in the simulation.
         actor_list = self._world.get_actors()
 
-        (vehicles, people, traffic_lights, speed_limits,
-         traffic_stops) = extract_data_in_pylot_format(actor_list)
+        (vehicles, people, traffic_lights, speed_limits, traffic_stops
+         ) = pylot.simulation.utils.extract_data_in_pylot_format(actor_list)
 
         # Send ground people and vehicles.
         self.ground_obstacles_stream.send(

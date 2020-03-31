@@ -1,5 +1,6 @@
 import carla
 from collections import namedtuple
+import random
 import re
 import time
 
@@ -57,17 +58,14 @@ def get_map(host="localhost", port=2000, timeout=10):
     return world.get_map()
 
 
-def get_weathers():
-    """Gets a dict of weathers that the simulation supports.
-
-    Returns:
-        A dictionary of {name: weather} that we can set the simulation to.
-    """
+def set_weather(world, weather):
+    """Sets the simulation weather."""
     names = [
         name for name in dir(carla.WeatherParameters)
         if re.match('[A-Z].+', name)
     ]
     weathers = {x: getattr(carla.WeatherParameters, x) for x in names}
+    world.set_weather(weathers[weather])
     return weathers
 
 
@@ -132,6 +130,149 @@ def reset_world(world):
             pass
         else:
             actor.destroy()
+
+
+def spawn_ego_vehicle(world, spawn_point_index, auto_pilot):
+    # Set our vehicle to be the one used in the CARLA challenge.
+    v_blueprint = world.get_blueprint_library().filter(
+        'vehicle.lincoln.mkz2017')[0]
+
+    ego_vehicle = None
+
+    while not ego_vehicle:
+        if spawn_point_index == -1:
+            # Pick a random spawn point.
+            start_pose = random.choice(world.get_map().get_spawn_points())
+        else:
+            spawn_points = world.get_map().get_spawn_points()
+            assert spawn_point_index < len(spawn_points), \
+                'Spawn point index is too big. ' \
+                'Town does not have sufficient spawn points.'
+            start_pose = spawn_points[spawn_point_index]
+
+        ego_vehicle = world.try_spawn_actor(v_blueprint, start_pose)
+    if auto_pilot:
+        ego_vehicle.set_autopilot(True)
+    return ego_vehicle
+
+
+def spawn_people(client, world, num_people, logger):
+    """Spawns people at random locations inside the world.
+
+    Args:
+        num_people: The number of people to spawn.
+    """
+    p_blueprints = world.get_blueprint_library().filter('walker.pedestrian.*')
+    unique_locs = set([])
+    spawn_points = []
+    # Get unique spawn points.
+    for i in range(num_people):
+        attempt = 0
+        while attempt < 10:
+            spawn_point = carla.Transform()
+            loc = world.get_random_location_from_navigation()
+            if loc is not None:
+                # Transform to tuple so that location is comparable.
+                p_loc = (loc.x, loc.y, loc.z)
+                if p_loc not in unique_locs:
+                    spawn_point.location = loc
+                    spawn_points.append(spawn_point)
+                    unique_locs.add(p_loc)
+                    break
+            attempt += 1
+        if attempt == 10:
+            logger.error('Could not find unique person spawn point')
+    # Spawn the people.
+    batch = []
+    for spawn_point in spawn_points:
+        p_blueprint = random.choice(p_blueprints)
+        if p_blueprint.has_attribute('is_invincible'):
+            p_blueprint.set_attribute('is_invincible', 'false')
+        batch.append(carla.command.SpawnActor(p_blueprint, spawn_point))
+    # Apply the batch and retrieve the identifiers.
+    ped_ids = []
+    for response in client.apply_batch_sync(batch, True):
+        if response.error:
+            logger.info('Received an error while spawning a person: {}'.format(
+                response.error))
+        else:
+            ped_ids.append(response.actor_id)
+    # Spawn the person controllers
+    ped_controller_bp = world.get_blueprint_library().find(
+        'controller.ai.walker')
+    batch = []
+    for ped_id in ped_ids:
+        batch.append(
+            carla.command.SpawnActor(ped_controller_bp, carla.Transform(),
+                                     ped_id))
+    ped_control_ids = []
+    for response in client.apply_batch_sync(batch, True):
+        if response.error:
+            logger.info('Error while spawning a person controller: {}'.format(
+                response.error))
+        else:
+            ped_control_ids.append(response.actor_id)
+
+    return (ped_ids, ped_control_ids)
+
+
+def spawn_vehicles(client, world, num_vehicles, logger):
+    """ Spawns vehicles at random locations inside the world.
+
+    Args:
+        num_vehicles: The number of vehicles to spawn.
+    """
+    logger.debug('Trying to spawn {} vehicles.'.format(num_vehicles))
+    # Get the spawn points and ensure that the number of vehicles
+    # requested are less than the number of spawn points.
+    spawn_points = world.get_map().get_spawn_points()
+    if num_vehicles >= len(spawn_points):
+        logger.warning(
+            'Requested {} vehicles but only found {} spawn points'.format(
+                num_vehicles, len(spawn_points)))
+        num_vehicles = len(spawn_points)
+    else:
+        random.shuffle(spawn_points)
+
+    # Get all the possible vehicle blueprints inside the world.
+    v_blueprints = world.get_blueprint_library().filter('vehicle.*')
+
+    # Construct a batch message that spawns the vehicles.
+    batch = []
+    for transform in spawn_points[:num_vehicles]:
+        blueprint = random.choice(v_blueprints)
+
+        # Change the color of the vehicle.
+        if blueprint.has_attribute('color'):
+            color = random.choice(
+                blueprint.get_attribute('color').recommended_values)
+            blueprint.set_attribute('color', color)
+
+        # Let the vehicle drive itself.
+        blueprint.set_attribute('role_name', 'autopilot')
+
+        batch.append(
+            carla.command.SpawnActor(blueprint, transform).then(
+                carla.command.SetAutopilot(carla.command.FutureActor, True)))
+
+    # Apply the batch and retrieve the identifiers.
+    vehicle_ids = []
+    for response in client.apply_batch_sync(batch, True):
+        if response.error:
+            logger.info(
+                'Received an error while spawning a vehicle: {}'.format(
+                    response.error))
+        else:
+            vehicle_ids.append(response.actor_id)
+    return vehicle_ids
+
+
+def set_vehicle_physics(vehicle, moi, mass):
+    if moi and mass:
+        physics_control = vehicle.get_physics_control()
+        physics_control.moi = moi
+        physics_control.mass = mass
+        vehicle.apply_physics_control(physics_control)
 
 
 def extract_data_in_pylot_format(actor_list):
