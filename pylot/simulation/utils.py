@@ -132,6 +132,25 @@ def reset_world(world):
             actor.destroy()
 
 
+def spawn_actors(client, world, carla_version, ego_spawn_point_index,
+                 auto_pilot, num_people, num_vehicles, logger):
+    vehicle_ids = spawn_vehicles(client, world, num_vehicles, logger)
+    ego_vehicle = spawn_ego_vehicle(world, ego_spawn_point_index, auto_pilot)
+    people = []
+    if (carla_version == '0.9.6' or carla_version == '0.9.7'
+            or carla_version == '0.9.8'):
+        # People do not move in versions older than 0.9.6.
+        (people, people_control_ids) = spawn_people(client, world, num_people,
+                                                    logger)
+        people_actors = world.get_actors(people_control_ids)
+        for i, ped_control_id in enumerate(people_control_ids):
+            # Start person.
+            people_actors[i].start()
+            people_actors[i].go_to_location(
+                world.get_random_location_from_navigation())
+    return ego_vehicle, vehicle_ids, people
+
+
 def spawn_ego_vehicle(world, spawn_point_index, auto_pilot):
     # Set our vehicle to be the one used in the CARLA challenge.
     v_blueprint = world.get_blueprint_library().filter(
@@ -273,6 +292,21 @@ def set_vehicle_physics(vehicle, moi, mass):
         physics_control.moi = moi
         physics_control.mass = mass
         vehicle.apply_physics_control(physics_control)
+
+
+def wait_for_ego_vehicle(world):
+    """Loops until a hero vehicle is spawned.
+
+    Note: The loop ticks the simulation.
+    """
+    # Connect to the ego-vehicle spawned by the scenario runner.
+    while True:
+        time.sleep(1)
+        possible_actors = world.get_actors().filter('vehicle.*')
+        for actor in possible_actors:
+            if actor.attributes['role_name'] == 'hero':
+                return actor
+        world.tick()
 
 
 def extract_data_in_pylot_format(actor_list):
