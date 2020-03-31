@@ -1,4 +1,3 @@
-from absl import flags
 import carla
 import erdos
 import sys
@@ -14,10 +13,6 @@ from pylot.perception.point_cloud import PointCloud
 
 from srunner.challenge.autoagents.autonomous_agent import AutonomousAgent,\
     Track
-
-FLAGS = flags.FLAGS
-
-flags.DEFINE_integer('track', 3, 'Track to execute')
 
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
 CENTER_CAMERA_NAME = 'center_camera'
@@ -38,6 +33,7 @@ class ERDOSAgent(AutonomousAgent):
         _waypoints (list(:py:class:`~pylot.utils.Transform`)): List of
             waypoints the agent receives from the challenge planner.
     """
+
     def setup(self, path_to_conf_file):
         """Setup phase. Invoked by the scenario runner."""
         flags.FLAGS([__file__, '--flagfile={}'.format(path_to_conf_file)])

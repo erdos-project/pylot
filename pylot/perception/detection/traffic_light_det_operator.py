@@ -1,6 +1,4 @@
 """Implements an operator that detects traffic lights."""
-from absl import flags
-
 import erdos
 import logging
 import numpy as np
@@ -11,16 +9,6 @@ from pylot.perception.detection.traffic_light import TrafficLight, \
 from pylot.perception.detection.utils import BoundingBox2D
 from pylot.perception.messages import TrafficLightsMessage
 from pylot.utils import set_tf_loglevel
-
-flags.DEFINE_string(
-    'traffic_light_det_model_path',
-    'dependencies/models/traffic_light_detection/faster-rcnn/frozen_inference_graph.pb',
-    'Path to the traffic light model protobuf')
-flags.DEFINE_float('traffic_light_det_min_score_threshold', 0.3,
-                   'Min score threshold for bounding box')
-flags.DEFINE_float(
-    'traffic_light_det_gpu_memory_fraction', 0.3,
-    'GPU memory fraction allocated to each traffic light detector')
 
 
 class TrafficLightDetOperator(erdos.Operator):
@@ -38,6 +26,7 @@ class TrafficLightDetOperator(erdos.Operator):
             messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
+
     def __init__(self, camera_stream, traffic_lights_stream, flags):
         # Register a callback on the camera input stream.
         camera_stream.add_callback(self.on_frame, [traffic_lights_stream])

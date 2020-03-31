@@ -1,13 +1,9 @@
 """Implements an operator that eveluates segmentation output."""
 
-from absl import flags
 import erdos
 import heapq
 
 from pylot.utils import time_epoch_ms
-
-flags.DEFINE_enum('segmentation_metric', 'mIoU', ['mIoU', 'timely-mIoU'],
-                  'Segmentation evaluation metric')
 
 
 class SegmentationEvalOperator(erdos.Operator):
@@ -24,6 +20,7 @@ class SegmentationEvalOperator(erdos.Operator):
             received.
         flags (absl.flags): Object to be used to access absl flags.
     """
+
     def __init__(self, ground_segmented_stream, segmented_stream, flags):
         ground_segmented_stream.add_callback(self.on_ground_segmented_frame)
         segmented_stream.add_callback(self.on_segmented_frame)

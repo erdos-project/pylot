@@ -1,6 +1,4 @@
 """Implements an operator that eveluates tracking output."""
-
-from absl import flags
 import erdos
 import heapq
 import motmetrics as mm
@@ -8,11 +6,6 @@ import numpy as np
 import time
 
 from pylot.utils import time_epoch_ms
-
-flags.DEFINE_list('tracking_metrics', [
-    'num_misses', 'num_switches', 'num_false_positives', 'mota', 'motp',
-    'mostly_tracked', 'mostly_lost', 'partially_tracked', 'idf1'
-], 'Tracking evaluation metrics')
 
 
 class TrackingEvalOperator(erdos.Operator):
@@ -26,6 +19,7 @@ class TrackingEvalOperator(erdos.Operator):
             received from the simulator.
         flags (absl.flags): Object to be used to access absl flags.
     """
+
     def __init__(self, obstacle_tracking_stream, ground_obstacles_stream,
                  flags):
         obstacle_tracking_stream.add_callback(self.on_tracker_obstacles)

@@ -1,4 +1,3 @@
-from absl import flags
 import carla
 import erdos
 import math
@@ -18,10 +17,6 @@ from pylot.perception.detection.stop_sign import StopSign
 from srunner.challenge.autoagents.autonomous_agent import AutonomousAgent,\
     Track
 
-FLAGS = flags.FLAGS
-
-flags.DEFINE_integer('track', 4, 'Agent for track 4')
-
 # The following reference values are applicable for towns 1 through 7, and
 # are taken from the corresponding CARLA OpenDrive map files.
 LAT_REF = 49.0
@@ -34,6 +29,7 @@ class ERDOSTrack4Agent(AutonomousAgent):
     Warning:
         The agent is designed to work on track 4 only.
     """
+
     def setup(self, path_to_conf_file):
         """Setup phase code.
 

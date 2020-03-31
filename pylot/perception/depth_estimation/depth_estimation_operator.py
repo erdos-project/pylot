@@ -1,6 +1,4 @@
 """Implements an operator that estimates depth using two cameras."""
-
-from absl import flags
 import erdos
 import cv2
 import os
@@ -18,10 +16,6 @@ from pylot.drivers.sensor_setup import CameraSetup
 from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.messages import DepthFrameMessage
 from pylot.utils import time_epoch_ms
-
-flags.DEFINE_string('depth_estimation_model_path',
-                    'dependencies/models/depth_estimation/AnyNet/',
-                    'Path to AnyNet depth estimation model')
 
 
 class AnyNetArgs(object):
@@ -51,6 +45,7 @@ class DepthEstimationOperator(erdos.Operator):
         fov(:obj:`int`): Field of view of the center camera.
         flags (absl.flags): Object to be used to access absl flags.
     """
+
     def __init__(self, left_camera_stream, right_camera_stream,
                  depth_estimation_stream, transform, fov, flags):
         left_camera_stream.add_callback(self.on_left_camera_msg)

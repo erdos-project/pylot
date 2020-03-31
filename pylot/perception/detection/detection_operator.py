@@ -1,9 +1,7 @@
 """Implements an operator that detects obstacles."""
-
 import logging
 import time
 
-from absl import flags
 import erdos
 import numpy as np
 import tensorflow as tf
@@ -12,14 +10,6 @@ from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle,\
     load_coco_bbox_colors, load_coco_labels
 from pylot.perception.messages import ObstaclesMessage
 from pylot.utils import set_tf_loglevel
-
-flags.DEFINE_float(
-    'obstacle_detection_gpu_memory_fraction', 0.3,
-    'GPU memory fraction allocated to each obstacle detector operator')
-flags.DEFINE_float('obstacle_detection_min_score_threshold', 0.5,
-                   'Min score threshold for bounding box')
-flags.DEFINE_string('path_coco_labels', 'dependencies/models/pylot.names',
-                    'Path to the COCO labels')
 
 
 class DetectionOperator(erdos.Operator):
@@ -37,6 +27,7 @@ class DetectionOperator(erdos.Operator):
         model_path(:obj:`str`): Path to the model pb file.
         flags (absl.flags): Object to be used to access absl flags.
     """
+
     def __init__(self, camera_stream, obstacles_stream, model_path, flags):
         camera_stream.add_callback(self.on_msg_camera_stream,
                                    [obstacles_stream])

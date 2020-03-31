@@ -1,17 +1,11 @@
 """Implements an operator that eveluates detection output."""
-
 import heapq
 import time
-
-from absl import flags
 
 import erdos
 
 import pylot.perception.detection.utils
 from pylot.utils import time_epoch_ms
-
-flags.DEFINE_enum('detection_metric', 'mAP', ['mAP', 'timely-mAP'],
-                  'Detection evaluation metric')
 
 
 class DetectionEvalOperator(erdos.Operator):
@@ -25,6 +19,7 @@ class DetectionEvalOperator(erdos.Operator):
             received from the simulator.
         flags (absl.flags): Object to be used to access absl flags.
     """
+
     def __init__(self, obstacles_stream, ground_obstacles_stream, flags):
         obstacles_stream.add_callback(self.on_obstacles)
         ground_obstacles_stream.add_callback(self.on_ground_obstacles)

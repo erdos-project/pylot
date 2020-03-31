@@ -1,13 +1,9 @@
-from absl import flags
 from collections import deque
 import erdos
 import time
 
 from pylot.perception.detection.utils import VEHICLE_LABELS
 from pylot.perception.messages import ObstaclesMessage
-
-flags.DEFINE_bool('visualize_tracker_output', False,
-                  'True to enable visualization of tracker output')
 
 
 class ObjectTrackerOperator(erdos.Operator):

@@ -1,17 +1,10 @@
 """This module implements an operator that visualizes planning waypoints."""
-
-from absl import flags
 from collections import deque
 import erdos
 
 import pylot.utils
 
 DEFAULT_VIS_TIME = 0.1
-
-flags.DEFINE_bool('draw_waypoints_on_world', True,
-                  'True to enable drawing on the Carla world')
-flags.DEFINE_bool('draw_waypoints_on_camera_frames', False,
-                  'True to enable drawing on camera frames')
 
 
 class WaypointVisualizerOperator(erdos.Operator):
@@ -38,6 +31,7 @@ class WaypointVisualizerOperator(erdos.Operator):
             messages.
         _world (carla.World): A handle to the world to draw the waypoints on.
     """
+
     def __init__(self, waypoints_stream, camera_stream, pose_stream, flags):
         waypoints_stream.add_callback(self.on_wp_update)
         camera_stream.add_callback(self.on_bgr_frame)
