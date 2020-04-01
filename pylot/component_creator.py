@@ -93,6 +93,7 @@ def add_obstacle_detection(center_camera_stream,
 
 def add_traffic_light_detection(tl_transform,
                                 vehicle_id_stream,
+                                release_sensor_stream,
                                 pose_stream=None,
                                 depth_stream=None,
                                 ground_traffic_lights_stream=None):
@@ -122,9 +123,10 @@ def add_traffic_light_detection(tl_transform,
     """
     if FLAGS.traffic_light_detection or FLAGS.perfect_traffic_light_detection:
         # Only add the TL camera if traffic light detection is enabled.
-        (tl_camera_stream,
+        (tl_camera_stream, _,
          tl_camera_setup) = pylot.operator_creator.add_rgb_camera(
-             tl_transform, vehicle_id_stream, 'traffic_light_camera', 45)
+             tl_transform, vehicle_id_stream, release_sensor_stream,
+             'traffic_light_camera', 45)
 
     traffic_lights_stream = None
     if FLAGS.traffic_light_detection:
@@ -142,12 +144,14 @@ def add_traffic_light_detection(tl_transform,
                 and ground_traffic_lights_stream is not None)
         # Add segmented and depth cameras with fov 45. These cameras are needed
         # by the perfect traffic light detector.
-        (tl_depth_camera_stream, _) = pylot.operator_creator.add_depth_camera(
-            tl_transform, vehicle_id_stream, 'traffic_light_depth_camera', 45)
-        (tl_segmented_camera_stream,
+        (tl_depth_camera_stream, _,
+         _) = pylot.operator_creator.add_depth_camera(
+             tl_transform, vehicle_id_stream, release_sensor_stream,
+             'traffic_light_depth_camera', 45)
+        (tl_segmented_camera_stream, _,
          _) = pylot.operator_creator.add_segmented_camera(
-             tl_transform, vehicle_id_stream, 'traffic_light_segmented_camera',
-             45)
+             tl_transform, vehicle_id_stream, release_sensor_stream,
+             'traffic_light_segmented_camera', 45)
 
         traffic_lights_stream = \
             pylot.operator_creator.add_perfect_traffic_light_detector(

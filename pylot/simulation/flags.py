@@ -10,10 +10,10 @@ flags.DEFINE_string('carla_host', 'localhost', 'Carla host.')
 flags.DEFINE_integer('carla_port', 2000, 'Carla port.')
 flags.DEFINE_integer('carla_timeout', 10,
                      'Timeout for connecting to the Carla simulator.')
-flags.DEFINE_enum(
-    'carla_mode', 'synchronous',
-    ['synchronous', 'asynchronous', 'asynchronous-fixed-time-step'],
-    'Sets the way in which to run the simulator')
+flags.DEFINE_enum('carla_mode', 'synchronous', [
+    'synchronous', 'asynchronous', 'asynchronous-fixed-time-step',
+    'pseudo-asynchronous'
+], 'Sets the way in which to run the simulator')
 flags.DEFINE_bool('carla_scenario_runner', False,
                   'True to enable running a scenario.')
 flags.DEFINE_integer('carla_town', 1, 'Sets which Carla town to use')

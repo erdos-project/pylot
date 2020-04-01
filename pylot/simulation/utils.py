@@ -72,7 +72,8 @@ def set_weather(world, weather):
 
 def set_simulation_mode(world, flags):
     # Turn on the synchronous mode so we can control the simulation.
-    if flags.carla_mode == 'synchronous':
+    if (flags.carla_mode == 'synchronous'
+            or flags.carla_mode == 'pseudo-asynchronous'):
         set_synchronous_mode(world, flags.carla_fps)
     elif flags.carla_mode == 'asynchronous-fixed-time-step':
         set_asynchronous_fixed_time_step_mode(world, flags.carla_fps)

@@ -48,22 +48,26 @@ def main(argv):
                                       pylot.utils.Rotation())
 
     control_loop_stream = erdos.LoopStream()
+    notify_stream = erdos.LoopStream()
     # Create carla operator.
     (pose_stream, ground_traffic_lights_stream, ground_obstacles_stream,
      ground_speed_limit_signs_stream, ground_stop_signs_stream,
-     vehicle_id_stream, open_drive_stream, global_trajectory_stream
-     ) = pylot.operator_creator.add_carla_bridge(control_loop_stream)
+     vehicle_id_stream, open_drive_stream, global_trajectory_stream,
+     release_sensor_stream) = pylot.operator_creator.add_carla_bridge(
+         control_loop_stream, notify_stream)
 
     # Add camera sensors.
-    (center_camera_stream,
+    (center_camera_stream, notify_rgb_stream,
      rgb_camera_setup) = pylot.operator_creator.add_rgb_camera(
-         transform, vehicle_id_stream)
-    (depth_camera_stream,
+         transform, vehicle_id_stream, release_sensor_stream)
+    notify_stream.set(notify_rgb_stream)
+    (depth_camera_stream, _,
      depth_camera_setup) = pylot.operator_creator.add_depth_camera(
-         transform, vehicle_id_stream)
-    (segmented_stream,
+         transform, vehicle_id_stream, release_sensor_stream)
+    (segmented_stream, _,
      _) = pylot.operator_creator.add_segmented_camera(transform,
-                                                      vehicle_id_stream)
+                                                      vehicle_id_stream,
+                                                      release_sensor_stream)
 
     map_stream = None
     if FLAGS.compute_detection_decay:

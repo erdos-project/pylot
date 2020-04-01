@@ -8,13 +8,14 @@ import pylot.utils
 FLAGS = flags.FLAGS
 
 
-def add_carla_bridge(control_stream):
+def add_carla_bridge(control_stream, notify_stream):
     from pylot.simulation.carla_operator import CarlaOperator
     op_config = erdos.OperatorConfig(name='carla_operator',
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    return erdos.connect(CarlaOperator, op_config, [control_stream], FLAGS)
+    return erdos.connect(CarlaOperator, op_config,
+                         [control_stream, notify_stream], FLAGS)
 
 
 def add_obstacle_detection(camera_stream,
@@ -364,43 +365,52 @@ def add_waypoint_planning(pose_stream,
 
 def add_rgb_camera(transform,
                    vehicle_id_stream,
+                   release_sensor_stream,
                    name='center_rgb_camera',
                    fov=90):
     from pylot.drivers.sensor_setup import RGBCameraSetup
     rgb_camera_setup = RGBCameraSetup(name, FLAGS.carla_camera_image_width,
                                       FLAGS.carla_camera_image_height,
                                       transform, fov)
-    camera_stream = _add_camera_driver(vehicle_id_stream, rgb_camera_setup)
-    return (camera_stream, rgb_camera_setup)
+    camera_stream, notify_reading_stream = _add_camera_driver(
+        vehicle_id_stream, release_sensor_stream, rgb_camera_setup)
+    return (camera_stream, notify_reading_stream, rgb_camera_setup)
 
 
 def add_depth_camera(transform,
                      vehicle_id_stream,
+                     release_sensor_stream,
                      name='center_depth_camera',
                      fov=90):
     from pylot.drivers.sensor_setup import DepthCameraSetup
     depth_camera_setup = DepthCameraSetup(name, FLAGS.carla_camera_image_width,
                                           FLAGS.carla_camera_image_height,
                                           transform, fov)
-    ground_depth_camera_stream = _add_camera_driver(vehicle_id_stream,
-                                                    depth_camera_setup)
-    return (ground_depth_camera_stream, depth_camera_setup)
+    ground_depth_camera_stream, notify_reading_stream = _add_camera_driver(
+        vehicle_id_stream, release_sensor_stream, depth_camera_setup)
+    return (ground_depth_camera_stream, notify_reading_stream,
+            depth_camera_setup)
 
 
 def add_segmented_camera(transform,
                          vehicle_id_stream,
+                         release_sensor_stream,
                          name='center_segmented_camera',
                          fov=90):
     from pylot.drivers.sensor_setup import SegmentedCameraSetup
     segmented_camera_setup = SegmentedCameraSetup(
         name, FLAGS.carla_camera_image_width, FLAGS.carla_camera_image_height,
         transform, fov)
-    ground_segmented_camera_stream = _add_camera_driver(
-        vehicle_id_stream, segmented_camera_setup)
-    return (ground_segmented_camera_stream, segmented_camera_setup)
+    ground_segmented_camera_stream, notify_reading_stream = _add_camera_driver(
+        vehicle_id_stream, release_sensor_stream, segmented_camera_setup)
+    return (ground_segmented_camera_stream, notify_reading_stream,
+            segmented_camera_setup)
 
 
-def add_left_right_cameras(transform, vehicle_id_stream, fov=90):
+def add_left_right_cameras(transform,
+                           vehicle_id_stream,
+                           release_sensor_stream,
+                           fov=90):
     (left_camera_setup, right_camera_setup) = \
         pylot.drivers.sensor_setup.create_left_right_camera_setups(
             'camera',
@@ -409,11 +419,12 @@ def add_left_right_cameras(transform, vehicle_id_stream, fov=90):
             FLAGS.carla_camera_image_height,
             FLAGS.offset_left_right_cameras,
             fov)
-    left_camera_stream = _add_camera_driver(vehicle_id_stream,
-                                            left_camera_setup)
-    right_camera_stream = _add_camera_driver(vehicle_id_stream,
-                                             right_camera_setup)
-    return (left_camera_stream, right_camera_stream)
+    left_camera_stream, notify_left_stream = _add_camera_driver(
+        vehicle_id_stream, release_sensor_stream, left_camera_setup)
+    right_camera_stream, notify_right_stream = _add_camera_driver(
+        vehicle_id_stream, release_sensor_stream, right_camera_setup)
+    return (left_camera_stream, right_camera_stream, notify_left_stream,
+            notify_right_stream)
 
 
 def add_collision_sensor(vehicle_id_stream):
@@ -466,7 +477,7 @@ def add_lane_invasion_sensor(vehicle_id_stream):
     return lane_invasion_stream
 
 
-def _add_camera_driver(vehicle_id_stream, camera_setup):
+def _add_camera_driver(vehicle_id_stream, release_sensor_stream, camera_setup):
     from pylot.drivers.carla_camera_driver_operator import \
         CarlaCameraDriverOperator
     op_config = erdos.OperatorConfig(name=camera_setup.get_name() +
@@ -475,19 +486,23 @@ def _add_camera_driver(vehicle_id_stream, camera_setup):
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [camera_stream] = erdos.connect(CarlaCameraDriverOperator, op_config,
-                                    [vehicle_id_stream], camera_setup, FLAGS)
-    return camera_stream
+    return erdos.connect(CarlaCameraDriverOperator, op_config,
+                         [vehicle_id_stream, release_sensor_stream],
+                         camera_setup, FLAGS)
 
 
-def add_lidar(transform, vehicle_id_stream, name='center_lidar'):
+def add_lidar(transform,
+              vehicle_id_stream,
+              release_sensor_stream,
+              name='center_lidar'):
     lidar_setup = pylot.drivers.sensor_setup.create_center_lidar_setup(
         transform.location)
-    point_cloud_stream = _add_lidar_driver(vehicle_id_stream, lidar_setup)
-    return (point_cloud_stream, lidar_setup)
+    point_cloud_stream, notify_reading_stream = _add_lidar_driver(
+        vehicle_id_stream, release_sensor_stream, lidar_setup)
+    return (point_cloud_stream, notify_reading_stream, lidar_setup)
 
 
-def _add_lidar_driver(vehicle_id_stream, lidar_setup):
+def _add_lidar_driver(vehicle_id_stream, release_sensor_stream, lidar_setup):
     from pylot.drivers.carla_lidar_driver_operator import \
         CarlaLidarDriverOperator
     op_config = erdos.OperatorConfig(name=lidar_setup.get_name() + '_operator',
@@ -495,10 +510,9 @@ def _add_lidar_driver(vehicle_id_stream, lidar_setup):
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [point_cloud_stream] = erdos.connect(CarlaLidarDriverOperator, op_config,
-                                         [vehicle_id_stream], lidar_setup,
-                                         FLAGS)
-    return point_cloud_stream
+    return erdos.connect(CarlaLidarDriverOperator, op_config,
+                         [vehicle_id_stream, release_sensor_stream],
+                         lidar_setup, FLAGS)
 
 
 def add_imu(transform, vehicle_id_stream, name='imu'):
