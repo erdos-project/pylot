@@ -27,6 +27,7 @@ class CarlaOperator(erdos.Operator):
         _world: A handle to the world running inside the simulation.
         _vehicles: A list of identifiers of the vehicles inside the simulation.
     """
+
     def __init__(self, control_stream, pose_stream,
                  ground_traffic_lights_stream, ground_obstacles_stream,
                  ground_speed_limit_signs_stream, ground_stop_signs_stream,
@@ -55,7 +56,8 @@ class CarlaOperator(erdos.Operator):
         if self._client is None or self._world is None:
             raise ValueError('There was an issue connecting to the simulator.')
 
-        if not self._flags.carla_scenario_runner:
+        if not self._flags.carla_scenario_runner and \
+                self._flags.control_agent != "manual":
             # Load the appropriate town.
             self._initialize_world()
 
@@ -66,7 +68,8 @@ class CarlaOperator(erdos.Operator):
 
         set_simulation_mode(self._world, self._flags)
 
-        if self._flags.carla_scenario_runner:
+        if self._flags.carla_scenario_runner or \
+                self._flags.control_agent == "manual":
             # Waits until the ego vehicle is spawned by the scenario runner.
             self._wait_for_ego_vehicle()
         else:
@@ -98,10 +101,10 @@ class CarlaOperator(erdos.Operator):
         """
         self._logger.debug('@{}: received control message'.format(
             msg.timestamp))
-        # If auto pilot is enabled for the ego vehicle we do not apply the
-        # control, but we still want to tick in this method to ensure that
-        # all operators finished work before the world ticks.
-        if self._flags.control_agent != 'carla_auto_pilot':
+        # If auto pilot or manual mode is enabled for the ego vehicle we do
+        # not apply the control, but we still want to tick in this method to
+        # ensure that all operators finished work before the world ticks.
+        if self._flags.control_agent not in ['carla_auto_pilot', 'manual']:
             # Transform the message to a carla control cmd.
             vec_control = carla.VehicleControl(throttle=msg.throttle,
                                                steer=msg.steer,

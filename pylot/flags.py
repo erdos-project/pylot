@@ -87,7 +87,7 @@ flags.DEFINE_bool('imu', False, 'True to enable the IMU sensor')
 # Control
 ######################################################################
 flags.DEFINE_enum('control_agent', 'carla_auto_pilot',
-                  ['pid', 'mpc', 'carla_auto_pilot'],
+                  ['pid', 'mpc', 'carla_auto_pilot', 'manual'],
                   'Control agent operator to use to drive')
 
 ######################################################################

@@ -445,7 +445,7 @@ def add_control(pose_stream, waypoints_stream):
     elif FLAGS.control_agent == 'mpc':
         control_stream = pylot.operator_creator.add_mpc_agent(
             pose_stream, waypoints_stream)
-    elif FLAGS.control_agent == 'carla_auto_pilot':
+    elif FLAGS.control_agent in ['carla_auto_pilot', 'manual']:
         # TODO: Hack! We synchronize on a single stream, based on a
         # guesestimate of which stream is slowest.
         control_stream = pylot.operator_creator.add_synchronizer(
