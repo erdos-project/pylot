@@ -535,6 +535,6 @@ def get_vehicle_handle(world, vehicle_id):
         vehicle = world.get_actors().find(vehicle_id)
         if vehicle:
             return vehicle
-        time.sleep(1)
+        time.sleep(0.2)
         num_tries += 1
     raise ValueError("There was an issue finding the vehicle.")

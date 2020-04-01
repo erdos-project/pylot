@@ -83,11 +83,6 @@ class CarlaOperator(erdos.Operator):
             self._ego_vehicle, self._flags.carla_vehicle_moi,
             self._flags.carla_vehicle_mass)
 
-        # Tick once to ensure that the actors are spawned before the data-flow
-        # starts.
-        self._tick_at = time.time()
-        self._tick_simulator()
-
     @staticmethod
     def connect(control_stream):
         pose_stream = erdos.WriteStream()
@@ -151,14 +146,16 @@ class CarlaOperator(erdos.Operator):
 
     def run(self):
         self.__send_world_data()
+        # Tick here once to ensure that the driver operators can get a handle
+        # to the ego vehicle.
+        self._tick_at = time.time()
+        self._tick_simulator()
         # XXX(ionel): Hack to fix a race condition. Driver operators
         # register a carla listen callback only after they've received
         # the vehicle id value. We miss frames if we tick before
         # they register a listener. Thus, we sleep here a bit to
         # give them sufficient time to register a callback.
         time.sleep(3)
-        self._tick_simulator()
-        time.sleep(5)
         self._world.on_tick(self.send_actor_data)
         self._tick_simulator()
 
