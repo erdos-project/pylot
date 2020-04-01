@@ -154,7 +154,6 @@ class CarlaOperator(erdos.Operator):
         self.__send_world_data()
         # Tick here once to ensure that the driver operators can get a handle
         # to the ego vehicle.
-        self._tick_at = time.time()
         self._tick_simulator()
         # XXX(ionel): Hack to fix a race condition. Driver operators
         # register a carla listen callback only after they've received
@@ -187,17 +186,6 @@ class CarlaOperator(erdos.Operator):
                 or self._flags.carla_mode == 'asynchronous-fixed-time-step'):
             # No need to tick when running in these modes.
             return
-        if self._flags.carla_step_frequency == -1:
-            # Run as fast as possible.
-            self._world.tick()
-            return
-        time_until_tick = self._tick_at - time.time()
-        if time_until_tick > 0:
-            time.sleep(time_until_tick)
-        else:
-            self._logger.error('Cannot tick Carla at frequency {}'.format(
-                self._flags.carla_step_frequency))
-        self._tick_at += 1.0 / self._flags.carla_step_frequency
         self._world.tick()
 
     def __send_hero_vehicle_data(self, timestamp, watermark_msg):

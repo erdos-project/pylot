@@ -33,10 +33,6 @@ flags.DEFINE_integer(
     'carla_lidar_frequency', -1,
     'Sets the simulation time frequency at which point clouds are published. '
     '-1 means that a point cloud is published for each simulation tick')
-flags.DEFINE_float(
-    'carla_step_frequency', -1,
-    'Target frequency of sending control commands. -1 if '
-    'commands should be applied as fast as possible.')
 flags.DEFINE_integer('carla_num_vehicles', 20, 'Carla num vehicles.')
 flags.DEFINE_integer('carla_num_people', 40, 'Carla num people.')
 flags.DEFINE_enum('carla_weather', 'ClearNoon', [
