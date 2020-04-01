@@ -73,7 +73,8 @@ class CarlaOperator(erdos.Operator):
         if self._flags.carla_scenario_runner:
             # Wait until the ego vehicle is spawned by the scenario runner.
             self._logger.info("Waiting for the scenario to be ready ...")
-            self._ego_vehicle = pylot.simulation.utils.wait_for_ego_vehicle()
+            self._ego_vehicle = pylot.simulation.utils.wait_for_ego_vehicle(
+                self._world)
             self._logger.info("Found ego vehicle")
         else:
             # Spawn ego vehicle, people and vehicles.
