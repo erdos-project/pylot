@@ -39,9 +39,9 @@ flags.DEFINE_string('depth_estimation_model_path',
 
 # Deep sort tracking flags.
 flags.DEFINE_string(
-    'deep_sort_tracker_person_weights_path',
-    'dependencies/models/tracking/deep-sort-carla/ped_feature_extractor',
-    'Path to weights for person feature extractor model')
+    'deep_sort_tracker_weights_path',
+    'dependencies/models/tracking/deep-sort-carla/feature_extractor',
+    'Path to weights for feature extractor model')
 
 # Object tracking flags.
 flags.DEFINE_bool('visualize_tracker_output', False,

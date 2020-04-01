@@ -8,7 +8,7 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
     def __init__(self, flags, logger):
         # Initialize the deepsort object, which has a tracker object within it
         self._deepsort = deepsort_rbc(
-            wt_path=flags.deep_sort_tracker_person_weights_path)
+            wt_path=flags.deep_sort_tracker_weights_path)
 
     def reinitialize(self, frame, obstacles):
         """ Reinitializes a multiple obstacle tracker.
