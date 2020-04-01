@@ -45,22 +45,33 @@ def main(argv):
                                       pylot.utils.Rotation())
 
     control_loop_stream = erdos.LoopStream()
+    notify_stream = erdos.LoopStream()
     # Create carla operator.
-    (pose_stream, ground_traffic_lights_stream, ground_obstacles_stream,
-     ground_speed_limit_signs_stream, ground_stop_signs_stream,
-     vehicle_id_stream, open_drive_stream, global_trajectory_stream
-     ) = pylot.operator_creator.add_carla_bridge(control_loop_stream)
+    (
+        pose_stream,
+        ground_traffic_lights_stream,
+        ground_obstacles_stream,
+        ground_speed_limit_signs_stream,
+        ground_stop_signs_stream,
+        vehicle_id_stream,
+        open_drive_stream,
+        global_trajectory_stream,
+        release_sensor_stream,
+    ) = pylot.operator_creator.add_carla_bridge(control_loop_stream,
+                                                notify_stream)
 
     # Add sensors.
-    (center_camera_stream,
+    (center_camera_stream, notify_rgb_stream,
      rgb_camera_setup) = pylot.operator_creator.add_rgb_camera(
-         transform, vehicle_id_stream)
-    (depth_camera_stream,
+         transform, vehicle_id_stream, release_sensor_stream)
+    notify_stream.set(notify_rgb_stream)
+    (depth_camera_stream, _,
      depth_camera_setup) = pylot.operator_creator.add_depth_camera(
-         transform, vehicle_id_stream)
-    (segmented_stream,
+         transform, vehicle_id_stream, release_sensor_stream)
+    (segmented_stream, _,
      _) = pylot.operator_creator.add_segmented_camera(transform,
-                                                      vehicle_id_stream)
+                                                      vehicle_id_stream,
+                                                      release_sensor_stream)
 
     if FLAGS.log_rgb_camera:
         pylot.operator_creator.add_camera_logging(
@@ -85,21 +96,24 @@ def main(argv):
 
     traffic_lights_stream = None
     if FLAGS.log_traffic_lights:
-        (traffic_light_camera_stream,
+        (traffic_light_camera_stream, _,
          traffic_light_camera_setup) = pylot.operator_creator.add_rgb_camera(
-             transform, vehicle_id_stream, 'traffic_light_camera', 45)
+             transform, vehicle_id_stream, release_sensor_stream,
+             'traffic_light_camera', 45)
         pylot.operator_creator.add_camera_logging(
             traffic_light_camera_stream,
             'traffic_light_camera_logger_operator', 'carla-traffic-light-')
-        (traffic_light_segmented_camera_stream, _) = \
+        (traffic_light_segmented_camera_stream, _, _) = \
             pylot.operator_creator.add_segmented_camera(
                 transform,
                 vehicle_id_stream,
+                release_sensor_stream,
                 'traffic_light_segmented_camera',
                 45)
-        (traffic_light_depth_camera_stream, _) = \
+        (traffic_light_depth_camera_stream, _, _) = \
             pylot.operator_creator.add_depth_camera(
-                transform, vehicle_id_stream, 'traffic_light_depth_camera', 45)
+                transform, vehicle_id_stream, release_sensor_stream,
+                'traffic_light_depth_camera', 45)
         traffic_lights_stream = \
             pylot.operator_creator.add_perfect_traffic_light_detector(
                 ground_traffic_lights_stream,
@@ -110,9 +124,9 @@ def main(argv):
         pylot.operator_creator.add_bounding_box_logging(traffic_lights_stream)
 
     if FLAGS.log_left_right_cameras:
-        (left_camera_stream,
-         right_camera_stream) = pylot.operator_creator.add_left_right_cameras(
-             transform, vehicle_id_stream)
+        (left_camera_stream, right_camera_stream, _,
+         _) = pylot.operator_creator.add_left_right_cameras(
+             transform, vehicle_id_stream, release_sensor_stream)
         pylot.operator_creator.add_camera_logging(
             left_camera_stream, 'left_camera_logger_operator', 'carla-left-')
         pylot.operator_creator.add_camera_logging(
@@ -121,8 +135,9 @@ def main(argv):
 
     point_cloud_stream = None
     if FLAGS.log_lidar:
-        (point_cloud_stream,
-         _) = pylot.operator_creator.add_lidar(transform, vehicle_id_stream)
+        (point_cloud_stream, _,
+         _) = pylot.operator_creator.add_lidar(transform, vehicle_id_stream,
+                                               release_sensor_stream)
         pylot.operator_creator.add_lidar_logging(point_cloud_stream)
 
     obstacles_stream = None

@@ -3,7 +3,7 @@ import threading
 
 from pylot.perception.messages import IMUMessage
 from pylot.simulation.utils import get_vehicle_handle, get_world, \
-    set_synchronous_mode
+    set_simulation_mode
 from pylot.utils import Transform, Vector3D
 
 
@@ -86,8 +86,7 @@ class CarlaIMUDriverOperator(erdos.Operator):
                              self._flags.carla_timeout)
         if world is None:
             raise ValueError("There was an issue connecting to the simulator.")
-        if self._flags.carla_mode == 'synchronous':
-            set_synchronous_mode(world, self._flags.carla_fps)
+        set_simulation_mode(world, self._flags)
 
         self._vehicle = get_vehicle_handle(world, vehicle_id)
 

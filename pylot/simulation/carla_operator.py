@@ -25,15 +25,17 @@ class CarlaOperator(erdos.Operator):
         _world: A handle to the world running inside the simulation.
         _vehicles: A list of identifiers of the vehicles inside the simulation.
     """
-    def __init__(self, control_stream, pose_stream,
+    def __init__(self, control_stream, notify_stream, pose_stream,
                  ground_traffic_lights_stream, ground_obstacles_stream,
                  ground_speed_limit_signs_stream, ground_stop_signs_stream,
                  vehicle_id_stream, open_drive_stream,
-                 global_trajectory_stream, flags):
+                 global_trajectory_stream, release_sensor_stream, flags):
         if flags.random_seed:
             random.seed(flags.random_seed)
         # Register callback on control stream.
         control_stream.add_callback(self.on_control_msg)
+        erdos.add_watermark_callback([notify_stream], [release_sensor_stream],
+                                     self.on_sensor_notify)
         self.pose_stream = pose_stream
         self.ground_traffic_lights_stream = ground_traffic_lights_stream
         self.ground_obstacles_stream = ground_obstacles_stream
@@ -42,6 +44,7 @@ class CarlaOperator(erdos.Operator):
         self.vehicle_id_stream = vehicle_id_stream
         self.open_drive_stream = open_drive_stream
         self.global_trajectory_stream = global_trajectory_stream
+        self.release_sensor_stream = release_sensor_stream
 
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -92,7 +95,7 @@ class CarlaOperator(erdos.Operator):
             self._flags.carla_vehicle_mass)
 
     @staticmethod
-    def connect(control_stream):
+    def connect(control_stream, notify_stream):
         pose_stream = erdos.WriteStream()
         ground_traffic_lights_stream = erdos.WriteStream()
         ground_obstacles_stream = erdos.WriteStream()
@@ -101,10 +104,12 @@ class CarlaOperator(erdos.Operator):
         vehicle_id_stream = erdos.WriteStream()
         open_drive_stream = erdos.WriteStream()
         global_trajectory_stream = erdos.WriteStream()
+        release_sensor_stream = erdos.WriteStream()
         return [
             pose_stream, ground_traffic_lights_stream, ground_obstacles_stream,
             ground_speed_limit_signs_stream, ground_stop_signs_stream,
-            vehicle_id_stream, open_drive_stream, global_trajectory_stream
+            vehicle_id_stream, open_drive_stream, global_trajectory_stream,
+            release_sensor_stream
         ]
 
     @erdos.profile_method()
@@ -132,6 +137,9 @@ class CarlaOperator(erdos.Operator):
         # processing the previous timestamp. However, this is not always
         # true (e.g., logging operators that are not part of the main loop).
         self._tick_simulator()
+
+    def on_sensor_notify(self, timestamp, release_sensor_stream):
+        release_sensor_stream.send(erdos.WatermarkMessage(timestamp))
 
     def send_actor_data(self, msg):
         """ Callback function that gets called when the world is ticked.
@@ -244,6 +252,9 @@ class CarlaOperator(erdos.Operator):
         top_watermark = erdos.WatermarkMessage(erdos.Timestamp(is_top=True))
         self.open_drive_stream.send(top_watermark)
         self.global_trajectory_stream.send(top_watermark)
+        if self._flags.carla_mode != 'pseudo-asynchronous':
+            # Send top watermark to ensure that drivers send sensor data ASAP.
+            self.release_sensor_stream.send(top_watermark)
 
     def __update_spectactor_pose(self):
         # Set the world simulation view with respect to the vehicle.
