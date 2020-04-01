@@ -113,8 +113,11 @@ class CarlaLidarDriverOperator(erdos.Operator):
                                       str(self._lidar_setup.upper_fov))
         lidar_blueprint.set_attribute('lower_fov',
                                       str(self._lidar_setup.lower_fov))
-        # XXX(ionel): Set sensor tick.
-        lidar_blueprint.set_attribute('sensor_tick', '0.0')
+        if self._flags.carla_lidar_frequency == -1:
+            lidar_blueprint.set_attribute('sensor_tick', '0.0')
+        else:
+            lidar_blueprint.set_attribute(
+                'sensor_tick', str(1.0 / self._flags.carla_lidar_frequency))
 
         transform = self._lidar_setup.get_transform().as_carla_transform()
 
@@ -125,7 +128,3 @@ class CarlaLidarDriverOperator(erdos.Operator):
                                         attach_to=self._vehicle)
         # Register the callback on the Lidar.
         self._lidar.listen(self.process_point_clouds)
-        # TODO: We might have to loop here to keep hold of the thread so that
-        # Carla callbacks are still invoked.
-        # while True:
-        #     time.sleep(0.01)

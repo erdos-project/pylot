@@ -75,7 +75,12 @@ class CarlaCameraDriverOperator(erdos.Operator):
         camera_blueprint.set_attribute('image_size_y',
                                        str(self._camera_setup.height))
         camera_blueprint.set_attribute('fov', str(self._camera_setup.fov))
-        camera_blueprint.set_attribute('sensor_tick', '0.0')
+        if self._flags.carla_camera_frequency == -1:
+            camera_blueprint.set_attribute('sensor_tick', '0.0')
+        else:
+            camera_blueprint.set_attribute(
+                'sensor_tick', str(1.0 / self._flags.carla_camera_frequency))
+
         transform = self._camera_setup.get_transform().as_carla_transform()
 
         self._logger.debug("Spawning a camera: {}".format(self._camera_setup))
@@ -86,10 +91,6 @@ class CarlaCameraDriverOperator(erdos.Operator):
 
         # Register the callback on the camera.
         self._camera.listen(self.process_images)
-        # TODO: We might have to loop here to keep hold of the thread so that
-        # Carla callbacks are still invoked.
-        # while True:
-        #     time.sleep(0.01)
 
     def process_images(self, carla_image):
         """ Invoked when an image is received from the simulator.
