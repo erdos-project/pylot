@@ -3,7 +3,7 @@
 import erdos
 import carla
 
-from pylot.utils import Vector3D
+from pylot.utils import Vector3D, LaneMarking, LaneType
 
 
 class CollisionMessage(erdos.Message):
@@ -46,8 +46,52 @@ class CollisionMessage(erdos.Message):
         return self.__str__()
 
     def __str__(self):
-        return 'CollisionMessage(timestamp: {}, collided_actor: {}, " \
-                "impulse: {}, intensity: {}'.format(self.timestamp,
-                                                    self.collided_actor,
-                                                    self.impulse,
-                                                    self.intensity)
+        return 'CollisionMessage(timestamp: {}, collided_actor: {}, ' \
+            'impulse: {}, intensity: {})'.format(self.timestamp,
+                                                self.collided_actor,
+                                                self.impulse,
+                                                self.intensity)
+
+
+class LaneInvasionMessage(erdos.Message):
+    """ Message class to be used to send lane-invasion events.
+
+    Args:
+        lane_markings (list(:py:class:`pylot.utils.LaneMarking`)): The lane
+            markings that were invaded.
+        lane_type (:py:class:`pylot.utils.LaneType`): The type of the lane
+            that was invaded.
+        timestamp: (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
+            the message.
+
+    Attributes:
+        lane_markings (list(:py:class:`pylot.utils.LaneMarking`)): The lane
+            markings that were invaded.
+        lane_type (:py:class:`pylot.utils.LaneType`): The type of the lane
+            that was invaded.
+        timestamp: (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
+            the message.
+    """
+
+    def __init__(self, lane_markings, lane_type, timestamp):
+        super(LaneInvasionMessage, self).__init__(timestamp, None)
+
+        # Ensure the correct types of the arguments.
+        if not all(map(lambda a: isinstance(a, LaneMarking), lane_markings)):
+            raise ValueError("Expected the lane_markings to be of type "
+                             "pylot.utils.LaneMarking")
+        if not isinstance(lane_type, LaneType):
+            raise ValueError("Expected the lane_type to be of type "
+                             "pylot.utils.LaneType")
+
+        # Set the required attributes.
+        self.lane_markings = lane_markings
+        self.lane_type = lane_type
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return "LaneInvasionMessage(timestamp: {}, Lane Markings: {}, " \
+                "Lane Type: {})".format(
+            self.timestamp, self.lane_markings, self.lane_type)

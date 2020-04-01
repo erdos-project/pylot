@@ -422,6 +422,32 @@ def add_collision_sensor(vehicle_id_stream):
     return collision_stream
 
 
+def add_lane_invasion_sensor(vehicle_id_stream):
+    """ Adds a lane invasion sensor to the pipeline.
+
+    Args:
+        vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on which the
+            ID of the ego-vehicle is received.
+
+    Returns:
+        :py:class:`erdos.ReadStream`: Stream on which
+        :py:class:`~pylot.simulation.messages.LaneInvasionMessage` messages
+        with lane invasion events are published.
+    """
+    from pylot.drivers.carla_lane_invasion_sensor_operator import \
+        CarlaLaneInvasionSensorDriverOperator
+    op_config = erdos.OperatorConfig(
+        name='carla_lane_invasion_sensor_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    [lane_invasion_stream
+     ] = erdos.connect(CarlaLaneInvasionSensorDriverOperator, op_config,
+                       [vehicle_id_stream], FLAGS)
+    return lane_invasion_stream
+
+
 def _add_camera_driver(vehicle_id_stream, camera_setup):
     from pylot.drivers.carla_camera_driver_operator import \
         CarlaCameraDriverOperator
