@@ -1,3 +1,4 @@
+import carla
 import erdos
 import threading
 
@@ -95,7 +96,6 @@ class CarlaLidarDriverOperator(erdos.Operator):
         # Install the Lidar.
         lidar_blueprint = world.get_blueprint_library().find(
             self._lidar_setup.lidar_type)
-
         lidar_blueprint.set_attribute('channels',
                                       str(self._lidar_setup.channels))
         if (self._flags.carla_version == '0.9.7'
@@ -123,8 +123,18 @@ class CarlaLidarDriverOperator(erdos.Operator):
 
         self._logger.debug("Spawning a lidar: {}".format(self._lidar_setup))
 
-        self._lidar = world.spawn_actor(lidar_blueprint,
-                                        transform,
-                                        attach_to=self._vehicle)
+        if self._flags.carla_version == '0.9.8':
+            # Must attach lidar with a SpringArm, otherwise the point cloud is
+            # empty.
+            self._lidar = world.spawn_actor(
+                lidar_blueprint,
+                transform,
+                attach_to=self._vehicle,
+                attachment_type=carla.AttachmentType.SpringArm)
+        else:
+            self._lidar = world.spawn_actor(lidar_blueprint,
+                                            transform,
+                                            attach_to=self._vehicle)
+
         # Register the callback on the Lidar.
         self._lidar.listen(self.process_point_clouds)
