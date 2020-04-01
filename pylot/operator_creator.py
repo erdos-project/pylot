@@ -398,6 +398,30 @@ def add_left_right_cameras(transform, vehicle_id_stream, fov=90):
     return (left_camera_stream, right_camera_stream)
 
 
+def add_collision_sensor(vehicle_id_stream):
+    """ Adds a collision sensor to the pipeline.
+
+    Args:
+        vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on which the
+            ID of the ego-vehicle is received.
+
+    Returns:
+        :py:class:`erdos.ReadStream`: Stream on which
+        :py:class:`~pylot.simulation.messages.CollisionMessage` messages with
+        collision events are published.
+    """
+    from pylot.drivers.carla_collision_sensor_operator import \
+        CarlaCollisionSensorDriverOperator
+    op_config = erdos.OperatorConfig(name='carla_collision_sensor_operator',
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [collision_stream] = erdos.connect(CarlaCollisionSensorDriverOperator,
+                                       op_config, [vehicle_id_stream], FLAGS)
+    return collision_stream
+
+
 def _add_camera_driver(vehicle_id_stream, camera_setup):
     from pylot.drivers.carla_camera_driver_operator import \
         CarlaCameraDriverOperator
@@ -543,7 +567,15 @@ def add_chauffeur_logging(vehicle_id_stream, pose_stream,
     ], FLAGS, top_down_camera_setup)
 
 
-def add_carla_collision_logging(vehicle_id_stream, pose_stream):
+def add_carla_collision_logging(collision_stream, pose_stream):
+    """ Adds a collision message logger to the pipeline.
+
+    Args:
+        collision_stream (:py:class:`erdos.ReadStream`): Stream on which the
+            collision events are received.
+        pose_stream (:py:class:`erdos.ReadStream`): Stream on which the
+            current transforms of the ego-vehicle are published.
+    """
     from pylot.loggers.carla_collision_logger_operator import \
         CarlaCollisionLoggerOperator
     op_config = erdos.OperatorConfig(name='carla_collision_logger_operator',
@@ -551,7 +583,7 @@ def add_carla_collision_logging(vehicle_id_stream, pose_stream):
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
     erdos.connect(CarlaCollisionLoggerOperator, op_config,
-                  [vehicle_id_stream, pose_stream], FLAGS)
+                  [collision_stream, pose_stream], FLAGS)
 
 
 def add_imu_logging(imu_stream, name='imu_logger_operator'):

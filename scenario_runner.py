@@ -83,7 +83,9 @@ def driver():
         (imu_stream,
          _) = pylot.operator_creator.add_imu(transform, vehicle_id_stream)
 
-    pylot.operator_creator.add_carla_collision_logging(vehicle_id_stream,
+    collision_stream = pylot.operator_creator.add_collision_sensor(
+        vehicle_id_stream)
+    pylot.operator_creator.add_carla_collision_logging(collision_stream,
                                                        pose_stream)
 
     obstacles_stream = pylot.component_creator.add_obstacle_detection(
