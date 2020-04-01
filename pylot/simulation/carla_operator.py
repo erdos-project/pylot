@@ -62,6 +62,12 @@ class CarlaOperator(erdos.Operator):
         # handle (which is slow).
         self._spectator = self._world.get_spectator()
 
+        if self._flags.carla_version == '0.9.8':
+            # Create a traffic manager to that auto pilot works.
+            self._traffic_manager = self._client.get_trafficmanager(8000)
+            self._traffic_manager.set_synchronous_mode(
+                self._flags.carla_mode == 'synchronous')
+
         pylot.simulation.utils.set_simulation_mode(self._world, self._flags)
 
         if self._flags.carla_scenario_runner:
