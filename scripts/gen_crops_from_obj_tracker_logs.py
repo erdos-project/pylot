@@ -9,6 +9,7 @@ python gen_crops_from_obj_tracker_logs.py --data sample_data --out crops
 
 import cv2
 import glob
+import json
 import numpy as np
 import os
 
@@ -17,9 +18,41 @@ from absl import flags
 
 FLAGS = flags.FLAGS
 
+flags.DEFINE_bool("bbox_json", False,
+                  "If True, generate crops from bbox json log files \
+                   instead of mot text log files.")
 flags.DEFINE_string("data", "data", "Path to data folder.")
 flags.DEFINE_string("out", "crops", "Path to dir for output data.")
 
+
+def merge_bbox_json_files(dir_path, result_file="combined_logs.txt"):
+    """
+    Merges individual bbox json files into one txt file of detections.
+    These files contain lists of detections, with each detection being
+    a 4-item list with format: [class label, detailed label, id, bbox].
+    The bbox has format [[xmin, ymin], [xmax, ymax]].
+
+    Args:
+        dir_path: Path to directory that holds bboxes-[timestep].json files.
+        result_file: Name of output file containing merged log files.
+    """
+    merged_mot_text = []
+    bbox_json_logs = sorted(glob.glob(dir_path + "/bboxes*"),
+                            key=lambda line: int(line.split("bboxes-")[1][:-5])) # sort by timestep
+    print("Found {} bbox json files.".format(len(bbox_json_logs)))
+    for log in bbox_json_logs:
+        timestamp = log.split("bboxes-")[1][:-5]
+        with open(log, "r") as f:
+            data = json.load(f)
+            for detection in data:
+                general_label, detailed_label, obj_id, bbox_coords = detection
+                obj_id = "+".join([detailed_label, str(obj_id)])
+                x, y = bbox_coords[0]
+                w, h = bbox_coords[1][0] - x, bbox_coords[1][1] - y
+                mot_text_line = ",".join([timestamp, obj_id, str(x), str(y), str(w), str(h)])
+                merged_mot_text.append(mot_text_line)
+    with open(result_file, "w") as f:
+        f.write('\n'.join(merged_mot_text))
 
 def merge_mot_txt_files(dir_path, result_file="combined_logs.txt"):
     """
@@ -96,7 +129,10 @@ def convert_crops_to_pytorch_imagefolder_structure(crops_dir):
 
 def main(_):
     log_file_path = FLAGS.data + "/combined_logs.txt"
-    merge_mot_txt_files(FLAGS.data, result_file=log_file_path)
+    if FLAGS.bbox_json:
+        merge_bbox_json_files(FLAGS.data, result_file=log_file_path)
+    else:
+        merge_mot_txt_files(FLAGS.data, result_file=log_file_path)
     get_crops(log_file_path, FLAGS.data, FLAGS.out)
     convert_crops_to_pytorch_imagefolder_structure(FLAGS.out)
 
