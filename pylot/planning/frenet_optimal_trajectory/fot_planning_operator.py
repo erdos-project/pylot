@@ -87,7 +87,7 @@ class FOTPlanningOperator(erdos.Operator):
         # Run method is invoked after all operators finished initializing,
         # including the CARLA operator, which reloads the world. Thus, if
         # we get the map here we're sure it is up-to-date.
-        if not hasattr(self._flags, 'track'):
+        if self._flags.track == -1:
             from pylot.map.hd_map import HDMap
             from pylot.simulation.utils import get_map
             self._map = HDMap(
