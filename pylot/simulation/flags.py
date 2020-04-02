@@ -74,7 +74,8 @@ flags.DEFINE_integer('carla_replay_id', 0,
 flags.DEFINE_string('carla_replay_file', '', 'Path to the Carla log file')
 
 # Carla challenge flags.
-flags.DEFINE_integer('track', 3, 'Track to execute')
+flags.DEFINE_integer(
+    'track', -1, 'Track to execute; -1 is for executing in stand-alone mode')
 
 
 def sensor_frequency_validator(flags_dict):

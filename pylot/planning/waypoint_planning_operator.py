@@ -90,7 +90,7 @@ class WaypointPlanningOperator(erdos.Operator):
 
         # We're not running in challenge mode if no track flag is present.
         # Thus, we can directly get the map from the simulator.
-        if not hasattr(self._flags, 'track'):
+        if self._flags.track == -1:
             from pylot.map.hd_map import HDMap
             from pylot.simulation.utils import get_map
             self._map = HDMap(
