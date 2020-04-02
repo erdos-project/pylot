@@ -13,9 +13,6 @@ from pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory_planner.
 from pylot.planning.messages import WaypointsMessage
 from pylot.utils import Location, Rotation, Transform
 
-DEFAULT_DISTANCE_THRESHOLD = 30  # 30 meters radius around of ego
-DEFAULT_NUM_WAYPOINTS = 80  # 80 waypoints to plan for
-
 
 class FOTPlanningOperator(erdos.Operator):
     """ Frenet Optimal Trajectory (FOT) Planning operator for Carla 0.9.x.
@@ -127,6 +124,7 @@ class FOTPlanningOperator(erdos.Operator):
         self._waypoints = deque()
         for waypoint_option in msg.data:
             self._waypoints.append(waypoint_option[0])
+        self._prev_waypoints = self._waypoints
 
     def on_opendrive_map(self, msg):
         """Invoked whenever a message is received on the open drive stream.
@@ -164,6 +162,7 @@ class FOTPlanningOperator(erdos.Operator):
             if self._map is not None:
                 self._waypoints = self._map.compute_waypoints(
                     vehicle_transform.location, self._goal_location)
+                self._prev_waypoints = self._waypoints
             # haven't received waypoints from global trajectory stream
             else:
                 self._logger.debug(
@@ -191,7 +190,14 @@ class FOTPlanningOperator(erdos.Operator):
             self._logger.debug("@{}: Frenet Speeds: {}".format(
                 timestamp, speeds.tolist()))
 
+        # update current pose
         self.s0 = misc[0]
+
+        # log debug
+        self._logger.debug("@{}: Frenet Initial Conditions: {}".format(
+            timestamp, misc))
+        self._logger.debug("@{}: Euclidean Initial Conditions: {}".format(
+            timestamp, initial_conditions))
 
         # construct and send waypoint message
         waypoints_message = self._construct_waypoints(
@@ -200,19 +206,33 @@ class FOTPlanningOperator(erdos.Operator):
         waypoints_stream.send(waypoints_message)
 
     def _compute_initial_conditions(self, pose_msg, obstacle_list):
-        wx = []
-        wy = []
-        for wp in itertools.islice(self._waypoints, 0, DEFAULT_NUM_WAYPOINTS):
-            wx.append(wp.location.x)
-            wy.append(wp.location.y)
-        wp = np.array([wx, wy]).T
-
         x = pose_msg.data.transform.location.x
         y = pose_msg.data.transform.location.y
         vx = pose_msg.data.velocity_vector.x
         vy = pose_msg.data.velocity_vector.y
         pos = np.array([x, y])
         vel = np.array([vx, vy])
+
+        # find where the ego vehicle currently is
+        current_index = 0
+        min_dist = np.infty
+        for i, wp in enumerate(self._waypoints):
+            dist = np.linalg.norm([wp.location.x - x, wp.location.y - y])
+            if dist <= min_dist:
+                current_index = i
+                min_dist = dist
+
+        # compute waypoints offset by current location
+        wx = []
+        wy = []
+        for wp in itertools.islice(
+            self._waypoints,
+            max(current_index - self._flags.num_waypoints_behind, 0),
+            min(current_index + self._flags.num_waypoints_ahead, len(self._waypoints))
+        ):
+            wx.append(wp.location.x)
+            wy.append(wp.location.y)
+        wp = np.array([wx, wy]).T
 
         initial_conditions = {
             'ps': self.s0,
@@ -234,7 +254,7 @@ class FOTPlanningOperator(erdos.Operator):
             self._logger.debug("@{}: Frenet Optimal Trajectory failed. "
                                "Sending emergency stop.".format(timestamp))
             for wp in itertools.islice(self._prev_waypoints, 0,
-                                       DEFAULT_NUM_WAYPOINTS):
+                                       self._flags.num_waypoints_ahead):
                 path_transforms.append(wp)
                 target_speeds.append(0)
         else:
@@ -257,8 +277,7 @@ class FOTPlanningOperator(erdos.Operator):
         self._prev_waypoints = waypoints
         return WaypointsMessage(timestamp, waypoints, target_speeds)
 
-    @staticmethod
-    def _build_obstacle_list(vehicle_transform, prediction_msg):
+    def _build_obstacle_list(self, vehicle_transform, prediction_msg):
         """
         Construct an obstacle list of proximal objects given vehicle_transform.
         """
@@ -281,7 +300,7 @@ class FOTPlanningOperator(erdos.Operator):
                 # Filter out until this is removed from prediction
                 if dist_to_ego < 2:  # this allows max vel to be 20m/s
                     break
-                elif dist_to_ego < DEFAULT_DISTANCE_THRESHOLD:
+                elif dist_to_ego < self._flags.distance_threshold:
                     obstacle_list.append(obstacle_origin)
 
         if len(obstacle_list) == 0:
