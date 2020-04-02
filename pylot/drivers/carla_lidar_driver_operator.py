@@ -60,12 +60,12 @@ class CarlaLidarDriverOperator(erdos.Operator):
             self._release_data = True
         else:
             watermark_msg = erdos.WatermarkMessage(timestamp)
-            self._camera_stream.send_pickled(timestamp,
-                                             self._pickled_messages[timestamp])
+            self._lidar_stream.send_pickled(timestamp,
+                                            self._pickled_messages[timestamp])
             # Note: The operator is set not to automatically propagate
             # watermark messages received on input streams. Thus, we can
             # issue watermarks only after the Carla callback is invoked.
-            self._camera_stream.send(watermark_msg)
+            self._lidar_stream.send(watermark_msg)
             with self._pickle_lock:
                 del self._pickled_messages[timestamp]
 
@@ -95,6 +95,7 @@ class CarlaLidarDriverOperator(erdos.Operator):
 
                 if self._release_data:
                     self._lidar_stream.send(msg)
+                    self._lidar_stream.send(watermark_msg)
                 else:
                     pickled_msg = pickle.dumps(
                         msg, protocol=pickle.HIGHEST_PROTOCOL)

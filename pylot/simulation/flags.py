@@ -33,6 +33,10 @@ flags.DEFINE_integer(
     'carla_lidar_frequency', -1,
     'Sets the simulation time frequency at which point clouds are published. '
     '-1 means that a point cloud is published for each simulation tick')
+flags.DEFINE_integer(
+    'carla_localization_frequency', -1,
+    'Sets the simulation time at which ego-vehicle localization info is '
+    'published. -1 means that info is published on each simulation tick')
 flags.DEFINE_integer('carla_num_vehicles', 20, 'Carla num vehicles.')
 flags.DEFINE_integer('carla_num_people', 40, 'Carla num people.')
 flags.DEFINE_enum('carla_weather', 'ClearNoon', [
@@ -81,13 +85,15 @@ flags.DEFINE_integer(
 def sensor_frequency_validator(flags_dict):
     return (flags_dict['carla_camera_frequency'] <= flags_dict['carla_fps']
             and flags_dict['carla_lidar_frequency'] <= flags_dict['carla_fps']
-            and flags_dict['carla_imu_frequency'] <= flags_dict['carla_fps'])
+            and flags_dict['carla_imu_frequency'] <= flags_dict['carla_fps']
+            and flags_dict['carla_localization_frequency'] <=
+            flags_dict['carla_fps'])
 
 
 flags.register_multi_flags_validator(
     [
         'carla_fps', 'carla_camera_frequency', 'carla_imu_frequency',
-        'carla_lidar_frequency'
+        'carla_lidar_frequency', 'carla_localization_frequency'
     ],
     sensor_frequency_validator,
     message='Sensor frequencies cannot be greater than --carla_fps')
