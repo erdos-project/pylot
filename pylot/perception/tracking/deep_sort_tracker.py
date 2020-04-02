@@ -28,11 +28,12 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
             frame (:py:class:`~pylot.perception.camera_frame.CameraFrame`):
                 Frame to track in.
         """
-        bboxes, labels, confidence_scores = [], [], []
+        bboxes, labels, confidence_scores, ids = [], [], [], []
         for obstacle in obstacles:
             bboxes.append(obstacle.bounding_box.as_width_height_bbox())
             labels.append(obstacle.label)
             confidence_scores.append(obstacle.confidence)
+            ids.append(obstacle.id)
         # TODO: Remove this if-check and figure out why it breaks the deepsort
         # matching. If removed, calling tracker.predict() without an update
         # messes up tracker ages and matches are no longer made, just new tracks
@@ -40,8 +41,8 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
         if obstacles:
             # If obstacles is empty, this should move existing tracks one step
             # ahead. Otherwise, it will update trackers with detections.
-            self._deepsort.run_deep_sort(frame.frame, confidence_scores,
-                                         bboxes, labels)
+            self._deepsort.run_deep_sort(
+                frame.frame, confidence_scores, bboxes, labels, ids)
         tracked_obstacles = []
         for track in self._deepsort.tracker.tracks:
             if not track.is_confirmed() or track.time_since_update > 1:
