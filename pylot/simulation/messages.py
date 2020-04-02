@@ -3,7 +3,8 @@
 import erdos
 import carla
 
-from pylot.utils import Vector3D, LaneMarking, LaneType
+from pylot.utils import Vector3D, LaneMarking, LaneType, Location
+from pylot.simulation.utils import TrafficInfractionType
 
 
 class CollisionMessage(erdos.Message):
@@ -95,3 +96,47 @@ class LaneInvasionMessage(erdos.Message):
         return "LaneInvasionMessage(timestamp: {}, Lane Markings: {}, " \
                 "Lane Type: {})".format(
             self.timestamp, self.lane_markings, self.lane_type)
+
+
+class TrafficInfractionMessage(erdos.Message):
+    """ Message class to be used to send traffic infraction events.
+
+    Args:
+        infraction_type (:py:class:`.TrafficInfractionType`): The type of the
+            infraction that occurred.
+        location (:py:class:`pylot.utils.Location`): The location where the
+            infraction occurred.
+        timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
+            the message.
+
+    Attributes:
+        infraction_type (:py:class:`.TrafficInfractionType`): The type of the
+            infraction that occurred.
+        location (:py:class:`pylot.utils.Location`): The location where the
+            infraction occurred.
+        timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
+            the message.
+    """
+
+    def __init__(self, infraction_type, location, timestamp):
+        super(TrafficInfractionMessage, self).__init__(timestamp, None)
+
+        # Ensure the correct types of the arguments.
+        if not isinstance(infraction_type, TrafficInfractionType):
+            raise ValueError("Expected the lane_markings to be of type "
+                             "pylot.simulation.utils.TrafficInfractionType")
+        if not isinstance(location, Location):
+            raise ValueError("Expected the lane_type to be of type "
+                             "pylot.utils.Location")
+
+        # Set the required attributes.
+        self.infraction_type = infraction_type
+        self.location = location
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return "TrafficInfractionMessage(timestamp: {}, Infraction Type: {}, "\
+                "Location: {})".format(
+            self.timestamp, self.infraction_type, self.location)

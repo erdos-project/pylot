@@ -157,6 +157,20 @@ def add_traffic_light_detector(traffic_light_camera_stream):
     return traffic_lights_stream
 
 
+def add_traffic_light_invasion_sensor(ground_vehicle_id_stream, pose_stream):
+    from pylot.simulation.traffic_light_invasion_sensor_operator import \
+            TrafficLightInvasionSensorOperator
+    op_config = erdos.OperatorConfig(
+        name='traffic_light_invasion_sensor_operator',
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    [traffic_light_invasion_stream
+     ] = erdos.connect(TrafficLightInvasionSensorOperator, op_config,
+                       [ground_vehicle_id_stream, pose_stream], FLAGS)
+    return traffic_light_invasion_stream
+
+
 def add_canny_edge_lane_detection(bgr_camera_stream,
                                   name='canny_edge_lane_detection'):
     from pylot.perception.detection.lane_detection_canny_operator import \
