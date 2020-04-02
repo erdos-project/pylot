@@ -32,9 +32,6 @@ flags.DEFINE_integer('person_distance_hit_thres', 35,
 # Steering control parameters
 flags.DEFINE_float('default_throttle', 0.0, 'Default throttle')
 flags.DEFINE_float('throttle_max', 0.75, 'Max throttle')
-flags.DEFINE_integer(
-    'target_speed', 10,
-    'Target speed in m/s , could be controlled by the speed limit')
 flags.DEFINE_float('steer_gain', 0.7, 'Gain on computed steering angle')
 flags.DEFINE_float('brake_strength', 1,
                    'Strength for applying brake; between 0 and 1')

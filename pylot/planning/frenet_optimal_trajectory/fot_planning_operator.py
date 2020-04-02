@@ -9,13 +9,9 @@ from collections import deque
 import erdos
 
 from pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory_planner. \
-    FrenetOptimalTrajectory.fot_wrapper \
-    import compute_initial_conditions, get_fot_frenet_space
+    FrenetOptimalTrajectory.fot_wrapper import run_fot
 from pylot.planning.messages import WaypointsMessage
 from pylot.utils import Location, Rotation, Transform
-
-DEFAULT_DISTANCE_THRESHOLD = 30  # 30 meters radius around of ego
-DEFAULT_NUM_WAYPOINTS = 100  # 100 waypoints to plan for
 
 
 class FOTPlanningOperator(erdos.Operator):
@@ -47,8 +43,8 @@ class FOTPlanningOperator(erdos.Operator):
                                      [waypoints_stream], self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
+        self._hyperparameters = self.parse_hyperparameters(flags)
         self._flags = flags
-
         self._vehicle_transform = None
         self._map = None
         self._waypoints = None
@@ -57,13 +53,35 @@ class FOTPlanningOperator(erdos.Operator):
 
         self._pose_msgs = deque()
         self._prediction_msgs = deque()
-        self.s0 = 0
+        self.s0 = 0.0
 
     @staticmethod
     def connect(pose_stream, prediction_stream, global_trajectory_stream,
                 open_drive_stream):
         waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
+
+    def parse_hyperparameters(self, flags):
+        hyperparameters = {
+            "max_speed": flags.max_speed,
+            "max_accel": flags.max_accel,
+            "max_curvature": flags.max_curvature,
+            "max_road_width_l": flags.max_road_width_l,
+            "max_road_width_r": flags.max_road_width_r,
+            "d_road_w": flags.d_road_w,
+            "dt": flags.dt,
+            "maxt": flags.maxt,
+            "mint": flags.mint,
+            "d_t_s": flags.d_t_s,
+            "n_s_sample": flags.n_s_sample,
+            "obstacle_radius": flags.obstacle_radius,
+            "kj": flags.kj,
+            "kt": flags.kt,
+            "kd": flags.kd,
+            "klat": flags.klat,
+            "klon": flags.klon
+        }
+        return hyperparameters
 
     def run(self):
         # Run method is invoked after all operators finished initializing,
@@ -106,6 +124,7 @@ class FOTPlanningOperator(erdos.Operator):
         self._waypoints = deque()
         for waypoint_option in msg.data:
             self._waypoints.append(waypoint_option[0])
+        self._prev_waypoints = self._waypoints
 
     def on_opendrive_map(self, msg):
         """Invoked whenever a message is received on the open drive stream.
@@ -143,6 +162,7 @@ class FOTPlanningOperator(erdos.Operator):
             if self._map is not None:
                 self._waypoints = self._map.compute_waypoints(
                     vehicle_transform.location, self._goal_location)
+                self._prev_waypoints = self._waypoints
             # haven't received waypoints from global trajectory stream
             else:
                 self._logger.debug(
@@ -155,8 +175,12 @@ class FOTPlanningOperator(erdos.Operator):
                 return
 
         # compute optimal frenet trajectory
-        path_x, path_y, speeds, params, success, s0 = \
-            self._compute_optimal_frenet_trajectory(pose_msg, obstacle_list)
+        initial_conditions = self._compute_initial_conditions(
+            pose_msg, obstacle_list
+        )
+
+        path_x, path_y, speeds, speeds_x, speeds_y, misc, success = \
+            run_fot(initial_conditions, self._hyperparameters)
 
         if success:
             self._logger.debug("@{}: Frenet Path X: {}".format(
@@ -166,53 +190,59 @@ class FOTPlanningOperator(erdos.Operator):
             self._logger.debug("@{}: Frenet Speeds: {}".format(
                 timestamp, speeds.tolist()))
 
-        # construct and send waypoint message
-        waypoints_message = self._construct_waypoints(timestamp, path_x,
-                                                      path_y, speeds, success)
-        waypoints_stream.send(waypoints_message)
+        # update current pose
+        self.s0 = misc[0]
 
-    def _compute_optimal_frenet_trajectory(self, pose_msg, obstacle_list):
-        """
-        Compute the optimal frenet trajectory, given current environment info.
-        """
-        # convert waypoints to frenet coordinates
-        wx = []
-        wy = []
-        for wp in itertools.islice(self._waypoints, 0, DEFAULT_NUM_WAYPOINTS):
-            wx.append(wp.location.x)
-            wy.append(wp.location.y)
-        wx = np.array(wx)
-        wy = np.array(wy)
-
-        # compute frenet optimal trajectory
-        s0, c_speed, c_d, c_d_d, c_d_dd = \
-            self._compute_initial_conditions(pose_msg, wx, wy)
-        self.s0 = s0
-        target_speed = (c_speed + self._flags.target_speed) / 2
-        path_x, path_y, speeds, params, success = get_fot_frenet_space(
-            s0, c_speed, c_d, c_d_d, c_d_dd, wx, wy, obstacle_list,
-            target_speed)
-
-        # log initial conditions for debugging
-        initial_conditions = {
-            "s0": s0,
-            "c_speed": c_speed,
-            "c_d": c_d,
-            "c_d_d": c_d_d,
-            "c_d_dd": c_d_dd,
-            "wx": wx.tolist(),
-            "wy": wy.tolist(),
-            "obstacle_list": obstacle_list.tolist(),
-            "x": pose_msg.data.transform.location.x,
-            "y": pose_msg.data.transform.location.y,
-            "vx": pose_msg.data.velocity_vector.x,
-            "vy": pose_msg.data.velocity_vector.y,
-        }
-        timestamp = pose_msg.timestamp
-        self._logger.debug("@{}: Initial conditions: {}".format(
+        # log debug
+        self._logger.debug("@{}: Frenet Initial Conditions: {}".format(
+            timestamp, misc))
+        self._logger.debug("@{}: Euclidean Initial Conditions: {}".format(
             timestamp, initial_conditions))
 
-        return path_x, path_y, speeds, params, success, s0
+        # construct and send waypoint message
+        waypoints_message = self._construct_waypoints(
+            timestamp, path_x, path_y, speeds, success
+        )
+        waypoints_stream.send(waypoints_message)
+
+    def _compute_initial_conditions(self, pose_msg, obstacle_list):
+        x = pose_msg.data.transform.location.x
+        y = pose_msg.data.transform.location.y
+        vx = pose_msg.data.velocity_vector.x
+        vy = pose_msg.data.velocity_vector.y
+        pos = np.array([x, y])
+        vel = np.array([vx, vy])
+
+        # find where the ego vehicle currently is
+        current_index = 0
+        min_dist = np.infty
+        for i, wp in enumerate(self._waypoints):
+            dist = np.linalg.norm([wp.location.x - x, wp.location.y - y])
+            if dist <= min_dist:
+                current_index = i
+                min_dist = dist
+
+        # compute waypoints offset by current location
+        wx = []
+        wy = []
+        for wp in itertools.islice(
+            self._waypoints,
+            max(current_index - self._flags.num_waypoints_behind, 0),
+            min(current_index + self._flags.num_waypoints_ahead, len(self._waypoints))
+        ):
+            wx.append(wp.location.x)
+            wy.append(wp.location.y)
+        wp = np.array([wx, wy]).T
+
+        initial_conditions = {
+            'ps': self.s0,
+            'target_speed': self._flags.target_speed,
+            'pos': pos,
+            'vel': vel,
+            'wp': wp,
+            'obs': obstacle_list,
+        }
+        return initial_conditions
 
     def _construct_waypoints(self, timestamp, path_x, path_y, speeds, success):
         """
@@ -224,7 +254,7 @@ class FOTPlanningOperator(erdos.Operator):
             self._logger.debug("@{}: Frenet Optimal Trajectory failed. "
                                "Sending emergency stop.".format(timestamp))
             for wp in itertools.islice(self._prev_waypoints, 0,
-                                       DEFAULT_NUM_WAYPOINTS):
+                                       self._flags.num_waypoints_ahead):
                 path_transforms.append(wp)
                 target_speeds.append(0)
         else:
@@ -247,19 +277,7 @@ class FOTPlanningOperator(erdos.Operator):
         self._prev_waypoints = waypoints
         return WaypointsMessage(timestamp, waypoints, target_speeds)
 
-    def _compute_initial_conditions(self, pose_msg, wx, wy):
-        """
-        Convert the initial conditions of vehicle into frenet frame parameters.
-        """
-        x = pose_msg.data.transform.location.x
-        y = pose_msg.data.transform.location.y
-        vx = pose_msg.data.velocity_vector.x
-        vy = pose_msg.data.velocity_vector.y
-        return compute_initial_conditions(self.s0, x, y, vx, vy,
-                                          pose_msg.data.forward_speed, wx, wy)
-
-    @staticmethod
-    def _build_obstacle_list(vehicle_transform, prediction_msg):
+    def _build_obstacle_list(self, vehicle_transform, prediction_msg):
         """
         Construct an obstacle list of proximal objects given vehicle_transform.
         """
@@ -282,7 +300,7 @@ class FOTPlanningOperator(erdos.Operator):
                 # Filter out until this is removed from prediction
                 if dist_to_ego < 2:  # this allows max vel to be 20m/s
                     break
-                elif dist_to_ego < DEFAULT_DISTANCE_THRESHOLD:
+                elif dist_to_ego < self._flags.distance_threshold:
                     obstacle_list.append(obstacle_origin)
 
         if len(obstacle_list) == 0:
