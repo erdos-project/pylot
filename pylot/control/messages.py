@@ -1,6 +1,7 @@
 """Implements messages related to vehicle control."""
 
 import erdos
+import time
 
 
 class ControlMessage(erdos.Message):
@@ -25,6 +26,7 @@ class ControlMessage(erdos.Message):
         self.brake = brake
         self.hand_brake = hand_brake
         self.reverse = reverse
+        self.creation_time = time.time()
 
     def __str__(self):
         return ('ControlMessage(timestamp: {}, steer: {}, throttle: {}, '

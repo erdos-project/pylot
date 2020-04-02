@@ -155,6 +155,7 @@ class CarlaCameraDriverOperator(erdos.Operator):
 
                 if self._release_data:
                     self._camera_stream.send(msg)
+                    self._camera_stream.send(watermark_msg)
                 else:
                     pickled_msg = pickle.dumps(
                         msg, protocol=pickle.HIGHEST_PROTOCOL)
