@@ -218,9 +218,9 @@ class CarlaOperator(erdos.Operator):
                 # is sometimes delayed by 1 tick.
                 self._next_localization_sensor_reading += int(
                     1000 / self._flags.carla_fps)
-            else:
-                self._next_localization_sensor_reading = (
-                    game_time + int(1000 / self._flags.carla_fps))
+        else:
+            self._next_localization_sensor_reading = (
+                game_time + int(1000 / self._flags.carla_fps))
         heapq.heappush(
             self._tick_events,
             (self._next_localization_sensor_reading, TickEvent.SENSOR_READ))
