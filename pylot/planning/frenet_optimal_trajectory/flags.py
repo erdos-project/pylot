@@ -3,7 +3,7 @@ from absl import flags
 # Frenet Optimal Trajectory Hyperparameters
 flags.DEFINE_float('max_speed', 25.0, 'Maximum vehicle speed [m/s]')
 flags.DEFINE_float('max_accel', 6.0, 'Maximum vehicle acceleration [m/s^2]')
-flags.DEFINE_float('max_curvature', 10.0, 'Maximum curvature speed [1/m]')
+flags.DEFINE_float('max_curvature', 1.0, 'Maximum curvature speed [1/m]')
 flags.DEFINE_float('max_road_width_l', 5.0, 'Maximum left road width [m]')
 flags.DEFINE_float('max_road_width_r', 1.0, 'Maximum right road width [m]')
 flags.DEFINE_float('d_road_w', 0.25, 'Road width sampling discretization [m]')
