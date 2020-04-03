@@ -16,7 +16,7 @@ bash build.sh
 cd $PYLOT_HOME
 
 sudo apt-get -y update
-sudo apt-get install -y git wget python3-pip
+sudo apt-get install -y git wget python3-pip unzip
 pip3 install gdown
 # Install opencv separately because pip3 install doesn't install all libraries
 # opencv requires.
@@ -28,13 +28,11 @@ sudo apt-get install -y python3-opencv
 mkdir -p dependencies/models
 cd dependencies/models
 
-###### Download object detection models from TensorFlow zoo ######
+###### Download CARLA-trained object detection models ######
 mkdir obstacle_detection ; cd obstacle_detection
-mkdir faster-rcnn ; cd faster-rcnn
-mkdir ssd-mobilenet-v1 ; cd ssd-mobilenet-v1
-wget https://www.dropbox.com/s/9amx26kiyvvnl8h/frozen_inference_graph.pb ; cd ../
-mkdir ssd-mobilenet-v1-fpn ; cd ssd-mobilenet-v1-fpn
-wget https://www.dropbox.com/s/5w887e03fdjxeft/frozen_inference_graph.pb ; cd ../
+wget --max-redirect=20 -O download.zip https://www.dropbox.com/sh/v1mex7ykdrak3av/AADFsd8mwFcQnzJsIAQR6oEja
+unzip download.zip
+rm download.zip
 cd ../
 
 ###### Download the traffic light model ######
