@@ -16,13 +16,23 @@ flags.DEFINE_enum(
     'Sets the way in which to run the simulator')
 flags.DEFINE_bool('carla_scenario_runner', False,
                   'True to enable running a scenario.')
-flags.DEFINE_integer('carla_town', 1, 'Sets which Carla town to use.')
-flags.DEFINE_integer('carla_fps', 10,
-                     'Carla simulator FPS; do not set bellow 10.')
-flags.DEFINE_float(
-    'carla_step_frequency', -1,
-    'Target frequency of sending control commands. -1 if '
-    'commands should be applied as fast as possible.')
+flags.DEFINE_integer('carla_town', 1, 'Sets which Carla town to use')
+flags.DEFINE_integer('carla_fps',
+                     10,
+                     'Carla simulator FPS; do not set below 10',
+                     lower_bound=10)
+flags.DEFINE_integer(
+    'carla_camera_frequency', -1,
+    'Sets the simulation time frequency at which frames are published. '
+    '-1 means that a frame is published for each simulation tick')
+flags.DEFINE_integer(
+    'carla_imu_frequency', -1,
+    'Sets the simulation time frequency at which IMUs are published. '
+    '-1 means that a IMU message is published for each simulation tick')
+flags.DEFINE_integer(
+    'carla_lidar_frequency', -1,
+    'Sets the simulation time frequency at which point clouds are published. '
+    '-1 means that a point cloud is published for each simulation tick')
 flags.DEFINE_integer('carla_num_vehicles', 20, 'Carla num vehicles.')
 flags.DEFINE_integer('carla_num_people', 40, 'Carla num people.')
 flags.DEFINE_enum('carla_weather', 'ClearNoon', [
@@ -64,4 +74,20 @@ flags.DEFINE_integer('carla_replay_id', 0,
 flags.DEFINE_string('carla_replay_file', '', 'Path to the Carla log file')
 
 # Carla challenge flags.
-flags.DEFINE_integer('track', 3, 'Track to execute')
+flags.DEFINE_integer(
+    'track', -1, 'Track to execute; -1 is for executing in stand-alone mode')
+
+
+def sensor_frequency_validator(flags_dict):
+    return (flags_dict['carla_camera_frequency'] <= flags_dict['carla_fps']
+            and flags_dict['carla_lidar_frequency'] <= flags_dict['carla_fps']
+            and flags_dict['carla_imu_frequency'] <= flags_dict['carla_fps'])
+
+
+flags.register_multi_flags_validator(
+    [
+        'carla_fps', 'carla_camera_frequency', 'carla_imu_frequency',
+        'carla_lidar_frequency'
+    ],
+    sensor_frequency_validator,
+    message='Sensor frequencies cannot be greater than --carla_fps')

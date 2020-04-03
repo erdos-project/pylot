@@ -93,6 +93,11 @@ class CarlaIMUDriverOperator(erdos.Operator):
 
         # Install the IMU.
         imu_blueprint = world.get_blueprint_library().find('sensor.other.imu')
+        if self._flags.carla_imu_frequency == -1:
+            imu_blueprint.set_attribute('sensor_tick', '0.0')
+        else:
+            imu_blueprint.set_attribute(
+                'sensor_tick', str(1.0 / self._flags.carla_imu_frequency))
 
         transform = self._imu_setup.get_transform().as_carla_transform()
 
@@ -104,7 +109,3 @@ class CarlaIMUDriverOperator(erdos.Operator):
 
         # Register the callback on the IMU.
         self._imu.listen(self.process_imu)
-        # TODO: We might have to loop here to keep hold of the thread so that
-        # Carla callbacks are still invoked.
-        # while True:
-        #     time.sleep(0.01)

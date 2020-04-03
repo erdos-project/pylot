@@ -215,8 +215,7 @@ class ChauffeurLoggerOperator(erdos.Operator):
             bbox_color = carla.Color(r, g, b)
         else:
             bbox_color = carla.Color(0, 0, 0)
-        bbox_life_time = (1 / self._flags.carla_step_frequency +
-                          TL_BBOX_LIFETIME_BUFFER)
+        bbox_life_time = (1 / self._flags.carla_fps + TL_BBOX_LIFETIME_BUFFER)
         world.debug.draw_box(bbox,
                              transform.rotation,
                              thickness=0.5,

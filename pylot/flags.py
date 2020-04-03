@@ -1,8 +1,9 @@
 from absl import flags
 
 import pylot.perception.flags
-import pylot.control.flags
 import pylot.prediction.flags
+import pylot.planning.flags
+import pylot.control.flags
 import pylot.simulation.flags
 import pylot.debug.flags
 

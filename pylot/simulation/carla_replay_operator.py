@@ -119,8 +119,7 @@ class CarlaReplayOperator(erdos.Operator):
             self._flags.carla_replay_id)
         if self._driving_vehicle is None:
             raise ValueError("There was an issue finding the vehicle.")
-        # TODO(ionel): We do not currently have a top message.
-        timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
+        timestamp = erdos.Timestamp(is_top=True)
         vehicle_id_msg = erdos.Message(timestamp, self._driving_vehicle.id)
         self._vehicle_id_stream.send(vehicle_id_msg)
         self._vehicle_id_stream.send(erdos.WatermarkMessage(timestamp))
