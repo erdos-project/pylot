@@ -1,6 +1,7 @@
 import math
 import numpy as np
 import time
+from enum import Enum
 
 
 class Rotation(object):
@@ -21,6 +22,7 @@ class Rotation(object):
         yaw:   Rotation about Z-axis.
         roll:  Rotation about X-axis.
     """
+
     def __init__(self, pitch=0, yaw=0, roll=0):
         self.pitch = pitch
         self.yaw = yaw
@@ -71,6 +73,7 @@ class Vector3D(object):
         y: The value of the second axis.
         z: The value of the third axis.
     """
+
     def __init__(self, x=0, y=0, z=0):
         self.x, self.y, self.z = x, y, z
 
@@ -144,6 +147,21 @@ class Vector3D(object):
                                  float(position_2D[2]))
         return location_2D
 
+    def rotate(self, angle):
+        """ Rotate the vector by a given angle.
+
+        Args:
+            angle (float): The angle to rotate the Vector by. (in degrees)
+
+        Returns:
+            An instance with the coordinates of the rotated vector.
+        """
+        x_ = math.cos(math.radians(angle)) * self.x - math.sin(
+            math.radians(angle)) * self.y
+        y_ = math.sin(math.radians(angle)) * self.x - math.cos(
+            math.radians(angle)) * self.y
+        return type(self)(x_, y_, self.z)
+
     def __repr__(self):
         return self.__str__()
 
@@ -153,6 +171,7 @@ class Vector3D(object):
 
 class Vector2D(object):
     """Represents a 2D vector and provides helper functions."""
+
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -228,6 +247,7 @@ class Location(Vector3D):
         y: The value of the y-axis.
         z: The value of the z-axis.
     """
+
     def __init__(self, x=0, y=0, z=0):
         super(Location, self).__init__(x, y, z)
 
@@ -333,6 +353,7 @@ class Transform(object):
             coordinate space with respect to the location and rotation of the
             given object.
     """
+
     def __init__(self, location=None, rotation=None, matrix=None):
         if matrix is not None:
             self.matrix = matrix
@@ -340,8 +361,8 @@ class Transform(object):
 
             # Forward vector is retrieved from the matrix.
             self.forward_vector = Vector3D(self.matrix[0, 0],
-                                           self.matrix[1, 0], self.matrix[2,
-                                                                          0])
+                                           self.matrix[1, 0],
+                                           self.matrix[2, 0])
             pitch_r = math.asin(self.forward_vector.z)
             yaw_r = math.acos(
                 np.clip(self.forward_vector.x / math.cos(pitch_r), -1, 1))
@@ -355,8 +376,8 @@ class Transform(object):
 
             # Forward vector is retrieved from the matrix.
             self.forward_vector = Vector3D(self.matrix[0, 0],
-                                           self.matrix[1, 0], self.matrix[2,
-                                                                          0])
+                                           self.matrix[1, 0],
+                                           self.matrix[2, 0])
 
     @classmethod
     def from_carla_transform(cls, transform):
@@ -603,6 +624,7 @@ class Pose(object):
         velocity_vector (:py:class:`~pylot.utils.Vector3D`): Velocity vector
             in world frame
     """
+
     def __init__(self, transform, forward_speed, velocity_vector=None):
         if not isinstance(transform, Transform):
             raise ValueError(
@@ -618,6 +640,129 @@ class Pose(object):
     def __str__(self):
         return "Pose(transform: {}, forward speed: {}, velocity vector: {})"\
             .format(self.transform, self.forward_speed, self.velocity_vector)
+
+
+class LaneMarkingColor(Enum):
+    """ Enum that defines the lane marking colors according to OpenDrive 1.4.
+
+    The goal of this enum is to make sure that lane colors are correctly
+    propogated from Carla to Pylot.
+    """
+    WHITE = 0
+    BLUE = 1
+    GREEN = 2
+    RED = 3
+    YELLOW = 4
+    OTHER = 5
+
+
+class LaneMarkingType(Enum):
+    """ Enum that defines the lane marking types according to OpenDrive 1.4.
+
+    The goal of this enum is to make sure that lane markings are correctly
+    propogated from Carla to Pylot.
+    """
+    OTHER = 0
+    BROKEN = 1
+    SOLID = 2
+    SOLIDSOLID = 3
+    SOLIDBROKEN = 4
+    BROKENSOLID = 5
+    BROKENBROKEN = 6
+    BOTTSDOTS = 7
+    GRASS = 8
+    CURB = 9
+    NONE = 10
+
+
+class LaneChange(Enum):
+    """ Enum that defines the permission to turn either left, right, both or
+    none for a given lane.
+
+    The goal of this enum is to make sure that the lane change types are
+    correctly propogated from Carla to Pylot.
+    """
+    NONE = 0
+    RIGHT = 1
+    LEFT = 2
+    BOTH = 3
+
+
+class LaneType(Enum):
+    """ Enum that defines the type of the lane according to OpenDrive 1.4.
+
+    The goal of this enum is to make sure that the lane change types are
+    correctly propogated from Carla to Pylot.
+    """
+    NONE = 1
+    DRIVING = 2
+    STOP = 4
+    SHOULDER = 8
+    BIKING = 16
+    SIDEWALK = 32
+    BORDER = 64
+    RESTRICTED = 128
+    PARKING = 256
+    BIDIRECTIONAL = 512
+    MEDIAN = 1024
+    SPECIAL1 = 2048
+    SPECIAL2 = 4096
+    SPECIAL3 = 8192
+    ROADWORKS = 16384
+    TRAM = 32768
+    RAIL = 65536
+    ENTRY = 131072
+    EXIT = 262144
+    OFFRAMP = 524288
+    ONRAMP = 1048576
+    ANY = 4294967294
+
+
+class LaneMarking(object):
+    """ Used to represent a lane marking.
+
+    Args:
+        marking_color (:py:class:`carla.LaneMarkingColor`): The color of the
+            lane marking.
+        marking_type (:py:class:`carla.LaneMarkingType`): The type of the lane
+            marking.
+        lane_change (:py:class:`carla.LaneChange`): The type that defines the
+            permission to either turn left, right, both or none.
+
+    Attributes:
+        marking_color (:py:class:`.LaneMarkingColor`): The color of the lane
+            marking
+        marking_type (:py:class:`.LaneMarkingType`): The type of the lane
+            marking.
+        lane_change (:py:class:`.LaneChange`): The type that defines the
+            permission to either turn left, right, both or none.
+    """
+
+    def __init__(self, marking_color, marking_type, lane_change):
+        self.marking_color = LaneMarkingColor(marking_color)
+        self.marking_type = LaneMarkingType(marking_type)
+        self.lane_change = LaneChange(lane_change)
+
+    @classmethod
+    def from_carla_lane_marking(cls, lane_marking):
+        """Creates a pylot LaneMarking from a CARLA lane marking.
+
+        Args:
+            lane_marking (:py:class:`carla.LaneMarking`): An instance of a
+                CARLA lane marking.
+
+        Returns:
+            :py:class:`.LaneMarking`: A pylot lane-marking.
+        """
+        return cls(lane_marking.color, lane_marking.type,
+                   lane_marking.lane_change)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return "LaneMarking(color: {}, type: {}, change: {})".format(
+            self.marking_color, self.marking_type, self.lane_change)
 
 
 def add_timestamp(image_np, timestamp):

@@ -157,6 +157,20 @@ def add_traffic_light_detector(traffic_light_camera_stream):
     return traffic_lights_stream
 
 
+def add_traffic_light_invasion_sensor(ground_vehicle_id_stream, pose_stream):
+    from pylot.simulation.traffic_light_invasion_sensor_operator import \
+            TrafficLightInvasionSensorOperator
+    op_config = erdos.OperatorConfig(
+        name='traffic_light_invasion_sensor_operator',
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    [traffic_light_invasion_stream
+     ] = erdos.connect(TrafficLightInvasionSensorOperator, op_config,
+                       [ground_vehicle_id_stream, pose_stream], FLAGS)
+    return traffic_light_invasion_stream
+
+
 def add_canny_edge_lane_detection(bgr_camera_stream,
                                   name='canny_edge_lane_detection'):
     from pylot.perception.detection.lane_detection_canny_operator import \
@@ -398,6 +412,56 @@ def add_left_right_cameras(transform, vehicle_id_stream, fov=90):
     return (left_camera_stream, right_camera_stream)
 
 
+def add_collision_sensor(vehicle_id_stream):
+    """ Adds a collision sensor to the pipeline.
+
+    Args:
+        vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on which the
+            ID of the ego-vehicle is received.
+
+    Returns:
+        :py:class:`erdos.ReadStream`: Stream on which
+        :py:class:`~pylot.simulation.messages.CollisionMessage` messages with
+        collision events are published.
+    """
+    from pylot.drivers.carla_collision_sensor_operator import \
+        CarlaCollisionSensorDriverOperator
+    op_config = erdos.OperatorConfig(name='carla_collision_sensor_operator',
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [collision_stream] = erdos.connect(CarlaCollisionSensorDriverOperator,
+                                       op_config, [vehicle_id_stream], FLAGS)
+    return collision_stream
+
+
+def add_lane_invasion_sensor(vehicle_id_stream):
+    """ Adds a lane invasion sensor to the pipeline.
+
+    Args:
+        vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on which the
+            ID of the ego-vehicle is received.
+
+    Returns:
+        :py:class:`erdos.ReadStream`: Stream on which
+        :py:class:`~pylot.simulation.messages.LaneInvasionMessage` messages
+        with lane invasion events are published.
+    """
+    from pylot.drivers.carla_lane_invasion_sensor_operator import \
+        CarlaLaneInvasionSensorDriverOperator
+    op_config = erdos.OperatorConfig(
+        name='carla_lane_invasion_sensor_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    [lane_invasion_stream
+     ] = erdos.connect(CarlaLaneInvasionSensorDriverOperator, op_config,
+                       [vehicle_id_stream], FLAGS)
+    return lane_invasion_stream
+
+
 def _add_camera_driver(vehicle_id_stream, camera_setup):
     from pylot.drivers.carla_camera_driver_operator import \
         CarlaCameraDriverOperator
@@ -543,7 +607,15 @@ def add_chauffeur_logging(vehicle_id_stream, pose_stream,
     ], FLAGS, top_down_camera_setup)
 
 
-def add_carla_collision_logging(vehicle_id_stream, pose_stream):
+def add_carla_collision_logging(collision_stream, pose_stream):
+    """ Adds a collision message logger to the pipeline.
+
+    Args:
+        collision_stream (:py:class:`erdos.ReadStream`): Stream on which the
+            collision events are received.
+        pose_stream (:py:class:`erdos.ReadStream`): Stream on which the
+            current transforms of the ego-vehicle are published.
+    """
     from pylot.loggers.carla_collision_logger_operator import \
         CarlaCollisionLoggerOperator
     op_config = erdos.OperatorConfig(name='carla_collision_logger_operator',
@@ -551,7 +623,33 @@ def add_carla_collision_logging(vehicle_id_stream, pose_stream):
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
     erdos.connect(CarlaCollisionLoggerOperator, op_config,
-                  [vehicle_id_stream, pose_stream], FLAGS)
+                  [collision_stream, pose_stream], FLAGS)
+
+
+def add_eval_metric_logging(collision_stream, lane_invasion_stream,
+                            traffic_light_invasion_stream, imu_stream):
+    """ Adds an evaluation metric logging operator to the pipeline.
+
+    Args:
+        collision_stream (:py:class:`erdos.ReadStream`): Stream on which the
+            collision events are received.
+        lane_invasion_stream (:py:class:`erdos.ReadStream`): Stream on which
+            the lane invasion events are received.
+        traffic_light_invasion_stream (:py:class:`erdos.ReadStream`): Stream on
+            which the traffic light invasion events are received.
+        imu_stream (:py:class:`erdos.ReadStream`): Stream on which the IMU
+            messages are received.
+    """
+    from pylot.loggers.eval_metric_logger_operator import \
+            EvalMetricLoggerOperator
+    op_config = erdos.OperatorConfig(name='eval_metric_logger_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(EvalMetricLoggerOperator, op_config, [
+        collision_stream, lane_invasion_stream, traffic_light_invasion_stream,
+        imu_stream
+    ], FLAGS)
 
 
 def add_imu_logging(imu_stream, name='imu_logger_operator'):
