@@ -25,7 +25,6 @@ class CarlaOperator(erdos.Operator):
         _world: A handle to the world running inside the simulation.
         _vehicles: A list of identifiers of the vehicles inside the simulation.
     """
-
     def __init__(self, control_stream, pose_stream,
                  ground_traffic_lights_stream, ground_obstacles_stream,
                  ground_speed_limit_signs_stream, ground_stop_signs_stream,
@@ -148,7 +147,7 @@ class CarlaOperator(erdos.Operator):
         watermark_msg = erdos.WatermarkMessage(timestamp)
         with erdos.profile(self.config.name + '.send_actor_data',
                            self,
-                           event_data={'timestamp': timestamp}):
+                           event_data={'timestamp': str(timestamp)}):
             self.__send_hero_vehicle_data(timestamp, watermark_msg)
             self.__send_ground_actors_data(timestamp, watermark_msg)
             self.__update_spectactor_pose()

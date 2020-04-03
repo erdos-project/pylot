@@ -58,7 +58,7 @@ class CarlaIMUDriverOperator(erdos.Operator):
         watermark_msg = erdos.WatermarkMessage(timestamp)
         with erdos.profile(self.config.name + '.process_imu',
                            self,
-                           event_data={'timestamp': timestamp}):
+                           event_data={'timestamp': str(timestamp)}):
             with self._lock:
                 msg = IMUMessage(
                     timestamp,
