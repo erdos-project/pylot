@@ -60,7 +60,7 @@ def driver():
                 FLAGS.obstacle_location_finder_sensor))
 
     imu_stream = None
-    if FLAGS.imu:
+    if pylot.flags.must_add_imu_sensor():
         (imu_stream,
          _) = pylot.operator_creator.add_imu(transform, vehicle_id_stream)
 
@@ -111,6 +111,25 @@ def driver():
     control_stream = pylot.component_creator.add_control(
         pose_stream, waypoints_stream)
     control_loop_stream.set(control_stream)
+
+    if FLAGS.evaluation:
+        # Add the collision sensor.
+        collision_stream = pylot.operator_creator.add_collision_sensor(
+            vehicle_id_stream)
+
+        # Add the lane invasion sensor.
+        lane_invasion_stream = pylot.operator_creator.add_lane_invasion_sensor(
+            vehicle_id_stream)
+
+        # Add the traffic light invasion sensor.
+        traffic_light_invasion_stream = \
+                pylot.operator_creator.add_traffic_light_invasion_sensor(
+            vehicle_id_stream, pose_stream)
+
+        # Add the evaluation logger.
+        pylot.operator_creator.add_eval_metric_logging(
+            collision_stream, lane_invasion_stream,
+            traffic_light_invasion_stream, imu_stream)
 
     pylot.operator_creator.add_sensor_visualizers(center_camera_stream,
                                                   depth_camera_stream,

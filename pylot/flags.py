@@ -143,6 +143,12 @@ flags.DEFINE_bool('log_detector_output', False,
 flags.DEFINE_bool('log_traffic_light_detector_output', False,
                   'Enable recording of bbox annotated tl detector images')
 
+########################################
+# Evaluation operators.
+########################################
+flags.DEFINE_bool('evaluation', False,
+                  'Enable end-to-end evaluation of the pipeline.')
+
 
 def must_add_depth_camera_sensor():
     """Returns true if the depth camera sensor must be added.
@@ -172,6 +178,14 @@ def must_add_lidar_sensor():
     """
     return (FLAGS.visualize_lidar
             or FLAGS.obstacle_location_finder_sensor == 'lidar')
+
+
+def must_add_imu_sensor():
+    """ Returns true if the IMU sensor must be added.
+
+    We don't add all sensors by default because they slow down the simulation
+    """
+    return (FLAGS.imu or FLAGS.evaluation)
 
 
 # Flag validators.

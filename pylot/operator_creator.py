@@ -626,6 +626,32 @@ def add_carla_collision_logging(collision_stream, pose_stream):
                   [collision_stream, pose_stream], FLAGS)
 
 
+def add_eval_metric_logging(collision_stream, lane_invasion_stream,
+                            traffic_light_invasion_stream, imu_stream):
+    """ Adds an evaluation metric logging operator to the pipeline.
+
+    Args:
+        collision_stream (:py:class:`erdos.ReadStream`): Stream on which the
+            collision events are received.
+        lane_invasion_stream (:py:class:`erdos.ReadStream`): Stream on which
+            the lane invasion events are received.
+        traffic_light_invasion_stream (:py:class:`erdos.ReadStream`): Stream on
+            which the traffic light invasion events are received.
+        imu_stream (:py:class:`erdos.ReadStream`): Stream on which the IMU
+            messages are received.
+    """
+    from pylot.loggers.eval_metric_logger_operator import \
+            EvalMetricLoggerOperator
+    op_config = erdos.OperatorConfig(name='eval_metric_logger_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(EvalMetricLoggerOperator, op_config, [
+        collision_stream, lane_invasion_stream, traffic_light_invasion_stream,
+        imu_stream
+    ], FLAGS)
+
+
 def add_imu_logging(imu_stream, name='imu_logger_operator'):
     from pylot.loggers.imu_logger_operator import IMULoggerOperator
     op_config = erdos.OperatorConfig(name=name,
