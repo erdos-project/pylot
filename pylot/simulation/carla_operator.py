@@ -142,11 +142,11 @@ class CarlaOperator(erdos.Operator):
         """
         game_time = int(msg.elapsed_seconds * 1000)
         self._logger.info('The world is at the timestamp {}'.format(game_time))
+        timestamp = erdos.Timestamp(coordinates=[game_time])
+        watermark_msg = erdos.WatermarkMessage(timestamp)
         with erdos.profile(self.config.name + '.send_actor_data',
                            self,
-                           event_data={'timestamp': str(game_time)}):
-            timestamp = erdos.Timestamp(coordinates=[game_time])
-            watermark_msg = erdos.WatermarkMessage(timestamp)
+                           event_data={'timestamp': timestamp}):
             self.__send_hero_vehicle_data(timestamp, watermark_msg)
             self.__send_ground_actors_data(timestamp, watermark_msg)
             self.__update_spectactor_pose()

@@ -9,7 +9,6 @@ from pid_controller.pid import PID
 import pylot.control.utils
 import pylot.planning.utils
 from pylot.control.messages import ControlMessage
-from pylot.utils import time_epoch_ms
 
 
 class PIDAgentOperator(erdos.Operator):

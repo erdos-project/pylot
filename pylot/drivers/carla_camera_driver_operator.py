@@ -99,14 +99,13 @@ class CarlaCameraDriverOperator(erdos.Operator):
             carla_image: a carla.Image.
         """
         game_time = int(carla_image.timestamp * 1000)
+        timestamp = erdos.Timestamp(coordinates=[game_time])
+        watermark_msg = erdos.WatermarkMessage(timestamp)
         with erdos.profile(self.config.name + '.process_images',
                            self,
-                           event_data={'timestamp': str(game_time)}):
+                           event_data={'timestamp': timestamp}):
             # Ensure that the code executes serially
             with self._lock:
-                timestamp = erdos.Timestamp(coordinates=[game_time])
-                watermark_msg = erdos.WatermarkMessage(timestamp)
-
                 msg = None
                 if self._camera_setup.camera_type == 'sensor.camera.rgb':
                     msg = FrameMessage(

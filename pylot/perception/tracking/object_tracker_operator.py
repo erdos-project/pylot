@@ -1,6 +1,5 @@
 from collections import deque
 import erdos
-import time
 
 from pylot.perception.detection.utils import VEHICLE_LABELS
 from pylot.perception.messages import ObstaclesMessage

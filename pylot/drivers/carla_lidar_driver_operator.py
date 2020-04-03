@@ -51,13 +51,13 @@ class CarlaLidarDriverOperator(erdos.Operator):
             carla_pc: a carla.SensorData object.
         """
         game_time = int(carla_pc.timestamp * 1000)
+        timestamp = erdos.Timestamp(coordinates=[game_time])
+        watermark_msg = erdos.WatermarkMessage(timestamp)
         with erdos.profile(self.config.name + '.process_point_clouds',
                            self,
-                           event_data={'timestamp': str(game_time)}):
+                           event_data={'timestamp': timestamp}):
             # Ensure that the code executes serially
             with self._lock:
-                timestamp = erdos.Timestamp(coordinates=[game_time])
-                watermark_msg = erdos.WatermarkMessage(timestamp)
                 assert len(
                     carla_pc.raw_data) > 0, 'Lidar did not send any points'
                 # Include the transform relative to the vehicle.
