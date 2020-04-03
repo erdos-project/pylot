@@ -54,12 +54,12 @@ class CarlaIMUDriverOperator(erdos.Operator):
             imu_msg: carla.IMUMeasurement
         """
         game_time = int(imu_msg.timestamp * 1000)
+        timestamp = erdos.Timestamp(coordinates=[game_time])
+        watermark_msg = erdos.WatermarkMessage(timestamp)
         with erdos.profile(self.config.name + '.process_imu',
                            self,
-                           event_data={'timestamp': str(game_time)}):
+                           event_data={'timestamp': timestamp}):
             with self._lock:
-                timestamp = erdos.Timestamp(coordinates=[game_time])
-                watermark_msg = erdos.WatermarkMessage(timestamp)
                 msg = IMUMessage(
                     timestamp,
                     Transform.from_carla_transform(imu_msg.transform),
