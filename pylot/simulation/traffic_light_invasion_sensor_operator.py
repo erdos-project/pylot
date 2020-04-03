@@ -6,7 +6,7 @@ import numpy as np
 
 from shapely.geometry import LineString
 
-from pylot.utils import Location
+from pylot.utils import Location, Vector3D
 from pylot.simulation.utils import get_world, get_vehicle_handle, \
         TrafficInfractionType
 from pylot.simulation.messages import TrafficInfractionMessage
@@ -65,14 +65,12 @@ class TrafficLightInvasionSensorOperator(erdos.Operator):
 
         veh_extent = self._vehicle.bounding_box.extent.x
 
-        tail_close_pt = self.rotate_point(
-            carla.Vector3D(-0.8 * veh_extent, 0.0, location.z),
-            transform.rotation.yaw)
+        tail_close_pt = Vector3D(-0.8 * veh_extent, 0.0, location.z).rotate(
+            transform.rotation.yaw).as_carla_vector()
         tail_close_pt = location + carla.Location(tail_close_pt)
 
-        tail_far_pt = self.rotate_point(
-            carla.Vector3D(-veh_extent - 1, 0.0, location.z),
-            transform.rotation.yaw)
+        tail_far_pt = Vector3D(-veh_extent - 1, 0.0, location.z).rotate(
+            transform.rotation.yaw).as_carla_vector()
         tail_far_pt = location + carla.Location(tail_far_pt)
 
         for traffic_light, center, waypoints in self._traffic_lights:
@@ -103,13 +101,13 @@ class TrafficLightInvasionSensorOperator(erdos.Operator):
                     lane_width = wp.lane_width
                     location_wp = wp.transform.location
 
-                    lft_lane_wp = self.rotate_point(
-                        carla.Vector3D(0.4 * lane_width, 0.0, location_wp.z),
-                        yaw_wp + 90)
+                    lft_lane_wp = Vector3D(
+                        0.4 * lane_width, 0.0,
+                        location_wp.z).rotate(yaw_wp + 90).as_carla_vector()
                     lft_lane_wp = location_wp + carla.Location(lft_lane_wp)
-                    rgt_lane_wp = self.rotate_point(
-                        carla.Vector3D(0.4 * lane_width, 0.0, location_wp.z),
-                        yaw_wp - 90)
+                    rgt_lane_wp = Vector3D(
+                        0.4 * lane_width, 0.0,
+                        location_wp.z).rotate(yaw_wp - 90).as_carla_vector()
                     rgt_lane_wp = location_wp + carla.Location(rgt_lane_wp)
 
                     # Is the vehicle traversing the stop line?
@@ -150,14 +148,6 @@ class TrafficLightInvasionSensorOperator(erdos.Operator):
         # Retrieve the vehicle.
         self._vehicle = get_vehicle_handle(world, vehicle_id)
 
-    def rotate_point(self, point, angle):
-        """ Rotate a given point by a given angle. """
-        x_ = math.cos(math.radians(angle)) * point.x - math.sin(
-            math.radians(angle)) * point.y
-        y_ = math.sin(math.radians(angle)) * point.x - math.cos(
-            math.radians(angle)) * point.y
-        return carla.Vector3D(x_, y_, point.z)
-
     def get_traffic_light_waypoints(self, traffic_light):
         """
         get area of a given traffic light
@@ -174,8 +164,9 @@ class TrafficLightInvasionSensorOperator(erdos.Operator):
 
         area = []
         for x in x_values:
-            point = self.rotate_point(carla.Vector3D(x, 0, area_ext.z),
-                                      base_rot)
+
+            point = Vector3D(x, 0,
+                             area_ext.z).rotate(base_rot).as_carla_vector()
             point_location = area_loc + carla.Location(x=point.x, y=point.y)
             area.append(point_location)
 

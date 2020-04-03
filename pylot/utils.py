@@ -147,6 +147,21 @@ class Vector3D(object):
                                  float(position_2D[2]))
         return location_2D
 
+    def rotate(self, angle):
+        """ Rotate the vector by a given angle.
+
+        Args:
+            angle (float): The angle to rotate the Vector by. (in degrees)
+
+        Returns:
+            An instance with the coordinates of the rotated vector.
+        """
+        x_ = math.cos(math.radians(angle)) * self.x - math.sin(
+            math.radians(angle)) * self.y
+        y_ = math.sin(math.radians(angle)) * self.x - math.cos(
+            math.radians(angle)) * self.y
+        return type(self)(x_, y_, self.z)
+
     def __repr__(self):
         return self.__str__()
 
