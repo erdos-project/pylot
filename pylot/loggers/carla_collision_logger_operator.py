@@ -1,5 +1,7 @@
-from collections import deque, defaultdict
+from collections import defaultdict
 import erdos
+
+from pylot.utils import time_epoch_ms
 
 
 class CarlaCollisionLoggerOperator(erdos.Operator):
@@ -79,7 +81,8 @@ class CarlaCollisionLoggerOperator(erdos.Operator):
         collision_msgs = self._collisions.pop(timestamp, [])
 
         for collision in collision_msgs:
-            self._csv_logger.info('collision,{},{},{},{}'.format(
-                ego_transform_msg.data.transform.location,
+            self._csv_logger.info('{},{},collision,{},{},{},{}'.format(
+                time_epoch_ms(), timestamp.coordinates[0],
+                self._ego_transform_msg.data.transform.location,
                 collision.collided_actor, collision.impulse,
                 collision.intensity))
