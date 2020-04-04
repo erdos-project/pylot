@@ -60,7 +60,7 @@ class EvalMetricLoggerOperator(erdos.Operator):
             msg (:py:class:`pylot.simulation.messages.CollisionMessage`): The
                 collision message sent by the sensor.
         """
-        self._csv_logger.info('{},{},collision,{},{}'.format(
+        self._csv_logger.info('{},{},collision,{},{:.4f}'.format(
             time_epoch_ms(), msg.timestamp.coordinates[0],
             msg.collided_actor.split('.')[0], msg.intensity))
 
@@ -75,7 +75,9 @@ class EvalMetricLoggerOperator(erdos.Operator):
         """
         sim_time = msg.timestamp.coordinates[0]
         # We log lane invasion events only if they are illegal.
-        if any(map(check_illegal_lane_invasion, msg.lane_markings)):
+        if any(
+                map(EvalMetricLoggerOperator.check_illegal_lane_invasion,
+                    msg.lane_markings)):
             self._csv_logger.info('{},{},invasion,lane'.format(
                 time_epoch_ms(), sim_time))
 
@@ -83,6 +85,7 @@ class EvalMetricLoggerOperator(erdos.Operator):
             self._csv_logger.info('{},{},invasion,sidewalk'.format(
                 time_epoch_ms(), sim_time))
 
+    @staticmethod
     def check_illegal_lane_invasion(lane_marking):
         """ Checks if the invaded lane was an illegal lane.
 
@@ -131,9 +134,9 @@ class EvalMetricLoggerOperator(erdos.Operator):
         sim_time = msg.timestamp.coordinates[0]
         lateral_acc, longitudinal_acc = msg.acceleration.y, msg.acceleration.x
         # Log the lateral and the longitudinal acceleration.
-        self._csv_logger.info('{},{},acceleration,lateral,{}'.format(
+        self._csv_logger.info('{},{},acceleration,lateral,{:.4f}'.format(
             time_epoch_ms(), sim_time, lateral_acc))
-        self._csv_logger.info('{},{},acceleration,longitudinal,{}'.format(
+        self._csv_logger.info('{},{},acceleration,longitudinal,{:.4f}'.format(
             time_epoch_ms(), sim_time, longitudinal_acc))
 
         # Calculate the jerk, and log both lateral and longitudinal jerk.
@@ -143,9 +146,9 @@ class EvalMetricLoggerOperator(erdos.Operator):
             lateral_jerk = (self._last_lateral_acc - lateral_acc) / time_diff
             longitudinal_jerk = (self._last_longitudinal_acc -
                                  longitudinal_acc) / time_diff
-            self._csv_logger.info('{},{},jerk,lateral,{}'.format(
+            self._csv_logger.info('{},{},jerk,lateral,{:.4f}'.format(
                 time_epoch_ms(), sim_time, lateral_jerk))
-            self._csv_logger.info('{},{},jerk,longitudinal,{}'.format(
+            self._csv_logger.info('{},{},jerk,longitudinal,{:.4f}'.format(
                 time_epoch_ms(), sim_time, longitudinal_jerk))
 
         # Save the new acceleration and timestamp.

@@ -130,7 +130,7 @@ class SegmentationEvalOperator(erdos.Operator):
          class_iou) = ground_frame.compute_semantic_iou(segmented_frame)
         self._logger.info('IoU class scores: {}'.format(class_iou))
         self._logger.info('mean IoU score: {}'.format(mean_iou))
-        self._csv_logger.info('{},{},{},{},{}'.format(
+        self._csv_logger.info('{},{},{},{},{:.4f}'.format(
             time_epoch_ms(), timestamp.coordinates[0], self.config.name,
             self._flags.segmentation_metric, mean_iou))
 

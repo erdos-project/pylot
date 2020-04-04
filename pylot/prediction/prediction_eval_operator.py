@@ -183,31 +183,31 @@ class PredictionEvalOperator(erdos.Operator):
             person_msd /= person_cnt
             person_ade /= person_cnt
             person_fde /= person_cnt
-            self._logger.info('Person MSD is: {:.2f}'.format(person_msd))
-            self._logger.info('Person ADE is: {:.2f}'.format(person_ade))
-            self._logger.info('Person FDE is: {:.2f}'.format(person_fde))
-            self._csv_logger.info('{},{},{},{},{:.2f}'.format(
+            self._logger.info('Person MSD is: {:.4f}'.format(person_msd))
+            self._logger.info('Person ADE is: {:.4f}'.format(person_ade))
+            self._logger.info('Person FDE is: {:.4f}'.format(person_fde))
+            self._csv_logger.info('{},{},{},{},{:.4f}'.format(
                 time_epoch_ms(), sim_time, self.config.name, 'person-MSD',
                 person_msd))
-            self._csv_logger.info('{},{},{},{},{:.2f}'.format(
+            self._csv_logger.info('{},{},{},{},{:.4f}'.format(
                 time_epoch_ms(), sim_time, self.config.name, 'person-ADE',
                 person_ade))
-            self._csv_logger.info('{},{},{},{},{:.2f}'.format(
+            self._csv_logger.info('{},{},{},{},{:.4f}'.format(
                 time_epoch_ms(), sim_time, self.config.name, 'person-FDE',
                 person_fde))
         if vehicle_cnt > 0:
             vehicle_msd /= vehicle_cnt
             vehicle_ade /= vehicle_cnt
             vehicle_fde /= vehicle_cnt
-            self._logger.info('Vehicle MSD is: {:.2f}'.format(vehicle_msd))
-            self._logger.info('Vehicle ADE is: {:.2f}'.format(vehicle_ade))
-            self._logger.info('Vehicle FDE is: {:.2f}'.format(vehicle_fde))
-            self._csv_logger.info('{},{},{},{},{:.2f}'.format(
+            self._logger.info('Vehicle MSD is: {:.4f}'.format(vehicle_msd))
+            self._logger.info('Vehicle ADE is: {:.4f}'.format(vehicle_ade))
+            self._logger.info('Vehicle FDE is: {:.4f}'.format(vehicle_fde))
+            self._csv_logger.info('{},{},{},{},{:.4f}'.format(
                 time_epoch_ms(), sim_time, self.config.name, 'vehicle-MSD',
                 vehicle_msd))
-            self._csv_logger.info('{},{},{},{},{:.2f}'.format(
+            self._csv_logger.info('{},{},{},{},{:.4f}'.format(
                 time_epoch_ms(), sim_time, self.config.name, 'vehicle-ADE',
                 vehicle_ade))
-            self._csv_logger.info('{},{},{},{},{:.2f}'.format(
+            self._csv_logger.info('{},{},{},{},{:.4f}'.format(
                 time_epoch_ms(), sim_time, self.config.name, 'vehicle-FDE',
                 vehicle_fde))

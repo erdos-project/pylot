@@ -74,7 +74,7 @@ class DetectionDecayOperator(erdos.Operator):
                 self._logger.info(
                     "The latency is {} and the average precision is {}".format(
                         latency, avg_precision))
-                self._csv_logger.info('{},{},{},{},{}'.format(
+                self._csv_logger.info('{},{},{},{},{:.4f}'.format(
                     time_epoch_ms(), sim_time, self.config.name, latency,
                     avg_precision))
                 map_stream.send(

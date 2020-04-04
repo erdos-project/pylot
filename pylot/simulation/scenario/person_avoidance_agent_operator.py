@@ -136,11 +136,11 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
                 for obstacle in obstacle_msg.obstacles:
                     if obstacle.label == 'person':
                         self._csv_logger.info(
-                            "{},{},{},{},detected a person {}m away".format(
-                                time_epoch_ms(), sim_time, self.config.name,
-                                self.SPEED, person.distance(ego_transform)))
+                            "{},{},{},{:.4f},detected a person {:.4f}m away".
+                            format(time_epoch_ms(), sim_time, self.config.name,
+                                   self.SPEED, person.distance(ego_transform)))
                         self._csv_logger.info(
-                            "{},{},{},{},vehicle speed {} m/s.".format(
+                            "{},{},{},{:.4f},vehicle speed {:.4f} m/s.".format(
                                 time_epoch_ms(), sim_time, self.config.name,
                                 self.SPEED, pose_msg.data.forward_speed))
 

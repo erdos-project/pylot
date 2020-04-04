@@ -419,7 +419,6 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
         list(:py:class:`~pylot.perception.detection.speed_limit_sign.SpeedLimitSign`):
         List of detected speed limits with 2D bounding boxes set.
     """
-
     def match_bboxes_with_speed_signs(camera_transform, loc_bboxes,
                                       speed_signs):
         result = []
@@ -477,7 +476,6 @@ def get_detected_traffic_stops(traffic_stops, depth_frame):
         list(:py:class:`~pylot.perception.detection.stop_sign.StopSign`):
         List of detected traffic stops with 2D bounding boxes set.
     """
-
     def get_stop_markings_bbox(bbox3d, depth_frame):
         """ Gets a 2D stop marking bounding box from a 3D bounding box."""
         # Move trigger_volume by -0.85 so that the top plane is on the ground.
@@ -535,11 +533,11 @@ def get_detected_traffic_stops(traffic_stops, depth_frame):
 
 def get_vehicle_handle(world, vehicle_id):
     num_tries = 0
-    while num_tries < 30:
+    while num_tries < 50:
         vehicle = world.get_actors().find(vehicle_id)
         if vehicle:
             return vehicle
-        time.sleep(0.2)
+        time.sleep(0.5)
         num_tries += 1
     raise ValueError("There was an issue finding the vehicle.")
 

@@ -101,7 +101,7 @@ class TrackingEvalOperator(erdos.Operator):
                                     0] / metrics_summary_df[
                                         'num_unique_objects'].values[0]
                                 self._csv_logger.info(
-                                    "{},{},{},{},{:.2f}".format(
+                                    "{},{},{},{},{:.4f}".format(
                                         time_epoch_ms(), sim_time,
                                         self.config.name,
                                         'ratio_' + metric_name, ratio))
@@ -109,22 +109,25 @@ class TrackingEvalOperator(erdos.Operator):
                                 # See https://github.com/cheind/py-motmetrics/issues/92
                                 motp = (1 - metrics_summary_df[metric_name].
                                         values[0]) * 100
-                                self._csv_logger.info('{},{},{},{},{}'.format(
-                                    time_epoch_ms(), sim_time,
-                                    self.config.name, metric_name, motp))
+                                self._csv_logger.info(
+                                    '{},{},{},{},{:.4f}'.format(
+                                        time_epoch_ms(), sim_time,
+                                        self.config.name, metric_name, motp))
                             elif metric_name == 'idf1' or metric_name == 'mota':
                                 metric_val = metrics_summary_df[
                                     metric_name].values[0] * 100
                                 self._csv_logger.info(
-                                    '{},{},{},{},{:.2f}'.format(
+                                    '{},{},{},{},{:.4f}'.format(
                                         time_epoch_ms(), sim_time,
                                         self.config.name, metric_name,
                                         metric_val))
                             else:
-                                self._csv_logger.info('{},{},{},{},{}'.format(
-                                    time_epoch_ms(), sim_time,
-                                    self.config.name, metric_name,
-                                    metrics_summary_df[metric_name].values[0]))
+                                self._csv_logger.info(
+                                    '{},{},{},{},{:.4f}'.format(
+                                        time_epoch_ms(), sim_time,
+                                        self.config.name, metric_name,
+                                        metrics_summary_df[metric_name].
+                                        values[0]))
                         else:
                             raise ValueError(
                                 'Unexpected tracking metric: {}'.format(

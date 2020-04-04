@@ -24,7 +24,6 @@ class CarlaCollisionSensorDriverOperator(erdos.Operator):
             operator sends the collision events.
         flags (absl.flags): Object to be used to access the absl flags.
     """
-
     def __init__(self, ground_vehicle_id_stream, collision_stream, flags):
         self._vehicle_id_stream = ground_vehicle_id_stream
         self._collision_stream = collision_stream
@@ -37,7 +36,8 @@ class CarlaCollisionSensorDriverOperator(erdos.Operator):
         self._collision_sensor = None
 
         # Keep track of the last timestamp that we need to close.
-        self._timestamp_to_close = None
+        self._first_reading = True
+        self._time_to_close = None
 
     @staticmethod
     def connect(ground_vehicle_id_stream):
@@ -110,9 +110,27 @@ class CarlaCollisionSensorDriverOperator(erdos.Operator):
             the given tick. We use this to retrieve the timestamp of the
             simulator.
         """
-        timestamp = erdos.Timestamp(
-            coordinates=[int(msg.elapsed_seconds * 1000)])
-        if self._timestamp_to_close:
-            last_timestamp = self._timestamp_to_close
-            self._collision_stream.send(erdos.WatermarkMessage(last_timestamp))
-        self._timestamp_to_close = timestamp
+        sim_time = int(msg.elapsed_seconds * 1000)
+        if self._flags.carla_localization_frequency == -1:
+            if not self._first_reading:
+                self._collision_stream.send(
+                    erdos.WatermarkMessage(
+                        erdos.Timestamp(coordinates=[self._time_to_close])))
+            self._first_reading = False
+            self._time_to_close = sim_time
+        else:
+            # Ensure that the sensor issues watermarks at the same frequency
+            # at which pose watermarks are issued. This is needed because
+            # the loggers synchronize on both pose and collision info.
+            if self._first_reading:
+                self._first_reading = False
+                self._time_to_close = sim_time
+                self._next_time_to_close = sim_time + int(
+                    1.0 / self._flags.carla_fps * 1000)
+            else:
+                self._collision_stream.send(
+                    erdos.WatermarkMessage(
+                        erdos.Timestamp(coordinates=[self._time_to_close])))
+                self._time_to_close = self._next_time_to_close
+                self._next_time_to_close += int(
+                    1.0 / self._flags.carla_localization_frequency * 1000)

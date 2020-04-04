@@ -24,7 +24,6 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
             the operator sends the lane-invasion events.
         flags (absl.flags): Object to be used to access the absl flags.
     """
-
     def __init__(self, ground_vehicle_id_stream, lane_invasion_stream, flags):
         self._vehicle_id_stream = ground_vehicle_id_stream
         self._lane_invasion_stream = lane_invasion_stream
@@ -38,7 +37,8 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
         self._map = None
 
         # Keep track of the last timestamp that we need to close.
-        self._timestamp_to_close = None
+        self._first_reading = True
+        self._time_to_close = None
 
     @staticmethod
     def connect(ground_vehicle_id_stream):
@@ -64,7 +64,8 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
         # Install the lane-invasion sensor.
         lane_invasion_blueprint = world.get_blueprint_library().find(
             'sensor.other.lane_invasion')
-        self._logger.debug("Spawning a collision sensor.")
+
+        self._logger.debug("Spawning a lane invasion sensor.")
         self._lane_invasion_sensor = world.spawn_actor(lane_invasion_blueprint,
                                                        carla.Transform(),
                                                        attach_to=self._vehicle)
@@ -124,10 +125,27 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
             the given tick. We use this to retrieve the timestamp of the
             simulator.
         """
-        timestamp = erdos.Timestamp(
-            coordinates=[int(msg.elapsed_seconds * 1000)])
-        if self._timestamp_to_close:
-            last_timestamp = self._timestamp_to_close
-            self._lane_invasion_stream.send(
-                erdos.WatermarkMessage(last_timestamp))
-        self._timestamp_to_close = timestamp
+        sim_time = int(msg.elapsed_seconds * 1000)
+        if self._flags.carla_localization_frequency == -1:
+            if not self._first_reading:
+                self._lane_invasion_stream.send(
+                    erdos.WatermarkMessage(
+                        erdos.Timestamp(coordinates=[self._time_to_close])))
+            self._first_reading = False
+            self._time_to_close = sim_time
+        else:
+            # Ensure that the sensor issues watermarks at the same frequency
+            # at which pose watermarks are issued. This is needed because
+            # the loggers synchronize on both pose and lane invasion info.
+            if self._first_reading:
+                self._first_reading = False
+                self._time_to_close = sim_time
+                self._next_time_to_close = sim_time + int(
+                    1.0 / self._flags.carla_fps * 1000)
+            else:
+                self._lane_invasion_stream.send(
+                    erdos.WatermarkMessage(
+                        erdos.Timestamp(coordinates=[self._time_to_close])))
+                self._time_to_close = self._next_time_to_close
+                self._next_time_to_close += int(
+                    1.0 / self._flags.carla_localization_frequency * 1000)
