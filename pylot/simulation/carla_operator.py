@@ -100,7 +100,7 @@ class CarlaOperator(erdos.Operator):
             self._flags.carla_vehicle_mass)
 
         # Dictionary that stores the processing times when sensors are ready
-        # to realease data. This ifo is used to calculate the real processing
+        # to realease data. This info is used to calculate the real processing
         # time of our pipeline without including CARLA-induced sensor delays.
         self._sensor_ready_time = {}
         self._next_localization_sensor_reading = None
@@ -145,7 +145,7 @@ class CarlaOperator(erdos.Operator):
                 processing_time = int(
                     (msg.creation_time -
                      self._sensor_ready_time[msg.timestamp]) * 1000)
-                self._csv_logger.info('{},{},{},{}'.format(
+                self._csv_logger.info('{},{},{},{:.4f}'.format(
                     pylot.utils.time_epoch_ms(), sensor_game_time,
                     'end-to-end-runtime', processing_time))
                 control_msg_simulation_time = \
@@ -156,7 +156,7 @@ class CarlaOperator(erdos.Operator):
                 self._control_msgs[control_msg_simulation_time] = msg
             del self._sensor_ready_time[msg.timestamp]
             # Tick until the next sensor read game time to ensure that the
-            # data-flow has a new round of sensor inputs.. Apply control
+            # data-flow has a new round of sensor inputs. Apply control
             # commands if they must be applied before the next sensor read.
             while True:
                 (sim_time, event_type) = heapq.heappop(self._tick_events)
@@ -235,7 +235,7 @@ class CarlaOperator(erdos.Operator):
         # the vehicle id value. We miss frames if we tick before
         # they register a listener. Thus, we sleep here a bit to
         # give them sufficient time to register a callback.
-        time.sleep(3)
+        time.sleep(4)
         self._world.on_tick(self.send_actor_data)
         self._tick_simulator()
 

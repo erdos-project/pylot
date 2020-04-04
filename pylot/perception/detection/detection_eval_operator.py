@@ -84,11 +84,11 @@ class DetectionEvalOperator(erdos.Operator):
                         ground_obstacles, obstacles)
                     # Get runtime in ms
                     runtime = (time.time() - op_start_time) * 1000
-                    self._csv_logger.info('{},{},{},{},{}'.format(
+                    self._csv_logger.info('{},{},{},{},{:.4f}'.format(
                         time_epoch_ms(), sim_time, self.config.name, 'runtime',
                         runtime))
                     self._logger.info('mAP is: {}'.format(mAP))
-                    self._csv_logger.info('{},{},{},{},{}'.format(
+                    self._csv_logger.info('{},{},{},{},{:.4f}'.format(
                         time_epoch_ms(), sim_time, self.config.name, 'mAP',
                         mAP))
                 self._logger.debug('Computing accuracy for {} {}'.format(

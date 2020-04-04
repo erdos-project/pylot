@@ -69,7 +69,7 @@ class SegmentationDecayOperator(erdos.Operator):
                 self._logger.info(
                     'Segmentation ground latency {} ; mean IoU {}'.format(
                         time_diff, mean_iou))
-                self._csv_logger.info('{},{},{},mIoU,{},{}'.format(
+                self._csv_logger.info('{},{},{},mIoU,{},{:.4f}'.format(
                     cur_time, sim_time, self.config.name, time_diff, mean_iou))
                 iou_stream.send(
                     erdos.Message(msg.timestamp, (time_diff, mean_iou)))
@@ -78,18 +78,20 @@ class SegmentationDecayOperator(erdos.Operator):
                     self._logger.info(
                         'Segmentation ground latency {} ; person IoU {}'.
                         format(time_diff, class_iou[person_key]))
-                    self._csv_logger.info('{},{},{},personIoU,{},{}'.format(
-                        cur_time, sim_time, self.config.name, time_diff,
-                        class_iou[person_key]))
+                    self._csv_logger.info(
+                        '{},{},{},personIoU,{},{:.4f}'.format(
+                            cur_time, sim_time, self.config.name, time_diff,
+                            class_iou[person_key]))
 
                 vehicle_key = 10
                 if vehicle_key in class_iou:
                     self._logger.info(
                         'Segmentation ground latency {} ; vehicle IoU {}'.
                         format(time_diff, class_iou[vehicle_key]))
-                    self._csv_logger.info('{},{},{},vehicleIoU,{},{}'.format(
-                        cur_time, sim_time, self.config.name, time_diff,
-                        class_iou[vehicle_key]))
+                    self._csv_logger.info(
+                        '{},{},{},vehicleIoU,{},{:.4f}'.format(
+                            cur_time, sim_time, self.config.name, time_diff,
+                            class_iou[vehicle_key]))
 
         # Append the processed image to the buffer.
         self._ground_frames.append((msg.timestamp.coordinates[0], frame))

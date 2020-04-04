@@ -104,7 +104,7 @@ class ControlEvalOperator(erdos.Operator):
                 compute_control_metrics(vehicle_transform,
                                         self.last_waypoints)
 
-            self._csv_logger.info("{},{},{},{}".format(
+            self._csv_logger.info("{},{},{:.4f},{:.4f}".format(
                 time_epoch_ms(), timestamp.coordinates[0], crosstrack_err,
                 heading_err))
 
