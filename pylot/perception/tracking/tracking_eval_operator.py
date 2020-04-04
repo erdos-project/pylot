@@ -19,7 +19,6 @@ class TrackingEvalOperator(erdos.Operator):
             received from the simulator.
         flags (absl.flags): Object to be used to access absl flags.
     """
-
     def __init__(self, obstacle_tracking_stream, ground_obstacles_stream,
                  flags):
         obstacle_tracking_stream.add_callback(self.on_tracker_obstacles)
@@ -73,6 +72,7 @@ class TrackingEvalOperator(erdos.Operator):
             self._sim_interval = (game_time - self._last_notification)
             self._last_notification = game_time
 
+        sim_time = timestamp.coordinates[0]
         while len(self._tracker_start_end_times) > 0:
             (end_time, start_time) = self._tracker_start_end_times[0]
             # We can compute tracker metrics if the endtime is not greater than
@@ -88,8 +88,9 @@ class TrackingEvalOperator(erdos.Operator):
                         tracker_obstacles, ground_obstacles)
                     # Get runtime in ms
                     runtime = (time.time() - op_start_time) * 1000
-                    self._csv_logger.info('{},{},{},{}'.format(
-                        time_epoch_ms(), self.config.name, 'runtime', runtime))
+                    self._csv_logger.info('{},{},{},{},{}'.format(
+                        time_epoch_ms(), sim_time, self.config.name, 'runtime',
+                        runtime))
                     # Write metrics to csv log file
                     for metric_name in self._flags.tracking_metrics:
                         if metric_name in metrics_summary_df.columns:
@@ -99,26 +100,30 @@ class TrackingEvalOperator(erdos.Operator):
                                 ratio = metrics_summary_df[metric_name].values[
                                     0] / metrics_summary_df[
                                         'num_unique_objects'].values[0]
-                                self._csv_logger.info("{},{},{},{:.2f}".format(
-                                    time_epoch_ms(), self.config.name,
-                                    'ratio_' + metric_name, ratio))
+                                self._csv_logger.info(
+                                    "{},{},{},{},{:.2f}".format(
+                                        time_epoch_ms(), sim_time,
+                                        self.config.name,
+                                        'ratio_' + metric_name, ratio))
                             elif metric_name == 'motp':
                                 # See https://github.com/cheind/py-motmetrics/issues/92
                                 motp = (1 - metrics_summary_df[metric_name].
                                         values[0]) * 100
-                                self._csv_logger.info('{},{},{},{}'.format(
-                                    time_epoch_ms(), self.config.name,
-                                    metric_name, motp))
+                                self._csv_logger.info('{},{},{},{},{}'.format(
+                                    time_epoch_ms(), sim_time,
+                                    self.config.name, metric_name, motp))
                             elif metric_name == 'idf1' or metric_name == 'mota':
                                 metric_val = metrics_summary_df[
                                     metric_name].values[0] * 100
-                                self._csv_logger.info('{},{},{},{:.2f}'.format(
-                                    time_epoch_ms(), self.config.name,
-                                    metric_name, metric_val))
+                                self._csv_logger.info(
+                                    '{},{},{},{},{:.2f}'.format(
+                                        time_epoch_ms(), sim_time,
+                                        self.config.name, metric_name,
+                                        metric_val))
                             else:
-                                self._csv_logger.info('{},{},{},{}'.format(
-                                    time_epoch_ms(), self.config.name,
-                                    metric_name,
+                                self._csv_logger.info('{},{},{},{},{}'.format(
+                                    time_epoch_ms(), sim_time,
+                                    self.config.name, metric_name,
                                     metrics_summary_df[metric_name].values[0]))
                         else:
                             raise ValueError(

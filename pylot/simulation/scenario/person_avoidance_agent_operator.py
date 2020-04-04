@@ -7,6 +7,7 @@ from pid_controller.pid import PID
 import pylot.control.utils
 from pylot.control.messages import ControlMessage
 from pylot.simulation.utils import get_world
+from pylot.utils import time_epoch_ms
 
 flags.DEFINE_enum('avoidance_behavior', 'stop', ['stop', 'swerve'],
                   'Planning behavior in case of emergencies (stop/swerve)')
@@ -125,6 +126,7 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
             obstacle for obstacle in ground_obstacles_msg.obstacles
             if obstacle.label == 'person'
         ]
+        sim_time = timestamp.coordinates[0]
         # Heuristic to tell us how far away do we detect the person.
         for person in people_obstacles:
             person_wp = self._map.get_waypoint(
@@ -134,13 +136,13 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
                 for obstacle in obstacle_msg.obstacles:
                     if obstacle.label == 'person':
                         self._csv_logger.info(
-                            "{},{},detected a person {}m away".format(
-                                self.config.name, self.SPEED,
-                                person.distance(ego_transform)))
+                            "{},{},{},{},detected a person {}m away".format(
+                                time_epoch_ms(), sim_time, self.config.name,
+                                self.SPEED, person.distance(ego_transform)))
                         self._csv_logger.info(
-                            "{},{},vehicle speed {} m/s.".format(
-                                self.config.name, self.SPEED,
-                                pose_msg.data.forward_speed))
+                            "{},{},{},{},vehicle speed {} m/s.".format(
+                                time_epoch_ms(), sim_time, self.config.name,
+                                self.SPEED, pose_msg.data.forward_speed))
 
         # Figure out the location of the ego vehicle and compute the next
         # waypoint.

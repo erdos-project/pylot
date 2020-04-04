@@ -53,6 +53,7 @@ class SegmentationDecayOperator(erdos.Operator):
         # introducing extra latency.
         frame = msg.frame
 
+        sim_time = msg.timestamp[0]
         if len(self._ground_frames) > 0:
             # Pop the oldest frame if it's older than the max latency
             # we're interested in.
@@ -68,8 +69,8 @@ class SegmentationDecayOperator(erdos.Operator):
                 self._logger.info(
                     'Segmentation ground latency {} ; mean IoU {}'.format(
                         time_diff, mean_iou))
-                self._csv_logger.info('{},{},mIoU,{},{}'.format(
-                    cur_time, self.config.name, time_diff, mean_iou))
+                self._csv_logger.info('{},{},{},mIoU,{},{}'.format(
+                    cur_time, sim_time, self.config.name, time_diff, mean_iou))
                 iou_stream.send(
                     erdos.Message(msg.timestamp, (time_diff, mean_iou)))
                 person_key = 4
@@ -77,8 +78,8 @@ class SegmentationDecayOperator(erdos.Operator):
                     self._logger.info(
                         'Segmentation ground latency {} ; person IoU {}'.
                         format(time_diff, class_iou[person_key]))
-                    self._csv_logger.info('{},{},personIoU,{},{}'.format(
-                        cur_time, self.config.name, time_diff,
+                    self._csv_logger.info('{},{},{},personIoU,{},{}'.format(
+                        cur_time, sim_time, self.config.name, time_diff,
                         class_iou[person_key]))
 
                 vehicle_key = 10
@@ -86,8 +87,8 @@ class SegmentationDecayOperator(erdos.Operator):
                     self._logger.info(
                         'Segmentation ground latency {} ; vehicle IoU {}'.
                         format(time_diff, class_iou[vehicle_key]))
-                    self._csv_logger.info('{},{},vehicleIoU,{},{}'.format(
-                        cur_time, self.config.name, time_diff,
+                    self._csv_logger.info('{},{},{},vehicleIoU,{},{}'.format(
+                        cur_time, sim_time, self.config.name, time_diff,
                         class_iou[vehicle_key]))
 
         # Append the processed image to the buffer.

@@ -3,6 +3,7 @@ from collections import deque
 from itertools import islice
 
 import erdos
+
 from pylot.utils import time_epoch_ms
 
 
@@ -103,9 +104,9 @@ class ControlEvalOperator(erdos.Operator):
                 compute_control_metrics(vehicle_transform,
                                         self.last_waypoints)
 
-            self._csv_logger.info("{}, {}, {}".format(time_epoch_ms(),
-                                                      crosstrack_err,
-                                                      heading_err))
+            self._csv_logger.info("{},{},{},{}".format(
+                time_epoch_ms(), timestamp.coordinates[0], crosstrack_err,
+                heading_err))
 
         # Add the first waypoint from the last waypoints received
         # by the operator.

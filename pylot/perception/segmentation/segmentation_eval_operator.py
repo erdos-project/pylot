@@ -20,7 +20,6 @@ class SegmentationEvalOperator(erdos.Operator):
             received.
         flags (absl.flags): Object to be used to access absl flags.
     """
-
     def __init__(self, ground_segmented_stream, segmented_stream, flags):
         ground_segmented_stream.add_callback(self.on_ground_segmented_frame)
         segmented_stream.add_callback(self.on_segmented_frame)
@@ -85,7 +84,7 @@ class SegmentationEvalOperator(erdos.Operator):
                 self._logger.debug('Computing for times {} {}'.format(
                     start_time, end_time))
                 start_frame = self.__get_segmented_at(start_time)
-                self.__compute_mean_iou(end_frame, start_frame)
+                self.__compute_mean_iou(timestamp, end_frame, start_frame)
             else:
                 # The remaining entries are newer ground segmentated frames.
                 break
@@ -125,15 +124,15 @@ class SegmentationEvalOperator(erdos.Operator):
         else:
             return base + self._sim_interval
 
-    def __compute_mean_iou(self, ground_frame, segmented_frame):
+    def __compute_mean_iou(self, timestamp, ground_frame, segmented_frame):
         ground_frame.transform_to_cityscapes()
         (mean_iou,
          class_iou) = ground_frame.compute_semantic_iou(segmented_frame)
         self._logger.info('IoU class scores: {}'.format(class_iou))
         self._logger.info('mean IoU score: {}'.format(mean_iou))
-        self._csv_logger.info('{},{},{},{}'.format(
-            time_epoch_ms(), self.config.name, self._flags.segmentation_metric,
-            mean_iou))
+        self._csv_logger.info('{},{},{},{},{}'.format(
+            time_epoch_ms(), timestamp.coordinates[0], self.config.name,
+            self._flags.segmentation_metric, mean_iou))
 
     def __get_ground_segmentation_at(self, timestamp):
         for (time, frame) in self._ground_frames:

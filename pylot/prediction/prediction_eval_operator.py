@@ -7,7 +7,7 @@ from pylot.perception.detection.utils import VEHICLE_LABELS
 from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 from pylot.prediction.messages import PredictionMessage
 from pylot.prediction.obstacle_prediction import ObstaclePrediction
-from pylot.utils import time_epoch_ms, Vector2D
+from pylot.utils import Vector2D, time_epoch_ms
 
 
 class PredictionEvalOperator(erdos.Operator):
@@ -90,7 +90,7 @@ class PredictionEvalOperator(erdos.Operator):
                                        cur_trajectory)
             # Evaluate the prediction corresponding to the current set of
             # ground truth past trajectories.
-            self._calculate_metrics(ground_trajectories_dict,
+            self._calculate_metrics(timestamp, ground_trajectories_dict,
                                     self._predictions[0].predictions)
 
         # Convert the prediction to world coordinates and append it to the
@@ -115,7 +115,7 @@ class PredictionEvalOperator(erdos.Operator):
         self._predictions.append(
             PredictionMessage(timestamp, obstacle_predictions_list))
 
-    def _calculate_metrics(self, ground_trajectories, predictions):
+    def _calculate_metrics(self, timestamp, ground_trajectories, predictions):
         """ Calculates and logs MSD (mean squared distance), ADE (average
             displacement error), and FDE (final displacement error).
 
@@ -177,6 +177,7 @@ class PredictionEvalOperator(erdos.Operator):
                 raise ValueError('Unexpected obstacle label {}'.format(
                     obstacle.label))
 
+        sim_time = timestamp.coordinates[0]
         # Log metrics.
         if person_cnt > 0:
             person_msd /= person_cnt
@@ -185,12 +186,15 @@ class PredictionEvalOperator(erdos.Operator):
             self._logger.info('Person MSD is: {:.2f}'.format(person_msd))
             self._logger.info('Person ADE is: {:.2f}'.format(person_ade))
             self._logger.info('Person FDE is: {:.2f}'.format(person_fde))
-            self._csv_logger.info('{},{},{},{:.2f}'.format(
-                time_epoch_ms(), self.config.name, 'person-MSD', person_msd))
-            self._csv_logger.info('{},{},{},{:.2f}'.format(
-                time_epoch_ms(), self.config.name, 'person-ADE', person_ade))
-            self._csv_logger.info('{},{},{},{:.2f}'.format(
-                time_epoch_ms(), self.config.name, 'person-FDE', person_fde))
+            self._csv_logger.info('{},{},{},{},{:.2f}'.format(
+                time_epoch_ms(), sim_time, self.config.name, 'person-MSD',
+                person_msd))
+            self._csv_logger.info('{},{},{},{},{:.2f}'.format(
+                time_epoch_ms(), sim_time, self.config.name, 'person-ADE',
+                person_ade))
+            self._csv_logger.info('{},{},{},{},{:.2f}'.format(
+                time_epoch_ms(), sim_time, self.config.name, 'person-FDE',
+                person_fde))
         if vehicle_cnt > 0:
             vehicle_msd /= vehicle_cnt
             vehicle_ade /= vehicle_cnt
@@ -198,9 +202,12 @@ class PredictionEvalOperator(erdos.Operator):
             self._logger.info('Vehicle MSD is: {:.2f}'.format(vehicle_msd))
             self._logger.info('Vehicle ADE is: {:.2f}'.format(vehicle_ade))
             self._logger.info('Vehicle FDE is: {:.2f}'.format(vehicle_fde))
-            self._csv_logger.info('{},{},{},{:.2f}'.format(
-                time_epoch_ms(), self.config.name, 'vehicle-MSD', vehicle_msd))
-            self._csv_logger.info('{},{},{},{:.2f}'.format(
-                time_epoch_ms(), self.config.name, 'vehicle-ADE', vehicle_ade))
-            self._csv_logger.info('{},{},{},{:.2f}'.format(
-                time_epoch_ms(), self.config.name, 'vehicle-FDE', vehicle_fde))
+            self._csv_logger.info('{},{},{},{},{:.2f}'.format(
+                time_epoch_ms(), sim_time, self.config.name, 'vehicle-MSD',
+                vehicle_msd))
+            self._csv_logger.info('{},{},{},{},{:.2f}'.format(
+                time_epoch_ms(), sim_time, self.config.name, 'vehicle-ADE',
+                vehicle_ade))
+            self._csv_logger.info('{},{},{},{},{:.2f}'.format(
+                time_epoch_ms(), sim_time, self.config.name, 'vehicle-FDE',
+                vehicle_fde))

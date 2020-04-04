@@ -19,7 +19,6 @@ class DetectionEvalOperator(erdos.Operator):
             received from the simulator.
         flags (absl.flags): Object to be used to access absl flags.
     """
-
     def __init__(self, obstacles_stream, ground_obstacles_stream, flags):
         obstacles_stream.add_callback(self.on_obstacles)
         ground_obstacles_stream.add_callback(self.on_ground_obstacles)
@@ -69,6 +68,7 @@ class DetectionEvalOperator(erdos.Operator):
             self._sim_interval = (game_time - self._last_notification)
             self._last_notification = game_time
 
+        sim_time = timestamp.coordinates[0]
         while len(self._detector_start_end_times) > 0:
             (end_time, start_time) = self._detector_start_end_times[0]
             # We can compute mAP if the endtime is not greater than the ground
@@ -84,11 +84,13 @@ class DetectionEvalOperator(erdos.Operator):
                         ground_obstacles, obstacles)
                     # Get runtime in ms
                     runtime = (time.time() - op_start_time) * 1000
-                    self._csv_logger.info('{},{},{},{}'.format(
-                        time_epoch_ms(), self.config.name, 'runtime', runtime))
+                    self._csv_logger.info('{},{},{},{},{}'.format(
+                        time_epoch_ms(), sim_time, self.config.name, 'runtime',
+                        runtime))
                     self._logger.info('mAP is: {}'.format(mAP))
-                    self._csv_logger.info('{},{},{},{}'.format(
-                        time_epoch_ms(), self.config.name, 'mAP', mAP))
+                    self._csv_logger.info('{},{},{},{},{}'.format(
+                        time_epoch_ms(), sim_time, self.config.name, 'mAP',
+                        mAP))
                 self._logger.debug('Computing accuracy for {} {}'.format(
                     end_time, start_time))
             else:

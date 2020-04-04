@@ -1,6 +1,7 @@
 import erdos
 
-from pylot.utils import LaneMarkingColor, LaneType, LaneMarkingType
+from pylot.utils import LaneMarkingColor, LaneMarkingType, LaneType, \
+    time_epoch_ms
 
 
 class EvalMetricLoggerOperator(erdos.Operator):
@@ -19,7 +20,6 @@ class EvalMetricLoggerOperator(erdos.Operator):
             on which the traffic light invasion events are received.
         flags (absl.flags): Object to be used to access the absl flags.
     """
-
     def __init__(self, collision_stream, lane_invasion_stream,
                  traffic_light_invasion_stream, imu_stream, flags):
         # Save the streams.
@@ -60,7 +60,8 @@ class EvalMetricLoggerOperator(erdos.Operator):
             msg (:py:class:`pylot.simulation.messages.CollisionMessage`): The
                 collision message sent by the sensor.
         """
-        self._csv_logger.info('collision,{},{}'.format(
+        self._csv_logger.info('{},{},collision,{},{}'.format(
+            time_epoch_ms(), msg.timestamp.coordinates[0],
             msg.collided_actor.split('.')[0], msg.intensity))
 
     def on_lane_invasion_update(self, msg):
@@ -72,13 +73,15 @@ class EvalMetricLoggerOperator(erdos.Operator):
             msg (:py:class:`pylot.simulation.messages.LaneInvasionMessage`):
                 The lane invasion message sent by the sensor.
         """
-        time = msg.timestamp.coordinates[0]
+        sim_time = msg.timestamp.coordinates[0]
         # We log lane invasion events only if they are illegal.
         if any(map(check_illegal_lane_invasion, msg.lane_markings)):
-            self._csv_logger.info('invasion,lane,{}'.format(time))
+            self._csv_logger.info('{},{},invasion,lane'.format(
+                time_epoch_ms(), sim_time))
 
         if msg.lane_type == LaneType.SIDEWALK:
-            self._csv_logger.info('invasion,sidewalk,{}'.format(time))
+            self._csv_logger.info('{},{},invasion,sidewalk'.format(
+                time_epoch_ms(), sim_time))
 
     def check_illegal_lane_invasion(lane_marking):
         """ Checks if the invaded lane was an illegal lane.
@@ -112,8 +115,9 @@ class EvalMetricLoggerOperator(erdos.Operator):
             (:py:class:`pylot.simulation.messages.TrafficInfractionMessage`):
                 The traffic infraction message sent by the sensor.
         """
-        time = msg.timestamp.coordinates[0]
-        self._csv_logger.info('invasion,red_light,{}'.format(time))
+        sim_time = msg.timestamp.coordinates[0]
+        self._csv_logger.info('{},{},invasion,red_light'.format(
+            time_epoch_ms(), sim_time))
 
     def on_imu_update(self, msg):
         """ Invoked upon receipt of an IMU sensor update.
@@ -124,11 +128,13 @@ class EvalMetricLoggerOperator(erdos.Operator):
             msg (:py:class:`pylot.perception.messages.IMUMessage`): The IMU
                 message sent by the sensor.
         """
+        sim_time = msg.timestamp.coordinates[0]
         lateral_acc, longitudinal_acc = msg.acceleration.y, msg.acceleration.x
         # Log the lateral and the longitudinal acceleration.
-        self._csv_logger.info('acceleration,lateral,{}'.format(lateral_acc))
-        self._csv_logger.info(
-            'acceleration,longitudinal,{}'.format(longitudinal_acc))
+        self._csv_logger.info('{},{},acceleration,lateral,{}'.format(
+            time_epoch_ms(), sim_time, lateral_acc))
+        self._csv_logger.info('{},{},acceleration,longitudinal,{}'.format(
+            time_epoch_ms(), sim_time, longitudinal_acc))
 
         # Calculate the jerk, and log both lateral and longitudinal jerk.
         if self._last_timestamp:
@@ -137,9 +143,10 @@ class EvalMetricLoggerOperator(erdos.Operator):
             lateral_jerk = (self._last_lateral_acc - lateral_acc) / time_diff
             longitudinal_jerk = (self._last_longitudinal_acc -
                                  longitudinal_acc) / time_diff
-            self._csv_logger.info('jerk,lateral,{}'.format(lateral_jerk))
-            self._csv_logger.info(
-                'jerk,longitudinal,{}'.format(longitudinal_jerk))
+            self._csv_logger.info('{},{},jerk,lateral,{}'.format(
+                time_epoch_ms(), sim_time, lateral_jerk))
+            self._csv_logger.info('{},{},jerk,longitudinal,{}'.format(
+                time_epoch_ms(), sim_time, longitudinal_jerk))
 
         # Save the new acceleration and timestamp.
         self._last_lateral_acc = lateral_acc

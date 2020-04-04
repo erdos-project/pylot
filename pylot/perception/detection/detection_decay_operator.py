@@ -57,6 +57,7 @@ class DetectionDecayOperator(erdos.Operator):
                self._flags.decay_max_latency):
             self._ground_bboxes.popleft()
 
+        sim_time = msg.timestamp.coordinates[0]
         for (old_game_time, old_bboxes) in self._ground_bboxes:
             # Ideally, we would like to take multiple precision values at
             # different recalls and average them, but we can't vary model
@@ -73,8 +74,9 @@ class DetectionDecayOperator(erdos.Operator):
                 self._logger.info(
                     "The latency is {} and the average precision is {}".format(
                         latency, avg_precision))
-                self._csv_logger.info('{},{},{},{}'.format(
-                    time_epoch_ms(), self.config.name, latency, avg_precision))
+                self._csv_logger.info('{},{},{},{},{}'.format(
+                    time_epoch_ms(), sim_time, self.config.name, latency,
+                    avg_precision))
                 map_stream.send(
                     erdos.Message(msg.timestamp, (latency, avg_precision)))
 
