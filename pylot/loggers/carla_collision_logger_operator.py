@@ -15,7 +15,6 @@ class CarlaCollisionLoggerOperator(erdos.Operator):
             operator receives the pose of the ego-vehicle.
         flags (absl.flags): Object to be used to access the absl flags.
     """
-
     def __init__(self, collision_stream, pose_stream, flags):
         # Add the callbacks to both the pose stream and the collision stream.
         pose_stream.add_callback(self.on_pose_update)
@@ -31,7 +30,7 @@ class CarlaCollisionLoggerOperator(erdos.Operator):
             self.config.name + '-csv', self.config.csv_log_file_name)
 
         # Data structures that maintain the state necessary for logging.
-        self._ego_transform_msg = None
+        self._ego_transform_msgs = deque()
         self._collisions = defaultdict(list)
 
     @staticmethod
@@ -46,7 +45,7 @@ class CarlaCollisionLoggerOperator(erdos.Operator):
                 pose of the ego-vehicle.
         """
         self._logger.debug("@{}: received pose update.".format(msg.timestamp))
-        self._ego_transform_msg = msg
+        self._ego_transform_msgs.append(msg)
 
     def on_collision_update(self, msg):
         """ Invoked when a collision of the ego-vehicle is received.
@@ -72,14 +71,15 @@ class CarlaCollisionLoggerOperator(erdos.Operator):
                 watermark.
         """
         self._logger.debug("@{}: received watermark.".format(timestamp))
-        if self._ego_transform_msg.timestamp != timestamp:
+        ego_transform_msg = self._ego_transform_msgs.popleft()
+        if ego_transform_msg.timestamp != timestamp:
             raise ValueError(
                 "Expected timestamp {} for the pose, got {}".format(
-                    timestamp, self._ego_transform_msg.timestamp))
+                    timestamp, ego_transform_msg.timestamp))
         collision_msgs = self._collisions.pop(timestamp, [])
 
         for collision in collision_msgs:
             self._csv_logger.info('collision,{},{},{},{}'.format(
-                self._ego_transform_msg.data.transform.location,
+                ego_transform_msg.data.transform.location,
                 collision.collided_actor, collision.impulse,
                 collision.intensity))
