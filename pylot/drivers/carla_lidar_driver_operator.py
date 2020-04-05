@@ -55,7 +55,7 @@ class CarlaLidarDriverOperator(erdos.Operator):
         watermark_msg = erdos.WatermarkMessage(timestamp)
         with erdos.profile(self.config.name + '.process_point_clouds',
                            self,
-                           event_data={'timestamp': timestamp}):
+                           event_data={'timestamp': str(timestamp)}):
             # Ensure that the code executes serially
             with self._lock:
                 assert len(
