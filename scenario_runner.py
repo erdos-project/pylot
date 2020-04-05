@@ -153,6 +153,10 @@ def driver():
             collision_stream, lane_invasion_stream,
             traffic_light_invasion_stream, imu_stream)
 
+        # Add control evaluation logging operator.
+        pylot.operator_creator.add_control_evaluation(pose_stream,
+                                                      waypoints_stream)
+
     time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
         pose_stream, obstacles_stream)
     time_to_decision_loop_stream.set(time_to_decision_stream)

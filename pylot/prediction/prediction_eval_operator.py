@@ -177,8 +177,19 @@ class PredictionEvalOperator(erdos.Operator):
                 raise ValueError('Unexpected obstacle label {}'.format(
                     obstacle.label))
 
-        sim_time = timestamp.coordinates[0]
         # Log metrics.
+        sim_time = timestamp.coordinates[0]
+        actor_cnt = person_cnt + vehicle_cnt
+        if actor_cnt > 0:
+            msd = (person_msd + vehicle_msd) / actor_cnt
+            ade = (person_ade + vehicle_ade) / actor_cnt
+            fde = (person_fde + vehicle_fde) / actor_cnt
+            self._csv_logger.info('{},{},prediction,MSD,{:.4f}'.format(
+                time_epoch_ms(), sim_time, msd))
+            self._csv_logger.info('{},{},prediction,ADE,{:.4f}'.format(
+                time_epoch_ms(), sim_time, ade))
+            self._csv_logger.info('{},{},prediction,FDE,{:.4f}'.format(
+                time_epoch_ms(), sim_time, fde))
         if person_cnt > 0:
             person_msd /= person_cnt
             person_ade /= person_cnt
@@ -186,15 +197,12 @@ class PredictionEvalOperator(erdos.Operator):
             self._logger.info('Person MSD is: {:.4f}'.format(person_msd))
             self._logger.info('Person ADE is: {:.4f}'.format(person_ade))
             self._logger.info('Person FDE is: {:.4f}'.format(person_fde))
-            self._csv_logger.info('{},{},{},{},{:.4f}'.format(
-                time_epoch_ms(), sim_time, self.config.name, 'person-MSD',
-                person_msd))
-            self._csv_logger.info('{},{},{},{},{:.4f}'.format(
-                time_epoch_ms(), sim_time, self.config.name, 'person-ADE',
-                person_ade))
-            self._csv_logger.info('{},{},{},{},{:.4f}'.format(
-                time_epoch_ms(), sim_time, self.config.name, 'person-FDE',
-                person_fde))
+            self._csv_logger.info('{},{},prediction,person-MSD,{:.4f}'.format(
+                time_epoch_ms(), sim_time, person_msd))
+            self._csv_logger.info('{},{},prediction,person-ADE,{:.4f}'.format(
+                time_epoch_ms(), sim_time, person_ade))
+            self._csv_logger.info('{},{},prediction,person-FDE,{:.4f}'.format(
+                time_epoch_ms(), sim_time, person_fde))
         if vehicle_cnt > 0:
             vehicle_msd /= vehicle_cnt
             vehicle_ade /= vehicle_cnt
@@ -202,12 +210,9 @@ class PredictionEvalOperator(erdos.Operator):
             self._logger.info('Vehicle MSD is: {:.4f}'.format(vehicle_msd))
             self._logger.info('Vehicle ADE is: {:.4f}'.format(vehicle_ade))
             self._logger.info('Vehicle FDE is: {:.4f}'.format(vehicle_fde))
-            self._csv_logger.info('{},{},{},{},{:.4f}'.format(
-                time_epoch_ms(), sim_time, self.config.name, 'vehicle-MSD',
-                vehicle_msd))
-            self._csv_logger.info('{},{},{},{},{:.4f}'.format(
-                time_epoch_ms(), sim_time, self.config.name, 'vehicle-ADE',
-                vehicle_ade))
-            self._csv_logger.info('{},{},{},{},{:.4f}'.format(
-                time_epoch_ms(), sim_time, self.config.name, 'vehicle-FDE',
-                vehicle_fde))
+            self._csv_logger.info('{},{},prediction,vehicle-MSD,{:.4f}'.format(
+                time_epoch_ms(), sim_time, vehicle_msd))
+            self._csv_logger.info('{},{},prediction,vehicle-ADE,{:.4f}'.format(
+                time_epoch_ms(), sim_time, vehicle_ade))
+            self._csv_logger.info('{},{},prediction,vehicle-FDE,{:.4f}'.format(
+                time_epoch_ms(), sim_time, vehicle_fde))

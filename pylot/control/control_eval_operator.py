@@ -1,6 +1,5 @@
 import numpy as np
 from collections import deque
-from itertools import islice
 
 import erdos
 
@@ -104,7 +103,7 @@ class ControlEvalOperator(erdos.Operator):
                 compute_control_metrics(vehicle_transform,
                                         self.last_waypoints)
 
-            self._csv_logger.info("{},{},{:.4f},{:.4f}".format(
+            self._csv_logger.info("{},{},control,{:.4f},{:.4f}".format(
                 time_epoch_ms(), timestamp.coordinates[0], crosstrack_err,
                 heading_err))
 
@@ -143,12 +142,12 @@ class ControlEvalOperator(erdos.Operator):
             new_point.location)
 
         # Calculate the heading error.
-        vehicle_forward_vector=vehicle_transform.forward_vector.\
-                as_numpy_array()
+        vehicle_forward_vector = vehicle_transform.forward_vector.\
+            as_numpy_array()
 
         # Create a unit vector between the two reference waypoints.
-        waypoint_vector=new_point.location.as_numpy_array() - \
-                old_point.location.as_numpy_array()
+        waypoint_vector = new_point.location.as_numpy_array() - \
+            old_point.location.as_numpy_array()
         waypoint_vector = waypoint_vector / np.linalg.norm(waypoint_vector)
 
         # Get the angle between the two vectors.
