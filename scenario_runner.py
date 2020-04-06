@@ -90,11 +90,6 @@ def driver():
         (imu_stream,
          _) = pylot.operator_creator.add_imu(transform, vehicle_id_stream)
 
-    collision_stream = pylot.operator_creator.add_collision_sensor(
-        vehicle_id_stream)
-    pylot.operator_creator.add_carla_collision_logging(collision_stream,
-                                                       pose_stream)
-
     obstacles_stream = pylot.component_creator.add_obstacle_detection(
         center_camera_stream, center_camera_setup, pose_stream, depth_stream,
         depth_camera_stream, ground_segmented_stream, ground_obstacles_stream,
@@ -138,6 +133,9 @@ def driver():
         # Add the collision sensor.
         collision_stream = pylot.operator_creator.add_collision_sensor(
             vehicle_id_stream)
+
+        pylot.operator_creator.add_carla_collision_logging(
+            collision_stream, pose_stream)
 
         # Add the lane invasion sensor.
         lane_invasion_stream = pylot.operator_creator.add_lane_invasion_sensor(

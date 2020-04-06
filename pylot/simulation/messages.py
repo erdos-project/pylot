@@ -1,10 +1,10 @@
-""" This module implements Messages sent out by the simulator-based drivers. """
+"""This module implements Messages sent out by the simulator-based drivers."""
 
 import erdos
 import carla
 
-from pylot.utils import Vector3D, LaneMarking, LaneType, Location
 from pylot.simulation.utils import TrafficInfractionType
+from pylot.utils import LaneMarking, LaneType, Location, Vector3D
 
 
 class CollisionMessage(erdos.Message):
@@ -25,7 +25,6 @@ class CollisionMessage(erdos.Message):
             the collision.
         intensity (:py:class:`float`): The intensity of the collision.
     """
-
     def __init__(self, collided_actor, impulse, timestamp):
         super(CollisionMessage, self).__init__(timestamp, None)
 
@@ -49,9 +48,9 @@ class CollisionMessage(erdos.Message):
     def __str__(self):
         return 'CollisionMessage(timestamp: {}, collided_actor: {}, ' \
             'impulse: {}, intensity: {})'.format(self.timestamp,
-                                                self.collided_actor,
-                                                self.impulse,
-                                                self.intensity)
+                                                 self.collided_actor,
+                                                 self.impulse,
+                                                 self.intensity)
 
 
 class LaneInvasionMessage(erdos.Message):
@@ -73,7 +72,6 @@ class LaneInvasionMessage(erdos.Message):
         timestamp: (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
             the message.
     """
-
     def __init__(self, lane_markings, lane_type, timestamp):
         super(LaneInvasionMessage, self).__init__(timestamp, None)
 
@@ -117,7 +115,6 @@ class TrafficInfractionMessage(erdos.Message):
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
             the message.
     """
-
     def __init__(self, infraction_type, location, timestamp):
         super(TrafficInfractionMessage, self).__init__(timestamp, None)
 

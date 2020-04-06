@@ -81,8 +81,6 @@ class CarlaCollisionLoggerOperator(erdos.Operator):
         collision_msgs = self._collisions.pop(timestamp, [])
 
         for collision in collision_msgs:
-            self._csv_logger.info('{},{},collision,{},{},{:.4f},{:.4f}'.format(
+            self._csv_logger.info('{},{},collision,{},{:.4f}'.format(
                 time_epoch_ms(), timestamp.coordinates[0],
-                self._ego_transform_msg.data.transform.location,
-                collision.collided_actor, collision.impulse,
-                collision.intensity))
+                collision.collided_actor, collision.intensity))
