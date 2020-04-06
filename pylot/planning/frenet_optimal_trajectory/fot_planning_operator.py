@@ -179,7 +179,7 @@ class FOTPlanningOperator(erdos.Operator):
             pose_msg, obstacle_list
         )
 
-        path_x, path_y, speeds, ix, iy, iyaw, d, s, misc, success = \
+        path_x, path_y, speeds, ix, iy, iyaw, d, s, speeds_x, speeds_y, misc, success = \
             run_fot(initial_conditions, self._hyperparameters)
 
         if success:
@@ -199,6 +199,10 @@ class FOTPlanningOperator(erdos.Operator):
                 timestamp, d.tolist()))
             self._logger.debug("@{}: Frenet S: {}".format(
                 timestamp, s.tolist()))
+            self._logger.debug("@{}: Frenet Speeds X: {}".format(
+                timestamp, speeds_x.tolist()))
+            self._logger.debug("@{}: Frenet Speeds Y: {}".format(
+                timestamp, speeds_y.tolist()))
 
         # update current pose
         self.s0 = misc[0]
