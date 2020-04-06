@@ -179,7 +179,7 @@ class FOTPlanningOperator(erdos.Operator):
             pose_msg, obstacle_list
         )
 
-        path_x, path_y, speeds, speeds_x, speeds_y, misc, success = \
+        path_x, path_y, speeds, ix, iy, iyaw, d, s, misc, success = \
             run_fot(initial_conditions, self._hyperparameters)
 
         if success:
@@ -189,6 +189,16 @@ class FOTPlanningOperator(erdos.Operator):
                 timestamp, path_y.tolist()))
             self._logger.debug("@{}: Frenet Speeds: {}".format(
                 timestamp, speeds.tolist()))
+            self._logger.debug("@{}: Frenet IX: {}".format(
+                timestamp, ix.tolist()))
+            self._logger.debug("@{}: Frenet IY: {}".format(
+                timestamp, iy.tolist()))
+            self._logger.debug("@{}: Frenet IYAW: {}".format(
+                timestamp, iyaw.tolist()))
+            self._logger.debug("@{}: Frenet D: {}".format(
+                timestamp, d.tolist()))
+            self._logger.debug("@{}: Frenet S: {}".format(
+                timestamp, s.tolist()))
 
         # update current pose
         self.s0 = misc[0]
@@ -225,6 +235,7 @@ class FOTPlanningOperator(erdos.Operator):
         # compute waypoints offset by current location
         wx = []
         wy = []
+
         for wp in itertools.islice(
             self._waypoints,
             max(current_index - self._flags.num_waypoints_behind, 0),
