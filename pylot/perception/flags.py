@@ -37,15 +37,18 @@ flags.DEFINE_string('depth_estimation_model_path',
                     'dependencies/models/depth_estimation/AnyNet/',
                     'Path to AnyNet depth estimation model')
 
-# Deep sort tracking flags.
+# Tracking flags.
+flags.DEFINE_bool('visualize_tracker_output', False,
+                  'True to enable visualization of tracker output')
+flags.DEFINE_float(
+    'min_matching_iou', 0.5,
+    'Min IoU required between detection and track for matching to be considered')
+
+# DeepSORT tracking flags.
 flags.DEFINE_string(
     'deep_sort_tracker_weights_path',
     'dependencies/models/tracking/deep-sort-carla/feature_extractor',
     'Path to weights for feature extractor model')
-
-# Object tracking flags.
-flags.DEFINE_bool('visualize_tracker_output', False,
-                  'True to enable visualization of tracker output')
 
 # DaSiamRPN tracking flags.
 flags.DEFINE_string('da_siam_rpn_model_path',
