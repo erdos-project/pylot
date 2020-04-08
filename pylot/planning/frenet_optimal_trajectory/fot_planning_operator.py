@@ -210,7 +210,7 @@ class FOTPlanningOperator(erdos.Operator):
                 timestamp, costs))
 
         # update current pose
-        self.s0 = misc[0]
+        self.s0 = misc['s']
 
         # log debug
         self._logger.debug("@{}: Frenet Initial Conditions: {}".format(
