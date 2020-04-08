@@ -10,7 +10,6 @@ from DaSiamRPN.code.run_SiamRPN import SiamRPN_init, SiamRPN_track
 from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
-ASSOCIATION_THRESHOLD = 0.1
 MAX_MISSED_DETECTIONS = 2
 
 
@@ -64,6 +63,7 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
             flags.da_siam_rpn_model_path))
         self._siam_net.eval().cuda()
         self._trackers = []
+        self._min_matching_iou = flags.min_matching_iou
 
     def initialize(self, frame, obstacles):
         """ Reinitializes a multiple obstacle tracker.
@@ -121,7 +121,14 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
             updated_trackers.append(
                 SingleObjectDaSiamRPNTracker(frame, obstacle, self._siam_net))
 
-        self._trackers = updated_trackers
+        unique_updated_trackers = {}
+        for tracker in updated_trackers:
+            if tracker.obstacle.id not in unique_updated_trackers:
+                unique_updated_trackers[tracker.obstacle.id] = tracker
+            elif unique_updated_trackers[tracker.obstacle.id].missed_det_updates > tracker.missed_det_updates:
+                unique_updated_trackers[tracker.obstacle.id] = tracker
+
+        self._trackers = list(unique_updated_trackers.values())
 
     def _create_hungarian_cost_matrix(self, frame, obstacles):
         # Create cost matrix with shape (num_bboxes, num_trackers)
@@ -133,7 +140,7 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
                 tracker_bbox = tracker.obstacle.bounding_box
                 iou = obstacle_bbox.calculate_iou(tracker_bbox)
                 # If track too far from det, mark pair impossible with np.nan
-                if iou > ASSOCIATION_THRESHOLD:
+                if iou >= self._min_matching_iou:
                     cost_matrix[i][j] = iou
                 else:
                     cost_matrix[i][j] = np.nan

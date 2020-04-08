@@ -8,7 +8,7 @@ from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 class MultiObjectSORTTracker(MultiObjectTracker):
     def __init__(self, flags):
-        self.tracker = Sort()
+        self.tracker = Sort(min_iou=flags.min_matching_iou)
 
     def reinitialize(self, frame, obstacles):
         """ Reinitializes a multiple obstacle tracker.
