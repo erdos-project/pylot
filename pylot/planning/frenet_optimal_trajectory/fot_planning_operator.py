@@ -75,9 +75,12 @@ class FOTPlanningOperator(erdos.Operator):
             "d_t_s": flags.d_t_s,
             "n_s_sample": flags.n_s_sample,
             "obstacle_radius": flags.obstacle_radius,
+            "kd": flags.kd,
+            "kv": flags.kv,
+            "ka": flags.ka,
             "kj": flags.kj,
             "kt": flags.kt,
-            "kd": flags.kd,
+            "ko": flags.ko,
             "klat": flags.klat,
             "klon": flags.klon
         }
@@ -179,7 +182,7 @@ class FOTPlanningOperator(erdos.Operator):
             pose_msg, obstacle_list
         )
 
-        path_x, path_y, speeds, speeds_x, speeds_y, misc, success = \
+        path_x, path_y, speeds, ix, iy, iyaw, d, s, speeds_x, speeds_y, misc, costs, success = \
             run_fot(initial_conditions, self._hyperparameters)
 
         if success:
@@ -189,9 +192,25 @@ class FOTPlanningOperator(erdos.Operator):
                 timestamp, path_y.tolist()))
             self._logger.debug("@{}: Frenet Speeds: {}".format(
                 timestamp, speeds.tolist()))
+            self._logger.debug("@{}: Frenet IX: {}".format(
+                timestamp, ix.tolist()))
+            self._logger.debug("@{}: Frenet IY: {}".format(
+                timestamp, iy.tolist()))
+            self._logger.debug("@{}: Frenet IYAW: {}".format(
+                timestamp, iyaw.tolist()))
+            self._logger.debug("@{}: Frenet D: {}".format(
+                timestamp, d.tolist()))
+            self._logger.debug("@{}: Frenet S: {}".format(
+                timestamp, s.tolist()))
+            self._logger.debug("@{}: Frenet Speeds X: {}".format(
+                timestamp, speeds_x.tolist()))
+            self._logger.debug("@{}: Frenet Speeds Y: {}".format(
+                timestamp, speeds_y.tolist()))
+            self._logger.debug("@{}: Frenet Costs: {}".format(
+                timestamp, costs))
 
         # update current pose
-        self.s0 = misc[0]
+        self.s0 = misc['s']
 
         # log debug
         self._logger.debug("@{}: Frenet Initial Conditions: {}".format(
@@ -225,6 +244,7 @@ class FOTPlanningOperator(erdos.Operator):
         # compute waypoints offset by current location
         wx = []
         wy = []
+
         for wp in itertools.islice(
             self._waypoints,
             max(current_index - self._flags.num_waypoints_behind, 0),
