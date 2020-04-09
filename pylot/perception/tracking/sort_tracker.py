@@ -8,7 +8,7 @@ from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 class MultiObjectSORTTracker(MultiObjectTracker):
     def __init__(self, flags):
-        self.tracker = Sort()
+        self.tracker = Sort(min_iou=flags.min_matching_iou)
 
     def reinitialize(self, frame, obstacles):
         """ Reinitializes a multiple obstacle tracker.
@@ -18,8 +18,8 @@ class MultiObjectSORTTracker(MultiObjectTracker):
                 Frame to reinitialize with.
             obstacles : List of perception.detection.utils.DetectedObstacle.
         """
-        detections, labels = self.convert_detections_for_sort_alg(obstacles)
-        self.tracker.update(detections, labels)
+        detections, labels, ids = self.convert_detections_for_sort_alg(obstacles)
+        self.tracker.update(detections, labels, ids)
 
     def track(self, frame):
         """ Tracks obstacles in a frame.
@@ -41,6 +41,7 @@ class MultiObjectSORTTracker(MultiObjectTracker):
     def convert_detections_for_sort_alg(self, obstacles):
         converted_detections = []
         labels = []
+        ids = []
         for obstacle in obstacles:
             bbox = [
                 obstacle.bounding_box.x_min, obstacle.bounding_box.y_min,
@@ -49,4 +50,5 @@ class MultiObjectSORTTracker(MultiObjectTracker):
             ]
             converted_detections.append(bbox)
             labels.append(obstacle.label)
-        return (np.array(converted_detections), labels)
+            ids.append(obstacle.id)
+        return (np.array(converted_detections), labels, ids)

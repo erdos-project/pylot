@@ -211,7 +211,7 @@ class TrackingEvalOperator(erdos.Operator):
         ])
         cost_matrix = mm.distances.iou_matrix(ground_bboxes,
                                               tracked_bboxes,
-                                              max_iou=0.5)
+                                              max_iou=1-self._flags.min_matching_iou)
         frame_id = self._accumulator.update(ground_ids, track_ids, cost_matrix)
         # Calculate all motchallenge metrics by default. Logged metrics
         # determined by list passed to --tracking_metrics

@@ -68,7 +68,7 @@ gdown https://drive.google.com/uc?id=1bB66hP9voDXuoBoaCcKYY7a8IYzMMs4P
 cd ../
 # Download the CARLA model.
 mkdir deep-sort-carla ; cd deep-sort-carla
-wget https://www.dropbox.com/s/svdjcqoqxrxpg3k/ped_feature_extractor
+wget https://www.dropbox.com/s/j007vs40f9tlcui/feature_extractor
 cd ../../../
 
 ###### Get DeepSORT and SORT tracker code bases
