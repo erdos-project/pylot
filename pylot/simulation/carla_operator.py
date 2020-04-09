@@ -229,12 +229,13 @@ class CarlaOperator(erdos.Operator):
         self.__send_world_data()
         # Tick here once to ensure that the driver operators can get a handle
         # to the ego vehicle.
-        self._tick_simulator()
         # XXX(ionel): Hack to fix a race condition. Driver operators
         # register a carla listen callback only after they've received
         # the vehicle id value. We miss frames if we tick before
         # they register a listener. Thus, we sleep here a bit to
         # give them sufficient time to register a callback.
+        time.sleep(4)
+        self._tick_simulator()
         time.sleep(4)
         self._world.on_tick(self.send_actor_data)
         self._tick_simulator()
