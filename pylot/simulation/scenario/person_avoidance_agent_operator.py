@@ -136,11 +136,12 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
                 for obstacle in obstacle_msg.obstacles:
                     if obstacle.label == 'person':
                         self._csv_logger.info(
-                            "{},{},{},{:.4f},detected a person {:.4f}m away".
+                            "{},{},{},{:.4f},detected a {} {:.4f} m away".
                             format(time_epoch_ms(), sim_time, self.config.name,
-                                   self.SPEED, person.distance(ego_transform)))
+                                   self.SPEED, obstacle.label,
+                                   person.distance(ego_transform)))
                         self._csv_logger.info(
-                            "{},{},{},{:.4f},vehicle speed {:.4f} m/s.".format(
+                            "{},{},{},{:.4f},vehicle speed {:.4f} m/s".format(
                                 time_epoch_ms(), sim_time, self.config.name,
                                 self.SPEED, pose_msg.data.forward_speed))
 
@@ -207,9 +208,9 @@ class PersonAvoidanceAgentOperator(erdos.Operator):
                     # We're driving in the right direction, continue driving.
                     pass
 
-            self._world.debug.draw_point(wp_steer.transform.location,
-                                         size=0.2,
-                                         life_time=30000.0)
+            # self._world.debug.draw_point(wp_steer.transform.location,
+            #                              size=0.2,
+            #                              life_time=30000.0)
 
             wp_steer_vector, _, wp_steer_angle = \
                 ego_transform.get_vector_magnitude_angle(

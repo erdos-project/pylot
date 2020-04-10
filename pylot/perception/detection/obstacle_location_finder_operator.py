@@ -78,6 +78,8 @@ class ObstacleLocationFinderOperator(erdos.Operator):
             obstacles_msg.obstacles, depth_msg, vehicle_transform,
             self._camera_setup, self._logger)
 
+        self._logger.info('@{}: {}'.format(timestamp, obstacles_with_location))
+
         if self._flags.visualize_obstacles_with_distance:
             frame_msg.frame.annotate_with_bounding_boxes(
                 timestamp, obstacles_with_location, vehicle_transform)

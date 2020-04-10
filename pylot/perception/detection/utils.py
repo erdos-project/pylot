@@ -342,9 +342,13 @@ class DetectedObstacle(object):
         return self.__str__()
 
     def __str__(self):
-        return 'DetectedObstacle(id: {}, label: {}, confidence: {}, ' \
-            'bbox: {})'.format(
+        detected_obstacle = 'DetectedObstacle(id: {}, label: {}, ' \
+            'confidence: {}, bbox: {})'.format(
                 self.id, self.label, self.confidence, self.bounding_box)
+        if self.transform:
+            return detected_obstacle + ' at ' + str(self.transform)
+        else:
+            return detected_obstacle
 
 
 class DetectedLane(object):
