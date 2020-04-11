@@ -29,7 +29,6 @@ class EfficientDetOperator(erdos.Operator):
         model_path(:obj:`str`): Path to the model pb file.
         flags (absl.flags): Object to be used to access absl flags.
     """
-
     def __init__(self, camera_stream, obstacles_stream, model_path, flags):
         camera_stream.add_callback(self.on_msg_camera_stream,
                                    [obstacles_stream])
@@ -125,16 +124,21 @@ class EfficientDetOperator(erdos.Operator):
                 if (score >= self._flags.obstacle_detection_min_score_threshold
                         and
                         self._coco_labels[_class] in self._important_labels):
-                    obstacles.append(
-                        DetectedObstacle(BoundingBox2D(int(x), int(x + width),
-                                                       int(y),
-                                                       int(y + height)),
-                                         score,
-                                         self._coco_labels[_class],
-                                         id=self._unique_id))
+                    min_x = int(x)
+                    min_y = int(y)
+                    max_x = min(int(x + width), msg.frame.camera_setup.width)
+                    max_y = min(int(y + height), msg.frame.camera_setup.height)
+                    if min_x < max_x and min_y < max_y:
+                        obstacles.append(
+                            DetectedObstacle(BoundingBox2D(
+                                min_x, max_x, min_y, max_y),
+                                             score,
+                                             self._coco_labels[_class],
+                                             id=self._unique_id))
                     self._unique_id += 1
             else:
-                self._logger.debu('Filtering unknown class: {}'.format(_class))
+                self._logger.debug(
+                    'Filtering unknown class: {}'.format(_class))
 
         if (self._flags.visualize_detected_obstacles
                 or self._flags.log_detector_output):
