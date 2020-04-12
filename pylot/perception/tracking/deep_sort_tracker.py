@@ -38,8 +38,8 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
                 labels.append(obstacle.label)
                 confidence_scores.append(obstacle.confidence)
                 ids.append(obstacle.id)
-                self._deepsort.run_deep_sort(
-                    frame.frame, confidence_scores, bboxes, labels, ids)
+            self._deepsort.run_deep_sort(
+                frame.frame, confidence_scores, bboxes, labels, ids)
         else:
             for track in self._deepsort.tracker.tracks:
                 if track.is_confirmed():
