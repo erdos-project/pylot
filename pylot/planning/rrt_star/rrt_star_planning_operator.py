@@ -18,7 +18,7 @@ from pylot.utils import Location, Rotation, Transform
 DEFAULT_DISTANCE_THRESHOLD = 30  # 30 meters radius around of ego
 DEFAULT_NUM_WAYPOINTS = 100  # 100 waypoints to plan for
 DEFAULT_OBSTACLE_SIZE = 2  # 2 x 2 meter square
-DEFAULT_TARGET_WAYPOINT = 30  # use the 20th waypoint as a target
+DEFAULT_TARGET_WAYPOINT = 30  # use the 30th waypoint as a target
 
 
 class RRTStarPlanningOperator(PlanningOperator):
