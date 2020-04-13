@@ -10,7 +10,7 @@ from DaSiamRPN.code.run_SiamRPN import SiamRPN_init, SiamRPN_track
 from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
-MAX_MISSED_DETECTIONS = 2
+MAX_MISSED_DETECTIONS = 5
 
 
 class SingleObjectDaSiamRPNTracker(object):
@@ -115,7 +115,7 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
         # Add 1 to age of any unmatched trackers, filter old ones.
         for tracker in unmatched_trackers:
             tracker.missed_det_updates += 1
-            if tracker.missed_det_updates < MAX_MISSED_DETECTIONS:
+            if tracker.missed_det_updates <= MAX_MISSED_DETECTIONS:
                 updated_trackers.append(tracker)
             else:
                 self._logger.debug("Dropping tracker with id {}".format(
