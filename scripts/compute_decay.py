@@ -50,9 +50,10 @@ def main(argv):
     control_loop_stream = erdos.LoopStream()
     notify_stream = erdos.LoopStream()
     # Create carla operator.
-    (pose_stream, ground_traffic_lights_stream, ground_obstacles_stream,
-     ground_speed_limit_signs_stream, ground_stop_signs_stream,
-     vehicle_id_stream, open_drive_stream, global_trajectory_stream,
+    (pose_stream, pose_stream_for_control, ground_traffic_lights_stream,
+     ground_obstacles_stream, ground_speed_limit_signs_stream,
+     ground_stop_signs_stream, vehicle_id_stream, open_drive_stream,
+     global_trajectory_stream,
      release_sensor_stream) = pylot.operator_creator.add_carla_bridge(
          control_loop_stream, notify_stream)
 
