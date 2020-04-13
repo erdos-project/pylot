@@ -2,8 +2,10 @@ import erdos
 import time
 
 from collections import deque
+from copy import deepcopy
 from pylot.utils import time_epoch_ms
 from pylot.planning.messages import WaypointsMessage
+from pylot.planning.utils import remove_completed_waypoints
 
 
 class PlanningPoseSynchronizerOperator(erdos.Operator):
@@ -208,8 +210,11 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
             self._waypoints_write_stream.send(
                 WaypointsMessage(timestamp, deque([]), deque([])))
         else:
-            # Send the waypoints on the write stream.
-            waypoints_msg = WaypointsMessage(timestamp, waypoints.waypoints,
+            # Send the trimmed waypoints on the write stream.
+            trimmed_waypoints = remove_completed_waypoints(
+                deepcopy(waypoints.waypoints),
+                pose_msg.data.transform.location)
+            waypoints_msg = WaypointsMessage(timestamp, trimmed_waypoints,
                                              waypoints.target_speeds)
             self._waypoints_write_stream.send(waypoints_msg)
 

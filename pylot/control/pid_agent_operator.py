@@ -71,11 +71,10 @@ class PIDAgentOperator(erdos.Operator):
                 'Current speed is negative: {}'.format(current_speed))
             current_speed = 0
 
+        waypoints = waypoint_msg.waypoints
         self._logger.debug("@[{}] Received waypoints of length: {}".format(
-            timestamp, len(waypoint_msg.waypoints)))
-        trimmed_waypoints = pylot.planning.utils.remove_completed_waypoints(
-            waypoint_msg.waypoints, vehicle_transform.location)
-        if len(trimmed_waypoints) > 0:
+            timestamp, len(waypoints)))
+        if len(waypoints) > 0:
             pid_steer_wp = self._flags.pid_steer_wp
             pid_speed_wp = self._flags.pid_speed_wp
             if self._flags.carla_mode == "pseudo-asynchronous":
@@ -88,11 +87,11 @@ class PIDAgentOperator(erdos.Operator):
             # Use 10th waypoint for steering.
             _, wp_angle_steer = \
                 pylot.planning.utils.compute_waypoint_vector_and_angle(
-                    vehicle_transform, trimmed_waypoints, pid_steer_wp)
+                    vehicle_transform, waypoints, pid_steer_wp)
             # Use 5th waypoint for speed.
             _, wp_angle_speed = \
                 pylot.planning.utils.compute_waypoint_vector_and_angle(
-                    vehicle_transform, trimmed_waypoints, pid_speed_wp)
+                    vehicle_transform, waypoints, pid_speed_wp)
             target_speed = waypoint_msg.target_speeds[min(
                 len(waypoint_msg.target_speeds) - 1, self._flags.pid_speed_wp)]
             throttle, brake = pylot.control.utils.compute_throttle_and_brake(

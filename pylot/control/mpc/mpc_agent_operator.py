@@ -4,7 +4,6 @@ import numpy as np
 from pid_controller.pid import PID
 
 import pylot.control.utils
-from pylot.planning.utils import remove_completed_waypoints
 from pylot.control.messages import ControlMessage
 from pylot.control.mpc.mpc import ModelPredictiveController
 from pylot.control.mpc.utils import CubicSpline2D, global_config, zero_to_2_pi
@@ -51,8 +50,7 @@ class MPCAgentOperator(erdos.Operator):
 
         # Get first 50 waypoints (50 meters) waypoints.
         waypoint_msg = self._waypoint_msgs.popleft()
-        trimmed_waypoints = remove_completed_waypoints(
-            waypoint_msg.waypoints, vehicle_transform.location)
+        waypoints = waypoint_msg.waypoints
         target_speeds = waypoint_msg.target_speeds
 
         # Compute and send control message
