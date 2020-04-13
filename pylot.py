@@ -23,9 +23,10 @@ def driver():
     time_to_decision_loop_stream = erdos.LoopStream()
     notify_stream = erdos.LoopStream()
     # Create carla operator.
-    (pose_stream, ground_traffic_lights_stream, ground_obstacles_stream,
-     ground_speed_limit_signs_stream, ground_stop_signs_stream,
-     vehicle_id_stream, open_drive_stream, global_trajectory_stream,
+    (pose_stream, pose_stream_for_control, ground_traffic_lights_stream,
+     ground_obstacles_stream, ground_speed_limit_signs_stream,
+     ground_stop_signs_stream, vehicle_id_stream, open_drive_stream,
+     global_trajectory_stream,
      release_sensor_stream) = pylot.operator_creator.add_carla_bridge(
          control_loop_stream, notify_stream)
 
@@ -114,9 +115,18 @@ def driver():
         obstacles_stream, traffic_lights_stream, open_drive_stream,
         global_trajectory_stream)
 
+    # Add a synchronizer in the pseudo-asynchronous mode.
+    if FLAGS.carla_mode == "pseudo-asynchronous":
+        (waypoints_stream_for_control, pose_stream_for_control
+         ) = pylot.operator_creator.add_planning_pose_synchronizer(
+             waypoints_stream, pose_stream_for_control, pose_stream)
+    else:
+        waypoints_stream_for_control = waypoints_stream
+        pose_stream_for_control = pose_stream
+
     # Add the behaviour planning and control operator.
     control_stream = pylot.component_creator.add_control(
-        pose_stream, waypoints_stream)
+        pose_stream_for_control, waypoints_stream_for_control)
     control_loop_stream.set(control_stream)
 
     if FLAGS.evaluation:
@@ -139,8 +149,8 @@ def driver():
             traffic_light_invasion_stream, imu_stream)
 
         # Add control evaluation logging operator.
-        pylot.operator_creator.add_control_evaluation(pose_stream,
-                                                      waypoints_stream)
+        pylot.operator_creator.add_control_evaluation(
+            pose_stream_for_control, waypoints_stream_for_control)
 
     time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
         pose_stream, obstacles_stream)

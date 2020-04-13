@@ -606,6 +606,21 @@ def add_synchronizer(stream_to_sync_on):
     return control_stream
 
 
+def add_planning_pose_synchronizer(waypoint_stream, pose_stream,
+                                   localization_stream):
+    from pylot.simulation.planning_pose_synchronizer_operator import \
+        PlanningPoseSynchronizerOperator
+    op_config = erdos.OperatorConfig(
+        name='planning_pose_synchronizer_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    return erdos.connect(PlanningPoseSynchronizerOperator, op_config,
+                         [waypoint_stream, pose_stream, localization_stream],
+                         FLAGS)
+
+
 def add_bounding_box_logging(obstacles_stream,
                              name='bounding_box_logger_operator'):
     from pylot.loggers.bounding_box_logger_operator import \
