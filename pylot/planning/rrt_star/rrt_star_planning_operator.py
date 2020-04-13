@@ -14,12 +14,10 @@ from pylot.planning.messages import WaypointsMessage
 from pylot.planning.rrt_star.rrt_star_planning.RRTStar.rrt_star_wrapper import apply_rrt_star
 from pylot.utils import Location, Rotation, Transform
 
-STEP_SIZE = 0.5
-MAX_ITERATIONS = 2000
 DEFAULT_DISTANCE_THRESHOLD = 30  # 30 meters radius around of ego
 DEFAULT_NUM_WAYPOINTS = 100  # 100 waypoints to plan for
 DEFAULT_OBSTACLE_SIZE = 2  # 2 x 2 meter square
-DEFAULT_TARGET_WAYPOINT = 20  # use the 20th waypoint as a target
+DEFAULT_TARGET_WAYPOINT = 30  # use the 30th waypoint as a target
 
 
 class RRTStarPlanningOperator(erdos.Operator):
@@ -47,13 +45,14 @@ class RRTStarPlanningOperator(erdos.Operator):
                                      [waypoints_stream], self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
+        self._hyperparameters = self.parse_hyperparameters(flags)
         self._flags = flags
-
         self._vehicle_transform = None
         self._map = None
         self._waypoints = None
         self._prev_waypoints = None
         self._goal_location = goal_location
+
         self._pose_msgs = deque()
         self._prediction_msgs = deque()
 
@@ -62,6 +61,16 @@ class RRTStarPlanningOperator(erdos.Operator):
                 open_drive_stream):
         waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
+
+    def parse_hyperparameters(self, flags):
+        hyperparameters = {
+            "step_size": flags.max_speed,
+            "max_iterations": flags.max_accel,
+            "end_dist_threshold": flags.max_curvature,
+            "obstacle_clearance": flags.max_road_width_l,
+            "lane_width": flags.max_road_width_r,
+        }
+        return hyperparameters
 
     def run(self):
         # Run method is invoked after all operators finished initializing,
@@ -103,6 +112,7 @@ class RRTStarPlanningOperator(erdos.Operator):
         self._waypoints = deque()
         for waypoint_option in msg.data:
             self._waypoints.append(waypoint_option[0])
+        self._prev_waypoints = self._waypoints
 
     def on_opendrive_map(self, msg):
         """Invoked whenever a message is received on the open drive stream.
@@ -140,6 +150,7 @@ class RRTStarPlanningOperator(erdos.Operator):
             if self._map is not None:
                 self._waypoints = self._map.compute_waypoints(
                     vehicle_transform.location, self._goal_location)
+                self._prev_waypoints = self._waypoints
             else:
                 # haven't received waypoints from global trajectory stream
                 self._logger.debug(
@@ -155,8 +166,8 @@ class RRTStarPlanningOperator(erdos.Operator):
         # RRT* does not take into account the driveable region
         # it constructs search space as a top down, minimum bounding rectangle
         # with padding in each dimension
-        success, (path_x, path_y) = \
-            self._apply_rrt_star(obstacle_list, timestamp)
+        path_x, path_y, success = \
+            self._apply_rrt_star(obstacle_list, self._hyperparameters, timestamp)
 
         speeds = [0]
         if success:
@@ -184,32 +195,30 @@ class RRTStarPlanningOperator(erdos.Operator):
                 min_dist = dist
         return mindex
 
-    def _apply_rrt_star(self, obstacles, timestamp):
-        start = [
+    def _apply_rrt_star(self, obstacles, hyperparameters, timestamp):
+        start = np.array([
             self._vehicle_transform.location.x,
             self._vehicle_transform.location.y
-        ]
+        ])
 
         # find the closest point to current location
         mindex = self._get_closest_index(start)
         end_ind = min(mindex + DEFAULT_TARGET_WAYPOINT,
                       len(self._waypoints) - 1)
-        end = [
+        end = np.array([
             self._waypoints[end_ind].location.x,
             self._waypoints[end_ind].location.y
-        ]
+        ])
 
         # log initial conditions for debugging
         initial_conditions = {
             "start": start,
             "end": end,
-            "obstacles": obstacles.tolist(),
-            "step_size": STEP_SIZE,
-            "max_iterations": MAX_ITERATIONS,
+            "obs": obstacles,
         }
         self._logger.debug("@{}: Initial conditions: {}".format(
             timestamp, initial_conditions))
-        return apply_rrt_star(start, end, STEP_SIZE, MAX_ITERATIONS, obstacles)
+        return apply_rrt_star(initial_conditions, hyperparameters)
 
     def _construct_waypoints(self, timestamp, path_x, path_y, speeds, success):
         """
