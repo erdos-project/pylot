@@ -1,6 +1,7 @@
 from absl import flags
 
 import pylot.planning.frenet_optimal_trajectory.flags
+import pylot.planning.rrt_star.flags
 
 flags.DEFINE_float(
     'target_speed', 10.0,
