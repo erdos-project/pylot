@@ -38,22 +38,21 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
                 labels.append(obstacle.label)
                 confidence_scores.append(obstacle.confidence)
                 ids.append(obstacle.id)
-                self._deepsort.run_deep_sort(
-                    frame.frame, confidence_scores, bboxes, labels, ids)
+            self._deepsort.run_deep_sort(
+                frame.frame, confidence_scores, bboxes, labels, ids)
         else:
             for track in self._deepsort.tracker.tracks:
                 if track.is_confirmed():
                     track.predict(self._deepsort.tracker.kf)
         tracked_obstacles = []
         for track in self._deepsort.tracker.tracks:
-            if not track.is_confirmed() or track.time_since_update > 1:
-                continue
-            # Converts x, y, w, h bbox to tlbr bbox (top left and bottom
-            # right coords).
-            bbox = track.to_tlbr()
-            # Converts to xmin, xmax, ymin, ymax format.
-            bbox_2d = BoundingBox2D(int(bbox[0]), int(bbox[2]), int(bbox[1]),
-                                    int(bbox[3]))
-            tracked_obstacles.append(
-                DetectedObstacle(bbox_2d, 0, track.label, track.track_id))
+            if track.is_confirmed():
+                # Converts x, y, w, h bbox to tlbr bbox (top left and bottom
+                # right coords).
+                bbox = track.to_tlbr()
+                # Converts to xmin, xmax, ymin, ymax format.
+                bbox_2d = BoundingBox2D(int(bbox[0]), int(bbox[2]), int(bbox[1]),
+                                        int(bbox[3]))
+                tracked_obstacles.append(
+                    DetectedObstacle(bbox_2d, 0, track.label, track.track_id))
         return True, tracked_obstacles
