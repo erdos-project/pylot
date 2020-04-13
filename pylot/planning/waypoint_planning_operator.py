@@ -7,7 +7,8 @@ import itertools
 import pylot.planning.cost_functions
 import pylot.utils
 from pylot.planning.messages import WaypointsMessage
-from pylot.planning.utils import BehaviorPlannerState
+from pylot.planning.utils import BehaviorPlannerState, \
+        remove_completed_waypoints
 
 DEFAULT_NUM_WAYPOINTS = 50  # 50 waypoints / 50 meters of planning ahead
 DEFAULT_TARGET_WAYPOINT = 9  # Use the 10th waypoint for computing speed
@@ -40,6 +41,7 @@ class WaypointPlanningOperator(erdos.Operator):
         goal_location (:py:class:`~pylot.utils.Location`): The goal location of
             the ego vehicle.
     """
+
     def __init__(self,
                  pose_stream,
                  open_drive_stream,
@@ -174,7 +176,9 @@ class WaypointPlanningOperator(erdos.Operator):
                 RECOMPUTE_WAYPOINT_EVERY_N_WATERMARKS == 0):
             self._waypoints = self._map.compute_waypoints(
                 self._vehicle_transform.location, self._goal_location)
-        self.__remove_completed_waypoints()
+        self._waypoints = remove_completed_waypoints(
+            self._waypoints, self._vehicle_transform.location,
+            WAYPOINT_COMPLETION_THRESHOLD)
         if not self._waypoints or len(self._waypoints) == 0:
             # If waypoints are empty (e.g., reached destination), set waypoint
             # to current vehicle location.
@@ -201,36 +205,6 @@ class WaypointPlanningOperator(erdos.Operator):
             [target_speed for _ in range(len(head_waypoints))])
         waypoints_stream.send(
             WaypointsMessage(timestamp, head_waypoints, target_speeds))
-
-    def __remove_completed_waypoints(self):
-        """Removes waypoints that the ego vehicle has already completed.
-
-        The method first finds the closest waypoint, removes all waypoints
-        that are before the closest waypoint, and finally removes the closest
-        waypoint if the ego vehicle is very close to it (i.e., close to
-        completion).
-        """
-        min_dist = 10000000
-        min_index = 0
-        index = 0
-        for waypoint in self._waypoints:
-            # XXX(ionel): We only check the first 10 waypoints.
-            if index > 10:
-                break
-            dist = waypoint.location.distance(self._vehicle_transform.location)
-            if dist < min_dist:
-                min_dist = dist
-                min_index = index
-
-        # Remove waypoints that are before the closest waypoint. The ego
-        # vehicle already completed them.
-        while min_index > 0:
-            self._waypoints.popleft()
-            min_index -= 1
-
-        # The closest waypoint is almost complete, remove it.
-        if min_dist < WAYPOINT_COMPLETION_THRESHOLD:
-            self._waypoints.popleft()
 
     def __initialize_behaviour_planner(self):
         # State the planner is in.

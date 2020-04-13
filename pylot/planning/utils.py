@@ -23,6 +23,50 @@ def compute_waypoint_vector_and_angle(vehicle_transform, waypoints, wp_num):
     return wp_vector, wp_angle
 
 
+def remove_completed_waypoints(waypoints,
+                               ego_vehicle_location,
+                               completion_threshold=0.9):
+    """Removes waypoints that the ego vehicle has already completed.
+
+    The method first finds the closest waypoint, removes all waypoints
+    that are before the closest waypoint, and finally removes the closest
+    waypoint if the ego vehicle is very close to it (i.e., close to
+    completion).
+
+    Args:
+        waypoints (:py:class:`collections.deque`): A double-ended queue of
+            initial waypoints.
+        ego_vehicle_location (:py:class:`pylot.utils.Location`): The location
+            of the ego-vehicle.
+        completion_threshold (int): The threshold at which a waypoint is
+            considered completed.
+    Returns:
+        A double-ended queue of trimmed waypoints. (mutates the original queue)
+    """
+    min_dist = 10000000
+    min_index = 0
+    index = 0
+    for waypoint in waypoints:
+        # XXX(ionel): We only check the first 10 waypoints.
+        if index > 10:
+            break
+        dist = waypoint.location.distance(ego_vehicle_location)
+        if dist < min_dist:
+            min_dist = dist
+            min_index = index
+
+    # Remove waypoints that are before the closest waypoint. The ego
+    # vehicle already completed them.
+    while min_index > 0:
+        waypoints.popleft()
+        min_index -= 1
+
+    # The closest waypoint is almost complete, remove it.
+    if min_dist < completion_threshold:
+        waypoints.popleft()
+    return waypoints
+
+
 def stop_person(ego_vehicle_location, person_location, wp_vector,
                 speed_factor_p, flags):
     """Computes a stopping factor for ego vehicle given a person location.
@@ -78,7 +122,7 @@ def stop_vehicle(ego_vehicle_location, obs_vehicle_location, wp_vector,
     medium_max_angle = flags.vehicle_angle_thres
     medium_dist = flags.vehicle_distance_thres
     if ((min_angle < v_angle < max_angle and v_dist < max_dist) or
-            (min_angle < v_angle < medium_max_angle and v_dist < medium_dist)):
+        (min_angle < v_angle < medium_max_angle and v_dist < medium_dist)):
         speed_factor_v_temp = v_dist / (flags.coast_factor *
                                         flags.vehicle_distance_thres)
 
