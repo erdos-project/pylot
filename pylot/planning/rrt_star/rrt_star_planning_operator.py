@@ -17,7 +17,7 @@ from pylot.utils import Location, Rotation, Transform
 DEFAULT_DISTANCE_THRESHOLD = 30  # 30 meters radius around of ego
 DEFAULT_NUM_WAYPOINTS = 100  # 100 waypoints to plan for
 DEFAULT_OBSTACLE_SIZE = 2  # 2 x 2 meter square
-DEFAULT_TARGET_WAYPOINT = 30  # use the 30th waypoint as a target
+DEFAULT_TARGET_WAYPOINT = 20  # use the 20th waypoint as a target
 
 
 class RRTStarPlanningOperator(erdos.Operator):
@@ -65,10 +65,10 @@ class RRTStarPlanningOperator(erdos.Operator):
     def parse_hyperparameters(self, flags):
         hyperparameters = {
             "step_size": flags.max_speed,
-            "max_iterations": flags.max_accel,
-            "end_dist_threshold": flags.max_curvature,
-            "obstacle_clearance": flags.max_road_width_l,
-            "lane_width": flags.max_road_width_r,
+            "max_iterations": flags.max_iterations,
+            "end_dist_threshold": flags.end_dist_threshold,
+            "obstacle_clearance": flags.obstacle_clearance,
+            "lane_width": flags.lane_width,
         }
         return hyperparameters
 
