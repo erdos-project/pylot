@@ -29,6 +29,7 @@ class PIDAgentOperator(erdos.Operator):
             messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
+
     def __init__(self, pose_stream, waypoints_stream, control_stream, flags):
         pose_stream.add_callback(self.on_pose_update)
         waypoints_stream.add_callback(self.on_waypoints_update)
@@ -70,19 +71,27 @@ class PIDAgentOperator(erdos.Operator):
                 'Current speed is negative: {}'.format(current_speed))
             current_speed = 0
 
-        if len(waypoint_msg.waypoints) > 0:
+        waypoints = waypoint_msg.waypoints
+        self._logger.debug("@[{}] Received waypoints of length: {}".format(
+            timestamp, len(waypoints)))
+        if len(waypoints) > 0:
+            pid_steer_wp = self._flags.pid_steer_wp
+            pid_speed_wp = self._flags.pid_speed_wp
+            if self._flags.carla_mode == "pseudo-asynchronous":
+                # The control runs at a higher frequency, we need to choose
+                # based on the current speed.
+                pid_speed_wp = int(current_speed / 3)
+                pid_steer_wp = 2 * pid_speed_wp
             # The operator picks the wp_num_steer-th waypoint to compute the
             # angle it has to steer by when taking a turn.
             # Use 10th waypoint for steering.
             _, wp_angle_steer = \
                 pylot.planning.utils.compute_waypoint_vector_and_angle(
-                    vehicle_transform, waypoint_msg.waypoints,
-                    self._flags.pid_steer_wp)
+                    vehicle_transform, waypoints, pid_steer_wp)
             # Use 5th waypoint for speed.
             _, wp_angle_speed = \
                 pylot.planning.utils.compute_waypoint_vector_and_angle(
-                    vehicle_transform, waypoint_msg.waypoints,
-                    self._flags.pid_speed_wp)
+                    vehicle_transform, waypoints, pid_speed_wp)
             target_speed = waypoint_msg.target_speeds[min(
                 len(waypoint_msg.target_speeds) - 1, self._flags.pid_speed_wp)]
             throttle, brake = pylot.control.utils.compute_throttle_and_brake(

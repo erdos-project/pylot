@@ -17,6 +17,7 @@ class ControlEvalOperator(erdos.Operator):
            the waypoints are received from the planner.
         flags (absl.flags): Object to be used to access absl flags.
     """
+
     def __init__(self, pose_stream, waypoints_stream, flags):
         # Register callbacks to retrieve pose and waypoints messages.
         pose_stream.add_callback(self.on_pose_update)
@@ -110,12 +111,14 @@ class ControlEvalOperator(erdos.Operator):
         # Add the first waypoint from the last waypoints received
         # by the operator.
         waypoints = self._waypoints.popleft().waypoints
-        next_waypoint = waypoints.popleft()
-        while len(self.last_waypoints) >= 1 and np.isclose(
-                next_waypoint.location.distance(
-                    self.last_waypoints[-1].location), 0.0):
+        if len(waypoints) > 0:
             next_waypoint = waypoints.popleft()
-        self.last_waypoints.append(next_waypoint)
+            while len(self.last_waypoints) >= 1 and len(
+                    waypoints) > 0 and np.isclose(
+                        next_waypoint.location.distance(
+                            self.last_waypoints[-1].location), 0.0):
+                next_waypoint = waypoints.popleft()
+            self.last_waypoints.append(next_waypoint)
 
     @staticmethod
     def compute_control_metrics(vehicle_transform, reference_waypoints):

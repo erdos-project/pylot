@@ -49,6 +49,7 @@ def main(argv):
     # Create carla operator.
     (
         pose_stream,
+        pose_stream_for_control,
         ground_traffic_lights_stream,
         ground_obstacles_stream,
         ground_speed_limit_signs_stream,
