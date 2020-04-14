@@ -31,7 +31,6 @@ class WaypointVisualizerOperator(erdos.Operator):
             messages.
         _world (carla.World): A handle to the world to draw the waypoints on.
     """
-
     def __init__(self, waypoints_stream, camera_stream, pose_stream, flags):
         waypoints_stream.add_callback(self.on_wp_update)
         camera_stream.add_callback(self.on_bgr_frame)
@@ -83,7 +82,8 @@ class WaypointVisualizerOperator(erdos.Operator):
                 pixel_location = waypoint.location.to_camera_view(
                     extrinsic_matrix, intrinsic_matrix)
                 bgr_frame.draw_point(pixel_location, [0, 0, 0])
-            bgr_frame.visualize(self.config.name)
+            bgr_frame.visualize(self.config.name,
+                                pygame_display=pylot.utils.PYGAME_DISPLAY)
 
     def on_bgr_frame(self, msg):
         """Invoked when a msg on the camera stream is received.

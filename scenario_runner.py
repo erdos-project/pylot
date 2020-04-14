@@ -179,6 +179,11 @@ def driver():
 
 
 def main(args):
+    if FLAGS.visualizer_backend == 'pygame':
+        import pygame
+        pygame.init()
+        pylot.utils.create_pygame_display(FLAGS.carla_camera_image_width,
+                                          FLAGS.carla_camera_image_height)
     # Connect an instance to the simulator to make sure that we can turn the
     # synchronous mode off after the script finishes running.
     client, world = get_world(FLAGS.carla_host, FLAGS.carla_port,

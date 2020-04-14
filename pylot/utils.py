@@ -3,6 +3,8 @@ import numpy as np
 import time
 from enum import Enum
 
+PYGAME_DISPLAY = None
+
 
 class Rotation(object):
     """Used to represent the rotation of an actor or obstacle.
@@ -22,7 +24,6 @@ class Rotation(object):
         yaw:   Rotation about Z-axis.
         roll:  Rotation about X-axis.
     """
-
     def __init__(self, pitch=0, yaw=0, roll=0):
         self.pitch = pitch
         self.yaw = yaw
@@ -73,7 +74,6 @@ class Vector3D(object):
         y: The value of the second axis.
         z: The value of the third axis.
     """
-
     def __init__(self, x=0, y=0, z=0):
         self.x, self.y, self.z = x, y, z
 
@@ -171,7 +171,6 @@ class Vector3D(object):
 
 class Vector2D(object):
     """Represents a 2D vector and provides helper functions."""
-
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -247,7 +246,6 @@ class Location(Vector3D):
         y: The value of the y-axis.
         z: The value of the z-axis.
     """
-
     def __init__(self, x=0, y=0, z=0):
         super(Location, self).__init__(x, y, z)
 
@@ -353,7 +351,6 @@ class Transform(object):
             coordinate space with respect to the location and rotation of the
             given object.
     """
-
     def __init__(self, location=None, rotation=None, matrix=None):
         if matrix is not None:
             self.matrix = matrix
@@ -361,8 +358,8 @@ class Transform(object):
 
             # Forward vector is retrieved from the matrix.
             self.forward_vector = Vector3D(self.matrix[0, 0],
-                                           self.matrix[1, 0],
-                                           self.matrix[2, 0])
+                                           self.matrix[1, 0], self.matrix[2,
+                                                                          0])
             pitch_r = math.asin(self.forward_vector.z)
             yaw_r = math.acos(
                 np.clip(self.forward_vector.x / math.cos(pitch_r), -1, 1))
@@ -376,8 +373,8 @@ class Transform(object):
 
             # Forward vector is retrieved from the matrix.
             self.forward_vector = Vector3D(self.matrix[0, 0],
-                                           self.matrix[1, 0],
-                                           self.matrix[2, 0])
+                                           self.matrix[1, 0], self.matrix[2,
+                                                                          0])
 
     @classmethod
     def from_carla_transform(cls, transform):
@@ -624,7 +621,6 @@ class Pose(object):
         velocity_vector (:py:class:`~pylot.utils.Vector3D`): Velocity vector
             in world frame
     """
-
     def __init__(self, transform, forward_speed, velocity_vector=None):
         if not isinstance(transform, Transform):
             raise ValueError(
@@ -737,7 +733,6 @@ class LaneMarking(object):
         lane_change (:py:class:`.LaneChange`): The type that defines the
             permission to either turn left, right, both or none.
     """
-
     def __init__(self, marking_color, marking_type, lane_change):
         self.marking_color = LaneMarkingColor(marking_color)
         self.marking_type = LaneMarkingType(marking_type)
@@ -809,3 +804,9 @@ def set_tf_loglevel(level):
     else:
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
     logging.getLogger('tensorflow').setLevel(level)
+
+
+def create_pygame_display(width, height):
+    global PYGAME_DISPLAY
+    import pygame
+    PYGAME_DISPLAY = pygame.display.set_mode((width, height))

@@ -1,6 +1,7 @@
 from collections import deque
 import erdos
 
+import pylot.utils
 from pylot.perception.messages import TrafficLightsMessage
 from pylot.simulation.utils import get_map, get_traffic_lights_obstacles
 
@@ -56,7 +57,6 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
-
         self._traffic_lights = deque()
         self._bgr_msgs = deque()
         self._depth_frame_msgs = deque()
@@ -116,7 +116,9 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
                                                        det_traffic_lights,
                                                        vehicle_transform)
             if self._flags.visualize_detected_traffic_lights:
-                bgr_msg.frame.visualize(self.config.name)
+                bgr_msg.frame.visualize(
+                    self.config.name,
+                    pygame_display=pylot.utils.PYGAME_DISPLAY)
             if self._flags.log_detector_output:
                 bgr_msg.frame.save(bgr_msg.timestamp.coordinates[0],
                                    self._flags.data_path, 'perfect-detector')

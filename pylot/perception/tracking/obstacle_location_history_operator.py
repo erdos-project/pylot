@@ -1,10 +1,10 @@
 from collections import deque, defaultdict
 import erdos
 
+import pylot.utils
 from pylot.perception.detection.utils import get_obstacle_locations
 from pylot.perception.messages import ObstacleTrajectoriesMessage
 from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
-import pylot.utils
 
 
 class ObstacleLocationHistoryOperator(erdos.Operator):
@@ -21,6 +21,7 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
         self._camera_setup = camera_setup
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
+
         # Queues in which received messages are stored.
         self._obstacles_msgs = deque()
         self._depth_msgs = deque()
@@ -92,7 +93,8 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
         if self._flags.visualize_obstacles_with_distance:
             frame_msg.frame.annotate_with_bounding_boxes(
                 timestamp, obstacles_with_location, vehicle_transform)
-            frame_msg.frame.visualize(self.config.name)
+            frame_msg.frame.visualize(
+                self.config.name, pygame_display=pylot.utils.PYGAME_DISPLAY)
 
     def on_obstacles_update(self, msg):
         self._logger.debug('@{}: obstacles update'.format(msg.timestamp))

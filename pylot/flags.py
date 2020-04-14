@@ -121,6 +121,8 @@ flags.DEFINE_bool('visualize_waypoints', False,
                   'True to enable visualization of waypoing planning')
 flags.DEFINE_bool('visualize_prediction', False,
                   'True to enable visualization of prediction output')
+flags.DEFINE_enum('visualizer_backend', 'cv2', ['cv2', 'pygame'],
+                  'Visualizer back-end to use')
 
 # Accuracy evaluation flags.
 flags.DEFINE_bool('evaluate_obstacle_detection', False,
@@ -195,10 +197,10 @@ flags.register_multi_flags_validator(
         'obstacle_detection', 'obstacle_detection_model_paths',
         'obstacle_detection_model_names'
     ],
-    lambda flags_dict: (not flags_dict['obstacle_detection'] or (flags_dict[
-        'obstacle_detection'] and (len(flags_dict[
-            'obstacle_detection_model_paths']) == len(flags_dict[
-                'obstacle_detection_model_names'])))),
+    lambda flags_dict: (not flags_dict['obstacle_detection'] or
+                        (flags_dict['obstacle_detection'] and
+                         (len(flags_dict['obstacle_detection_model_paths']) ==
+                          len(flags_dict['obstacle_detection_model_names'])))),
     message='--obstacle_detection_model_paths and '
     '--obstacle_detection_model_names must have the same length')
 
@@ -221,10 +223,10 @@ flags.register_multi_flags_validator(
         'evaluate_prediction', 'prediction_num_future_steps',
         'tracking_num_steps'
     ],
-    lambda flags_dict: (not flags_dict['evaluate_prediction'] or (flags_dict[
-        'evaluate_prediction'] and flags_dict[
-            'prediction_num_future_steps'] <= flags_dict['tracking_num_steps'])
-                        ),
+    lambda flags_dict:
+    (not flags_dict['evaluate_prediction'] or
+     (flags_dict['evaluate_prediction'] and flags_dict[
+         'prediction_num_future_steps'] <= flags_dict['tracking_num_steps'])),
     message='must track at least as many steps as we predict when'
     ' --evaluate_prediction is enabled')
 
@@ -375,3 +377,30 @@ flags.register_multi_flags_validator(
     ['fusion', 'evaluate_fusion'],
     fusion_evaluation_validator,
     message='--fusion must be set when --evaluate_fusion is enabled')
+
+
+def visualizer_validator(flags_dict):
+    if flags_dict['visualizer_backend'] != 'pygame':
+        return True
+    visualizers = [
+        'visualize_rgb_camera', 'visualize_depth_camera',
+        'visualize_segmentation', 'visualize_detected_obstacles',
+        'visualize_detected_traffic_lights', 'visualize_prediction',
+        'visualize_tracker_output'
+    ]
+    num_visualizers = 0
+    for visualizer in visualizers:
+        if flags_dict[visualizer]:
+            num_visualizers += 1
+    return num_visualizers <= 1
+
+
+flags.register_multi_flags_validator(
+    [
+        'visualizer_backend', 'visualize_rgb_camera', 'visualize_depth_camera',
+        'visualize_segmentation', 'visualize_detected_obstacles',
+        'visualize_detected_traffic_lights', 'visualize_prediction',
+        'visualize_tracker_output'
+    ],
+    visualizer_validator,
+    message='only a single visualizer can be enabled when using pygame')

@@ -3,6 +3,7 @@ from collections import deque
 import erdos
 
 import pylot.simulation.utils
+import pylot.utils
 from pylot.perception.detection.utils import DetectedObstacle
 from pylot.perception.messages import ObstaclesMessage
 
@@ -148,7 +149,9 @@ class PerfectDetectorOperator(erdos.Operator):
                                                        det_obstacles,
                                                        vehicle_transform)
             if self._flags.visualize_detected_obstacles:
-                bgr_msg.frame.visualize(self.config.name)
+                bgr_msg.frame.visualize(
+                    self.config.name,
+                    pygame_display=pylot.utils.PYGAME_DISPLAY)
             if self._flags.log_detector_output:
                 bgr_msg.frame.save(bgr_msg.timestamp.coordinates[0],
                                    self._flags.data_path, 'perfect-detector')

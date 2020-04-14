@@ -1,6 +1,7 @@
 import erdos
 import copy
 
+import pylot.utils
 from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle,\
     load_coco_bbox_colors, load_coco_labels
 from pylot.perception.messages import ObstaclesMessage
@@ -145,7 +146,8 @@ class EfficientDetOperator(erdos.Operator):
             msg.frame.annotate_with_bounding_boxes(msg.timestamp, obstacles,
                                                    None, self._bbox_colors)
             if self._flags.visualize_detected_obstacles:
-                msg.frame.visualize(self.config.name)
+                msg.frame.visualize(self.config.name,
+                                    pygame_display=pylot.utils.PYGAME_DISPLAY)
             if self._flags.log_detector_output:
                 msg.frame.save(msg.timestamp.coordinates[0],
                                self._flags.data_path,

@@ -5,6 +5,7 @@ import erdos
 import numpy as np
 import math
 
+import pylot.utils
 from pylot.perception.camera_frame import CameraFrame
 
 Line = namedtuple("Line", "x1, y1, x2, y2, slope")
@@ -24,7 +25,6 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
             messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
-
     def __init__(self, camera_stream, detected_lanes_stream, flags):
         camera_stream.add_callback(self.on_msg_camera_stream,
                                    [detected_lanes_stream])
@@ -99,7 +99,9 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
             final_img = np.copy(msg.frame.as_numpy_array())
             final_img = cv2.addWeighted(final_img, 0.8, image, 1.0, 0.0)
             frame = CameraFrame(final_img, 'BGR', msg.frame.camera_setup)
-            frame.visualize(self.config.name, msg.timestamp)
+            frame.visualize(self.config.name,
+                            msg.timestamp,
+                            pygame_display=pylot.utils.PYGAME_DISPLAY)
 
         detected_lanes_stream.send(erdos.Message(msg.timestamp, image))
 
@@ -171,10 +173,9 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
 
         # Sort the lines by their slopes after filtering lines whose slopes
         # are > 20 or < -20.
-        cmp_lines = sorted(
-            filter(lambda line: line.slope > 20 or line.slope < -20,
-                   cmp_lines),
-            key=lambda line: line.slope)
+        cmp_lines = sorted(filter(
+            lambda line: line.slope > 20 or line.slope < -20, cmp_lines),
+                           key=lambda line: line.slope)
 
         if len(cmp_lines) == 0:
             return line_img

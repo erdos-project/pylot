@@ -1,6 +1,7 @@
 from collections import deque
 import erdos
 
+import pylot.utils
 from pylot.perception.detection.utils import get_obstacle_locations
 from pylot.perception.messages import ObstaclesMessage
 
@@ -83,7 +84,8 @@ class ObstacleLocationFinderOperator(erdos.Operator):
         if self._flags.visualize_obstacles_with_distance:
             frame_msg.frame.annotate_with_bounding_boxes(
                 timestamp, obstacles_with_location, vehicle_transform)
-            frame_msg.frame.visualize(self.config.name)
+            frame_msg.frame.visualize(
+                self.config.name, pygame_display=pylot.utils.PYGAME_DISPLAY)
 
         obstacles_output_stream.send(
             ObstaclesMessage(timestamp, obstacles_with_location))

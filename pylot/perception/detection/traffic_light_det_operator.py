@@ -4,11 +4,11 @@ import logging
 import numpy as np
 import tensorflow as tf
 
+import pylot.utils
 from pylot.perception.detection.traffic_light import TrafficLight, \
     TrafficLightColor
 from pylot.perception.detection.utils import BoundingBox2D
 from pylot.perception.messages import TrafficLightsMessage
-from pylot.utils import set_tf_loglevel
 
 
 class TrafficLightDetOperator(erdos.Operator):
@@ -26,7 +26,6 @@ class TrafficLightDetOperator(erdos.Operator):
             messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
-
     def __init__(self, camera_stream, traffic_lights_stream, flags):
         # Register a callback on the camera input stream.
         camera_stream.add_callback(self.on_frame, [traffic_lights_stream])
@@ -127,7 +126,8 @@ class TrafficLightDetOperator(erdos.Operator):
             msg.frame.annotate_with_bounding_boxes(msg.timestamp,
                                                    traffic_lights)
             if self._flags.visualize_detected_traffic_lights:
-                msg.frame.visualize(self.config.name)
+                msg.frame.visualize(self.config.name,
+                                    pygame_display=pylot.utils.PYGAME_DISPLAY)
             if self._flags.log_traffic_light_detector_output:
                 msg.frame.save(msg.timestamp.coordinates[0],
                                self._flags.data_path,

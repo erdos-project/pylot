@@ -2,6 +2,8 @@
 
 import erdos
 
+import pylot.utils
+
 
 class CameraVisualizerOperator(erdos.Operator):
     """Subscribes to a camera stream, and visualizes frames.
@@ -25,4 +27,6 @@ class CameraVisualizerOperator(erdos.Operator):
     def display_frame(self, msg):
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self.config.name))
-        msg.frame.visualize(self.config.name, msg.timestamp)
+        msg.frame.visualize(self.config.name,
+                            msg.timestamp,
+                            pygame_display=pylot.utils.PYGAME_DISPLAY)

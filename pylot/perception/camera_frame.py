@@ -72,7 +72,7 @@ class CameraFrame(object):
                                       bbox_color_map,
                                       ego_transform=transform)
 
-    def visualize(self, window_name, timestamp=None):
+    def visualize(self, window_name, timestamp=None, pygame_display=None):
         """Creates a cv2 window to visualize the camera frame."""
         if self.encoding != 'BGR':
             image_np = self.as_bgr_numpy_array()
@@ -80,8 +80,16 @@ class CameraFrame(object):
             image_np = self.frame
         if timestamp is not None:
             pylot.utils.add_timestamp(image_np, timestamp)
-        cv2.imshow(window_name, image_np)
-        cv2.waitKey(1)
+        if pygame_display:
+            import pygame
+            # Transform to RGB.
+            image_np = image_np[:, :, ::-1]
+            image_np = np.transpose(image_np, (1, 0, 2))
+            pygame.surfarray.blit_array(pygame_display, image_np)
+            pygame.display.flip()
+        else:
+            cv2.imshow(window_name, image_np)
+            cv2.waitKey(1)
 
     def draw_point(self, point, color, r=3):
         cv2.circle(self.frame, (int(point.x), int(point.y)), r, color, -1)

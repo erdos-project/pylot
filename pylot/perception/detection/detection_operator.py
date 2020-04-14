@@ -6,10 +6,10 @@ import erdos
 import numpy as np
 import tensorflow as tf
 
+import pylot.utils
 from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle,\
     load_coco_bbox_colors, load_coco_labels
 from pylot.perception.messages import ObstaclesMessage
-from pylot.utils import set_tf_loglevel
 
 
 class DetectionOperator(erdos.Operator):
@@ -37,7 +37,7 @@ class DetectionOperator(erdos.Operator):
                                                  self.config.log_file_name)
         self._detection_graph = tf.Graph()
         # Load the model from the model file.
-        set_tf_loglevel(logging.ERROR)
+        pylot.utils.set_tf_loglevel(logging.ERROR)
         with self._detection_graph.as_default():
             od_graph_def = tf.GraphDef()
             with tf.gfile.GFile(model_path, 'rb') as fid:
@@ -156,7 +156,8 @@ class DetectionOperator(erdos.Operator):
             msg.frame.annotate_with_bounding_boxes(msg.timestamp, obstacles,
                                                    None, self._bbox_colors)
             if self._flags.visualize_detected_obstacles:
-                msg.frame.visualize(self.config.name)
+                msg.frame.visualize(self.config.name,
+                                    pygame_display=pylot.utils.PYGAME_DISPLAY)
             if self._flags.log_detector_output:
                 msg.frame.save(msg.timestamp.coordinates[0],
                                self._flags.data_path,
