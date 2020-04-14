@@ -52,6 +52,13 @@ class SingleObjectDaSiamRPNTracker(object):
                                 self.obstacle.confidence, self.obstacle.label,
                                 self.obstacle.id)
 
+    def reset_bbox(self, bbox):
+        """Resets tracker's bounding box with a new bounding box."""
+        center = bbox.get_center_point()
+        self._tracker['target_pos'] = np.array([center.x, center.y])
+        self._tracker['target_sz'] = np.array(
+            [bbox.get_width(), bbox.get_height()])
+
 
 class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
     def __init__(self, flags):
@@ -91,11 +98,17 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
 
         if self._trackers == []:
             self.initialize(frame, obstacles)
+        else:
+            # Update the bounding boxes so that the matching happens between
+            # bounding boxes computed on the same frame.
+            self.track(frame, False)
         # Create matrix of similarities between detection and tracker bboxes.
-        cost_matrix = self._create_hungarian_cost_matrix(
-            frame.frame, obstacles)
+        cost_matrix = self._create_hungarian_cost_matrix(obstacles)
         # Run linear assignment (Hungarian Algo) with matrix.
         row_ids, col_ids = solve_dense(cost_matrix)
+        matched_map = {}
+        for row_id, col_id in zip(row_ids, col_ids):
+            matched_map[self._trackers[col_id].obstacle.id] = row_id
         matched_obstacle_indices, matched_tracker_indices = set(row_ids), set(
             col_ids)
 
@@ -111,6 +124,11 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
         # Add successfully matched trackers to updated_trackers.
         for tracker in matched_trackers:
             tracker.missed_det_updates = 0
+            # Update the tracker's internal bounding box. If we don't do
+            # this, the tracker's bounding box degrades across the frames until
+            # it doesn't overlap with the bounding box the detector outputs.
+            tracker.reset_bbox(
+                obstacles[matched_map[tracker.obstacle.id]].bounding_box)
             updated_trackers.append(tracker)
         # Add 1 to age of any unmatched trackers, filter old ones.
         for tracker in unmatched_trackers:
@@ -124,17 +142,19 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
         for obstacle in unmatched_obstacles:
             updated_trackers.append(
                 SingleObjectDaSiamRPNTracker(frame, obstacle, self._siam_net))
-        # Keep one tracker per obstacle id; prefer trackers with recent detection updates.
+        # Keep one tracker per obstacle id; prefer trackers with recent
+        # detection updates.
         unique_updated_trackers = {}
         for tracker in updated_trackers:
             if tracker.obstacle.id not in unique_updated_trackers:
                 unique_updated_trackers[tracker.obstacle.id] = tracker
-            elif unique_updated_trackers[tracker.obstacle.id].missed_det_updates > tracker.missed_det_updates:
+            elif (unique_updated_trackers[tracker.obstacle.id].
+                  missed_det_updates > tracker.missed_det_updates):
                 unique_updated_trackers[tracker.obstacle.id] = tracker
 
         self._trackers = list(unique_updated_trackers.values())
 
-    def track(self, frame):
+    def track(self, frame, missed_detection=True):
         """ Tracks obstacles in a frame.
 
         Args:
@@ -143,10 +163,15 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
         tracked_obstacles = []
         for tracker in self._trackers:
             tracked_obstacles.append(tracker.track(frame))
-            tracker.missed_det_updates += 1
+            if missed_detection:
+                tracker.missed_det_updates += 1
+        self._trackers = [
+            tracker for tracker in self._trackers
+            if tracker.missed_det_updates <= MAX_MISSED_DETECTIONS
+        ]
         return True, tracked_obstacles
 
-    def _create_hungarian_cost_matrix(self, frame, obstacles):
+    def _create_hungarian_cost_matrix(self, obstacles):
         # Create cost matrix with shape (num_bboxes, num_trackers)
         cost_matrix = [[0 for _ in range(len(self._trackers))]
                        for __ in range(len(obstacles))]
@@ -162,7 +187,8 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
                     cost_matrix[i][j] = np.nan
         return np.array(cost_matrix)
 
-    def _separate_matches_from_unmatched(self, obstacles, matched_obstacle_indices):
+    def _separate_matches_from_unmatched(self, obstacles,
+                                         matched_obstacle_indices):
         unmatched_obstacle_indices = \
             set(range(len(obstacles))) - matched_obstacle_indices
         matched_obstacles = [obstacles[i] for i in matched_obstacle_indices]
