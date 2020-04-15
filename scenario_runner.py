@@ -131,9 +131,6 @@ def driver():
                  waypoints_stream, pose_stream_for_control, pose_stream)
         else:
             pose_stream_for_control = pose_stream
-        pylot.operator_creator.add_waypoint_visualizer(
-            waypoints_stream_for_control, center_camera_stream,
-            pose_stream_for_control)
         # Add the behaviour planning and control operator.
         control_stream = pylot.component_creator.add_control(
             pose_stream_for_control, waypoints_stream_for_control)

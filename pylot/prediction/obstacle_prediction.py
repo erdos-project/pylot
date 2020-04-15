@@ -1,4 +1,4 @@
-from pylot.perception.detection.utils import BoundingBox3D
+from pylot.perception.detection.utils import BoundingBox2D, BoundingBox3D
 
 
 class ObstaclePrediction(object):
@@ -31,9 +31,11 @@ class ObstaclePrediction(object):
         self.label = label
         self.id = id
         self.transform = transform
-        self.bounding_box = bounding_box
         if not isinstance(bounding_box, BoundingBox3D):
-            raise ValueError('bounding box should be of type BoundingBox3D')
+            if not isinstance(bounding_box, BoundingBox2D):
+                raise ValueError('bounding box should be of type '
+                                 'BoundingBox2D or BoundingBox3D')
+        self.bounding_box = bounding_box
         self.probability = probability
         self.trajectory = trajectory
 

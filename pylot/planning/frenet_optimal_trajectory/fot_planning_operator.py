@@ -36,17 +36,10 @@ class FOTPlanningOperator(PlanningOperator):
                  goal_location=None,
                  log_file_name=None,
                  csv_file_name=None):
-        super().__init__(
-            pose_stream,
-            prediction_stream,
-            global_trajectory_stream,
-            open_drive_stream,
-            waypoints_stream,
-            flags,
-            goal_location,
-            log_file_name,
-            csv_file_name
-        )
+        super().__init__(pose_stream, prediction_stream,
+                         global_trajectory_stream, open_drive_stream,
+                         waypoints_stream, flags, goal_location, log_file_name,
+                         csv_file_name)
         self._hyperparameters = self.parse_hyperparameters(flags)
         self.s0 = 0.0
 
@@ -108,8 +101,7 @@ class FOTPlanningOperator(PlanningOperator):
 
         # compute optimal frenet trajectory
         initial_conditions = self._compute_initial_conditions(
-            pose_msg, obstacle_list
-        )
+            pose_msg, obstacle_list)
 
         path_x, path_y, speeds, ix, iy, iyaw, d, s, speeds_x, speeds_y, misc, costs, success = \
             run_fot(initial_conditions, self._hyperparameters)
@@ -148,9 +140,8 @@ class FOTPlanningOperator(PlanningOperator):
             timestamp, initial_conditions))
 
         # construct and send waypoint message
-        waypoints_message = self._construct_waypoints(
-            timestamp, path_x, path_y, speeds, success
-        )
+        waypoints_message = self._construct_waypoints(timestamp, path_x,
+                                                      path_y, speeds, success)
         waypoints_stream.send(waypoints_message)
 
     def _compute_initial_conditions(self, pose_msg, obstacle_list):
@@ -175,10 +166,10 @@ class FOTPlanningOperator(PlanningOperator):
         wy = []
 
         for wp in itertools.islice(
-            self._waypoints,
-            max(current_index - self._flags.num_waypoints_behind, 0),
-            min(current_index + self._flags.num_waypoints_ahead, len(self._waypoints))
-        ):
+                self._waypoints,
+                max(current_index - self._flags.num_waypoints_behind, 0),
+                min(current_index + self._flags.num_waypoints_ahead,
+                    len(self._waypoints))):
             wx.append(wp.location.x)
             wy.append(wp.location.y)
         wp = np.array([wx, wy]).T

@@ -83,6 +83,7 @@ class WaypointVisualizerOperator(erdos.Operator):
                     extrinsic_matrix, intrinsic_matrix)
                 bgr_frame.draw_point(pixel_location, [0, 0, 0])
             bgr_frame.visualize(self.config.name,
+                                timestamp,
                                 pygame_display=pylot.utils.PYGAME_DISPLAY)
 
     def on_bgr_frame(self, msg):
