@@ -2,11 +2,12 @@
 Author: Edward Fang
 Email: edward.fang@berkeley.edu
 """
-import numpy as np
 import itertools
 from collections import deque
 
 import erdos
+
+import numpy as np
 
 from pylot.planning.planning_operator import PlanningOperator
 from pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory_planner. \
@@ -103,8 +104,8 @@ class FOTPlanningOperator(PlanningOperator):
         initial_conditions = self._compute_initial_conditions(
             pose_msg, obstacle_list)
 
-        path_x, path_y, speeds, ix, iy, iyaw, d, s, speeds_x, speeds_y, misc, costs, success = \
-            run_fot(initial_conditions, self._hyperparameters)
+        (path_x, path_y, speeds, ix, iy, iyaw, d, s, speeds_x, speeds_y, misc,
+         costs, success) = run_fot(initial_conditions, self._hyperparameters)
 
         if success:
             self._logger.debug("@{}: Frenet Path X: {}".format(
@@ -234,13 +235,7 @@ class FOTPlanningOperator(PlanningOperator):
                     vehicle_transform.location.x - obstacle_origin[0],
                     vehicle_transform.location.y - obstacle_origin[1]
                 ])
-                # TODO (@fangedward): Fix this hack
-                # Prediction also sends a prediction for ego vehicle
-                # This will always be the closest to the ego vehicle
-                # Filter out until this is removed from prediction
-                if dist_to_ego < 2:  # this allows max vel to be 20m/s
-                    break
-                elif dist_to_ego < self._flags.distance_threshold:
+                if dist_to_ego < self._flags.distance_threshold:
                     obstacle_list.append(obstacle_origin)
 
         if len(obstacle_list) == 0:

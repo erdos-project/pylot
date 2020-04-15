@@ -2,23 +2,19 @@
 Author: Edward Fang
 Email: edward.fang@berkeley.edu
 """
+import itertools
 from collections import deque
 
-import itertools
-import numpy as np
-
 import erdos
+
+import numpy as np
 
 from pylot.perception.detection.obstacle import BoundingBox3D
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.planning_operator import PlanningOperator
-from pylot.planning.rrt_star.rrt_star_planning.RRTStar.rrt_star_wrapper import apply_rrt_star
+from pylot.planning.rrt_star.rrt_star_planning.RRTStar.rrt_star_wrapper \
+    import apply_rrt_star
 from pylot.utils import Location, Rotation, Transform
-
-DEFAULT_DISTANCE_THRESHOLD = 30  # 30 meters radius around of ego
-DEFAULT_NUM_WAYPOINTS = 100  # 100 waypoints to plan for
-DEFAULT_OBSTACLE_SIZE = 2  # 2 x 2 meter square
-DEFAULT_TARGET_WAYPOINT = 30  # use the 30th waypoint as a target
 
 
 class RRTStarPlanningOperator(PlanningOperator):
@@ -90,8 +86,9 @@ class RRTStarPlanningOperator(PlanningOperator):
         # RRT* does not take into account the driveable region
         # it constructs search space as a top down, minimum bounding rectangle
         # with padding in each dimension
-        path_x, path_y, success = \
-            self._apply_rrt_star(obstacle_list, self._hyperparameters, timestamp)
+        path_x, path_y, success = self._apply_rrt_star(obstacle_list,
+                                                       self._hyperparameters,
+                                                       timestamp)
 
         speeds = [0]
         if success:
@@ -127,7 +124,7 @@ class RRTStarPlanningOperator(PlanningOperator):
 
         # find the closest point to current location
         mindex = self._get_closest_index(start)
-        end_ind = min(mindex + DEFAULT_TARGET_WAYPOINT,
+        end_ind = min(mindex + self._flags.num_waypoints_ahead,
                       len(self._waypoints) - 1)
         end = np.array([
             self._waypoints[end_ind].location.x,
@@ -154,7 +151,7 @@ class RRTStarPlanningOperator(PlanningOperator):
             self._logger.error("@{}: RRT* failed. "
                                "Sending emergency stop.".format(timestamp))
             for wp in itertools.islice(self._prev_waypoints, 0,
-                                       DEFAULT_NUM_WAYPOINTS):
+                                       self._flags.num_waypoints_ahead):
                 path_transforms.append(wp)
                 target_speeds.append(0)
         else:
@@ -164,9 +161,9 @@ class RRTStarPlanningOperator(PlanningOperator):
                     p_loc = self._map.get_closest_lane_waypoint(
                         Location(x=point[0], y=point[1], z=0)).location
                 else:
-                    # RRT* does not take into account the driveable region
-                    # it constructs search space as a top down, minimum bounding rectangle
-                    # with padding in each dimension
+                    # RRT* does not take into account the driveable region it
+                    # constructs search space as a top down, minimum bounding
+                    # rectangle with padding in each dimension.
                     p_loc = Location(x=point[0], y=point[1], z=0)
                 path_transforms.append(
                     Transform(
@@ -179,8 +176,7 @@ class RRTStarPlanningOperator(PlanningOperator):
         self._prev_waypoints = waypoints
         return WaypointsMessage(timestamp, waypoints, target_speeds)
 
-    @staticmethod
-    def _build_obstacle_list(vehicle_transform, prediction_msg):
+    def _build_obstacle_list(self, vehicle_transform, prediction_msg):
         """
         Construct an obstacle list of proximal objects given vehicle_transform.
         """
@@ -197,13 +193,7 @@ class RRTStarPlanningOperator(PlanningOperator):
                     vehicle_transform.location.x - obstacle_origin[0],
                     vehicle_transform.location.y - obstacle_origin[1]
                 ])
-                # TODO (@fangedward): Fix this hack
-                # Prediction also sends a prediction for ego vehicle
-                # This will always be the closest to the ego vehicle
-                # Filter out until this is removed from prediction
-                if dist_to_ego < 2:  # this allows max vel to be 20m/s
-                    break
-                elif dist_to_ego < DEFAULT_DISTANCE_THRESHOLD:
+                if dist_to_ego < self._flags.distance_threshold:
                     # use 3d bounding boxes if available, otherwise use default
                     if isinstance(prediction.bounding_box, BoundingBox3D):
                         start_location = \
@@ -219,13 +209,17 @@ class RRTStarPlanningOperator(PlanningOperator):
                     else:
                         start_transform = [
                             Location(
-                                obstacle_origin[0] - DEFAULT_OBSTACLE_SIZE,
-                                obstacle_origin[1] - DEFAULT_OBSTACLE_SIZE, 0)
+                                obstacle_origin[0] -
+                                self._flags.obstacle_radius,
+                                obstacle_origin[1] -
+                                self._flags.obstacle_radius, 0)
                         ]
                         end_transform = [
                             Location(
-                                obstacle_origin[0] + DEFAULT_OBSTACLE_SIZE,
-                                obstacle_origin[1] + DEFAULT_OBSTACLE_SIZE, 0)
+                                obstacle_origin[0] +
+                                self._flags.obstacle_radius,
+                                obstacle_origin[1] +
+                                self._flags.obstacle_radius, 0)
                         ]
                     obstacle_list.append([
                         min(start_transform[0].x, end_transform[0].x),
