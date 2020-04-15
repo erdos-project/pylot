@@ -4,8 +4,8 @@ import os
 import PIL.Image as Image
 from skimage import measure
 
+import pylot.utils
 from pylot.perception.detection.utils import BoundingBox2D
-from pylot.utils import add_timestamp
 
 # Semantic Labels
 CITYSCAPES_LABELS = {
@@ -244,15 +244,21 @@ class SegmentedFrame(object):
         img = Image.fromarray(self.as_cityscapes_palette())
         img.save(file_name)
 
-    def visualize(self, window_name, timestamp=None):
+    def visualize(self, window_name, timestamp=None, pygame_display=None):
         """Creates a cv2 window to visualize the segmented frame."""
         cityscapes_frame = self.as_cityscapes_palette()
-        # Convert to BGR
-        cityscapes_frame = cityscapes_frame[:, :, ::-1]
         if timestamp is not None:
-            add_timestamp(cityscapes_frame, timestamp)
-        cv2.imshow(window_name, cityscapes_frame)
-        cv2.waitKey(1)
+            pylot.utils.add_timestamp(cityscapes_frame, timestamp)
+        if pygame_display:
+            import pygame
+            image_np = np.transpose(cityscapes_frame, (1, 0, 2))
+            pygame.surfarray.blit_array(pygame_display, image_np)
+            pygame.display.flip()
+        else:
+            # Convert to BGR
+            cityscapes_frame = cityscapes_frame[:, :, ::-1]
+            cv2.imshow(window_name, cityscapes_frame)
+            cv2.waitKey(1)
 
     def draw_point(self, point, color, r=3):
         """ Draws a colored point on the segmented frame."""

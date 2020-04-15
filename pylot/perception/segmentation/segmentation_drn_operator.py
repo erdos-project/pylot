@@ -6,9 +6,9 @@ import time
 from torch.autograd import Variable
 import torch
 
+import pylot.utils
 from pylot.perception.messages import SegmentedFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
-from pylot.utils import time_epoch_ms
 
 
 class SegmentationDRNOperator(erdos.Operator):
@@ -26,7 +26,6 @@ class SegmentationDRNOperator(erdos.Operator):
             messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
-
     def __init__(self, camera_stream, segmented_stream, flags):
         camera_stream.add_callback(self.on_msg_camera_stream,
                                    [segmented_stream])
@@ -91,6 +90,8 @@ class SegmentationDRNOperator(erdos.Operator):
         runtime = (time.time() - start_time) * 1000
         frame = SegmentedFrame(image_np, 'cityscapes', msg.frame.camera_setup)
         if self._flags.visualize_segmentation_output:
-            frame.visualize(self.config.name, msg.timestamp)
+            frame.visualize(self.config.name,
+                            msg.timestamp,
+                            pygame_display=pylot.utils.PYGAME_DISPLAY)
         segmented_stream.send(
             SegmentedFrameMessage(msg.timestamp, frame, runtime))

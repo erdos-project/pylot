@@ -1,8 +1,11 @@
 """This module implements an operator that visualizes agent predictions."""
 
 from collections import deque
-from pylot.perception.detection.obstacle import BoundingBox3D
+
 import erdos
+
+import pylot.utils
+from pylot.perception.detection.obstacle import BoundingBox3D
 
 
 class TrackVisualizerOperator(erdos.Operator):
@@ -101,7 +104,10 @@ class TrackVisualizerOperator(erdos.Operator):
         for obstacle in prediction_msg.predictions:
             self._draw_trajectory_on_img(obstacle, segmentation_msg.frame,
                                          True)
-        segmentation_msg.frame.visualize('track_visualizer', timestamp)
+        segmentation_msg.frame.visualize(
+            self.config.name,
+            timestamp,
+            pygame_display=pylot.utils.PYGAME_DISPLAY)
 
     def _draw_trajectory_on_img(self, obstacle, segmented_frame, predict):
         # Intrinsic and extrinsic matrix of the top down segmentation camera.
@@ -134,7 +140,8 @@ class TrackVisualizerOperator(erdos.Operator):
             start_points = []
             end_points = []
             for transform in obstacle.trajectory:
-                start_transform = transform.transform_locations([start_location])
+                start_transform = transform.transform_locations(
+                    [start_location])
                 end_transform = transform.transform_locations([end_location])
                 start_point = start_transform[0]\
                     .to_camera_view(extrinsic_matrix, intrinsic_matrix)

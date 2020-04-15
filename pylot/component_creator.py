@@ -337,6 +337,7 @@ def add_segmentation(center_camera_stream, ground_segmented_stream=None):
 def add_prediction(obstacles_tracking_stream,
                    vehicle_id_stream,
                    camera_transform,
+                   release_sensor_stream,
                    pose_stream=None):
     """Adds prediction operators.
 
@@ -372,7 +373,7 @@ def add_prediction(obstacles_tracking_stream,
         if FLAGS.visualize_prediction:
             pylot.operator_creator.add_prediction_visualizer(
                 obstacles_tracking_stream, prediction_stream,
-                vehicle_id_stream, camera_transform)
+                vehicle_id_stream, camera_transform, release_sensor_stream)
     return prediction_stream
 
 

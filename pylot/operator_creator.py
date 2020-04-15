@@ -725,7 +725,7 @@ def add_lidar_logging(point_cloud_stream,
 
 
 def add_multiple_object_tracker_logging(
-        obstacles_stream, name='multiple_object_tracker_logger_operator'):
+    obstacles_stream, name='multiple_object_tracker_logger_operator'):
     from pylot.loggers.multiple_object_tracker_logger_operator import \
         MultipleObjectTrackerLoggerOperator
     op_config = erdos.OperatorConfig(name=name,
@@ -806,15 +806,18 @@ def add_prediction_visualizer(obstacle_tracking_stream,
                               prediction_stream,
                               vehicle_id_stream,
                               camera_transform,
+                              release_sensor_stream,
                               name='top_down_tracking_visualizer_operator'):
     from pylot.debug.track_visualizer_operator import TrackVisualizerOperator
     top_down_transform = pylot.utils.get_top_down_transform(
         camera_transform, FLAGS.top_down_lateral_view)
     (top_down_segmented_camera_stream,
+     notify_reading_stream,
      top_down_segmented_camera_setup) = \
         pylot.operator_creator.add_segmented_camera(
             top_down_transform,
             vehicle_id_stream,
+            release_sensor_stream,
             name='top_down_segmented_camera',
             fov=90)
     op_config = erdos.OperatorConfig(name=name,
