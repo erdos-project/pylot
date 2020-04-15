@@ -513,8 +513,14 @@ def add_lidar(transform,
               vehicle_id_stream,
               release_sensor_stream,
               name='center_lidar'):
+    # Ensure that each lidar reading offers a 360 degree view.
+    rotation_frequency = FLAGS.carla_lidar_frequency
+    if rotation_frequency == -1:
+        # If no lidar reading frequency is specified, set the
+        # rotation frequency to the tick frequency.
+        rotation_frequency = FLAGS.carla_fps
     lidar_setup = pylot.drivers.sensor_setup.create_center_lidar_setup(
-        transform.location)
+        transform.location, rotation_frequency)
     point_cloud_stream, notify_reading_stream = _add_lidar_driver(
         vehicle_id_stream, release_sensor_stream, lidar_setup)
     return (point_cloud_stream, notify_reading_stream, lidar_setup)
@@ -772,7 +778,8 @@ def add_lidar_visualizer(point_cloud_stream, name='lidar_visualizer_operator'):
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(LidarVisualizerOperator, op_config, [point_cloud_stream])
+    erdos.connect(LidarVisualizerOperator, op_config, [point_cloud_stream],
+                  FLAGS)
 
 
 def add_camera_visualizer(camera_stream, name):

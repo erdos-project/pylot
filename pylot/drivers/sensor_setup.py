@@ -133,7 +133,7 @@ def create_left_right_camera_setups(camera_name_prefix,
     return (left_camera_setup, right_camera_setup)
 
 
-def create_center_lidar_setup(location):
+def create_center_lidar_setup(location, rotation_frequency=20):
     """ Creates a LidarSetup instance with the given location.
 
     The Rotation is set to (pitch=0, roll=0, yaw=0).
@@ -153,8 +153,8 @@ def create_center_lidar_setup(location):
         name='front_center_lidar',
         lidar_type='sensor.lidar.ray_cast',
         transform=lidar_transform,
-        range=5000,  # in centimers
-        rotation_frequency=10,
+        range=50000,  # in centimers
+        rotation_frequency=rotation_frequency,
         channels=32,
         upper_fov=15,
         lower_fov=-30,

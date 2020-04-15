@@ -21,10 +21,10 @@ class PointCloud(object):
         transform (:py:class:`~pylot.utils.Transform`): Transform of the
             point cloud, relative to the ego-vehicle.
     """
-
     def __init__(self, points, lidar_setup):
         # Transform point cloud from lidar to camera coordinates.
         self._lidar_setup = lidar_setup
+        self.global_points = copy.deepcopy(points)
         self.points = self._to_camera_coordinates(points)
         self.transform = lidar_setup.get_transform()
 
