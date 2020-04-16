@@ -136,10 +136,16 @@ class FOTPlanningOperator(PlanningOperator):
         self.s0 = misc['s']
 
         # log debug
+        initial_conditions['pos'] = initial_conditions['pos'].tolist()
+        initial_conditions['vel'] = initial_conditions['vel'].tolist()
+        initial_conditions['wp'] = initial_conditions['wp'].tolist()
+        initial_conditions['obs'] = initial_conditions['obs'].tolist()
         self._logger.debug("@{}: Frenet Initial Conditions: {}".format(
             timestamp, misc))
         self._logger.debug("@{}: Euclidean Initial Conditions: {}".format(
             timestamp, initial_conditions))
+        self._logger.debug("@{}: Hyperparameters: {}".format(
+            timestamp, self._hyperparameters))
 
         # construct and send waypoint message
         waypoints_message = self._construct_waypoints(timestamp, path_x,
