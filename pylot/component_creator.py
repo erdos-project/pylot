@@ -427,6 +427,10 @@ def add_planning(goal_location,
         waypoints_stream = pylot.operator_creator.add_fot_planning(
             pose_stream, prediction_stream, global_trajectory_stream,
             open_drive_stream, goal_location)
+    elif FLAGS.planning_type == 'hybrid_astar':
+        waypoints_stream = pylot.operator_creator.add_hybrid_astar_planning(
+            pose_stream, prediction_stream, global_trajectory_stream,
+            open_drive_stream, goal_location)
     else:
         raise ValueError('Unexpected planning_type {}'.format(
             FLAGS.planning_type))

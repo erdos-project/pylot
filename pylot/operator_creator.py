@@ -361,6 +361,25 @@ def add_rrt_star_planning(pose_stream,
     return waypoints_stream
 
 
+def add_hybrid_astar_planning(pose_stream,
+                              prediction_stream,
+                              global_trajectory_stream,
+                              open_drive_stream,
+                              goal_location,
+                              name='hybrid_astar_planning_operator'):
+    from pylot.planning.hybrid_astar.hybrid_astar_planning_operator import \
+        HybridAStarPlanningOperator
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [waypoints_stream] = erdos.connect(HybridAStarPlanningOperator, op_config, [
+        pose_stream, prediction_stream, global_trajectory_stream,
+        open_drive_stream
+    ], FLAGS, goal_location)
+    return waypoints_stream
+
+
 def add_waypoint_planning(pose_stream,
                           open_drive_stream,
                           global_trajectory_stream,

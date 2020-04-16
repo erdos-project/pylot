@@ -174,6 +174,10 @@ def create_data_flow():
         waypoints_stream = pylot.operator_creator.add_rrt_star_planning(
             pose_stream, prediction_stream, global_trajectory_stream,
             open_drive_stream, None)
+    elif FLAGS.planning_type == 'hybrid_astar':
+        waypoints_stream = pylot.operator_creator.add_hybrid_astar_planning(
+            pose_stream, prediction_stream, global_trajectory_stream,
+            open_drive_stream, None)
     else:
         raise ValueError('Unsupport planning type {}'.format(
             FLAGS.planning_type))
