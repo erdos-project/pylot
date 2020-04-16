@@ -377,14 +377,9 @@ def add_prediction(obstacles_tracking_stream,
     return prediction_stream
 
 
-def add_planning(goal_location,
-                 pose_stream,
-                 prediction_stream,
-                 camera_stream,
-                 obstacles_stream,
-                 traffic_lights_stream,
-                 open_drive_stream=None,
-                 global_trajectory_stream=None):
+def add_planning(goal_location, pose_stream, prediction_stream, camera_stream,
+                 obstacles_stream, traffic_lights_stream, open_drive_stream,
+                 global_trajectory_stream, time_to_decision_stream):
     """Adds planning operators.
 
     Args:
@@ -414,23 +409,21 @@ def add_planning(goal_location,
         published.
     """
     if FLAGS.planning_type == 'waypoint':
-        assert (open_drive_stream is not None
-                and global_trajectory_stream is not None)
         waypoints_stream = pylot.operator_creator.add_waypoint_planning(
             pose_stream, open_drive_stream, global_trajectory_stream,
             obstacles_stream, traffic_lights_stream, goal_location)
     elif FLAGS.planning_type == 'rrt_star':
         waypoints_stream = pylot.operator_creator.add_rrt_star_planning(
             pose_stream, prediction_stream, global_trajectory_stream,
-            open_drive_stream, goal_location)
+            open_drive_stream, time_to_decision_stream, goal_location)
     elif FLAGS.planning_type == 'frenet_optimal_trajectory':
         waypoints_stream = pylot.operator_creator.add_fot_planning(
             pose_stream, prediction_stream, global_trajectory_stream,
-            open_drive_stream, goal_location)
+            open_drive_stream, time_to_decision_stream, goal_location)
     elif FLAGS.planning_type == 'hybrid_astar':
         waypoints_stream = pylot.operator_creator.add_hybrid_astar_planning(
             pose_stream, prediction_stream, global_trajectory_stream,
-            open_drive_stream, goal_location)
+            open_drive_stream, time_to_decision_stream, goal_location)
     else:
         raise ValueError('Unexpected planning_type {}'.format(
             FLAGS.planning_type))

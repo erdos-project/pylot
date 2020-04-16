@@ -89,7 +89,8 @@ class DetectionOperator(erdos.Operator):
         return [obstacles_stream]
 
     def on_time_to_decision_update(self, msg):
-        print('Received ttd update {}'.format(msg))
+        self._logger.debug('@{}: {} received ttd update {}'.format(
+            msg.timestamp, self.config.name, msg))
 
     @erdos.profile_method()
     def on_msg_camera_stream(self, msg, obstacles_stream):

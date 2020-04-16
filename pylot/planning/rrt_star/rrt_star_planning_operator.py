@@ -29,6 +29,7 @@ class RRTStarPlanningOperator(PlanningOperator):
                  prediction_stream,
                  global_trajectory_stream,
                  open_drive_stream,
+                 time_to_decision_stream,
                  waypoints_stream,
                  flags,
                  goal_location=None,
@@ -36,8 +37,8 @@ class RRTStarPlanningOperator(PlanningOperator):
                  csv_file_name=None):
         super().__init__(pose_stream, prediction_stream,
                          global_trajectory_stream, open_drive_stream,
-                         waypoints_stream, flags, goal_location, log_file_name,
-                         csv_file_name)
+                         time_to_decision_stream, waypoints_stream, flags,
+                         goal_location, log_file_name, csv_file_name)
         self._hyperparameters = self.parse_hyperparameters(self._flags)
 
     def parse_hyperparameters(self, flags):

@@ -4,7 +4,6 @@ Email: edward.fang@berkeley.edu
 """
 from collections import deque
 
-import itertools
 import numpy as np
 
 import erdos
@@ -22,6 +21,7 @@ class PlanningOperator(erdos.Operator):
                  prediction_stream,
                  global_trajectory_stream,
                  open_drive_stream,
+                 time_to_decision_stream,
                  waypoints_stream,
                  flags,
                  goal_location=None,
@@ -31,6 +31,7 @@ class PlanningOperator(erdos.Operator):
         prediction_stream.add_callback(self.on_prediction_update)
         global_trajectory_stream.add_callback(self.on_global_trajectory)
         open_drive_stream.add_callback(self.on_opendrive_map)
+        time_to_decision_stream.add_callback(self.on_time_to_decision)
         erdos.add_watermark_callback([pose_stream, prediction_stream],
                                      [waypoints_stream], self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -47,7 +48,7 @@ class PlanningOperator(erdos.Operator):
 
     @staticmethod
     def connect(pose_stream, prediction_stream, global_trajectory_stream,
-                open_drive_stream):
+                open_drive_stream, time_to_decision_stream):
         waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
 
@@ -108,6 +109,10 @@ class PlanningOperator(erdos.Operator):
         self._logger.info('Initializing HDMap from open drive stream')
         from pylot.map.hd_map import HDMap
         self._map = HDMap(carla.Map('map', msg.data))
+
+    def on_time_to_decision(self, msg):
+        self._logger.debug('@{}: {} received ttd update {}'.format(
+            msg.timestamp, self.config.name, msg))
 
     @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):

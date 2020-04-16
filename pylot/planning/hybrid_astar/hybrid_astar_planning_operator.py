@@ -29,6 +29,7 @@ class HybridAStarPlanningOperator(PlanningOperator):
                  prediction_stream,
                  global_trajectory_stream,
                  open_drive_stream,
+                 time_to_decision_stream,
                  waypoints_stream,
                  flags,
                  goal_location=None,
@@ -36,8 +37,8 @@ class HybridAStarPlanningOperator(PlanningOperator):
                  csv_file_name=None):
         super().__init__(pose_stream, prediction_stream,
                          global_trajectory_stream, open_drive_stream,
-                         waypoints_stream, flags, goal_location, log_file_name,
-                         csv_file_name)
+                         time_to_decision_stream, waypoints_stream, flags,
+                         goal_location, log_file_name, csv_file_name)
         self._hyperparameters = self.parse_hyperparameters(self._flags)
 
     def parse_hyperparameters(self, flags):
@@ -94,8 +95,7 @@ class HybridAStarPlanningOperator(PlanningOperator):
         # it constructs search space as a top down, minimum bounding rectangle
         # with padding in each dimension
         path_x, path_y, path_yaw, success = self._apply_hybrid_astar(
-            obstacle_list, self._hyperparameters, timestamp
-        )
+            obstacle_list, self._hyperparameters, timestamp)
 
         speeds = [0]
         if success:
@@ -139,14 +139,9 @@ class HybridAStarPlanningOperator(PlanningOperator):
         last_wp = self._waypoints[end_ind]
         end_yaw = np.arctan2(
             last_wp.location.x - self._waypoints[end_ind - 1].location.x,
-            last_wp.location.y - self._waypoints[end_ind - 1].location.y
-        )
+            last_wp.location.y - self._waypoints[end_ind - 1].location.y)
 
-        end = np.array([
-            last_wp.location.x,
-            last_wp.location.y,
-            end_yaw
-        ])
+        end = np.array([last_wp.location.x, last_wp.location.y, end_yaw])
 
         # log initial conditions for debugging
         initial_conditions = {

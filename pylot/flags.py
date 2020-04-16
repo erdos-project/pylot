@@ -79,10 +79,10 @@ flags.DEFINE_enum('prediction_type', 'linear', ['linear'],
 ######################################################################
 # Planning
 ######################################################################
-flags.DEFINE_enum('planning_type', 'waypoint',
-                  ['waypoint', 'rrt_star', 'frenet_optimal_trajectory',
-                   'hybrid_astar'],
-                  'Type of planning module to use')
+flags.DEFINE_enum(
+    'planning_type', 'waypoint',
+    ['waypoint', 'rrt_star', 'frenet_optimal_trajectory', 'hybrid_astar'],
+    'Type of planning module to use')
 flags.DEFINE_bool('imu', False, 'True to enable the IMU sensor')
 
 ######################################################################
@@ -232,15 +232,18 @@ flags.register_multi_flags_validator(
     ' --evaluate_prediction is enabled')
 
 
-def rrt_star_validator(flags_dict):
-    if flags_dict['planning_type'] == 'rrt_star':
+def planning_validator(flags_dict):
+    if (flags_dict['planning_type'] == 'rrt_star'
+            or flags_dict['planning_type'] == 'frenet_optimal_trajectory'
+            or flags_dict['planning_type'] == 'hybrid_astar'):
         return flags_dict['prediction']
     return True
 
 
-flags.register_multi_flags_validator(['planning_type', 'prediction'],
-                                     rrt_star_validator,
-                                     message='rrt star requires --prediction')
+flags.register_multi_flags_validator(
+    ['planning_type', 'prediction'],
+    planning_validator,
+    message='This type of planner requires --prediction')
 
 
 def waypoint_planning_validator(flags_dict):

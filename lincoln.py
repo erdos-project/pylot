@@ -5,6 +5,7 @@ import time
 
 from absl import app, flags
 
+import pylot.component_creator
 import pylot.drivers.sensor_setup
 import pylot.flags
 import pylot.operator_creator
@@ -154,33 +155,15 @@ def create_data_flow():
         prediction_stream = pylot.operator_creator.add_linear_prediction(
             obstacles_tracking_stream)
     else:
-        assert FLAGS.planning_type != 'frenet_optimal_trajectory', \
-            "FLAGS.prediction must be true if using frenet optimal trajectory"
-        assert FLAGS.planning_type != 'rrt_star', \
-            "FLAGS.prediction must be true if using rrt star"
+        prediction_stream = None
 
     open_drive_stream = erdos.IngestStream()
     global_trajectory_stream = erdos.IngestStream()
 
-    if FLAGS.planning_type == 'waypoint':
-        waypoints_stream = pylot.operator_creator.add_waypoint_planning(
-            pose_stream, open_drive_stream, global_trajectory_stream,
-            obstacles_stream, traffic_lights_stream, None)
-    elif FLAGS.planning_type == 'frenet_optimal_trajectory':
-        waypoints_stream = pylot.operator_creator.add_fot_planning(
-            pose_stream, prediction_stream, global_trajectory_stream,
-            open_drive_stream, None)
-    elif FLAGS.planning_type == 'rrt_star':
-        waypoints_stream = pylot.operator_creator.add_rrt_star_planning(
-            pose_stream, prediction_stream, global_trajectory_stream,
-            open_drive_stream, None)
-    elif FLAGS.planning_type == 'hybrid_astar':
-        waypoints_stream = pylot.operator_creator.add_hybrid_astar_planning(
-            pose_stream, prediction_stream, global_trajectory_stream,
-            open_drive_stream, None)
-    else:
-        raise ValueError('Unsupport planning type {}'.format(
-            FLAGS.planning_type))
+    waypoints_stream = pylot.component_creator.add_planning(
+        None, pose_stream, prediction_stream, left_camera_stream,
+        obstacles_stream, traffic_lights_stream, open_drive_stream,
+        global_trajectory_stream, time_to_decision_loop_stream)
 
     if FLAGS.control_agent == 'pid':
         control_stream = pylot.operator_creator.add_pid_agent(
