@@ -51,9 +51,9 @@ class PerfectTrackerOperator(erdos.Operator):
         # Only consider obstacles which still exist at the most recent
         # timestamp.
         for obstacle in obstacles_msg.obstacles:
-            if obstacle.id == self._vehicle_id:
-                # Do no track the ego-vehicle.
-                continue
+            # if obstacle.id == self._vehicle_id:
+            #     # Do no track the ego-vehicle.
+            #     continue
             self._obstacles[obstacle.id].append(obstacle)
             cur_obstacle_trajectory = []
             # Iterate through past frames of this obstacle.

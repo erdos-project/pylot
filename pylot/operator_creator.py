@@ -308,6 +308,23 @@ def add_linear_prediction(tracking_stream):
                                         [tracking_stream], FLAGS)
     return prediction_stream
 
+def add_r2p2_prediction(pose_stream,
+                        point_cloud_stream,
+                        obstacles_tracking_stream,
+                        vehicle_id_stream):
+    from pylot.prediction.r2p2_predictor_operator import \
+            R2P2PredictorOperator
+    op_config = erdos.OperatorConfig(name='linear_prediction_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [prediction_stream] = erdos.connect(
+        R2P2PredictorOperator, op_config,
+        [pose_stream, point_cloud_stream, obstacles_tracking_stream,
+        vehicle_id_stream],
+        FLAGS)
+    return prediction_stream
+
 
 def add_prediction_evaluation(pose_stream,
                               tracking_stream,
