@@ -131,11 +131,11 @@ class R2P2PredictorOperator(erdos.Operator):
     def get_occupancy_grid(self, point_cloud):
         """Get occupancy grids at two different heights."""
 
-        z_threshold = -3.0 # Might need to be adjusted.
+        z_threshold = -3.4 # Threshold used in the PRECOG (https://arxiv.org/pdf/1905.01296.pdf) dataset
 
         above_mask = point_cloud[:, 2] > z_threshold
-        # print ("Points above threshold:", sum(above_mask))
-        # print ("Points below threshold:", sum(1 - above_mask))
+        #print ("Points above threshold:", sum(above_mask))
+        #print ("Points below threshold:", sum(1 - above_mask))
 
         def get_occupancy_from_masked_lidar(mask):
             masked_lidar = point_cloud[mask]
