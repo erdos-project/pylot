@@ -15,6 +15,10 @@ cd rrt_star_planning
 bash build.sh
 cd $PYLOT_HOME
 
+###### Clone the Prediction Repository #####
+cd pylot/prediction/
+git clone https://github.com/erdos-project/prediction.git
+
 sudo apt-get -y update
 sudo apt-get install -y git wget python3-pip unzip
 pip3 install gdown
@@ -69,6 +73,11 @@ cd ../
 # Download the CARLA model.
 mkdir deep-sort-carla ; cd deep-sort-carla
 wget https://www.dropbox.com/s/j007vs40f9tlcui/feature_extractor
+cd ../../
+
+###### Download the R2P2 prediction model ######
+mkdir -p prediction/r2p2 ; cd prediction/r2p2
+wget https://www.dropbox.com/s/vyrh8tysre1bmwi/r2p2-model.pt
 cd ../../../
 
 ###### Get DeepSORT and SORT tracker code bases
