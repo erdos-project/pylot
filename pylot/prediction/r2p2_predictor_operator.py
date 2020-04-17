@@ -17,15 +17,34 @@ from pylot.utils import Location, Rotation, Transform
 
 
 class R2P2PredictorOperator(erdos.Operator):
-    """Wrapper operator for R2P2 ego-vehicle prediction module."""
+    """Wrapper operator for R2P2 ego-vehicle prediction module.
+
+    Args:
+        pose_stream (:py:class:`erdos.ReadStream`): Stream on which pose
+            info is received.
+        point_cloud_stream (:py:class:`erdos.ReadStream`, optional): Stream on
+            which point cloud messages are received.
+        tracking_stream (:py:class:`erdos.ReadStream`):
+            Stream on which
+            :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
+            are received.
+        vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on which
+            the simulator publishes the CARLA ego-vehicle id.
+        prediction_stream (:py:class:`erdos.ReadStream`): Stream on which
+            :py:class:`~pylot.prediction.messages.PredictionMessage`
+            messages are published.
+        lidar_setup (:py:class:`pylot.drivers.sensor_setup.LidarSetup`): Setup
+            of the lidar. This setup is used to get the maximum range of the lidar.
+        """
 
     def __init__(self,
-                 can_bus_stream,
+                 pose_stream,
                  point_cloud_stream,
                  tracking_stream,
                  vehicle_id_stream,
                  prediction_stream,
-                 flags):
+                 flags,
+                 lidar_setup):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
@@ -35,14 +54,15 @@ class R2P2PredictorOperator(erdos.Operator):
         state_dict = torch.load(flags.r2p2_model_path)
         self._r2p2_model.load_state_dict(state_dict)
 
-        can_bus_stream.add_callback(self.on_can_bus_update)
+        pose_stream.add_callback(self.on_pose_update)
         point_cloud_stream.add_callback(self.on_point_cloud_update)
         tracking_stream.add_callback(self.on_trajectory_update)
         erdos.add_watermark_callback(
-            [can_bus_stream, point_cloud_stream, tracking_stream],
+            [pose_stream, point_cloud_stream, tracking_stream],
             [prediction_stream], self.on_watermark)
 
         self._vehicle_id_stream = vehicle_id_stream
+        self._lidar_setup = lidar_setup
 
         self._can_bus_msgs = deque()
         self._point_cloud_msgs = deque()
@@ -131,7 +151,8 @@ class R2P2PredictorOperator(erdos.Operator):
     def get_occupancy_grid(self, point_cloud):
         """Get occupancy grids at two different heights."""
 
-        z_threshold = -3.4 # Threshold used in the PRECOG (https://arxiv.org/pdf/1905.01296.pdf) dataset
+        # Threshold used in the PRECOG (https://arxiv.org/pdf/1905.01296.pdf) dataset
+        z_threshold = -self._lidar_setup.transform.location.z - 2.0
 
         above_mask = point_cloud[:, 2] > z_threshold
         #print ("Points above threshold:", sum(above_mask))
@@ -139,7 +160,8 @@ class R2P2PredictorOperator(erdos.Operator):
 
         def get_occupancy_from_masked_lidar(mask):
             masked_lidar = point_cloud[mask]
-            meters_max = 50
+            meters_max = self._lidar_setup.get_range_in_meters()
+
             pixels_per_meter = 2
             xbins = np.linspace(-meters_max, meters_max, meters_max * 2 * pixels_per_meter + 1) 
             ybins = xbins
@@ -156,8 +178,8 @@ class R2P2PredictorOperator(erdos.Operator):
         stacked_feats = np.stack(feats, axis=-1)
         return np.expand_dims(stacked_feats, axis=0)
 
-    def on_can_bus_update(self, msg):
-        self._logger.debug('@{}: received can bus message'.format(
+    def on_pose_update(self, msg):
+        self._logger.debug('@{}: received pose message'.format(
             msg.timestamp))
         self._can_bus_msgs.append(msg)
 

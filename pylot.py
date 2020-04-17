@@ -105,7 +105,7 @@ def driver():
 
     prediction_stream = pylot.component_creator.add_prediction(
         obstacles_tracking_stream, vehicle_id_stream, transform,
-        release_sensor_stream, pose_stream, point_cloud_stream)
+        release_sensor_stream, pose_stream, point_cloud_stream, lidar_setup)
 
     # Add planning operators.
     goal_location = pylot.utils.Location(float(FLAGS.goal_location[0]),

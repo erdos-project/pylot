@@ -153,7 +153,7 @@ def create_center_lidar_setup(location, rotation_frequency=20):
         name='front_center_lidar',
         lidar_type='sensor.lidar.ray_cast',
         transform=lidar_transform,
-        range=50000,  # in centimers
+        range=5000,  # in centimeters
         rotation_frequency=rotation_frequency,
         channels=32,
         upper_fov=15,
@@ -599,7 +599,7 @@ class LidarSetup(object):
         Returns:
             float: The range of the LIDAR in metres.
         """
-        return self.range / 1000
+        return self.range / 100
 
     def __repr__(self):
         return self.__str__()
