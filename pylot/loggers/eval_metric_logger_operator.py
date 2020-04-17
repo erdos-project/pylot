@@ -141,11 +141,12 @@ class EvalMetricLoggerOperator(erdos.Operator):
 
         # Calculate the jerk, and log both lateral and longitudinal jerk.
         if self._last_timestamp:
-            time_diff = msg.timestamp.coordinates[0] - \
-                self._last_timestamp.coordinates[0]
-            lateral_jerk = (self._last_lateral_acc - lateral_acc) / time_diff
+            time_diff_sec = (msg.timestamp.coordinates[0] -
+                             self._last_timestamp.coordinates[0]) / 1000.0
+            lateral_jerk = (self._last_lateral_acc -
+                            lateral_acc) / time_diff_sec
             longitudinal_jerk = (self._last_longitudinal_acc -
-                                 longitudinal_acc) / time_diff
+                                 longitudinal_acc) / time_diff_sec
             self._csv_logger.info('{},{},jerk,lateral,{:.4f}'.format(
                 time_epoch_ms(), sim_time, lateral_jerk))
             self._csv_logger.info('{},{},jerk,longitudinal,{:.4f}'.format(
