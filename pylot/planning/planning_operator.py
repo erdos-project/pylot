@@ -32,8 +32,9 @@ class PlanningOperator(erdos.Operator):
         global_trajectory_stream.add_callback(self.on_global_trajectory)
         open_drive_stream.add_callback(self.on_opendrive_map)
         time_to_decision_stream.add_callback(self.on_time_to_decision)
-        erdos.add_watermark_callback([pose_stream, prediction_stream],
-                                     [waypoints_stream], self.on_watermark)
+        erdos.add_watermark_callback(
+            [pose_stream, prediction_stream, time_to_decision_stream],
+            [waypoints_stream], self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags

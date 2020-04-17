@@ -29,7 +29,6 @@ class PIDAgentOperator(erdos.Operator):
             messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
-
     def __init__(self, pose_stream, waypoints_stream, control_stream, flags):
         pose_stream.add_callback(self.on_pose_update)
         waypoints_stream.add_callback(self.on_waypoints_update)
@@ -72,7 +71,7 @@ class PIDAgentOperator(erdos.Operator):
             current_speed = 0
 
         waypoints = waypoint_msg.waypoints
-        self._logger.debug("@[{}] Received waypoints of length: {}".format(
+        self._logger.debug("@{} Received waypoints of length: {}".format(
             timestamp, len(waypoints)))
         if len(waypoints) > 0:
             pid_steer_wp = self._flags.pid_steer_wp
