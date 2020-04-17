@@ -73,6 +73,7 @@ def driver():
              transform, vehicle_id_stream, release_sensor_stream)
     else:
         point_cloud_stream = None
+        lidar_setup = None
 
     if FLAGS.obstacle_location_finder_sensor == 'lidar':
         depth_stream = point_cloud_stream
@@ -108,7 +109,7 @@ def driver():
 
     prediction_stream = pylot.component_creator.add_prediction(
         obstacles_tracking_stream, vehicle_id_stream, transform,
-        release_sensor_stream, pose_stream)
+        release_sensor_stream, pose_stream, point_cloud_stream, lidar_setup)
 
     goal_location = pylot.utils.Location(float(FLAGS.goal_location[0]),
                                          float(FLAGS.goal_location[1]),

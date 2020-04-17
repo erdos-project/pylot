@@ -73,7 +73,7 @@ flags.DEFINE_float(
 # Prediction
 ######################################################################
 flags.DEFINE_bool('prediction', False, 'True to enable prediction.')
-flags.DEFINE_enum('prediction_type', 'linear', ['linear'],
+flags.DEFINE_enum('prediction_type', 'linear', ['linear', 'r2p2'],
                   'Type of prediction module to use')
 
 ######################################################################
@@ -174,13 +174,13 @@ def must_add_segmented_camera_sensor():
             or FLAGS.perfect_segmentation or FLAGS.perfect_obstacle_detection
             or FLAGS.evaluate_obstacle_detection)
 
-
 def must_add_lidar_sensor():
     """Returns true if the lidar sensor must be added.
 
     We don't add all sensors by default because they slow donwn the simulation
     """
-    return (FLAGS.visualize_lidar
+    return (FLAGS.visualize_lidar or
+            (FLAGS.prediction and FLAGS.prediction_type == 'r2p2')
             or FLAGS.obstacle_location_finder_sensor == 'lidar')
 
 

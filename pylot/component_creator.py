@@ -338,7 +338,9 @@ def add_prediction(obstacles_tracking_stream,
                    vehicle_id_stream,
                    camera_transform,
                    release_sensor_stream,
-                   pose_stream=None):
+                   pose_stream=None,
+                   point_cloud_stream=None,
+                   lidar_setup=None):
     """Adds prediction operators.
 
     Args:
@@ -349,20 +351,30 @@ def add_prediction(obstacles_tracking_stream,
         vehicle_id_stream (:py:class:`erdos.ReadStream`): A stream on
              which the simulator publishes Carla ego-vehicle id.
         camera_transform (:py:class:`~pylot.utils.Transform`): Transform of the
-             top-down view camera relative to the ego vehicle.
+             center camera relative to the ego vehicle.
         pose_stream (:py:class:`erdos.ReadStream`, optional): Stream on
              which pose info is received.
+        point_cloud_stream (:py:class:`erdos.ReadStream`, optional): Stream on
+            which point cloud messages are received.
 
     Returns:
         :py:class:`erdos.ReadStream`: Stream on which
         :py:class:`~pylot.prediction.messages.PredictionMessage` messages are
         published.
     """
+
     prediction_stream = None
     if FLAGS.prediction:
         if FLAGS.prediction_type == 'linear':
             prediction_stream = pylot.operator_creator.add_linear_prediction(
                 obstacles_tracking_stream)
+        elif FLAGS.prediction_type == 'r2p2':
+            assert pose_stream is not None
+            assert point_cloud_stream is not None
+            assert lidar_setup is not None
+            prediction_stream = pylot.operator_creator.add_r2p2_prediction(
+                pose_stream, point_cloud_stream, obstacles_tracking_stream,
+                vehicle_id_stream, lidar_setup)
         else:
             raise ValueError('Unexpected prediction_type {}'.format(
                 FLAGS.prediction_type))
