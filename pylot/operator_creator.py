@@ -725,7 +725,8 @@ def add_carla_collision_logging(collision_stream, pose_stream):
 
 
 def add_eval_metric_logging(collision_stream, lane_invasion_stream,
-                            traffic_light_invasion_stream, imu_stream):
+                            traffic_light_invasion_stream, imu_stream,
+                            pose_stream, obstacle_stream):
     """ Adds an evaluation metric logging operator to the pipeline.
 
     Args:
@@ -746,7 +747,7 @@ def add_eval_metric_logging(collision_stream, lane_invasion_stream,
                                      profile_file_name=FLAGS.profile_file_name)
     erdos.connect(EvalMetricLoggerOperator, op_config, [
         collision_stream, lane_invasion_stream, traffic_light_invasion_stream,
-        imu_stream
+        imu_stream, pose_stream, obstacle_stream
     ], FLAGS)
 
 
