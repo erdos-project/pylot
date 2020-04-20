@@ -41,7 +41,6 @@ class WaypointPlanningOperator(erdos.Operator):
         goal_location (:py:class:`~pylot.utils.Location`): The goal location of
             the ego vehicle.
     """
-
     def __init__(self,
                  pose_stream,
                  open_drive_stream,
@@ -176,8 +175,8 @@ class WaypointPlanningOperator(erdos.Operator):
                 RECOMPUTE_WAYPOINT_EVERY_N_WATERMARKS == 0):
             self._waypoints = self._map.compute_waypoints(
                 self._vehicle_transform.location, self._goal_location)
-        self._waypoints = remove_completed_waypoints(
-            self._waypoints, self._vehicle_transform.location,
+        self._waypoints, _ = remove_completed_waypoints(
+            self._waypoints, None, self._vehicle_transform.location,
             WAYPOINT_COMPLETION_THRESHOLD)
         if not self._waypoints or len(self._waypoints) == 0:
             # If waypoints are empty (e.g., reached destination), set waypoint

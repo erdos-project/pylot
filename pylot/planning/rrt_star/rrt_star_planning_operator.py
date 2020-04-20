@@ -147,7 +147,7 @@ class RRTStarPlanningOperator(PlanningOperator):
         Convert the rrt* path into a waypoints message.
         """
         path_transforms = []
-        target_speeds = []
+        target_speeds = deque()
         if not success:
             self._logger.error("@{}: RRT* failed. "
                                "Sending emergency stop.".format(timestamp))

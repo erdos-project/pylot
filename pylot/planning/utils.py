@@ -24,6 +24,7 @@ def compute_waypoint_vector_and_angle(vehicle_transform, waypoints, wp_num):
 
 
 def remove_completed_waypoints(waypoints,
+                               target_speeds,
                                ego_vehicle_location,
                                completion_threshold=0.9):
     """Removes waypoints that the ego vehicle has already completed.
@@ -59,12 +60,16 @@ def remove_completed_waypoints(waypoints,
     # vehicle already completed them.
     while min_index > 0:
         waypoints.popleft()
+        if target_speeds:
+            target_speeds.popleft()
         min_index -= 1
 
     # The closest waypoint is almost complete, remove it.
     if min_dist < completion_threshold:
         waypoints.popleft()
-    return waypoints
+        if target_speeds:
+            target_speeds.popleft()
+    return waypoints, target_speeds
 
 
 def stop_person(ego_vehicle_location, person_location, wp_vector,
