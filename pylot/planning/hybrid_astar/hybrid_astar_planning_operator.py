@@ -158,7 +158,7 @@ class HybridAStarPlanningOperator(PlanningOperator):
         Convert the hybrid a* path into a waypoints message.
         """
         path_transforms = []
-        target_speeds = []
+        target_speeds = deque()
         if not success:
             self._logger.error("@{}: Hybrid A* failed. "
                                "Sending emergency stop.".format(timestamp))
@@ -173,9 +173,9 @@ class HybridAStarPlanningOperator(PlanningOperator):
                     p_loc = self._map.get_closest_lane_waypoint(
                         Location(x=point[0], y=point[1], z=0)).location
                 else:
-                    # Hybrid A* does not take into account the driveable region it
-                    # constructs search space as a top down, minimum bounding
-                    # rectangle with padding in each dimension.
+                    # Hybrid A* does not take into account the driveable region
+                    # it constructs search space as a top down, minimum
+                    # bounding rectangle with padding in each dimension.
                     p_loc = Location(x=point[0], y=point[1], z=0)
                 path_transforms.append(
                     Transform(

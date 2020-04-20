@@ -35,7 +35,6 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
         pose_write_stream (:py:class:`erdos.WriteStream`): Stream that relays
             the pose messages from the CarlaOperator to the control module.
     """
-
     def __init__(self, waypoints_read_stream, pose_read_stream,
                  localization_pose_stream, waypoints_write_stream,
                  pose_write_stream, flags):
@@ -211,11 +210,13 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
                 WaypointsMessage(timestamp, deque([]), deque([])))
         else:
             # Send the trimmed waypoints on the write stream.
-            trimmed_waypoints = remove_completed_waypoints(
-                deepcopy(waypoints.waypoints),
-                pose_msg.data.transform.location)
+            trimmed_waypoints, trimmed_target_speeds = \
+                remove_completed_waypoints(
+                    deepcopy(waypoints.waypoints),
+                    deepcopy(waypoints.target_speeds),
+                    pose_msg.data.transform.location)
             waypoints_msg = WaypointsMessage(timestamp, trimmed_waypoints,
-                                             waypoints.target_speeds)
+                                             trimmed_target_speeds)
             self._waypoints_write_stream.send(waypoints_msg)
 
             # Trim the saved waypoints.
