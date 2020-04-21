@@ -1,13 +1,13 @@
 import erdos
 import carla
 
-from pylot.utils import LaneMarking, LaneType
 from pylot.simulation.messages import LaneInvasionMessage
-from pylot.simulation.utils import get_world, get_vehicle_handle
+from pylot.simulation.utils import get_vehicle_handle, get_world
+from pylot.utils import LaneMarking, LaneType
 
 
 class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
-    """ Publishes lane invasion events of the ego-vehicle on a stream.
+    """Publishes lane invasion events of the ego-vehicle on a stream.
 
     This operator attaches to the LaneInvasionSensor to the ego-vehicle,
     registers callback functions to the lane-invasion events and publishes it
@@ -30,15 +30,10 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
-
         # The hero vehicle actor object we obtain from carla.
         self._vehicle = None
         self._lane_invasion_sensor = None
         self._map = None
-
-        # Keep track of the last timestamp that we need to close.
-        self._first_reading = True
-        self._time_to_close = None
 
     @staticmethod
     def connect(ground_vehicle_id_stream):
@@ -73,11 +68,8 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
         # Register the callback on the lane-invasion sensor.
         self._lane_invasion_sensor.listen(self.process_lane_invasion)
 
-        # Register an on_tick function to flow watermarks.
-        world.on_tick(self.process_timestamp)
-
     def process_lane_invasion(self, lane_invasion_event):
-        """ Invoked when a lane invasion event is received from the simulation.
+        """Invoked when a lane invasion event is received from the simulation.
 
         Args:
             lane_invasion_event (:py:class:`carla.LaneInvasionEvent`): A lane-
@@ -110,42 +102,6 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
 
         # Send the LaneInvasionMessage
         self._lane_invasion_stream.send(msg)
-
-    def process_timestamp(self, msg):
-        """ Invoked upon each tick of the simulator. This callback is used to
-        flow watermarks to the downstream operators.
-
-        Since multiple lane-invasion events can be published by Carla for a
-        single timestamp, we need to wait till the next tick of the simulator
-        to be sure that all the lane-invasion events for the previous timestamp
-        have been sent to downstream operators.
-
-        Args:
-            msg (:py:class:`carla.WorldSettings`): A snapshot of the world at
-            the given tick. We use this to retrieve the timestamp of the
-            simulator.
-        """
-        sim_time = int(msg.elapsed_seconds * 1000)
-        if self._flags.carla_localization_frequency == -1:
-            if not self._first_reading:
-                self._lane_invasion_stream.send(
-                    erdos.WatermarkMessage(
-                        erdos.Timestamp(coordinates=[self._time_to_close])))
-            self._first_reading = False
-            self._time_to_close = sim_time
-        else:
-            # Ensure that the sensor issues watermarks at the same frequency
-            # at which pose watermarks are issued. This is needed because
-            # the loggers synchronize on both pose and lane invasion info.
-            if self._first_reading:
-                self._first_reading = False
-                self._time_to_close = sim_time
-                self._next_time_to_close = sim_time + int(
-                    1.0 / self._flags.carla_fps * 1000)
-            else:
-                self._lane_invasion_stream.send(
-                    erdos.WatermarkMessage(
-                        erdos.Timestamp(coordinates=[self._time_to_close])))
-                self._time_to_close = self._next_time_to_close
-                self._next_time_to_close += int(
-                    1.0 / self._flags.carla_localization_frequency * 1000)
+        # TODO(ionel): This code will fail if process_lane_invasion is
+        # called twice for the same timestamp.
+        self._lane_invasion_stream.send(erdos.WatermarkMessage(timestamp))

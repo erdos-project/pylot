@@ -30,14 +30,9 @@ class CarlaCollisionSensorDriverOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
-
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None
         self._collision_sensor = None
-
-        # Keep track of the last timestamp that we need to close.
-        self._first_reading = True
-        self._time_to_close = None
 
     @staticmethod
     def connect(ground_vehicle_id_stream):
@@ -70,9 +65,6 @@ class CarlaCollisionSensorDriverOperator(erdos.Operator):
         # Register the callback on the collision sensor.
         self._collision_sensor.listen(self.process_collision)
 
-        # Register an on_tick function to flow watermarks.
-        world.on_tick(self.process_timestamp)
-
     def process_collision(self, collision_event):
         """ Invoked when a collision event is received from the simulation.
 
@@ -95,42 +87,7 @@ class CarlaCollisionSensorDriverOperator(erdos.Operator):
 
         # Send the CollisionMessage.
         self._collision_stream.send(msg)
-
-    def process_timestamp(self, msg):
-        """ Invoked upon each tick of the simulator. This callback is used to
-        flow watermarks to the downstream operators.
-
-        Since multiple collision events can be published by Carla for a single
-        timestamp, we need to wait till the next tick of the simulator to be
-        sure that all the collision events for the previous timestamp have
-        been sent to downstream operators.
-
-        Args:
-            msg (:py:class:`carla.WorldSettings`): A snapshot of the world at
-            the given tick. We use this to retrieve the timestamp of the
-            simulator.
-        """
-        sim_time = int(msg.elapsed_seconds * 1000)
-        if self._flags.carla_localization_frequency == -1:
-            if not self._first_reading:
-                self._collision_stream.send(
-                    erdos.WatermarkMessage(
-                        erdos.Timestamp(coordinates=[self._time_to_close])))
-            self._first_reading = False
-            self._time_to_close = sim_time
-        else:
-            # Ensure that the sensor issues watermarks at the same frequency
-            # at which pose watermarks are issued. This is needed because
-            # the loggers synchronize on both pose and collision info.
-            if self._first_reading:
-                self._first_reading = False
-                self._time_to_close = sim_time
-                self._next_time_to_close = sim_time + int(
-                    1.0 / self._flags.carla_fps * 1000)
-            else:
-                self._collision_stream.send(
-                    erdos.WatermarkMessage(
-                        erdos.Timestamp(coordinates=[self._time_to_close])))
-                self._time_to_close = self._next_time_to_close
-                self._next_time_to_close += int(
-                    1.0 / self._flags.carla_localization_frequency * 1000)
+        # TODO(ionel): This code will fail if process_collision is called twice
+        # for the same timestamp (i.e., if the vehicle collides with two other
+        # actors)
+        self._collision_stream.send(erdos.WatermarkMessage(timestamp))
