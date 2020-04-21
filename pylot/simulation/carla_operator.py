@@ -28,18 +28,18 @@ class CarlaOperator(erdos.Operator):
         _world: A handle to the world running inside the simulation.
         _vehicles: A list of identifiers of the vehicles inside the simulation.
     """
-
-    def __init__(self, control_stream, notify_stream, pose_stream,
-                 pose_stream_for_control, ground_traffic_lights_stream,
-                 ground_obstacles_stream, ground_speed_limit_signs_stream,
-                 ground_stop_signs_stream, vehicle_id_stream,
-                 open_drive_stream, global_trajectory_stream,
-                 release_sensor_stream, flags):
+    def __init__(self, control_stream, notify_stream1, notify_stream2,
+                 pose_stream, pose_stream_for_control,
+                 ground_traffic_lights_stream, ground_obstacles_stream,
+                 ground_speed_limit_signs_stream, ground_stop_signs_stream,
+                 vehicle_id_stream, open_drive_stream,
+                 global_trajectory_stream, release_sensor_stream, flags):
         if flags.random_seed:
             random.seed(flags.random_seed)
         # Register callback on control stream.
         control_stream.add_callback(self.on_control_msg)
-        erdos.add_watermark_callback([notify_stream], [release_sensor_stream],
+        erdos.add_watermark_callback([notify_stream1, notify_stream2],
+                                     [release_sensor_stream],
                                      self.on_sensor_notify)
         self.pose_stream = pose_stream
         self.pose_stream_for_control = pose_stream_for_control
@@ -112,7 +112,7 @@ class CarlaOperator(erdos.Operator):
         self._control_msgs = {}
 
     @staticmethod
-    def connect(control_stream, notify_stream):
+    def connect(control_stream, notify_stream1, notify_stream2):
         pose_stream = erdos.WriteStream()
         pose_stream_for_control = erdos.WriteStream()
         ground_traffic_lights_stream = erdos.WriteStream()

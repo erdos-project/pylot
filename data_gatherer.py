@@ -59,7 +59,7 @@ def main(argv):
         global_trajectory_stream,
         release_sensor_stream,
     ) = pylot.operator_creator.add_carla_bridge(control_loop_stream,
-                                                notify_stream)
+                                                notify_stream, notify_stream)
 
     # Add sensors.
     (center_camera_stream, notify_rgb_stream,

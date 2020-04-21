@@ -21,19 +21,21 @@ def driver():
 
     control_loop_stream = erdos.LoopStream()
     time_to_decision_loop_stream = erdos.LoopStream()
-    notify_stream = erdos.LoopStream()
+    notify_stream1 = erdos.LoopStream()
+    notify_stream2 = erdos.LoopStream()
     # Create carla operator.
     (pose_stream, pose_stream_for_control, ground_traffic_lights_stream,
      ground_obstacles_stream, ground_speed_limit_signs_stream,
      ground_stop_signs_stream, vehicle_id_stream, open_drive_stream,
      global_trajectory_stream,
      release_sensor_stream) = pylot.operator_creator.add_carla_bridge(
-         control_loop_stream, notify_stream)
+         control_loop_stream, notify_stream1, notify_stream2)
 
     # Add sensors.
     (center_camera_stream, notify_rgb_stream,
      rgb_camera_setup) = pylot.operator_creator.add_rgb_camera(
          transform, vehicle_id_stream, release_sensor_stream)
+    notify_stream1.set(notify_rgb_stream)
     if pylot.flags.must_add_depth_camera_sensor():
         (depth_camera_stream, notify_depth_stream,
          depth_camera_setup) = pylot.operator_creator.add_depth_camera(
@@ -58,10 +60,10 @@ def driver():
     if FLAGS.obstacle_location_finder_sensor == 'lidar':
         depth_stream = point_cloud_stream
         # Camera sensors are slower than the lidar sensor.
-        notify_stream.set(notify_rgb_stream)
+        notify_stream2.set(notify_lidar_stream)
     elif FLAGS.obstacle_location_finder_sensor == 'depth_camera':
         depth_stream = depth_camera_stream
-        notify_stream.set(notify_depth_stream)
+        notify_stream2.set(notify_depth_stream)
     else:
         raise ValueError(
             'Unknown --obstacle_location_finder_sensor value {}'.format(
@@ -147,8 +149,8 @@ def driver():
         # Add the evaluation logger.
         pylot.operator_creator.add_eval_metric_logging(
             collision_stream, lane_invasion_stream,
-            traffic_light_invasion_stream, imu_stream,
-            pose_stream, obstacle_stream)
+            traffic_light_invasion_stream, imu_stream, pose_stream,
+            obstacle_stream)
 
         # Add control evaluation logging operator.
         pylot.operator_creator.add_control_evaluation(
