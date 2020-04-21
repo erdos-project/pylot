@@ -45,7 +45,8 @@ def main(argv):
                                       pylot.utils.Rotation())
 
     control_loop_stream = erdos.LoopStream()
-    notify_stream = erdos.LoopStream()
+    release_sensor_stream = erdos.IngestStream()
+    notify_streams = []
     # Create carla operator.
     (
         pose_stream,
@@ -57,15 +58,16 @@ def main(argv):
         vehicle_id_stream,
         open_drive_stream,
         global_trajectory_stream,
-        release_sensor_stream,
     ) = pylot.operator_creator.add_carla_bridge(control_loop_stream,
-                                                notify_stream, notify_stream)
+                                                release_sensor_stream)
 
     # Add sensors.
     (center_camera_stream, notify_rgb_stream,
      rgb_camera_setup) = pylot.operator_creator.add_rgb_camera(
          transform, vehicle_id_stream, release_sensor_stream)
-    notify_stream.set(notify_rgb_stream)
+    # Need to sync on a single stream only, add it twice.
+    notify_streams.append(notify_rgb_stream)
+    notify_streams.append(notify_rgb_stream)
     (depth_camera_stream, _,
      depth_camera_setup) = pylot.operator_creator.add_depth_camera(
          transform, vehicle_id_stream, release_sensor_stream)
@@ -223,7 +225,11 @@ def main(argv):
         )
 
     # Run the data-flow.
-    erdos.run()
+    erdos.run_async()
+
+    # Ask all sensors to release their data.
+    release_sensor_stream.send(
+        erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
 
 if __name__ == '__main__':

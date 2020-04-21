@@ -48,25 +48,31 @@ def main(argv):
                                       pylot.utils.Rotation())
 
     control_loop_stream = erdos.LoopStream()
-    notify_stream1 = erdos.LoopStream()
-    notify_stream2 = erdos.LoopStream()
+    release_sensor_stream = erdos.IngestStream()
+    notify_streams = []
     # Create carla operator.
-    (pose_stream, pose_stream_for_control, ground_traffic_lights_stream,
-     ground_obstacles_stream, ground_speed_limit_signs_stream,
-     ground_stop_signs_stream, vehicle_id_stream, open_drive_stream,
-     global_trajectory_stream,
-     release_sensor_stream) = pylot.operator_creator.add_carla_bridge(
-         control_loop_stream, notify_stream1, notify_stream2)
+    (
+        pose_stream,
+        pose_stream_for_control,
+        ground_traffic_lights_stream,
+        ground_obstacles_stream,
+        ground_speed_limit_signs_stream,
+        ground_stop_signs_stream,
+        vehicle_id_stream,
+        open_drive_stream,
+        global_trajectory_stream,
+    ) = pylot.operator_creator.add_carla_bridge(control_loop_stream,
+                                                release_sensor_stream)
 
     # Add camera sensors.
     (center_camera_stream, notify_rgb_stream,
      rgb_camera_setup) = pylot.operator_creator.add_rgb_camera(
          transform, vehicle_id_stream, release_sensor_stream)
-    notify_stream1.set(notify_rgb_stream)
+    notify_streams.append(notify_rgb_stream)
     (depth_camera_stream, notify_depth_stream,
      depth_camera_setup) = pylot.operator_creator.add_depth_camera(
          transform, vehicle_id_stream, release_sensor_stream)
-    notify_stream2.set(notify_depth_stream)
+    notify_streams.append(notify_depth_stream)
     (segmented_stream, _,
      _) = pylot.operator_creator.add_segmented_camera(transform,
                                                       vehicle_id_stream,
@@ -104,7 +110,11 @@ def main(argv):
             "Must be in auto pilot mode. Pass --control_agent=carla_auto_pilot"
         )
 
-    erdos.run()
+    erdos.run_async()
+
+    # Ask all sensors to release their data.
+    release_sensor_stream.send(
+        erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
 
 if __name__ == '__main__':
