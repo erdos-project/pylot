@@ -177,7 +177,7 @@ class EvalMetricLoggerOperator(erdos.Operator):
 
         self._csv_logger.info('{},{},pose,global,{}'.format(
             time_epoch_ms(), msg.timestamp.coordinates[0],
-            "[{:.4f}, {:.4f}, {:.4f}]".format(x, y, z)))
+            "[{:.4f} {:.4f} {:.4f}]".format(x, y, z)))
 
     def on_obstacle_update(self, msg):
         for obstacle in msg.obstacles:
@@ -188,5 +188,5 @@ class EvalMetricLoggerOperator(erdos.Operator):
 
             self._csv_logger.info('{},{},obstacle,{},{}'.format(
                 time_epoch_ms(), msg.timestamp.coordinates[0],
-                "[{}, {}]".format(obstacle.id, obstacle.label),
-                "[{:.4f}, {:.4f}, {:.4f}]".format(x, y, z)))
+                "[{} {}]".format(obstacle.id, obstacle.label),
+                "[{:.4f} {:.4f} {:.4f}]".format(x, y, z)))
