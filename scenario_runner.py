@@ -146,9 +146,6 @@ def driver():
         collision_stream = pylot.operator_creator.add_collision_sensor(
             vehicle_id_stream)
 
-        pylot.operator_creator.add_carla_collision_logging(
-            collision_stream, pose_stream)
-
         # Add the lane invasion sensor.
         lane_invasion_stream = pylot.operator_creator.add_lane_invasion_sensor(
             vehicle_id_stream)

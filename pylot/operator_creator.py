@@ -704,25 +704,6 @@ def add_chauffeur_logging(vehicle_id_stream, pose_stream,
     ], FLAGS, top_down_camera_setup)
 
 
-def add_carla_collision_logging(collision_stream, pose_stream):
-    """ Adds a collision message logger to the pipeline.
-
-    Args:
-        collision_stream (:py:class:`erdos.ReadStream`): Stream on which the
-            collision events are received.
-        pose_stream (:py:class:`erdos.ReadStream`): Stream on which the
-            current transforms of the ego-vehicle are published.
-    """
-    from pylot.loggers.carla_collision_logger_operator import \
-        CarlaCollisionLoggerOperator
-    op_config = erdos.OperatorConfig(name='carla_collision_logger_operator',
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(CarlaCollisionLoggerOperator, op_config,
-                  [collision_stream, pose_stream], FLAGS)
-
-
 def add_eval_metric_logging(collision_stream, lane_invasion_stream,
                             traffic_light_invasion_stream, imu_stream,
                             pose_stream, obstacle_stream):
