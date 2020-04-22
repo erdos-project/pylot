@@ -8,15 +8,14 @@ import pylot.utils
 FLAGS = flags.FLAGS
 
 
-def add_carla_bridge(control_stream, notify_stream1, notify_stream2):
+def add_carla_bridge(control_stream, sensor_ready_stream):
     from pylot.simulation.carla_operator import CarlaOperator
     op_config = erdos.OperatorConfig(name='carla_operator',
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
     return erdos.connect(CarlaOperator, op_config,
-                         [control_stream, notify_stream1, notify_stream2],
-                         FLAGS)
+                         [control_stream, sensor_ready_stream], FLAGS)
 
 
 def add_efficientdet_obstacle_detection(camera_stream, csv_file_name=None):
@@ -653,7 +652,8 @@ def add_synchronizer(stream_to_sync_on):
 
 
 def add_planning_pose_synchronizer(waypoint_stream, pose_stream,
-                                   localization_stream):
+                                   localization_stream, notify_stream1,
+                                   notify_stream2):
     from pylot.simulation.planning_pose_synchronizer_operator import \
         PlanningPoseSynchronizerOperator
     op_config = erdos.OperatorConfig(
@@ -662,9 +662,10 @@ def add_planning_pose_synchronizer(waypoint_stream, pose_stream,
         log_file_name=FLAGS.log_file_name,
         csv_log_file_name=FLAGS.csv_log_file_name,
         profile_file_name=FLAGS.profile_file_name)
-    return erdos.connect(PlanningPoseSynchronizerOperator, op_config,
-                         [waypoint_stream, pose_stream, localization_stream],
-                         FLAGS)
+    return erdos.connect(PlanningPoseSynchronizerOperator, op_config, [
+        waypoint_stream, pose_stream, localization_stream, notify_stream1,
+        notify_stream2
+    ], FLAGS)
 
 
 def add_bounding_box_logging(obstacles_stream,
@@ -753,7 +754,7 @@ def add_lidar_logging(point_cloud_stream,
 
 
 def add_multiple_object_tracker_logging(
-    obstacles_stream, name='multiple_object_tracker_logger_operator'):
+        obstacles_stream, name='multiple_object_tracker_logger_operator'):
     from pylot.loggers.multiple_object_tracker_logger_operator import \
         MultipleObjectTrackerLoggerOperator
     op_config = erdos.OperatorConfig(name=name,
