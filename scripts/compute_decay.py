@@ -49,7 +49,6 @@ def main(argv):
 
     control_loop_stream = erdos.LoopStream()
     release_sensor_stream = erdos.IngestStream()
-    notify_streams = []
     # Create carla operator.
     (
         pose_stream,
@@ -68,11 +67,9 @@ def main(argv):
     (center_camera_stream, notify_rgb_stream,
      rgb_camera_setup) = pylot.operator_creator.add_rgb_camera(
          transform, vehicle_id_stream, release_sensor_stream)
-    notify_streams.append(notify_rgb_stream)
     (depth_camera_stream, notify_depth_stream,
      depth_camera_setup) = pylot.operator_creator.add_depth_camera(
          transform, vehicle_id_stream, release_sensor_stream)
-    notify_streams.append(notify_depth_stream)
     (segmented_stream, _,
      _) = pylot.operator_creator.add_segmented_camera(transform,
                                                       vehicle_id_stream,
