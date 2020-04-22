@@ -249,9 +249,11 @@ class CarlaOperator(erdos.Operator):
         else:
             self._next_control_sensor_reading = (
                 game_time + int(1000 / self._flags.carla_fps))
-        heapq.heappush(
-            self._tick_events,
-            (self._next_control_sensor_reading, TickEvent.SENSOR_READ))
+        if (self._next_control_sensor_reading !=
+                self._next_localization_sensor_reading):
+            heapq.heappush(
+                self._tick_events,
+                (self._next_control_sensor_reading, TickEvent.SENSOR_READ))
 
     def run(self):
         self.__send_world_data()
