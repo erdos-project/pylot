@@ -21,21 +21,28 @@ def driver():
 
     control_loop_stream = erdos.LoopStream()
     time_to_decision_loop_stream = erdos.LoopStream()
-    notify_stream1 = erdos.LoopStream()
-    notify_stream2 = erdos.LoopStream()
+    release_sensor_stream = erdos.LoopStream()
+    notify_streams = []
+
     # Create carla operator.
-    (pose_stream, pose_stream_for_control, ground_traffic_lights_stream,
-     ground_obstacles_stream, ground_speed_limit_signs_stream,
-     ground_stop_signs_stream, vehicle_id_stream, open_drive_stream,
-     global_trajectory_stream,
-     release_sensor_stream) = pylot.operator_creator.add_carla_bridge(
-         control_loop_stream, notify_stream1, notify_stream2)
+    (
+        pose_stream,
+        pose_stream_for_control,
+        ground_traffic_lights_stream,
+        ground_obstacles_stream,
+        ground_speed_limit_signs_stream,
+        ground_stop_signs_stream,
+        vehicle_id_stream,
+        open_drive_stream,
+        global_trajectory_stream,
+    ) = pylot.operator_creator.add_carla_bridge(control_loop_stream,
+                                                release_sensor_stream)
 
     # Add sensors.
     (center_camera_stream, notify_rgb_stream,
      rgb_camera_setup) = pylot.operator_creator.add_rgb_camera(
          transform, vehicle_id_stream, release_sensor_stream)
-    notify_stream1.set(notify_rgb_stream)
+    notify_streams.append(notify_rgb_stream)
     if pylot.flags.must_add_depth_camera_sensor():
         (depth_camera_stream, notify_depth_stream,
          depth_camera_setup) = pylot.operator_creator.add_depth_camera(
@@ -60,10 +67,10 @@ def driver():
     if FLAGS.obstacle_location_finder_sensor == 'lidar':
         depth_stream = point_cloud_stream
         # Camera sensors are slower than the lidar sensor.
-        notify_stream2.set(notify_lidar_stream)
+        notify_streams.append(notify_lidar_stream)
     elif FLAGS.obstacle_location_finder_sensor == 'depth_camera':
         depth_stream = depth_camera_stream
-        notify_stream2.set(notify_depth_stream)
+        notify_streams.append(notify_depth_stream)
     else:
         raise ValueError(
             'Unknown --obstacle_location_finder_sensor value {}'.format(
@@ -120,12 +127,18 @@ def driver():
 
     # Add a synchronizer in the pseudo-asynchronous mode.
     if FLAGS.carla_mode == "pseudo-asynchronous":
-        (waypoints_stream_for_control, pose_stream_for_control
-         ) = pylot.operator_creator.add_planning_pose_synchronizer(
-             waypoints_stream, pose_stream_for_control, pose_stream)
+        (
+            waypoints_stream_for_control,
+            pose_stream_for_control,
+            sensor_ready_stream,
+        ) = pylot.operator_creator.add_planning_pose_synchronizer(
+            waypoints_stream, pose_stream_for_control, pose_stream,
+            *notify_streams)
+        release_sensor_stream.set(sensor_ready_stream)
     else:
         waypoints_stream_for_control = waypoints_stream
         pose_stream_for_control = pose_stream
+        release_sensor_stream.set(erdos.IngestStream())
 
     # Add the behaviour planning and control operator.
     control_stream = pylot.component_creator.add_control(
@@ -165,7 +178,13 @@ def driver():
                                                   point_cloud_stream,
                                                   ground_segmented_stream,
                                                   imu_stream, pose_stream)
-    erdos.run()
+    erdos.run_async()
+
+    # If we did not use the pseudo-asynchronous mode, ask the sensors to
+    # release their readings whenever.
+    if FLAGS.carla_mode != "pseudo-asynchronous":
+        release_sensor_stream.send(
+            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
 
 def main(args):

@@ -29,19 +29,28 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
         localization_read_stream (:py:class:`erdos.ReadStream`): Stream on
             which the localization messages that would trigger a future
             waypoint update are received.
+        notify_stream1 (:py:class:`erdos.ReadStream`): Stream on which the
+            notifications from the first sensor are received.
+        notify_stream2 (:py:class:`erdos.ReadStream`): Stream on which the
+            notifications from the second sensor are received.
         waypoints_write_stream (:py:class:`erdos.WriteStream`): Stream on which
             the waypoints matched to the given pose message are sent to the
             downstream control operator.
         pose_write_stream (:py:class:`erdos.WriteStream`): Stream that relays
             the pose messages from the CarlaOperator to the control module.
     """
+
     def __init__(self, waypoints_read_stream, pose_read_stream,
-                 localization_pose_stream, waypoints_write_stream,
-                 pose_write_stream, flags):
+                 localization_pose_stream, notify_stream1, notify_stream2,
+                 waypoints_write_stream, pose_write_stream,
+                 release_sensor_stream, flags):
         # Register callbacks on both the waypoints and the pose stream.
         waypoints_read_stream.add_callback(self.on_waypoints_update)
         pose_read_stream.add_callback(self.on_pose_update)
         localization_pose_stream.add_callback(self.on_localization_update)
+        erdos.add_watermark_callback([notify_stream1, notify_stream2],
+                                     [release_sensor_stream],
+                                     self.on_sensor_ready)
 
         # Register watermark callback on pose and the joined stream.
         erdos.add_watermark_callback(
@@ -69,10 +78,13 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
 
     @staticmethod
     def connect(waypoints_read_stream, pose_read_stream,
-                localization_pose_stream):
+                localization_pose_stream, notify_stream1, notify_stream2):
         waypoints_write_stream = erdos.WriteStream()
         pose_write_stream = erdos.WriteStream()
-        return [waypoints_write_stream, pose_write_stream]
+        release_sensor_stream = erdos.WriteStream()
+        return [
+            waypoints_write_stream, pose_write_stream, release_sensor_stream
+        ]
 
     def on_waypoints_update(self, msg):
         """ Invoked upon receipt of a waypoints message from the pipeline.
@@ -245,3 +257,18 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
         # Retrieve the game time.
         game_time = timestamp.coordinates[0]
         del self._pose_map[game_time]
+
+    def on_sensor_ready(self, timestamp, release_sensor_stream):
+        """ Invoked upon receipt of a notification of the sensors being
+        ready for the given timestamp.
+
+        Releases a watermark on the release_sensor_stream to notify all the
+        sensors to release their data for the given timestamp.
+
+        Args:
+            timestamp (:py:class:`erdos.Timestamp`): The timestamp of the
+                watermark.
+            sensor_ready_stream (:py:class:`erdos.WriteStream`): The stream
+                on which to write the notification.
+        """
+        release_sensor_stream.send(erdos.WatermarkMessage(timestamp))
