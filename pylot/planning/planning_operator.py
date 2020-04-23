@@ -174,7 +174,6 @@ class PlanningOperator(erdos.Operator):
                             max(start_transform[0].x, end_transform[0].x),
                             max(start_transform[0].y, end_transform[0].y)
                         ])
-
         if len(obstacle_list) == 0:
             return np.empty((0, 4))
 
