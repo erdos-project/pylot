@@ -58,7 +58,7 @@ class FOTPlanningOperator(PlanningOperator):
             "mint": flags.mint,
             "d_t_s": flags.d_t_s,
             "n_s_sample": flags.n_s_sample,
-            "obstacle_radius": flags.obstacle_radius,
+            "obstacle_clearance": flags.obstacle_clearance_fot,
             "kd": flags.kd,
             "kv": flags.kv,
             "ka": flags.ka,
@@ -81,7 +81,7 @@ class FOTPlanningOperator(PlanningOperator):
 
         # get obstacles
         prediction_msg = self._prediction_msgs.popleft()
-        obstacle_list = self._build_obstacle_list(vehicle_transform,
+        obstacle_list = self.build_obstacle_list(vehicle_transform,
                                                   prediction_msg)
         # update waypoints
         if not self._waypoints:
@@ -148,8 +148,9 @@ class FOTPlanningOperator(PlanningOperator):
             timestamp, self._hyperparameters))
 
         # construct and send waypoint message
-        waypoints_message = self._construct_waypoints(timestamp, path_x,
-                                                      path_y, speeds, success)
+        waypoints_message = self._construct_waypoints(timestamp, pose_msg,
+                                                      path_x, path_y, speeds,
+                                                      success)
         waypoints_stream.send(waypoints_message)
 
     def _compute_initial_conditions(self, pose_msg, obstacle_list):
@@ -192,7 +193,7 @@ class FOTPlanningOperator(PlanningOperator):
         }
         return initial_conditions
 
-    def _construct_waypoints(self, timestamp, path_x, path_y, speeds, success):
+    def _construct_waypoints(self, timestamp, pose_msg, path_x, path_y, speeds, success):
         """
         Convert the optimal frenet path into a waypoints message.
         """
@@ -201,8 +202,18 @@ class FOTPlanningOperator(PlanningOperator):
         if not success:
             self._logger.debug("@{}: Frenet Optimal Trajectory failed. "
                                "Sending emergency stop.".format(timestamp))
-            for wp in itertools.islice(self._prev_waypoints, 0,
-                                       self._flags.num_waypoints_ahead):
+            x = pose_msg.data.transform.location.x
+            y = pose_msg.data.transform.location.y
+            current_index = 0
+            min_dist = np.infty
+            for i, wp in enumerate(self._prev_waypoints):
+                dist = np.linalg.norm([wp.location.x - x, wp.location.y - y])
+                if dist <= min_dist:
+                    current_index = i
+                    min_dist = dist
+            for wp in itertools.islice(
+                    self._prev_waypoints, current_index,
+                    current_index + self._flags.num_waypoints_ahead):
                 path_transforms.append(wp)
                 target_speeds.append(0)
         else:
@@ -224,27 +235,3 @@ class FOTPlanningOperator(PlanningOperator):
         waypoints = deque(path_transforms)
         self._prev_waypoints = waypoints
         return WaypointsMessage(timestamp, waypoints, target_speeds)
-
-    def _build_obstacle_list(self, vehicle_transform, prediction_msg):
-        """
-        Construct an obstacle list of proximal objects given vehicle_transform.
-        """
-        obstacle_list = []
-        # look over all predictions
-        for prediction in prediction_msg.predictions:
-            # use all prediction times as potential obstacles
-            for transform in prediction.trajectory:
-                global_obstacle = vehicle_transform * transform
-                obstacle_origin = [
-                    global_obstacle.location.x, global_obstacle.location.y
-                ]
-                dist_to_ego = np.linalg.norm([
-                    vehicle_transform.location.x - obstacle_origin[0],
-                    vehicle_transform.location.y - obstacle_origin[1]
-                ])
-                if dist_to_ego < self._flags.distance_threshold:
-                    obstacle_list.append(obstacle_origin)
-
-        if len(obstacle_list) == 0:
-            return np.empty((0, 2))
-        return np.array(obstacle_list)

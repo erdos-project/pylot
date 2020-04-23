@@ -9,7 +9,6 @@ import erdos
 
 import numpy as np
 
-from pylot.perception.detection.obstacle import BoundingBox3D
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.planning_operator import PlanningOperator
 from pylot.planning.hybrid_astar.hybrid_astar_planner.HybridAStar.hybrid_astar_wrapper \
@@ -69,7 +68,7 @@ class HybridAStarPlanningOperator(PlanningOperator):
 
         # get obstacles
         prediction_msg = self._prediction_msgs.popleft()
-        obstacle_list = self._build_obstacle_list(vehicle_transform,
+        obstacle_list = self.build_obstacle_list(vehicle_transform,
                                                   prediction_msg)
 
         # update waypoints
@@ -187,60 +186,3 @@ class HybridAStarPlanningOperator(PlanningOperator):
         waypoints = deque(path_transforms)
         self._prev_waypoints = waypoints
         return WaypointsMessage(timestamp, waypoints, target_speeds)
-
-    def _build_obstacle_list(self, vehicle_transform, prediction_msg):
-        """
-        Construct an obstacle list of proximal objects given vehicle_transform.
-        """
-        obstacle_list = []
-        # look over all predictions
-        for prediction in prediction_msg.predictions:
-            # use all prediction times as potential obstacles
-            for transform in prediction.trajectory:
-                global_obstacle = vehicle_transform * transform
-                obstacle_origin = [
-                    global_obstacle.location.x, global_obstacle.location.y
-                ]
-                dist_to_ego = np.linalg.norm([
-                    vehicle_transform.location.x - obstacle_origin[0],
-                    vehicle_transform.location.y - obstacle_origin[1]
-                ])
-                if dist_to_ego < self._flags.distance_threshold:
-                    # use 3d bounding boxes if available, otherwise use default
-                    if isinstance(prediction.bounding_box, BoundingBox3D):
-                        start_location = \
-                            prediction.bounding_box.transform.location - \
-                            prediction.bounding_box.extent
-                        end_location = \
-                            prediction.bounding_box.transform.location + \
-                            prediction.bounding_box.extent
-                        start_transform = global_obstacle.transform_locations(
-                            [start_location])
-                        end_transform = global_obstacle.transform_locations(
-                            [end_location])
-                    else:
-                        start_transform = [
-                            Location(
-                                obstacle_origin[0] -
-                                self._flags.obstacle_radius,
-                                obstacle_origin[1] -
-                                self._flags.obstacle_radius, 0)
-                        ]
-                        end_transform = [
-                            Location(
-                                obstacle_origin[0] +
-                                self._flags.obstacle_radius,
-                                obstacle_origin[1] +
-                                self._flags.obstacle_radius, 0)
-                        ]
-                    obstacle_list.append([
-                        min(start_transform[0].x, end_transform[0].x),
-                        min(start_transform[0].y, end_transform[0].y),
-                        max(start_transform[0].x, end_transform[0].x),
-                        max(start_transform[0].y, end_transform[0].y)
-                    ])
-
-        if len(obstacle_list) == 0:
-            return np.empty((0, 4))
-
-        return np.array(obstacle_list)

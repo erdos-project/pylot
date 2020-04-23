@@ -9,6 +9,7 @@ flags.DEFINE_float(
     'Target speed in m/s , could be controlled by the speed limit')
 flags.DEFINE_float('distance_threshold', 30.0,
                    'Max distance to consider obstacles[m]')
+flags.DEFINE_float('obstacle_radius', 1.0, 'Default obstacle radius [m]')
 flags.DEFINE_integer('num_waypoints_ahead', 60,
                      'Number of ahead waypoints to plan for')
 flags.DEFINE_integer('num_waypoints_behind', 30,
