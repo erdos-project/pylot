@@ -41,7 +41,10 @@ def driver():
                                       pylot.utils.Rotation())
     control_loop_stream = erdos.LoopStream()
     time_to_decision_loop_stream = erdos.LoopStream()
-    release_sensor_stream = erdos.LoopStream()
+    if FLAGS.carla_mode == 'pseudo-asynchronous':
+        release_sensor_stream = erdos.LoopStream()
+    else:
+        release_sensor_stream = erdos.IngestStream()
     notify_streams = []
     # Create carla operator.
     (
@@ -146,7 +149,6 @@ def driver():
             release_sensor_stream.set(sensor_ready_stream)
         else:
             pose_stream_for_control = pose_stream
-            release_sensor_stream.set(erdos.IngestStream())
         # Add the behaviour planning and control operator.
         control_stream = pylot.component_creator.add_control(
             pose_stream_for_control, waypoints_stream_for_control)
