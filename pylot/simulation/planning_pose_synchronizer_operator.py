@@ -39,7 +39,6 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
         pose_write_stream (:py:class:`erdos.WriteStream`): Stream that relays
             the pose messages from the CarlaOperator to the control module.
     """
-
     def __init__(self, waypoints_read_stream, pose_read_stream,
                  localization_pose_stream, notify_stream1, notify_stream2,
                  waypoints_write_stream, pose_write_stream,
@@ -56,9 +55,6 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
         erdos.add_watermark_callback(
             [pose_read_stream], [waypoints_write_stream, pose_write_stream],
             self.on_pose_watermark)
-        erdos.add_watermark_callback([
-            pose_read_stream, localization_pose_stream, waypoints_read_stream
-        ], [], self.on_watermark)
 
         # Save the write streams.
         self._waypoints_write_stream = waypoints_write_stream
@@ -145,6 +141,9 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
                 "@[{}]: the waypoints were adjusted by the localization "
                 "frequency and will be applicable at {}".format(
                     msg.timestamp, applicable_time))
+
+        # Delete the pose from the map.
+        del self._pose_map[game_time]
 
     def on_pose_update(self, msg):
         """ Invoked when we receive a pose message from the simulation.
@@ -241,21 +240,7 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
         pose_stream.send(pose_msg)
         pose_stream.send(watermark)
         waypoint_stream.send(watermark)
-
-    def on_watermark(self, timestamp):
-        """ Invoked upon the receipt of a watermark on both the waypoint and
-        the pose stream.
-
-        This callback aims to clear the pose_map.
-
-        Args:
-            timestamp (:py:class:`erdos.Timestamp`): The timestamp of the
-                watermark.
-        """
-        self._logger.info("@[{}]: received join watermark".format(timestamp))
-
-        # Retrieve the game time.
-        game_time = timestamp.coordinates[0]
+        # Clean up the pose from the dict.
         del self._pose_map[game_time]
 
     def on_sensor_ready(self, timestamp, release_sensor_stream):
