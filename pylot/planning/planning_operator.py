@@ -125,49 +125,55 @@ class PlanningOperator(erdos.Operator):
         # look over all predictions
         for prediction in prediction_msg.predictions:
             # use all prediction times as potential obstacles
+            previous_origin = None
             for transform in prediction.trajectory:
                 global_obstacle = vehicle_transform * transform
-                obstacle_origin = [
+                obstacle_origin = np.array([
                     global_obstacle.location.x, global_obstacle.location.y
-                ]
-                dist_to_ego = np.linalg.norm([
-                    vehicle_transform.location.x - obstacle_origin[0],
-                    vehicle_transform.location.y - obstacle_origin[1]
                 ])
-                if dist_to_ego < self._flags.distance_threshold:
-                    # use 3d bounding boxes if available, otherwise use default
-                    if isinstance(prediction.bounding_box, BoundingBox3D):
-                        start_location = \
-                            prediction.bounding_box.transform.location - \
-                            prediction.bounding_box.extent
-                        end_location = \
-                            prediction.bounding_box.transform.location + \
-                            prediction.bounding_box.extent
-                        start_transform = global_obstacle.transform_locations(
-                            [start_location])
-                        end_transform = global_obstacle.transform_locations(
-                            [end_location])
-                    else:
-                        start_transform = [
-                            Location(
-                                obstacle_origin[0] -
-                                self._flags.obstacle_radius,
-                                obstacle_origin[1] -
-                                self._flags.obstacle_radius, 0)
-                        ]
-                        end_transform = [
-                            Location(
-                                obstacle_origin[0] +
-                                self._flags.obstacle_radius,
-                                obstacle_origin[1] +
-                                self._flags.obstacle_radius, 0)
-                        ]
-                    obstacle_list.append([
-                        min(start_transform[0].x, end_transform[0].x),
-                        min(start_transform[0].y, end_transform[0].y),
-                        max(start_transform[0].x, end_transform[0].x),
-                        max(start_transform[0].y, end_transform[0].y)
+                # distance filtering
+                if previous_origin is None or \
+                    np.linalg.norm(previous_origin - obstacle_origin) > \
+                    self._flags.obstacle_filtering_distance:
+                    previous_origin = obstacle_origin
+                    dist_to_ego = np.linalg.norm([
+                        vehicle_transform.location.x - obstacle_origin[0],
+                        vehicle_transform.location.y - obstacle_origin[1]
                     ])
+                    if dist_to_ego < self._flags.distance_threshold:
+                        # use 3d bounding boxes if available, otherwise use default
+                        if isinstance(prediction.bounding_box, BoundingBox3D):
+                            start_location = \
+                                prediction.bounding_box.transform.location - \
+                                prediction.bounding_box.extent
+                            end_location = \
+                                prediction.bounding_box.transform.location + \
+                                prediction.bounding_box.extent
+                            start_transform = global_obstacle.transform_locations(
+                                [start_location])
+                            end_transform = global_obstacle.transform_locations(
+                                [end_location])
+                        else:
+                            start_transform = [
+                                Location(
+                                    obstacle_origin[0] -
+                                    self._flags.obstacle_radius,
+                                    obstacle_origin[1] -
+                                    self._flags.obstacle_radius, 0)
+                            ]
+                            end_transform = [
+                                Location(
+                                    obstacle_origin[0] +
+                                    self._flags.obstacle_radius,
+                                    obstacle_origin[1] +
+                                    self._flags.obstacle_radius, 0)
+                            ]
+                        obstacle_list.append([
+                            min(start_transform[0].x, end_transform[0].x),
+                            min(start_transform[0].y, end_transform[0].y),
+                            max(start_transform[0].x, end_transform[0].x),
+                            max(start_transform[0].y, end_transform[0].y)
+                        ])
 
         if len(obstacle_list) == 0:
             return np.empty((0, 4))
