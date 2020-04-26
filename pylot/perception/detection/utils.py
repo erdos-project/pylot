@@ -83,6 +83,10 @@ class BoundingBox2D(object):
     def as_width_height_bbox(self):
         return [self.x_min, self.y_min, self.get_width(), self.get_height()]
 
+    def is_within(self, point):
+        return (point.x >= self.x_min and point.x <= self.x_max
+                and point.y >= self.y_min and point.y <= self.y_max)
+
     def calculate_iou(self, other_bbox):
         """Calculate the IoU of a single bounding box.
 
@@ -623,12 +627,26 @@ def get_obstacle_locations(obstacles, depth_msg, ego_transform, camera_setup,
         depth_frame = depth_msg.frame
         depth_frame.camera_setup.set_transform(
             ego_transform * depth_frame.camera_setup.transform)
-        center_points = [
-            obstacle.bounding_box.get_center_point() for obstacle in obstacles
-        ]
-        locations = depth_frame.get_pixel_locations(center_points)
-        for index, obstacle in enumerate(obstacles):
-            obstacle.transform = pylot.utils.Transform(locations[index],
+
+        for obstacle in obstacles:
+            center_point = obstacle.bounding_box.get_center_point()
+            # Sample several points around the center of the bounding box
+            # in case the bounding box is not well centered on the obstacle.
+            # In such situations the center point might be in between legs,
+            # and thus we might overestimate the distance.
+            sample_points = []
+            for delta_x in range(-10, 11, 5):
+                for delta_y in range(-10, 11, 5):
+                    sample_point = center_point + pylot.utils.Vector2D(
+                        delta_x, delta_y)
+                    if obstacle.bounding_box.is_within(sample_point):
+                        sample_points.append(sample_point)
+            locations = depth_frame.get_pixel_locations(sample_points)
+            # Choose the closest from the locations of the sampled points.
+            (min_distance, location) = min(
+                (location.distance(ego_transform.location), location)
+                for location in locations)
+            obstacle.transform = pylot.utils.Transform(location,
                                                        pylot.utils.Rotation())
         return obstacles
     else:
