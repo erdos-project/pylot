@@ -2,17 +2,18 @@
 Author: Edward Fang
 Email: edward.fang@berkeley.edu
 """
-from pylot.perception.detection.obstacle import BoundingBox3D
+from collections import deque
 
 import erdos
 
-from collections import deque
-
 import numpy as np
+
+import pylot.utils
+from pylot.perception.detection.obstacle import BoundingBox3D
 
 
 class PlanningOperator(erdos.Operator):
-    """Base Planning Operator for Carla 0.9.x.
+    """Base Planning Operator.
 
     Args:
         flags: Config flags.
@@ -128,13 +129,12 @@ class PlanningOperator(erdos.Operator):
             previous_origin = None
             for transform in prediction.trajectory:
                 global_obstacle = vehicle_transform * transform
-                obstacle_origin = np.array([
-                    global_obstacle.location.x, global_obstacle.location.y
-                ])
+                obstacle_origin = np.array(
+                    [global_obstacle.location.x, global_obstacle.location.y])
                 # distance filtering
-                if previous_origin is None or \
-                    np.linalg.norm(previous_origin - obstacle_origin) > \
-                    self._flags.obstacle_filtering_distance:
+                if (previous_origin is None
+                        or np.linalg.norm(previous_origin - obstacle_origin) >
+                        self._flags.obstacle_filtering_distance):
                     previous_origin = obstacle_origin
                     dist_to_ego = np.linalg.norm([
                         vehicle_transform.location.x - obstacle_origin[0],
@@ -155,14 +155,14 @@ class PlanningOperator(erdos.Operator):
                                 [end_location])
                         else:
                             start_transform = [
-                                Location(
+                                pylot.utils.Location(
                                     obstacle_origin[0] -
                                     self._flags.obstacle_radius,
                                     obstacle_origin[1] -
                                     self._flags.obstacle_radius, 0)
                             ]
                             end_transform = [
-                                Location(
+                                pylot.utils.Location(
                                     obstacle_origin[0] +
                                     self._flags.obstacle_radius,
                                     obstacle_origin[1] +
