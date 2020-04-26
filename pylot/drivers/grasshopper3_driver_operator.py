@@ -23,6 +23,7 @@ class Grasshopper3DriverOperator(erdos.Operator):
             for camera frames.
         flags (absl.flags): Object to be used to access absl flags.
     """
+
     def __init__(self, camera_stream, camera_setup, topic_name, flags):
         self._camera_stream = camera_stream
         self._camera_setup = camera_setup
@@ -47,8 +48,7 @@ class Grasshopper3DriverOperator(erdos.Operator):
         cv2_image = self._bridge.imgmsg_to_cv2(data, "bgr8")
         resized_image = cv2.resize(
             cv2.flip(cv2_image, -1),
-            (self._flags.camera_image_width,
-             self._flags.camera_image_height))
+            (self._flags.camera_image_width, self._flags.camera_image_height))
         numpy_array = np.asarray(resized_image)
         timestamp = erdos.Timestamp(coordinates=[self._msg_cnt])
         camera_frame = CameraFrame(numpy_array, 'BGR', self._camera_setup)
@@ -61,4 +61,5 @@ class Grasshopper3DriverOperator(erdos.Operator):
     def run(self):
         rospy.init_node(self.config.name, anonymous=True, disable_signals=True)
         rospy.Subscriber(self._topic_name, Image, self.on_camera_frame)
+        print("Spinning now...")
         rospy.spin()

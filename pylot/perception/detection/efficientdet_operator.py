@@ -80,8 +80,9 @@ class EfficientDetOperator(erdos.Operator):
             per_process_gpu_memory_fraction=flags.
             obstacle_detection_gpu_memory_fraction,
             allow_growth=True)
-        self._tf_session = tf.Session(config=tf.ConfigProto(
-            gpu_options=self._gpu_options))
+        self._config = tf.ConfigProto(gpu_options=self._gpu_options)
+        self._config.graph_options.rewrite_options.dependency_optimization = 2
+        self._tf_session = tf.Session(config=self._config)
 
         # Build inputs and preprocessing.
         tf.compat.v1.disable_eager_execution()
@@ -94,6 +95,8 @@ class EfficientDetOperator(erdos.Operator):
         # Build model.
         self._class_outputs, self._box_outputs = infer.build_model(
             model_name, self._images)
+        self.all_outputs = list(self._class_outputs.values()) + list(
+            self._box_outputs.values())
         infer.restore_ckpt(self._tf_session,
                            model_path,
                            enable_ema=True,
@@ -108,7 +111,12 @@ class EfficientDetOperator(erdos.Operator):
                 params, self._class_outputs, self._box_outputs, self._scales)
         else:
             self._detections_batch = infer.det_post_process(
-                params, self._class_outputs, self._box_outputs, self._scales)
+                params,
+                self._class_outputs,
+                self._box_outputs,
+                self._scales,
+                min_score_thresh=flags.obstacle_detection_min_score_threshold,
+                max_boxes_to_draw=anchors.MAX_DETECTIONS_PER_IMAGE)
 
         self._unique_id = 0
 
@@ -139,29 +147,33 @@ class EfficientDetOperator(erdos.Operator):
                 :py:class:`~pylot.perception.messages.ObstaclesMessage`
                 messages.
         """
-        self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.config.name))
+        print('@{}: {} received message'.format(msg.timestamp,
+                                                self.config.name))
         inputs = msg.frame.as_rgb_numpy_array()
 
         results = []
-        start_time = time.time()
         if MODIFIED_AUTOML:
+            start_time = time.time()
             (boxes_np, scores_np, classes_np,
              num_detections_np) = self._tf_session.run(
                  self._detections_batch,
                  feed_dict={self._image_placeholder: inputs})
+            end_time = time.time()
             num_detections = num_detections_np[0]
             boxes = boxes_np[0][:num_detections]
             scores = scores_np[0][:num_detections]
             classes = classes_np[0][:num_detections]
             results = zip(boxes, scores, classes)
         else:
+            start_time = time.time()
             outputs_np = self._tf_session.run(
                 self._detections_batch,
                 feed_dict={self._image_placeholder: inputs})[0]
-            for _, x, y, width, height, score, _class in outputs_np:
-                results.append(((y, x, y + height, x + width), score, _class))
-        end_time = time.time()
+            end_time = time.time()
+            self._csv_logger.info("{}, detection_rt, {}".format(
+                msg.timestamp, (end_time - start_time) * 1000))
+            #for _, x, y, width, height, score, _class in outputs_np:
+            #    results.append(((y, x, y + height, x + width), score, _class))
         obstacles = []
         for (ymin, xmin, ymax, xmax), score, _class in results:
             if np.isclose(ymin, ymax) or np.isclose(xmin, xmax):

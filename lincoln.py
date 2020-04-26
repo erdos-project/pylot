@@ -10,11 +10,9 @@ import pylot.drivers.sensor_setup
 import pylot.flags
 import pylot.operator_creator
 import pylot.utils
-from pylot.drivers.drive_by_wire_operator import DriveByWireOperator
 from pylot.drivers.grasshopper3_driver_operator import \
     Grasshopper3DriverOperator
 from pylot.drivers.velodyne_driver_operator import VelodyneDriverOperator
-from pylot.localization.ndt_autoware_operator import NDTAutowareOperator
 from pylot.perception.messages import ObstacleTrajectoriesMessage, \
     ObstaclesMessage, TrafficLightsMessage
 
@@ -22,11 +20,11 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_integer('camera_image_width', 2048, 'Camera image width')
 flags.DEFINE_integer('camera_image_height', 2048, 'Camera image height')
-flags.DEFINE_integer('track', 3, 'Track to execute')
 flags.DEFINE_string('waypoints_csv_file', '',
                     'Path to the file storing the waypoints csv file')
 flags.DEFINE_bool('drive_by_wire', False,
                   'True to enable sending commands to the car')
+flags.DEFINE_bool('visualize_mode', False, 'True to enable visualize mode.')
 flags.DEFINE_integer('sensor_frequency', 10,
                      'Frequency at which to process sensors')
 
@@ -85,6 +83,52 @@ def add_drive_by_wire_operator(control_stream):
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
     erdos.connect(DriveByWireOperator, op_config, [control_stream], FLAGS)
+
+
+def create_visualize_mode_data_flow():
+    left_camera_transform = pylot.utils.Transform(LEFT_CAMERA_LOCATION,
+                                                  pylot.utils.Rotation())
+    velodyne_transform = pylot.utils.Transform(VELODYNE_LOCATION,
+                                               pylot.utils.Rotation())
+
+    (left_camera_stream, left_camera_setup) = add_grasshopper3_camera(
+        left_camera_transform,
+        name='left_grasshopper',
+        topic_name='/pg_0/image_color')
+
+    (point_cloud_stream,
+     lidar_setup) = add_velodyne_lidar(velodyne_transform,
+                                       topic_name='/points_raw')
+
+    pose_stream = erdos.IngestStream()
+
+    obstacles_streams = \
+            pylot.operator_creator.add_efficientdet_obstacle_detection(
+        left_camera_stream)
+    obstacles_stream = obstacles_streams[0]
+    # Adds an operator that finds the world locations of the obstacles.
+    obstacles_stream = pylot.operator_creator.add_obstacle_location_finder(
+        obstacles_stream, point_cloud_stream, pose_stream, left_camera_stream,
+        left_camera_setup)
+
+    erdos.run_async()
+
+    time_to_sleep = 1.0 / FLAGS.sensor_frequency
+    count = 0
+    while True:
+        timestamp = erdos.Timestamp(coordinates=[count])
+        pose_stream.send(
+            erdos.Message(
+                timestamp,
+                pylot.utils.Pose(
+                    pylot.utils.Transform(pylot.utils.Location(),
+                                          pylot.utils.Rotation()), 0.0,
+                    pylot.utils.Vector3D())))
+        pose_stream.send(erdos.WatermarkMessage(timestamp))
+        count += 1
+        # NOTE: We should offset sleep time by the time it takes to send the
+        # messages.
+        time.sleep(time_to_sleep)
 
 
 def create_data_flow():
@@ -206,37 +250,41 @@ def read_waypoints():
 
 
 def main(argv):
-    (obstacles_stream, traffic_lights_stream, obstacles_tracking_stream,
-     open_drive_stream, global_trajectory_stream) = create_data_flow()
-    # Run the data-flow.
-    erdos.run_async()
+    if FLAGS.visualize_mode:
+        create_visualize_mode_data_flow()
+    else:
+        (obstacles_stream, traffic_lights_stream, obstacles_tracking_stream,
+         open_drive_stream, global_trajectory_stream) = create_data_flow()
+        # Run the data-flow.
+        erdos.run_async()
 
-    top_timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
-    open_drive_stream.send(erdos.WatermarkMessage(top_timestamp))
+        top_timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
+        open_drive_stream.send(erdos.WatermarkMessage(top_timestamp))
 
-    waypoints = [[waypoint] for waypoint in read_waypoints()]
-    global_trajectory_stream.send(
-        erdos.Message(erdos.Timestamp(coordinates=[0]), waypoints))
-    global_trajectory_stream.send(erdos.WatermarkMessage(top_timestamp))
+        waypoints = [[waypoint] for waypoint in read_waypoints()]
+        global_trajectory_stream.send(
+            erdos.Message(erdos.Timestamp(coordinates=[0]), waypoints))
+        global_trajectory_stream.send(erdos.WatermarkMessage(top_timestamp))
 
-    time_to_sleep = 1.0 / FLAGS.sensor_frequency
-    count = 0
-    while True:
-        timestamp = erdos.Timestamp(coordinates=[count])
-        if not FLAGS.obstacle_detection:
-            obstacles_stream.send(ObstaclesMessage(timestamp, []))
-            obstacles_stream.send(erdos.WatermarkMessage(timestamp))
-        if not FLAGS.traffic_light_detection:
-            traffic_lights_stream.send(TrafficLightsMessage(timestamp, []))
-            traffic_lights_stream.send(erdos.WatermarkMessage(timestamp))
-        if not FLAGS.obstacle_tracking:
-            obstacles_tracking_stream.send(
-                ObstacleTrajectoriesMessage(timestamp, []))
-            obstacles_tracking_stream.send(erdos.WatermarkMessage(timestamp))
-        count += 1
-        # NOTE: We should offset sleep time by the time it takes to send the
-        # messages.
-        time.sleep(time_to_sleep)
+        time_to_sleep = 1.0 / FLAGS.sensor_frequency
+        count = 0
+        while True:
+            timestamp = erdos.Timestamp(coordinates=[count])
+            if not FLAGS.obstacle_detection:
+                obstacles_stream.send(ObstaclesMessage(timestamp, []))
+                obstacles_stream.send(erdos.WatermarkMessage(timestamp))
+            if not FLAGS.traffic_light_detection:
+                traffic_lights_stream.send(TrafficLightsMessage(timestamp, []))
+                traffic_lights_stream.send(erdos.WatermarkMessage(timestamp))
+            if not FLAGS.obstacle_tracking:
+                obstacles_tracking_stream.send(
+                    ObstacleTrajectoriesMessage(timestamp, []))
+                obstacles_tracking_stream.send(
+                    erdos.WatermarkMessage(timestamp))
+            count += 1
+            # NOTE: We should offset sleep time by the time it takes to send the
+            # messages.
+            time.sleep(time_to_sleep)
 
 
 if __name__ == '__main__':

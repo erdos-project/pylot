@@ -37,6 +37,7 @@ class ObstacleLocationFinderOperator(erdos.Operator):
             detected obstacles from camera coordinates to real-world
             coordinates.
     """
+
     def __init__(self, obstacles_stream, depth_stream, pose_stream,
                  camera_stream, obstacles_output_stream, flags, camera_setup):
         obstacles_stream.add_callback(self.on_obstacles_update)
@@ -87,6 +88,7 @@ class ObstacleLocationFinderOperator(erdos.Operator):
             frame_msg.frame.visualize(
                 self.config.name, pygame_display=pylot.utils.PYGAME_DISPLAY)
 
+        print("@{}: sent obstacles.".format(timestamp))
         obstacles_output_stream.send(
             ObstaclesMessage(timestamp, obstacles_with_location))
 
