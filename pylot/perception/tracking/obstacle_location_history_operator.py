@@ -1,4 +1,5 @@
-from collections import deque, defaultdict
+from collections import defaultdict, deque
+
 import erdos
 
 import pylot.utils
@@ -60,18 +61,17 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
         obstacle_trajectories = []
         for obstacle in obstacles_with_location:
             ids_cur_timestamp.append(obstacle.id)
+            self._obstacle_history[obstacle.id].append(obstacle)
             # Transform obstacle location from global world coordinates to
             # ego-centric coordinates.
-            location_ego_relative = \
-                vehicle_transform.inverse_transform_locations(
-                    [obstacle.transform.location])
-            obstacle.transform = pylot.utils.Transform(
-                location_ego_relative[0], pylot.utils.Rotation())
-            self._obstacle_history[obstacle.id].append(obstacle)
-            cur_obstacle_trajectory = [
-                obstacle.transform
-                for obstacle in self._obstacle_history[obstacle.id]
-            ]
+            cur_obstacle_trajectory = []
+            for obstacle in self._obstacle_history[obstacle.id]:
+                new_location = \
+                    vehicle_transform.inverse_transform_locations(
+                        [obstacle.transform.location])[0]
+                cur_obstacle_trajectory.append(
+                    pylot.utils.Transform(new_location,
+                                          pylot.utils.Rotation()))
             obstacle_trajectories.append(
                 ObstacleTrajectory(obstacle.label, obstacle.id,
                                    obstacle.bounding_box,

@@ -70,6 +70,59 @@ class FOTPlanningOperator(PlanningOperator):
         }
         return hyperparameters
 
+    def fot_parameters_using_90_percentile(self, ttd):
+        maxt = 4.0
+        runtimes = [350, 211, 196, 142, 114, 93, 74, 61, 48, 40, 37, 34, 31]
+        dts = [
+            0.1, 0.1, 0.15, 0.1, 0.1, 0.15, 0.15, 0.2, 0.2, 0.25, 0.3, 0.35,
+            0.45
+        ]
+        d_road_ws = [
+            0.1, 0.3, 0.1, 0.5, 0.7, 0.3, 0.5, 0.5, 0.7, 0.7, 0.7, 0.7, 0.7
+        ]
+        for index, runtime in enumerate(runtimes):
+            if ttd >= runtime:
+                return maxt, dts[index], d_road_ws[index]
+        # Not enough time to run the planner.
+        self._logger.error(
+            'Not enough time to run the planner. Using the fastest version')
+        return maxt, dts[-1], d_road_ws[-1]
+
+    def fot_parameters_using_99_percentile(self, ttd):
+        maxt = 4.0
+        runtimes = [650, 250, 150, 125, 113, 92, 73, 61, 50, 40, 32]
+        dts = [0.1, 0.1, 0.15, 0.15, 0.2, 0.2, 0.2, 0.25, 0.3, 0.35, 0.4]
+        d_road_ws = [0.1, 0.3, 0.3, 0.5, 0.3, 0.5, 0.7, 0.7, 0.7, 0.7, 0.7]
+        for index, runtime in enumerate(runtimes):
+            if ttd >= runtime:
+                return maxt, dts[index], d_road_ws[index]
+        # Not enough time to run the planner.
+        self._logger.error(
+            'Not enough time to run the planner. Using the fastest version')
+        return maxt, dts[-1], d_road_ws[-1]
+
+    def on_time_to_decision(self, msg):
+        """Invoked upon the receipt of a time to decision message.
+
+        The method changes planning hyper parameters depending on time to
+        decision.
+        """
+        # Change hyper paramters if static or dynamic deadlines are enabled.
+        if self._flags.deadline_enforcement == 'dynamic':
+            maxt, dt, d_road_w = self.fot_parameters_using_99_percentile(
+                msg.data)
+        elif self._flags.deadline_enforcement == 'static':
+            maxt, dt, d_road_w = self.fot_parameters_using_99_percentile(
+                self._flags.planning_deadline)
+        else:
+            return
+        self._logger.debug(
+            '@{}: planner using maxt {}, dt {}, d_road_w {}'.format(
+                msg.timestamp, maxt, dt, d_road_w))
+        self._hyperparameters['maxt'] = maxt
+        self._hyperparameters['dt'] = dt
+        self._hyperparameters['d_road_w'] = d_road_w
+
     @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
@@ -82,7 +135,7 @@ class FOTPlanningOperator(PlanningOperator):
         # get obstacles
         prediction_msg = self._prediction_msgs.popleft()
         obstacle_list = self.build_obstacle_list(vehicle_transform,
-                                                  prediction_msg)
+                                                 prediction_msg)
         # update waypoints
         if not self._waypoints:
             # running in CARLA
@@ -193,7 +246,8 @@ class FOTPlanningOperator(PlanningOperator):
         }
         return initial_conditions
 
-    def _construct_waypoints(self, timestamp, pose_msg, path_x, path_y, speeds, success):
+    def _construct_waypoints(self, timestamp, pose_msg, path_x, path_y, speeds,
+                             success):
         """
         Convert the optimal frenet path into a waypoints message.
         """

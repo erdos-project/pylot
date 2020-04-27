@@ -143,7 +143,9 @@ def create_data_flow():
     if FLAGS.obstacle_tracking:
         obstacles_wo_history_tracking_stream = \
             pylot.operator_creator.add_obstacle_tracking(
-                obstacles_stream, left_camera_stream)
+                obstacles_stream,
+                left_camera_stream,
+                time_to_decision_loop_stream)
         obstacles_tracking_stream = \
             pylot.operator_creator.add_obstacle_location_history(
                 obstacles_wo_history_tracking_stream, point_cloud_stream,

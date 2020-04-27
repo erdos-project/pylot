@@ -17,6 +17,20 @@ flags.DEFINE_string(
     'profile_file_name', 'pylot_profile.json',
     'file into which to log runtime profile stats in Chrome trace format')
 
+flags.DEFINE_enum(
+    'deadline_enforcement', 'none', ['none', 'static', 'dynamic'],
+    'Controls how end-to-end deadlines are enforced. None means no enforcement'
+)
+flags.DEFINE_float(
+    'detection_deadline', None,
+    'Detection deadline (in ms) when using static deadline enforcement')
+flags.DEFINE_float(
+    'tracking_deadline', None,
+    'Tracking deadline (in ms) when using static deadline enforcement')
+flags.DEFINE_float(
+    'planning_deadline', None,
+    'Planning deadline (on ms) when using static deadline enforcement')
+
 ######################################################################
 # Perception
 ######################################################################
@@ -174,13 +188,14 @@ def must_add_segmented_camera_sensor():
             or FLAGS.perfect_segmentation or FLAGS.perfect_obstacle_detection
             or FLAGS.evaluate_obstacle_detection)
 
+
 def must_add_lidar_sensor():
     """Returns true if the lidar sensor must be added.
 
     We don't add all sensors by default because they slow donwn the simulation
     """
-    return (FLAGS.visualize_lidar or
-            (FLAGS.prediction and FLAGS.prediction_type == 'r2p2')
+    return (FLAGS.visualize_lidar
+            or (FLAGS.prediction and FLAGS.prediction_type == 'r2p2')
             or FLAGS.obstacle_location_finder_sensor == 'lidar')
 
 

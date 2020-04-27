@@ -18,7 +18,9 @@ def add_carla_bridge(control_stream, sensor_ready_stream):
                          [control_stream, sensor_ready_stream], FLAGS)
 
 
-def add_efficientdet_obstacle_detection(camera_stream, csv_file_name=None):
+def add_efficientdet_obstacle_detection(camera_stream,
+                                        time_to_decision_stream,
+                                        csv_file_name=None):
     from pylot.perception.detection.efficientdet_operator import \
             EfficientDetOperator
     obstacles_streams = []
@@ -31,7 +33,8 @@ def add_efficientdet_obstacle_detection(camera_stream, csv_file_name=None):
             csv_log_file_name=csv_file_name,
             profile_file_name=FLAGS.profile_file_name)
         obstacles_streams += erdos.connect(
-            EfficientDetOperator, op_config, [camera_stream],
+            EfficientDetOperator, op_config,
+            [camera_stream, time_to_decision_stream],
             FLAGS.obstacle_detection_model_paths[i], FLAGS)
     return obstacles_streams
 
@@ -210,6 +213,7 @@ def add_canny_edge_lane_detection(bgr_camera_stream,
 
 def add_obstacle_tracking(obstacles_stream,
                           bgr_camera_stream,
+                          time_to_decision_stream,
                           name_prefix='tracker_'):
     from pylot.perception.tracking.object_tracker_operator import \
         ObjectTrackerOperator
@@ -218,10 +222,10 @@ def add_obstacle_tracking(obstacles_stream,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
 
-    [obstacle_tracking_stream
-     ] = erdos.connect(ObjectTrackerOperator, op_config,
-                       [obstacles_stream, bgr_camera_stream],
-                       FLAGS.tracker_type, FLAGS)
+    [obstacle_tracking_stream] = erdos.connect(
+        ObjectTrackerOperator, op_config,
+        [obstacles_stream, bgr_camera_stream, time_to_decision_stream],
+        FLAGS.tracker_type, FLAGS)
     return obstacle_tracking_stream
 
 
@@ -754,7 +758,7 @@ def add_lidar_logging(point_cloud_stream,
 
 
 def add_multiple_object_tracker_logging(
-        obstacles_stream, name='multiple_object_tracker_logger_operator'):
+    obstacles_stream, name='multiple_object_tracker_logger_operator'):
     from pylot.loggers.multiple_object_tracker_logger_operator import \
         MultipleObjectTrackerLoggerOperator
     op_config = erdos.OperatorConfig(name=name,
