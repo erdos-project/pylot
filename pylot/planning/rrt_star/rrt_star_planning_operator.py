@@ -83,7 +83,7 @@ class RRTStarPlanningOperator(PlanningOperator):
                 return
 
         # if no obstacles, don't use RRT*
-        if len(obstacle_list) == 0:
+        if (self._flags.track == -1 or self._flags.track == 3) and len(obstacle_list) == 0:
             start = np.array([
                 self._vehicle_transform.location.x,
                 self._vehicle_transform.location.y
