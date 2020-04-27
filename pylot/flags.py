@@ -17,6 +17,8 @@ flags.DEFINE_string(
     'profile_file_name', 'pylot_profile.json',
     'file into which to log runtime profile stats in Chrome trace format')
 
+flags.DEFINE_bool('dynamic_deadlines', False,
+                  'Set to True to enable dynamic end-to-end deadlines')
 ######################################################################
 # Perception
 ######################################################################
@@ -174,13 +176,14 @@ def must_add_segmented_camera_sensor():
             or FLAGS.perfect_segmentation or FLAGS.perfect_obstacle_detection
             or FLAGS.evaluate_obstacle_detection)
 
+
 def must_add_lidar_sensor():
     """Returns true if the lidar sensor must be added.
 
     We don't add all sensors by default because they slow donwn the simulation
     """
-    return (FLAGS.visualize_lidar or
-            (FLAGS.prediction and FLAGS.prediction_type == 'r2p2')
+    return (FLAGS.visualize_lidar
+            or (FLAGS.prediction and FLAGS.prediction_type == 'r2p2')
             or FLAGS.obstacle_location_finder_sensor == 'lidar')
 
 
