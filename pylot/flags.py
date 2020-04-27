@@ -17,8 +17,20 @@ flags.DEFINE_string(
     'profile_file_name', 'pylot_profile.json',
     'file into which to log runtime profile stats in Chrome trace format')
 
-flags.DEFINE_bool('dynamic_deadlines', False,
-                  'Set to True to enable dynamic end-to-end deadlines')
+flags.DEFINE_enum(
+    'deadline_enforcement', None, [None, 'static', 'dynamic'],
+    'Controls how end-to-end deadlines are enforced. None means no enforcement'
+)
+flags.DEFINE_float(
+    'detection_deadline', None,
+    'Detection deadline (in ms) when using static deadline enforcement')
+flags.DEFINE_float(
+    'tracking_deadline', None,
+    'Tracking deadline (in ms) when using static deadline enforcement')
+flags.DEFINE_float(
+    'planning_deadline', None,
+    'Planning deadline (on ms) when using static deadline enforcement')
+
 ######################################################################
 # Perception
 ######################################################################

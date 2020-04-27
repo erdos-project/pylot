@@ -84,7 +84,9 @@ class FOTPlanningOperator(PlanningOperator):
             if ttd >= runtime:
                 return maxt, dts[index], d_road_ws[index]
         # Not enough time to run the planner.
-        return None, None, None
+        self._logger.error(
+            'Not enough time to run the planner. Using the fastest version')
+        return maxt, dts[-1], d_road_ws[-1]
 
     def fot_parameters_using_99_percentile(self, ttd):
         maxt = 4.0
@@ -95,7 +97,9 @@ class FOTPlanningOperator(PlanningOperator):
             if ttd >= runtime:
                 return maxt, dts[index], d_road_ws[index]
         # Not enough time to run the planner.
-        return None, None, None
+        self._logger.error(
+            'Not enough time to run the planner. Using the fastest version')
+        return maxt, dts[-1], d_road_ws[-1]
 
     def on_time_to_decision(self, msg):
         """Invoked upon the receipt of a time to decision message.
@@ -103,16 +107,21 @@ class FOTPlanningOperator(PlanningOperator):
         The method changes planning hyper parameters depending on time to
         decision.
         """
-        if self._flags.dynamic_deadlines:
-            # Change the hyperparameters if the dynamic deadlines are enabled.
+        # Change hyper paramters if static or dynamic deadlines are enabled.
+        if self._flags.deadline_enforcement == 'dynamic':
             maxt, dt, d_road_w = self.fot_parameters_using_99_percentile(
                 msg.data)
-            self._logger.debug(
-                '@{}: planner using maxt {}, dt {}, d_road_w {}'.format(
-                    msg.timestamp, maxt, dt, d_road_w))
-            self._hyperparameters['maxt'] = maxt
-            self._hyperparameters['dt'] = dt
-            self._hyperparameters['d_road_w'] = d_road_w
+        elif self._flags.deadline_enforcement == 'static':
+            maxt, dt, d_road_w = self.fot_parameters_using_99_percentile(
+                self._flags.planning_deadline)
+        else:
+            return
+        self._logger.debug(
+            '@{}: planner using maxt {}, dt {}, d_road_w {}'.format(
+                msg.timestamp, maxt, dt, d_road_w))
+        self._hyperparameters['maxt'] = maxt
+        self._hyperparameters['dt'] = dt
+        self._hyperparameters['d_road_w'] = d_road_w
 
     @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
