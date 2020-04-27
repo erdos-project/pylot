@@ -64,7 +64,8 @@ def add_obstacle_detection(center_camera_stream,
         if any('efficientdet' in model
                for model in FLAGS.obstacle_detection_model_names):
             obstacles_streams = pylot.operator_creator.\
-                    add_efficientdet_obstacle_detection(center_camera_stream)
+                    add_efficientdet_obstacle_detection(
+                        center_camera_stream, time_to_decision_stream)
             obstacles_stream_wo_depth = obstacles_streams[0]
         else:
             # TODO: Only returns the first obstacles stream.
@@ -244,7 +245,8 @@ def add_obstacle_tracking(center_camera_stream,
                           depth_stream=None,
                           vehicle_id_stream=None,
                           pose_stream=None,
-                          ground_obstacles_stream=None):
+                          ground_obstacles_stream=None,
+                          time_to_decision_stream=None):
     """Adds operators for obstacle tracking.
 
     If the `--perfect_obstacle_tracking` flag is setup, the method adds an
@@ -282,7 +284,8 @@ def add_obstacle_tracking(center_camera_stream,
         obstacles_wo_history_tracking_stream = \
             pylot.operator_creator.add_obstacle_tracking(
                 obstacles_stream,
-                center_camera_stream)
+                center_camera_stream,
+                time_to_decision_stream)
         obstacles_tracking_stream = \
             pylot.operator_creator.add_obstacle_location_history(
                 obstacles_wo_history_tracking_stream, depth_stream,

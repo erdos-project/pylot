@@ -18,7 +18,7 @@ flags.DEFINE_string(
     'file into which to log runtime profile stats in Chrome trace format')
 
 flags.DEFINE_enum(
-    'deadline_enforcement', None, [None, 'static', 'dynamic'],
+    'deadline_enforcement', 'none', ['none', 'static', 'dynamic'],
     'Controls how end-to-end deadlines are enforced. None means no enforcement'
 )
 flags.DEFINE_float(

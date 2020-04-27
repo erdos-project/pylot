@@ -100,7 +100,8 @@ def driver():
 
     obstacles_tracking_stream = pylot.component_creator.add_obstacle_tracking(
         center_camera_stream, rgb_camera_setup, obstacles_stream, depth_stream,
-        vehicle_id_stream, pose_stream, ground_obstacles_stream)
+        vehicle_id_stream, pose_stream, ground_obstacles_stream,
+        time_to_decision_loop_stream)
 
     segmented_stream = pylot.component_creator.add_segmentation(
         center_camera_stream, ground_segmented_stream)

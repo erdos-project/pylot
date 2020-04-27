@@ -50,10 +50,11 @@ class EfficientDetOperator(erdos.Operator):
         model_path(:obj:`str`): Path to the model pb file.
         flags (absl.flags): Object to be used to access absl flags.
     """
-
-    def __init__(self, camera_stream, obstacles_stream, model_path, flags):
+    def __init__(self, camera_stream, time_to_decision_stream,
+                 obstacles_stream, model_path, flags):
         camera_stream.add_callback(self.on_msg_camera_stream,
                                    [obstacles_stream])
+        time_to_decision_stream.add_callback(self.on_time_to_decision_update)
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -113,7 +114,7 @@ class EfficientDetOperator(erdos.Operator):
         self._unique_id = 0
 
     @staticmethod
-    def connect(camera_stream):
+    def connect(camera_stream, time_to_decision_stream):
         """Connects the operator to other streams.
 
         Args:
@@ -126,6 +127,10 @@ class EfficientDetOperator(erdos.Operator):
         """
         obstacles_stream = erdos.WriteStream()
         return [obstacles_stream]
+
+    def on_time_to_decision_update(self, msg):
+        self._logger.debug('@{}: {} received ttd update {}'.format(
+            msg.timestamp, self.config.name, msg))
 
     @erdos.profile_method()
     def on_msg_camera_stream(self, msg, obstacles_stream):
