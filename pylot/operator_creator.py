@@ -23,19 +23,17 @@ def add_efficientdet_obstacle_detection(camera_stream,
                                         csv_file_name=None):
     from pylot.perception.detection.efficientdet_operator import \
             EfficientDetOperator
-    obstacles_streams = []
     if csv_file_name is None:
         csv_file_name = FLAGS.csv_log_file_name
-    for i in range(0, len(FLAGS.obstacle_detection_model_paths)):
-        op_config = erdos.OperatorConfig(
-            name=FLAGS.obstacle_detection_model_names[i],
-            log_file_name=FLAGS.log_file_name,
-            csv_log_file_name=csv_file_name,
-            profile_file_name=FLAGS.profile_file_name)
-        obstacles_streams += erdos.connect(
-            EfficientDetOperator, op_config,
-            [camera_stream, time_to_decision_stream],
-            FLAGS.obstacle_detection_model_paths[i], FLAGS)
+    op_config = erdos.OperatorConfig(name='efficientdet_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=csv_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    obstacles_streams = erdos.connect(EfficientDetOperator, op_config,
+                                      [camera_stream, time_to_decision_stream],
+                                      FLAGS.obstacle_detection_model_names,
+                                      FLAGS.obstacle_detection_model_paths,
+                                      FLAGS)
     return obstacles_streams
 
 

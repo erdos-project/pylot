@@ -51,7 +51,7 @@ class EfficientDetOperator(erdos.Operator):
         flags (absl.flags): Object to be used to access absl flags.
     """
     def __init__(self, camera_stream, time_to_decision_stream,
-                 obstacles_stream, model_path, flags):
+                 obstacles_stream, model_names, model_paths, flags):
         camera_stream.add_callback(self.on_msg_camera_stream,
                                    [obstacles_stream])
         time_to_decision_stream.add_callback(self.on_time_to_decision_update)
@@ -70,48 +70,64 @@ class EfficientDetOperator(erdos.Operator):
             'speed limit 30', 'speed limit 60', 'speed limit 90'
         }
 
-        # Get the required arguments to initialize Inference.
-        model_name = self.config.name
-        image_size = hparams_config.get_detection_config(model_name).image_size
-        driver = infer.InferenceDriver(model_name, model_path, image_size,
-                                       NUM_CLASSES)
-
-        # Initialize the Config and Session.
-        self._gpu_options = tf.GPUOptions(
-            per_process_gpu_memory_fraction=flags.
-            obstacle_detection_gpu_memory_fraction,
-            allow_growth=True)
-        self._tf_session = tf.Session(config=tf.ConfigProto(
-            gpu_options=self._gpu_options))
-
         # Build inputs and preprocessing.
         tf.compat.v1.disable_eager_execution()
-        self._image_placeholder = tf.placeholder("uint8", [None, None, 3],
-                                                 name="image_tensor")
-        results = EfficientDetOperator.build_inputs_with_placeholder(
-            self._image_placeholder, image_size)
-        self._raw_images, self._images, self._scales = results
 
-        # Build model.
-        self._class_outputs, self._box_outputs = infer.build_model(
-            model_name, self._images)
-        infer.restore_ckpt(self._tf_session,
-                           model_path,
-                           enable_ema=True,
-                           export_ckpt=None)
-
-        # Build postprocessing.
-        params = copy.deepcopy(driver.params)
-        params.update(dict(batch_size=1))
-        self._detections_batch = None
-        if MODIFIED_AUTOML:
-            self._detections_batch = EfficientDetOperator.det_post_process(
-                params, self._class_outputs, self._box_outputs, self._scales)
-        else:
-            self._detections_batch = infer.det_post_process(
-                params, self._class_outputs, self._box_outputs, self._scales)
-
+        assert len(model_names) == len(
+            model_paths), 'Model names and paths do not have same length'
+        self._models = {}
+        for index, model_path in enumerate(model_paths):
+            model_name = model_names[index]
+            self._models[model_name] = self.load_model(model_name, model_path,
+                                                       flags)
+            if index == 0:
+                # Use the first model by default.
+                (self._tf_session, self._image_placeholder,
+                 self._detections_batch) = self._models[model_name]
         self._unique_id = 0
+
+    def load_model(self, model_name, model_path, flags):
+        graph = tf.Graph()
+        # Initialize the Config and Session.
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=flags.
+                                    obstacle_detection_gpu_memory_fraction,
+                                    allow_growth=True)
+
+        tf_session = tf.Session(graph=graph,
+                                config=tf.ConfigProto(gpu_options=gpu_options))
+
+        with graph.as_default():
+            # Get the required arguments to initialize Inference.
+            image_size = hparams_config.get_detection_config(
+                model_name).image_size
+            driver = infer.InferenceDriver(model_name, model_path, image_size,
+                                           NUM_CLASSES)
+
+            image_placeholder = tf.placeholder("uint8", [None, None, 3],
+                                               name="image_tensor")
+            raw_images, images, scales = \
+                EfficientDetOperator.build_inputs_with_placeholder(
+                    image_placeholder, image_size)
+
+            # Build model.
+            class_outputs, box_outputs = infer.build_model(model_name, images)
+            infer.restore_ckpt(tf_session,
+                               model_path,
+                               enable_ema=True,
+                               export_ckpt=None)
+
+            # Build postprocessing.
+            params = copy.deepcopy(driver.params)
+            params.update(dict(batch_size=1))
+            detections_batch = None
+            if MODIFIED_AUTOML:
+                detections_batch = EfficientDetOperator.det_post_process(
+                    params, class_outputs, box_outputs, scales)
+            else:
+                detections_batch = infer.det_post_process(
+                    params, class_outputs, box_outputs, scales)
+
+        return tf_session, image_placeholder, detections_batch
 
     @staticmethod
     def connect(camera_stream, time_to_decision_stream):
@@ -128,9 +144,40 @@ class EfficientDetOperator(erdos.Operator):
         obstacles_stream = erdos.WriteStream()
         return [obstacles_stream]
 
+    def pick_model(self, ttd):
+        """Decides which model to use based on time to decision."""
+        runtimes = [('efficientdet-d7', 262), ('efficientdet-d6', 190),
+                    ('efficientdet-d5', 141), ('efficientdet-d4', 74),
+                    ('efficientdet-d3', 42), ('efficientdet-d2', 24),
+                    ('efficientdet-d1', 20), ('efficientdet-d0', 16)]
+        fastest_loaded_model_name = None
+        for index, (model_name, runtime) in enumerate(runtimes):
+            # Pick the model if it is preloaded and if we have enough time to
+            # run it.
+            if ttd >= runtime and model_name in self._models:
+                self._logger.debug(
+                    'Using detection model {}'.format(model_name))
+                return self._models[model_name]
+            if model_name in self._models:
+                fastest_loaded_model_name = model_name
+        # Not enough time to run detection.
+        self._logger.error(
+            'Insufficient time to run detection. Using detection model {}'.
+            format(fastest_loaded_model_name))
+        return self._models[fastest_loaded_model_name]
+
     def on_time_to_decision_update(self, msg):
         self._logger.debug('@{}: {} received ttd update {}'.format(
             msg.timestamp, self.config.name, msg))
+        if self._flags.deadline_enforcement == 'dynamic':
+            (self._tf_session, self._image_placeholder,
+             self._detections_batch) = self.pick_model(msg.data)
+        elif self._flags.deadline_enforcement == 'static':
+            (self._tf_session, self._image_placeholder,
+             self._detections_batch) = self.pick_model(
+                 self._flags.detection_deadline)
+        else:
+            return
 
     @erdos.profile_method()
     def on_msg_camera_stream(self, msg, obstacles_stream):
