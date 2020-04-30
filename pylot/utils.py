@@ -75,7 +75,7 @@ class Vector3D(object):
         z: The value of the third axis.
     """
     def __init__(self, x=0, y=0, z=0):
-        self.x, self.y, self.z = x, y, z
+        self.x, self.y, self.z = float(x), float(y), float(z)
 
     @classmethod
     def from_carla_vector(cls, vector):

@@ -94,12 +94,12 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
                 waypoints message received for the given timestamp.
         """
         waypoint_recv_time = time.time()
-        self._logger.debug("@[{}]: received waypoints update.".format(
+        self._logger.debug("@{}: received waypoints update.".format(
             msg.timestamp))
 
         if self._first_waypoint:
             self._logger.debug(
-                "@[{}]: received first waypoint. "
+                "@{}: received first waypoint. "
                 "Skipping because the simulator might not be in sync.".format(
                     msg.timestamp))
             self._first_waypoint = False
@@ -125,7 +125,7 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
             self._last_highest_applicable_time = applicable_time
             self._waypoints.append((applicable_time, msg))
             self._logger.debug(
-                "@[{}]: waypoints will be applicable at {}".format(
+                "@{}: waypoints will be applicable at {}".format(
                     msg.timestamp, applicable_time))
         else:
             # We add the applicable time to the time between localization
@@ -138,7 +138,7 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
             self._last_highest_applicable_time = applicable_time
             self._waypoints.append((applicable_time, msg))
             self._logger.debug(
-                "@[{}]: the waypoints were adjusted by the localization "
+                "@{}: the waypoints were adjusted by the localization "
                 "frequency and will be applicable at {}".format(
                     msg.timestamp, applicable_time))
 
@@ -154,8 +154,7 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
             msg (:py:class:`erdos.Message`): A message containing the pose
                 of the ego-vehicle.
         """
-        self._logger.debug("@[{}]: received pose message.".format(
-            msg.timestamp))
+        self._logger.debug("@{}: received pose message.".format(msg.timestamp))
 
         # Retrieve the game time.
         game_time = msg.timestamp.coordinates[0]
@@ -174,7 +173,7 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
             msg (:py:class:`erdos.Message`): A message containing the pose
                 of the ego-vehicle.
         """
-        self._logger.debug("@[{}]: received localization message.".format(
+        self._logger.debug("@{}: received localization message.".format(
             msg.timestamp))
 
         # Retrieve the game time.
@@ -197,7 +196,7 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
             pose_stream (:py:class:`erdos.WriteStream`): The stream to send
                 the pose out on.
         """
-        self._logger.info("@[{}]: received pose watermark.".format(timestamp))
+        self._logger.info("@{}: received pose watermark.".format(timestamp))
 
         # Retrieve the game time.
         game_time = timestamp.coordinates[0]
@@ -212,7 +211,7 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
                 waypoint_index, waypoints = i, _waypoints
             else:
                 break
-        self._logger.debug("@[{}] waypoint index is {}".format(
+        self._logger.debug("@{} waypoint index is {}".format(
             timestamp, waypoint_index))
 
         if waypoints is None:
@@ -232,7 +231,7 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
 
             # Trim the saved waypoints.
             for i in range(waypoint_index):
-                self._logger.debug("@[{}]: Pruning {}".format(
+                self._logger.debug("@{}: Pruning {}".format(
                     timestamp, self._waypoints.popleft()))
 
         # Send the pose and the watermark messages.
@@ -243,6 +242,7 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
         # Clean up the pose from the dict.
         del self._pose_map[game_time]
 
+    @erdos.profile_method()
     def on_sensor_ready(self, timestamp, release_sensor_stream):
         """ Invoked upon receipt of a notification of the sensors being
         ready for the given timestamp.
@@ -256,4 +256,5 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
             sensor_ready_stream (:py:class:`erdos.WriteStream`): The stream
                 on which to write the notification.
         """
+        self._logger.debug("@{}: the sensors are all ready.".format(timestamp))
         release_sensor_stream.send(erdos.WatermarkMessage(timestamp))

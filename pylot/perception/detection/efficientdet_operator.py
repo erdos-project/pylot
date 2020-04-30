@@ -82,7 +82,7 @@ class EfficientDetOperator(erdos.Operator):
                                                        flags)
             if index == 0:
                 # Use the first model by default.
-                (self._tf_session, self._image_placeholder,
+                (self._model_name, self._tf_session, self._image_placeholder,
                  self._detections_batch) = self._models[model_name]
         self._unique_id = 0
 
@@ -125,9 +125,14 @@ class EfficientDetOperator(erdos.Operator):
                     params, class_outputs, box_outputs, scales)
             else:
                 detections_batch = infer.det_post_process(
-                    params, class_outputs, box_outputs, scales)
+                    params,
+                    class_outputs,
+                    box_outputs,
+                    scales,
+                    min_score_thresh=self._flags.
+                    obstacle_detection_min_score_threshold)
 
-        return tf_session, image_placeholder, detections_batch
+        return model_name, tf_session, image_placeholder, detections_batch
 
     @staticmethod
     def connect(camera_stream, time_to_decision_stream):
@@ -155,8 +160,8 @@ class EfficientDetOperator(erdos.Operator):
             # Pick the model if it is preloaded and if we have enough time to
             # run it.
             if ttd >= runtime and model_name in self._models:
-                self._logger.debug(
-                    'Using detection model {}'.format(model_name))
+                self._logger.debug('Using detection model {}; ttd {}'.format(
+                    model_name, ttd))
                 return self._models[model_name]
             if model_name in self._models:
                 fastest_loaded_model_name = model_name
@@ -170,10 +175,10 @@ class EfficientDetOperator(erdos.Operator):
         self._logger.debug('@{}: {} received ttd update {}'.format(
             msg.timestamp, self.config.name, msg))
         if self._flags.deadline_enforcement == 'dynamic':
-            (self._tf_session, self._image_placeholder,
+            (self._model_name, self._tf_session, self._image_placeholder,
              self._detections_batch) = self.pick_model(msg.data)
         elif self._flags.deadline_enforcement == 'static':
-            (self._tf_session, self._image_placeholder,
+            (self._model_name, self._tf_session, self._image_placeholder,
              self._detections_batch) = self.pick_model(
                  self._flags.detection_deadline)
         else:
@@ -191,6 +196,8 @@ class EfficientDetOperator(erdos.Operator):
                 :py:class:`~pylot.perception.messages.ObstaclesMessage`
                 messages.
         """
+        operator_time_total_start = time.time()
+        start_time = time.time()
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self.config.name))
         inputs = msg.frame.as_rgb_numpy_array()
@@ -213,7 +220,6 @@ class EfficientDetOperator(erdos.Operator):
                 feed_dict={self._image_placeholder: inputs})[0]
             for _, x, y, width, height, score, _class in outputs_np:
                 results.append(((y, x, y + height, x + width), score, _class))
-        end_time = time.time()
         obstacles = []
         for (ymin, xmin, ymax, xmax), score, _class in results:
             if np.isclose(ymin, ymax) or np.isclose(xmin, xmax):
@@ -229,16 +235,18 @@ class EfficientDetOperator(erdos.Operator):
                     width, height = camera_setup.width, camera_setup.height
                     xmin, xmax = max(0, int(xmin)), min(int(xmax), width)
                     ymin, ymax = max(0, int(ymin)), min(int(ymax), height)
-                    obstacles.append(
-                        DetectedObstacle(BoundingBox2D(xmin, xmax, ymin, ymax),
-                                         score,
-                                         self._coco_labels[_class],
-                                         id=self._unique_id))
-                    self._unique_id += 1
-                    self._csv_logger.info(
-                        "{}, detection, {}, {:4f}, {}".format(
-                            msg.timestamp, self._coco_labels[_class], score,
-                            (end_time - start_time) * 1000))
+                    if xmin < xmax and ymin < ymax:
+                        obstacles.append(
+                            DetectedObstacle(BoundingBox2D(
+                                xmin, xmax, ymin, ymax),
+                                             score,
+                                             self._coco_labels[_class],
+                                             id=self._unique_id))
+                        self._unique_id += 1
+                        self._csv_logger.info(
+                            "{},{},detection,{},{:4f}".format(
+                                pylot.utils.time_epoch_ms(), msg.timestamp,
+                                self._coco_labels[_class], score))
             else:
                 self._logger.debug(
                     'Filtering unknown class: {}'.format(_class))
@@ -254,7 +262,15 @@ class EfficientDetOperator(erdos.Operator):
                 msg.frame.save(msg.timestamp.coordinates[0],
                                self._flags.data_path,
                                'detector-{}'.format(self.config.name))
+        end_time = time.time()
         obstacles_stream.send(ObstaclesMessage(msg.timestamp, obstacles, 0))
+        obstacles_stream.send(erdos.WatermarkMessage(msg.timestamp))
+        operator_time_total_end = time.time()
+        self._logger.debug("@{}: runtime of the detector: {}".format(
+            msg.timestamp, (end_time - start_time) * 1000))
+        self._logger.debug("@{}: total time spent: {}".format(
+            msg.timestamp,
+            (operator_time_total_end - operator_time_total_start) * 1000))
 
     @staticmethod
     def build_inputs_with_placeholder(image, image_size):

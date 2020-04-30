@@ -28,7 +28,6 @@ class CarlaOperator(erdos.Operator):
         _world: A handle to the world running inside the simulation.
         _vehicles: A list of identifiers of the vehicles inside the simulation.
     """
-
     def __init__(self, control_stream, release_sensor_stream, pose_stream,
                  pose_stream_for_control, ground_traffic_lights_stream,
                  ground_obstacles_stream, ground_speed_limit_signs_stream,
@@ -318,7 +317,7 @@ class CarlaOperator(erdos.Operator):
         velocity_vector = pylot.utils.Vector3D.from_carla_vector(
             self._ego_vehicle.get_velocity())
         forward_speed = velocity_vector.magnitude()
-        print("Forward speed is {}".format(forward_speed))
+        print("{} Forward speed is {}".format(timestamp, forward_speed))
         pose = pylot.utils.Pose(vec_transform, forward_speed, velocity_vector)
         stream.send(erdos.Message(timestamp, pose))
         stream.send(erdos.WatermarkMessage(timestamp))
