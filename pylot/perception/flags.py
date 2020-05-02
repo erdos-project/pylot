@@ -42,9 +42,9 @@ flags.DEFINE_bool('visualize_tracker_output', False,
                   'True to enable visualization of tracker output')
 flags.DEFINE_float(
     'min_matching_iou', 0.5,
-    'Min IoU required between detection and track for matching to be considered')
-flags.DEFINE_int('obstacle_track_max_age', 3,
-                 'Number of frames to track without a detection update')
+    'IoU required between detection and track for matching to be considered')
+flags.DEFINE_integer('obstacle_track_max_age', 3,
+                     'Number of frames to track without a detection update')
 
 # DeepSORT tracking flags.
 flags.DEFINE_string(
