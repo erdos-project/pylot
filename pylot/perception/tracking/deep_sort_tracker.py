@@ -9,6 +9,7 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
         # Initialize the deepsort object, which has a tracker object within it
         self._deepsort = deepsort_rbc(
             wt_path=flags.deep_sort_tracker_weights_path,
+            max_age=flags.obstacle_track_max_age,
             min_iou=flags.min_matching_iou)
 
     def reinitialize(self, frame, obstacles):
