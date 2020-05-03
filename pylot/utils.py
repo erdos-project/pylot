@@ -334,7 +334,7 @@ class Transform(object):
     Args:
         location (:py:class:`.Location`, optional): The location of the object
             represented by the transform.
-        rotation (:py:class:`.Rotation`, optional): The rotation  (in degreers)
+        rotation (:py:class:`.Rotation`, optional): The rotation  (in degrees)
             of the object represented by the transform.
         matrix: The transformation matrix used to convert points in the 3D
             coordinate space with respect to the location and rotation of the
@@ -343,7 +343,7 @@ class Transform(object):
     Attributes:
         location (:py:class:`.Location`): The location of the object
             represented by the transform.
-        rotation (:py:class:`.Rotation`): The rotation (in degreers) of the
+        rotation (:py:class:`.Rotation`): The rotation (in degrees) of the
             object represented by the transform.
         forward_vector (:py:class:`.Vector3D`): The forward vector of the
             object represented by the transform.

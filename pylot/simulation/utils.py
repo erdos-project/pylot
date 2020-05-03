@@ -400,7 +400,7 @@ def get_traffic_lights_obstacles(traffic_lights, depth_frame, segmented_frame,
 
 
 def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
-    """Get the speed limit signs that are withing the camera frame.
+    """Get the speed limit signs that are within the camera frame.
 
     Warning:
         The depth frame must have a camera setup transform relative to the
