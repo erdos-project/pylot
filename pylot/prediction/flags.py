@@ -6,6 +6,12 @@ flags.DEFINE_integer(
 flags.DEFINE_integer(
     'prediction_num_future_steps', None,
     'Number of future steps outputted by the prediction module.')
+flags.DEFINE_integer(
+    'prediction_radius', 50,
+    'Make predictions for all vehicles within this radius of the ego-vehicle.')
+flags.DEFINE_boolean(
+    'prediction_ego_agent', True,
+    'Whether we make predictions for the ego agent')
 
 # R2P2 Flags
 flags.DEFINE_string('r2p2_model_path',

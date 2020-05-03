@@ -378,12 +378,10 @@ def add_prediction(obstacles_tracking_stream,
             prediction_stream = pylot.operator_creator.add_linear_prediction(
                 obstacles_tracking_stream)
         elif FLAGS.prediction_type == 'r2p2':
-            assert pose_stream is not None
             assert point_cloud_stream is not None
             assert lidar_setup is not None
             prediction_stream = pylot.operator_creator.add_r2p2_prediction(
-                pose_stream, point_cloud_stream, obstacles_tracking_stream,
-                vehicle_id_stream, lidar_setup)
+                point_cloud_stream, obstacles_tracking_stream, lidar_setup)
         else:
             raise ValueError('Unexpected prediction_type {}'.format(
                 FLAGS.prediction_type))
