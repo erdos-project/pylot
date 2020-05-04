@@ -18,10 +18,11 @@ cd $PYLOT_HOME
 ###### Clone the Prediction Repository #####
 cd pylot/prediction/
 git clone https://github.com/erdos-project/prediction.git
+cd $PYLOT_HOME
 
 sudo apt-get -y update
 sudo apt-get install -y git wget python3-pip unzip
-pip3 install gdown
+pip3 install gdown --user
 # Install opencv separately because pip3 install doesn't install all libraries
 # opencv requires.
 sudo apt-get install -y python3-opencv
@@ -52,23 +53,23 @@ cd ../../
 ###### Download the DASiamRPN object tracker models ######
 mkdir -p tracking/DASiamRPN ; cd tracking/DASiamRPN
 # SiamRPNVOT.model
-gdown https://drive.google.com/uc?id=1G9GtKpF36-AwjyRXVLH_gHvrfVSCZMa7
+~/.local/bin/gdown https://drive.google.com/uc?id=1G9GtKpF36-AwjyRXVLH_gHvrfVSCZMa7
 # SiamRPNBIG.model
-gdown https://drive.google.com/uc?id=1_bIGtHYdAoTMS-hqOPE1j3KU-ON15cVV
+~/.local/bin/gdown https://drive.google.com/uc?id=1_bIGtHYdAoTMS-hqOPE1j3KU-ON15cVV
 # SiamRPNOTB.model
-gdown https://drive.google.com/uc?id=18-LyMHVLhcx6qBWpUJEcPFoay1tSqURI
+~/.local/bin/gdown https://drive.google.com/uc?id=18-LyMHVLhcx6qBWpUJEcPFoay1tSqURI
 cd ../../
 
 ##### Download AnyNet depth estimation models #####
 mkdir -p depth_estimation/AnyNet ; cd depth_estimation/AnyNet
-gdown https://drive.google.com/uc?id=18Vi68rQO-vcBn3882vkumIWtGggZQDoU
+~/.local/bin/gdown https://drive.google.com/uc?id=18Vi68rQO-vcBn3882vkumIWtGggZQDoU
 unzip checkpoint.zip
 cd ../../
 
 ###### Download DeepSort models ######
 # Download the real-world model.
 mkdir -p tracking/deep-sort ; cd tracking/deep-sort
-gdown https://drive.google.com/uc?id=1bB66hP9voDXuoBoaCcKYY7a8IYzMMs4P
+~/.local/bin/gdown https://drive.google.com/uc?id=1bB66hP9voDXuoBoaCcKYY7a8IYzMMs4P
 cd ../
 # Download the CARLA model.
 mkdir deep-sort-carla ; cd deep-sort-carla
