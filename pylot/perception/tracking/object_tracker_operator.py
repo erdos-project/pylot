@@ -46,6 +46,7 @@ class ObjectTrackerOperator(erdos.Operator):
 
         self._obstacles_msgs = deque()
         self._frame_msgs = deque()
+        self._watermark_msg_count = 0
 
     @staticmethod
     def connect(obstacles_stream, camera_stream, time_to_decision_stream):
@@ -75,6 +76,7 @@ class ObjectTrackerOperator(erdos.Operator):
         frame_msg = self._frame_msgs.popleft()
         camera_frame = frame_msg.frame
         tracked_obstacles = []
+        self._watermark_msg_count += 1
         if len(self._obstacles_msgs) > 0:
             obstacles_msg = self._obstacles_msgs.popleft()
             assert frame_msg.timestamp == obstacles_msg.timestamp
@@ -85,7 +87,8 @@ class ObjectTrackerOperator(erdos.Operator):
                 if (obstacle.label in VEHICLE_LABELS
                         or obstacle.label == 'person'):
                     detected_obstacles.append(obstacle)
-            self._tracker.reinitialize(camera_frame, detected_obstacles)
+            if self._watermark_msg_count % self._flags.track_every_nth_detection == 0:
+                self._tracker.reinitialize(camera_frame, detected_obstacles)
 
         self._logger.debug('Processing frame {}'.format(timestamp))
         ok, tracked_obstacles = self._tracker.track(camera_frame)
