@@ -19,6 +19,8 @@ class ObjectTrackerOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
+            self.config.name + '-csv', self.config.csv_log_file_name)
         self._tracker_type = tracker_type
         try:
             if tracker_type == 'cv2':
@@ -95,7 +97,11 @@ class ObjectTrackerOperator(erdos.Operator):
         if not ok:
             self._logger.error(
                 'Tracker failed at timestamp {}'.format(timestamp))
-
+        sim_time = timestamp.coordinates[0]
+        num_targets = len(tracked_obstacles)
+        self._csv_logger.info('{},{},{},{},{}'.format(
+            pylot.utils.time_epoch_ms(), sim_time, self.config.name, 'num_targets',
+            num_targets))
         obstacle_tracking_stream.send(
             ObstaclesMessage(timestamp, tracked_obstacles, 0))
 
