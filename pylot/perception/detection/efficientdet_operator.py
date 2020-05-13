@@ -70,55 +70,23 @@ class EfficientDetOperator(erdos.Operator):
         }
 
         # Get the required arguments to initialize Inference.
-        model_name = self.config.name
-        image_size = hparams_config.get_detection_config(model_name).image_size
-        driver = infer.InferenceDriver(model_name, model_path, image_size,
-                                       NUM_CLASSES)
-
-        # Initialize the Config and Session.
-        self._gpu_options = tf.GPUOptions(
-            per_process_gpu_memory_fraction=flags.
-            obstacle_detection_gpu_memory_fraction,
-            allow_growth=True)
-        self._config = tf.ConfigProto(gpu_options=self._gpu_options)
-        self._config.graph_options.rewrite_options.dependency_optimization = 2
-        self._tf_session = tf.Session(config=self._config)
-
-        # Build inputs and preprocessing.
-        tf.compat.v1.disable_eager_execution()
-        self._image_placeholder = tf.placeholder("uint8", [None, None, 3],
-                                                 name="image_tensor")
-        results = EfficientDetOperator.build_inputs_with_placeholder(
-            self._image_placeholder, image_size)
-        self._raw_images, self._images, self._scales = results
-
-        # Build model.
-        self._class_outputs, self._box_outputs = infer.build_model(
-            model_name, self._images)
-        self.all_outputs = list(self._class_outputs.values()) + list(
-            self._box_outputs.values())
-        infer.restore_ckpt(self._tf_session,
-                           model_path,
-                           enable_ema=True,
-                           export_ckpt=None)
-
-        # Build postprocessing.
-        params = copy.deepcopy(driver.params)
-        params.update(dict(batch_size=1))
-        self._detections_batch = None
-        if MODIFIED_AUTOML:
-            self._detections_batch = EfficientDetOperator.det_post_process(
-                params, self._class_outputs, self._box_outputs, self._scales)
-        else:
-            self._detections_batch = infer.det_post_process(
-                params,
-                self._class_outputs,
-                self._box_outputs,
-                self._scales,
-                min_score_thresh=flags.obstacle_detection_min_score_threshold,
-                max_boxes_to_draw=anchors.MAX_DETECTIONS_PER_IMAGE)
-
+        self._model_name, self._driver = self.load_serving_model(self.config.name, model_path)
         self._unique_id = 0
+
+    def load_serving_model(self, model_name, model_path):
+        graph = tf.Graph()
+        driver = infer.ServingDriver(
+            graph,
+            model_name,
+            model_path,
+            batch_size=1,
+            use_xla=True,
+            model_params=hparams_config.get_detection_config(
+                model_name).as_dict(),
+            gpu_memory_fraction=self._flags.
+            obstacle_detection_gpu_memory_fraction)
+        driver.load(model_path)
+        return model_name, driver
 
     @staticmethod
     def connect(camera_stream):
@@ -152,40 +120,20 @@ class EfficientDetOperator(erdos.Operator):
         inputs = msg.frame.as_rgb_numpy_array()
 
         results = []
-        if MODIFIED_AUTOML:
-            start_time = time.time()
-            (boxes_np, scores_np, classes_np,
-             num_detections_np) = self._tf_session.run(
-                 self._detections_batch,
-                 feed_dict={self._image_placeholder: inputs})
-            end_time = time.time()
-            num_detections = num_detections_np[0]
-            boxes = boxes_np[0][:num_detections]
-            scores = scores_np[0][:num_detections]
-            classes = classes_np[0][:num_detections]
-            results = zip(boxes, scores, classes)
-        else:
-            start_time = time.time()
-            outputs_np = self._tf_session.run(
-                self._detections_batch,
-                feed_dict={self._image_placeholder: inputs})[0]
-            end_time = time.time()
-            self._csv_logger.info("{}, detection_rt, {}".format(
-                msg.timestamp, (end_time - start_time) * 1000))
-            #for _, x, y, width, height, score, _class in outputs_np:
-            #    results.append(((y, x, y + height, x + width), score, _class))
+        detector_start_time = time.time()
+        outputs_np = self._driver.serve_images([inputs])[0]
+        detector_end_time = time.time()
+        self._csv_logger.info("{}, detection_rt, {}".format(
+            msg.timestamp, (detector_end_time - detector_start_time) * 1000))
         obstacles = []
-        for (ymin, xmin, ymax, xmax), score, _class in results:
-            if np.isclose(ymin, ymax) or np.isclose(xmin, xmax):
-                continue
-            if MODIFIED_AUTOML:
-                # The alternate NMS implementation screws up the class labels.
-                _class = int(_class) + 1
+        camera_setup = msg.frame.camera_setup
+        for _, y, x, height, width, score, _class in results:
+            xmin, ymin = int(x), int(y)
+            xmax, ymax = int(x + width), int(y + height)
             if _class in self._coco_labels:
                 if (score >= self._flags.obstacle_detection_min_score_threshold
                         and
                         self._coco_labels[_class] in self._important_labels):
-                    camera_setup = msg.frame.camera_setup
                     width, height = camera_setup.width, camera_setup.height
                     xmin, xmax = max(0, int(xmin)), min(int(xmax), width)
                     ymin, ymax = max(0, int(ymin)), min(int(ymax), height)
