@@ -181,7 +181,8 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
                 iou = obstacle_bbox.calculate_iou(tracker_bbox)
                 # If track too far from det, mark pair impossible with np.nan
                 if iou >= self._min_matching_iou:
-                    cost_matrix[i][j] = iou
+                    # Negative since high IoU indicates lower cost
+                    cost_matrix[i][j] = -iou
                 else:
                     cost_matrix[i][j] = np.nan
         return np.array(cost_matrix)
