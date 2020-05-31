@@ -30,7 +30,6 @@ flags.DEFINE_float('person_angle_emergency_thres', 0.5,
 flags.DEFINE_integer('person_distance_hit_thres', 35,
                      'Person hit zone distance threshold')
 # Steering control parameters
-flags.DEFINE_float('default_throttle', 0.0, 'Default throttle')
 flags.DEFINE_float('throttle_max', 0.75, 'Max throttle')
 flags.DEFINE_float('steer_gain', 0.7, 'Gain on computed steering angle')
 flags.DEFINE_float('brake_strength', 1,

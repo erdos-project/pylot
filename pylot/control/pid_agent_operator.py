@@ -2,13 +2,12 @@
 
 from collections import deque
 import erdos
-import math
-from pid_controller.pid import PID
 
 # Pylot imports
 import pylot.control.utils
 import pylot.planning.utils
 from pylot.control.messages import ControlMessage
+from pylot.control.pid import PIDLongitudinalController
 
 
 class PIDAgentOperator(erdos.Operator):
@@ -37,9 +36,12 @@ class PIDAgentOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
-        self._pid = PID(p=self._flags.pid_p,
-                        i=self._flags.pid_i,
-                        d=self._flags.pid_d)
+        # TODO(ionel): Add path to calculate pid error with real time.
+        if self._flags.carla_control_frequency == -1:
+            dt = 1.0 / self._flags.carla_fps
+        else:
+            dt = 1.0 / self._flags.carla_control_frequency
+        self._pid = PIDLongitudinalController(1.0, 0, 0.05, dt)
         # Queues in which received messages are stored.
         self._waypoint_msgs = deque()
         self._pose_msgs = deque()
@@ -74,16 +76,25 @@ class PIDAgentOperator(erdos.Operator):
         self._logger.debug("@{} Received waypoints of length: {}".format(
             timestamp, len(waypoints)))
         if len(waypoints) > 0:
-            pid_steer_wp = self._flags.pid_steer_wp
-            pid_speed_wp = self._flags.pid_speed_wp
-            if self._flags.carla_mode == "pseudo-asynchronous":
-                # The control runs at a higher frequency, we need to choose
-                # based on the current speed.
-                pid_speed_wp = int(current_speed / 3)
-                pid_steer_wp = 2 * pid_speed_wp
-            # The operator picks the wp_num_steer-th waypoint to compute the
-            # angle it has to steer by when taking a turn.
-            # Use 10th waypoint for steering.
+            pid_steer_wp, pid_speed_wp = None, None
+            for index, _wp in enumerate(waypoints):
+                # Break if we have found both the desired waypoints.
+                if pid_steer_wp and pid_speed_wp:
+                    break
+                ego_distance = _wp.location.distance(
+                    vehicle_transform.location)
+                if pid_steer_wp is None and (ego_distance >
+                                             self._flags.pid_steer_wp):
+                    pid_steer_wp = index
+
+                if pid_speed_wp is None and (ego_distance >
+                                             self._flags.pid_speed_wp):
+                    pid_speed_wp = index
+
+            if pid_steer_wp is None:
+                pid_steer_wp = -1
+            if pid_speed_wp is None:
+                pid_speed_wp = -1
             _, wp_angle_steer = \
                 pylot.planning.utils.compute_waypoint_vector_and_angle(
                     vehicle_transform, waypoints, pid_steer_wp)

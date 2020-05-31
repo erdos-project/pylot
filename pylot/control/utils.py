@@ -46,12 +46,12 @@ def compute_throttle_and_brake(pid, current_speed, target_speed, flags):
     Returns:
         Throttle and brake values.
     """
-    pid.target = target_speed
-    pid_gain = pid(feedback=current_speed)
-    throttle = min(max(flags.default_throttle - 1.3 * pid_gain, 0),
-                   flags.throttle_max)
-    if pid_gain > 0.5:
-        brake = min(0.35 * pid_gain * flags.brake_strength, 1)
+    acceleration = pid.run_step(target_speed, current_speed)
+    if acceleration >= 0.0:
+        throttle = min(acceleration, flags.throttle_max)
+        brake = 0
     else:
         brake = 0
+        throttle = 0.0
+        brake = min(abs(acceleration), flags.brake_strength)
     return throttle, brake
