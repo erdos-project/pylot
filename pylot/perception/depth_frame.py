@@ -50,6 +50,13 @@ class DepthFrame(object):
         """Returns the depth frame as a numpy array."""
         return self.frame
 
+    def resize(self, width, height):
+        import cv2
+        self.camera_setup.set_resolution(width, height)
+        self.frame = cv2.resize(self.frame,
+                                dsize=(width, height),
+                                interpolation=cv2.INTER_NEAREST)
+
     def pixel_has_same_depth(self, x, y, z, threshold):
         """Checks if the depth of pixel (y,x) is within threshold of z."""
         return abs(self.frame[int(y)][int(x)] * 1000 - z) < threshold
@@ -98,8 +105,10 @@ class DepthFrame(object):
             self._cached_point_cloud[pixel.y * self.camera_setup.width +
                                      pixel.x] for pixel in pixels
         ]
-        return [pylot.utils.Location(loc[0], loc[1], loc[2])
-                    for loc in pixel_locations]
+        return [
+            pylot.utils.Location(loc[0], loc[1], loc[2])
+            for loc in pixel_locations
+        ]
 
     def save(self, timestamp, data_path, file_base):
         """Saves the depth frame to a file.

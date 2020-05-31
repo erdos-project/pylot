@@ -332,6 +332,12 @@ class CameraSetup(object):
         self._unreal_transform = CameraSetup.__create_unreal_transform(
             self.transform)
 
+    def set_resolution(self, width, height):
+        self.width = width
+        self.height = height
+        self._intrinsic_mat = CameraSetup.__create_intrinsic_matrix(
+            self.width, self.height, self.fov)
+
     def get_fov(self):
         """ Get the field of view of the camera.
 

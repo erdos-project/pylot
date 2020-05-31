@@ -60,6 +60,13 @@ class CameraFrame(object):
         else:
             return self.frame
 
+    def resize(self, width, height):
+        import cv2
+        self.camera_setup.set_resolution(width, height)
+        self.frame = cv2.resize(self.frame,
+                                dsize=(width, height),
+                                interpolation=cv2.INTER_NEAREST)
+
     def annotate_with_bounding_boxes(
         self,
         timestamp,
