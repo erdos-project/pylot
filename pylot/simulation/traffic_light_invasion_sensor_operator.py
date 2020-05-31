@@ -57,7 +57,7 @@ class TrafficLightInvasionSensorOperator(erdos.Operator):
         return not inter.is_empty
 
     def on_pose_update(self, msg):
-        self._logger.debug("@[{}]: pose update.".format(msg.timestamp))
+        self._logger.debug("@{}: pose update.".format(msg.timestamp))
 
         transform = msg.data.transform
         location = carla.Location(transform.location.x, transform.location.y,
@@ -127,7 +127,7 @@ class TrafficLightInvasionSensorOperator(erdos.Operator):
         # Read the vehicle ID from the vehicle ID stream.
         vehicle_id_msg = self._vehicle_id_stream.read()
         vehicle_id = vehicle_id_msg.data
-        self._logger.debug("@[{}]: Received Vehicle ID: {}".format(
+        self._logger.debug("@{}: Received Vehicle ID: {}".format(
             vehicle_id_msg.timestamp, vehicle_id))
 
         # Connect to the world.

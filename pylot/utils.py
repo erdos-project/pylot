@@ -456,7 +456,7 @@ class Transform(object):
         points = np.dot(matrix, points)
 
         # Get all but the last row in array form.
-        points = np.asarray(points[0:3].transpose())
+        points = np.asarray(points[0:3].transpose()).astype(np.float16)
 
         return points
 
@@ -621,7 +621,11 @@ class Pose(object):
         velocity_vector (:py:class:`~pylot.utils.Vector3D`): Velocity vector
             in world frame
     """
-    def __init__(self, transform, forward_speed, velocity_vector=None):
+    def __init__(self,
+                 transform,
+                 forward_speed,
+                 velocity_vector=None,
+                 localization_time=None):
         if not isinstance(transform, Transform):
             raise ValueError(
                 'transform should be of type pylot.utils.Transform')
@@ -629,6 +633,8 @@ class Pose(object):
         # Forward speed in m/s.
         self.forward_speed = forward_speed
         self.velocity_vector = velocity_vector
+        if localization_time is None:
+            self.localization_time = time.time()
 
     def __repr__(self):
         return self.__str__()
