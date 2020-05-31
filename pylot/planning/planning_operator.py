@@ -49,6 +49,7 @@ class PlanningOperator(erdos.Operator):
 
         self._pose_msgs = deque()
         self._prediction_msgs = deque()
+        self._ttd_msgs = deque()
 
     @staticmethod
     def connect(pose_stream, prediction_stream, global_trajectory_stream,
@@ -72,6 +73,7 @@ class PlanningOperator(erdos.Operator):
         self._logger.debug('@{}: received pose message'.format(msg.timestamp))
         self._pose_msgs.append(msg)
 
+    @erdos.profile_method()
     def on_prediction_update(self, msg):
         self._logger.debug('@{}: received prediction message'.format(
             msg.timestamp))
@@ -114,9 +116,11 @@ class PlanningOperator(erdos.Operator):
         from pylot.map.hd_map import HDMap
         self._map = HDMap(carla.Map('map', msg.data))
 
+    @erdos.profile_method()
     def on_time_to_decision(self, msg):
         self._logger.debug('@{}: {} received ttd update {}'.format(
             msg.timestamp, self.config.name, msg))
+        self._ttd_msgs.append(msg)
 
     def build_obstacle_list(self, vehicle_transform, prediction_msg):
         """

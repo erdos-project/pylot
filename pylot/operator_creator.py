@@ -58,7 +58,7 @@ def add_obstacle_detection(camera_stream,
 
 
 def add_obstacle_location_finder(obstacles_stream, depth_stream, pose_stream,
-                                 camera_stream, camera_setup):
+                                 camera_setup):
     """Adds an operator that finds the world locations of the obstacles.
 
     Args:
@@ -70,8 +70,6 @@ def add_obstacle_location_finder(obstacles_stream, depth_stream, pose_stream,
             connected.
         pose_stream (:py:class:`erdos.ReadStream`, optional): Stream on
             which pose info is received.
-        camera_stream (:py:class:`erdos.ReadStream`): The stream on which
-            camera frames are received.
         camera_setup (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
             The setup of the center camera.
 
@@ -87,15 +85,15 @@ def add_obstacle_location_finder(obstacles_stream, depth_stream, pose_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [obstacles_with_loc_stream] = erdos.connect(
-        ObstacleLocationFinderOperator, op_config,
-        [obstacles_stream, depth_stream, pose_stream, camera_stream], FLAGS,
-        camera_setup)
+    [obstacles_with_loc_stream
+     ] = erdos.connect(ObstacleLocationFinderOperator, op_config,
+                       [obstacles_stream, depth_stream, pose_stream], FLAGS,
+                       camera_setup)
     return obstacles_with_loc_stream
 
 
 def add_obstacle_location_history(obstacles_stream, depth_stream, pose_stream,
-                                  camera_stream, camera_setup):
+                                  camera_setup):
     """Adds an operator that finds obstacle trajectories in world coordinates.
 
     Args:
@@ -107,8 +105,6 @@ def add_obstacle_location_history(obstacles_stream, depth_stream, pose_stream,
             connected.
         pose_stream (:py:class:`erdos.ReadStream`, optional): Stream on
             which pose info is received.
-        camera_stream (:py:class:`erdos.ReadStream`): The stream on which
-            camera frames are received.
         camera_setup (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
             The setup of the center camera.
 
@@ -124,10 +120,10 @@ def add_obstacle_location_history(obstacles_stream, depth_stream, pose_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [tracked_obstacles] = erdos.connect(
-        ObstacleLocationHistoryOperator, op_config,
-        [obstacles_stream, depth_stream, pose_stream, camera_stream], FLAGS,
-        camera_setup)
+    [tracked_obstacles
+     ] = erdos.connect(ObstacleLocationHistoryOperator, op_config,
+                       [obstacles_stream, depth_stream, pose_stream], FLAGS,
+                       camera_setup)
     return tracked_obstacles
 
 

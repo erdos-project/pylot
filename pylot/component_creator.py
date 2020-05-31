@@ -75,7 +75,7 @@ def add_obstacle_detection(center_camera_stream,
         # Adds an operator that finds the world locations of the obstacles.
         obstacles_stream = pylot.operator_creator.add_obstacle_location_finder(
             obstacles_stream_wo_depth, depth_stream, pose_stream,
-            center_camera_stream, center_camera_setup)
+            center_camera_setup)
 
     if FLAGS.perfect_obstacle_detection or FLAGS.evaluate_obstacle_detection:
         assert (pose_stream is not None and depth_camera_stream is not None
@@ -145,7 +145,7 @@ def add_traffic_light_detection(tl_transform,
         traffic_lights_stream = \
             pylot.operator_creator.add_obstacle_location_finder(
                 traffic_lights_stream, depth_stream, pose_stream,
-                tl_camera_stream, tl_camera_setup)
+                tl_camera_setup)
 
     if FLAGS.perfect_traffic_light_detection:
         assert (pose_stream is not None
@@ -289,7 +289,7 @@ def add_obstacle_tracking(center_camera_stream,
         obstacles_tracking_stream = \
             pylot.operator_creator.add_obstacle_location_history(
                 obstacles_wo_history_tracking_stream, depth_stream,
-                pose_stream, center_camera_stream, center_camera_setup)
+                pose_stream, center_camera_setup)
     if FLAGS.perfect_obstacle_tracking:
         assert (pose_stream is not None
                 and ground_obstacles_stream is not None)
