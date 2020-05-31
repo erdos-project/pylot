@@ -165,8 +165,7 @@ def driver():
         # Add the evaluation logger.
         pylot.operator_creator.add_eval_metric_logging(
             collision_stream, lane_invasion_stream,
-            traffic_light_invasion_stream, imu_stream, pose_stream,
-            obstacles_stream)
+            traffic_light_invasion_stream, imu_stream, pose_stream)
 
         # Add control evaluation logging operator.
         pylot.operator_creator.add_control_evaluation(

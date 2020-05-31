@@ -705,7 +705,7 @@ def add_chauffeur_logging(vehicle_id_stream, pose_stream,
 
 def add_eval_metric_logging(collision_stream, lane_invasion_stream,
                             traffic_light_invasion_stream, imu_stream,
-                            pose_stream, obstacle_stream):
+                            pose_stream):
     """ Adds an evaluation metric logging operator to the pipeline.
 
     Args:
@@ -719,14 +719,14 @@ def add_eval_metric_logging(collision_stream, lane_invasion_stream,
             messages are received.
     """
     from pylot.loggers.eval_metric_logger_operator import \
-            EvalMetricLoggerOperator
+        EvalMetricLoggerOperator
     op_config = erdos.OperatorConfig(name='eval_metric_logger_operator',
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
     erdos.connect(EvalMetricLoggerOperator, op_config, [
         collision_stream, lane_invasion_stream, traffic_light_invasion_stream,
-        imu_stream, pose_stream, obstacle_stream
+        imu_stream, pose_stream
     ], FLAGS)
 
 

@@ -22,20 +22,17 @@ class EvalMetricLoggerOperator(erdos.Operator):
             messages are received.
         pose_stream (:py:class:`erdos.ReadStream`): Stream on which the pose
             messages are received.
-        obstacle_stream (:py:class:`erdos.ReadStream`): Stream on which the
-            obstacle messages are received.
         flags (absl.flags): Object to be used to access the absl flags.
     """
     def __init__(self, collision_stream, lane_invasion_stream,
                  traffic_light_invasion_stream, imu_stream, pose_stream,
-                 obstacle_stream, flags):
+                 flags):
         # Save the streams.
         self._collision_stream = collision_stream
         self._lane_invasion_stream = lane_invasion_stream
         self._traffic_light_invasion_stream = traffic_light_invasion_stream
         self._imu_stream = imu_stream
         self._pose_stream = pose_stream
-        self._obstacle_stream = obstacle_stream
 
         # Register callbacks.
         collision_stream.add_callback(self.on_collision_update)
@@ -44,7 +41,6 @@ class EvalMetricLoggerOperator(erdos.Operator):
             self.on_traffic_light_invasion_update)
         imu_stream.add_callback(self.on_imu_update)
         pose_stream.add_callback(self.on_pose_update)
-        obstacle_stream.add_callback(self.on_obstacle_update)
 
         # Initialize a logger.
         self._flags = flags
@@ -59,8 +55,7 @@ class EvalMetricLoggerOperator(erdos.Operator):
 
     @staticmethod
     def connect(collision_stream, lane_invasion_stream,
-                traffic_light_invasion_stream, imu_stream,
-                pose_stream, obstacle_stream):
+                traffic_light_invasion_stream, imu_stream, pose_stream):
         return []
 
     def on_collision_update(self, msg):
@@ -178,15 +173,3 @@ class EvalMetricLoggerOperator(erdos.Operator):
         self._csv_logger.info('{},{},pose,global,{}'.format(
             time_epoch_ms(), msg.timestamp.coordinates[0],
             "[{:.4f} {:.4f} {:.4f}]".format(x, y, z)))
-
-    def on_obstacle_update(self, msg):
-        for obstacle in msg.obstacles:
-            obstacle_location = obstacle.transform.location
-            x = obstacle_location.x
-            y = obstacle_location.y
-            z = obstacle_location.z
-
-            self._csv_logger.info('{},{},obstacle,{},{}'.format(
-                time_epoch_ms(), msg.timestamp.coordinates[0],
-                "[{} {}]".format(obstacle.id, obstacle.label),
-                "[{:.4f} {:.4f} {:.4f}]".format(x, y, z)))
