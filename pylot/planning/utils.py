@@ -48,13 +48,11 @@ def remove_completed_waypoints(waypoints,
     min_index = 0
     index = 0
     for waypoint in waypoints:
-        # XXX(ionel): We only check the first 10 waypoints.
-        if index > 10:
-            break
         dist = waypoint.location.distance(ego_vehicle_location)
         if dist < min_dist:
             min_dist = dist
             min_index = index
+        index += 1
 
     # Remove waypoints that are before the closest waypoint. The ego
     # vehicle already completed them.
