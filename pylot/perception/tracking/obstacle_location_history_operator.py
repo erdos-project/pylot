@@ -21,6 +21,8 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
         self._camera_setup = camera_setup
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
+            self.config.name + '-csv', self.config.csv_log_file_name)
 
         # Queues in which received messages are stored.
         self._obstacles_msgs = deque()
@@ -76,6 +78,16 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
 
         tracked_obstacles_stream.send(
             ObstacleTrajectoriesMessage(timestamp, obstacle_trajectories))
+
+        for obstacle in obstacles_with_location:
+            obstacle_location = obstacle.transform.location
+            x = obstacle_location.x
+            y = obstacle_location.y
+            z = obstacle_location.z
+            self._csv_logger.debug('{},{},obstacle,{},{}'.format(
+                pylot.utils.time_epoch_ms(), timestamp.coordinates[0],
+                "[{} {}]".format(obstacle.id, obstacle.label),
+                "[{:.4f} {:.4f} {:.4f}]".format(x, y, z)))
 
         self._timestamp_history.append(timestamp)
         self._timestamp_to_id[timestamp] = ids_cur_timestamp

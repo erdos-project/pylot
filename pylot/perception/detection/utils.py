@@ -635,8 +635,8 @@ def get_obstacle_locations(obstacles, depth_msg, ego_transform, camera_setup,
             # In such situations the center point might be in between legs,
             # and thus we might overestimate the distance.
             sample_points = []
-            for delta_x in range(-10, 11, 5):
-                for delta_y in range(-10, 11, 5):
+            for delta_x in range(-30, 30, 5):
+                for delta_y in range(-30, 30, 5):
                     sample_point = center_point + pylot.utils.Vector2D(
                         delta_x, delta_y)
                     if obstacle.bounding_box.is_within(sample_point):

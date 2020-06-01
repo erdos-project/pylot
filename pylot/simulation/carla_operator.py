@@ -309,7 +309,10 @@ class CarlaOperator(erdos.Operator):
                                            brake=msg.brake,
                                            hand_brake=msg.hand_brake,
                                            reverse=msg.reverse)
-        self._ego_vehicle.apply_control(vec_control)
+        self._client.apply_batch_sync([
+            carla.command.ApplyVehicleControl(self._ego_vehicle.id,
+                                              vec_control)
+        ])
 
     def __send_hero_vehicle_data(self, stream, timestamp, watermark_msg):
         vec_transform = pylot.utils.Transform.from_carla_transform(

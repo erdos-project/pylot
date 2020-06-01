@@ -4,6 +4,7 @@ Email: edward.fang@berkeley.edu
 """
 import itertools
 from collections import deque
+import time
 
 import erdos
 
@@ -70,29 +71,12 @@ class FOTPlanningOperator(PlanningOperator):
         }
         return hyperparameters
 
-    def fot_parameters_using_90_percentile(self, ttd):
-        maxt = 4.0
-        runtimes = [350, 211, 196, 142, 114, 93, 74, 61, 48, 40, 37, 34, 31]
-        dts = [
-            0.1, 0.1, 0.15, 0.1, 0.1, 0.15, 0.15, 0.2, 0.2, 0.25, 0.3, 0.35,
-            0.45
-        ]
-        d_road_ws = [
-            0.1, 0.3, 0.1, 0.5, 0.7, 0.3, 0.5, 0.5, 0.7, 0.7, 0.7, 0.7, 0.7
-        ]
-        for index, runtime in enumerate(runtimes):
-            if ttd >= runtime:
-                return maxt, dts[index], d_road_ws[index]
-        # Not enough time to run the planner.
-        self._logger.error(
-            'Not enough time to run the planner. Using the fastest version')
-        return maxt, dts[-1], d_road_ws[-1]
-
     def fot_parameters_using_99_percentile(self, ttd):
-        maxt = 4.0
-        runtimes = [650, 250, 150, 125, 113, 92, 73, 61, 50, 40, 32]
-        dts = [0.1, 0.1, 0.15, 0.15, 0.2, 0.2, 0.2, 0.25, 0.3, 0.35, 0.4]
-        d_road_ws = [0.1, 0.3, 0.3, 0.5, 0.3, 0.5, 0.7, 0.7, 0.7, 0.7, 0.7]
+        maxt = self._flags.maxt
+        runtimes = [309, 208, 148, 67, 40]
+        dts = [0.09, 0.11, 0.13, 0.19, 0.31]
+        d_road_ws = [0.3, 0.3, 0.3, 0.5, 0.7]
+
         for index, runtime in enumerate(runtimes):
             if ttd >= runtime:
                 return maxt, dts[index], d_road_ws[index]
@@ -101,16 +85,11 @@ class FOTPlanningOperator(PlanningOperator):
             'Not enough time to run the planner. Using the fastest version')
         return maxt, dts[-1], d_road_ws[-1]
 
-    def on_time_to_decision(self, msg):
-        """Invoked upon the receipt of a time to decision message.
-
-        The method changes planning hyper parameters depending on time to
-        decision.
-        """
+    def update_hyper_parameters(self, timestamp, ttd):
+        """Changes planning hyper parameters depending on time to decision."""
         # Change hyper paramters if static or dynamic deadlines are enabled.
         if self._flags.deadline_enforcement == 'dynamic':
-            maxt, dt, d_road_w = self.fot_parameters_using_99_percentile(
-                msg.data)
+            maxt, dt, d_road_w = self.fot_parameters_using_99_percentile(ttd)
         elif self._flags.deadline_enforcement == 'static':
             maxt, dt, d_road_w = self.fot_parameters_using_99_percentile(
                 self._flags.planning_deadline)
@@ -118,7 +97,7 @@ class FOTPlanningOperator(PlanningOperator):
             return
         self._logger.debug(
             '@{}: planner using maxt {}, dt {}, d_road_w {}'.format(
-                msg.timestamp, maxt, dt, d_road_w))
+                timestamp, maxt, dt, d_road_w))
         self._hyperparameters['maxt'] = maxt
         self._hyperparameters['dt'] = dt
         self._hyperparameters['d_road_w'] = d_road_w
@@ -127,7 +106,6 @@ class FOTPlanningOperator(PlanningOperator):
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
 
-        # get ego info
         pose_msg = self._pose_msgs.popleft()
         vehicle_transform = pose_msg.data.transform
         self._vehicle_transform = vehicle_transform
@@ -158,8 +136,12 @@ class FOTPlanningOperator(PlanningOperator):
         initial_conditions = self._compute_initial_conditions(
             pose_msg, obstacle_list)
 
+        start = time.time()
         (path_x, path_y, speeds, ix, iy, iyaw, d, s, speeds_x, speeds_y, misc,
          costs, success) = run_fot(initial_conditions, self._hyperparameters)
+        fot_runtime = (time.time() - start) * 1000
+        self._logger.debug('@{}: Frenet runtime {}'.format(
+            timestamp, fot_runtime))
 
         if success:
             self._logger.debug("@{}: Frenet Path X: {}".format(
