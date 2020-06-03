@@ -34,7 +34,7 @@ class TrafficLightDetOperator(erdos.Operator):
         self._flags = flags
         self._detection_graph = tf.Graph()
         # Load the model from the model file.
-        set_tf_loglevel(logging.ERROR)
+        pylot.utils.set_tf_loglevel(logging.ERROR)
         with self._detection_graph.as_default():
             od_graph_def = tf.GraphDef()
             with tf.gfile.GFile(self._flags.traffic_light_det_model_path,

@@ -1,5 +1,15 @@
+import logging
+import math
+
+from absl import flags
+
 import carla
+
 import erdos
+
+from leaderboard.autoagents.autonomous_agent import AutonomousAgent, \
+    Track
+
 import numpy as np
 
 import pylot.flags
@@ -10,14 +20,17 @@ from pylot.drivers.sensor_setup import LidarSetup, RGBCameraSetup
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.point_cloud import PointCloud
 
-from srunner.challenge.autoagents.autonomous_agent import AutonomousAgent,\
-    Track
+FLAGS = flags.FLAGS
 
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
 CENTER_CAMERA_NAME = 'center_camera'
 TL_CAMERA_NAME = 'traffic_lights_camera'
 LEFT_CAMERA_NAME = 'left_camera'
 RIGHT_CAMERA_NAME = 'right_camera'
+
+
+def get_entry_point():
+    return 'ERDOSAgent'
 
 
 class ERDOSAgent(AutonomousAgent):
@@ -34,12 +47,21 @@ class ERDOSAgent(AutonomousAgent):
     """
     def setup(self, path_to_conf_file):
         """Setup phase. Invoked by the scenario runner."""
+        # Disable Tensorflow logging.
+        pylot.utils.set_tf_loglevel(logging.ERROR)
+        # Parse the flag file.
         flags.FLAGS([__file__, '--flagfile={}'.format(path_to_conf_file)])
+        # Setup the pygame window.
+        if FLAGS.visualizer_backend == 'pygame':
+            import pygame
+            pygame.init()
+            pylot.utils.create_pygame_display(FLAGS.carla_camera_image_width,
+                                              FLAGS.carla_camera_image_height)
         self._logger = erdos.utils.setup_logging('erdos_agent',
                                                  FLAGS.log_file_name)
         enable_logging()
         self.track = get_track()
-        self._camera_setups = create_camera_setups(self.track)
+        self._camera_setups = create_camera_setups()
         # Set the lidar in the same position as the center camera.
         self._lidar_transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                                       pylot.utils.Rotation())
@@ -70,41 +92,52 @@ class ERDOSAgent(AutonomousAgent):
         """
         Defines the sensor suite required by the agent.
         """
-        can_sensors = [{
-            'type': 'sensor.can_bus',
-            'reading_frequency': 20,
-            'id': 'can_bus'
+        opendrive_map_sensors = []
+        if self.track == Track.MAP:
+            opendrive_map_sensors = [{
+                'type': 'sensor.opendrive_map',
+                'reading_frequency': 10,
+                'id': 'opendrive'
+            }]
+
+        gnss_sensors = [{
+            'type': 'sensor.other.gnss',
+            'x': 1.5,
+            'y': 0.0,
+            'z': 1.4,
+            'reading_frequency': 10,
+            'id': 'gnss'
         }]
 
-        hd_map_sensors = []
-        if self.track == Track.ALL_SENSORS_HDMAP_WAYPOINTS:
-            hd_map_sensors = [{
-                'type': 'sensor.hd_map',
-                'reading_frequency': 20,
-                'id': 'hdmap'
-            }]
+        imu_sensors = [{
+            'type': 'sensor.other.imu',
+            'x': 1.5,
+            'y': 0.0,
+            'z': 1.40,
+            'roll': 0.0,
+            'pitch': 0.0,
+            'yaw': 0.0,
+            'reading_frequency': 10,
+            'id': 'imu'
+        }]
 
-        gps_sensors = []
-        lidar_sensors = []
-        if (self.track == Track.ALL_SENSORS_HDMAP_WAYPOINTS
-                or self.track == Track.ALL_SENSORS):
-            gps_sensors = [{
-                'type': 'sensor.other.gnss',
-                'x': 0.7,
-                'y': -0.4,
-                'z': 1.60,
-                'id': 'GPS'
-            }]
-            lidar_sensors = [{
-                'type': 'sensor.lidar.ray_cast',
-                'x': self._lidar_transform.location.x,
-                'y': self._lidar_transform.location.y,
-                'z': self._lidar_transform.location.z,
-                'roll': self._lidar_transform.rotation.roll,
-                'pitch': self._lidar_transform.rotation.pitch,
-                'yaw': self._lidar_transform.rotation.yaw,
-                'id': 'LIDAR'
-            }]
+        speed_sensors = [{
+            'type': 'sensor.speedometer',
+            'reading_frequency': 10,
+            'id': 'speed'
+        }]
+
+        lidar_sensors = [{
+            'type': 'sensor.lidar.ray_cast',
+            'x': self._lidar_transform.location.x,
+            'y': self._lidar_transform.location.y,
+            'z': self._lidar_transform.location.z,
+            'roll': self._lidar_transform.rotation.roll,
+            'pitch': self._lidar_transform.rotation.pitch,
+            'yaw': self._lidar_transform.rotation.yaw,
+            'reading_frequency': 10,
+            'id': 'LIDAR'
+        }]
 
         camera_sensors = []
         for cs in self._camera_setups.values():
@@ -119,31 +152,34 @@ class ERDOSAgent(AutonomousAgent):
                 'width': cs.width,
                 'height': cs.height,
                 'fov': cs.fov,
+                'reading_frequency': 10,
                 'id': cs.name
             }
             camera_sensors.append(camera_sensor)
 
-        return (can_sensors + gps_sensors + hd_map_sensors + camera_sensors +
-                lidar_sensors)
+        return (gnss_sensors + speed_sensors + imu_sensors +
+                opendrive_map_sensors + camera_sensors + lidar_sensors)
 
     def run_step(self, input_data, timestamp):
         game_time = int(timestamp * 1000)
         self._logger.debug("Current game time {}".format(game_time))
         erdos_timestamp = erdos.Timestamp(coordinates=[game_time])
 
-        if not self._sent_open_drive and \
-               self.track != Track.ALL_SENSORS_HDMAP_WAYPOINTS:
+        if not self._sent_open_drive and self.track != Track.MAP:
             # We do not have access to the open drive map. Send top watermark.
             self._sent_open_drive = True
             self._open_drive_stream.send(
                 erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
-
+        # Send the waypoints.
         self.send_waypoints_msg(erdos_timestamp)
 
+        speed_data = None
+        imu_data = None
+        gnss_data = None
         for key, val in input_data.items():
-            # print("{} {} {}".format(key, val[0], type(val[1])))
+            # val is a tuple of (data timestamp, data).
+            print("Sensor {} at {}".format(key, val[0]))
             if key in self._camera_streams:
-
                 self._camera_streams[key].send(
                     pylot.perception.messages.FrameMessage(
                         erdos_timestamp,
@@ -151,15 +187,21 @@ class ERDOSAgent(AutonomousAgent):
                                     self._camera_setups[key])))
                 self._camera_streams[key].send(
                     erdos.WatermarkMessage(erdos_timestamp))
-            elif key == 'can_bus':
-                self.send_pose_msg(val[1], erdos_timestamp)
-            elif key == 'hdmap':
-                self.send_hd_map_msg(val[1], erdos_timestamp)
+            elif key == 'imu':
+                imu_data = val[1]
+            elif key == 'speed':
+                speed_data = val[1]
+            elif key == 'gnss':
+                gnss_data = val[1]
+            elif key == 'opendrive':
+                self.send_opendrive_map_msg(val[1], erdos_timestamp)
             elif key == 'LIDAR':
                 self.send_lidar_msg(val[1], self._lidar_transform,
                                     erdos_timestamp)
             else:
                 self._logger.warning("Sensor {} not used".format(key))
+
+        self.send_pose_msg(speed_data, imu_data, gnss_data, erdos_timestamp)
 
         # Wait until the control is set.
         while True:
@@ -174,7 +216,7 @@ class ERDOSAgent(AutonomousAgent):
                 output_control.manual_gear_shift = False
                 return output_control
 
-    def send_hd_map_msg(self, data, timestamp):
+    def send_opendrive_map_msg(self, data, timestamp):
         # Sending once opendrive data
         if self._open_drive_data is None:
             self._open_drive_data = data['opendrive']
@@ -185,15 +227,21 @@ class ERDOSAgent(AutonomousAgent):
         else:
             self._logger.warning(
                 'Agent did not sent open drive data for {}'.format(timestamp))
-        # TODO: Send point cloud data.
-        # pc_file = data['map_file']
 
-    def send_pose_msg(self, data, timestamp):
-        # The can bus dict contains other fields as well, but we don't use
-        # them yet.
+    def send_pose_msg(self, speed_data, imu_data, gnss_data, timestamp):
+        forward_speed = speed_data['speed']
+        # TODO(ionel): Remove the patch that gives us the perfect transform.
         vehicle_transform = pylot.utils.Transform.from_carla_transform(
-            data['transform'])
-        forward_speed = data['speed']
+            speed_data['transform'])
+        # latitude = gnss_data[0]
+        # longitude = gnss_data[1]
+        # altitude = gnss_data[2]
+        # location = pylot.utils.Location.from_gps(latitude, longitude, altitude)
+        # vehicle_transform = pylot.utils.Transform(
+        #     location, pylot.utils.Rotation(yaw=-90))
+        #        carla_north_vector = np.array([0.0, -1.0, 0.0])
+        # compass = imu_data[6]
+        # fwd_y = -math.cos(compass)
         yaw = vehicle_transform.rotation.yaw
         velocity_vector = pylot.utils.Vector3D(forward_speed * np.cos(yaw),
                                                forward_speed * np.sin(yaw), 0)
@@ -226,13 +274,9 @@ class ERDOSAgent(AutonomousAgent):
 def get_track():
     track = None
     if FLAGS.track == 1:
-        track = Track.ALL_SENSORS
-    elif FLAGS.track == 2:
-        track = Track.CAMERAS
+        track = Track.SENSORS
     elif FLAGS.track == 3:
-        track = Track.ALL_SENSORS_HDMAP_WAYPOINTS
-    elif FLAGS.track == 4:
-        track = Track.SCENE_LAYOUT
+        track = Track.MAP
     else:
         raise ValueError('Unexpected track {}'.format(FLAGS.track))
     return track
@@ -240,31 +284,22 @@ def get_track():
 
 def create_data_flow():
     """ Create the challenge data-flow graph."""
-    track = get_track()
     time_to_decision_loop_stream = erdos.LoopStream()
-    camera_setups = create_camera_setups(track)
+    camera_setups = create_camera_setups()
     camera_streams = {}
     for name in camera_setups:
         camera_streams[name] = erdos.IngestStream()
     pose_stream = erdos.IngestStream()
     global_trajectory_stream = erdos.IngestStream()
     open_drive_stream = erdos.IngestStream()
-
-    if (track == Track.ALL_SENSORS
-            or track == Track.ALL_SENSORS_HDMAP_WAYPOINTS):
-        point_cloud_stream = erdos.IngestStream()
-    else:
-        point_cloud_stream = pylot.operator_creator.add_depth_estimation(
-            camera_streams[LEFT_CAMERA_NAME],
-            camera_streams[RIGHT_CAMERA_NAME],
-            camera_setups[CENTER_CAMERA_NAME])
+    point_cloud_stream = erdos.IngestStream()
 
     obstacles_stream = pylot.operator_creator.add_obstacle_detection(
         camera_streams[CENTER_CAMERA_NAME], time_to_decision_loop_stream)[0]
     # Adds an operator that finds the world locations of the obstacles.
     obstacles_stream = pylot.operator_creator.add_obstacle_location_finder(
         obstacles_stream, point_cloud_stream, pose_stream,
-        camera_streams[CENTER_CAMERA_NAME], camera_setups[CENTER_CAMERA_NAME])
+        camera_setups[CENTER_CAMERA_NAME])
 
     traffic_lights_stream = pylot.operator_creator.add_traffic_light_detector(
         camera_streams[TL_CAMERA_NAME])
@@ -272,7 +307,7 @@ def create_data_flow():
     traffic_lights_stream = \
         pylot.operator_creator.add_obstacle_location_finder(
             traffic_lights_stream, point_cloud_stream, pose_stream,
-            camera_streams[TL_CAMERA_NAME], camera_setups[TL_CAMERA_NAME])
+            camera_setups[TL_CAMERA_NAME])
 
     waypoints_stream = pylot.operator_creator.add_waypoint_planning(
         pose_stream, open_drive_stream, global_trajectory_stream,
@@ -294,8 +329,7 @@ def create_data_flow():
             open_drive_stream, point_cloud_stream, extract_control_stream)
 
 
-def create_camera_setups(track):
-    """Creates different camera setups depending on the track."""
+def create_camera_setups():
     camera_setups = {}
     transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                       pylot.utils.Rotation())
@@ -309,24 +343,6 @@ def create_camera_setups(track):
                                      FLAGS.carla_camera_image_height,
                                      transform, 45)
     camera_setups[TL_CAMERA_NAME] = tl_camera_setup
-    left_camera_setup = None
-    right_camera_setup = None
-    # Add left and right cameras if we don't have access to lidar.
-    if track == Track.CAMERAS:
-        left_location = CENTER_CAMERA_LOCATION + pylot.utils.Location(
-            0, -FLAGS.offset_left_right_cameras, 0)
-        left_camera_setup = RGBCameraSetup(
-            LEFT_CAMERA_NAME, FLAGS.carla_camera_image_width,
-            FLAGS.carla_camera_image_height,
-            pylot.utils.Transform(left_location, pylot.utils.Rotation()), 90)
-        camera_setups[LEFT_CAMERA_NAME] = left_camera_setup
-        right_location = CENTER_CAMERA_LOCATION + pylot.utils.Location(
-            0, FLAGS.offset_left_right_cameras, 0)
-        right_camera_setup = RGBCameraSetup(
-            RIGHT_CAMERA_NAME, FLAGS.carla_camera_image_width,
-            FLAGS.carla_camera_image_height,
-            pylot.utils.Transform(right_location, pylot.utils.Rotation()), 90)
-        camera_setups[RIGHT_CAMERA_NAME] = right_camera_setup
     return camera_setups
 
 

@@ -1,25 +1,27 @@
+import logging
+
+from absl import flags
+
 import carla
+
 import erdos
-import math
+
 import numpy as np
 
 import pylot.flags
 import pylot.operator_creator
 import pylot.perception.messages
 import pylot.utils
-
-from pylot.perception.detection.utils import DetectedObstacle
-from pylot.perception.detection.traffic_light import TrafficLight, TrafficLightColor
 from pylot.perception.detection.speed_limit_sign import SpeedLimitSign
 from pylot.perception.detection.stop_sign import StopSign
+from pylot.perception.detection.traffic_light import TrafficLight, \
+    TrafficLightColor
+from pylot.perception.detection.utils import DetectedObstacle
 
 from srunner.challenge.autoagents.autonomous_agent import AutonomousAgent,\
     Track
 
-# The following reference values are applicable for towns 1 through 7, and
-# are taken from the corresponding CARLA OpenDrive map files.
-LAT_REF = 49.0
-LON_REF = 8.0
+FLAGS = flags.FLAGS
 
 
 class ERDOSTrack4Agent(AutonomousAgent):
@@ -28,13 +30,20 @@ class ERDOSTrack4Agent(AutonomousAgent):
     Warning:
         The agent is designed to work on track 4 only.
     """
-
     def setup(self, path_to_conf_file):
         """Setup phase code.
 
         Invoked by the scenario runner.
         """
+        # Disable Tensorflow logging.
+        pylot.utils.set_tf_loglevel(logging.ERROR)
         flags.FLAGS([__file__, '--flagfile={}'.format(path_to_conf_file)])
+        # Setup the pygame window.
+        if FLAGS.visualizer_backend == 'pygame':
+            import pygame
+            pygame.init()
+            pylot.utils.create_pygame_display(FLAGS.carla_camera_image_width,
+                                              FLAGS.carla_camera_image_height)
         self._logger = erdos.utils.setup_logging('erdos_agent',
                                                  FLAGS.log_file_name)
         enable_logging()
@@ -175,13 +184,10 @@ class ERDOSTrack4Agent(AutonomousAgent):
         # a dictionary of information about that vehicle. Each such dictionary
         # contains four items: the vehicle's id, position, orientation, and
         # bounding_box (represented as four points in GPS coordinates).
-        #
-        # Positions are originally represented as (latitude, longitude, altitude)
-        # before they are converted using _gps_to_location.
         vehicles_list = []
         for veh_dict in vehicles.values():
             vehicle_id = veh_dict['id']
-            location = _gps_to_location(*veh_dict['position'])
+            location = pylot.utils.Location.from_gps(*veh_dict['position'])
             roll, pitch, yaw = veh_dict['orientation']
             rotation = pylot.utils.Rotation(pitch, yaw, roll)
             if vehicle_id == ego_vehicle_id:
@@ -207,7 +213,7 @@ class ERDOSTrack4Agent(AutonomousAgent):
         people_list = []
         for person_dict in people.values():
             person_id = person_dict['id']
-            location = _gps_to_location(*person_dict['position'])
+            location = pylot.utils.Location.from_gps(*person_dict['position'])
             roll, pitch, yaw = person_dict['orientation']
             rotation = pylot.utils.Rotation(pitch, yaw, roll)
             people_list.append(
@@ -236,7 +242,8 @@ class ERDOSTrack4Agent(AutonomousAgent):
                 traffic_light_dict['state']]
             # Trigger volume is currently unused.
             traffic_light_trigger_volume = traffic_light_dict['trigger_volume']
-            location = _gps_to_location(*traffic_light_dict['position'])
+            location = pylot.utils.Location.from_gps(
+                *traffic_light_dict['position'])
             traffic_lights_list.append(
                 TrafficLight(
                     1.0,  # confidence
@@ -252,7 +259,8 @@ class ERDOSTrack4Agent(AutonomousAgent):
         stop_signs_list = []
         for stop_sign_dict in stop_signs.values():
             stop_sign_id = stop_sign_dict['id']
-            location = _gps_to_location(*stop_sign_dict['position'])
+            location = pylot.utils.Location.from_gps(
+                *stop_sign_dict['position'])
             # Trigger volume is currently unused.
             trigger_volume = stop_sign_dict['trigger_volume']
             stop_signs_list.append(
@@ -270,7 +278,8 @@ class ERDOSTrack4Agent(AutonomousAgent):
         speed_limit_signs_list = []
         for speed_limit_dict in speed_limits.values():
             speed_limit_id = speed_limit_dict['id']
-            location = _gps_to_location(*speed_limit_dict['position'])
+            location = pylot.utils.Location.from_gps(
+                *speed_limit_dict['position'])
             speed_limit = speed_limit_dict['speed']
             speed_limit_signs_list.append(
                 SpeedLimitSign(
@@ -286,7 +295,8 @@ class ERDOSTrack4Agent(AutonomousAgent):
         static_obstacles_list = []
         for static_obstacle_dict in static_obstacles.values():
             static_obstacle_id = static_obstacle_dict['id']
-            location = _gps_to_location(*static_obstacle_dict['position'])
+            location = pylot.utils.Location.from_gps(
+                *static_obstacle_dict['position'])
             static_obstacles_list.append(
                 DetectedObstacle(
                     None,  # bounding box
@@ -390,26 +400,3 @@ def enable_logging():
     """
     import logging
     logging.root.setLevel(logging.NOTSET)
-
-
-def _gps_to_location(lat, lon, altitude):
-    """
-    Converts gps coordinates (latitude, longitude, altitude) to locations.
-    This is the inverse of the _location_to_gps method found in
-    https://github.com/carla-simulator/scenario_runner/blob/master/srunner/tools/route_manipulation.py
-    """
-
-    EARTH_RADIUS_EQUA = 6378137.0
-    scale = math.cos(LAT_REF * math.pi / 180.0)
-    basex = scale * math.pi * EARTH_RADIUS_EQUA / 180.0 * LON_REF
-    basey = scale * EARTH_RADIUS_EQUA * math.log(
-        math.tan((90.0 + LAT_REF) * math.pi / 360.0))
-
-    x = scale * math.pi * EARTH_RADIUS_EQUA / 180.0 * lon - basex
-    y = scale * EARTH_RADIUS_EQUA * math.log(
-        math.tan((90.0 + lat) * math.pi / 360.0)) - basey
-
-    # This wasn't in the original carla method, but seems to be necessary.
-    y *= -1
-
-    return pylot.utils.Location(x, y, altitude)

@@ -16,4 +16,10 @@ if [ -z "$CARLA_VERSION" ]; then
     exit 1
 fi
 
-export PYTHONPATH=$PYTHONPATH:$PYLOT_HOME/dependencies/:$CARLA_HOME/PythonAPI/carla/dist/carla-$CARLA_VERSION-py3.5-linux-x86_64.egg:$CARLA_HOME/PythonAPI/carla/
+if [ $CARLA_VERSION = "0.9.9" ] ; then
+    PYTHON_VER=3.7
+else
+    PYTHON_VER=3.5
+fi
+
+export PYTHONPATH=$PYTHONPATH:$PYLOT_HOME/dependencies/:$CARLA_HOME/PythonAPI/carla/dist/carla-$CARLA_VERSION-py$PYTHON_VER-linux-x86_64.egg:$CARLA_HOME/PythonAPI/carla/

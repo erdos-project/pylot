@@ -264,6 +264,33 @@ class Location(Vector3D):
             raise ValueError('The location must be a carla.Location')
         return cls(location.x, location.y, location.z)
 
+    @classmethod
+    def from_gps(cls, latitude, longitude, altitude):
+        """Creates Location from GPS (latitude, longitude, altitude).
+
+        This is the inverse of the _location_to_gps method found in
+        https://github.com/carla-simulator/scenario_runner/blob/master/srunner/tools/route_manipulation.py
+        """
+        EARTH_RADIUS_EQUA = 6378137.0
+        # The following reference values are applicable for towns 1 through 7,
+        # and are taken from the corresponding CARLA OpenDrive map files.
+        LAT_REF = 49.0
+        LON_REF = 8.0
+
+        scale = math.cos(LAT_REF * math.pi / 180.0)
+        basex = scale * math.pi * EARTH_RADIUS_EQUA / 180.0 * LON_REF
+        basey = scale * EARTH_RADIUS_EQUA * math.log(
+            math.tan((90.0 + LAT_REF) * math.pi / 360.0))
+
+        x = scale * math.pi * EARTH_RADIUS_EQUA / 180.0 * longitude - basex
+        y = scale * EARTH_RADIUS_EQUA * math.log(
+            math.tan((90.0 + latitude) * math.pi / 360.0)) - basey
+
+        # This wasn't in the original carla method, but seems to be necessary.
+        y *= -1
+
+        return cls(x, y, altitude)
+
     def distance(self, other):
         """Calculates the Euclidean distance between the given point and the
         other point.
