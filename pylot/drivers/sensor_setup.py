@@ -542,7 +542,7 @@ class LidarSetup(object):
             +x to the right, +y is out of the screen, +z is down.
 
         The Unreal Engine coordinate space is defined as:
-            +x into the screen, +y to the right, +x to up.
+            +x into the screen, +y to the right, +z is up.
 
         Args:
             transform(:py:class:`~pylot.utils.Transform`): The transform to
@@ -553,7 +553,7 @@ class LidarSetup(object):
                 transforming to the Unreal Engine coordinate space.
         """
         to_camera_transform = Transform(matrix=np.array(
-            [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
+            [[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]))
         return transform * to_camera_transform
 
     def get_name(self):
