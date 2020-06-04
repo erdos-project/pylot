@@ -22,7 +22,7 @@ from pylot.perception.point_cloud import PointCloud
 
 FLAGS = flags.FLAGS
 
-CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
+CENTER_CAMERA_LOCATION = pylot.utils.Location(0.0, 0.0, 2.0)
 CENTER_CAMERA_NAME = 'center_camera'
 TL_CAMERA_NAME = 'traffic_lights_camera'
 LEFT_CAMERA_NAME = 'left_camera'
@@ -96,34 +96,32 @@ class ERDOSAgent(AutonomousAgent):
         if self.track == Track.MAP:
             opendrive_map_sensors = [{
                 'type': 'sensor.opendrive_map',
-                'reading_frequency': 10,
+                'reading_frequency': 20,
                 'id': 'opendrive'
             }]
 
         gnss_sensors = [{
             'type': 'sensor.other.gnss',
-            'x': 1.5,
+            'x': 0.0,
             'y': 0.0,
-            'z': 1.4,
-            'reading_frequency': 10,
+            'z': 2.0,
             'id': 'gnss'
         }]
 
         imu_sensors = [{
             'type': 'sensor.other.imu',
-            'x': 1.5,
+            'x': 0.0,
             'y': 0.0,
-            'z': 1.40,
+            'z': 2.0,
             'roll': 0.0,
             'pitch': 0.0,
             'yaw': 0.0,
-            'reading_frequency': 10,
             'id': 'imu'
         }]
 
         speed_sensors = [{
             'type': 'sensor.speedometer',
-            'reading_frequency': 10,
+            'reading_frequency': 20,
             'id': 'speed'
         }]
 
@@ -135,7 +133,6 @@ class ERDOSAgent(AutonomousAgent):
             'roll': self._lidar_transform.rotation.roll,
             'pitch': self._lidar_transform.rotation.pitch,
             'yaw': self._lidar_transform.rotation.yaw,
-            'reading_frequency': 10,
             'id': 'LIDAR'
         }]
 
@@ -152,7 +149,6 @@ class ERDOSAgent(AutonomousAgent):
                 'width': cs.width,
                 'height': cs.height,
                 'fov': cs.fov,
-                'reading_frequency': 10,
                 'id': cs.name
             }
             camera_sensors.append(camera_sensor)
@@ -316,6 +312,9 @@ def create_data_flow():
     if FLAGS.visualize_rgb_camera:
         pylot.operator_creator.add_camera_visualizer(
             camera_streams[CENTER_CAMERA_NAME], CENTER_CAMERA_NAME)
+
+
+#    pylot.operator_creator.add_lidar_visualizer(point_cloud_stream)
 
     control_stream = pylot.operator_creator.add_pid_agent(
         pose_stream, waypoints_stream)

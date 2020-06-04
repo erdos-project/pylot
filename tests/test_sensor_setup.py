@@ -232,9 +232,9 @@ def test_lidar_setup_failed_initialization():
                                  points_per_second=float(points_per_second))
 
 
-@pytest.mark.parametrize("rotation, expected", [((0, 0, 0), (0, 0, 90)),
-                                                ((0, 90, 0), (0, 90, 90)),
-                                                ((90, 0, 0), (90, 0, 90))])
+@pytest.mark.parametrize("rotation, expected", [((0, 0, 0), (0, 90, 0)),
+                                                ((0, 90, 0), (0, 180, 00)),
+                                                ((90, 0, 0), (0, 90, 90))])
 def test_lidar_unreal_transform(rotation, expected):
     """
     Ensure that the LIDAR space to unreal engine coordinate space conversion

@@ -86,14 +86,13 @@ class PointCloud(object):
         # Project our 2D pixel location into 3D space, onto the z=1 plane.
         p3d = np.dot(inv(intrinsic_mat), np.array([[pixel.x], [pixel.y],
                                                    [1.0]]))
-        location = PointCloud.get_closest_point_in_point_cloud(
-            fwd_points, Vector2D(p3d[0], p3d[1]))
-
-        # Use the depth from the retrieved location.
-        p3d[2] = location.z
-        p3d = p3d.transpose()
 
         if self._lidar_setup.lidar_type == 'sensor.lidar.ray_cast':
+            location = PointCloud.get_closest_point_in_point_cloud(
+                fwd_points, Vector2D(p3d[0], p3d[1]), normalized=True)
+            # Use the depth from the retrieved location.
+            p3d *= np.array([location.z])
+            p3d = p3d.transpose()
             # Convert from camera to unreal coordinates if the lidar type is
             # sensor.lidar.ray_cast
             to_world_transform = camera_setup.get_unreal_transform()
@@ -102,11 +101,16 @@ class PointCloud(object):
                                       camera_point_cloud[1],
                                       camera_point_cloud[2])
         elif self._lidar_setup.lidar_type == 'velodyne':
+            location = PointCloud.get_closest_point_in_point_cloud(
+                fwd_points, Vector2D(p3d[0], p3d[1]), normalized=False)
+            # Use the depth from the retrieved location.
+            p3d[2] = location.z
+            p3d = p3d.transpose()
             pixel_location = Location(p3d[0, 0], p3d[0, 1], p3d[0, 2])
         return pixel_location
 
     @staticmethod
-    def get_closest_point_in_point_cloud(fwd_points, pixel):
+    def get_closest_point_in_point_cloud(fwd_points, pixel, normalized=False):
         """Finds the closest point in the point cloud to the given point.
 
         Args:
@@ -117,12 +121,18 @@ class PointCloud(object):
         """
         # Select x and y.
         pc_xy = fwd_points[:, 0:2]
-
         # Create an array from the x, y coordinates of the point.
         xy = np.array([pixel.x, pixel.y]).transpose()
 
         # Compute distance
-        dist = np.sum((pc_xy - xy)**2, axis=1)
+        if normalized:
+            # Select z
+            pc_z = fwd_points[:, 2]
+            # Divize x, y by z
+            normalized_pc = pc_xy / pc_z[:, None]
+            dist = np.sum((normalized_pc - xy)**2, axis=1)
+        else:
+            dist = np.sum((pc_xy - xy)**2, axis=1)
 
         # Select index of the closest point.
         closest_index = np.argmin(dist)
