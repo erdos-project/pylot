@@ -23,8 +23,10 @@ def driver():
     time_to_decision_loop_stream = erdos.LoopStream()
     if FLAGS.carla_mode == 'pseudo-asynchronous':
         release_sensor_stream = erdos.LoopStream()
+        pipeline_finish_notify_stream = erdos.LoopStream()
     else:
         release_sensor_stream = erdos.IngestStream()
+        pipeline_finish_notify_stream = erdos.IngestStream()
     notify_streams = []
 
     # Create carla operator.
@@ -38,8 +40,11 @@ def driver():
         vehicle_id_stream,
         open_drive_stream,
         global_trajectory_stream,
-    ) = pylot.operator_creator.add_carla_bridge(control_loop_stream,
-                                                release_sensor_stream)
+    ) = pylot.operator_creator.add_carla_bridge(
+        control_loop_stream,
+        release_sensor_stream,
+        pipeline_finish_notify_stream,
+    )
 
     # Add sensors.
     (center_camera_stream, notify_rgb_stream,
@@ -135,10 +140,12 @@ def driver():
             waypoints_stream_for_control,
             pose_stream_for_control,
             sensor_ready_stream,
+            _pipeline_finish_notify_stream,
         ) = pylot.operator_creator.add_planning_pose_synchronizer(
             waypoints_stream, pose_stream_for_control, pose_stream,
             *notify_streams)
         release_sensor_stream.set(sensor_ready_stream)
+        pipeline_finish_notify_stream.set(_pipeline_finish_notify_stream)
     else:
         waypoints_stream_for_control = waypoints_stream
         pose_stream_for_control = pose_stream
@@ -186,6 +193,8 @@ def driver():
     # release their readings whenever.
     if FLAGS.carla_mode != "pseudo-asynchronous":
         release_sensor_stream.send(
+            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
+        pipeline_finish_notify_stream.send(
             erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
 

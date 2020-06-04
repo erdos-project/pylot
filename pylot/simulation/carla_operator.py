@@ -28,7 +28,9 @@ class CarlaOperator(erdos.Operator):
         _world: A handle to the world running inside the simulation.
         _vehicles: A list of identifiers of the vehicles inside the simulation.
     """
-    def __init__(self, control_stream, release_sensor_stream, pose_stream,
+
+    def __init__(self, control_stream, release_sensor_stream,
+                 pipeline_finish_notify_stream, pose_stream,
                  pose_stream_for_control, ground_traffic_lights_stream,
                  ground_obstacles_stream, ground_speed_limit_signs_stream,
                  ground_stop_signs_stream, vehicle_id_stream,
@@ -39,6 +41,9 @@ class CarlaOperator(erdos.Operator):
         control_stream.add_callback(self.on_control_msg)
         erdos.add_watermark_callback([release_sensor_stream], [],
                                      self.on_sensor_ready)
+        if flags.carla_mode == "pseudo-asynchronous":
+            erdos.add_watermark_callback([pipeline_finish_notify_stream], [],
+                                         self.on_pipeline_finish)
         self.pose_stream = pose_stream
         self.pose_stream_for_control = pose_stream_for_control
         self.ground_traffic_lights_stream = ground_traffic_lights_stream
@@ -109,7 +114,8 @@ class CarlaOperator(erdos.Operator):
         self._control_msgs = {}
 
     @staticmethod
-    def connect(control_stream, release_sensor_stream):
+    def connect(control_stream, release_sensor_stream,
+                pipeline_finish_notify_stream):
         pose_stream = erdos.WriteStream()
         pose_stream_for_control = erdos.WriteStream()
         ground_traffic_lights_stream = erdos.WriteStream()
@@ -172,6 +178,25 @@ class CarlaOperator(erdos.Operator):
                 control_msg = self._control_msgs[sim_time]
                 self._apply_control_msg(control_msg)
 
+    def on_pipeline_finish(self, timestamp):
+        self._logger.debug("@{}: Received pipeline finish.".format(timestamp))
+        game_time = timestamp.coordinates[0]
+        if (self._flags.carla_control_frequency == -1
+                or self._next_control_sensor_reading is None
+                or game_time == self._next_control_sensor_reading):
+            # There was supposed to be a control message for this timestamp
+            # too. Send the Pose message and continue after the control message
+            # is received.
+            watermark_msg = erdos.WatermarkMessage(timestamp)
+            self._update_next_control_pseudo_asynchronous_ticks(game_time)
+            self.__send_hero_vehicle_data(self.pose_stream_for_control,
+                                          timestamp, watermark_msg)
+            self.__update_spectactor_pose()
+        else:
+            # No pose message was supposed to be sent for this timestamp, we
+            # need to consume the next event to move the dataflow forward.
+            self._consume_next_event()
+
     def on_sensor_ready(self, timestamp):
         # The first sensor reading needs to be discarded because it might
         # not be correctly spaced out.
@@ -215,13 +240,6 @@ class CarlaOperator(erdos.Operator):
                                               timestamp, watermark_msg)
                 self.__update_spectactor_pose()
                 control_update = True
-
-            # If we sent a localization message, but did not have a message
-            # through control for this time, then we need to tick the simulator
-            # forward. (only if we are in the pseudo-asynchronous mode)
-            if self._flags.carla_mode == "pseudo-asynchronous" and (
-                    localization_update and not control_update):
-                self._consume_next_event()
 
     def _update_next_localization_pseudo_asynchronous_ticks(self, game_time):
         if self._flags.carla_localization_frequency > -1:

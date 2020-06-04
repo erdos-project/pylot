@@ -8,7 +8,8 @@ import pylot.utils
 FLAGS = flags.FLAGS
 
 
-def add_carla_bridge(control_stream, sensor_ready_stream):
+def add_carla_bridge(control_stream, sensor_ready_stream,
+                     pipeline_finish_notify_stream):
     from pylot.simulation.carla_operator import CarlaOperator
     op_config = erdos.OperatorConfig(name='carla_operator',
                                      log_file_name=FLAGS.log_file_name,

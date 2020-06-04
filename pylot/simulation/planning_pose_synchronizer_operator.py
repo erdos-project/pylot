@@ -38,11 +38,18 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
             downstream control operator.
         pose_write_stream (:py:class:`erdos.WriteStream`): Stream that relays
             the pose messages from the CarlaOperator to the control module.
+        release_sensor_stream (:py:class:`erdos.WriteStream`): Stream that 
+            synchronizes all the sensors and waits for the slowest sensor in
+            order to release data from all the sensor simultaneously.
+        pipeline_finish_notify_stream (:py:class:`erdos.WriteStream`): Stream
+            that notifies the simulation that it has finished and that a new
+            sensor input should be released into the system.
     """
+
     def __init__(self, waypoints_read_stream, pose_read_stream,
                  localization_pose_stream, notify_stream1, notify_stream2,
                  waypoints_write_stream, pose_write_stream,
-                 release_sensor_stream, flags):
+                 release_sensor_stream, pipeline_finish_notify_stream, flags):
         # Register callbacks on both the waypoints and the pose stream.
         waypoints_read_stream.add_callback(self.on_waypoints_update)
         pose_read_stream.add_callback(self.on_pose_update)
@@ -58,6 +65,7 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
 
         # Save the write streams.
         self._waypoints_write_stream = waypoints_write_stream
+        self._pipeline_finish_notify_stream = pipeline_finish_notify_stream
 
         # Initialize a logger.
         self._flags = flags
@@ -69,8 +77,9 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
         # Data used by the operator.
         self._pose_map = dict()
         self._waypoints = deque()
-        self._first_waypoint = True
+        self._waypoint_num = 0
         self._last_highest_applicable_time = None
+        self._last_localization_update = None
 
     @staticmethod
     def connect(waypoints_read_stream, pose_read_stream,
@@ -78,10 +87,15 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
         waypoints_write_stream = erdos.WriteStream()
         pose_write_stream = erdos.WriteStream()
         release_sensor_stream = erdos.WriteStream()
+        pipeline_finish_notify_stream = erdos.WriteStream()
         return [
-            waypoints_write_stream, pose_write_stream, release_sensor_stream
+            waypoints_write_stream,
+            pose_write_stream,
+            release_sensor_stream,
+            pipeline_finish_notify_stream,
         ]
 
+    @erdos.profile_method()
     def on_waypoints_update(self, msg):
         """ Invoked upon receipt of a waypoints message from the pipeline.
 
@@ -97,16 +111,24 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
         self._logger.debug("@{}: received waypoints update.".format(
             msg.timestamp))
 
-        if self._first_waypoint:
-            self._logger.debug(
-                "@{}: received first waypoint. "
-                "Skipping because the simulator might not be in sync.".format(
-                    msg.timestamp))
-            self._first_waypoint = False
-            return
-
         # Retrieve the game time.
         game_time = msg.timestamp.coordinates[0]
+
+        # Ensure that a single invocation of the pipeline is happening.
+        assert self._last_localization_update == game_time, \
+                "Concurrent Execution of the pipeline."
+
+        watermark = erdos.WatermarkMessage(msg.timestamp)
+        if self._waypoint_num < 10:
+            self._logger.debug(
+                "@{}: received waypoint num {}. "
+                "Skipping because the simulator might not be in sync.".format(
+                    self._waypoint_num, msg.timestamp))
+            self._waypoint_num += 1
+            # Send a message on the notify stream to ask CARLA to send a new
+            # sensor stream.
+            self._pipeline_finish_notify_stream.send(watermark)
+            return
 
         # Retrieve the pose message for this timestamp.
         (pose_msg, pose_recv_time) = self._pose_map[game_time]
@@ -128,22 +150,31 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
                 "@{}: waypoints will be applicable at {}".format(
                     msg.timestamp, applicable_time))
         else:
-            # We add the applicable time to the time between localization
-            # readings, and put these waypoints at that location.
-            sensor_frequency = self._flags.carla_fps
-            if self._flags.carla_localization_frequency != -1:
-                sensor_frequency = self._flags.carla_localization_frequency
-            applicable_time = self._last_highest_applicable_time + int(
-                1000 / sensor_frequency)
+            # The last waypoint applicable time was higher, we should purge
+            # the ones higher than this one and add this entry.
+            self._logger.debug(
+                "@{}: Popping the last applicable time: {}".format(
+                    msg.timestamp, self._waypoints[-1][0]))
+
+            assert (
+                self._waypoints.pop()[0] == self._last_highest_applicable_time)
+            while self._waypoints[-1][0] >= applicable_time:
+                self._logger.debug(
+                    "@{}: Popping the last applicable time: {}".format(
+                        msg.timestamp, self._waypoints[-1][0]))
+                self._waypoints.pop()
             self._last_highest_applicable_time = applicable_time
             self._waypoints.append((applicable_time, msg))
-            self._logger.debug(
-                "@{}: the waypoints were adjusted by the localization "
-                "frequency and will be applicable at {}".format(
-                    msg.timestamp, applicable_time))
+            self._logger.debug("@{}: the waypoints were adjusted "
+                               "and will be applicable at {}".format(
+                                   msg.timestamp, applicable_time))
 
         # Delete the pose from the map.
-        del self._pose_map[game_time]
+        self._pose_map.pop(game_time, None)
+
+        # Send a message on the notify stream to ask CARLA to send a new
+        # sensor stream.
+        self._pipeline_finish_notify_stream.send(watermark)
 
     def on_pose_update(self, msg):
         """ Invoked when we receive a pose message from the simulation.
@@ -160,7 +191,10 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
         game_time = msg.timestamp.coordinates[0]
 
         # Save the pose message along with the time at which it was received.
-        self._pose_map[game_time] = (msg, time.time())
+        if game_time in self._pose_map:
+            self._pose_map[game_time][0] = msg
+        else:
+            self._pose_map[game_time] = [msg, None]
 
     def on_localization_update(self, msg):
         """ Invoked upon receipt of a localization message that will lead
@@ -180,7 +214,11 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
         game_time = msg.timestamp.coordinates[0]
 
         # Save the pose message along with the time at which it was received.
-        self._pose_map[game_time] = (msg, time.time())
+        self._pose_map[game_time] = [msg, time.time()]
+
+        # Save the last localization message received to ensure that only a
+        # single invocation of the pipeline happens at a time.
+        self._last_localization_update = game_time
 
     def on_pose_watermark(self, timestamp, waypoint_stream, pose_stream):
         """ Invoked upon receipt of the watermark on the pose stream.
@@ -239,8 +277,9 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
         pose_stream.send(pose_msg)
         pose_stream.send(watermark)
         waypoint_stream.send(watermark)
+
         # Clean up the pose from the dict.
-        del self._pose_map[game_time]
+        self._pose_map.pop(game_time, None)
 
     @erdos.profile_method()
     def on_sensor_ready(self, timestamp, release_sensor_stream):
@@ -258,3 +297,13 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
         """
         self._logger.debug("@{}: the sensors are all ready.".format(timestamp))
         release_sensor_stream.send(erdos.WatermarkMessage(timestamp))
+
+        # Retrieve the game time.
+        game_time = timestamp.coordinates[0]
+
+        # Also rewrite the receive time for the pose update because the sensor
+        # callbacks might take too long.
+        if game_time in self._pose_map:
+            self._pose_map[game_time][1] = time.time()
+        else:
+            self._pose_map[game_time] = [None, time.time()]
