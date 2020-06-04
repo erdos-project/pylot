@@ -19,6 +19,8 @@ class ObjectTrackerOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
+            self.config.name + '-csv', self.config.csv_log_file_name)
         self._tracker_type = tracker_type
         try:
             if tracker_type == 'cv2':
@@ -46,6 +48,7 @@ class ObjectTrackerOperator(erdos.Operator):
 
         self._obstacles_msgs = deque()
         self._frame_msgs = deque()
+        self._watermark_msg_count = 0
 
     @staticmethod
     def connect(obstacles_stream, camera_stream, time_to_decision_stream):
@@ -75,6 +78,7 @@ class ObjectTrackerOperator(erdos.Operator):
         frame_msg = self._frame_msgs.popleft()
         camera_frame = frame_msg.frame
         tracked_obstacles = []
+        self._watermark_msg_count += 1
         if len(self._obstacles_msgs) > 0:
             obstacles_msg = self._obstacles_msgs.popleft()
             assert frame_msg.timestamp == obstacles_msg.timestamp
@@ -85,14 +89,19 @@ class ObjectTrackerOperator(erdos.Operator):
                 if (obstacle.label in VEHICLE_LABELS
                         or obstacle.label == 'person'):
                     detected_obstacles.append(obstacle)
-            self._tracker.reinitialize(camera_frame, detected_obstacles)
+            if self._watermark_msg_count % self._flags.track_every_nth_detection == 0:
+                self._tracker.reinitialize(camera_frame, detected_obstacles)
 
         self._logger.debug('Processing frame {}'.format(timestamp))
         ok, tracked_obstacles = self._tracker.track(camera_frame)
         if not ok:
             self._logger.error(
                 'Tracker failed at timestamp {}'.format(timestamp))
-
+        sim_time = timestamp.coordinates[0]
+        num_targets = len(tracked_obstacles)
+        self._csv_logger.info('{},{},{},{},{}'.format(
+            pylot.utils.time_epoch_ms(), sim_time, self.config.name, 'num_targets',
+            num_targets))
         obstacle_tracking_stream.send(
             ObstaclesMessage(timestamp, tracked_obstacles, 0))
 
