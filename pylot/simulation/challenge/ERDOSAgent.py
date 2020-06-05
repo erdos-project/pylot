@@ -81,12 +81,14 @@ class ERDOSAgent(AutonomousAgent):
         self._sent_open_drive = False
         self._point_cloud_stream = point_cloud_stream
         self._control_stream = control_stream
-        # Execute the data-flow.
-        erdos.run_async()
+        # Execute the dataflow.
+        self._node_handle = erdos.run_async()
 
     def destroy(self):
         """Clean-up the agent. Invoked between different runs."""
         self._logger.info('ERDOSAgent destroy method invoked')
+        self._node_handle.shutdown()
+        erdos.reset()
 
     def sensors(self):
         """
@@ -262,6 +264,7 @@ class ERDOSAgent(AutonomousAgent):
             data = [(pylot.utils.Transform.from_carla_transform(transform),
                      road_option)
                     for (transform, road_option) in self._waypoints]
+            print("All waypoints {}".format(data))
             self._global_trajectory_stream.send(erdos.Message(timestamp, data))
             self._global_trajectory_stream.send(
                 erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
@@ -305,16 +308,35 @@ def create_data_flow():
             traffic_lights_stream, point_cloud_stream, pose_stream,
             camera_setups[TL_CAMERA_NAME])
 
-    waypoints_stream = pylot.operator_creator.add_waypoint_planning(
-        pose_stream, open_drive_stream, global_trajectory_stream,
-        obstacles_stream, traffic_lights_stream, None)
+    obstacles_wo_history_tracking_stream = \
+        pylot.operator_creator.add_obstacle_tracking(
+            obstacles_stream,
+            camera_streams[CENTER_CAMERA_NAME],
+            time_to_decision_loop_stream)
+    obstacles_tracking_stream = \
+        pylot.operator_creator.add_obstacle_location_history(
+            obstacles_wo_history_tracking_stream, point_cloud_stream,
+            pose_stream, camera_setups[CENTER_CAMERA_NAME])
+    prediction_stream = pylot.operator_creator.add_linear_prediction(
+        obstacles_tracking_stream)
+
+    if FLAGS.planning_type == 'waypoint':
+        waypoints_stream = pylot.operator_creator.add_waypoint_planning(
+            pose_stream, open_drive_stream, global_trajectory_stream,
+            obstacles_stream, traffic_lights_stream, None)
+    elif FLAGS.planning_type == 'frenet_optimal_trajectory':
+        waypoints_stream = pylot.operator_creator.add_fot_planning(
+            pose_stream, prediction_stream, global_trajectory_stream,
+            open_drive_stream, time_to_decision_loop_stream, None)
+    else:
+        raise ValueError('Unexpected planning_type {}'.format(
+            FLAGS.planning_type))
 
     if FLAGS.visualize_rgb_camera:
         pylot.operator_creator.add_camera_visualizer(
             camera_streams[CENTER_CAMERA_NAME], CENTER_CAMERA_NAME)
 
-
-#    pylot.operator_creator.add_lidar_visualizer(point_cloud_stream)
+    #    pylot.operator_creator.add_lidar_visualizer(point_cloud_stream)
 
     control_stream = pylot.operator_creator.add_pid_agent(
         pose_stream, waypoints_stream)
