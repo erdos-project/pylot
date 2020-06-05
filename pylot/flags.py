@@ -152,6 +152,8 @@ flags.DEFINE_bool('evaluate_segmentation', False,
 ########################################
 # Recording operators.
 ########################################
+flags.DEFINE_string('simulation_recording_file', None,
+                    'Path to where the simulation is recorded')
 flags.DEFINE_string('data_path', 'data/', 'Path where to logged data')
 flags.DEFINE_bool('log_detector_output', False,
                   'Enable recording of bbox annotated detector images')

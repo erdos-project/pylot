@@ -211,10 +211,16 @@ def main(args):
         raise ValueError("There was an issue connecting to the simulator.")
 
     try:
+        if FLAGS.simulation_recording_file is not None:
+            client.start_recorder(FLAGS.simulation_recording_file)
         driver()
     except KeyboardInterrupt:
+        if FLAGS.simulation_recording_file is not None:
+            client.stop_recorder()
         set_asynchronous_mode(world)
     except Exception:
+        if FLAGS.simulation_recording_file is not None:
+            client.stop_recorder()
         set_asynchronous_mode(world)
         raise
 
