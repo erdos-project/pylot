@@ -1,7 +1,8 @@
 import enum
 import math
-from pylot.perception.detection.traffic_light import TrafficLightColor
+
 import pylot.perception.detection.utils
+from pylot.perception.detection.traffic_light import TrafficLightColor
 
 
 class BehaviorPlannerState(enum.Enum):
@@ -23,10 +24,7 @@ def compute_waypoint_vector_and_angle(vehicle_transform, waypoints, wp_num):
     return wp_vector, wp_angle
 
 
-def remove_completed_waypoints(waypoints,
-                               target_speeds,
-                               ego_vehicle_location,
-                               completion_threshold=0.9):
+def remove_completed_waypoints(waypoints, target_speeds, ego_vehicle_location):
     """Removes waypoints that the ego vehicle has already completed.
 
     The method first finds the closest waypoint, removes all waypoints
@@ -39,8 +37,6 @@ def remove_completed_waypoints(waypoints,
             initial waypoints.
         ego_vehicle_location (:py:class:`pylot.utils.Location`): The location
             of the ego-vehicle.
-        completion_threshold (int): The threshold at which a waypoint is
-            considered completed.
     Returns:
         A double-ended queue of trimmed waypoints. (mutates the original queue)
     """
@@ -62,11 +58,6 @@ def remove_completed_waypoints(waypoints,
             target_speeds.popleft()
         min_index -= 1
 
-    # The closest waypoint is almost complete, remove it.
-    if min_dist < completion_threshold:
-        waypoints.popleft()
-        if target_speeds:
-            target_speeds.popleft()
     return waypoints, target_speeds
 
 

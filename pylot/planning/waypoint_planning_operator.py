@@ -1,8 +1,9 @@
 """Implements an operator that computes waypoints to a goal location."""
 
-from collections import deque
-import erdos
 import itertools
+from collections import deque
+
+import erdos
 
 import pylot.planning.cost_functions
 import pylot.utils
@@ -10,9 +11,7 @@ from pylot.planning.messages import WaypointsMessage
 from pylot.planning.utils import BehaviorPlannerState, \
         remove_completed_waypoints
 
-DEFAULT_NUM_WAYPOINTS = 50  # 50 waypoints / 50 meters of planning ahead
 DEFAULT_TARGET_WAYPOINT = 9  # Use the 10th waypoint for computing speed
-WAYPOINT_COMPLETION_THRESHOLD = 0.9
 RECOMPUTE_WAYPOINT_EVERY_N_WATERMARKS = 5
 
 
@@ -165,9 +164,7 @@ class WaypointPlanningOperator(erdos.Operator):
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         self._watermark_cnt += 1
-        # Get hero vehicle info.
-        pose_msg = self._pose_msgs.popleft()
-        self._vehicle_transform = pose_msg.data.transform
+        self._vehicle_transform = self._pose_msgs.popleft().data.transform
         tl_msg = self._traffic_light_msgs.popleft()
         obstacles_msg = self._obstacles_msgs.popleft()
 
@@ -176,8 +173,7 @@ class WaypointPlanningOperator(erdos.Operator):
             self._waypoints = self._map.compute_waypoints(
                 self._vehicle_transform.location, self._goal_location)
         self._waypoints, _ = remove_completed_waypoints(
-            self._waypoints, None, self._vehicle_transform.location,
-            WAYPOINT_COMPLETION_THRESHOLD)
+            self._waypoints, None, self._vehicle_transform.location)
         if not self._waypoints or len(self._waypoints) == 0:
             # If waypoints are empty (e.g., reached destination), set waypoint
             # to current vehicle location.
@@ -194,12 +190,11 @@ class WaypointPlanningOperator(erdos.Operator):
             self._logger, self._map, timestamp)
 
         target_speed = speed_factor * self._flags.target_speed
-        self._logger.debug('@{}: computed speed factor: {}'.format(
-            timestamp, speed_factor))
-        self._logger.debug('@{}: computed target speed: {}'.format(
-            timestamp, target_speed))
+        self._logger.debug('@{}: speed factor: {}, target speed: {}'.format(
+            timestamp, speed_factor, target_speed))
         head_waypoints = deque(
-            itertools.islice(self._waypoints, 0, DEFAULT_NUM_WAYPOINTS))
+            itertools.islice(self._waypoints, 0,
+                             self._flags.num_waypoints_ahead))
         target_speeds = deque(
             [target_speed for _ in range(len(head_waypoints))])
         waypoints_stream.send(

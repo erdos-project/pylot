@@ -15,4 +15,4 @@ flags.DEFINE_integer('num_waypoints_ahead', 60,
 flags.DEFINE_integer('num_waypoints_behind', 30,
                      'Number of waypoints behind to account for')
 flags.DEFINE_float('obstacle_filtering_distance', 1.0,
-                     'distance at which to sample obstacles[m]')
+                   'distance at which to sample obstacles[m]')
