@@ -1,5 +1,4 @@
 import logging
-import math
 
 from absl import flags
 
@@ -321,8 +320,10 @@ def create_data_flow():
         obstacles_tracking_stream)
 
     if FLAGS.planning_type == 'waypoint':
+        trajectory_stream = pylot.operator_creator.add_behavior_planning(
+            pose_stream, open_drive_stream, global_trajectory_stream)
         waypoints_stream = pylot.operator_creator.add_waypoint_planning(
-            pose_stream, open_drive_stream, global_trajectory_stream,
+            pose_stream, open_drive_stream, trajectory_stream,
             obstacles_stream, traffic_lights_stream, None)
     elif FLAGS.planning_type == 'frenet_optimal_trajectory':
         waypoints_stream = pylot.operator_creator.add_fot_planning(
@@ -335,6 +336,9 @@ def create_data_flow():
     if FLAGS.visualize_rgb_camera:
         pylot.operator_creator.add_camera_visualizer(
             camera_streams[CENTER_CAMERA_NAME], CENTER_CAMERA_NAME)
+
+    # pylot.operator_creator.add_waypoint_visualizer(
+    #     waypoints_stream, camera_streams[CENTER_CAMERA_NAME], pose_stream)
 
     #    pylot.operator_creator.add_lidar_visualizer(point_cloud_stream)
 
@@ -364,6 +368,20 @@ def create_camera_setups():
                                      FLAGS.carla_camera_image_height,
                                      transform, 45)
     camera_setups[TL_CAMERA_NAME] = tl_camera_setup
+    left_transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
+                                           pylot.utils.Rotation(yaw=-45))
+    left_camera_setup = RGBCameraSetup(LEFT_CAMERA_NAME,
+                                       FLAGS.carla_camera_image_width,
+                                       FLAGS.carla_camera_image_height,
+                                       left_transform, 90)
+    camera_setups[LEFT_CAMERA_NAME] = left_camera_setup
+    right_transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
+                                            pylot.utils.Rotation(yaw=45))
+    right_camera_setup = RGBCameraSetup(RIGHT_CAMERA_NAME,
+                                        FLAGS.carla_camera_image_width,
+                                        FLAGS.carla_camera_image_height,
+                                        right_transform, 90)
+    camera_setups[RIGHT_CAMERA_NAME] = right_camera_setup
     return camera_setups
 
 

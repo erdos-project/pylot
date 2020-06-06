@@ -338,6 +338,22 @@ def add_prediction_evaluation(pose_stream,
                   [pose_stream, tracking_stream, prediction_stream], FLAGS)
 
 
+def add_behavior_planning(pose_stream,
+                          open_drive_stream,
+                          global_trajectory_stream,
+                          name='behavior_planning'):
+    from pylot.planning.behavior_planning_operator import \
+        BehaviorPlanningOperator
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [trajectory_stream] = erdos.connect(
+        BehaviorPlanningOperator, op_config,
+        [pose_stream, open_drive_stream, global_trajectory_stream], FLAGS)
+    return trajectory_stream
+
+
 def add_fot_planning(pose_stream,
                      prediction_stream,
                      global_trajectory_stream,

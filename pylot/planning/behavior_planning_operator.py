@@ -1,3 +1,5 @@
+from collections import deque
+
 import erdos
 
 import pylot.planning.cost_functions
@@ -5,17 +7,92 @@ from pylot.planning.utils import BehaviorPlannerState
 
 
 class BehaviorPlanningOperator(erdos.Operator):
-    def __init__(self, flags):
+    def __init__(self, pose_stream, open_drive_stream, route_stream,
+                 trajectory_stream, flags):
+        pose_stream.add_callback(self.on_pose_update)
+        open_drive_stream.add_callback(self.on_opendrive_map)
+        route_stream.add_callback(self.on_route_msg)
+        erdos.add_watermark_callback(
+            [pose_stream, open_drive_stream, route_stream],
+            [trajectory_stream], self.on_watermark)
+
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
+        self._goal_location = None
         # Initialize the state of the behaviour planner.
-        self.__initialize_behaviour_planner()
+        #self.__initialize_behaviour_planner()
+        self._pose_msgs = deque()
+        self._route = deque()
 
     @staticmethod
-    def connect(pose_stream, open_drive_stream, global_trajectory_stream,
-                prediction_stream, traffic_lights_stream):
-        return []
+    def connect(pose_stream, open_drive_stream, route_stream):
+        trajectory_stream = erdos.WriteStream()
+        return [trajectory_stream]
+
+    def on_opendrive_map(self, msg):
+        """Invoked whenever a message is received on the open drive stream.
+
+        Args:
+            msg (:py:class:`~erdos.message.Message`): Message that contains
+                the open drive string.
+        """
+        self._logger.debug('@{}: received open drive message'.format(
+            msg.timestamp))
+        try:
+            import carla
+        except ImportError:
+            raise Exception('Error importing carla.')
+        self._logger.info('Initializing HDMap from open drive stream')
+        from pylot.map.hd_map import HDMap
+        self._map = HDMap(carla.Map('map', msg.data))
+
+    def on_route_msg(self, msg):
+        """Invoked whenever a message is received on the trajectory stream.
+
+        Args:
+            msg (:py:class:`~erdos.message.Message`): Message that contains
+                a list of waypoints to the goal location.
+        """
+        self._logger.debug('@{}: global trajectory has {} waypoints'.format(
+            msg.timestamp, len(msg.data)))
+        for (wp, _) in msg.data:
+            self._route.append(wp)
+
+    def on_pose_update(self, msg):
+        """Invoked whenever a message is received on the pose stream.
+
+        Args:
+            msg (:py:class:`~erdos.message.Message`): Message that contains
+                info about the ego vehicle.
+        """
+        self._logger.debug('@{}: received pose message'.format(msg.timestamp))
+        self._pose_msgs.append(msg)
+
+    def on_watermark(self, timestamp, trajectory_stream):
+        self._logger.debug('@{}: received watermark'.format(timestamp))
+        self._vehicle_transform = self._pose_msgs.popleft().data.transform
+        # Remove the waypoint from the route if we're close to it.
+        if (len(self._route) > 0 and self._vehicle_transform.location.distance(
+                self._route[0].location) < 10):
+            self._route.popleft()
+        new_goal_location = None
+        if len(self._route) > 1:
+            new_goal_location = self._route[1].location
+        elif len(self._route) == 1:
+            new_goal_location = self._route[0].location
+        else:
+            new_goal_location = self._vehicle_transform.location
+        if new_goal_location != self._goal_location:
+            self._goal_location = new_goal_location
+            waypoints = self._map.compute_waypoints(
+                self._vehicle_transform.location, self._goal_location)
+            waypoints = [(wp, 0) for wp in waypoints]
+            if not waypoints or len(waypoints) == 0:
+                # If waypoints are empty (e.g., reached destination), set
+                # waypoints to current vehicle location.
+                waypoints = deque([[self._vehicle_transform]])
+            trajectory_stream.send(erdos.Message(timestamp, waypoints))
 
     def __initialize_behaviour_planner(self):
         # State the planner is in.
