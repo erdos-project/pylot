@@ -71,6 +71,7 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
                 cur_obstacle_trajectory.append(
                     pylot.utils.Transform(new_location,
                                           pylot.utils.Rotation()))
+            # The trajectory is relative to the current location.
             obstacle_trajectories.append(
                 ObstacleTrajectory(obstacle.label, obstacle.id,
                                    obstacle.bounding_box,
@@ -80,15 +81,7 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
             ObstacleTrajectoriesMessage(timestamp, obstacle_trajectories))
         tracked_obstacles_stream.send(erdos.WatermarkMessage(timestamp))
 
-        for obstacle in obstacles_with_location:
-            obstacle_location = obstacle.transform.location
-            x = obstacle_location.x
-            y = obstacle_location.y
-            z = obstacle_location.z
-            self._csv_logger.debug('{},{},obstacle,{},{}'.format(
-                pylot.utils.time_epoch_ms(), timestamp.coordinates[0],
-                "[{} {}]".format(obstacle.id, obstacle.label),
-                "[{:.4f} {:.4f} {:.4f}]".format(x, y, z)))
+        self._log_obstacles(timestamp, obstacles_with_location)
 
         self._timestamp_history.append(timestamp)
         self._timestamp_to_id[timestamp] = ids_cur_timestamp
@@ -111,3 +104,14 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
     def on_pose_update(self, msg):
         self._logger.debug('@{}: pose update'.format(msg.timestamp))
         self._pose_msgs.append(msg)
+
+    def _log_obstacles(self, timestamp, obstacles):
+        for obstacle in obstacles:
+            obstacle_location = obstacle.transform.location
+            x = obstacle_location.x
+            y = obstacle_location.y
+            z = obstacle_location.z
+            self._csv_logger.debug('{},{},obstacle,{},{}'.format(
+                pylot.utils.time_epoch_ms(), timestamp.coordinates[0],
+                "[{} {}]".format(obstacle.id, obstacle.label),
+                "[{:.4f} {:.4f} {:.4f}]".format(x, y, z)))

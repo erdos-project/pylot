@@ -69,7 +69,7 @@ class HybridAStarPlanningOperator(PlanningOperator):
         # get obstacles
         prediction_msg = self._prediction_msgs.popleft()
         obstacle_list = self.build_obstacle_list(vehicle_transform,
-                                                  prediction_msg)
+                                                 prediction_msg)
 
         # update waypoints
         if not self._waypoints:
@@ -93,7 +93,8 @@ class HybridAStarPlanningOperator(PlanningOperator):
         # hybrid a* does not take into account the driveable region
         # it constructs search space as a top down, minimum bounding rectangle
         # with padding in each dimension
-        if (self._flags.track == -1 or self._flags.track == 3) and len(obstacle_list) == 0:
+        if (self._flags.track == -1
+                or self._flags.track == 3) and len(obstacle_list) == 0:
             start = np.array([
                 self._vehicle_transform.location.x,
                 self._vehicle_transform.location.y
@@ -105,8 +106,9 @@ class HybridAStarPlanningOperator(PlanningOperator):
             path_x = []
             path_y = []
             path_yaw = []
-            for wp in itertools.islice(self._waypoints, mindex,
-                                       mindex + self._flags.num_waypoints_ahead):
+            for wp in itertools.islice(
+                    self._waypoints, mindex,
+                    mindex + self._flags.num_waypoints_ahead):
                 path_x.append(wp.location.x)
                 path_y.append(wp.location.y)
                 path_yaw.append(3.14159)
@@ -136,8 +138,8 @@ class HybridAStarPlanningOperator(PlanningOperator):
 
         # construct and send waypoint message
         waypoint_message = self._construct_waypoints(timestamp, pose_msg,
-                                                     path_x, path_y,
-                                                     speeds, success)
+                                                     path_x, path_y, speeds,
+                                                     success)
         waypoints_stream.send(waypoint_message)
 
     def _get_closest_index(self, start):
@@ -167,7 +169,10 @@ class HybridAStarPlanningOperator(PlanningOperator):
             last_wp.location.x - self._waypoints[end_ind - 1].location.x,
             last_wp.location.y - self._waypoints[end_ind - 1].location.y)
 
-        end = np.array([last_wp.location.x, last_wp.location.y, np.deg2rad(self._vehicle_transform.rotation.yaw)])
+        end = np.array([
+            last_wp.location.x, last_wp.location.y,
+            np.deg2rad(self._vehicle_transform.rotation.yaw)
+        ])
 
         # log initial conditions for debugging
         initial_conditions = {
@@ -179,7 +184,8 @@ class HybridAStarPlanningOperator(PlanningOperator):
             timestamp, initial_conditions))
         return apply_hybrid_astar(initial_conditions, hyperparameters)
 
-    def _construct_waypoints(self, timestamp, pose_msg, path_x, path_y, speeds, success):
+    def _construct_waypoints(self, timestamp, pose_msg, path_x, path_y, speeds,
+                             success):
         """
         Convert the hybrid a* path into a waypoints message.
         """

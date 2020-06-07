@@ -9,5 +9,5 @@ flags.DEFINE_integer(
 
 # R2P2 Flags
 flags.DEFINE_string('r2p2_model_path',
-    'dependencies/models/prediction/r2p2/r2p2-model.pt',
-    'Path to the model')
+                    'dependencies/models/prediction/r2p2/r2p2-model.pt',
+                    'Path to the model')

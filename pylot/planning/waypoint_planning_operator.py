@@ -6,8 +6,10 @@ from collections import deque
 import erdos
 
 import pylot.utils
+from pylot.perception.messages import ObstaclesMessage
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.utils import remove_completed_waypoints
+from pylot.prediction.messages import PredictionMessage
 
 DEFAULT_TARGET_WAYPOINT = 9  # Use the 10th waypoint for computing speed
 RECOMPUTE_WAYPOINT_EVERY_N_WATERMARKS = 5
@@ -162,6 +164,14 @@ class WaypointPlanningOperator(erdos.Operator):
         self._vehicle_transform = self._pose_msgs.popleft().data.transform
         tl_msg = self._traffic_light_msgs.popleft()
         obstacles_msg = self._obstacles_msgs.popleft()
+        if isinstance(obstacles_msg, ObstaclesMessage):
+            obstacles = obstacles_msg.obstacles
+        elif isinstance(obstacles_msg, PredictionMessage):
+            obstacles = self.predictions_to_world_coordinates(
+                obstacles_msg.predictions)
+        else:
+            raise ValueError('Unexpected obstacles msg type {}'.format(
+                type(obstacles_msg)))
 
         if (self._recompute_waypoints and self._watermark_cnt %
                 RECOMPUTE_WAYPOINT_EVERY_N_WATERMARKS == 0):
@@ -180,9 +190,8 @@ class WaypointPlanningOperator(erdos.Operator):
                 DEFAULT_TARGET_WAYPOINT)
 
         speed_factor, _ = pylot.planning.utils.stop_for_agents(
-            self._vehicle_transform.location, wp_angle, wp_vector,
-            obstacles_msg.obstacles, tl_msg.obstacles, self._flags,
-            self._logger, self._map, timestamp)
+            self._vehicle_transform.location, wp_angle, wp_vector, obstacles,
+            tl_msg.obstacles, self._flags, self._logger, self._map, timestamp)
 
         target_speed = speed_factor * self._flags.target_speed
         self._logger.debug('@{}: speed factor: {}, target speed: {}'.format(
@@ -194,3 +203,13 @@ class WaypointPlanningOperator(erdos.Operator):
             [target_speed for _ in range(len(head_waypoints))])
         waypoints_stream.send(
             WaypointsMessage(timestamp, head_waypoints, target_speeds))
+
+    def predictions_to_world_coordinates(self, obstacle_predictions):
+        for obstacle_prediction in obstacle_predictions:
+            obstacle_prediction.transform = self._vehicle_transform * \
+                obstacle_prediction.transform
+            obstacle_prediction.trajectory = [
+                self._vehicle_transform * transform
+                for transform in obstacle_prediction.trajectory
+            ]
+        return obstacle_predictions

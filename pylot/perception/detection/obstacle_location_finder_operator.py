@@ -74,7 +74,8 @@ class ObstacleLocationFinderOperator(erdos.Operator):
             obstacles_msg.obstacles, depth_msg, vehicle_transform,
             self._camera_setup, self._logger)
 
-        self._logger.info('@{}: {}'.format(timestamp, obstacles_with_location))
+        self._logger.debug('@{}: {}'.format(timestamp,
+                                            obstacles_with_location))
 
         obstacles_output_stream.send(
             ObstaclesMessage(timestamp, obstacles_with_location))

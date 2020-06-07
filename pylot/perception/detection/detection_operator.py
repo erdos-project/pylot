@@ -3,13 +3,15 @@ import logging
 import time
 
 import erdos
+
 import numpy as np
-import tensorflow as tf
 
 import pylot.utils
 from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle,\
     load_coco_bbox_colors, load_coco_labels
 from pylot.perception.messages import ObstaclesMessage
+
+import tensorflow as tf
 
 
 class DetectionOperator(erdos.Operator):
@@ -128,29 +130,39 @@ class DetectionOperator(erdos.Operator):
         for i in range(0, num_detections):
             if res_classes[i] in self._coco_labels:
                 if (res_scores[i] >=
-                        self._flags.obstacle_detection_min_score_threshold
-                        and self._coco_labels[
-                            res_classes[i]] in self._important_labels):
-                    obstacles.append(
-                        DetectedObstacle(BoundingBox2D(
-                            int(res_boxes[i][1] *
-                                msg.frame.camera_setup.width),
-                            int(res_boxes[i][3] *
-                                msg.frame.camera_setup.width),
-                            int(res_boxes[i][0] *
-                                msg.frame.camera_setup.height),
-                            int(res_boxes[i][2] *
-                                msg.frame.camera_setup.height)),
-                                         res_scores[i],
-                                         self._coco_labels[res_classes[i]],
-                                         id=self._unique_id))
-                    self._unique_id += 1
+                        self._flags.obstacle_detection_min_score_threshold):
+                    if (self._coco_labels[res_classes[i]] in
+                            self._important_labels):
+                        obstacles.append(
+                            DetectedObstacle(BoundingBox2D(
+                                int(res_boxes[i][1] *
+                                    msg.frame.camera_setup.width),
+                                int(res_boxes[i][3] *
+                                    msg.frame.camera_setup.width),
+                                int(res_boxes[i][0] *
+                                    msg.frame.camera_setup.height),
+                                int(res_boxes[i][2] *
+                                    msg.frame.camera_setup.height)),
+                                             res_scores[i],
+                                             self._coco_labels[res_classes[i]],
+                                             id=self._unique_id))
+                        self._unique_id += 1
+                    else:
+                        self._logger.warning(
+                            'Ignoring non essential detection {}'.format(
+                                self._coco_labels[res_classes[i]]))
             else:
                 self._logger.warning('Filtering unknown class: {}'.format(
                     res_classes[i]))
 
         self._logger.debug('@{}: {} obstacles: {}'.format(
             msg.timestamp, self.config.name, obstacles))
+
+        # Get runtime in ms.
+        runtime = (time.time() - start_time) * 1000
+        # Send out obstacles.
+        obstacles_stream.send(
+            ObstaclesMessage(msg.timestamp, obstacles, runtime))
 
         if (self._flags.visualize_detected_obstacles
                 or self._flags.log_detector_output):
@@ -163,9 +175,3 @@ class DetectionOperator(erdos.Operator):
                 msg.frame.save(msg.timestamp.coordinates[0],
                                self._flags.data_path,
                                'detector-{}'.format(self.config.name))
-
-        # Get runtime in ms.
-        runtime = (time.time() - start_time) * 1000
-        # Send out obstacles.
-        obstacles_stream.send(
-            ObstaclesMessage(msg.timestamp, obstacles, runtime))

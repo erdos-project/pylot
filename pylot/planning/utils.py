@@ -187,7 +187,9 @@ def stop_for_agents(ego_vehicle_location,
     for obstacle in obstacles:
         if obstacle.label == 'person' and flags.stop_for_people:
             # Only brake for people that are on the road.
-            if (not hd_map or hd_map.is_on_lane(obstacle.transform.location)):
+            if (not hd_map or hd_map.is_on_lane(obstacle.transform.location) or
+                (hasattr(obstacle, 'trajectory') and any(
+                    map(hd_map.is_transform_on_lane, obstacle.trajectory)))):
                 new_speed_factor_p = stop_person(ego_vehicle_location,
                                                  obstacle.transform.location,
                                                  wp_vector, speed_factor_p,
@@ -201,7 +203,9 @@ def stop_for_agents(ego_vehicle_location,
               and flags.stop_for_vehicles):
             # Only brake for vehicles that are in ego vehicle's lane.
             if (not hd_map or hd_map.are_on_same_lane(
-                    ego_vehicle_location, obstacle.transform.location)):
+                    ego_vehicle_location, obstacle.transform.location) or
+                (hasattr(obstacle, 'trajectory') and any(
+                    map(hd_map.is_transform_on_lane, obstacle.trajectory)))):
                 new_speed_factor_v = stop_vehicle(ego_vehicle_location,
                                                   obstacle.transform.location,
                                                   wp_vector, speed_factor_v,

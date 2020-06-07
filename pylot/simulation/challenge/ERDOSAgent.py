@@ -294,10 +294,6 @@ def create_data_flow():
 
     obstacles_stream = pylot.operator_creator.add_obstacle_detection(
         camera_streams[CENTER_CAMERA_NAME], time_to_decision_loop_stream)[0]
-    # Adds an operator that finds the world locations of the obstacles.
-    obstacles_stream = pylot.operator_creator.add_obstacle_location_finder(
-        obstacles_stream, point_cloud_stream, pose_stream,
-        camera_setups[CENTER_CAMERA_NAME])
 
     traffic_lights_stream = pylot.operator_creator.add_traffic_light_detector(
         camera_streams[TL_CAMERA_NAME])
@@ -324,7 +320,7 @@ def create_data_flow():
             pose_stream, open_drive_stream, global_trajectory_stream)
         waypoints_stream = pylot.operator_creator.add_waypoint_planning(
             pose_stream, open_drive_stream, trajectory_stream,
-            obstacles_stream, traffic_lights_stream, None)
+            prediction_stream, traffic_lights_stream, None)
     elif FLAGS.planning_type == 'frenet_optimal_trajectory':
         waypoints_stream = pylot.operator_creator.add_fot_planning(
             pose_stream, prediction_stream, global_trajectory_stream,

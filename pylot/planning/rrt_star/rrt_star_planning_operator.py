@@ -62,7 +62,7 @@ class RRTStarPlanningOperator(PlanningOperator):
         # get obstacles
         prediction_msg = self._prediction_msgs.popleft()
         obstacle_list = self.build_obstacle_list(vehicle_transform,
-                                                  prediction_msg)
+                                                 prediction_msg)
 
         # update waypoints
         if not self._waypoints:
@@ -83,7 +83,8 @@ class RRTStarPlanningOperator(PlanningOperator):
                 return
 
         # if no obstacles, don't use RRT*
-        if (self._flags.track == -1 or self._flags.track == 3) and len(obstacle_list) == 0:
+        if (self._flags.track == -1
+                or self._flags.track == 3) and len(obstacle_list) == 0:
             start = np.array([
                 self._vehicle_transform.location.x,
                 self._vehicle_transform.location.y
@@ -94,8 +95,9 @@ class RRTStarPlanningOperator(PlanningOperator):
 
             path_x = []
             path_y = []
-            for wp in itertools.islice(self._waypoints, mindex,
-                                       mindex + self._flags.num_waypoints_ahead):
+            for wp in itertools.islice(
+                    self._waypoints, mindex,
+                    mindex + self._flags.num_waypoints_ahead):
                 path_x.append(wp.location.x)
                 path_y.append(wp.location.y)
             path_x = np.array(path_x)
@@ -106,9 +108,8 @@ class RRTStarPlanningOperator(PlanningOperator):
             # RRT* does not take into account the driveable region
             # it constructs search space as a top down, minimum bounding rectangle
             # with padding in each dimension
-            path_x, path_y, success = self._apply_rrt_star(obstacle_list,
-                                                           self._hyperparameters,
-                                                           timestamp)
+            path_x, path_y, success = self._apply_rrt_star(
+                obstacle_list, self._hyperparameters, timestamp)
 
         speeds = [0]
         if success:
@@ -126,8 +127,8 @@ class RRTStarPlanningOperator(PlanningOperator):
 
         # construct and send waypoint message
         waypoint_message = self._construct_waypoints(timestamp, pose_msg,
-                                                     path_x, path_y,
-                                                     speeds, success)
+                                                     path_x, path_y, speeds,
+                                                     success)
         waypoints_stream.send(waypoint_message)
 
     def _get_closest_index(self, start):
@@ -166,7 +167,8 @@ class RRTStarPlanningOperator(PlanningOperator):
             timestamp, initial_conditions))
         return apply_rrt_star(initial_conditions, hyperparameters)
 
-    def _construct_waypoints(self, timestamp, pose_msg, path_x, path_y, speeds, success):
+    def _construct_waypoints(self, timestamp, pose_msg, path_x, path_y, speeds,
+                             success):
         """
         Convert the rrt* path into a waypoints message.
         """

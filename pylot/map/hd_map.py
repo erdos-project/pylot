@@ -80,6 +80,9 @@ class HDMap(object):
             # Carla releases.
             return waypoint.is_intersection
 
+    def is_transform_on_lane(self, transform):
+        return self.is_on_lane(transform.location)
+
     def is_on_lane(self, location):
         """Checks if a location is on a lane.
 
@@ -263,7 +266,7 @@ class HDMap(object):
         return True
 
     def _must_obey_european_traffic_light(self, ego_transform, tl_locations,
-                                           tl_max_dist_thresh):
+                                          tl_max_dist_thresh):
         ego_loc = ego_transform.location.as_carla_location()
         ego_waypoint = self._map.get_waypoint(ego_loc,
                                               project_to_road=False,
@@ -283,7 +286,7 @@ class HDMap(object):
         return (False, None)
 
     def _must_obey_american_traffic_light(self, ego_transform, tl_locations,
-                                           tl_max_dist_thresh):
+                                          tl_max_dist_thresh):
         ego_loc = ego_transform.location.as_carla_location()
         ego_waypoint = self._map.get_waypoint(ego_loc,
                                               project_to_road=False,
