@@ -48,7 +48,8 @@ flags.DEFINE_integer('obstacle_track_max_age', 3,
 flags.DEFINE_integer(
     'ignore_obstacles_with_short_history', 1,
     'Ignore obstacles with history smaller than specified value.')
-flags.DEFINE_integer('track_every_nth_detection', 1, 
+flags.DEFINE_integer(
+    'track_every_nth_detection', 1,
     'Determines how often detections are used by tracker (1=every detection).')
 
 # DeepSORT tracking flags.

@@ -6,6 +6,7 @@ from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 class MultiObjectDeepSORTTracker(MultiObjectTracker):
     def __init__(self, flags, logger):
+        self._logger = logger
         # Initialize the deepsort object, which has a tracker object within it
         self._deepsort = deepsort_rbc(
             wt_path=flags.deep_sort_tracker_weights_path,
@@ -39,8 +40,8 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
                 labels.append(obstacle.label)
                 confidence_scores.append(obstacle.confidence)
                 ids.append(obstacle.id)
-            self._deepsort.run_deep_sort(
-                frame.frame, confidence_scores, bboxes, labels, ids)
+            self._deepsort.run_deep_sort(frame.frame, confidence_scores,
+                                         bboxes, labels, ids)
         else:
             for track in self._deepsort.tracker.tracks:
                 if track.is_confirmed():
@@ -52,8 +53,16 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
                 # right coords).
                 bbox = track.to_tlbr()
                 # Converts to xmin, xmax, ymin, ymax format.
-                bbox_2d = BoundingBox2D(int(bbox[0]), int(bbox[2]), int(bbox[1]),
-                                        int(bbox[3]))
-                tracked_obstacles.append(
-                    DetectedObstacle(bbox_2d, 0, track.label, track.track_id))
+                xmin = int(bbox[0])
+                xmax = int(bbox[2])
+                ymin = int(bbox[1])
+                ymax = int(bbox[3])
+                if xmin < xmax and ymin < ymax:
+                    bbox = BoundingBox2D(xmin, xmax, ymin, ymax)
+                    tracked_obstacles.append(
+                        DetectedObstacle(bbox, 0, track.label, track.track_id))
+                else:
+                    self._logger.error(
+                        "Tracker found invalid bounding box {} {} {} {}".
+                        format(xmin, xmax, ymin, ymax))
         return True, tracked_obstacles

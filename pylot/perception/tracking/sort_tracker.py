@@ -1,15 +1,17 @@
 import numpy as np
 
-from sort.sort import *
-
 from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
+from sort.sort import Sort
+
 
 class MultiObjectSORTTracker(MultiObjectTracker):
-    def __init__(self, flags):
+    def __init__(self, flags, logger):
+        self._logger = logger
         self.tracker = Sort(max_age=flags.obstacle_track_max_age,
-                            min_hits=1, min_iou=flags.min_matching_iou)
+                            min_hits=1,
+                            min_iou=flags.min_matching_iou)
 
     def reinitialize(self, frame, obstacles):
         """ Reinitializes a multiple obstacle tracker.
@@ -43,6 +45,10 @@ class MultiObjectSORTTracker(MultiObjectTracker):
                 bbox = BoundingBox2D(xmin, xmax, ymin, ymax)
                 obstacles.append(
                     DetectedObstacle(bbox, 0, track.label, track.id))
+            else:
+                self._logger.error(
+                    "Tracker found invalid bounding box {} {} {} {}".format(
+                        xmin, xmax, ymin, ymax))
         return True, obstacles
 
     def convert_detections_for_sort_alg(self, obstacles):

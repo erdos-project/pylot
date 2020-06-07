@@ -1,4 +1,5 @@
 from collections import deque
+
 import erdos
 
 import pylot.utils
@@ -23,14 +24,11 @@ class ObjectTrackerOperator(erdos.Operator):
             self.config.name + '-csv', self.config.csv_log_file_name)
         self._tracker_type = tracker_type
         try:
-            if tracker_type == 'cv2':
-                from pylot.perception.tracking.cv2_tracker import\
-                    MultiObjectCV2Tracker
-                self._tracker = MultiObjectCV2Tracker(self._flags)
-            elif tracker_type == 'da_siam_rpn':
+            if tracker_type == 'da_siam_rpn':
                 from pylot.perception.tracking.da_siam_rpn_tracker import\
                     MultiObjectDaSiamRPNTracker
-                self._tracker = MultiObjectDaSiamRPNTracker(self._flags)
+                self._tracker = MultiObjectDaSiamRPNTracker(
+                    self._flags, self._logger)
             elif tracker_type == 'deep_sort':
                 from pylot.perception.tracking.deep_sort_tracker import\
                     MultiObjectDeepSORTTracker
@@ -39,7 +37,8 @@ class ObjectTrackerOperator(erdos.Operator):
             elif tracker_type == 'sort':
                 from pylot.perception.tracking.sort_tracker import\
                     MultiObjectSORTTracker
-                self._tracker = MultiObjectSORTTracker(self._flags)
+                self._tracker = MultiObjectSORTTracker(self._flags,
+                                                       self._logger)
             else:
                 raise ValueError(
                     'Unexpected tracker type {}'.format(tracker_type))
@@ -82,14 +81,16 @@ class ObjectTrackerOperator(erdos.Operator):
         if len(self._obstacles_msgs) > 0:
             obstacles_msg = self._obstacles_msgs.popleft()
             assert frame_msg.timestamp == obstacles_msg.timestamp
-            self._logger.debug(
-                'Restarting trackers at frame {}'.format(timestamp))
             detected_obstacles = []
             for obstacle in obstacles_msg.obstacles:
                 if (obstacle.label in VEHICLE_LABELS
                         or obstacle.label == 'person'):
                     detected_obstacles.append(obstacle)
-            if self._watermark_msg_count % self._flags.track_every_nth_detection == 0:
+            if (self._watermark_msg_count %
+                    self._flags.track_every_nth_detection == 0):
+                # Reinitialize the tracker with new detections.
+                self._logger.debug(
+                    'Restarting trackers at frame {}'.format(timestamp))
                 self._tracker.reinitialize(camera_frame, detected_obstacles)
 
         self._logger.debug('Processing frame {}'.format(timestamp))
@@ -97,11 +98,6 @@ class ObjectTrackerOperator(erdos.Operator):
         if not ok:
             self._logger.error(
                 'Tracker failed at timestamp {}'.format(timestamp))
-        sim_time = timestamp.coordinates[0]
-        num_targets = len(tracked_obstacles)
-        self._csv_logger.info('{},{},{},{},{}'.format(
-            pylot.utils.time_epoch_ms(), sim_time, self.config.name,
-            'num_targets', num_targets))
         obstacle_tracking_stream.send(
             ObstaclesMessage(timestamp, tracked_obstacles, 0))
         obstacle_tracking_stream.send(erdos.WatermarkMessage(timestamp))

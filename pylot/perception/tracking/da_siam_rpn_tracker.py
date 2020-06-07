@@ -1,14 +1,16 @@
-import cv2
-import erdos
-from lapsolver import solve_dense
-import numpy as np
-import torch
-
 from DaSiamRPN.code.net import SiamRPNvot
 from DaSiamRPN.code.run_SiamRPN import SiamRPN_init, SiamRPN_track
 
+import erdos
+
+from lapsolver import solve_dense
+
+import numpy as np
+
 from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
+
+import torch
 
 
 class SingleObjectDaSiamRPNTracker(object):
@@ -59,10 +61,9 @@ class SingleObjectDaSiamRPNTracker(object):
 
 
 class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
-    def __init__(self, flags):
+    def __init__(self, flags, logger):
         # Initialize the siam network.
-        self._logger = erdos.utils.setup_logging(
-            'multi_object_da_siam_rpn_tracker', flags.log_file_name)
+        self._logger = logger
         self._siam_net = SiamRPNvot()
         self._siam_net.load_state_dict(torch.load(
             flags.da_siam_rpn_model_path))

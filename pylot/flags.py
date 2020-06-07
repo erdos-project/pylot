@@ -51,8 +51,7 @@ flags.DEFINE_bool('obstacle_tracking', False,
                   'True to enable obstacle tracking operator')
 flags.DEFINE_bool('perfect_obstacle_tracking', False,
                   'True to enable perfect obstacle tracking')
-flags.DEFINE_enum('tracker_type', 'cv2',
-                  ['cv2', 'da_siam_rpn', 'deep_sort', 'sort'],
+flags.DEFINE_enum('tracker_type', 'sort', ['da_siam_rpn', 'deep_sort', 'sort'],
                   'Sets which obstacle tracker to use')
 flags.DEFINE_integer(
     'tracking_num_steps', 10,
