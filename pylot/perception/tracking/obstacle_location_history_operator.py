@@ -78,6 +78,7 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
 
         tracked_obstacles_stream.send(
             ObstacleTrajectoriesMessage(timestamp, obstacle_trajectories))
+        tracked_obstacles_stream.send(erdos.WatermarkMessage(timestamp))
 
         for obstacle in obstacles_with_location:
             obstacle_location = obstacle.transform.location

@@ -34,4 +34,4 @@ flags.DEFINE_float('throttle_max', 0.75, 'Max throttle')
 flags.DEFINE_float('steer_gain', 0.7, 'Gain on computed steering angle')
 flags.DEFINE_float('brake_strength', 1,
                    'Strength for applying brake; between 0 and 1')
-flags.DEFINE_integer('coast_factor', 2, 'Factor to control coasting')
+flags.DEFINE_float('coast_factor', 2, 'Factor to control coasting')

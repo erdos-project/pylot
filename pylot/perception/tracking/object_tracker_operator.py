@@ -100,10 +100,11 @@ class ObjectTrackerOperator(erdos.Operator):
         sim_time = timestamp.coordinates[0]
         num_targets = len(tracked_obstacles)
         self._csv_logger.info('{},{},{},{},{}'.format(
-            pylot.utils.time_epoch_ms(), sim_time, self.config.name, 'num_targets',
-            num_targets))
+            pylot.utils.time_epoch_ms(), sim_time, self.config.name,
+            'num_targets', num_targets))
         obstacle_tracking_stream.send(
             ObstaclesMessage(timestamp, tracked_obstacles, 0))
+        obstacle_tracking_stream.send(erdos.WatermarkMessage(timestamp))
 
         if self._flags.visualize_tracker_output:
             # Tracked obstacles have no label, draw white bbox.
