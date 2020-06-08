@@ -1,6 +1,7 @@
 """Implements an agent operator that uses info from other operators."""
 
 from collections import deque
+
 import erdos
 
 # Pylot imports
@@ -76,34 +77,28 @@ class PIDAgentOperator(erdos.Operator):
         self._logger.debug("@{} Received waypoints of length: {}".format(
             timestamp, len(waypoints)))
         if len(waypoints) > 0:
-            pid_steer_wp, pid_speed_wp = None, None
+            pid_steer_wp_index, pid_speed_wp_index = -1, -1
             for index, _wp in enumerate(waypoints):
                 # Break if we have found both the desired waypoints.
-                if pid_steer_wp and pid_speed_wp:
+                if pid_steer_wp_index != -1 and pid_speed_wp_index != -1:
                     break
                 ego_distance = _wp.location.distance(
                     vehicle_transform.location)
-                if pid_steer_wp is None and (ego_distance >
-                                             self._flags.pid_steer_wp):
-                    pid_steer_wp = index
+                if pid_steer_wp_index == -1 and (
+                        ego_distance >
+                        self._flags.min_pid_steer_waypoint_distance):
+                    pid_steer_wp_index = index
 
-                if pid_speed_wp is None and (ego_distance >
-                                             self._flags.pid_speed_wp):
-                    pid_speed_wp = index
+                if pid_speed_wp_index == -1 and (
+                        ego_distance >
+                        self._flags.min_pid_speed_waypoint_distance):
+                    pid_speed_wp_index = index
 
-            if pid_steer_wp is None:
-                pid_steer_wp = -1
-            if pid_speed_wp is None:
-                pid_speed_wp = -1
             _, wp_angle_steer = \
                 pylot.planning.utils.compute_waypoint_vector_and_angle(
-                    vehicle_transform, waypoints, pid_steer_wp)
-            # Use 5th waypoint for speed.
-            _, wp_angle_speed = \
-                pylot.planning.utils.compute_waypoint_vector_and_angle(
-                    vehicle_transform, waypoints, pid_speed_wp)
+                    vehicle_transform, waypoints, pid_steer_wp_index)
             target_speed = waypoint_msg.target_speeds[min(
-                len(waypoint_msg.target_speeds) - 1, self._flags.pid_speed_wp)]
+                len(waypoint_msg.target_speeds) - 1, pid_speed_wp_index)]
             throttle, brake = pylot.control.utils.compute_throttle_and_brake(
                 self._pid, current_speed, target_speed, self._flags)
             steer = pylot.control.utils.radians_to_steer(

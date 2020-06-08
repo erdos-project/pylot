@@ -1,7 +1,8 @@
 import math
-import numpy as np
 import time
 from enum import Enum
+
+import numpy as np
 
 PYGAME_DISPLAY = None
 
@@ -92,18 +93,6 @@ class Vector3D(object):
             raise ValueError('The vector must be a carla.Vector3D')
         return cls(vector.x, vector.y, vector.z)
 
-    def __add__(self, other):
-        """Adds the two vectors together and returns the result."""
-        return type(self)(x=self.x + other.x,
-                          y=self.y + other.y,
-                          z=self.z + other.z)
-
-    def __sub__(self, other):
-        """Subtracts the other vector from self and returns the result."""
-        return type(self)(x=self.x - other.x,
-                          y=self.y - other.y,
-                          z=self.z - other.z)
-
     def as_numpy_array(self):
         """Retrieves the 3D vector as a numpy array."""
         return np.array([self.x, self.y, self.z])
@@ -116,6 +105,24 @@ class Vector3D(object):
         """
         import carla
         return carla.Vector3D(self.x, self.y, self.z)
+
+    def l1_distance(self, other):
+        """Calculates the L1 distance between the given point and the other
+        point.
+
+        Args:
+            other (:py:class:`~.Vector3D`): The other vector used to
+                calculate the L1 distance to.
+
+        Returns:
+            :obj:`float`: The L1 distance between the two points.
+        """
+        return abs(self.x - other.x) + abs(self.y - other.y) + abs(self.z -
+                                                                   other.z)
+
+    def l2_distance(self, other):
+        vec = np.array([self.x - other.x, self.y - other.y, self.z - other.z])
+        return np.linalg.norm(vec)
 
     def magnitude(self):
         """Returns the magnitude of the 3D vector."""
@@ -161,6 +168,18 @@ class Vector3D(object):
         y_ = math.sin(math.radians(angle)) * self.x - math.cos(
             math.radians(angle)) * self.y
         return type(self)(x_, y_, self.z)
+
+    def __add__(self, other):
+        """Adds the two vectors together and returns the result."""
+        return type(self)(x=self.x + other.x,
+                          y=self.y + other.y,
+                          z=self.z + other.z)
+
+    def __sub__(self, other):
+        """Subtracts the other vector from self and returns the result."""
+        return type(self)(x=self.x - other.x,
+                          y=self.y - other.y,
+                          z=self.z - other.z)
 
     def __repr__(self):
         return self.__str__()
@@ -303,20 +322,6 @@ class Location(Vector3D):
             :obj:`float`: The Euclidean distance between the two points.
         """
         return (self - other).magnitude()
-
-    def l1_distance(self, other):
-        """Calculates the L1 distance between the given point and the other
-        point.
-
-        Args:
-            other (:py:class:`~.Location`): The other location used to
-                calculate the L1 distance to.
-
-        Returns:
-            :obj:`float`: The L1 distance between the two points.
-        """
-        return abs(self.x - other.x) + abs(self.y - other.y) + abs(self.z -
-                                                                   other.z)
 
     def get_vector_and_magnitude(self, other):
         """Calculates vector and magnitude between two locations.
