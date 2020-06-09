@@ -14,7 +14,7 @@ from pylot.planning.waypoints import Waypoints
 
 
 class RRTStarPlanningOperator(PlanningOperator):
-    """RRTStar Planning operator for Carla 0.9.x.
+    """RRTStar Planning operator.
 
     Args:
         flags: Config flags.

@@ -28,7 +28,6 @@ class CarlaOperator(erdos.Operator):
         _world: A handle to the world running inside the simulation.
         _vehicles: A list of identifiers of the vehicles inside the simulation.
     """
-
     def __init__(self, control_stream, release_sensor_stream,
                  pipeline_finish_notify_stream, pose_stream,
                  pose_stream_for_control, ground_traffic_lights_stream,
@@ -75,7 +74,7 @@ class CarlaOperator(erdos.Operator):
         # handle (which is slow).
         self._spectator = self._world.get_spectator()
 
-        if self._flags.carla_version == '0.9.8':
+        if self._flags.carla_version in ['0.9.8', '0.9.9']:
             # Create a traffic manager to that auto pilot works.
             self._traffic_manager = self._client.get_trafficmanager(8000)
             self._traffic_manager.set_synchronous_mode(

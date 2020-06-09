@@ -15,8 +15,10 @@ def add_carla_bridge(control_stream, sensor_ready_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    return erdos.connect(CarlaOperator, op_config,
-                         [control_stream, sensor_ready_stream], FLAGS)
+    return erdos.connect(
+        CarlaOperator, op_config,
+        [control_stream, sensor_ready_stream, pipeline_finish_notify_stream],
+        FLAGS)
 
 
 def add_efficientdet_obstacle_detection(camera_stream,

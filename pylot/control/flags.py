@@ -24,8 +24,7 @@ flags.DEFINE_float('traffic_light_angle_thres', 0.5,
                    'Traffic light angle threshold [rad]')
 flags.DEFINE_integer('vehicle_distance_thres', 15,
                      'Vehicle distance threshold [m]')
-flags.DEFINE_float('vehicle_angle_thres', 0.4,
-                   'Vehicle angle threshold (in radians')
+flags.DEFINE_float('vehicle_angle_thres', 0.4, 'Vehicle angle threshold [rad]')
 flags.DEFINE_float('person_angle_hit_thres', 0.15,
                    'Person hit zone angle threshold [rad]')
 flags.DEFINE_integer('person_distance_emergency_thres', 12,

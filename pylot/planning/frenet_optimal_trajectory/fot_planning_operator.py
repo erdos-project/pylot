@@ -15,7 +15,7 @@ from pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory_planner.
 
 
 class FOTPlanningOperator(PlanningOperator):
-    """ Frenet Optimal Trajectory (FOT) Planning operator for Carla 0.9.x.
+    """ Frenet Optimal Trajectory (FOT) Planning operator.
 
     This planning operator uses a global route and listens for predictions
     to produce a frenet optimal trajectory plan. Details can be found in

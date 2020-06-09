@@ -16,7 +16,7 @@ from pylot.planning.hybrid_astar.hybrid_astar_planner.HybridAStar.hybrid_astar_w
 
 
 class HybridAStarPlanningOperator(PlanningOperator):
-    """HybridAStar Planning operator for Carla 0.9.x.
+    """HybridAStar Planning operator.
 
     Args:
         flags: Config flags.

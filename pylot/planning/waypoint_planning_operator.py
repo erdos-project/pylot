@@ -1,11 +1,15 @@
 """Implements an operator that computes waypoints to a goal location."""
 
+from collections import deque
+
 import erdos
 
+import pylot.planning.utils
 import pylot.utils
 from pylot.perception.messages import ObstaclesMessage
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.planning_operator import PlanningOperator
+from pylot.planning.waypoints import Waypoints
 from pylot.prediction.messages import PredictionMessage
 
 # Use a waypoint that is at least 9 meters away.
@@ -50,6 +54,21 @@ class WaypointPlanningOperator(PlanningOperator):
         else:
             raise ValueError('Unexpected obstacles msg type {}'.format(
                 type(obstacles_msg)))
+
+        if not self._waypoints:
+            if self._map is not None:
+                self._waypoints = Waypoints(deque(), deque())
+                self._waypoints.recompute_waypoints(self._map,
+                                                    ego_transform.location,
+                                                    self._goal_location)
+            else:
+                # Haven't received waypoints from global trajectory stream.
+                self._logger.debug(
+                    "@{}: Sending target speed 0, haven't"
+                    "received global trajectory".format(timestamp))
+                waypoints_stream.send(
+                    WaypointsMessage(timestamp, Waypoints(deque(), deque())))
+                return
 
         if (self._recompute_waypoints and self._watermark_cnt %
                 RECOMPUTE_WAYPOINT_EVERY_N_WATERMARKS == 0):

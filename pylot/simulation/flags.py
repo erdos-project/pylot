@@ -4,7 +4,7 @@ from absl import flags
 # Carla flags
 ######################################################################
 flags.DEFINE_enum('carla_version', '0.9.6',
-                  ['0.9.5', '0.9.6', '0.9.7', '0.9.8'],
+                  ['0.9.5', '0.9.6', '0.9.7', '0.9.8', '0.9.9'],
                   'Carla simulator version')
 flags.DEFINE_string('carla_host', 'localhost', 'Carla host.')
 flags.DEFINE_integer('carla_port', 2000, 'Carla port.')

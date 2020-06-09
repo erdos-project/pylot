@@ -139,8 +139,7 @@ def spawn_actors(client, world, carla_version, ego_spawn_point_index,
     vehicle_ids = spawn_vehicles(client, world, num_vehicles, logger)
     ego_vehicle = spawn_ego_vehicle(world, ego_spawn_point_index, auto_pilot)
     people = []
-    if (carla_version == '0.9.6' or carla_version == '0.9.7'
-            or carla_version == '0.9.8'):
+    if (carla_version in ['0.9.6', '0.9.7', '0.9.8', '0.9.9']):
         # People do not move in versions older than 0.9.6.
         (people, people_control_ids) = spawn_people(client, world, num_people,
                                                     logger)
