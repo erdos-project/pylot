@@ -1,4 +1,5 @@
 import itertools
+import math
 from collections import deque
 
 import numpy as np
@@ -79,15 +80,14 @@ class Waypoints(object):
 
     def get_angle(self, transform, min_distance):
         wp_index = self._get_index(transform, min_distance)
-        _, _, wp_angle = transform.get_vector_magnitude_angle(
+        angle, _ = transform.get_angle_and_magnitude(
             self.waypoints[wp_index].location)
-        return wp_angle
+        return angle
 
     def get_vector(self, transform, min_distance):
         wp_index = self._get_index(transform, min_distance)
-        wp_vector, _, _ = transform.get_vector_magnitude_angle(
-            self.waypoints[wp_index].location)
-        return wp_vector
+        return self.waypoints[wp_index].location.as_vector_2D() - \
+            transform.location.as_vector_2D()
 
     def get_target_speed(self, transform, min_distance):
         wp_index = self._get_index(transform, min_distance)

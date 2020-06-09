@@ -198,6 +198,10 @@ class Vector2D(object):
         self.x = x
         self.y = y
 
+    def as_numpy_array(self):
+        """Retrieves the 2D vector as a numpy array."""
+        return np.array([self.x, self.y])
+
     def get_angle(self, other):
         """Computes the angle between the vector and another vector."""
         angle = math.atan2(self.y, self.x) - math.atan2(other.y, other.x)
@@ -206,23 +210,6 @@ class Vector2D(object):
         elif angle < -math.pi:
             angle += 2 * math.pi
         return angle
-
-    def get_vector_and_magnitude(self, other):
-        """Calculates vector and magnitude between two vectors.
-
-        Args:
-            other (:py:class:`.Vector2D`): The other vector to be used to
-                calculate.
-
-        Returns:
-            :py:class:`.Vector2D`, :obj:`float`: A tuple comprising of a 2D
-            vector and its magnitude.
-        """
-        vec = np.array([self.x - other.x, self.y - other.y])
-        magnitude = np.linalg.norm(vec)
-        if magnitude > 0.00001:
-            vec = vec / magnitude
-        return Vector2D(vec[0], vec[1]), magnitude
 
     def l1_distance(self, other):
         """Calculates the L1 distance between the given point and the other
@@ -240,6 +227,10 @@ class Vector2D(object):
     def l2_distance(self, other):
         vec = np.array([self.x - other.x, self.y - other.y])
         return np.linalg.norm(vec)
+
+    def magnitude(self):
+        """Returns the magnitude of the 2D vector."""
+        return np.linalg.norm(self.as_numpy_array())
 
     def __add__(self, other):
         """Adds the two vectors together and returns the result. """
@@ -327,20 +318,8 @@ class Location(Vector3D):
         """
         return (self - other).magnitude()
 
-    def get_vector_and_magnitude(self, other):
-        """Calculates vector and magnitude between two locations.
-
-        Args:
-            other (:py:class:`~.Location`): The other location to used to
-                calculate.
-
-        Returns:
-            :py:class:`.Vector2D`, :obj:`float`: A tuple comprising of a 2D
-            vector and its magnitude.
-        """
-        vec = Vector2D(self.x, self.y)
-        other_vec = Vector2D(other.x, other.y)
-        return vec.get_vector_and_magnitude(other_vec)
+    def as_vector_2D(self):
+        return Vector2D(self.x, self.y)
 
     def as_carla_location(self):
         """Retrieves the location as a carla location instance.
@@ -585,18 +564,17 @@ class Transform(object):
                            yaw=self.rotation.yaw,
                            roll=self.rotation.roll))
 
-    def get_vector_magnitude_angle(self, target_loc):
-        """Computes distance and relative angle between the transform and a
-        target location.
+    def get_angle_and_magnitude(self, target_loc):
+        """Computes relative angle between the transform and a target location.
 
         Args:
             target_loc (:py:class:`.Location`): Location of the target.
 
         Returns:
-            Tuple of distance to the target and the angle
+            Angle in radians.
         """
-        target_vec, magnitude = target_loc.get_vector_and_magnitude(
-            self.location)
+        target_vec = target_loc.as_vector_2D() - self.location.as_vector_2D()
+        magnitude = target_vec.magnitude()
         if magnitude > 0:
             forward_vector = Vector2D(
                 math.cos(math.radians(self.rotation.yaw)),
@@ -604,7 +582,7 @@ class Transform(object):
             angle = target_vec.get_angle(forward_vector)
         else:
             angle = 0
-        return (target_vec, magnitude, angle)
+        return angle, magnitude
 
     def is_within_distance_ahead(self, dst_loc, max_distance):
         """Checks if a location is within a distance.
@@ -616,7 +594,7 @@ class Transform(object):
         Returns:
             bool: True if other location is within max_distance.
         """
-        _, norm_dst, d_angle = self.get_vector_magnitude_angle(dst_loc)
+        d_angle, norm_dst = self.get_angle_and_magnitude(dst_loc)
         # Return if the vector is too small.
         if norm_dst < 0.001:
             return True

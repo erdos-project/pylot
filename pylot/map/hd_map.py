@@ -300,9 +300,8 @@ class HDMap(object):
         for tl_loc in tl_locations:
             if ego_transform.is_within_distance_ahead(tl_loc,
                                                       tl_max_dist_thresh):
-                _, magnitude, angle = ego_transform.get_vector_magnitude_angle(
-                    tl_loc)
-                if magnitude < 60.0 and angle < min(25.0, min_angle):
+                angle, distance = ego_transform.get_angle_and_magnitude(tl_loc)
+                if distance < 60.0 and angle < min(25.0, min_angle):
                     min_angle = angle
                     selected_tl_loc = tl_loc
         if selected_tl_loc is not None:

@@ -17,22 +17,23 @@ flags.DEFINE_bool('stop_for_people', True, 'True to enable person stopping')
 flags.DEFINE_bool('stop_for_vehicles', True, 'True to enable vehicle stopping')
 # Agent stopping parameters.
 flags.DEFINE_integer('traffic_light_min_dist_thres', 5,
-                     'Min distance threshold traffic light')
+                     'Min distance threshold traffic light [m]')
 flags.DEFINE_integer('traffic_light_max_dist_thres', 20,
-                     'Max distance threshold traffic light')
+                     'Max distance threshold traffic light [m]')
 flags.DEFINE_float('traffic_light_angle_thres', 0.5,
-                   'Traffic light angle threshold')
+                   'Traffic light angle threshold [rad]')
 flags.DEFINE_integer('vehicle_distance_thres', 15,
-                     'Vehicle distance threshold')
-flags.DEFINE_float('vehicle_angle_thres', 0.4, 'Vehicle angle threshold')
+                     'Vehicle distance threshold [m]')
+flags.DEFINE_float('vehicle_angle_thres', 0.4,
+                   'Vehicle angle threshold (in radians')
 flags.DEFINE_float('person_angle_hit_thres', 0.15,
-                   'Person hit zone angle threshold')
+                   'Person hit zone angle threshold [rad]')
 flags.DEFINE_integer('person_distance_emergency_thres', 12,
-                     'Person emergency zone distance threshold')
+                     'Person emergency zone distance threshold [m]')
 flags.DEFINE_float('person_angle_emergency_thres', 0.5,
-                   'Person emergency zone angle threshold')
+                   'Person emergency zone angle threshold [rad]')
 flags.DEFINE_integer('person_distance_hit_thres', 35,
-                     'Person hit zone distance threshold')
+                     'Person hit zone distance threshold [m]')
 # Steering control parameters
 flags.DEFINE_float('throttle_max', 0.75, 'Max throttle')
 flags.DEFINE_float('steer_gain', 0.7, 'Gain on computed steering angle')
