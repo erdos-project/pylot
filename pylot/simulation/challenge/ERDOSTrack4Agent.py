@@ -379,14 +379,20 @@ def create_data_flow():
     # scene_layout_stream = erdos.IngestStream()
     ground_obstacles_stream = erdos.IngestStream()
     traffic_lights_stream = erdos.IngestStream()
+    time_to_decision_loop_stream = erdos.LoopStream()
 
     # Add waypoint planner.
     waypoints_stream = pylot.operator_creator.add_waypoint_planning(
-        pose_stream, open_drive_stream, global_trajectory_stream,
-        ground_obstacles_stream, traffic_lights_stream, None)
+        pose_stream, ground_obstacles_stream, traffic_lights_stream,
+        global_trajectory_stream, open_drive_stream,
+        time_to_decision_loop_stream, None)
     control_stream = pylot.operator_creator.add_pid_agent(
         pose_stream, waypoints_stream)
     extract_control_stream = erdos.ExtractStream(control_stream)
+
+    time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
+        pose_stream, ground_obstacles_stream)
+    time_to_decision_loop_stream.set(time_to_decision_stream)
 
     return (pose_stream, global_trajectory_stream, ground_obstacles_stream,
             traffic_lights_stream, open_drive_stream, extract_control_stream)

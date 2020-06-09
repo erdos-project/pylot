@@ -9,22 +9,15 @@ class WaypointsMessage(erdos.Message):
     Args:
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
             the message.
-        waypoints (list(:py:class:`~pylot.utils.Transform`), optional): List of
-            waypoint transforms.
-        target_speeds (list(float)), optional): List of target speeds.
+        waypoints (:py:class:`~pylot.planning.Waypoints`): Waypoints.
     """
-    def __init__(self, timestamp, waypoints, target_speeds=None):
+    def __init__(self, timestamp, waypoints):
         super(WaypointsMessage, self).__init__(timestamp, None)
         self.waypoints = waypoints
-        if target_speeds is not None:
-            assert len(target_speeds) == len(waypoints), \
-                "Length of target speeds must match length of waypoints"
-        self.target_speeds = target_speeds
 
     def __str__(self):
-        return \
-            'WaypointMessage(timestamp: {}, waypoints: {}, target speeds: {}'\
-            .format(self.timestamp, self.waypoints, self.target_speeds)
+        return 'WaypointMessage(timestamp: {}, waypoints: {}'.format(
+            self.timestamp, self.waypoints)
 
 
 class BehaviorMessage(erdos.Message):

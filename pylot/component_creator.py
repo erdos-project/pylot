@@ -428,20 +428,24 @@ def add_planning(goal_location, pose_stream, prediction_stream, camera_stream,
     """
     if FLAGS.planning_type == 'waypoint':
         waypoints_stream = pylot.operator_creator.add_waypoint_planning(
-            pose_stream, open_drive_stream, global_trajectory_stream,
-            obstacles_stream, traffic_lights_stream, goal_location)
+            pose_stream, obstacles_stream, traffic_lights_stream,
+            global_trajectory_stream, open_drive_stream,
+            time_to_decision_stream, goal_location)
     elif FLAGS.planning_type == 'rrt_star':
         waypoints_stream = pylot.operator_creator.add_rrt_star_planning(
-            pose_stream, prediction_stream, global_trajectory_stream,
-            open_drive_stream, time_to_decision_stream, goal_location)
+            pose_stream, prediction_stream, traffic_lights_stream,
+            global_trajectory_stream, open_drive_stream,
+            time_to_decision_stream, goal_location)
     elif FLAGS.planning_type == 'frenet_optimal_trajectory':
         waypoints_stream = pylot.operator_creator.add_fot_planning(
-            pose_stream, prediction_stream, global_trajectory_stream,
-            open_drive_stream, time_to_decision_stream, goal_location)
+            pose_stream, prediction_stream, traffic_lights_stream,
+            global_trajectory_stream, open_drive_stream,
+            time_to_decision_stream, goal_location)
     elif FLAGS.planning_type == 'hybrid_astar':
         waypoints_stream = pylot.operator_creator.add_hybrid_astar_planning(
-            pose_stream, prediction_stream, global_trajectory_stream,
-            open_drive_stream, time_to_decision_stream, goal_location)
+            pose_stream, prediction_stream, traffic_lights_stream,
+            global_trajectory_stream, open_drive_stream,
+            time_to_decision_stream, goal_location)
     else:
         raise ValueError('Unexpected planning_type {}'.format(
             FLAGS.planning_type))

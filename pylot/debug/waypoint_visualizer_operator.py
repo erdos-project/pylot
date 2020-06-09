@@ -1,10 +1,9 @@
 """This module implements an operator that visualizes planning waypoints."""
 from collections import deque
+
 import erdos
 
 import pylot.utils
-
-DEFAULT_VIS_TIME = 0.1
 
 
 class WaypointVisualizerOperator(erdos.Operator):
@@ -76,12 +75,7 @@ class WaypointVisualizerOperator(erdos.Operator):
         if self._flags.draw_waypoints_on_camera_frames:
             bgr_frame.camera_setup.set_transform(
                 vehicle_transform * bgr_frame.camera_setup.transform)
-            extrinsic_matrix = bgr_frame.camera_setup.get_extrinsic_matrix()
-            intrinsic_matrix = bgr_frame.camera_setup.get_intrinsic_matrix()
-            for waypoint in waypoints_msg.waypoints:
-                pixel_location = waypoint.location.to_camera_view(
-                    extrinsic_matrix, intrinsic_matrix)
-                bgr_frame.draw_point(pixel_location, [0, 0, 0])
+            waypoints_msg.waypoints.draw_on_frame(bgr_frame)
             bgr_frame.visualize(self.config.name,
                                 timestamp,
                                 pygame_display=pylot.utils.PYGAME_DISPLAY)
@@ -110,14 +104,7 @@ class WaypointVisualizerOperator(erdos.Operator):
             msg.timestamp, self.config.name))
         self._waypoints_msgs.append(msg)
         if self._flags.draw_waypoints_on_world:
-            for waypoint in msg.waypoints:
-                # Adds 0.5 to z to ensure that the point is above the road
-                # surface.
-                loc = (waypoint.location +
-                       pylot.utils.Location(0, 0, 0.5)).as_carla_location()
-                self._world.debug.draw_point(loc,
-                                             size=0.1,
-                                             life_time=DEFAULT_VIS_TIME)
+            msg.waypoints.draw_on_world(self._world)
 
     def on_pose_update(self, msg):
         """Invoked when a msg on the pose stream is received.

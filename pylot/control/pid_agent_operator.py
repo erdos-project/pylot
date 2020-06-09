@@ -4,7 +4,6 @@ from collections import deque
 
 import erdos
 
-# Pylot imports
 import pylot.control.utils
 import pylot.planning.utils
 from pylot.control.messages import ControlMessage
@@ -64,53 +63,31 @@ class PIDAgentOperator(erdos.Operator):
         """
         self._logger.debug('@{}: received watermark'.format(timestamp))
         pose_msg = self._pose_msgs.popleft()
-        vehicle_transform = pose_msg.data.transform
-        # Vehicle sped in m/s
+        ego_transform = pose_msg.data.transform
+        # Vehicle speed in m/s.
         current_speed = pose_msg.data.forward_speed
-        waypoint_msg = self._waypoint_msgs.popleft()
         if current_speed < 0:
             self._logger.warning(
                 'Current speed is negative: {}'.format(current_speed))
             current_speed = 0
-
-        waypoints = waypoint_msg.waypoints
-        self._logger.debug("@{} Received waypoints of length: {}".format(
-            timestamp, len(waypoints)))
-        if len(waypoints) > 0:
-            pid_steer_wp_index, pid_speed_wp_index = -1, -1
-            for index, _wp in enumerate(waypoints):
-                # Break if we have found both the desired waypoints.
-                if pid_steer_wp_index != -1 and pid_speed_wp_index != -1:
-                    break
-                ego_distance = _wp.location.distance(
-                    vehicle_transform.location)
-                if pid_steer_wp_index == -1 and (
-                        ego_distance >
-                        self._flags.min_pid_steer_waypoint_distance):
-                    pid_steer_wp_index = index
-
-                if pid_speed_wp_index == -1 and (
-                        ego_distance >
-                        self._flags.min_pid_speed_waypoint_distance):
-                    pid_speed_wp_index = index
-
-            _, wp_angle_steer = \
-                pylot.planning.utils.compute_waypoint_vector_and_angle(
-                    vehicle_transform, waypoints, pid_steer_wp_index)
-            target_speed = waypoint_msg.target_speeds[min(
-                len(waypoint_msg.target_speeds) - 1, pid_speed_wp_index)]
+        waypoints = self._waypoint_msgs.popleft().waypoints
+        try:
+            angle_steer = waypoints.get_angle(
+                ego_transform, self._flags.min_pid_steer_waypoint_distance)
+            target_speed = waypoints.get_target_speed(
+                ego_transform, self._flags.min_pid_speed_waypoint_distance)
             throttle, brake = pylot.control.utils.compute_throttle_and_brake(
                 self._pid, current_speed, target_speed, self._flags)
             steer = pylot.control.utils.radians_to_steer(
-                wp_angle_steer, self._flags.steer_gain)
-        else:
+                angle_steer, self._flags.steer_gain)
+        except ValueError:
             self._logger.warning('Braking! No more waypoints to follow.')
             throttle, brake = 0.0, 0.5
             steer = 0.0
         self._logger.debug(
             '@{}: speed {}, location {}, steer {}, throttle {}, brake {}'.
-            format(timestamp, current_speed, vehicle_transform, steer,
-                   throttle, brake))
+            format(timestamp, current_speed, ego_transform, steer, throttle,
+                   brake))
         control_stream.send(
             ControlMessage(steer, throttle, brake, False, False, timestamp))
 

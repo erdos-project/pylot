@@ -97,6 +97,10 @@ class Vector3D(object):
         """Retrieves the 3D vector as a numpy array."""
         return np.array([self.x, self.y, self.z])
 
+    def as_numpy_array_2D(self):
+        """Drops the 3rd dimension."""
+        return np.array([self.x, self.y])
+
     def as_carla_vector(self):
         """Retrieves the 3D vector as an instance of CARLA 3D vector.
 

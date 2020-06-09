@@ -12,6 +12,7 @@ from leaderboard.autoagents.autonomous_agent import AutonomousAgent, \
 import numpy as np
 
 import pylot.flags
+import pylot.component_creator
 import pylot.operator_creator
 import pylot.perception.messages
 import pylot.utils
@@ -315,26 +316,18 @@ def create_data_flow():
     prediction_stream = pylot.operator_creator.add_linear_prediction(
         obstacles_tracking_stream)
 
-    if FLAGS.planning_type == 'waypoint':
-        trajectory_stream = pylot.operator_creator.add_behavior_planning(
-            pose_stream, open_drive_stream, global_trajectory_stream)
-        waypoints_stream = pylot.operator_creator.add_waypoint_planning(
-            pose_stream, open_drive_stream, trajectory_stream,
-            prediction_stream, traffic_lights_stream, None)
-    elif FLAGS.planning_type == 'frenet_optimal_trajectory':
-        waypoints_stream = pylot.operator_creator.add_fot_planning(
-            pose_stream, prediction_stream, global_trajectory_stream,
-            open_drive_stream, time_to_decision_loop_stream, None)
-    else:
-        raise ValueError('Unexpected planning_type {}'.format(
-            FLAGS.planning_type))
+    trajectory_stream = pylot.operator_creator.add_behavior_planning(
+        pose_stream, open_drive_stream, global_trajectory_stream)
+
+    waypoints_stream = pylot.component_creator.add_planning(
+        None, pose_stream, prediction_stream,
+        camera_streams[CENTER_CAMERA_NAME], prediction_stream,
+        traffic_lights_stream, open_drive_stream, trajectory_stream,
+        time_to_decision_loop_stream)
 
     if FLAGS.visualize_rgb_camera:
         pylot.operator_creator.add_camera_visualizer(
             camera_streams[CENTER_CAMERA_NAME], CENTER_CAMERA_NAME)
-
-    # pylot.operator_creator.add_waypoint_visualizer(
-    #     waypoints_stream, camera_streams[CENTER_CAMERA_NAME], pose_stream)
 
     #    pylot.operator_creator.add_lidar_visualizer(point_cloud_stream)
 

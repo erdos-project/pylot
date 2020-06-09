@@ -1,11 +1,10 @@
-import erdos
 import time
-
 from collections import deque
-from copy import deepcopy
-from pylot.utils import time_epoch_ms
+
+import erdos
+
 from pylot.planning.messages import WaypointsMessage
-from pylot.planning.utils import remove_completed_waypoints
+from pylot.utils import time_epoch_ms
 
 
 class PlanningPoseSynchronizerOperator(erdos.Operator):
@@ -38,14 +37,13 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
             downstream control operator.
         pose_write_stream (:py:class:`erdos.WriteStream`): Stream that relays
             the pose messages from the CarlaOperator to the control module.
-        release_sensor_stream (:py:class:`erdos.WriteStream`): Stream that 
+        release_sensor_stream (:py:class:`erdos.WriteStream`): Stream that
             synchronizes all the sensors and waits for the slowest sensor in
             order to release data from all the sensor simultaneously.
         pipeline_finish_notify_stream (:py:class:`erdos.WriteStream`): Stream
             that notifies the simulation that it has finished and that a new
             sensor input should be released into the system.
     """
-
     def __init__(self, waypoints_read_stream, pose_read_stream,
                  localization_pose_stream, notify_stream1, notify_stream2,
                  waypoints_write_stream, pose_write_stream,
@@ -258,19 +256,10 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
                 WaypointsMessage(timestamp, deque([]), deque([])))
         else:
             # Send the trimmed waypoints on the write stream.
-            trimmed_waypoints, trimmed_target_speeds = \
-                remove_completed_waypoints(
-                    deepcopy(waypoints.waypoints),
-                    deepcopy(waypoints.target_speeds),
-                    pose_msg.data.transform.location)
-            waypoints_msg = WaypointsMessage(timestamp, trimmed_waypoints,
-                                             trimmed_target_speeds)
-            self._waypoints_write_stream.send(waypoints_msg)
-
-            # Trim the saved waypoints.
-            for i in range(waypoint_index):
-                self._logger.debug("@{}: Pruning {}".format(
-                    timestamp, self._waypoints.popleft()))
+            waypoints.remove_completed(pose_msg.data.transform.location,
+                                       pose_msg.data.transform)
+            self._waypoints_write_stream.send(
+                WaypointsMessage(timestamp, waypoints))
 
         # Send the pose and the watermark messages.
         watermark = erdos.WatermarkMessage(timestamp)
