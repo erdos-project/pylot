@@ -60,7 +60,7 @@ class Waypoints(object):
                 self.waypoints = deque([ego_transform])
                 self.target_speeds = deque([0])
             else:
-                raise Exception('No more waypoints to follow')
+                raise ValueError('No more waypoints to follow')
 
     def recompute_waypoints(self, hd_map, ego_location, goal_location):
         self.waypoints = hd_map.compute_waypoints(ego_location, goal_location)

@@ -80,9 +80,6 @@ class HDMap(object):
             # Carla releases.
             return waypoint.is_intersection
 
-    def is_transform_on_lane(self, transform):
-        return self.is_on_lane(transform.location)
-
     def is_on_lane(self, location):
         """Checks if a location is on a lane.
 

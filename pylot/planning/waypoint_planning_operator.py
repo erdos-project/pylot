@@ -12,8 +12,6 @@ from pylot.planning.planning_operator import PlanningOperator
 from pylot.planning.waypoints import Waypoints
 from pylot.prediction.messages import PredictionMessage
 
-# Use a waypoint that is at least 9 meters away.
-DEFAULT_MIN_DISTANCE_WAYPOINT = 9
 RECOMPUTE_WAYPOINT_EVERY_N_WATERMARKS = 5
 
 
@@ -77,17 +75,24 @@ class WaypointPlanningOperator(PlanningOperator):
                                                 self._goal_location)
         self._waypoints.remove_completed(ego_transform.location, ego_transform)
 
-        wp_vector = self._waypoints.get_vector(ego_transform,
-                                               DEFAULT_MIN_DISTANCE_WAYPOINT)
-        wp_angle = self._waypoints.get_angle(ego_transform,
-                                             DEFAULT_MIN_DISTANCE_WAYPOINT)
-
-        speed_factor = pylot.planning.utils.stop_for_agents(
-            ego_transform, wp_angle, wp_vector, obstacles, tl_msg.obstacles,
-            self._flags, self._logger, self._map, timestamp)
-        target_speed = speed_factor * self._flags.target_speed
-        self._logger.debug('@{}: speed factor: {}, target speed: {}'.format(
-            timestamp, speed_factor, target_speed))
+        try:
+            wp_vector = self._waypoints.get_vector(
+                ego_transform, self._flags.min_pid_steer_waypoint_distance)
+            wp_angle = self._waypoints.get_angle(
+                ego_transform, self._flags.min_pid_steer_waypoint_distance)
+            speed_factor = pylot.planning.utils.stop_for_agents(
+                ego_transform, wp_angle, wp_vector, obstacles,
+                tl_msg.obstacles, self._flags, self._logger, self._map,
+                timestamp)
+            target_speed = speed_factor * self._flags.target_speed
+            self._logger.debug(
+                '@{}: speed factor: {}, target speed: {}'.format(
+                    timestamp, speed_factor, target_speed))
+        except ValueError:
+            # No more waypoints to follow.
+            self._logger.debug(
+                '@{}: no more waypoints to follow, target speed 0')
+            target_speed = 0
         head_waypoints = self._waypoints.slice_waypoints(
             0, self._flags.num_waypoints_ahead, target_speed)
         waypoints_stream.send(WaypointsMessage(timestamp, head_waypoints))

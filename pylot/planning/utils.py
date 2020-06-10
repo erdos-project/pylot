@@ -1,8 +1,12 @@
 import enum
+import itertools
 import math
 
 import pylot.perception.detection.utils
 from pylot.perception.detection.traffic_light import TrafficLightColor
+
+# Number of predicted locations to consider when computing speed factors.
+NUM_FUTURE_TRANSFORMS = 10
 
 
 class BehaviorPlannerState(enum.Enum):
@@ -13,6 +17,30 @@ class BehaviorPlannerState(enum.Enum):
     LANGE_CHANGE_LEFT = 4
     PREPARE_LANE_CHANGE_RIGHT = 5
     LANE_CHANGE_RIGHT = 6
+
+
+def _compute_person_speed_factor(ego_location_2d, person_location_2d,
+                                 wp_vector, flags, logger):
+    speed_factor_p = 1
+    p_vector = person_location_2d - ego_location_2d
+    p_dist = person_location_2d.l2_distance(ego_location_2d)
+    p_angle = p_vector.get_angle(wp_vector)
+    logger.debug('Person vector {}; dist {}; angle {}'.format(
+        p_vector, p_dist, p_angle))
+    # Maximum braking is applied if the person is in the emergency
+    # hit zone. Otherwise, gradual braking is applied if the person
+    # is in the hit zone.
+    if (math.fabs(p_angle) < flags.person_angle_hit_zone
+            and p_dist < flags.person_distance_hit_zone):
+        # Person is in the hit zone.
+        speed_factor_p = min(
+            speed_factor_p,
+            p_dist / (flags.coast_factor * flags.person_distance_hit_zone))
+    if (math.fabs(p_angle) < flags.person_angle_emergency_zone
+            and p_dist < flags.person_distance_emergency_zone):
+        # Person is in emergency hit zone.
+        speed_factor_p = 0
+    return speed_factor_p
 
 
 def stop_person(ego_transform, obstacle, wp_vector, flags, logger, hd_map):
@@ -33,7 +61,9 @@ def stop_person(ego_transform, obstacle, wp_vector, flags, logger, hd_map):
         if not hd_map.is_on_lane(obstacle.transform.location):
             # Person is not on the road.
             if (not hasattr(obstacle, 'trajectory') or not any(
-                    map(hd_map.is_transform_on_lane, obstacle.trajectory))):
+                    map(
+                        lambda transform: hd_map.is_on_lane(
+                            transform.location), obstacle.trajectory))):
                 # The person is not going to be on the road.
                 logger.debug(
                     'Ignoring ({},{}); it is not going to be on the road'.
@@ -41,26 +71,52 @@ def stop_person(ego_transform, obstacle, wp_vector, flags, logger, hd_map):
                 return 1
     else:
         logger.warning('No HDMap. All people are considered for stopping.')
-
-    speed_factor_p = 1
     ego_location_2d = ego_transform.location.as_vector_2D()
-    person_location_2d = obstacle.transform.location.as_vector_2D()
-    p_vector = person_location_2d - ego_location_2d
-    p_dist = person_location_2d.l2_distance(ego_location_2d)
-    p_angle = p_vector.get_angle(wp_vector)
-    # Maximum braking is applied if the person is in the emergency
-    # hit zone. Otherwise, gradual braking is applied if the person
-    # is in the hit zone.
-    if (math.fabs(p_angle) < flags.person_angle_hit_zone
-            and p_dist < flags.person_distance_hit_zone):
-        # Person is in the hit zone.
-        speed_factor_p = p_dist / (flags.coast_factor *
-                                   flags.person_distance_hit_zone)
-    if (math.fabs(p_angle) < flags.person_angle_emergency_zone
-            and p_dist < flags.person_distance_emergency_zone):
-        # Person is in emergency hit zone.
-        speed_factor_p = 0
-    return speed_factor_p
+    min_speed_factor_p = _compute_person_speed_factor(
+        ego_location_2d, obstacle.transform.location.as_vector_2D(), wp_vector,
+        flags, logger)
+    if hasattr(obstacle, 'trajectory'):
+        transforms = itertools.islice(
+            obstacle.trajectory, 0,
+            min(NUM_FUTURE_TRANSFORMS, len(obstacle.trajectory)))
+        for person_transform in transforms:
+            speed_factor_p = _compute_person_speed_factor(
+                ego_location_2d, person_transform.location.as_vector_2D(),
+                wp_vector, flags, logger)
+            min_speed_factor_p = min(min_speed_factor_p, speed_factor_p)
+    return min_speed_factor_p
+
+
+def _compute_vehicle_speed_factor(ego_location_2d, vehicle_location_2d,
+                                  wp_vector, flags, logger):
+    speed_factor_v = 1
+    v_vector = vehicle_location_2d - ego_location_2d
+    v_dist = vehicle_location_2d.l2_distance(ego_location_2d)
+    v_angle = v_vector.get_angle(wp_vector)
+    logger.debug('Vehicle vector {}; dist {}; angle {}'.format(
+        v_vector, v_dist, v_angle))
+    min_angle = -0.5 * flags.vehicle_max_angle / flags.coast_factor
+    if (min_angle < v_angle < flags.vehicle_max_angle
+            and v_dist < flags.vehicle_max_distance):
+        # The vehicle is within the angle limit, and nearby.
+        speed_factor_v = min(
+            speed_factor_v,
+            v_dist / (flags.coast_factor * flags.vehicle_max_distance))
+
+    if (min_angle < v_angle < flags.vehicle_max_angle / flags.coast_factor
+            and v_dist < flags.vehicle_max_distance * flags.coast_factor):
+        # The vehicle is a bit far away, but it's on ego vehicle's path.
+        speed_factor_v = min(
+            speed_factor_v,
+            v_dist / (flags.coast_factor * flags.vehicle_max_distance))
+
+    min_nearby_angle = -0.5 * flags.vehicle_max_angle * flags.coast_factor
+    if (min_nearby_angle < v_angle <
+            flags.vehicle_max_angle * flags.coast_factor
+            and v_dist < flags.vehicle_max_distance / flags.coast_factor):
+        # The vehicle is very close; the angle can be higher.
+        speed_factor_v = 0
+    return speed_factor_v
 
 
 def stop_vehicle(ego_transform, obstacle, wp_vector, flags, logger, hd_map):
@@ -78,10 +134,12 @@ def stop_vehicle(ego_transform, obstacle, wp_vector, flags, logger, hd_map):
     if hd_map is not None:
         if not hd_map.are_on_same_lane(ego_transform.location,
                                        obstacle.transform.location):
-            # TODO(ionel): Should only consider same lane.
             # Vehicle is not on the same lane as the ego.
             if (not hasattr(obstacle, 'trajectory') or not any(
-                    map(hd_map.is_transform_on_lane, obstacle.trajectory))):
+                    map(
+                        lambda transform: hd_map.are_on_same_lane(
+                            transform.location, ego_transform.location),
+                        obstacle.trajectory))):
                 # The vehicle is not going to be on the road.
                 logger.debug(
                     'Ignoring ({},{}); it is not going to be on the road'.
@@ -90,33 +148,20 @@ def stop_vehicle(ego_transform, obstacle, wp_vector, flags, logger, hd_map):
     else:
         logger.warning('No HDMap. All vehicles are considered for stopping.')
 
-    speed_factor_v = 1
     ego_location_2d = ego_transform.location.as_vector_2D()
-    vehicle_location_2d = obstacle.transform.location.as_vector_2D()
-    v_vector = vehicle_location_2d - ego_location_2d
-    v_dist = vehicle_location_2d.l2_distance(ego_location_2d)
-    v_angle = v_vector.get_angle(wp_vector)
-
-    min_angle = -0.5 * flags.vehicle_max_angle / flags.coast_factor
-    if (min_angle < v_angle < flags.vehicle_max_angle
-            and v_dist < flags.vehicle_max_distance):
-        # The vehicle is within the angle limit, and nearby.
-        speed_factor_v = v_dist / (flags.coast_factor *
-                                   flags.vehicle_max_distance)
-
-    if (min_angle < v_angle < flags.vehicle_max_angle / flags.coast_factor
-            and v_dist < flags.vehicle_max_distance * flags.coast_factor):
-        # The vehicle is a bit far away, but it's on ego vehicle's path.
-        speed_factor_v = v_dist / (flags.coast_factor *
-                                   flags.vehicle_max_distance)
-
-    min_nearby_angle = -0.5 * flags.vehicle_max_angle * flags.coast_factor
-    if (min_nearby_angle < v_angle <
-            flags.vehicle_max_angle * flags.coast_factor
-            and v_dist < flags.vehicle_max_distance / flags.coast_factor):
-        # The vehicle is very close; the angle can be higher.
-        speed_factor_v = 0
-    return speed_factor_v
+    min_speed_factor_v = _compute_vehicle_speed_factor(
+        ego_location_2d, obstacle.transform.location.as_vector_2D(), wp_vector,
+        flags, logger)
+    if hasattr(obstacle, 'trajectory'):
+        transforms = itertools.islice(
+            obstacle.trajectory, 0,
+            min(NUM_FUTURE_TRANSFORMS, len(obstacle.trajectory)))
+        for vehicle_transform in transforms:
+            speed_factor_v = _compute_vehicle_speed_factor(
+                ego_location_2d, vehicle_transform.location.as_vector_2D(),
+                wp_vector, flags, logger)
+            min_speed_factor_v = min(min_speed_factor_v, speed_factor_v)
+    return min_speed_factor_v
 
 
 def stop_traffic_light(ego_transform, tl, wp_vector, wp_angle, flags, logger,
@@ -156,30 +201,43 @@ def stop_traffic_light(ego_transform, tl, wp_vector, wp_angle, flags, logger,
             or tl.state == TrafficLightColor.OFF):
         return 1
 
+    height_delta = tl.transform.location.z - ego_transform.location.z
+    if height_delta > 4:
+        logger.debug('Traffic light is American style')
+        # The traffic ligh is across the road. Increase the max distance.
+        traffic_light_max_distance = flags.traffic_light_max_distance * 2.5
+    else:
+        logger.debug('Traffic light is European style')
+        traffic_light_max_distance = flags.traffic_light_max_distance
+
     speed_factor_tl = 1
     ego_location_2d = ego_transform.location.as_vector_2D()
     tl_location_2d = tl.transform.location.as_vector_2D()
     tl_vector = tl_location_2d - ego_location_2d
     tl_dist = tl_location_2d.l2_distance(ego_location_2d)
     tl_angle = tl_vector.get_angle(wp_vector)
-
-    if (0 <= tl_angle < flags.traffic_light_max_angle
-            and tl_dist < flags.traffic_light_max_distance):
+    logger.debug(
+        'Traffic light vector {}; dist {}; angle {}; wp_angle {}'.format(
+            tl_vector, tl_dist, tl_angle, wp_angle))
+    if (-0.3 <= tl_angle < flags.traffic_light_max_angle
+            and tl_dist < traffic_light_max_distance):
         # The traffic light is at most x radians to the right of the
         # vehicle path, and is not too far away.
-        speed_factor_tl = tl_dist / (flags.coast_factor *
-                                     flags.traffic_light_max_distance)
+        speed_factor_tl = min(
+            speed_factor_tl,
+            tl_dist / (flags.coast_factor * traffic_light_max_distance))
 
-    if (0 <= tl_angle < flags.traffic_light_max_angle / flags.coast_factor
-            and tl_dist < flags.traffic_light_max_distance * flags.coast_factor
+    if (-0.3 <= tl_angle < flags.traffic_light_max_angle / flags.coast_factor
+            and tl_dist < traffic_light_max_distance * flags.coast_factor
             and math.fabs(wp_angle) < 0.2):
         # The ego is pretty far away, so the angle to the traffic light has
         # to be smaller, and the vehicle must be driving straight.
-        speed_factor_tl = tl_dist / (flags.coast_factor *
-                                     flags.traffic_light_max_distance)
+        speed_factor_tl = min(
+            speed_factor_tl,
+            tl_dist / (flags.coast_factor * traffic_light_max_distance))
 
-    if (0 < tl_angle < flags.traffic_light_max_angle * flags.coast_factor
-            and tl_dist < flags.traffic_light_max_distance / flags.coast_factor
+    if (-0.3 <= tl_angle < flags.traffic_light_max_angle * flags.coast_factor
+            and tl_dist < traffic_light_max_distance / flags.coast_factor
             and math.fabs(wp_angle) < 0.2):
         # The traffic light is nearby and the vehicle is driving straight;
         # the angle to the traffic light can be higher.
@@ -209,7 +267,7 @@ def stop_for_agents(ego_transform,
                 speed_factor_p = new_speed_factor_p
                 logger.debug(
                     '@{}: person {} reduced speed factor to {}'.format(
-                        timestamp, obstacle, speed_factor_p))
+                        timestamp, obstacle.id, speed_factor_p))
         elif (obstacle.label in pylot.perception.detection.utils.VEHICLE_LABELS
               and flags.stop_for_vehicles):
             new_speed_factor_v = stop_vehicle(ego_transform, obstacle,
@@ -218,7 +276,7 @@ def stop_for_agents(ego_transform,
                 speed_factor_v = new_speed_factor_v
                 logger.debug(
                     '@{}: vehicle {} reduced speed factor to {}'.format(
-                        timestamp, obstacle, speed_factor_v))
+                        timestamp, obstacle.id, speed_factor_v))
         else:
             logger.debug('@{}: filtering obstacle {}'.format(
                 timestamp, obstacle))
