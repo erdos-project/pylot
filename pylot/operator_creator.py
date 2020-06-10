@@ -813,13 +813,20 @@ def add_sensor_visualizers(camera_stream, depth_camera_stream,
     if FLAGS.visualize_segmentation:
         add_camera_visualizer(segmented_stream, 'segmented_camera')
 
-def add_visualizer(camera_stream, name='visualizer_operator'):
+
+def add_visualizer(pygame_display,
+                   camera_stream,
+                   depth_stream,
+                   control_display_stream,
+                   name='visualizer_operator'):
     from pylot.debug.visualizer_operator import VisualizerOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(VisualizerOperator, op_config, [camera_stream], FLAGS)
+    erdos.connect(VisualizerOperator, op_config,
+                  [camera_stream, depth_stream, control_display_stream],
+                  pygame_display, FLAGS)
 
 
 def add_lidar_visualizer(point_cloud_stream, name='lidar_visualizer_operator'):
