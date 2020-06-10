@@ -82,9 +82,9 @@ class WaypointPlanningOperator(PlanningOperator):
         wp_angle = self._waypoints.get_angle(ego_transform,
                                              DEFAULT_MIN_DISTANCE_WAYPOINT)
 
-        speed_factor, _ = pylot.planning.utils.stop_for_agents(
-            ego_transform.location, wp_angle, wp_vector, obstacles,
-            tl_msg.obstacles, self._flags, self._logger, self._map, timestamp)
+        speed_factor = pylot.planning.utils.stop_for_agents(
+            ego_transform, wp_angle, wp_vector, obstacles, tl_msg.obstacles,
+            self._flags, self._logger, self._map, timestamp)
         target_speed = speed_factor * self._flags.target_speed
         self._logger.debug('@{}: speed factor: {}, target speed: {}'.format(
             timestamp, speed_factor, target_speed))

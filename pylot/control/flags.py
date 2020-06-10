@@ -16,26 +16,34 @@ flags.DEFINE_bool('stop_for_traffic_lights', True,
 flags.DEFINE_bool('stop_for_people', True, 'True to enable person stopping')
 flags.DEFINE_bool('stop_for_vehicles', True, 'True to enable vehicle stopping')
 # Agent stopping parameters.
-flags.DEFINE_integer('traffic_light_min_dist_thres', 5,
-                     'Min distance threshold traffic light [m]')
-flags.DEFINE_integer('traffic_light_max_dist_thres', 20,
-                     'Max distance threshold traffic light [m]')
-flags.DEFINE_float('traffic_light_angle_thres', 0.5,
-                   'Traffic light angle threshold [rad]')
-flags.DEFINE_integer('vehicle_distance_thres', 15,
-                     'Vehicle distance threshold [m]')
-flags.DEFINE_float('vehicle_angle_thres', 0.4, 'Vehicle angle threshold [rad]')
-flags.DEFINE_float('person_angle_hit_thres', 0.15,
-                   'Person hit zone angle threshold [rad]')
-flags.DEFINE_integer('person_distance_emergency_thres', 12,
-                     'Person emergency zone distance threshold [m]')
-flags.DEFINE_float('person_angle_emergency_thres', 0.5,
-                   'Person emergency zone angle threshold [rad]')
-flags.DEFINE_integer('person_distance_hit_thres', 35,
-                     'Person hit zone distance threshold [m]')
+flags.DEFINE_integer(
+    'traffic_light_min_distance', 5,
+    'Min distance for a traffic light to be considered for stopping [m]')
+flags.DEFINE_integer(
+    'traffic_light_max_distance', 20,
+    'Max distance for a traffic light to be considered for stopping [m]')
+flags.DEFINE_float(
+    'traffic_light_max_angle', 0.5,
+    'Angle threshold for a traffic light to be considered for stopping [rad]')
+flags.DEFINE_integer(
+    'vehicle_max_distance', 15,
+    'Max distance for a vehicle to be considered for stopping [m]')
+flags.DEFINE_float(
+    'vehicle_max_angle', 0.4,
+    'Angle threshold for a vehicle to be considered for stopping [rad]')
+flags.DEFINE_integer(
+    'person_distance_hit_zone', 35,
+    'Distance threhsold for a person to be in the hit zone [m]')
+flags.DEFINE_float('person_angle_hit_zone', 0.15,
+                   'Angle threshold for a person to be in the hit zone [rad]')
+flags.DEFINE_integer(
+    'person_distance_emergency_zone', 12,
+    'Distance threshold for a person to be in the emergency zone [m]')
+flags.DEFINE_float(
+    'person_angle_emergency_zone', 0.5,
+    'Angle threshold for a person to be in the emergency zone [rad]')
 # Steering control parameters
-flags.DEFINE_float('throttle_max', 0.75, 'Max throttle')
+flags.DEFINE_float('throttle_max', 1.0, 'Maximum throttle [0, 1]')
 flags.DEFINE_float('steer_gain', 0.7, 'Gain on computed steering angle')
-flags.DEFINE_float('brake_strength', 1,
-                   'Strength for applying brake; between 0 and 1')
+flags.DEFINE_float('brake_max', 1.0, 'Maximum brake [0, 1]')
 flags.DEFINE_float('coast_factor', 2, 'Factor to control coasting')
