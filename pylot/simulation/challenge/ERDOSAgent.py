@@ -293,8 +293,16 @@ def create_data_flow():
     open_drive_stream = erdos.IngestStream()
     point_cloud_stream = erdos.IngestStream()
 
-    obstacles_stream = pylot.operator_creator.add_obstacle_detection(
-        camera_streams[CENTER_CAMERA_NAME], time_to_decision_loop_stream)[0]
+    if any('efficientdet' in model
+           for model in FLAGS.obstacle_detection_model_names):
+        obstacles_stream = pylot.operator_creator.\
+            add_efficientdet_obstacle_detection(
+                camera_streams[CENTER_CAMERA_NAME],
+                time_to_decision_loop_stream)[0]
+    else:
+        obstacles_stream = pylot.operator_creator.add_obstacle_detection(
+            camera_streams[CENTER_CAMERA_NAME],
+            time_to_decision_loop_stream)[0]
 
     traffic_lights_stream = pylot.operator_creator.add_traffic_light_detector(
         camera_streams[TL_CAMERA_NAME])
@@ -304,15 +312,14 @@ def create_data_flow():
             traffic_lights_stream, point_cloud_stream, pose_stream,
             camera_setups[TL_CAMERA_NAME])
 
-    obstacles_wo_history_tracking_stream = \
-        pylot.operator_creator.add_obstacle_tracking(
-            obstacles_stream,
-            camera_streams[CENTER_CAMERA_NAME],
-            time_to_decision_loop_stream)
-    obstacles_tracking_stream = \
-        pylot.operator_creator.add_obstacle_location_history(
-            obstacles_wo_history_tracking_stream, point_cloud_stream,
-            pose_stream, camera_setups[CENTER_CAMERA_NAME])
+    obstacles_tracking_stream = pylot.component_creator.add_obstacle_tracking(
+        camera_streams[CENTER_CAMERA_NAME],
+        camera_setups[CENTER_CAMERA_NAME],
+        obstacles_stream,
+        depth_stream=point_cloud_stream,
+        pose_stream=pose_stream,
+        time_to_decision_stream=time_to_decision_loop_stream)
+
     prediction_stream = pylot.operator_creator.add_linear_prediction(
         obstacles_tracking_stream)
 
@@ -328,8 +335,8 @@ def create_data_flow():
     if FLAGS.visualize_rgb_camera:
         pylot.operator_creator.add_camera_visualizer(
             camera_streams[CENTER_CAMERA_NAME], CENTER_CAMERA_NAME)
-
-    #    pylot.operator_creator.add_lidar_visualizer(point_cloud_stream)
+    if FLAGS.visualize_lidar:
+        pylot.operator_creator.add_lidar_visualizer(point_cloud_stream)
 
     control_stream = pylot.operator_creator.add_pid_agent(
         pose_stream, waypoints_stream)
