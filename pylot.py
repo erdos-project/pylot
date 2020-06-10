@@ -14,7 +14,6 @@ flags.DEFINE_list('goal_location', '234, 59, 39', 'Ego-vehicle goal location')
 # The location of the center camera relative to the ego-vehicle.
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
 
-
 def driver():
     transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                       pylot.utils.Rotation())
@@ -186,6 +185,8 @@ def driver():
                                                   point_cloud_stream,
                                                   ground_segmented_stream,
                                                   imu_stream, pose_stream)
+    if FLAGS.visualize:
+        pylot.operator_creator.add_visualizer(center_camera_stream)
     erdos.run_async()
 
     # If we did not use the pseudo-asynchronous mode, ask the sensors to
@@ -198,7 +199,7 @@ def driver():
 
 
 def main(args):
-    if FLAGS.visualizer_backend == 'pygame':
+    if FLAGS.visualizer_backend == 'pygame' and not FLAGS.visualizer:
         import pygame
         pygame.init()
         pylot.utils.create_pygame_display(FLAGS.carla_camera_image_width,

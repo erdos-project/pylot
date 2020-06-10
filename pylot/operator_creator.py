@@ -15,8 +15,10 @@ def add_carla_bridge(control_stream, sensor_ready_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    return erdos.connect(CarlaOperator, op_config,
-                         [control_stream, sensor_ready_stream], FLAGS)
+    return erdos.connect(
+        CarlaOperator, op_config,
+        [control_stream, sensor_ready_stream, pipeline_finish_notify_stream],
+        FLAGS)
 
 
 def add_efficientdet_obstacle_detection(camera_stream,
@@ -810,6 +812,14 @@ def add_sensor_visualizers(camera_stream, depth_camera_stream,
         add_lidar_visualizer(point_cloud_stream)
     if FLAGS.visualize_segmentation:
         add_camera_visualizer(segmented_stream, 'segmented_camera')
+
+def add_visualizer(camera_stream, name='visualizer_operator'):
+    from pylot.debug.visualizer_operator import VisualizerOperator
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(VisualizerOperator, op_config, [camera_stream], FLAGS)
 
 
 def add_lidar_visualizer(point_cloud_stream, name='lidar_visualizer_operator'):

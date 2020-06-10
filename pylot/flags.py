@@ -108,6 +108,9 @@ flags.DEFINE_enum('control_agent', 'carla_auto_pilot',
 ######################################################################
 # Sensor visualizing flags
 ######################################################################
+flags.DEFINE_bool(
+    'visualize', False,
+    'True to enable visualization of all the added sensors and streams.')
 flags.DEFINE_bool('visualize_rgb_camera', False,
                   'True to enable RGB camera sensor visualizer')
 flags.DEFINE_bool('visualize_depth_camera', False,
