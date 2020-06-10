@@ -194,7 +194,8 @@ def driver():
         pylot.operator_creator.add_visualizer(
             pygame.display.set_mode((FLAGS.carla_camera_image_width,
                                      FLAGS.carla_camera_image_height)),
-            center_camera_stream, depth_camera_stream, control_display_stream)
+            pose_stream, center_camera_stream, depth_camera_stream,
+            obstacles_stream, control_display_stream)
 
     erdos.run_async()
 
