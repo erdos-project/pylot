@@ -53,4 +53,7 @@ def compute_throttle_and_brake(pid, current_speed, target_speed, flags):
     else:
         throttle = 0.0
         brake = min(abs(acceleration), flags.brake_max)
+    # Keep the brake pressed when stopped.
+    if current_speed < 1 and target_speed == 0:
+        brake = 1.0
     return throttle, brake

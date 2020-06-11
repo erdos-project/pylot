@@ -206,10 +206,11 @@ def stop_traffic_light(ego_transform, tl, wp_vector, wp_angle, flags, logger,
         logger.debug('Traffic light is American style')
         # The traffic ligh is across the road. Increase the max distance.
         traffic_light_max_distance = flags.traffic_light_max_distance * 2.5
+        traffic_light_max_angle = flags.traffic_light_max_angle / 3
     else:
         logger.debug('Traffic light is European style')
         traffic_light_max_distance = flags.traffic_light_max_distance
-
+        traffic_light_max_angle = flags.traffic_light_max_angle
     speed_factor_tl = 1
     ego_location_2d = ego_transform.location.as_vector_2D()
     tl_location_2d = tl.transform.location.as_vector_2D()
@@ -219,7 +220,7 @@ def stop_traffic_light(ego_transform, tl, wp_vector, wp_angle, flags, logger,
     logger.debug(
         'Traffic light vector {}; dist {}; angle {}; wp_angle {}'.format(
             tl_vector, tl_dist, tl_angle, wp_angle))
-    if (-0.3 <= tl_angle < flags.traffic_light_max_angle
+    if (-0.3 <= tl_angle < traffic_light_max_angle
             and tl_dist < traffic_light_max_distance):
         # The traffic light is at most x radians to the right of the
         # vehicle path, and is not too far away.
@@ -227,7 +228,7 @@ def stop_traffic_light(ego_transform, tl, wp_vector, wp_angle, flags, logger,
             speed_factor_tl,
             tl_dist / (flags.coast_factor * traffic_light_max_distance))
 
-    if (-0.3 <= tl_angle < flags.traffic_light_max_angle / flags.coast_factor
+    if (-0.3 <= tl_angle < traffic_light_max_angle / flags.coast_factor
             and tl_dist < traffic_light_max_distance * flags.coast_factor
             and math.fabs(wp_angle) < 0.2):
         # The ego is pretty far away, so the angle to the traffic light has
@@ -236,7 +237,7 @@ def stop_traffic_light(ego_transform, tl, wp_vector, wp_angle, flags, logger,
             speed_factor_tl,
             tl_dist / (flags.coast_factor * traffic_light_max_distance))
 
-    if (-0.3 <= tl_angle < flags.traffic_light_max_angle * flags.coast_factor
+    if (-0.3 <= tl_angle < traffic_light_max_angle * flags.coast_factor
             and tl_dist < traffic_light_max_distance / flags.coast_factor
             and math.fabs(wp_angle) < 0.2):
         # The traffic light is nearby and the vehicle is driving straight;

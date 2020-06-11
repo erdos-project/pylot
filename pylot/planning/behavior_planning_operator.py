@@ -74,7 +74,7 @@ class BehaviorPlanningOperator(erdos.Operator):
         self._vehicle_transform = self._pose_msgs.popleft().data.transform
         # Remove the waypoint from the route if we're close to it.
         if (len(self._route) > 0 and self._vehicle_transform.location.distance(
-                self._route[0].location) < 10):
+                self._route[0].location) < 5):
             self._route.popleft()
         new_goal_location = None
         if len(self._route) > 1:
