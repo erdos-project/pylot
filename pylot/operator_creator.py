@@ -818,7 +818,9 @@ def add_visualizer(pygame_display,
                    pose_stream,
                    camera_stream,
                    depth_stream,
+                   segmentation_stream,
                    obstacles_stream,
+                   waypoints_stream,
                    control_display_stream,
                    name='visualizer_operator'):
     from pylot.debug.visualizer_operator import VisualizerOperator
@@ -827,8 +829,8 @@ def add_visualizer(pygame_display,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
     erdos.connect(VisualizerOperator, op_config, [
-        pose_stream, camera_stream, depth_stream, obstacles_stream,
-        control_display_stream
+        pose_stream, camera_stream, depth_stream, segmentation_stream,
+        obstacles_stream, waypoints_stream, control_display_stream
     ], pygame_display, FLAGS)
 
 

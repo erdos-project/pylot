@@ -53,6 +53,10 @@ class Rotation(object):
         import carla
         return carla.Rotation(self.pitch, self.yaw, self.roll)
 
+    def as_numpy_array(self):
+        """Retrieves the Rotation as a numpy array."""
+        return np.array([self.pitch, self.yaw, self.roll])
+
     def __repr__(self):
         return self.__str__()
 

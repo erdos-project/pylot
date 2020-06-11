@@ -192,10 +192,13 @@ def driver():
         pygame.init()
         control_display_stream = erdos.IngestStream()
         pylot.operator_creator.add_visualizer(
-            pygame.display.set_mode((FLAGS.carla_camera_image_width,
-                                     FLAGS.carla_camera_image_height)),
-            pose_stream, center_camera_stream, depth_camera_stream,
-            obstacles_stream, control_display_stream)
+            pygame.display.set_mode(
+                (FLAGS.carla_camera_image_width,
+                 FLAGS.carla_camera_image_height),
+                pygame.HWSURFACE | pygame.DOUBLEBUF), pose_stream,
+            center_camera_stream, depth_camera_stream, segmented_stream,
+            obstacles_stream, waypoints_stream, control_display_stream)
+        pygame.display.set_caption("Pylot")
 
     erdos.run_async()
 
