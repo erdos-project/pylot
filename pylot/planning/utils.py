@@ -62,11 +62,12 @@ def stop_person(ego_transform, obstacle, wp_vector, flags, logger, hd_map):
             # Person is not on the road.
             if (not hasattr(obstacle, 'trajectory') or not any(
                     map(
-                        lambda transform: hd_map.is_on_lane(
-                            transform.location), obstacle.trajectory))):
+                        lambda transform: hd_map.are_on_same_lane(
+                            transform.location, ego_transform.location),
+                        obstacle.trajectory))):
                 # The person is not going to be on the road.
                 logger.debug(
-                    'Ignoring ({},{}); it is not going to be on the road'.
+                    'Ignoring ({},{}); it is not going to be on the same lane'.
                     format(obstacle.label, obstacle.id))
                 return 1
     else:
@@ -206,11 +207,13 @@ def stop_traffic_light(ego_transform, tl, wp_vector, wp_angle, flags, logger,
         logger.debug('Traffic light is American style')
         # The traffic ligh is across the road. Increase the max distance.
         traffic_light_max_distance = flags.traffic_light_max_distance * 2.5
-        traffic_light_max_angle = flags.traffic_light_max_angle / 3
+        traffic_light_max_angle = flags.traffic_light_max_angle / 4
+        american_tl = True
     else:
         logger.debug('Traffic light is European style')
         traffic_light_max_distance = flags.traffic_light_max_distance
         traffic_light_max_angle = flags.traffic_light_max_angle
+        american_tl = False
     speed_factor_tl = 1
     ego_location_2d = ego_transform.location.as_vector_2D()
     tl_location_2d = tl.transform.location.as_vector_2D()
@@ -220,7 +223,7 @@ def stop_traffic_light(ego_transform, tl, wp_vector, wp_angle, flags, logger,
     logger.debug(
         'Traffic light vector {}; dist {}; angle {}; wp_angle {}'.format(
             tl_vector, tl_dist, tl_angle, wp_angle))
-    if (-0.3 <= tl_angle < traffic_light_max_angle
+    if (-0.2 <= tl_angle < traffic_light_max_angle
             and tl_dist < traffic_light_max_distance):
         # The traffic light is at most x radians to the right of the
         # vehicle path, and is not too far away.
@@ -228,7 +231,7 @@ def stop_traffic_light(ego_transform, tl, wp_vector, wp_angle, flags, logger,
             speed_factor_tl,
             tl_dist / (flags.coast_factor * traffic_light_max_distance))
 
-    if (-0.3 <= tl_angle < traffic_light_max_angle / flags.coast_factor
+    if (-0.2 <= tl_angle < traffic_light_max_angle / flags.coast_factor
             and tl_dist < traffic_light_max_distance * flags.coast_factor
             and math.fabs(wp_angle) < 0.2):
         # The ego is pretty far away, so the angle to the traffic light has
@@ -237,17 +240,25 @@ def stop_traffic_light(ego_transform, tl, wp_vector, wp_angle, flags, logger,
             speed_factor_tl,
             tl_dist / (flags.coast_factor * traffic_light_max_distance))
 
-    if (-0.3 <= tl_angle < traffic_light_max_angle * flags.coast_factor
+    if (-0.2 <= tl_angle < traffic_light_max_angle * flags.coast_factor
             and math.fabs(wp_angle) < 0.2):
-        # if  tl_dist < traffic_light_max_distance / flags.coast_factor:
-        dist_to_intersection = hd_map.distance_to_intersection(
-            ego_transform.location, max_distance_to_check=10)
-        if (tl_dist < 60 and dist_to_intersection is not None
-                and dist_to_intersection < 12):
-            # The traffic light is nearby and the vehicle is driving straight;
-            # the angle to the traffic light can be higher.
-            speed_factor_tl = 0
-
+        if american_tl:
+            if (-0.1 <= tl_angle < traffic_light_max_angle and tl_dist < 60):
+                dist_to_intersection = hd_map.distance_to_intersection(
+                    ego_transform.location, max_distance_to_check=20)
+                if (dist_to_intersection is not None
+                        and dist_to_intersection < 12
+                        and tl.bounding_box.get_width() *
+                        tl.bounding_box.get_height() > 400):
+                    speed_factor_tl = 0
+                if (dist_to_intersection is not None and tl_dist < 27
+                        and 12 <= dist_to_intersection <= 20):
+                    speed_factor_tl = 0
+        else:
+            if tl_dist < traffic_light_max_distance / flags.coast_factor:
+                # The traffic light is nearby and the vehicle is driving
+                # straight; the angle to the traffic light can be higher.
+                speed_factor_tl = 0
     return speed_factor_tl
 
 

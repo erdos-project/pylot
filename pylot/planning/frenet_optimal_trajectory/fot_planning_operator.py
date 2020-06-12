@@ -104,7 +104,7 @@ class FOTPlanningOperator(PlanningOperator):
         traffic_lights = self._traffic_light_msgs.popleft()
 
         if not self._waypoints:
-            if self._map is not None:
+            if self._map is not None and self._goal_location is not None:
                 self._waypoints = Waypoints(deque(), deque())
                 self._waypoints.recompute_waypoints(self._map,
                                                     ego_transform.location,

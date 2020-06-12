@@ -54,7 +54,7 @@ class WaypointPlanningOperator(PlanningOperator):
                 type(obstacles_msg)))
 
         if not self._waypoints:
-            if self._map is not None:
+            if self._map is not None and self._goal_location is not None:
                 self._waypoints = Waypoints(deque(), deque())
                 self._waypoints.recompute_waypoints(self._map,
                                                     ego_transform.location,
@@ -66,6 +66,7 @@ class WaypointPlanningOperator(PlanningOperator):
                     "received global trajectory".format(timestamp))
                 waypoints_stream.send(
                     WaypointsMessage(timestamp, Waypoints(deque(), deque())))
+                waypoints_stream.send(erdos.WatermarkMessage(timestamp))
                 return
 
         if (self._recompute_waypoints and self._watermark_cnt %
@@ -96,6 +97,7 @@ class WaypointPlanningOperator(PlanningOperator):
         head_waypoints = self._waypoints.slice_waypoints(
             0, self._flags.num_waypoints_ahead, target_speed)
         waypoints_stream.send(WaypointsMessage(timestamp, head_waypoints))
+        waypoints_stream.send(erdos.WatermarkMessage(timestamp))
 
     def predictions_to_world_coordinates(self, ego_transform,
                                          obstacle_predictions):

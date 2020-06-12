@@ -433,6 +433,7 @@ def add_waypoint_planning(pose_stream,
     from pylot.planning.waypoint_planning_operator import \
             WaypointPlanningOperator
     op_config = erdos.OperatorConfig(name=name,
+                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
