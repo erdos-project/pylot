@@ -3,6 +3,8 @@ from collections import deque
 
 import erdos
 
+import numpy as np
+
 import tensorflow as tf
 
 import pylot.utils
@@ -11,11 +13,11 @@ from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle,\
 from pylot.perception.messages import ObstaclesMessage
 
 # Detection related imports.
-import hparams_config
+import automl.efficientdet.hparams_config as hparams_config
 try:
-    import infer
+    import automl.efficientdet.infer as infer
 except ImportError:
-    import inference as infer
+    import automl.efficientdet.inference as infer
 
 
 class EfficientDetOperator(erdos.Operator):
@@ -65,6 +67,9 @@ class EfficientDetOperator(erdos.Operator):
             if index == 0:
                 # Use the first model by default.
                 self._model_name, self._driver = self._models[model_name]
+                # Serve some junk image to load up the model.
+                inputs = np.zeros((108, 192, 3))
+                _ = self._driver.serve_images([inputs])[0]
         self._unique_id = 0
 
         self._frame_msgs = deque()

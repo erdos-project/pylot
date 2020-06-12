@@ -238,11 +238,15 @@ def stop_traffic_light(ego_transform, tl, wp_vector, wp_angle, flags, logger,
             tl_dist / (flags.coast_factor * traffic_light_max_distance))
 
     if (-0.3 <= tl_angle < traffic_light_max_angle * flags.coast_factor
-            and tl_dist < traffic_light_max_distance / flags.coast_factor
             and math.fabs(wp_angle) < 0.2):
-        # The traffic light is nearby and the vehicle is driving straight;
-        # the angle to the traffic light can be higher.
-        speed_factor_tl = 0
+        # if  tl_dist < traffic_light_max_distance / flags.coast_factor:
+        dist_to_intersection = hd_map.distance_to_intersection(
+            ego_transform.location, max_distance_to_check=10)
+        if (tl_dist < 60 and dist_to_intersection is not None
+                and dist_to_intersection < 12):
+            # The traffic light is nearby and the vehicle is driving straight;
+            # the angle to the traffic light can be higher.
+            speed_factor_tl = 0
 
     return speed_factor_tl
 

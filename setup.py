@@ -22,7 +22,6 @@ setup(
         "open3d-python==0.4.0.0",
         "opencv-python>=4.1.0.25",
         "opencv-contrib-python>=4.1.0.25",
-        "pid_controller",
         "pillow>=6.2.2",
         "pptk",  # TODO(ionel): Fix pptk install (https://github.com/heremaps/pptk/issues/3)
         "pytest",

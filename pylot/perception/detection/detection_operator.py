@@ -74,6 +74,8 @@ class DetectionOperator(erdos.Operator):
         }
         # Unique bounding box id. Incremented for each bounding box.
         self._unique_id = 0
+        # Serve some junk image to load up the model.
+        self.__run_model(np.zeros((108, 192, 3)))
 
     @staticmethod
     def connect(camera_stream, time_to_decision_stream):
@@ -111,21 +113,8 @@ class DetectionOperator(erdos.Operator):
         start_time = time.time()
         # The models expect BGR images.
         assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
-        # Expand dimensions since the model expects images to have
-        # shape: [1, None, None, 3]
-        image_np_expanded = np.expand_dims(msg.frame.frame, axis=0)
-        (boxes, scores, classes, num_detections) = self._tf_session.run(
-            [
-                self._detection_boxes, self._detection_scores,
-                self._detection_classes, self._num_detections
-            ],
-            feed_dict={self._image_tensor: image_np_expanded})
-
-        num_detections = int(num_detections[0])
-        res_classes = [int(cls) for cls in classes[0][:num_detections]]
-        res_boxes = boxes[0][:num_detections]
-        res_scores = scores[0][:num_detections]
-
+        num_detections, res_boxes, res_scores, res_classes = self.__run_model(
+            msg.frame.frame)
         obstacles = []
         for i in range(0, num_detections):
             if res_classes[i] in self._coco_labels:
@@ -175,3 +164,20 @@ class DetectionOperator(erdos.Operator):
                 msg.frame.save(msg.timestamp.coordinates[0],
                                self._flags.data_path,
                                'detector-{}'.format(self.config.name))
+
+    def __run_model(self, image_np):
+        # Expand dimensions since the model expects images to have
+        # shape: [1, None, None, 3]
+        image_np_expanded = np.expand_dims(image_np, axis=0)
+        (boxes, scores, classes, num_detections) = self._tf_session.run(
+            [
+                self._detection_boxes, self._detection_scores,
+                self._detection_classes, self._num_detections
+            ],
+            feed_dict={self._image_tensor: image_np_expanded})
+
+        num_detections = int(num_detections[0])
+        res_classes = [int(cls) for cls in classes[0][:num_detections]]
+        res_boxes = boxes[0][:num_detections]
+        res_scores = scores[0][:num_detections]
+        return num_detections, res_boxes, res_scores, res_classes

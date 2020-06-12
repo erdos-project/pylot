@@ -1,7 +1,10 @@
 """Implements an operator that detects traffic lights."""
-import erdos
 import logging
+
+import erdos
+
 import numpy as np
+
 import tensorflow as tf
 
 import pylot.utils
@@ -67,6 +70,8 @@ class TrafficLightDetOperator(erdos.Operator):
             3: TrafficLightColor.RED,
             4: TrafficLightColor.OFF
         }
+        # Serve some junk image to load up the model.
+        self.__run_model(np.zeros((108, 192, 3)))
 
     @staticmethod
     def connect(camera_stream):
@@ -98,21 +103,8 @@ class TrafficLightDetOperator(erdos.Operator):
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self.config.name))
         assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
-        # Expand dimensions since the model expects images to have
-        # shape: [1, None, None, 3]
-        image_np_expanded = np.expand_dims(msg.frame.as_rgb_numpy_array(),
-                                           axis=0)
-        (boxes, scores, classes, num) = self._tf_session.run(
-            [
-                self._detection_boxes, self._detection_scores,
-                self._detection_classes, self._num_detections
-            ],
-            feed_dict={self._image_tensor: image_np_expanded})
-
-        num_detections = int(num[0])
-        labels = [self._labels[label] for label in classes[0][:num_detections]]
-        boxes = boxes[0][:num_detections]
-        scores = scores[0][:num_detections]
+        boxes, scores, labels = self.__run_model(
+            msg.frame.as_rgb_numpy_array())
 
         traffic_lights = self.__convert_to_detected_tl(
             boxes, scores, labels, msg.frame.camera_setup.height,
@@ -135,6 +127,23 @@ class TrafficLightDetOperator(erdos.Operator):
 
         traffic_lights_stream.send(
             TrafficLightsMessage(msg.timestamp, traffic_lights))
+
+    def __run_model(self, image_np):
+        # Expand dimensions since the model expects images to have
+        # shape: [1, None, None, 3]
+        image_np_expanded = np.expand_dims(image_np, axis=0)
+        (boxes, scores, classes, num) = self._tf_session.run(
+            [
+                self._detection_boxes, self._detection_scores,
+                self._detection_classes, self._num_detections
+            ],
+            feed_dict={self._image_tensor: image_np_expanded})
+
+        num_detections = int(num[0])
+        labels = [self._labels[label] for label in classes[0][:num_detections]]
+        boxes = boxes[0][:num_detections]
+        scores = scores[0][:num_detections]
+        return boxes, scores, labels
 
     def __convert_to_detected_tl(self, boxes, scores, labels, height, width):
         traffic_lights = []

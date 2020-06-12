@@ -47,7 +47,13 @@ mkdir obstacle_detection ; cd obstacle_detection
 wget --max-redirect=20 -O download.zip https://www.dropbox.com/sh/v1mex7ykdrak3av/AADFsd8mwFcQnzJsIAQR6oEja
 unzip download.zip
 rm download.zip
-cd ../
+
+##### Download EfficientDet models ####
+mkdir efficientdet ; cd efficientdet
+wget --max-redirect=20 -O download.zip https://www.dropbox.com/sh/1iovufp7jj175za/AAC065U0DypM5fFPj9wNaGvba
+unzip download.zip
+rm download.zip
+cd ../../
 
 ###### Download the traffic light model ######
 mkdir -p traffic_light_detection/faster-rcnn ; cd traffic_light_detection/faster-rcnn
@@ -90,7 +96,10 @@ mkdir -p prediction/r2p2 ; cd prediction/r2p2
 wget https://www.dropbox.com/s/vyrh8tysre1bmwi/r2p2-model.pt
 cd ../../../
 
-###### Get DeepSORT and SORT tracker code bases
+###### Get the EfficientDet code ######
+git clone https://github.com/ICGog/automl.git
+
+###### Get DeepSORT and SORT tracker code bases ######
 git clone https://github.com/ICGog/nanonets_object_tracking.git
 git clone https://github.com/ICGog/sort.git
 
