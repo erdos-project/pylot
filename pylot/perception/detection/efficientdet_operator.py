@@ -12,13 +12,6 @@ from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle,\
     load_coco_bbox_colors, load_coco_labels
 from pylot.perception.messages import ObstaclesMessage
 
-# Detection related imports.
-import automl.efficientdet.hparams_config as hparams_config
-try:
-    import automl.efficientdet.infer as infer
-except ImportError:
-    import automl.efficientdet.inference as infer
-
 
 class EfficientDetOperator(erdos.Operator):
     """ Detects obstacles using the EfficientDet set of models.
@@ -59,36 +52,42 @@ class EfficientDetOperator(erdos.Operator):
         assert len(model_names) == len(
             model_paths), 'Model names and paths do not have same length'
         self._models = {}
-        self._driver = None
+        self._tf_session = None
+        self._signitures = {
+            'image_files': 'image_files:0',
+            'image_arrays': 'image_arrays:0',
+            'prediction': 'detections:0',
+        }
         for index, model_path in enumerate(model_paths):
             model_name = model_names[index]
             self._models[model_name] = self.load_serving_model(
-                model_name, model_path)
+                model_name, model_path,
+                flags.obstacle_detection_gpu_memory_fraction)
             if index == 0:
                 # Use the first model by default.
-                self._model_name, self._driver = self._models[model_name]
+                self._model_name, self._tf_session = self._models[model_name]
                 # Serve some junk image to load up the model.
                 inputs = np.zeros((108, 192, 3))
-                _ = self._driver.serve_images([inputs])[0]
+                self._tf_session.run(
+                    self._signitures['prediction'],
+                    feed_dict={self._signitures['image_arrays']: [inputs]})[0]
         self._unique_id = 0
-
         self._frame_msgs = deque()
         self._ttd_msgs = deque()
 
-    def load_serving_model(self, model_name, model_path):
-        graph = tf.Graph()
-        driver = infer.ServingDriver(
-            graph,
-            model_name,
-            model_path,
-            batch_size=1,
-            use_xla=True,
-            model_params=hparams_config.get_detection_config(
-                model_name).as_dict(),
-            gpu_memory_fraction=self._flags.
-            obstacle_detection_gpu_memory_fraction)
-        driver.load(model_path)
-        return model_name, driver
+    def load_serving_model(self, model_name, model_path, gpu_memory_fraction):
+        detection_graph = tf.Graph()
+        with detection_graph.as_default():
+            # Load a frozen graph.
+            graph_def = tf.GraphDef()
+            with tf.gfile.GFile(model_path, 'rb') as f:
+                graph_def.ParseFromString(f.read())
+                tf.import_graph_def(graph_def, name='')
+        gpu_options = tf.GPUOptions(
+            per_process_gpu_memory_fraction=gpu_memory_fraction)
+        return model_name, tf.Session(
+            graph=detection_graph,
+            config=tf.ConfigProto(gpu_options=gpu_options))
 
     @staticmethod
     def connect(camera_stream, time_to_decision_stream):
@@ -130,10 +129,10 @@ class EfficientDetOperator(erdos.Operator):
 
     def update_model_choice(self, detection_deadline):
         if self._flags.deadline_enforcement == 'dynamic':
-            self._model_name, self._driver = self._pick_model(
+            self._model_name, self._tf_session = self._pick_model(
                 detection_deadline)
         elif self._flags.deadline_enforcement == 'static':
-            self._model_name, self._driver = self._pick_model(
+            self._model_name, self._tf_session = self._pick_model(
                 self._flags.detection_deadline)
 
     def on_time_to_decision_update(self, msg):
@@ -167,7 +166,9 @@ class EfficientDetOperator(erdos.Operator):
         frame = frame_msg.frame
         inputs = frame.as_rgb_numpy_array()
         detector_start_time = time.time()
-        outputs_np = self._driver.serve_images([inputs])[0]
+        outputs_np = self._tf_session.run(
+            self._signitures['prediction'],
+            feed_dict={self._signitures['image_arrays']: [inputs]})[0]
         detector_end_time = time.time()
         self._logger.debug("@{}: detector runtime {}".format(
             timestamp, (detector_end_time - detector_start_time) * 1000))
