@@ -15,6 +15,7 @@ flags.DEFINE_list('goal_location', '234, 59, 39', 'Ego-vehicle goal location')
 # The location of the center camera relative to the ego-vehicle.
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
 
+
 def driver():
     transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                       pylot.utils.Rotation())
@@ -151,7 +152,8 @@ def driver():
 
     # Add the behaviour planning and control operator.
     control_stream = pylot.component_creator.add_control(
-        pose_stream_for_control, waypoints_stream_for_control)
+        vehicle_id_stream, pose_stream_for_control,
+        waypoints_stream_for_control)
     control_loop_stream.set(control_stream)
 
     if FLAGS.evaluation:
@@ -192,12 +194,12 @@ def driver():
         pygame.init()
         control_display_stream = erdos.IngestStream()
         pylot.operator_creator.add_visualizer(
-            pygame.display.set_mode(
-                (FLAGS.carla_camera_image_width,
-                 FLAGS.carla_camera_image_height),
-                pygame.HWSURFACE | pygame.DOUBLEBUF), pose_stream,
-            center_camera_stream, depth_camera_stream, segmented_stream,
-            obstacles_stream, waypoints_stream, control_display_stream)
+            pygame.display.set_mode((FLAGS.carla_camera_image_width,
+                                     FLAGS.carla_camera_image_height),
+                                    pygame.HWSURFACE | pygame.DOUBLEBUF),
+            pose_stream, center_camera_stream, depth_camera_stream,
+            segmented_stream, obstacles_stream, waypoints_stream,
+            control_stream, control_display_stream)
         pygame.display.set_caption("Pylot")
 
     erdos.run_async()
@@ -222,7 +224,6 @@ def driver():
                         control_display_stream.send(
                             erdos.Message(erdos.Timestamp(coordinates=[0]),
                                           event.key))
-
 
 
 def main(args):

@@ -15,7 +15,8 @@ class VisualizerOperator(erdos.Operator):
 
     def __init__(self, pose_stream, rgb_camera_stream, depth_camera_stream,
                  segmentation_stream, obstacles_stream, waypoints_stream,
-                 control_stream, pygame_display, flags):
+                 control_stream, display_control_stream, pygame_display,
+                 flags):
         # Queue of saved images.
         self._pose_msgs = None
         self._bgr_msgs = None
@@ -23,6 +24,7 @@ class VisualizerOperator(erdos.Operator):
         self._segmentation_msgs = None
         self._obstacle_msgs = None
         self._waypoint_msgs = None
+        self._control_msgs = None
 
         visualize_streams = []
         if pose_stream:
@@ -67,11 +69,19 @@ class VisualizerOperator(erdos.Operator):
                         queue=self._waypoint_msgs))
             visualize_streams.append(waypoints_stream)
 
+        if control_stream:
+            self._control_msgs = deque()
+            control_stream.add_callback(
+                partial(self.save,
+                        msg_type="Control",
+                        queue=self._control_msgs))
+            visualize_streams.append(control_stream)
+
         # Register a watermark callback on all the streams to be visualized.
         erdos.add_watermark_callback(visualize_streams, [], self.on_watermark)
 
         # Add a callback on a control stream to figure out what to display.
-        control_stream.add_callback(self.change_display)
+        display_control_stream.add_callback(self.change_display)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self.display = pygame_display
@@ -102,7 +112,7 @@ class VisualizerOperator(erdos.Operator):
     @staticmethod
     def connect(pose_stream, rgb_camera_stream, depth_stream,
                 segmentation_stream, obstacles_stream, waypoints_stream,
-                control_stream):
+                control_stream, display_control_stream):
         return []
 
     def save(self, msg, msg_type, queue):
@@ -131,26 +141,40 @@ class VisualizerOperator(erdos.Operator):
                     format(name, timestamp))
         return msg
 
-    def render_text(self, pose, timestamp):
+    def render_text(self, pose, control, timestamp):
         # Generate the text to be shown on the box.
         info_text = [
             "Display  : {}".format(self.window_titles[self.current_display]),
             "Timestamp: {}".format(timestamp.coordinates[0]),
-            "Location : {:.1f}, {:.1f}, {:.1f}".format(
-                *tuple(pose.transform.location.as_numpy_array())),
-            "Rotation : {:.1f}, {:.1f}, {:.1f}".format(
-                *tuple(pose.transform.rotation.as_numpy_array())),
-            "Speed    : {:.2f} m/s".format(pose.forward_speed),
         ]
+
+        # Add information from the pose.
+        if pose:
+            info_text += [
+                "Location : {:.1f}, {:.1f}, {:.1f}".format(
+                    *tuple(pose.transform.location.as_numpy_array())),
+                "Rotation : {:.1f}, {:.1f}, {:.1f}".format(
+                    *tuple(pose.transform.rotation.as_numpy_array())),
+                "Speed    : {:.2f} m/s".format(pose.forward_speed),
+            ]
+
+        # Add information from the control message
+        if control:
+            info_text += [
+                "Throttle : {:.2f}".format(control.throttle),
+                "Steer    : {:.2f}".format(control.steer),
+                "Brake    : {:.2f}".format(control.brake),
+                "Reverse  : {:.2f}".format(control.reverse),
+            ]
 
         # Display the information box.
         info_surface = pygame.Surface(
-            (220, self._flags.carla_camera_image_height))
+            (220, self._flags.carla_camera_image_height // 3))
         info_surface.set_alpha(100)
         self.display.blit(info_surface, (0, 0))
 
         # Render the text.
-        v_offset = 4
+        v_offset = 10
         for line in info_text:
             if v_offset + 18 > self._flags.carla_camera_image_height:
                 break
@@ -170,6 +194,8 @@ class VisualizerOperator(erdos.Operator):
                                         "Obstacle")
         waypoint_msg = self.get_message(self._waypoint_msgs, timestamp,
                                         "Waypoint")
+        control_msg = self.get_message(self._control_msgs, timestamp,
+                                       "Control")
 
         sensor_to_display = self.display_array[self.current_display]
         if sensor_to_display == "RGB" and bgr_msg:
@@ -207,4 +233,4 @@ class VisualizerOperator(erdos.Operator):
                                 timestamp=timestamp,
                                 pygame_display=self.display)
 
-        self.render_text(pose_msg.data, timestamp)
+        self.render_text(pose_msg.data, control_msg, timestamp)

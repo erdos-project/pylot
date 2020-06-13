@@ -452,10 +452,12 @@ def add_planning(goal_location, pose_stream, prediction_stream, camera_stream,
     return waypoints_stream
 
 
-def add_control(pose_stream, waypoints_stream):
+def add_control(ground_vehicle_id_stream, pose_stream, waypoints_stream):
     """Adds ego-vehicle control operators.
 
     Args:
+        ground_vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on
+            which the vehicle id is published.
         pose_stream (:py:class:`erdos.ReadStream`, optional): Stream on
             which pose info is received.
         waypoints_stream (:py:class:`erdos.ReadStream`): Stream on which
@@ -476,7 +478,7 @@ def add_control(pose_stream, waypoints_stream):
         # TODO: Hack! We synchronize on a single stream, based on a
         # guesestimate of which stream is slowest.
         control_stream = pylot.operator_creator.add_synchronizer(
-            waypoints_stream)
+            ground_vehicle_id_stream, waypoints_stream)
     else:
         raise ValueError('Unexpected control_agent {}'.format(
             FLAGS.control_agent))
