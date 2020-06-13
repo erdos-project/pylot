@@ -1,8 +1,18 @@
-FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
 
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG http_proxy
+
+RUN apt-get update && apt-get install --reinstall -y locales && locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US
+ENV LC_ALL en_US.UTF-8
+
+# Install tzdata without prompt.
+RUN apt-get -y update
+ENV DEBIAN_FRONTEND=noninteractive
+RUN DEBIAN_FRONTEND=noninteractive ; apt-get install -y tzdata
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
          build-essential \
@@ -12,34 +22,52 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
          vim \
          ca-certificates \
          libjpeg-dev \
-	     libpng16-16 \
-	     libtiff5 \
+	 libpng16-16 \
+	 libtiff5 \
          libpng-dev \
          python-dev \
+         python3 \
+         python3-dev \
          python-networkx \
+         python-setuptools \
+         python3-setuptools \
          python-pip \
-         python-setuptools && \
+         python3-pip && \
          pip install --upgrade pip && \
+         pip3 install --upgrade pip && \
          rm -rf /var/lib/apt/lists/*
 
-RUN pip install setuptools psutil py_trees==0.8.3 shapely six
+# installing conda
+RUN curl -o ~/miniconda.sh -LO https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
+     chmod +x ~/miniconda.sh && \
+     ~/miniconda.sh -b -p /opt/conda && \
+     rm ~/miniconda.sh && \
+     /opt/conda/bin/conda clean -ya && \
+     /opt/conda/bin/conda create -n python37 python=3.7 numpy networkx scipy six requests
 
+RUN packages='py_trees==0.8.3 shapely six dictor requests' \
+	&& pip3 install ${packages}
 
 WORKDIR /workspace
-COPY PythonAPI /workspace/CARLA/PythonAPI
-COPY HDMaps /workspace/CARLA/HDMaps
-ENV CARLA_HOME /workspace/CARLA
+COPY .tmp/PythonAPI /workspace/CARLA/PythonAPI
+ENV CARLA_ROOT /workspace/CARLA
+
+ENV PATH "/workspace/CARLA/PythonAPI/carla/dist/carla-0.9.9-py3.7-linux-x86_64.egg":/opt/conda/envs/python37/bin:/opt/conda/envs/bin:$PATH
 
 # adding CARLA egg to default python environment
-RUN pip install --user py_trees==0.8.3 psutil shapely six
+RUN pip install --user setuptools py_trees==0.8.3 psutil shapely six dictor requests
 
-ENV ROOT_SCENARIO_RUNNER "/workspace/scenario_runner"
-#ENV PYTHONPATH "/workspace/CARLA/PythonAPI/carla/dist/carla-0.9.5-py3.5-linux-x86_64.egg":"${ROOT_SCENARIO_RUNNER}":"${CARLA_HOME}/PythonAPI/carla":${PYTHONPATH}
+ENV SCENARIO_RUNNER_ROOT "/workspace/scenario_runner"
+ENV LEADERBOARD_ROOT "/workspace/leaderboard"
+ENV TEAM_CODE_ROOT "/workspace/team_code"
+ENV PYTHONPATH "/workspace/CARLA/PythonAPI/carla/dist/carla-0.9.9-py3.7-linux-x86_64.egg":"${SCENARIO_RUNNER_ROOT}":"${CARLA_ROOT}/PythonAPI/carla":"${LEADERBOARD_ROOT}":${PYTHONPATH}
 
-COPY .tmp /workspace/scenario_runner
-COPY team_code /workspace/team_code
+COPY .tmp/scenario_runner ${SCENARIO_RUNNER_ROOT}
+COPY .tmp/leaderboard ${LEADERBOARD_ROOT}
+COPY .tmp/team_code ${TEAM_CODE_ROOT}
+
 RUN mkdir -p /workspace/results
-RUN chmod +x /workspace/scenario_runner/srunner/challenge/run_evaluator.sh
+RUN chmod +x /workspace/leaderboard/scripts/run_evaluation.sh
 
 
 ########################################################################################################################
@@ -48,49 +76,31 @@ RUN chmod +x /workspace/scenario_runner/srunner/challenge/run_evaluator.sh
 ########################################################################################################################
 ########################################################################################################################
 
-COPY .tmp/srunner/challenge/ros.bashrc /root/.bashrc
+RUN apt-get update && apt-get install -y clang libgeos-dev python-opencv
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin/:${PATH}"
+RUN rustup default nightly
+RUN packages='wheel setuptools setuptools-rust fire' && pip install ${packages}
+RUN git clone https://github.com/erdos-project/erdos.git && cd erdos && python3 python/setup.py install --user
 
-SHELL ["/bin/bash", "-c"]
-
-RUN apt-get -y update && apt-get -y install git sudo
-# Uninstall old pillow and setuptools versions
-RUN pip uninstall --yes pillow setuptools
-# Installed new versions
-RUN pip install pillow setuptools
-
-RUN cd /workspace && git clone https://github.com/erdos-project/erdos.git
-# Install all the requirements.
-RUN cd /workspace/erdos/ && ./install.sh
-
-# Install Tensorflow
-RUN pip install tensorflow-gpu==1.12
-
-# Get the Pylot directory.
-RUN cd /workspace && git clone https://github.com/erdos-project/pylot.git
-# Install all the Python dependencies.
-RUN  cd /workspace/pylot/ && pip install -e ./
-# Get the Pylot models and code dependencies.
-RUN apt-get update && apt-get install -y wget
-RUN cd /workspace/pylot/ && ./install.sh challenge
-
-RUN /bin/bash -c 'source /opt/ros/kinetic/setup.bash'
-
-# Export PYTHONPATH
-ENV PYTHONPATH "/opt/ros/kinetic/lib/python2.7/dist-packages:/workspace/CARLA/PythonAPI/carla/dist/carla-0.9.5-py2.7-linux-x86_64.egg":"${ROOT_SCENARIO_RUNNER}":"${CARLA_HOME}/PythonAPI/carla":"/workspace/pylot/dependencies/:${PYTHONPATH}"
-
-ENV TEAM_AGENT /workspace/pylot/pylot/simulation/challenge/ERDOSAgent.py
-ENV TEAM_CONFIG /workspace/pylot/pylot/simulation/challenge/challenge.conf
-
-COPY ./ros_entrypoint.sh /workspace/
-RUN chmod 777 /workspace/ros_entrypoint.sh
-
-ENTRYPOINT ["/workspace/ros_entrypoint.sh"]
+RUN packages='absl-py cvxpy gdown lapsolver matplotlib==2.2.4 motmetrics numpy<1.17 open3d-python==0.5.0.0 opencv-python>=4.1.0.25 opencv-contrib-python>=4.1.0.25 pillow>=6.2.2 pytest scikit-image<0.15 scipy==1.2.2 shapely==1.6.4 tensorflow-gpu==1.15 torch==1.3.1 torchvision==0.2.1 filterpy==1.4.1 numba==0.50.0 scikit-learn==0.20.0 imgaug==0.2.8 nonechucks==0.3.1 cython' \
+	&& pip install ${packages}
+ENV PYTHONPATH ${TEAM_CODE_ROOT}/:${TEAM_CODE_ROOT}/dependencies/:${PYTHONPATH}
+ENV TEAM_AGENT ${TEAM_CODE_ROOT}/pylot/simulation/challenge/ERDOSAgent.py
+ENV TEAM_CONFIG ${TEAM_CODE_ROOT}/pylot/simulation/challenge/challenge.conf
+ENV CHALLENGE_PHASE_CODENAME MAP
 
 ########################################################################################################################
 ########################################################################################################################
 ############                                   END OF USER COMMANDS                                         ############
 ########################################################################################################################
 ########################################################################################################################
+
+ENV SCENARIOS ${LEADERBOARD_ROOT}/data/all_towns_traffic_scenarios_public.json
+ENV ROUTES ${LEADERBOARD_ROOT}/data/routes_training.xml
+ENV REPETITIONS 1
+ENV CHECKPOINT_ENDPOINT /workspace/results/results.json
+ENV DEBUG_CHALLENGE 0
 
 ENV HTTP_PROXY ""
 ENV HTTPS_PROXY ""

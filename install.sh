@@ -2,7 +2,7 @@
 # Assumes the script is called from PYLOT_HOME directory
 
 sudo apt-get -y update
-sudo apt-get install -y git wget python3-pip unzip
+sudo apt-get install -y git wget python3-pip unzip clang libpng-dev libgeos-dev
 pip3 install gdown --user
 # Install opencv separately because pip3 install doesn't install all libraries
 # opencv requires.

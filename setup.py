@@ -19,7 +19,7 @@ setup(
         "matplotlib==2.2.4",
         "networkx==2.2",
         "numpy<1.17",  # Update to newer numpy version once we switch to tf2
-        "open3d-python==0.4.0.0",
+        "open3d-python==0.5.0.0",
         "opencv-python>=4.1.0.25",
         "opencv-contrib-python>=4.1.0.25",
         "pillow>=6.2.2",
@@ -28,12 +28,12 @@ setup(
         "scikit-image<0.15",
         "scipy==1.2.2",
         "shapely==1.6.4",
-        "tensorflow-gpu>=1.12",
+        "tensorflow-gpu==1.15",
         "torch==1.3.1",
         "torchvision==0.2.1",
         ##### Sort tracking dependencies ####
         "filterpy==1.4.1",
-        "numba==0.38.1",
-        "scikit-learn==0.19.1",
+        "numba==0.50.0",
+        "scikit-learn==0.20.0",
     ],
 )
