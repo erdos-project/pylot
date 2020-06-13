@@ -67,6 +67,7 @@ class ERDOSAgent(AutonomousAgent):
                                                       pylot.utils.Rotation())
         self._lidar_setup = LidarSetup('lidar', 'sensor.lidar.ray_cast',
                                        self._lidar_transform)
+        self._last_point_cloud = None
         # Stores the waypoints we get from the challenge planner.
         self._waypoints = None
         # Stores the open drive string we get when we run in track 3.
@@ -174,6 +175,7 @@ class ERDOSAgent(AutonomousAgent):
         speed_data = None
         imu_data = None
         gnss_data = None
+        carla_pc = None
         for key, val in input_data.items():
             # val is a tuple of (data timestamp, data).
             print("Sensor {} at {}".format(key, val[0]))
@@ -194,12 +196,14 @@ class ERDOSAgent(AutonomousAgent):
             elif key == 'opendrive':
                 self.send_opendrive_map_msg(val[1], erdos_timestamp)
             elif key == 'LIDAR':
-                self.send_lidar_msg(val[1], self._lidar_transform,
-                                    erdos_timestamp)
+                carla_pc = val[1]
             else:
                 self._logger.warning("Sensor {} not used".format(key))
 
-        self.send_pose_msg(speed_data, imu_data, gnss_data, erdos_timestamp)
+        ego_transform = self.send_pose_msg(speed_data, imu_data, gnss_data,
+                                           erdos_timestamp)
+        self.send_lidar_msg(ego_transform, carla_pc, self._lidar_transform,
+                            erdos_timestamp)
 
         # Wait until the control is set.
         while True:
@@ -249,12 +253,26 @@ class ERDOSAgent(AutonomousAgent):
                 pylot.utils.Pose(vehicle_transform, forward_speed,
                                  velocity_vector)))
         self._pose_stream.send(erdos.WatermarkMessage(timestamp))
+        return vehicle_transform
 
-    def send_lidar_msg(self, carla_pc, transform, timestamp):
-        msg = pylot.perception.messages.PointCloudMessage(
-            timestamp, PointCloud(carla_pc, self._lidar_setup))
-        self._point_cloud_stream.send(msg)
+    def send_lidar_msg(self, ego_transform, carla_pc, transform, timestamp):
+        point_cloud = PointCloud(carla_pc, self._lidar_setup)
+        if self._last_point_cloud is not None:
+            # TODO(ionel): Should offset the last point cloud wrt to the
+            # current location.
+            # self._last_point_cloud.global_points = \
+            #     ego_transform.transform_points(
+            #         self._last_point_cloud.global_points)
+            # self._last_point_cloud.points = \
+            #     self._last_point_cloud._to_camera_coordinates(
+            #         self._last_point_cloud.global_points)
+            point_cloud.merge(self._last_point_cloud)
+        self._point_cloud_stream.send(
+            pylot.perception.messages.PointCloudMessage(
+                timestamp, point_cloud))
         self._point_cloud_stream.send(erdos.WatermarkMessage(timestamp))
+        # global_pc = ego_transform.inverse_transform_points(carla_pc)
+        self._last_point_cloud = PointCloud(carla_pc, self._lidar_setup)
 
     def send_waypoints_msg(self, timestamp):
         # Send once the global waypoints.

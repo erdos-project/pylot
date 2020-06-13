@@ -40,6 +40,11 @@ class PointCloud(object):
         points = np.reshape(points, (int(points.shape[0] / 3), 3))
         return cls(points, lidar_setup)
 
+    def merge(self, point_cloud):
+        self.global_points = np.concatenate(
+            (self.global_points, point_cloud.global_points), 0)
+        self.points = np.concatenate((self.points, point_cloud.points), 0)
+
     def _to_camera_coordinates(self, points):
         # Converts points in lidar coordinates to points in camera coordinates.
         # See CameraSetup in pylot/drivers/sensor_setup.py for coordinate
