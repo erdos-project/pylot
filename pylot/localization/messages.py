@@ -42,3 +42,38 @@ class IMUMessage(erdos.Message):
             'gyro: {}, compass: {})'.format(
                 self.timestamp, self.transform, self.acceleration, self.gyro,
                 self.compass)
+
+
+class GNSSMessage(erdos.Message):
+    """Message class to be used to send GNSS measurements.
+
+    Args:
+        timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
+            message.
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the GNSS.
+        altitude (float): Height regarding ground level.
+        latitude (float): North/South value of a point on the map.
+        longitude (float): West/East value of a point on the map.
+
+    Attributes:
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the GNSS.
+        altitude (float): Height regarding ground level.
+        latitude (float): North/South value of a point on the map.
+        longitude (float): West/East value of a point on the map.
+    """
+
+    def __init__(self, timestamp, transform, altitude, latitude, longitude):
+        super(GNSSMessage, self).__init__(timestamp, None)
+        self.transform = transform
+        self.altitude = altitude
+        self.latitude = latitude
+        self.longitude = longitude
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return 'GNSSMessage(timestamp: {}, transform: {}, altitude: {}, ' \
+                'latitude: {}, longitude: {})'.format(
+            self.timestamp, self.transform, self.altitude, self.latitude,
+            self.longitude)

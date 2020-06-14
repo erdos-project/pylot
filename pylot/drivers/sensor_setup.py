@@ -669,3 +669,56 @@ class IMUSetup(object):
     def __str__(self):
         return "IMUSetup(name: {}, transform: {})".format(
             self.name, self.transform)
+
+
+class GNSSSetup(object):
+    """ GNSSSetup stores information about an instance of the GNSS sensor
+    attached to the vehicle.
+
+    Args:
+        name (str): The name of the GNSS instance.
+        transform (:py:class:`pylot.utils.Transform`): The transform containing
+            the location and rotation of the GNSS instance with respect to the
+            vehicle
+
+    Attributes:
+        name (str): The name of the GNSS instance.
+        transform (:py:class:`pylot.utils.Transform`): The transform containing
+            the location and rotation of the GNSS instance with respect to the
+            vehicle
+    """
+
+    def __init__(self, name, transform):
+        # Ensure that the name is of the correct type.
+        assert isinstance(name, str), "The name should be of type `str`"
+        self.name = name
+
+        # Ensure that the transform is of the correct type.
+        assert isinstance(transform, Transform), "The transform should be of "
+        "type 'pylot.utils.Transform'"
+        self.transform = transform
+
+    def get_name(self):
+        """ Get the name of the GNSS instance.
+
+        Returns:
+            str: The name of the GNSS instance.
+        """
+        return self.name
+
+    def get_transform(self):
+        """ Get the transform of the GNSS sensor with respect to the vehicle
+        to which it is attached.
+
+        Returns:
+            :py:class:`~pylot.utils.Transform`: The transform of the GNSS
+            sensor with respect to the vehicle to which it is attached.
+        """
+        return self.transform
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return "GNSSSetup(name: {}, transform: {})".format(
+            self.name, self.transform)

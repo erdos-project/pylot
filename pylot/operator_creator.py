@@ -618,6 +618,20 @@ def add_imu(transform, vehicle_id_stream, name='imu'):
     return (imu_stream, imu_setup)
 
 
+def add_gnss(transform, vehicle_id_stream, name='gnss'):
+    from pylot.drivers.carla_gnss_driver_operator import \
+            CarlaGNSSDriverOperator
+    gnss_setup = pylot.drivers.sensor_setup.GNSSSetup(name, transform)
+    op_config = erdos.OperatorConfig(name=gnss_setup.get_name() + '_operator',
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [gnss_stream] = erdos.connect(CarlaGNSSDriverOperator, op_config,
+                                  [vehicle_id_stream], gnss_setup, FLAGS)
+    return (gnss_stream, gnss_setup)
+
+
 def add_fusion(pose_stream, obstacles_stream, depth_stream,
                ground_obstacles_stream):
     from pylot.perception.fusion.fusion_operator import FusionOperator
