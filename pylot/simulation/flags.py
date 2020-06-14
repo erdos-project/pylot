@@ -30,6 +30,10 @@ flags.DEFINE_integer(
     'Sets the simulation time frequency at which IMUs are published. '
     '-1 means that a IMU message is published for each simulation tick')
 flags.DEFINE_integer(
+    'carla_gnss_frequency', -1,
+    'Sets the simulation time frequency at which GNSS is published. '
+    '-1 means that a GNSS message is published for each simulation tick')
+flags.DEFINE_integer(
     'carla_lidar_frequency', -1,
     'Sets the simulation time frequency at which point clouds are published. '
     '-1 means that a point cloud is published for each simulation tick')
