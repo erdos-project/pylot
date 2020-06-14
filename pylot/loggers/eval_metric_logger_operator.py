@@ -135,7 +135,7 @@ class EvalMetricLoggerOperator(erdos.Operator):
         Logs the lateral and longitudinal acceleration and jerk.
 
         Args:
-            msg (:py:class:`pylot.perception.messages.IMUMessage`): The IMU
+            msg (:py:class:`pylot.localization.messages.IMUMessage`): The IMU
                 message sent by the sensor.
         """
         sim_time = msg.timestamp.coordinates[0]

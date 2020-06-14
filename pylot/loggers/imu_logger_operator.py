@@ -14,7 +14,7 @@ class IMULoggerOperator(erdos.Operator):
 
     Args:
         imu_stream: (:py:class:`erdos.ReadStream`): The stream on which
-            :py:class:`~pylot.perception.messages.IMUMessage` are received.
+            :py:class:`~pylot.localization.messages.IMUMessage` are received.
         flags (absl.flags): Object to be used to access absl flags.
 
     Attributes:
@@ -37,7 +37,7 @@ class IMULoggerOperator(erdos.Operator):
         """Invoked upon receipt of an IMU message.
 
         Args:
-            msg (:py:class:`pylot.perception.messages.IMUMessage`): Message to
+            msg (:py:class:`pylot.localization.messages.IMUMessage`): Message to
                 be logged.
         """
         self._logger.debug('@{}: {} received message'.format(

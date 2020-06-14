@@ -1,8 +1,6 @@
 import threading
 
-import erdos
-
-from pylot.perception.messages import IMUMessage
+from pylot.localization.messages import IMUMessage
 from pylot.simulation.utils import get_vehicle_handle, get_world, \
     set_simulation_mode
 from pylot.utils import Transform, Vector3D
