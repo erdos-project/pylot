@@ -117,5 +117,5 @@ class MPCAgentOperator(erdos.Operator):
         steer = pylot.control.utils.radians_to_steer(target_steer_rad,
                                                      self._flags.steer_gain)
         throttle, brake = pylot.control.utils.compute_throttle_and_brake(
-            self._pid, current_speed, target_speed, self._flags)
+            self._pid, current_speed, target_speed, self._flags, self._logger)
         return ControlMessage(steer, throttle, brake, False, False, timestamp)

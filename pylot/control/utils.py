@@ -31,7 +31,8 @@ def steer_to_radians(steer, steer_gain):
     return rad
 
 
-def compute_throttle_and_brake(pid, current_speed, target_speed, flags):
+def compute_throttle_and_brake(pid, current_speed, target_speed, flags,
+                               logger):
     """Computes the throttle/brake required to reach the target speed.
 
     It uses the longitudinal controller to derive the required information.
@@ -46,14 +47,16 @@ def compute_throttle_and_brake(pid, current_speed, target_speed, flags):
     Returns:
         Throttle and brake values.
     """
-    acceleration = pid.run_step(target_speed, current_speed)
+    if current_speed < 0:
+        logger.warning('Current speed is negative: {}'.format(current_speed))
+    acceleration = pid.run_step(target_speed, abs(current_speed))
     if acceleration >= 0.0:
         throttle = min(acceleration, flags.throttle_max)
         brake = 0
     else:
         throttle = 0.0
         brake = min(abs(acceleration), flags.brake_max)
-    # Keep the brake pressed when stopped.
-    if current_speed < 1 and target_speed == 0:
+    # Keep the brake pressed when stopped or when sliding back on a hill.
+    if (current_speed < 1 and target_speed == 0) or current_speed < -0.3:
         brake = 1.0
     return throttle, brake

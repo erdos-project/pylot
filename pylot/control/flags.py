@@ -15,6 +15,8 @@ flags.DEFINE_bool('stop_for_traffic_lights', True,
                   'True to enable traffic light stopping')
 flags.DEFINE_bool('stop_for_people', True, 'True to enable person stopping')
 flags.DEFINE_bool('stop_for_vehicles', True, 'True to enable vehicle stopping')
+flags.DEFINE_bool('stop_at_uncontrolled_junctions', False,
+                  'True to enable stopping at uncontroller junctions')
 # Agent stopping parameters.
 flags.DEFINE_integer(
     'traffic_light_min_distance', 5,

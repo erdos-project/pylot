@@ -187,7 +187,7 @@ def stop_traffic_light(ego_transform, tl, wp_vector, wp_angle, flags, logger,
                                               tl.transform.location):
             logger.debug(
                 'Ignoring traffic light {} that must not be obeyed'.format(tl))
-            return 1
+            return False, 1
     else:
         logger.warning(
             'No HDMap. All traffic lights are considered for stopping.')
@@ -196,11 +196,11 @@ def stop_traffic_light(ego_transform, tl, wp_vector, wp_angle, flags, logger,
             flags.traffic_light_min_distance):
         logger.debug(
             'Ignoring traffic light {}; vehicle is too close'.format(tl))
-        return 1
+        return True, 1
     # The ego vehicle can carry on driving.
     if (tl.state == TrafficLightColor.GREEN
             or tl.state == TrafficLightColor.OFF):
-        return 1
+        return True, 1
 
     height_delta = tl.transform.location.z - ego_transform.location.z
     if height_delta > 4:
@@ -259,7 +259,24 @@ def stop_traffic_light(ego_transform, tl, wp_vector, wp_angle, flags, logger,
                 # The traffic light is nearby and the vehicle is driving
                 # straight; the angle to the traffic light can be higher.
                 speed_factor_tl = 0
-    return speed_factor_tl
+    if speed_factor_tl < 1:
+        dist_to_intersection = hd_map.distance_to_intersection(
+            ego_transform.location, max_distance_to_check=15)
+        if dist_to_intersection is None:
+            # Our lidar-based depth estimation does not work when
+            # we're on a hill.
+            # XXX(ionel): Hack to avoid getting stuck when we're far
+            # from intersections (see scenario 28 in the challenge training
+            # routes).
+            logger.warning(
+                'Ignored traffic light speed factor because junction '
+                'is not nearby')
+            return True, 1
+        else:
+            return True, speed_factor_tl
+    else:
+        # The traffic light doesn't affect the vehicle.
+        return False, speed_factor_tl
 
 
 def stop_for_agents(ego_transform,
@@ -270,10 +287,12 @@ def stop_for_agents(ego_transform,
                     flags,
                     logger,
                     hd_map=None,
-                    timestamp=None):
+                    timestamp=None,
+                    distance_since_last_full_stop=0):
     speed_factor_tl = 1
     speed_factor_p = 1
     speed_factor_v = 1
+    speed_factor_stop = 1
 
     for obstacle in obstacles:
         if obstacle.label == 'person' and flags.stop_for_people:
@@ -297,19 +316,32 @@ def stop_for_agents(ego_transform,
             logger.debug('@{}: filtering obstacle {}'.format(
                 timestamp, obstacle))
 
+    semaphorized_junction = False
     if flags.stop_for_traffic_lights:
         for tl in traffic_lights:
-            new_speed_factor_tl = stop_traffic_light(ego_transform, tl,
-                                                     wp_vector, wp_angle,
-                                                     flags, logger, hd_map)
+            valid_tl, new_speed_factor_tl = stop_traffic_light(
+                ego_transform, tl, wp_vector, wp_angle, flags, logger, hd_map)
+            semaphorized_junction = semaphorized_junction or valid_tl
             if new_speed_factor_tl < speed_factor_tl:
                 speed_factor_tl = new_speed_factor_tl
                 logger.debug(
                     '@{}: traffic light {} reduced speed factor to {}'.format(
                         timestamp, tl, speed_factor_tl))
+    if flags.stop_at_uncontrolled_junctions:
+        if (hd_map is not None and not semaphorized_junction
+                and not hd_map.is_intersection(ego_transform.location)):
+            dist_to_junction = hd_map.distance_to_intersection(
+                ego_transform.location, max_distance_to_check=13)
+            logger.debug('@{}: dist to junc {}, last stop {}'.format(
+                timestamp, dist_to_junction, distance_since_last_full_stop))
+            if (dist_to_junction is not None
+                    and distance_since_last_full_stop > 13):
+                speed_factor_stop = 0
 
-    speed_factor = min(speed_factor_tl, speed_factor_p, speed_factor_v)
+    speed_factor = min(speed_factor_tl, speed_factor_p, speed_factor_v,
+                       speed_factor_stop)
     logger.debug(
-        '@{}: speed factors: person {}, vehicle {}, traffic light {}'.format(
-            timestamp, speed_factor_p, speed_factor_v, speed_factor_tl))
+        '@{}: speed factors: person {}, vehicle {}, traffic light {}, stop {}'.
+        format(timestamp, speed_factor_p, speed_factor_v, speed_factor_tl,
+               speed_factor_stop))
     return speed_factor

@@ -32,6 +32,7 @@ class WaypointPlanningOperator(PlanningOperator):
                  waypoints_stream,
                  flags,
                  goal_location=None):
+        self._last_stop_ego_location = None
         super().__init__(pose_stream, prediction_stream, traffic_lights_stream,
                          global_trajectory_stream, open_drive_stream,
                          time_to_decision_stream, waypoints_stream, flags,
@@ -41,7 +42,17 @@ class WaypointPlanningOperator(PlanningOperator):
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         self._watermark_cnt += 1
-        ego_transform = self._pose_msgs.popleft().data.transform
+        pose_msg = self._pose_msgs.popleft().data
+        ego_transform = pose_msg.transform
+        if pose_msg.forward_speed < 0.08:
+            distance_since_last_full_stop = 0
+            self._last_stop_ego_location = ego_transform.location
+        else:
+            if self._last_stop_ego_location is not None:
+                distance_since_last_full_stop = ego_transform.location.distance(
+                    self._last_stop_ego_location)
+            else:
+                distance_since_last_full_stop = 0
         tl_msg = self._traffic_light_msgs.popleft()
         obstacles_msg = self._prediction_msgs.popleft()
         if isinstance(obstacles_msg, ObstaclesMessage):
@@ -84,7 +95,7 @@ class WaypointPlanningOperator(PlanningOperator):
             speed_factor = pylot.planning.utils.stop_for_agents(
                 ego_transform, wp_angle, wp_vector, obstacles,
                 tl_msg.obstacles, self._flags, self._logger, self._map,
-                timestamp)
+                timestamp, distance_since_last_full_stop)
             target_speed = speed_factor * self._flags.target_speed
             self._logger.debug(
                 '@{}: speed factor: {}, target speed: {}'.format(

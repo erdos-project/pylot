@@ -66,10 +66,6 @@ class PIDAgentOperator(erdos.Operator):
         ego_transform = pose_msg.data.transform
         # Vehicle speed in m/s.
         current_speed = pose_msg.data.forward_speed
-        if current_speed < 0:
-            self._logger.warning(
-                'Current speed is negative: {}'.format(current_speed))
-            current_speed = 0
         waypoints = self._waypoint_msgs.popleft().waypoints
         try:
             angle_steer = waypoints.get_angle(
@@ -77,7 +73,8 @@ class PIDAgentOperator(erdos.Operator):
             target_speed = waypoints.get_target_speed(
                 ego_transform, self._flags.min_pid_speed_waypoint_distance)
             throttle, brake = pylot.control.utils.compute_throttle_and_brake(
-                self._pid, current_speed, target_speed, self._flags)
+                self._pid, current_speed, target_speed, self._flags,
+                self._logger)
             steer = pylot.control.utils.radians_to_steer(
                 angle_steer, self._flags.steer_gain)
         except ValueError:
