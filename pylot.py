@@ -194,8 +194,8 @@ def driver():
         control_display_stream = erdos.IngestStream()
         streams_to_send_top_on += pylot.operator_creator.add_visualizer(
             pose_stream, center_camera_stream, depth_camera_stream,
-            segmented_stream, obstacles_stream, waypoints_stream,
-            control_stream, control_display_stream)
+            segmented_stream, obstacles_stream, obstacles_tracking_stream,
+            waypoints_stream, control_stream, control_display_stream)
 
     erdos.run_async()
 

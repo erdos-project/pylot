@@ -826,6 +826,7 @@ def add_visualizer(pose_stream,
                    depth_stream,
                    segmentation_stream,
                    obstacles_stream,
+                   tracked_obstacles_stream,
                    waypoints_stream,
                    control_stream,
                    control_display_stream,
@@ -853,6 +854,9 @@ def add_visualizer(pose_stream,
     if obstacles_stream is None:
         obstacles_stream = erdos.IngestStream()
         streams_to_send_top_on.append(obstacles_stream)
+    if tracked_obstacles_stream is None:
+        tracked_obstacles_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(tracked_obstacles_stream)
     if waypoints_stream is None:
         waypoints_stream = erdos.IngestStream()
         streams_to_send_top_on.append(obstacles_stream)
@@ -866,8 +870,8 @@ def add_visualizer(pose_stream,
                                      profile_file_name=FLAGS.profile_file_name)
     erdos.connect(VisualizerOperator, op_config, [
         pose_stream, camera_stream, depth_stream, segmentation_stream,
-        obstacles_stream, waypoints_stream, control_stream,
-        control_display_stream
+        obstacles_stream, tracked_obstacles_stream, waypoints_stream,
+        control_stream, control_display_stream
     ], pygame_display, FLAGS)
     return streams_to_send_top_on
 

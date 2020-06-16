@@ -15,18 +15,9 @@ class VisualizerOperator(erdos.Operator):
     results of the operator currently chosen by the developer on the screen.
     """
     def __init__(self, pose_stream, rgb_camera_stream, depth_camera_stream,
-                 segmentation_stream, obstacles_stream, waypoints_stream,
-                 control_stream, display_control_stream, pygame_display,
-                 flags):
-        # Queue of saved images.
-        self._pose_msgs = None
-        self._bgr_msgs = None
-        self._depth_msgs = None
-        self._segmentation_msgs = None
-        self._obstacle_msgs = None
-        self._waypoint_msgs = None
-        self._control_msgs = None
-
+                 segmentation_stream, obstacles_stream,
+                 tracked_obstacles_stream, waypoints_stream, control_stream,
+                 display_control_stream, pygame_display, flags):
         visualize_streams = []
         self._pose_msgs = deque()
         pose_stream.add_callback(
@@ -54,6 +45,13 @@ class VisualizerOperator(erdos.Operator):
         obstacles_stream.add_callback(
             partial(self.save, msg_type="Obstacle", queue=self._obstacle_msgs))
         visualize_streams.append(obstacles_stream)
+
+        self._tracked_obstacle_msgs = deque()
+        tracked_obstacles_stream.add_callback(
+            partial(self.save,
+                    msg_type="TrackedObstacle",
+                    queue=self._tracked_obstacle_msgs))
+        visualize_streams.append(tracked_obstacles_stream)
 
         self._waypoint_msgs = deque()
         waypoints_stream.add_callback(
@@ -85,11 +83,12 @@ class VisualizerOperator(erdos.Operator):
         # Array of keys to figure out which message to display.
         self.current_display = 0
         self.display_array = [
-            "RGB", "Depth", "Segmentation", "Obstacle", "Waypoint"
+            "RGB", "Depth", "Segmentation", "Obstacle", "TrackedObstacle",
+            "Waypoint"
         ]
         self.window_titles = [
             "RGB Camera", "Depth Camera", "Segmentation", "Detection",
-            "Planning"
+            "Obstacle tracking", "Planning"
         ]
         assert len(self.display_array) == len(self.window_titles), \
             "The display and titles differ."
@@ -99,8 +98,9 @@ class VisualizerOperator(erdos.Operator):
 
     @staticmethod
     def connect(pose_stream, rgb_camera_stream, depth_stream,
-                segmentation_stream, obstacles_stream, waypoints_stream,
-                control_stream, display_control_stream):
+                segmentation_stream, obstacles_stream,
+                tracked_obstacles_stream, waypoints_stream, control_stream,
+                display_control_stream):
         return []
 
     def save(self, msg, msg_type, queue):
@@ -180,6 +180,8 @@ class VisualizerOperator(erdos.Operator):
                                             "Segmentation")
         obstacle_msg = self.get_message(self._obstacle_msgs, timestamp,
                                         "Obstacle")
+        tracked_obstacle_msg = self.get_message(self._tracked_obstacle_msgs,
+                                                timestamp, "TrackedObstacle")
         waypoint_msg = self.get_message(self._waypoint_msgs, timestamp,
                                         "Waypoint")
         control_msg = self.get_message(self._control_msgs, timestamp,
@@ -198,6 +200,12 @@ class VisualizerOperator(erdos.Operator):
                                                        obstacle_msg.obstacles,
                                                        pose_msg.data.transform)
             bgr_msg.frame.visualize(self.display, timestamp=timestamp)
+        elif sensor_to_display == "TrackedObstacle" and (
+                bgr_msg and tracked_obstacle_msg and pose_msg):
+            bgr_msg.frame.annotate_with_bounding_boxes(
+                timestamp, tracked_obstacle_msg.obstacle_trajectories,
+                pose_msg.data.transform)
+            bgr_msg.frame.visualize(self.display)
         elif sensor_to_display == "Waypoint" and (bgr_msg and pose_msg
                                                   and waypoint_msg):
             bgr_frame = bgr_msg.frame
