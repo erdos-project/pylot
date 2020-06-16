@@ -1,6 +1,7 @@
 """Implements an operator that eveluates prediction output."""
 
 from collections import deque
+
 import erdos
 
 from pylot.perception.detection.utils import VEHICLE_LABELS

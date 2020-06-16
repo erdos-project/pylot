@@ -106,5 +106,4 @@ class ObjectTrackerOperator(erdos.Operator):
             # Tracked obstacles have no label, draw white bbox.
             camera_frame.annotate_with_bounding_boxes(timestamp,
                                                       tracked_obstacles)
-            camera_frame.visualize(self.config.name,
-                                   pygame_display=pylot.utils.PYGAME_DISPLAY)
+            camera_frame.visualize(pylot.utils.PYGAME_DISPLAY)

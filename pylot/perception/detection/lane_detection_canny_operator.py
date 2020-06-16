@@ -99,9 +99,7 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
             final_img = np.copy(msg.frame.as_numpy_array())
             final_img = cv2.addWeighted(final_img, 0.8, image, 1.0, 0.0)
             frame = CameraFrame(final_img, 'BGR', msg.frame.camera_setup)
-            frame.visualize(self.config.name,
-                            msg.timestamp,
-                            pygame_display=pylot.utils.PYGAME_DISPLAY)
+            frame.visualize(pylot.utils.PYGAME_DISPLAY, msg.timestamp)
 
         detected_lanes_stream.send(erdos.Message(msg.timestamp, image))
 

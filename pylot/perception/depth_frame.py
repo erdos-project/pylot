@@ -1,9 +1,11 @@
+import copy
+import os
+
 import numpy as np
 from numpy.linalg import inv
 from numpy.matlib import repmat
-import os
+
 import pickle
-import copy
 
 import pylot.utils
 
@@ -123,8 +125,7 @@ class DepthFrame(object):
             for loc in pixel_locations
         ]
 
-    def visualize(self, window_name, timestamp=None, pygame_display=None):
-        """Creates a cv2 window to visualize the camera frame."""
+    def visualize(self, pygame_display, timestamp=None):
         if self.original_frame is not None:
             import pygame
             image_np = self.original_frame

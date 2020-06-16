@@ -52,7 +52,7 @@ class ERDOSAgent(AutonomousAgent):
         # Parse the flag file.
         flags.FLAGS([__file__, '--flagfile={}'.format(path_to_conf_file)])
         # Setup the pygame window.
-        if FLAGS.visualizer_backend == 'pygame':
+        if pylot.flags.must_init_pygame():
             import pygame
             pygame.init()
             pylot.utils.create_pygame_display(FLAGS.carla_camera_image_width,

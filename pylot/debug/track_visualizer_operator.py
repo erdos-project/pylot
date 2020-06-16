@@ -104,10 +104,7 @@ class TrackVisualizerOperator(erdos.Operator):
         for obstacle in prediction_msg.predictions:
             self._draw_trajectory_on_img(obstacle, segmentation_msg.frame,
                                          True)
-        segmentation_msg.frame.visualize(
-            self.config.name,
-            timestamp,
-            pygame_display=pylot.utils.PYGAME_DISPLAY)
+        segmentation_msg.frame.visualize(pylot.utils.PYGAME_DISPLAY, timestamp)
 
     def _draw_trajectory_on_img(self, obstacle, segmented_frame, predict):
         # Intrinsic and extrinsic matrix of the top down segmentation camera.

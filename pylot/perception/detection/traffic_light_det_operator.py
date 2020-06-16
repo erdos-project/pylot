@@ -118,8 +118,7 @@ class TrafficLightDetOperator(erdos.Operator):
             msg.frame.annotate_with_bounding_boxes(msg.timestamp,
                                                    traffic_lights)
             if self._flags.visualize_detected_traffic_lights:
-                msg.frame.visualize(self.config.name,
-                                    pygame_display=pylot.utils.PYGAME_DISPLAY)
+                msg.frame.visualize(pylot.utils.PYGAME_DISPLAY)
             if self._flags.log_traffic_light_detector_output:
                 msg.frame.save(msg.timestamp.coordinates[0],
                                self._flags.data_path,

@@ -135,8 +135,6 @@ flags.DEFINE_bool('visualize_waypoints', False,
                   'True to enable visualization of waypoing planning')
 flags.DEFINE_bool('visualize_prediction', False,
                   'True to enable visualization of prediction output')
-flags.DEFINE_enum('visualizer_backend', 'cv2', ['cv2', 'pygame'],
-                  'Visualizer back-end to use')
 
 # Accuracy evaluation flags.
 flags.DEFINE_bool('evaluate_obstacle_detection', False,
@@ -167,6 +165,17 @@ flags.DEFINE_bool('log_traffic_light_detector_output', False,
 ########################################
 flags.DEFINE_bool('evaluation', False,
                   'Enable end-to-end evaluation of the pipeline.')
+
+
+def must_init_pygame():
+    return (FLAGS.visualize_rgb_camera or FLAGS.visualize_depth_camera
+            or FLAGS.visualize_segmentation or FLAGS.visualize_lidar
+            or FLAGS.visualize_detected_obstacles
+            or FLAGS.visualize_detected_traffic_lights
+            or FLAGS.visualize_waypoints or FLAGS.visualize_prediction
+            or FLAGS.visualize_segmentation_output
+            or FLAGS.visualize_lane_detection
+            or FLAGS.visualize_tracker_output)
 
 
 def must_add_depth_camera_sensor():
@@ -400,8 +409,6 @@ flags.register_multi_flags_validator(
 
 
 def visualizer_validator(flags_dict):
-    if flags_dict['visualizer_backend'] != 'pygame':
-        return True
     visualizers = [
         'visualize_rgb_camera', 'visualize_depth_camera',
         'visualize_segmentation', 'visualize_detected_obstacles',
@@ -417,7 +424,7 @@ def visualizer_validator(flags_dict):
 
 flags.register_multi_flags_validator(
     [
-        'visualizer_backend', 'visualize_rgb_camera', 'visualize_depth_camera',
+        'visualize_rgb_camera', 'visualize_depth_camera',
         'visualize_segmentation', 'visualize_detected_obstacles',
         'visualize_detected_traffic_lights', 'visualize_prediction',
         'visualize_tracker_output'

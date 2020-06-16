@@ -833,4 +833,5 @@ def set_tf_loglevel(level):
 def create_pygame_display(width, height):
     global PYGAME_DISPLAY
     import pygame
-    PYGAME_DISPLAY = pygame.display.set_mode((width, height))
+    PYGAME_DISPLAY = pygame.display.set_mode(
+        (width, height), pygame.HWSURFACE | pygame.DOUBLEBUF)

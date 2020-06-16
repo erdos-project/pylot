@@ -821,8 +821,7 @@ def add_sensor_visualizers(camera_stream, depth_camera_stream,
         add_camera_visualizer(segmented_stream, 'segmented_camera')
 
 
-def add_visualizer(pygame_display,
-                   pose_stream,
+def add_visualizer(pose_stream,
                    camera_stream,
                    depth_stream,
                    segmentation_stream,
@@ -832,6 +831,35 @@ def add_visualizer(pygame_display,
                    control_display_stream,
                    name='visualizer_operator'):
     from pylot.debug.visualizer_operator import VisualizerOperator
+    import pygame
+    pygame.init()
+    pygame_display = pygame.display.set_mode(
+        (FLAGS.carla_camera_image_width, FLAGS.carla_camera_image_height),
+        pygame.HWSURFACE | pygame.DOUBLEBUF)
+    pygame.display.set_caption("Pylot")
+    streams_to_send_top_on = []
+    if pose_stream is None:
+        pose_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(pose_stream)
+    if camera_stream is None:
+        camera_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(camera_stream)
+    if depth_stream is None:
+        depth_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(depth_stream)
+    if segmentation_stream is None:
+        segmentation_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(segmentation_stream)
+    if obstacles_stream is None:
+        obstacles_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(obstacles_stream)
+    if waypoints_stream is None:
+        waypoints_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(obstacles_stream)
+    if control_stream is None:
+        control_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(control_stream)
+
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -841,6 +869,7 @@ def add_visualizer(pygame_display,
         obstacles_stream, waypoints_stream, control_stream,
         control_display_stream
     ], pygame_display, FLAGS)
+    return streams_to_send_top_on
 
 
 def add_lidar_visualizer(point_cloud_stream, name='lidar_visualizer_operator'):

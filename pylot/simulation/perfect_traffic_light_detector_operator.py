@@ -117,9 +117,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
                                                        det_traffic_lights,
                                                        vehicle_transform)
             if self._flags.visualize_detected_traffic_lights:
-                bgr_msg.frame.visualize(
-                    self.config.name,
-                    pygame_display=pylot.utils.PYGAME_DISPLAY)
+                bgr_msg.frame.visualize(pylot.utils.PYGAME_DISPLAY)
             if self._flags.log_detector_output:
                 bgr_msg.frame.save(bgr_msg.timestamp.coordinates[0],
                                    self._flags.data_path, 'perfect-detector')

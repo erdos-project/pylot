@@ -189,21 +189,18 @@ def driver():
                                                   ground_segmented_stream,
                                                   imu_stream, pose_stream)
     control_display_stream = None
+    streams_to_send_top_on = []
     if FLAGS.visualize:
-        import pygame
-        pygame.init()
         control_display_stream = erdos.IngestStream()
-        pylot.operator_creator.add_visualizer(
-            pygame.display.set_mode((FLAGS.carla_camera_image_width,
-                                     FLAGS.carla_camera_image_height),
-                                    pygame.HWSURFACE | pygame.DOUBLEBUF),
+        streams_to_send_top_on += pylot.operator_creator.add_visualizer(
             pose_stream, center_camera_stream, depth_camera_stream,
             segmented_stream, obstacles_stream, waypoints_stream,
             control_stream, control_display_stream)
-        pygame.display.set_caption("Pylot")
 
     erdos.run_async()
 
+    for stream in streams_to_send_top_on:
+        stream.send(erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
     # If we did not use the pseudo-asynchronous mode, ask the sensors to
     # release their readings whenever.
     if FLAGS.carla_mode != "pseudo-asynchronous":
@@ -213,6 +210,7 @@ def driver():
             erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
     if FLAGS.visualize:
+        import pygame
         clock = pygame.time.Clock()
         from pygame.locals import K_n
         while True:
@@ -227,7 +225,7 @@ def driver():
 
 
 def main(args):
-    if FLAGS.visualizer_backend == 'pygame' and not FLAGS.visualize:
+    if pylot.flags.must_init_pygame():
         import pygame
         pygame.init()
         pylot.utils.create_pygame_display(FLAGS.carla_camera_image_width,

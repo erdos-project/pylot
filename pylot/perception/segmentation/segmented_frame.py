@@ -1,7 +1,13 @@
-import cv2
-import numpy as np
 import os
+
+import cv2
+
+import numpy as np
+
 import PIL.Image as Image
+
+import pygame
+
 from skimage import measure
 
 import pylot.utils
@@ -82,7 +88,6 @@ class SegmentedFrame(object):
         """
         # Converts the array containing CARLA semantic segmentation labels
         # to a 2D array containing the label of each pixel.
-        import numpy as np
         import carla
         if not isinstance(carla_image, carla.Image):
             raise ValueError('carla_image should be of type carla.Image')
@@ -244,21 +249,13 @@ class SegmentedFrame(object):
         img = Image.fromarray(self.as_cityscapes_palette())
         img.save(file_name)
 
-    def visualize(self, window_name, timestamp=None, pygame_display=None):
-        """Creates a cv2 window to visualize the segmented frame."""
+    def visualize(self, pygame_display, timestamp=None):
         cityscapes_frame = self.as_cityscapes_palette()
         if timestamp is not None:
             pylot.utils.add_timestamp(cityscapes_frame, timestamp)
-        if pygame_display:
-            import pygame
-            image_np = np.transpose(cityscapes_frame, (1, 0, 2))
-            pygame.surfarray.blit_array(pygame_display, image_np)
-            pygame.display.flip()
-        else:
-            # Convert to BGR
-            cityscapes_frame = cityscapes_frame[:, :, ::-1]
-            cv2.imshow(window_name, cityscapes_frame)
-            cv2.waitKey(1)
+        image_np = np.transpose(cityscapes_frame, (1, 0, 2))
+        pygame.surfarray.blit_array(pygame_display, image_np)
+        pygame.display.flip()
 
     def draw_point(self, point, color, r=3):
         """ Draws a colored point on the segmented frame."""

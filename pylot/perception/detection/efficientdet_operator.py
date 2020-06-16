@@ -207,8 +207,7 @@ class EfficientDetOperator(erdos.Operator):
             frame.annotate_with_bounding_boxes(timestamp, obstacles, None,
                                                self._bbox_colors)
             if self._flags.visualize_detected_obstacles:
-                frame.visualize(self.config.name,
-                                pygame_display=pylot.utils.PYGAME_DISPLAY)
+                frame.visualize(pylot.utils.PYGAME_DISPLAY)
             if self._flags.log_detector_output:
                 frame.save(timestamp.coordinates[0], self._flags.data_path,
                            'detector-{}'.format(self.config.name))

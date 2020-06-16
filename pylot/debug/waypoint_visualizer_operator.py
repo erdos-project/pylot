@@ -76,9 +76,7 @@ class WaypointVisualizerOperator(erdos.Operator):
             bgr_frame.camera_setup.set_transform(
                 vehicle_transform * bgr_frame.camera_setup.transform)
             waypoints_msg.waypoints.draw_on_frame(bgr_frame)
-            bgr_frame.visualize(self.config.name,
-                                timestamp,
-                                pygame_display=pylot.utils.PYGAME_DISPLAY)
+            bgr_frame.visualize(pylot.utils.PYGAME_DISPLAY, timestamp)
 
     def on_bgr_frame(self, msg):
         """Invoked when a msg on the camera stream is received.

@@ -158,8 +158,7 @@ class DetectionOperator(erdos.Operator):
             msg.frame.annotate_with_bounding_boxes(msg.timestamp, obstacles,
                                                    None, self._bbox_colors)
             if self._flags.visualize_detected_obstacles:
-                msg.frame.visualize(self.config.name,
-                                    pygame_display=pylot.utils.PYGAME_DISPLAY)
+                msg.frame.visualize(pylot.utils.PYGAME_DISPLAY)
             if self._flags.log_detector_output:
                 msg.frame.save(msg.timestamp.coordinates[0],
                                self._flags.data_path,

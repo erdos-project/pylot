@@ -90,8 +90,6 @@ class SegmentationDRNOperator(erdos.Operator):
         runtime = (time.time() - start_time) * 1000
         frame = SegmentedFrame(image_np, 'cityscapes', msg.frame.camera_setup)
         if self._flags.visualize_segmentation_output:
-            frame.visualize(self.config.name,
-                            msg.timestamp,
-                            pygame_display=pylot.utils.PYGAME_DISPLAY)
+            frame.visualize(pylot.utils.PYGAME_DISPLAY, msg.timestamp)
         segmented_stream.send(
             SegmentedFrameMessage(msg.timestamp, frame, runtime))

@@ -1,7 +1,12 @@
-import cv2
-import numpy as np
 import os
+
+import cv2
+
+import numpy as np
+
 import PIL.Image as Image
+
+import pygame
 
 import pylot.perception.detection.utils
 import pylot.utils
@@ -61,7 +66,6 @@ class CameraFrame(object):
             return self.frame
 
     def resize(self, width, height):
-        import cv2
         self.camera_setup.set_resolution(width, height)
         self.frame = cv2.resize(self.frame,
                                 dsize=(width, height),
@@ -79,24 +83,16 @@ class CameraFrame(object):
                                       bbox_color_map,
                                       ego_transform=transform)
 
-    def visualize(self, window_name, timestamp=None, pygame_display=None):
-        """Creates a cv2 window to visualize the camera frame."""
-        if self.encoding != 'BGR':
-            image_np = self.as_bgr_numpy_array()
+    def visualize(self, pygame_display, timestamp=None):
+        if timestamp is not None:
+            pylot.utils.add_timestamp(self.frame, timestamp)
+        if self.encoding != 'RGB':
+            image_np = self.as_rgb_numpy_array()
         else:
             image_np = self.frame
-        if timestamp is not None:
-            pylot.utils.add_timestamp(image_np, timestamp)
-        if pygame_display:
-            import pygame
-            # Transform to RGB.
-            image_np = image_np[:, :, ::-1]
-            image_np = np.transpose(image_np, (1, 0, 2))
-            pygame.surfarray.blit_array(pygame_display, image_np)
-            pygame.display.flip()
-        else:
-            cv2.imshow(window_name, image_np)
-            cv2.waitKey(1)
+        image_np = np.transpose(image_np, (1, 0, 2))
+        pygame.surfarray.blit_array(pygame_display, image_np)
+        pygame.display.flip()
 
     def draw_point(self, point, color, r=3):
         cv2.circle(self.frame, (int(point.x), int(point.y)), r, color, -1)

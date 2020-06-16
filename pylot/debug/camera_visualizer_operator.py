@@ -27,6 +27,4 @@ class CameraVisualizerOperator(erdos.Operator):
     def display_frame(self, msg):
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self.config.name))
-        msg.frame.visualize(self.config.name,
-                            msg.timestamp,
-                            pygame_display=pylot.utils.PYGAME_DISPLAY)
+        msg.frame.visualize(pylot.utils.PYGAME_DISPLAY, msg.timestamp)

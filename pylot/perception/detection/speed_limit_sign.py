@@ -56,11 +56,11 @@ class SpeedLimitSign(DetectedObstacle):
                 (self.bounding_box.get_min_point(),
                  self.bounding_box.get_max_point()))
 
-    def visualize_on_img(self, image_np, bbox_color_map):
+    def visualize_on_img(self, image_np, bbox_color_map, ego_transform=None):
         text = '{} {} {:.1f}'.format(self.speed_limit, self.label,
                                      self.confidence)
         super(SpeedLimitSign, self).visualize_on_img(image_np, bbox_color_map,
-                                                     None, text)
+                                                     ego_transform, text)
 
     def __repr__(self):
         return self.__str__()
