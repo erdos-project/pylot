@@ -280,7 +280,7 @@ class R2P2PredictorOperator(erdos.Operator):
         # coordinates but with the y- and z-coordinates negated (for
         # a reference describing PRECOG coordinates, see e.g. https://github.com/nrhine1/deep_imitative_models/blob/0d52edfa54cb79da28bd7cf965ebccbe8514fc10/dim/env/preprocess/carla_preprocess.py#L584)
         to_precog_transform = Transform(matrix=np.array(
-            [[1, 0, 0, 0], [0, 0, -1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
+            [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
         transformed_point_cloud = to_precog_transform.transform_points(
             point_cloud)
         return transformed_point_cloud
