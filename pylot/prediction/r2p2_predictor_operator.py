@@ -211,23 +211,18 @@ class R2P2PredictorOperator(erdos.Operator):
         # Add appropriate rotations to closest_vehicles_ego_transforms, which
         # we estimate using the direction determined by the last two distinct
         # locations
-        ego_vehicle_angle = self._get_vehicle_orientation(ego_vehicle)
         for i in range(len(closest_vehicles)):
             cur_vehicle_angle = self._get_vehicle_orientation(closest_vehicles[i])
-            new_yaw = cur_vehicle_angle - ego_vehicle_angle
-            if new_yaw > 180:
-                new_yaw -= 360
-            elif new_yaw < -180:
-                new_yaw += 360
             closest_vehicles_ego_transforms.append(
                 Transform(location=closest_vehicles_ego_locations[i].location, 
-                          rotation=Rotation(yaw=new_yaw)
+                          rotation=Rotation(yaw=cur_vehicle_angle)
             ))
         return closest_vehicles_ego_transforms
 
 
     def _get_vehicle_orientation(self, vehicle):
-        # Gets the angle from the positive x-axis for the given vehicle.
+        # Gets the angle from the positive x-axis for the given vehicle
+        # (trajectory points are in the ego-vehicle's coordinate frame).
         other_idx = len(vehicle.trajectory) - 2
         yaw = 0.0 # Default orientation.
         current_loc = vehicle.trajectory[-1].location.as_vector_2D()
@@ -240,6 +235,11 @@ class R2P2PredictorOperator(erdos.Operator):
                 break
             else:
                 other_idx -= 1
+        # Force angle to be between -180 and 180 degrees.
+        if yaw > 180:
+            yaw -= 360
+        elif yaw < -180:
+            yaw += 360
         return math.degrees(yaw)
 
     def _get_occupancy_from_masked_lidar(self, masked_lidar):
