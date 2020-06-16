@@ -64,12 +64,7 @@ class PerfectTrackerOperator(erdos.Operator):
                 # box, in relation to the Pose measurement.
                 v_transform = past_obstacle_loc.transform * \
                                 past_obstacle_loc.bounding_box.transform
-                #new_location = pose_transform.inverse_transform_locations(
-                #    [v_transform.location])[0]
                 new_transform = pose_transform.inverse_transform() * v_transform
-                #cur_obstacle_trajectory.append(
-                #    pylot.utils.Transform(location=new_location,
-                #                          rotation=pylot.utils.Rotation()))
                 cur_obstacle_trajectory.append(new_transform)
             obstacle_trajectories.append(
                 ObstacleTrajectory(obstacle.label, obstacle.id,
