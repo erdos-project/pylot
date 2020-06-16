@@ -1,15 +1,17 @@
-import erdos
-import carla
-import math
 import time
+
+import carla
+
+import erdos
+
 import numpy as np
 
 from shapely.geometry import LineString
 
-from pylot.utils import Location, Vector3D
-from pylot.simulation.utils import get_world, get_vehicle_handle, \
-        TrafficInfractionType
 from pylot.simulation.messages import TrafficInfractionMessage
+from pylot.simulation.utils import TrafficInfractionType, get_vehicle_handle, \
+    get_world
+from pylot.utils import Location, Vector3D
 
 
 class TrafficLightInvasionSensorOperator(erdos.Operator):

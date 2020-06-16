@@ -1,5 +1,5 @@
-from absl import flags
 from collections import deque
+
 import erdos
 
 import pylot.simulation.utils

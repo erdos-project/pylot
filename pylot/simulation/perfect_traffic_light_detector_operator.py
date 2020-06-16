@@ -1,4 +1,5 @@
 from collections import deque
+
 import erdos
 
 import pylot.utils

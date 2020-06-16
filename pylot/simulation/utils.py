@@ -1,9 +1,9 @@
-import carla
-from collections import namedtuple
-from enum import Enum
 import random
 import re
 import time
+from enum import Enum
+
+import carla
 
 import pylot.utils
 from pylot.perception.depth_frame import DepthFrame
@@ -12,9 +12,6 @@ from pylot.perception.detection.speed_limit_sign import SpeedLimitSign
 from pylot.perception.detection.stop_sign import StopSign
 from pylot.perception.detection.traffic_light import TrafficLight
 from pylot.perception.detection.utils import BoundingBox2D
-
-# Type used to send location info from Carla.
-LocationGeo = namedtuple('LocationGeo', 'latitude, longitude, altitude')
 
 
 def get_world(host="localhost", port=2000, timeout=10):

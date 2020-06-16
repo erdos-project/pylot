@@ -7,6 +7,15 @@ import carla
 import pylot.flags
 from pylot.simulation.utils import get_world
 
+# Carla replay operator flags.
+flags.DEFINE_float('carla_replay_start_time', 0.0,
+                   'The time at which to start replaying')
+flags.DEFINE_float('carla_replay_duration', 0.0,
+                   'The duration of the replay run')
+flags.DEFINE_integer('carla_replay_id', 0,
+                     'The actor id to follow during the replay')
+flags.DEFINE_string('carla_replay_file', '', 'Path to the Carla log file')
+
 FLAGS = flags.FLAGS
 
 

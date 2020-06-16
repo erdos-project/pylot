@@ -1,5 +1,7 @@
 import erdos
+
 import numpy as np
+
 import rospy
 
 from geometry_msgs.msg import PoseStamped
@@ -8,10 +10,18 @@ from tf.transformations import euler_from_quaternion
 
 from pylot.utils import Location, Pose, Rotation, Transform
 
+# The frequency at which localization messages are published.
 NDT_FREQUENCY = 10
 
 
 class NDTAutowareOperator(erdos.Operator):
+    """Operator that wraps a ROS node to listen to localization topics.
+
+    Args:
+        pose_stream (:py:class:`erdos.WriteStream`): Stream on which it sends
+            pose info.
+        flags (absl.flags): Object to be used to access absl flags.
+    """
     def __init__(self, pose_stream, flags, topic_name='/ndt_pose'):
         self._pose_stream = pose_stream
         self._flags = flags
@@ -29,6 +39,7 @@ class NDTAutowareOperator(erdos.Operator):
 
     def on_pose_update(self, data):
         self._counter += 1
+        # It's not yet time to send a localization message.
         if self._counter % self._modulo_to_send != 0:
             return
         loc = Location(data.pose.position.x, data.pose.position.y,
@@ -42,7 +53,7 @@ class NDTAutowareOperator(erdos.Operator):
                             np.degrees(roll))
         timestamp = erdos.Timestamp(coordinates=[self._msg_cnt])
         pose = Pose(Transform(loc, rotation), self._forward_speed)
-        self._logger.debug('NDT localization {}'.format(pose))
+        self._logger.debug('@{}: NDT localization {}'.format(timestamp, pose))
         self._pose_stream.send(erdos.Message(timestamp, pose))
         self._pose_stream.send(erdos.WatermarkMessage(timestamp))
         self._msg_cnt += 1

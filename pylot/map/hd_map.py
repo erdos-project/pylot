@@ -76,9 +76,7 @@ class HDMap(object):
             # mapped location.
             return False
         else:
-            # XXX(ionel): is_intersection will be deprecated in the future
-            # Carla releases.
-            return waypoint.is_intersection
+            return waypoint.is_junction
 
     def is_on_lane(self, location):
         """Checks if a location is on a lane.
@@ -305,44 +303,6 @@ class HDMap(object):
             return (True, selected_tl_loc)
         else:
             return (False, None)
-
-    def get_freenet_coordinates(self, location):
-        """Transforms a location into Freenet coordinates.
-
-        Args:
-            location (:py:class:`~pylot.utils.Location`): Location in world
-                coordinates.
-        Returns:
-            s, d for a given Cartesian world location.
-        """
-        # TODO(ionel): This method assumes that the location has the
-        # same orientation as the lanes (i.e., it will always return a
-        # positive d).
-        waypoint = self._map.get_waypoint(location.as_carla_location(),
-                                          project_to_road=False,
-                                          lane_type=carla.LaneType.Any)
-        current_lane_w = waypoint
-        d0_location = None
-        while True:
-            # Keep on moving left until we're outside the road or on the
-            # oposite lane.
-            left_lane_w = current_lane_w.get_left_lane()
-            if (left_lane_w.lane_type != carla.LaneType.Driving
-                    or (current_lane_w.transform.rotation.yaw -
-                        left_lane_w.transform.rotation.yaw) > 170):
-                # If the left lane is drivable then we've reached the left hand
-                # side of a one way road. Alternatively, if the lane is rotated
-                # then the lane is on the other side of the road.
-                d0_location = current_lane_w
-                half_lane = carla.Location(0, -current_lane_w.lane_width / 2.0,
-                                           0)
-                d0_location = current_lane_w.transform.transform(half_lane)
-                break
-            current_lane_w = left_lane_w
-
-        # TODO(ionel): Handle the case when the road id changes -> s resets.
-        # TODO(ionel): Handle case when the center lane is bidirectional.
-        return waypoint.s, location.distance(d0_location)
 
     def get_left_lane(self, location):
         raise NotImplementedError

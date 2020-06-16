@@ -73,15 +73,6 @@ flags.DEFINE_integer(
     'perfect_detection_max_distance', 125,
     'Limit perfect detection to a distance of this amount of meters')
 
-# Carla replay operator flags.
-flags.DEFINE_float('carla_replay_start_time', 0.0,
-                   'The time at which to start replaying')
-flags.DEFINE_float('carla_replay_duration', 0.0,
-                   'The duration of the replay run')
-flags.DEFINE_integer('carla_replay_id', 0,
-                     'The actor id to follow during the replay')
-flags.DEFINE_string('carla_replay_file', '', 'Path to the Carla log file')
-
 # Carla challenge flags.
 flags.DEFINE_integer(
     'track', -1, 'Track to execute; -1 is for executing in stand-alone mode')
