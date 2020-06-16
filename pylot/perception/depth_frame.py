@@ -3,6 +3,7 @@ from numpy.linalg import inv
 from numpy.matlib import repmat
 import os
 import pickle
+import copy
 
 import pylot.utils
 
@@ -14,37 +15,49 @@ class DepthFrame(object):
         frame: A numpy array storing the depth frame.
         camera_setup (:py:class:`~pylot.drivers.sensor_setup.DepthCameraSetup`):
             The camera setup used by the sensor that generated this frame.
+        original_frame: A numpy array storing the RGB encoded depth image.
 
     Attributes:
         frame: A numpy array storing the depth frame.
         camera_setup (:py:class:`~pylot.drivers.sensor_setup.DepthCameraSetup`):
             The camera setup used by the sensor that generated this frame.
+        original_frame: A numpy array storing the RGB encoded depth image.
     """
-    def __init__(self, frame, camera_setup):
+    def __init__(self, frame, camera_setup, original_frame=None):
         self.frame = frame
         self.camera_setup = camera_setup
+        self.original_frame = original_frame
         # Attribute used to cache the depth frame as a point cloud. We're doing
         # this because it is computationally expensive to transform a depth
         # frame to a point cloud.
         self._cached_point_cloud = None
 
     @classmethod
-    def from_carla_frame(cls, frame, camera_setup):
+    def from_carla_frame(cls, frame, camera_setup, save_original_frame=False):
         """Creates a pylot depth frame from a carla depth frame.
+
+        Args:
+            frame: A carla.Image instance containing the depth image.
+            camera_setup: The setup of the depth camera.
+            save_original_frame: True if the original RGB image needs to be
+                saved.
 
         Returns:
             :py:class:`.DepthFrame`: A depth frame.
         """
+        original_frame = None
         # Convert an image containing CARLA encoded depth-map to a 2D
         # array containing the depth value of each pixel normalized
         # between [0.0, 1.0]
         _frame = np.frombuffer(frame.raw_data, dtype=np.dtype("uint8"))
         _frame = np.reshape(_frame, (frame.height, frame.width, 4))
         frame = _frame.astype(np.float32)
+        if save_original_frame:
+            original_frame = copy.deepcopy(frame[:, :, :3])
         # Apply (R + G * 256 + B * 256 * 256) / (256 * 256 * 256 - 1).
         frame = np.dot(frame[:, :, :3], [65536.0, 256.0, 1.0])
         frame /= 16777215.0  # (256.0 * 256.0 * 256.0 - 1.0)
-        return cls(frame, camera_setup)
+        return cls(frame, camera_setup, original_frame)
 
     def as_numpy_array(self):
         """Returns the depth frame as a numpy array."""
@@ -109,6 +122,16 @@ class DepthFrame(object):
             pylot.utils.Location(loc[0], loc[1], loc[2])
             for loc in pixel_locations
         ]
+
+    def visualize(self, window_name, timestamp=None, pygame_display=None):
+        """Creates a cv2 window to visualize the camera frame."""
+        if self.original_frame is not None:
+            import pygame
+            image_np = self.original_frame
+            image_np = image_np[:, :, ::-1]
+            image_np = np.transpose(image_np, (1, 0, 2))
+            pygame.surfarray.blit_array(pygame_display, image_np)
+            pygame.display.flip()
 
     def save(self, timestamp, data_path, file_base):
         """Saves the depth frame to a file.

@@ -1,5 +1,6 @@
 from absl import app, flags
 import erdos
+import time
 
 import pylot.flags
 import pylot.component_creator
@@ -151,7 +152,8 @@ def driver():
 
     # Add the behaviour planning and control operator.
     control_stream = pylot.component_creator.add_control(
-        pose_stream_for_control, waypoints_stream_for_control)
+        vehicle_id_stream, pose_stream_for_control,
+        waypoints_stream_for_control)
     control_loop_stream.set(control_stream)
 
     if FLAGS.evaluation:
@@ -186,6 +188,20 @@ def driver():
                                                   point_cloud_stream,
                                                   ground_segmented_stream,
                                                   imu_stream, pose_stream)
+    control_display_stream = None
+    if FLAGS.visualize:
+        import pygame
+        pygame.init()
+        control_display_stream = erdos.IngestStream()
+        pylot.operator_creator.add_visualizer(
+            pygame.display.set_mode((FLAGS.carla_camera_image_width,
+                                     FLAGS.carla_camera_image_height),
+                                    pygame.HWSURFACE | pygame.DOUBLEBUF),
+            pose_stream, center_camera_stream, depth_camera_stream,
+            segmented_stream, obstacles_stream, waypoints_stream,
+            control_stream, control_display_stream)
+        pygame.display.set_caption("Pylot")
+
     erdos.run_async()
 
     # If we did not use the pseudo-asynchronous mode, ask the sensors to
@@ -196,9 +212,22 @@ def driver():
         pipeline_finish_notify_stream.send(
             erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
+    if FLAGS.visualize:
+        clock = pygame.time.Clock()
+        from pygame.locals import K_n
+        while True:
+            clock.tick_busy_loop(60)
+            events = pygame.event.get()
+            for event in events:
+                if event.type == pygame.KEYUP:
+                    if event.key == K_n:
+                        control_display_stream.send(
+                            erdos.Message(erdos.Timestamp(coordinates=[0]),
+                                          event.key))
+
 
 def main(args):
-    if FLAGS.visualizer_backend == 'pygame':
+    if FLAGS.visualizer_backend == 'pygame' and not FLAGS.visualize:
         import pygame
         pygame.init()
         pylot.utils.create_pygame_display(FLAGS.carla_camera_image_width,

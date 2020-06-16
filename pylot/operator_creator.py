@@ -12,6 +12,7 @@ def add_carla_bridge(control_stream, sensor_ready_stream,
                      pipeline_finish_notify_stream):
     from pylot.simulation.carla_operator import CarlaOperator
     op_config = erdos.OperatorConfig(name='carla_operator',
+                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -663,15 +664,16 @@ def add_pid_agent(pose_stream, waypoints_stream):
     return control_stream
 
 
-def add_synchronizer(stream_to_sync_on):
+def add_synchronizer(ground_vehicle_id_stream, stream_to_sync_on):
     from pylot.simulation.synchronizer_operator import SynchronizerOperator
     op_config = erdos.OperatorConfig(name='synchronizer_operator',
-                                     flow_watermarks=False,
+                                     flow_watermarks=True,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    (control_stream, ) = erdos.connect(SynchronizerOperator, op_config,
-                                       [stream_to_sync_on], FLAGS)
+    (control_stream, ) = erdos.connect(
+        SynchronizerOperator, op_config,
+        [ground_vehicle_id_stream, stream_to_sync_on], FLAGS)
     return control_stream
 
 
@@ -817,6 +819,28 @@ def add_sensor_visualizers(camera_stream, depth_camera_stream,
         add_lidar_visualizer(point_cloud_stream)
     if FLAGS.visualize_segmentation:
         add_camera_visualizer(segmented_stream, 'segmented_camera')
+
+
+def add_visualizer(pygame_display,
+                   pose_stream,
+                   camera_stream,
+                   depth_stream,
+                   segmentation_stream,
+                   obstacles_stream,
+                   waypoints_stream,
+                   control_stream,
+                   control_display_stream,
+                   name='visualizer_operator'):
+    from pylot.debug.visualizer_operator import VisualizerOperator
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(VisualizerOperator, op_config, [
+        pose_stream, camera_stream, depth_stream, segmentation_stream,
+        obstacles_stream, waypoints_stream, control_stream,
+        control_display_stream
+    ], pygame_display, FLAGS)
 
 
 def add_lidar_visualizer(point_cloud_stream, name='lidar_visualizer_operator'):
