@@ -137,6 +137,11 @@ def stop_vehicle(ego_transform, obstacle, wp_vector, flags, logger, hd_map):
     Returns:
         :obj:`float`: A stopping factor between 0 and 1 (i.e., no braking).
     """
+    if ego_transform.location.x == obstacle.transform.location.x and \
+       ego_transform.location.y == obstacle.transform.location.y and \
+       ego_transform.location.z == obstacle.transform.location.z:
+        # Don't stop for ourselves.
+        return 1
     if hd_map is not None:
         if not hd_map.are_on_same_lane(ego_transform.location,
                                        obstacle.transform.location):

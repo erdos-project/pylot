@@ -4,6 +4,8 @@ from collections import deque
 import math
 import numpy as np
 import os
+from pylot.utils import time_epoch_ms
+import time
 import torch
 
 try:
@@ -42,6 +44,8 @@ class R2P2PredictorOperator(erdos.Operator):
                  lidar_setup):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
+        self._csv_logger = erdos.utils.setup_csv_logging(
+            self.config.name + '-csv', self.config.csv_log_file_name)
         self._flags = flags
 
         self._device = torch.device('cuda')
@@ -75,7 +79,14 @@ class R2P2PredictorOperator(erdos.Operator):
 
         all_vehicles = [trajectory for trajectory in tracking_msg.obstacle_trajectories if trajectory.label == 'vehicle']
         closest_vehicles, ego_vehicle = self._get_closest_vehicles(all_vehicles)
+        self._logger.info('Getting predictions for {} vehicles'.format(
+            len(closest_vehicles)))
 
+        start_time = time.time()
+        if len(closest_vehicles) == 0:
+            self._logger.debug('@{}: no vehicles to make predictions for'.format(timestamp))
+            prediction_stream.send(PredictionMessage(timestamp, []))
+            return
         closest_vehicles_ego_transforms = self._get_closest_vehicles_ego_transforms(closest_vehicles, ego_vehicle)
 
         num_predictions = len(closest_vehicles)
@@ -110,9 +121,16 @@ class R2P2PredictorOperator(erdos.Operator):
             torch.float32).to(self._device)
         closest_trajectories = torch.tensor(closest_trajectories).to(torch.float32).to(self._device)
         binned_lidars = torch.tensor(binned_lidars).to(torch.float32).to(self._device)
+        model_start_time = time.time()
         prediction_array, _ = self._r2p2_model.forward(z,
                                   closest_trajectories,
                                   binned_lidars)
+        model_runtime = (time.time() - model_start_time) * 1000
+        self._csv_logger.debug("{},{},{},{:.4f}".format(time_epoch_ms(),
+                                                        timestamp.coordinates[0],
+                                                        'r2p2-modelonly-runtime',
+                                                        model_runtime))
+
         prediction_array = prediction_array.cpu().detach().numpy()
 
         # Transform each predicted trajectory to be in relation to the
@@ -131,9 +149,11 @@ class R2P2PredictorOperator(erdos.Operator):
                                  np.array([[cur_prediction[t][0],
                                             cur_prediction[t][1],
                                             last_location.z]]))[0]
+                # R2P2 does not predict vehicle orientation, so we use our
+                # estimated orientation of the vehicle at its latest location.
                 predictions.append(Transform(
                     location=Location(cur_point[0], cur_point[1], cur_point[2]),
-                    rotation=Rotation()))
+                    rotation=closest_vehicles_ego_transforms[idx].rotation))
  
             obstacle_predictions_list.append(
                 ObstaclePrediction('vehicle',
@@ -142,6 +162,11 @@ class R2P2PredictorOperator(erdos.Operator):
                                    closest_vehicles[idx].bounding_box,
                                    1.0, # Probability; currently a filler value because we are taking just one sample from distribution
                                    predictions))
+        runtime = (time.time() - start_time) * 1000
+        self._csv_logger.debug("{},{},{},{:.4f}".format(time_epoch_ms(),
+                                                        timestamp.coordinates[0],
+                                                        'r2p2-runtime',
+                                                        runtime))
         prediction_stream.send(
             PredictionMessage(timestamp, obstacle_predictions_list))
 
@@ -164,15 +189,14 @@ class R2P2PredictorOperator(erdos.Operator):
         return trajectory
 
 
+
     def _get_closest_vehicles(self, all_vehicles):
-        # Number of vehicles to make predictions for.
-        distances = [v.trajectory[-1].get_vector_magnitude_angle(Location())[1]
+        distances = [v.trajectory[-1].get_angle_and_magnitude(Location())[1]
                         for v in all_vehicles]
+        # The first vehicle will always be the ego vehicle.
         sorted_vehicles = [v for v, d in sorted(
             zip(all_vehicles, distances), key=lambda pair: pair[1])
             if d <= self._flags.prediction_radius]
-        self._logger.info('Getting predictions for {} vehicles'.format(
-            len(sorted_vehicles)))
 
         if self._flags.prediction_ego_agent:
             return sorted_vehicles, sorted_vehicles[0]
@@ -195,7 +219,6 @@ class R2P2PredictorOperator(erdos.Operator):
                 new_yaw -= 360
             elif new_yaw < -180:
                 new_yaw += 360
-            #print ("New yaw for vehicle {}: {}".format(i, new_yaw))
             closest_vehicles_ego_transforms.append(
                 Transform(location=closest_vehicles_ego_locations[i].location, 
                           rotation=Rotation(yaw=new_yaw)
@@ -206,52 +229,61 @@ class R2P2PredictorOperator(erdos.Operator):
     def _get_vehicle_orientation(self, vehicle):
         # Gets the angle from the positive x-axis for the given vehicle.
         other_idx = len(vehicle.trajectory) - 2
-        yaw = 0.0
+        yaw = 0.0 # Default orientation.
+        current_loc = vehicle.trajectory[-1].location.as_vector_2D()
         while other_idx >= 0:
-            vec, magnitude = vehicle.trajectory[-1].location.get_vector_and_magnitude(vehicle.trajectory[other_idx].location)
-            if magnitude > 0.01:
+            past_ref_loc = vehicle.trajectory[other_idx].location.as_vector_2D()
+            vec = current_loc - past_ref_loc
+            displacement = current_loc.l2_distance(past_ref_loc)
+            if displacement > 0.001:
                 yaw = vec.get_angle(Vector2D(0,0))
                 break
             else:
                 other_idx -= 1
         return math.degrees(yaw)
 
+    def _get_occupancy_from_masked_lidar(self, masked_lidar):
+        meters_max = int(self._lidar_setup.get_range_in_meters())
+
+        pixels_per_meter = 2
+        xbins = np.linspace(-meters_max, meters_max,
+                            meters_max * 2 * pixels_per_meter + 1)
+        ybins = np.linspace(-meters_max, meters_max,
+                            meters_max * 2 * pixels_per_meter + 1)
+        grid = np.histogramdd(masked_lidar[..., :2], bins=(xbins, ybins))[0]
+        grid[grid > 0.] = 1
+        return grid
 
     def _get_occupancy_grid(self, point_cloud):
         """Get occupancy grids at two different heights."""
 
-        # Threshold used when generating the PRECOG
+        point_cloud = self._point_cloud_to_precog_coordinates(point_cloud)
+
+        # Threshold that was used when generating the PRECOG
         # (https://arxiv.org/pdf/1905.01296.pdf) dataset
         z_threshold = -self._lidar_setup.transform.location.z - 2.0
-        
-        # Transform the point cloud to unreal coordinates.
-        transformed_point_cloud = np.zeros_like(point_cloud)
-        transformed_point_cloud[:,0] = point_cloud[:,2]
-        transformed_point_cloud[:,1] = point_cloud[:,0]
-        transformed_point_cloud[:,2] = -point_cloud[:,1]
-        point_cloud = transformed_point_cloud
-
         above_mask = point_cloud[:, 2] > z_threshold
-
-        def get_occupancy_from_masked_lidar(mask):
-            masked_lidar = point_cloud[mask]
-            meters_max = int(self._lidar_setup.get_range_in_meters())
-
-            pixels_per_meter = 2
-            xbins = np.linspace(-meters_max, meters_max, meters_max * 2 * pixels_per_meter + 1) 
-            ybins = xbins
-            grid = np.histogramdd(masked_lidar[..., :2], bins=(xbins, ybins))[0]
-            grid[grid > 0.] = 1
-            return grid
 
         feats = ()
         # Above z_threshold.
-        feats += (get_occupancy_from_masked_lidar(above_mask),)
+        feats += (self._get_occupancy_from_masked_lidar(point_cloud[above_mask]),)
         # Below z_threshold.
-        feats += (get_occupancy_from_masked_lidar((1 - above_mask).astype(np.bool)),)
+        feats += (self._get_occupancy_from_masked_lidar(
+            point_cloud[(1 - above_mask).astype(np.bool)]),)
 
         stacked_feats = np.stack(feats, axis=-1)
         return np.expand_dims(stacked_feats, axis=0)
+
+    def _point_cloud_to_precog_coordinates(self, point_cloud):
+        # Converts a LIDAR PointCloud, which is in camera coordinates,
+        # to the coordinates used in the PRECOG dataset, which is LIDAR
+        # coordinates but with the y- and z-coordinates negated (for
+        # a reference describing PRECOG coordinates, see e.g. https://github.com/nrhine1/deep_imitative_models/blob/0d52edfa54cb79da28bd7cf965ebccbe8514fc10/dim/env/preprocess/carla_preprocess.py#L584)
+        to_precog_transform = Transform(matrix=np.array(
+            [[1, 0, 0, 0], [0, 0, -1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
+        transformed_point_cloud = to_precog_transform.transform_points(
+            point_cloud)
+        return transformed_point_cloud
 
     def on_point_cloud_update(self, msg):
         self._logger.debug('@{}: received point cloud message'.format(

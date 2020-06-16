@@ -605,6 +605,11 @@ class Transform(object):
             return False
         return d_angle < 90.0
 
+    def inverse_transform(self):
+        """Returns the inverse transform of this transform."""
+        new_matrix = np.linalg.inv(self.matrix)
+        return Transform(matrix=new_matrix)
+
     def __mul__(self, other):
         new_matrix = np.dot(self.matrix, other.matrix)
         return Transform(matrix=new_matrix)
