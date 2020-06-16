@@ -1,9 +1,12 @@
 """Implements an operator that detects lanes."""
-from collections import namedtuple
-import cv2
-import erdos
-import numpy as np
 import math
+from collections import namedtuple
+
+import cv2
+
+import erdos
+
+import numpy as np
 
 import pylot.utils
 from pylot.perception.camera_frame import CameraFrame
@@ -94,12 +97,6 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
 
         # Hough lines.
         image = self._draw_lines(image)
-
-        if self._flags.visualize_lane_detection:
-            final_img = np.copy(msg.frame.as_numpy_array())
-            final_img = cv2.addWeighted(final_img, 0.8, image, 1.0, 0.0)
-            frame = CameraFrame(final_img, 'BGR', msg.frame.camera_setup)
-            frame.visualize(pylot.utils.PYGAME_DISPLAY, msg.timestamp)
 
         detected_lanes_stream.send(erdos.Message(msg.timestamp, image))
 

@@ -4,8 +4,6 @@ from enum import Enum
 
 import numpy as np
 
-PYGAME_DISPLAY = None
-
 
 class Rotation(object):
     """Used to represent the rotation of an actor or obstacle.
@@ -828,10 +826,3 @@ def set_tf_loglevel(level):
     else:
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
     logging.getLogger('tensorflow').setLevel(level)
-
-
-def create_pygame_display(width, height):
-    global PYGAME_DISPLAY
-    import pygame
-    PYGAME_DISPLAY = pygame.display.set_mode(
-        (width, height), pygame.HWSURFACE | pygame.DOUBLEBUF)

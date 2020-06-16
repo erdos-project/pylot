@@ -202,18 +202,14 @@ class EfficientDetOperator(erdos.Operator):
                 self._logger.debug(
                     'Filtering unknown class: {}'.format(_class))
 
-        if (self._flags.visualize_detected_obstacles
-                or self._flags.log_detector_output):
+        if self._flags.log_detector_output:
             frame.annotate_with_bounding_boxes(timestamp, obstacles, None,
                                                self._bbox_colors)
-            if self._flags.visualize_detected_obstacles:
-                frame.visualize(pylot.utils.PYGAME_DISPLAY)
-            if self._flags.log_detector_output:
-                frame.save(timestamp.coordinates[0], self._flags.data_path,
-                           'detector-{}'.format(self.config.name))
+            frame.save(timestamp.coordinates[0], self._flags.data_path,
+                       'detector-{}'.format(self.config.name))
         end_time = time.time()
         obstacles_stream.send(ObstaclesMessage(timestamp, obstacles, 0))
-        obstacles_stream.send(erdos.WatermarkMessage(timestamp))
+
         operator_time_total_end = time.time()
         self._logger.debug("@{}: total time spent: {}".format(
             timestamp, (operator_time_total_end - start_time) * 1000))

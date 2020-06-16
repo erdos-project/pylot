@@ -2,7 +2,6 @@ from collections import deque
 
 import erdos
 
-import pylot.utils
 from pylot.perception.detection.utils import VEHICLE_LABELS
 from pylot.perception.messages import ObstaclesMessage
 
@@ -101,9 +100,3 @@ class ObjectTrackerOperator(erdos.Operator):
         obstacle_tracking_stream.send(
             ObstaclesMessage(timestamp, tracked_obstacles, 0))
         obstacle_tracking_stream.send(erdos.WatermarkMessage(timestamp))
-
-        if self._flags.visualize_tracker_output:
-            # Tracked obstacles have no label, draw white bbox.
-            camera_frame.annotate_with_bounding_boxes(timestamp,
-                                                      tracked_obstacles)
-            camera_frame.visualize(pylot.utils.PYGAME_DISPLAY)

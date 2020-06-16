@@ -51,12 +51,6 @@ class ERDOSAgent(AutonomousAgent):
         pylot.utils.set_tf_loglevel(logging.ERROR)
         # Parse the flag file.
         flags.FLAGS([__file__, '--flagfile={}'.format(path_to_conf_file)])
-        # Setup the pygame window.
-        if pylot.flags.must_init_pygame():
-            import pygame
-            pygame.init()
-            pylot.utils.create_pygame_display(FLAGS.carla_camera_image_width,
-                                              FLAGS.carla_camera_image_height)
         self._logger = erdos.utils.setup_logging('erdos_agent',
                                                  FLAGS.log_file_name)
         enable_logging()
@@ -73,8 +67,8 @@ class ERDOSAgent(AutonomousAgent):
         # Stores the open drive string we get when we run in track 3.
         self._open_drive_data = None
         (camera_streams, pose_stream, global_trajectory_stream,
-         open_drive_stream, point_cloud_stream,
-         control_stream) = create_data_flow()
+         open_drive_stream, point_cloud_stream, control_stream,
+         streams_to_send_top_on) = create_data_flow()
         self._camera_streams = camera_streams
         self._pose_stream = pose_stream
         self._global_trajectory_stream = global_trajectory_stream
@@ -84,6 +78,8 @@ class ERDOSAgent(AutonomousAgent):
         self._control_stream = control_stream
         # Execute the dataflow.
         self._node_handle = erdos.run_async()
+        for stream in streams_to_send_top_on:
+            stream.send(erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
     def destroy(self):
         """Clean-up the agent. Invoked between different runs."""
@@ -349,11 +345,18 @@ def create_data_flow():
         traffic_lights_stream, open_drive_stream, trajectory_stream,
         time_to_decision_loop_stream)
 
-    if FLAGS.visualize_rgb_camera:
-        pylot.operator_creator.add_camera_visualizer(
-            camera_streams[CENTER_CAMERA_NAME], CENTER_CAMERA_NAME)
-    if FLAGS.visualize_lidar:
-        pylot.operator_creator.add_lidar_visualizer(point_cloud_stream)
+    if pylot.flags.must_visualize():
+        _, streams_to_send_top_on = pylot.operator_creator.add_visualizer(
+            pose_stream=pose_stream,
+            camera_stream=camera_streams[CENTER_CAMERA_NAME],
+            tl_camera_stream=camera_streams[TL_CAMERA_NAME],
+            point_cloud_stream=point_cloud_stream,
+            obstacles_stream=obstacles_stream,
+            traffic_lights_stream=traffic_lights_stream,
+            tracked_obstacles_stream=obstacles_tracking_stream,
+            waypoints_stream=waypoints_stream)
+    else:
+        streams_to_send_top_on = []
 
     control_stream = pylot.operator_creator.add_pid_agent(
         pose_stream, waypoints_stream)
@@ -364,7 +367,8 @@ def create_data_flow():
     time_to_decision_loop_stream.set(time_to_decision_stream)
 
     return (camera_streams, pose_stream, global_trajectory_stream,
-            open_drive_stream, point_cloud_stream, extract_control_stream)
+            open_drive_stream, point_cloud_stream, extract_control_stream,
+            streams_to_send_top_on)
 
 
 def create_camera_setups():

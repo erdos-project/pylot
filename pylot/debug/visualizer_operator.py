@@ -6,6 +6,11 @@ import erdos
 import pygame
 from pygame.locals import K_n
 
+import pylot.utils
+from pylot.perception.detection.obstacle import BoundingBox3D
+
+DEFAULT_VIS_TIME = 30000.0
+
 
 class VisualizerOperator(erdos.Operator):
     """ The `VisualizerOperator` allows developers to see the current state
@@ -14,9 +19,12 @@ class VisualizerOperator(erdos.Operator):
     This receives input data from almost the entire pipeline and renders the
     results of the operator currently chosen by the developer on the screen.
     """
-    def __init__(self, pose_stream, rgb_camera_stream, depth_camera_stream,
-                 segmentation_stream, obstacles_stream,
-                 tracked_obstacles_stream, waypoints_stream, control_stream,
+    def __init__(self, pose_stream, rgb_camera_stream, tl_camera_stream,
+                 prediction_camera_stream, depth_camera_stream,
+                 point_cloud_stream, segmentation_stream, imu_stream,
+                 obstacles_stream, traffic_lights_stream,
+                 tracked_obstacles_stream, lane_detection_stream,
+                 prediction_stream, waypoints_stream, control_stream,
                  display_control_stream, pygame_display, flags):
         visualize_streams = []
         self._pose_msgs = deque()
@@ -29,17 +37,10 @@ class VisualizerOperator(erdos.Operator):
             partial(self.save, msg_type="RGB", queue=self._bgr_msgs))
         visualize_streams.append(rgb_camera_stream)
 
-        self._depth_msgs = deque()
-        depth_camera_stream.add_callback(
-            partial(self.save, msg_type="Depth", queue=self._depth_msgs))
-        visualize_streams.append(depth_camera_stream)
-
-        self._segmentation_msgs = deque()
-        segmentation_stream.add_callback(
-            partial(self.save,
-                    msg_type="Segmentation",
-                    queue=self._segmentation_msgs))
-        visualize_streams.append(segmentation_stream)
+        self._imu_msgs = deque()
+        imu_stream.add_callback(
+            partial(self.save, msg_type="IMU", queue=self._imu_msgs))
+        visualize_streams.append(imu_stream)
 
         self._obstacle_msgs = deque()
         obstacles_stream.add_callback(
@@ -53,10 +54,63 @@ class VisualizerOperator(erdos.Operator):
                     queue=self._tracked_obstacle_msgs))
         visualize_streams.append(tracked_obstacles_stream)
 
+        self._tl_camera_msgs = deque()
+        tl_camera_stream.add_callback(
+            partial(self.save, msg_type="TLCamera",
+                    queue=self._tl_camera_msgs))
+        visualize_streams.append(tl_camera_stream)
+
+        self._traffic_light_msgs = deque()
+        traffic_lights_stream.add_callback(
+            partial(self.save,
+                    msg_type="TrafficLight",
+                    queue=self._traffic_light_msgs))
+        visualize_streams.append(traffic_lights_stream)
+
         self._waypoint_msgs = deque()
         waypoints_stream.add_callback(
             partial(self.save, msg_type="Waypoint", queue=self._waypoint_msgs))
         visualize_streams.append(waypoints_stream)
+
+        self._prediction_camera_msgs = deque()
+        prediction_camera_stream.add_callback(
+            partial(self.save,
+                    msg_type="PredictionCamera",
+                    queue=self._prediction_camera_msgs))
+        visualize_streams.append(prediction_camera_stream)
+
+        self._prediction_msgs = deque()
+        prediction_stream.add_callback(
+            partial(self.save,
+                    msg_type="Prediction",
+                    queue=self._prediction_msgs))
+        visualize_streams.append(prediction_stream)
+
+        self._point_cloud_msgs = deque()
+        point_cloud_stream.add_callback(
+            partial(self.save,
+                    msg_type="PointCloud",
+                    queue=self._point_cloud_msgs))
+        visualize_streams.append(point_cloud_stream)
+
+        self._lane_detection_msgs = deque()
+        lane_detection_stream.add_callback(
+            partial(self.save,
+                    msg_type="DetectedLane",
+                    queue=self._lane_detection_msgs))
+        visualize_streams.append(lane_detection_stream)
+
+        self._depth_msgs = deque()
+        depth_camera_stream.add_callback(
+            partial(self.save, msg_type="Depth", queue=self._depth_msgs))
+        visualize_streams.append(depth_camera_stream)
+
+        self._segmentation_msgs = deque()
+        segmentation_stream.add_callback(
+            partial(self.save,
+                    msg_type="Segmentation",
+                    queue=self._segmentation_msgs))
+        visualize_streams.append(segmentation_stream)
 
         self._control_msgs = deque()
         control_stream.add_callback(
@@ -79,17 +133,43 @@ class VisualizerOperator(erdos.Operator):
         mono = default_font if default_font in fonts else fonts[0]
         mono = pygame.font.match_font(mono)
         self.font = pygame.font.Font(mono, 14)
+        self._past_colors = {'person': [255, 0, 0], 'vehicle': [128, 128, 0]}
+        self._future_colors = {'person': [0, 0, 255], 'vehicle': [0, 255, 0]}
 
         # Array of keys to figure out which message to display.
         self.current_display = 0
-        self.display_array = [
-            "RGB", "Depth", "Segmentation", "Obstacle", "TrackedObstacle",
-            "Waypoint"
-        ]
-        self.window_titles = [
-            "RGB Camera", "Depth Camera", "Segmentation", "Detection",
-            "Obstacle tracking", "Planning"
-        ]
+        self.display_array = []
+        self.window_titles = []
+        if flags.visualize_rgb_camera:
+            self.display_array.append("RGB")
+            self.window_titles.append("RGB Camera")
+        if flags.visualize_detected_obstacles:
+            self.display_array.append("Obstacle")
+            self.window_titles.append("Detected obstacles")
+        if flags.visualize_tracked_obstacles:
+            self.display_array.append("TrackedObstacle")
+            self.window_titles.append("Obstacle tracking")
+        if flags.visualize_detected_traffic_lights:
+            self.display_array.append("TLCamera")
+            self.window_titles.append("Detected traffic lights")
+        if flags.visualize_waypoints:
+            self.display_array.append("Waypoint")
+            self.window_titles.append("Planning")
+        if flags.visualize_prediction:
+            self.display_array.append("PredictionCamera")
+            self.window_titles.append("Prediction")
+        if flags.visualize_lidar:
+            self.display_array.append("PointCloud")
+            self.window_titles.append("LiDAR")
+        if flags.visualize_detected_lanes:
+            self.display_array.append("DetectedLane")
+            self.window_titles.append("Detected lanes")
+        if flags.visualize_depth_camera:
+            self.display_array.append("Depth")
+            self.window_titles.append("Depth Camera")
+        if flags.visualize_segmentation:
+            self.display_array.append("Segmentation")
+            self.window_titles.append("Segmentation")
         assert len(self.display_array) == len(self.window_titles), \
             "The display and titles differ."
 
@@ -97,10 +177,12 @@ class VisualizerOperator(erdos.Operator):
         self._flags = flags
 
     @staticmethod
-    def connect(pose_stream, rgb_camera_stream, depth_stream,
-                segmentation_stream, obstacles_stream,
-                tracked_obstacles_stream, waypoints_stream, control_stream,
-                display_control_stream):
+    def connect(pose_stream, rgb_camera_stream, tl_camera_stream,
+                prediction_camera_stream, depth_stream, point_cloud_stream,
+                segmentation_stream, imu_stream, obstacles_stream,
+                traffic_lights_stream, tracked_obstacles_stream,
+                lane_detection_stream, prediction_stream, waypoints_stream,
+                control_stream, display_control_stream):
         return []
 
     def save(self, msg, msg_type, queue):
@@ -124,9 +206,9 @@ class VisualizerOperator(erdos.Operator):
                     msg = retrieved_msg
                     break
             if not msg:
-                raise ValueError(
-                    "The message for {} with timestamp {} was not found".
-                    format(name, timestamp))
+                self._logger.warning(
+                    "@{}: message for {} was not found".format(
+                        timestamp, name))
         return msg
 
     def render_text(self, pose, control, timestamp):
@@ -175,43 +257,194 @@ class VisualizerOperator(erdos.Operator):
         self._logger.debug("@{}: received watermark.".format(timestamp))
         pose_msg = self.get_message(self._pose_msgs, timestamp, "Pose")
         bgr_msg = self.get_message(self._bgr_msgs, timestamp, "BGR")
+        tl_camera_msg = self.get_message(self._tl_camera_msgs, timestamp,
+                                         "TLCamera")
         depth_msg = self.get_message(self._depth_msgs, timestamp, "Depth")
+        point_cloud_msg = self.get_message(self._point_cloud_msgs, timestamp,
+                                           "PointCloud")
         segmentation_msg = self.get_message(self._segmentation_msgs, timestamp,
                                             "Segmentation")
+        imu_msg = self.get_message(self._imu_msgs, timestamp, "IMU")
         obstacle_msg = self.get_message(self._obstacle_msgs, timestamp,
                                         "Obstacle")
+        traffic_light_msg = self.get_message(self._traffic_light_msgs,
+                                             timestamp, "TrafficLight")
         tracked_obstacle_msg = self.get_message(self._tracked_obstacle_msgs,
                                                 timestamp, "TrackedObstacle")
+        lane_detection_msg = self.get_message(self._lane_detection_msgs,
+                                              timestamp, "DetectedLane")
+        prediction_camera_msg = self.get_message(self._prediction_camera_msgs,
+                                                 timestamp, "PredictionCamera")
+        prediction_msg = self.get_message(self._prediction_msgs, timestamp,
+                                          "Prediction")
         waypoint_msg = self.get_message(self._waypoint_msgs, timestamp,
                                         "Waypoint")
         control_msg = self.get_message(self._control_msgs, timestamp,
                                        "Control")
+        if pose_msg:
+            ego_transform = pose_msg.data.transform
+        else:
+            ego_transform = None
+
+        # Add the visualizations on world.
+        if self._flags.visualize_pose:
+            self._visualize_pose(ego_transform)
+        if self._flags.visualize_imu:
+            self._visualize_imu(imu_msg)
 
         sensor_to_display = self.display_array[self.current_display]
         if sensor_to_display == "RGB" and bgr_msg:
             bgr_msg.frame.visualize(self.display, timestamp=timestamp)
-        elif sensor_to_display == "Depth" and depth_msg:
-            depth_msg.frame.visualize(self.display, timestamp=timestamp)
-        elif sensor_to_display == "Segmentation" and segmentation_msg:
-            segmentation_msg.frame.visualize(self.display, timestamp=timestamp)
-        elif sensor_to_display == "Obstacle" and (bgr_msg and obstacle_msg
-                                                  and pose_msg):
+        elif sensor_to_display == "Obstacle" and bgr_msg and obstacle_msg:
             bgr_msg.frame.annotate_with_bounding_boxes(timestamp,
                                                        obstacle_msg.obstacles,
-                                                       pose_msg.data.transform)
+                                                       ego_transform)
             bgr_msg.frame.visualize(self.display, timestamp=timestamp)
-        elif sensor_to_display == "TrackedObstacle" and (
-                bgr_msg and tracked_obstacle_msg and pose_msg):
+        elif (sensor_to_display == "TLCamera" and tl_camera_msg
+              and traffic_light_msg):
+            tl_camera_msg.frame.annotate_with_bounding_boxes(
+                timestamp, traffic_light_msg.obstacles)
+            tl_camera_msg.frame.visualize(self.display, timestamp=timestamp)
+        elif (sensor_to_display == "TrackedObstacle" and bgr_msg
+              and tracked_obstacle_msg):
             bgr_msg.frame.annotate_with_bounding_boxes(
                 timestamp, tracked_obstacle_msg.obstacle_trajectories,
-                pose_msg.data.transform)
+                ego_transform)
             bgr_msg.frame.visualize(self.display)
         elif sensor_to_display == "Waypoint" and (bgr_msg and pose_msg
                                                   and waypoint_msg):
             bgr_frame = bgr_msg.frame
-            bgr_frame.camera_setup.set_transform(
-                pose_msg.data.transform * bgr_frame.camera_setup.transform)
-            waypoint_msg.waypoints.draw_on_frame(bgr_frame)
+            if self._flags.draw_waypoints_on_camera_frames:
+                bgr_frame.camera_setup.set_transform(
+                    pose_msg.data.transform * bgr_frame.camera_setup.transform)
+                waypoint_msg.waypoints.draw_on_frame(bgr_frame)
+            if self._flags.draw_waypoints_on_world:
+                waypoint_msg.waypoints.draw_on_world(self._world)
             bgr_frame.visualize(self.display, timestamp=timestamp)
+        elif (sensor_to_display == "PredictionCamera" and prediction_camera_msg
+              and prediction_msg):
+            frame = prediction_camera_msg.frame
+            frame.transform_to_cityscapes()
+            if tracked_obstacle_msg:
+                for obstacle in tracked_obstacle_msg.obstacle_trajectories:
+                    self._draw_trajectory_on_img(obstacle, frame, False)
+            for obstacle in prediction_msg.predictions:
+                self._draw_trajectory_on_img(obstacle, frame, True)
+            frame.visualize(self.display, timestamp=timestamp)
+        elif sensor_to_display == "PointCloud" and point_cloud_msg:
+            point_cloud_msg.point_cloud.visualize(
+                self.display, self._flags.carla_camera_image_width,
+                self._flags.carla_camera_image_height)
+        elif (sensor_to_display == "DetectedLane" and bgr_msg
+              and lane_detection_msg):
+            import cv2
+            import numpy as np
+            from pylot.perception.camera_frame import CameraFrame
+            final_img = np.copy(bgr_msg.frame.as_numpy_array())
+            final_img = cv2.addWeighted(final_img, 0.8,
+                                        lane_detection_msg.data, 1.0, 0.0)
+            frame = CameraFrame(final_img, 'BGR', bgr_msg.frame.camera_setup)
+            frame.visualize(self.display, timestamp)
+        elif sensor_to_display == "Depth" and depth_msg:
+            depth_msg.frame.visualize(self.display, timestamp=timestamp)
+        elif sensor_to_display == "Segmentation" and segmentation_msg:
+            segmentation_msg.frame.visualize(self.display, timestamp=timestamp)
 
         self.render_text(pose_msg.data, control_msg, timestamp)
+
+    def run(self):
+        # Run method is invoked after all operators finished initializing,
+        # including the CARLA operator, which reloads the world. Thus, if
+        # we get the world here we're sure it is up-to-date.
+        if (self._flags.visualize_pose or self._flags.visualize_imu
+                or (self._flags.visualize_waypoints
+                    and self._flags.draw_waypoints_on_world)):
+            from pylot.simulation.utils import get_world
+            _, self._world = get_world(self._flags.carla_host,
+                                       self._flags.carla_port,
+                                       self._flags.carla_timeout)
+            if self._world is None:
+                raise ValueError("Error connecting to the simulator.")
+
+    def _visualize_pose(self, ego_transform):
+        # Draw position. We add 0.5 to z to ensure that the point is above
+        # the road surface.
+        loc = (ego_transform.location +
+               pylot.utils.Location(0, 0, 0.5)).as_carla_location()
+        self._world.debug.draw_point(loc, size=0.2, life_time=DEFAULT_VIS_TIME)
+
+    def _visualize_imu(self, msg):
+        import carla
+        transform = msg.transform
+        # Acceleration measured in ego frame, not global
+        # z acceleration not useful for visualization so set to 0
+        rotation_transform = carla.Transform(
+            location=carla.Location(0, 0, 0),
+            rotation=transform.rotation.as_carla_rotation())
+        acceleration = msg.acceleration.as_carla_vector()
+        rotated_acceleration = rotation_transform.transform(
+            carla.Location(acceleration.x, acceleration.y, 0))
+
+        # Construct arrow.
+        loc = transform.location.as_carla_location()
+        begin_acc = loc + carla.Location(z=0.5)
+        end_acc = begin_acc + carla.Location(rotated_acceleration.x,
+                                             rotated_acceleration.y,
+                                             0)  # not useful for visualization
+
+        # draw arrow
+        self._logger.debug("Acc: {}".format(rotated_acceleration))
+        self._world.debug.draw_arrow(begin_acc,
+                                     end_acc,
+                                     arrow_size=0.1,
+                                     life_time=0.1,
+                                     color=carla.Color(255, 0, 0))
+
+    def _draw_trajectory_on_img(self, obstacle, segmented_frame, predict):
+        # Intrinsic and extrinsic matrix of the top down segmentation camera.
+        extrinsic_matrix = segmented_frame.camera_setup.get_extrinsic_matrix()
+        intrinsic_matrix = segmented_frame.camera_setup.get_intrinsic_matrix()
+
+        # Set the color of drawing.
+        if predict:
+            point_color = self._future_colors[obstacle.label]
+        else:
+            point_color = self._past_colors[obstacle.label]
+
+        # Obstacle trajectory points.
+        screen_points = []
+        for transform in obstacle.trajectory:
+            screen_point = transform.location.to_camera_view(
+                extrinsic_matrix, intrinsic_matrix)
+            screen_points.append(screen_point)
+
+        # Draw trajectory on segmented image.
+        for point in screen_points:
+            segmented_frame.draw_point(point, point_color)
+
+        # Obstacle bounding box.
+        if isinstance(obstacle.bounding_box, BoundingBox3D):
+            start_location = obstacle.bounding_box.transform.location - \
+                obstacle.bounding_box.extent
+            end_location = obstacle.bounding_box.transform.location + \
+                obstacle.bounding_box.extent
+            start_points = []
+            end_points = []
+            for transform in obstacle.trajectory:
+                start_transform = transform.transform_locations(
+                    [start_location])
+                end_transform = transform.transform_locations([end_location])
+                start_point = start_transform[0]\
+                    .to_camera_view(extrinsic_matrix, intrinsic_matrix)
+                end_point = end_transform[0]\
+                    .to_camera_view(extrinsic_matrix, intrinsic_matrix)
+                start_points.append(start_point)
+                end_points.append(end_point)
+
+            # Draw bounding box on segmented image.
+            for start_point, end_point in \
+                    zip(start_points, end_points):
+                if (segmented_frame.in_frame(start_point)
+                        or segmented_frame.in_frame(end_point)):
+                    segmented_frame.draw_box(start_point, end_point,
+                                             point_color)

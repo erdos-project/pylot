@@ -38,12 +38,6 @@ class ERDOSTrack4Agent(AutonomousAgent):
         # Disable Tensorflow logging.
         pylot.utils.set_tf_loglevel(logging.ERROR)
         flags.FLAGS([__file__, '--flagfile={}'.format(path_to_conf_file)])
-        # Setup the pygame window.
-        if FLAGS.visualizer_backend == 'pygame':
-            import pygame
-            pygame.init()
-            pylot.utils.create_pygame_display(FLAGS.carla_camera_image_width,
-                                              FLAGS.carla_camera_image_height)
         self._logger = erdos.utils.setup_logging('erdos_agent',
                                                  FLAGS.log_file_name)
         enable_logging()

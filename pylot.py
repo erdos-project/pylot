@@ -96,7 +96,7 @@ def driver():
         depth_camera_stream, ground_segmented_stream, ground_obstacles_stream,
         ground_speed_limit_signs_stream, ground_stop_signs_stream,
         time_to_decision_loop_stream)
-    traffic_lights_stream = \
+    traffic_lights_stream, tl_camera_stream = \
         pylot.component_creator.add_traffic_light_detection(
             transform, vehicle_id_stream, release_sensor_stream, pose_stream,
             depth_stream, ground_traffic_lights_stream)
@@ -122,9 +122,13 @@ def driver():
                                           depth_stream,
                                           ground_obstacles_stream)
 
-    prediction_stream = pylot.component_creator.add_prediction(
-        obstacles_tracking_stream, vehicle_id_stream, transform,
-        release_sensor_stream, pose_stream, point_cloud_stream, lidar_setup)
+    prediction_stream, prediction_camera_stream, notify_prediction_stream = \
+        pylot.component_creator.add_prediction(
+            obstacles_tracking_stream, vehicle_id_stream, transform,
+            release_sensor_stream, pose_stream, point_cloud_stream,
+            lidar_setup)
+    if notify_prediction_stream:
+        notify_streams.append(notify_prediction_stream)
 
     goal_location = pylot.utils.Location(float(FLAGS.goal_location[0]),
                                          float(FLAGS.goal_location[1]),
@@ -183,19 +187,18 @@ def driver():
         pose_stream, obstacles_stream)
     time_to_decision_loop_stream.set(time_to_decision_stream)
 
-    pylot.operator_creator.add_sensor_visualizers(center_camera_stream,
-                                                  depth_camera_stream,
-                                                  point_cloud_stream,
-                                                  ground_segmented_stream,
-                                                  imu_stream, pose_stream)
     control_display_stream = None
     streams_to_send_top_on = []
-    if FLAGS.visualize:
-        control_display_stream = erdos.IngestStream()
-        streams_to_send_top_on += pylot.operator_creator.add_visualizer(
-            pose_stream, center_camera_stream, depth_camera_stream,
-            segmented_stream, obstacles_stream, obstacles_tracking_stream,
-            waypoints_stream, control_stream, control_display_stream)
+    if pylot.flags.must_visualize():
+        control_display_stream, ingest_streams = \
+            pylot.operator_creator.add_visualizer(
+                pose_stream, center_camera_stream, tl_camera_stream,
+                prediction_camera_stream, depth_camera_stream,
+                point_cloud_stream, segmented_stream, imu_stream,
+                obstacles_stream, traffic_lights_stream,
+                obstacles_tracking_stream, lane_detection_stream,
+                prediction_stream, waypoints_stream, control_stream)
+        streams_to_send_top_on += ingest_streams
 
     erdos.run_async()
 
@@ -209,7 +212,7 @@ def driver():
         pipeline_finish_notify_stream.send(
             erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
-    if FLAGS.visualize:
+    if pylot.flags.must_visualize():
         import pygame
         clock = pygame.time.Clock()
         from pygame.locals import K_n
@@ -225,11 +228,6 @@ def driver():
 
 
 def main(args):
-    if pylot.flags.must_init_pygame():
-        import pygame
-        pygame.init()
-        pylot.utils.create_pygame_display(FLAGS.carla_camera_image_width,
-                                          FLAGS.carla_camera_image_height)
     # Connect an instance to the simulator to make sure that we can turn the
     # synchronous mode off after the script finishes running.
     client, world = get_world(FLAGS.carla_host, FLAGS.carla_port,

@@ -108,21 +108,16 @@ flags.DEFINE_enum('control_agent', 'carla_auto_pilot',
 ######################################################################
 # Sensor visualizing flags
 ######################################################################
-flags.DEFINE_bool(
-    'visualize', False,
-    'True to enable visualization of all the added sensors and streams.')
 flags.DEFINE_bool('visualize_rgb_camera', False,
-                  'True to enable RGB camera sensor visualizer')
+                  'True to enable RGB camera sensor visualization')
 flags.DEFINE_bool('visualize_depth_camera', False,
-                  'True to enable depth camera sensor visualizer')
-flags.DEFINE_bool('visualize_segmentation', False,
-                  'True to enable segmented carmera sensor visualizer')
+                  'True to enable depth camera sensor visualization')
 flags.DEFINE_bool('visualize_lidar', False,
-                  'True to enable CARLA Lidar visualizer operator')
+                  'True to enable Lidar visualization')
 flags.DEFINE_bool('visualize_imu', False,
-                  'True to enable CARLA IMU visualizer operator')
+                  'True to enable CARLA IMU visualization')
 flags.DEFINE_bool('visualize_pose', False,
-                  'True to visualize ego-vehicle pose')
+                  'True to enable CARLA ego-vehicle pose visualization')
 
 ######################################################################
 # Visualizing flags for components.
@@ -131,10 +126,16 @@ flags.DEFINE_bool('visualize_detected_obstacles', False,
                   'True to enable visualization of detected obstacles')
 flags.DEFINE_bool('visualize_detected_traffic_lights', False,
                   'True to enable visualization of detected traffic lights')
+flags.DEFINE_bool('visualize_detected_lanes', False,
+                  'True to enable visualization of detected lanes')
+flags.DEFINE_bool('visualize_tracked_obstacles', False,
+                  'True to enable visualization of tracked obstacles')
+flags.DEFINE_bool('visualize_segmentation', False,
+                  'True to enable visualization of segmentaation')
 flags.DEFINE_bool('visualize_waypoints', False,
-                  'True to enable visualization of waypoing planning')
+                  'True to enable visualization of planning waypoints')
 flags.DEFINE_bool('visualize_prediction', False,
-                  'True to enable visualization of prediction output')
+                  'True to enable visualization of obstacle predictions')
 
 # Accuracy evaluation flags.
 flags.DEFINE_bool('evaluate_obstacle_detection', False,
@@ -167,15 +168,15 @@ flags.DEFINE_bool('evaluation', False,
                   'Enable end-to-end evaluation of the pipeline.')
 
 
-def must_init_pygame():
+def must_visualize():
     return (FLAGS.visualize_rgb_camera or FLAGS.visualize_depth_camera
-            or FLAGS.visualize_segmentation or FLAGS.visualize_lidar
-            or FLAGS.visualize_detected_obstacles
+            or FLAGS.visualize_lidar or FLAGS.visualize_imu
+            or FLAGS.visualize_pose or FLAGS.visualize_detected_obstacles
             or FLAGS.visualize_detected_traffic_lights
-            or FLAGS.visualize_waypoints or FLAGS.visualize_prediction
-            or FLAGS.visualize_segmentation_output
-            or FLAGS.visualize_lane_detection
-            or FLAGS.visualize_tracker_output)
+            or FLAGS.visualize_detected_lanes
+            or FLAGS.visualize_tracked_obstacles
+            or FLAGS.visualize_segmentation or FLAGS.visualize_waypoints
+            or FLAGS.visualize_prediction)
 
 
 def must_add_depth_camera_sensor():
@@ -194,8 +195,8 @@ def must_add_segmented_camera_sensor():
 
     We don't add all sensors by default because they slow donwn the simulation
     """
-    return (FLAGS.visualize_segmentation or FLAGS.evaluate_segmentation
-            or FLAGS.perfect_segmentation or FLAGS.perfect_obstacle_detection
+    return (FLAGS.evaluate_segmentation or FLAGS.perfect_segmentation
+            or FLAGS.perfect_obstacle_detection
             or FLAGS.evaluate_obstacle_detection)
 
 
@@ -406,28 +407,3 @@ flags.register_multi_flags_validator(
     ['fusion', 'evaluate_fusion'],
     fusion_evaluation_validator,
     message='--fusion must be set when --evaluate_fusion is enabled')
-
-
-def visualizer_validator(flags_dict):
-    visualizers = [
-        'visualize_rgb_camera', 'visualize_depth_camera',
-        'visualize_segmentation', 'visualize_detected_obstacles',
-        'visualize_detected_traffic_lights', 'visualize_prediction',
-        'visualize_tracker_output'
-    ]
-    num_visualizers = 0
-    for visualizer in visualizers:
-        if flags_dict[visualizer]:
-            num_visualizers += 1
-    return num_visualizers <= 1
-
-
-flags.register_multi_flags_validator(
-    [
-        'visualize_rgb_camera', 'visualize_depth_camera',
-        'visualize_segmentation', 'visualize_detected_obstacles',
-        'visualize_detected_traffic_lights', 'visualize_prediction',
-        'visualize_tracker_output'
-    ],
-    visualizer_validator,
-    message='only a single visualizer can be enabled when using pygame')

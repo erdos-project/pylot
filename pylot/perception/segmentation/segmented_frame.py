@@ -120,6 +120,10 @@ class SegmentedFrame(object):
         self._frame = self.as_cityscapes_palette()
         self.encoding = 'cityscapes'
 
+    def in_frame(self, point):
+        return (0 <= point.x <= self.camera_setup.width
+                and 0 <= point.y <= self.camera_setup.height)
+
     def get_traffic_sign_bounding_boxes(self, min_width=2, min_height=3):
         """Extracts traffic sign bounding boxes from the frame.
 

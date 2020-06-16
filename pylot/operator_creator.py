@@ -803,33 +803,21 @@ def add_trajectory_logging(obstacles_tracking_stream,
                   [obstacles_tracking_stream], FLAGS)
 
 
-def add_sensor_visualizers(camera_stream, depth_camera_stream,
-                           point_cloud_stream, segmented_stream, imu_stream,
-                           pose_stream):
-    """ Adds operators for visualizing sensors streams. """
-    if FLAGS.visualize_rgb_camera:
-        add_camera_visualizer(camera_stream, 'rgb_camera')
-    if FLAGS.visualize_depth_camera:
-        add_camera_visualizer(depth_camera_stream, 'depth_camera')
-    if FLAGS.visualize_imu:
-        add_imu_visualizer(imu_stream)
-    if FLAGS.visualize_pose:
-        add_pose_visualizer(pose_stream)
-    if FLAGS.visualize_lidar:
-        add_lidar_visualizer(point_cloud_stream)
-    if FLAGS.visualize_segmentation:
-        add_camera_visualizer(segmented_stream, 'segmented_camera')
-
-
-def add_visualizer(pose_stream,
-                   camera_stream,
-                   depth_stream,
-                   segmentation_stream,
-                   obstacles_stream,
-                   tracked_obstacles_stream,
-                   waypoints_stream,
-                   control_stream,
-                   control_display_stream,
+def add_visualizer(pose_stream=None,
+                   camera_stream=None,
+                   tl_camera_stream=None,
+                   prediction_camera_stream=None,
+                   depth_stream=None,
+                   point_cloud_stream=None,
+                   segmentation_stream=None,
+                   imu_stream=None,
+                   obstacles_stream=None,
+                   traffic_lights_stream=None,
+                   tracked_obstacles_stream=None,
+                   lane_detection_stream=None,
+                   prediction_stream=None,
+                   waypoints_stream=None,
+                   control_stream=None,
                    name='visualizer_operator'):
     from pylot.debug.visualizer_operator import VisualizerOperator
     import pygame
@@ -842,38 +830,68 @@ def add_visualizer(pose_stream,
     if pose_stream is None:
         pose_stream = erdos.IngestStream()
         streams_to_send_top_on.append(pose_stream)
-    if camera_stream is None:
+    if (camera_stream is None
+            or not (FLAGS.visualize_rgb_camera
+                    or FLAGS.visualize_detected_obstacles
+                    or FLAGS.visualize_detected_traffic_lights
+                    or FLAGS.visualize_tracked_obstacles
+                    or FLAGS.visualize_waypoints)):
         camera_stream = erdos.IngestStream()
         streams_to_send_top_on.append(camera_stream)
-    if depth_stream is None:
+    if depth_stream is None or not FLAGS.visualize_depth_camera:
         depth_stream = erdos.IngestStream()
         streams_to_send_top_on.append(depth_stream)
-    if segmentation_stream is None:
+    if point_cloud_stream is None or not FLAGS.visualize_lidar:
+        point_cloud_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(point_cloud_stream)
+    if segmentation_stream is None or not FLAGS.visualize_segmentation:
         segmentation_stream = erdos.IngestStream()
         streams_to_send_top_on.append(segmentation_stream)
-    if obstacles_stream is None:
+    if imu_stream is None or not FLAGS.visualize_imu:
+        imu_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(imu_stream)
+    if obstacles_stream is None or not FLAGS.visualize_detected_obstacles:
         obstacles_stream = erdos.IngestStream()
         streams_to_send_top_on.append(obstacles_stream)
-    if tracked_obstacles_stream is None:
+    if (traffic_lights_stream is None or tl_camera_stream is None
+            or not FLAGS.visualize_detected_traffic_lights):
+        traffic_lights_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(traffic_lights_stream)
+        tl_camera_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(tl_camera_stream)
+    if (tracked_obstacles_stream is None
+            or not FLAGS.visualize_tracked_obstacles):
         tracked_obstacles_stream = erdos.IngestStream()
         streams_to_send_top_on.append(tracked_obstacles_stream)
-    if waypoints_stream is None:
+    if lane_detection_stream is None or not FLAGS.visualize_detected_lanes:
+        lane_detection_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(lane_detection_stream)
+    if (prediction_stream is None or prediction_camera_stream is None
+            or not FLAGS.visualize_prediction):
+        prediction_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(prediction_stream)
+        prediction_camera_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(prediction_camera_stream)
+    if waypoints_stream is None or not FLAGS.visualize_waypoints:
         waypoints_stream = erdos.IngestStream()
-        streams_to_send_top_on.append(obstacles_stream)
+        streams_to_send_top_on.append(waypoints_stream)
     if control_stream is None:
         control_stream = erdos.IngestStream()
         streams_to_send_top_on.append(control_stream)
 
+    control_display_stream = erdos.IngestStream()
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
     erdos.connect(VisualizerOperator, op_config, [
-        pose_stream, camera_stream, depth_stream, segmentation_stream,
-        obstacles_stream, tracked_obstacles_stream, waypoints_stream,
+        pose_stream, camera_stream, tl_camera_stream, prediction_camera_stream,
+        depth_stream, point_cloud_stream, segmentation_stream, imu_stream,
+        obstacles_stream, traffic_lights_stream, tracked_obstacles_stream,
+        lane_detection_stream, prediction_stream, waypoints_stream,
         control_stream, control_display_stream
     ], pygame_display, FLAGS)
-    return streams_to_send_top_on
+    return control_display_stream, streams_to_send_top_on
 
 
 def add_lidar_visualizer(point_cloud_stream, name='lidar_visualizer_operator'):
@@ -893,66 +911,6 @@ def add_camera_visualizer(camera_stream, name):
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
     erdos.connect(CameraVisualizerOperator, op_config, [camera_stream])
-
-
-def add_imu_visualizer(imu_stream, name='imu_visualizer_operator'):
-    from pylot.debug.imu_visualizer_operator import IMUVisualizerOperator
-    op_config = erdos.OperatorConfig(name=name,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(IMUVisualizerOperator, op_config, [imu_stream], FLAGS)
-
-
-def add_pose_visualizer(pose_stream, name='pose_visualizer_operator'):
-    from pylot.debug.pose_visualizer_operator import PoseVisualizerOperator
-    op_config = erdos.OperatorConfig(name=name,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(PoseVisualizerOperator, op_config, [pose_stream], FLAGS)
-
-
-def add_prediction_visualizer(obstacle_tracking_stream,
-                              prediction_stream,
-                              vehicle_id_stream,
-                              camera_transform,
-                              release_sensor_stream,
-                              name='top_down_tracking_visualizer_operator'):
-    from pylot.debug.track_visualizer_operator import TrackVisualizerOperator
-    top_down_transform = pylot.utils.get_top_down_transform(
-        camera_transform, FLAGS.top_down_lateral_view)
-    (top_down_segmented_camera_stream,
-     notify_reading_stream,
-     top_down_segmented_camera_setup) = \
-        pylot.operator_creator.add_segmented_camera(
-            top_down_transform,
-            vehicle_id_stream,
-            release_sensor_stream,
-            name='top_down_segmented_camera',
-            fov=90)
-    op_config = erdos.OperatorConfig(name=name,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(TrackVisualizerOperator, op_config, [
-        obstacle_tracking_stream, prediction_stream,
-        top_down_segmented_camera_stream
-    ], FLAGS)
-
-
-def add_waypoint_visualizer(waypoints_stream,
-                            camera_stream,
-                            pose_stream,
-                            name='waypoint_visualizer_operator'):
-    from pylot.debug.waypoint_visualizer_operator import\
-            WaypointVisualizerOperator
-    op_config = erdos.OperatorConfig(name=name,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(WaypointVisualizerOperator, op_config,
-                  [waypoints_stream, camera_stream, pose_stream], FLAGS)
 
 
 def add_perfect_detector(depth_camera_stream, center_camera_stream,

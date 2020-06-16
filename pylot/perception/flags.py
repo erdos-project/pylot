@@ -25,12 +25,6 @@ flags.DEFINE_string(
     'segmentation_model_path',
     'dependencies/models/segmentation/drn/drn_d_22_cityscapes.pth',
     'Path to the model')
-flags.DEFINE_bool('visualize_segmentation_output', False,
-                  'True to enable visualization of segmentation output')
-
-# Lane detection flags.
-flags.DEFINE_bool('visualize_lane_detection', False,
-                  'True to visualize lane detection')
 
 # Depth estimation flags.
 flags.DEFINE_string('depth_estimation_model_path',
@@ -38,8 +32,6 @@ flags.DEFINE_string('depth_estimation_model_path',
                     'Path to AnyNet depth estimation model')
 
 # Tracking flags.
-flags.DEFINE_bool('visualize_tracker_output', False,
-                  'True to enable visualization of tracker output')
 flags.DEFINE_float(
     'min_matching_iou', 0.5,
     'IoU required between detection and track for matching to be considered')

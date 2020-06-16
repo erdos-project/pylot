@@ -113,19 +113,14 @@ class TrafficLightDetOperator(erdos.Operator):
         self._logger.debug('@{}: {} detected traffic lights {}'.format(
             msg.timestamp, self.config.name, traffic_lights))
 
-        if (self._flags.visualize_detected_traffic_lights
-                or self._flags.log_traffic_light_detector_output):
-            msg.frame.annotate_with_bounding_boxes(msg.timestamp,
-                                                   traffic_lights)
-            if self._flags.visualize_detected_traffic_lights:
-                msg.frame.visualize(pylot.utils.PYGAME_DISPLAY)
-            if self._flags.log_traffic_light_detector_output:
-                msg.frame.save(msg.timestamp.coordinates[0],
-                               self._flags.data_path,
-                               'tl-detector-{}'.format(self.config.name))
-
         traffic_lights_stream.send(
             TrafficLightsMessage(msg.timestamp, traffic_lights))
+
+        if self._flags.log_traffic_light_detector_output:
+            msg.frame.annotate_with_bounding_boxes(msg.timestamp,
+                                                   traffic_lights)
+            msg.frame.save(msg.timestamp.coordinates[0], self._flags.data_path,
+                           'tl-detector-{}'.format(self.config.name))
 
     def __run_model(self, image_np):
         # Expand dimensions since the model expects images to have

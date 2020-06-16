@@ -132,6 +132,7 @@ def add_traffic_light_detection(tl_transform,
         :py:class:`~pylot.perception.messages.ObstaclesMessage` traffic light
         messages are published.
     """
+    tl_camera_stream = None
     if FLAGS.traffic_light_detection or FLAGS.perfect_traffic_light_detection:
         # Only add the TL camera if traffic light detection is enabled.
         (tl_camera_stream, _,
@@ -173,7 +174,7 @@ def add_traffic_light_detection(tl_transform,
     if FLAGS.carla_traffic_light_detection:
         traffic_lights_stream = ground_traffic_lights_stream
 
-    return traffic_lights_stream
+    return traffic_lights_stream, tl_camera_stream
 
 
 def add_depth(transform, vehicle_id_stream, center_camera_setup,
@@ -370,6 +371,8 @@ def add_prediction(obstacles_tracking_stream,
     """
 
     prediction_stream = None
+    top_down_segmented_camera_stream = None
+    notify_reading_stream = None
     if FLAGS.prediction:
         if FLAGS.prediction_type == 'linear':
             prediction_stream = pylot.operator_creator.add_linear_prediction(
@@ -389,10 +392,20 @@ def add_prediction(obstacles_tracking_stream,
             pylot.operator_creator.add_prediction_evaluation(
                 pose_stream, obstacles_tracking_stream, prediction_stream)
         if FLAGS.visualize_prediction:
-            pylot.operator_creator.add_prediction_visualizer(
-                obstacles_tracking_stream, prediction_stream,
-                vehicle_id_stream, camera_transform, release_sensor_stream)
-    return prediction_stream
+            # Add bird's eye camera.
+            top_down_transform = pylot.utils.get_top_down_transform(
+                camera_transform, FLAGS.top_down_lateral_view)
+            (top_down_segmented_camera_stream,
+             notify_reading_stream,
+             top_down_segmented_camera_setup) = \
+                pylot.operator_creator.add_segmented_camera(
+                    top_down_transform,
+                    vehicle_id_stream,
+                    release_sensor_stream,
+                    name='top_down_segmented_camera',
+                    fov=90)
+    return (prediction_stream, top_down_segmented_camera_stream,
+            notify_reading_stream)
 
 
 def add_planning(goal_location, pose_stream, prediction_stream, camera_stream,
@@ -449,10 +462,6 @@ def add_planning(goal_location, pose_stream, prediction_stream, camera_stream,
     else:
         raise ValueError('Unexpected planning_type {}'.format(
             FLAGS.planning_type))
-    if FLAGS.visualize_waypoints:
-        pylot.operator_creator.add_waypoint_visualizer(waypoints_stream,
-                                                       camera_stream,
-                                                       pose_stream)
     return waypoints_stream
 
 

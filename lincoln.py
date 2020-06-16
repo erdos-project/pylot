@@ -176,14 +176,13 @@ def create_data_flow():
     if FLAGS.drive_by_wire:
         add_drive_by_wire_operator(control_stream)
 
-    # Add visualizers.
-    if FLAGS.visualize_rgb_camera:
-        pylot.operator_creator.add_camera_visualizer(
-            left_camera_stream, 'left_grasshopper3_camera')
-    if FLAGS.visualize_waypoints:
-        pylot.operator_creator.add_waypoint_visualizer(waypoints_stream,
-                                                       left_camera_stream,
-                                                       pose_stream)
+    control_display_stream = None
+    streams_to_send_top_on = []
+    if pylot.flags.must_visualize():
+        control_display_stream, ingest_streams = \
+            pylot.operator_creator.add_visualizer(
+                pose_stream, camera_stream=left_camera_stream)
+        streams_to_send_top_on += ingest_streams
 
     time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
         pose_stream, obstacles_stream)

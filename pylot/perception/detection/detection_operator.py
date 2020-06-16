@@ -153,16 +153,11 @@ class DetectionOperator(erdos.Operator):
         obstacles_stream.send(
             ObstaclesMessage(msg.timestamp, obstacles, runtime))
 
-        if (self._flags.visualize_detected_obstacles
-                or self._flags.log_detector_output):
+        if self._flags.log_detector_output:
             msg.frame.annotate_with_bounding_boxes(msg.timestamp, obstacles,
                                                    None, self._bbox_colors)
-            if self._flags.visualize_detected_obstacles:
-                msg.frame.visualize(pylot.utils.PYGAME_DISPLAY)
-            if self._flags.log_detector_output:
-                msg.frame.save(msg.timestamp.coordinates[0],
-                               self._flags.data_path,
-                               'detector-{}'.format(self.config.name))
+            msg.frame.save(msg.timestamp.coordinates[0], self._flags.data_path,
+                           'detector-{}'.format(self.config.name))
 
     def __run_model(self, image_np):
         # Expand dimensions since the model expects images to have

@@ -147,7 +147,8 @@ class CarlaCameraDriverOperator(erdos.Operator):
                         DepthFrame.from_carla_frame(
                             carla_image,
                             self._camera_setup,
-                            save_original_frame=self._flags.visualize))
+                            save_original_frame=self._flags.
+                            visualize_depth_camera))
                 elif self._camera_setup.camera_type == \
                      'sensor.camera.semantic_segmentation':
                     msg = SegmentedFrameMessage(
