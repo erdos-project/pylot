@@ -58,17 +58,22 @@ def stop_person(ego_transform, obstacle, wp_vector, flags, logger, hd_map):
         :obj:`float`: A stopping factor between 0 and 1 (i.e., no braking).
     """
     if hd_map is not None:
-        if not hd_map.is_on_lane(obstacle.transform.location):
-            # Person is not on the road.
-            if (not hasattr(obstacle, 'trajectory') or not any(
+        if hasattr(obstacle, 'trajectory'):
+            if not any(
                     map(
                         lambda transform: hd_map.are_on_same_lane(
                             transform.location, ego_transform.location),
-                        obstacle.trajectory))):
+                        obstacle.trajectory)):
                 # The person is not going to be on the road.
                 logger.debug(
                     'Ignoring ({},{}); it is not going to be on the same lane'.
                     format(obstacle.label, obstacle.id))
+                return 1
+        else:
+            # Person is not on the road.
+            if not hd_map.is_on_lane(obstacle.transform.location):
+                logger.debug('Ignoring ({},{}); it is not on the road'.format(
+                    obstacle.label, obstacle.id))
                 return 1
     else:
         logger.warning('No HDMap. All people are considered for stopping.')
