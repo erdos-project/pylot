@@ -1,10 +1,13 @@
-import carla
 import enum
-import erdos
 import heapq
 import random
+import threading
 import time
 from functools import total_ordering
+
+import carla
+
+import erdos
 
 import pylot.simulation.utils
 import pylot.utils
@@ -100,6 +103,8 @@ class CarlaOperator(erdos.Operator):
         pylot.simulation.utils.set_vehicle_physics(
             self._ego_vehicle, self._flags.carla_vehicle_moi,
             self._flags.carla_vehicle_mass)
+
+        self._lock = threading.Lock()
 
         # Dictionary that stores the processing times when sensors are ready
         # to realease data. This info is used to calculate the real processing
@@ -208,35 +213,36 @@ class CarlaOperator(erdos.Operator):
         Args:
             msg: Data recieved from the simulation at a tick.
         """
-        game_time = int(msg.elapsed_seconds * 1000)
-        self._logger.info('The world is at the timestamp {}'.format(game_time))
-        timestamp = erdos.Timestamp(coordinates=[game_time])
-        watermark_msg = erdos.WatermarkMessage(timestamp)
-        with erdos.profile(self.config.name + '.send_actor_data',
-                           self,
-                           event_data={'timestamp': str(timestamp)}):
-            localization_update, control_update = False, False
-            if (self._flags.carla_localization_frequency == -1
-                    or self._next_localization_sensor_reading is None
-                    or game_time == self._next_localization_sensor_reading):
-                if self._flags.carla_mode == 'pseudo-asynchronous':
-                    self._update_next_localization_pseudo_asynchronous_ticks(
-                        game_time)
-                self.__send_hero_vehicle_data(self.pose_stream, timestamp,
-                                              watermark_msg)
-                self.__send_ground_actors_data(timestamp, watermark_msg)
-                self.__update_spectactor_pose()
-                localization_update = True
+        # Ensure that the callback executes serially.
+        with self._lock:
+            game_time = int(msg.elapsed_seconds * 1000)
+            self._logger.info(
+                'The world is at the timestamp {}'.format(game_time))
+            timestamp = erdos.Timestamp(coordinates=[game_time])
+            watermark_msg = erdos.WatermarkMessage(timestamp)
+            with erdos.profile(self.config.name + '.send_actor_data',
+                               self,
+                               event_data={'timestamp': str(timestamp)}):
+                if (self._flags.carla_localization_frequency == -1
+                        or self._next_localization_sensor_reading is None or
+                        game_time == self._next_localization_sensor_reading):
+                    if self._flags.carla_mode == 'pseudo-asynchronous':
+                        self._update_next_localization_pseudo_asynchronous_ticks(
+                            game_time)
+                    self.__send_hero_vehicle_data(self.pose_stream, timestamp,
+                                                  watermark_msg)
+                    self.__send_ground_actors_data(timestamp, watermark_msg)
+                    self.__update_spectactor_pose()
 
-            if self._flags.carla_mode == "pseudo-asynchronous" and (
-                    self._flags.carla_control_frequency == -1
-                    or self._next_control_sensor_reading is None
-                    or game_time == self._next_control_sensor_reading):
-                self._update_next_control_pseudo_asynchronous_ticks(game_time)
-                self.__send_hero_vehicle_data(self.pose_stream_for_control,
-                                              timestamp, watermark_msg)
-                self.__update_spectactor_pose()
-                control_update = True
+                if self._flags.carla_mode == "pseudo-asynchronous" and (
+                        self._flags.carla_control_frequency == -1
+                        or self._next_control_sensor_reading is None
+                        or game_time == self._next_control_sensor_reading):
+                    self._update_next_control_pseudo_asynchronous_ticks(
+                        game_time)
+                    self.__send_hero_vehicle_data(self.pose_stream_for_control,
+                                                  timestamp, watermark_msg)
+                    self.__update_spectactor_pose()
 
     def _update_next_localization_pseudo_asynchronous_ticks(self, game_time):
         if self._flags.carla_localization_frequency > -1:

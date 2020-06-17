@@ -90,6 +90,7 @@ class PIDControlOperator(erdos.Operator):
                    brake))
         control_stream.send(
             ControlMessage(steer, throttle, brake, False, False, timestamp))
+        control_stream.send(erdos.WatermarkMessage(timestamp))
 
     def on_waypoints_update(self, msg):
         self._logger.debug('@{}: waypoints update'.format(msg.timestamp))
