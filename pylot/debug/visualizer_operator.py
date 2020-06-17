@@ -239,14 +239,14 @@ class VisualizerOperator(erdos.Operator):
 
         # Display the information box.
         info_surface = pygame.Surface(
-            (220, self._flags.carla_camera_image_height // 3))
+            (220, self._flags.camera_image_height // 3))
         info_surface.set_alpha(100)
         self.display.blit(info_surface, (0, 0))
 
         # Render the text.
         v_offset = 10
         for line in info_text:
-            if v_offset + 18 > self._flags.carla_camera_image_height:
+            if v_offset + 18 > self._flags.camera_image_height:
                 break
             surface = self.font.render(line, True, (255, 255, 255))
             self.display.blit(surface, (8, v_offset))
@@ -333,8 +333,8 @@ class VisualizerOperator(erdos.Operator):
             frame.visualize(self.display, timestamp=timestamp)
         elif sensor_to_display == "PointCloud" and point_cloud_msg:
             point_cloud_msg.point_cloud.visualize(
-                self.display, self._flags.carla_camera_image_width,
-                self._flags.carla_camera_image_height)
+                self.display, self._flags.camera_image_width,
+                self._flags.camera_image_height)
         elif (sensor_to_display == "DetectedLane" and bgr_msg
               and lane_detection_msg):
             import cv2

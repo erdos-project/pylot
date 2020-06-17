@@ -53,10 +53,6 @@ flags.DEFINE_enum('carla_weather', 'ClearNoon', [
 flags.DEFINE_integer(
     'carla_spawn_point_index', -1,
     'Index of spawn point where to place ego vehicle. -1 to randomly assign.')
-flags.DEFINE_integer('carla_camera_image_width', 1920,
-                     'Carla camera image width')
-flags.DEFINE_integer('carla_camera_image_height', 1080,
-                     'Carla camera image height')
 flags.DEFINE_integer('carla_vehicle_mass', None,
                      'Modifies the mass of the ego-vehicle')
 flags.DEFINE_float('carla_vehicle_moi', None,
@@ -72,10 +68,6 @@ flags.DEFINE_integer('random_seed', None,
 flags.DEFINE_integer(
     'perfect_detection_max_distance', 125,
     'Limit perfect detection to a distance of this amount of meters')
-
-# Carla challenge flags.
-flags.DEFINE_integer(
-    'track', -1, 'Track to execute; -1 is for executing in stand-alone mode')
 
 
 def sensor_frequency_validator(flags_dict):

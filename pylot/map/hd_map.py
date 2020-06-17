@@ -177,7 +177,7 @@ class HDMap(object):
         waypoint = self._map.get_waypoint(location.as_carla_location(),
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Stop)
-        return not waypoint
+        raise NotImplementedError
 
     def distance_to_intersection(self, location, max_distance_to_check=30):
         """Computes the distance (in meters) from location to an intersection.

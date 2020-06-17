@@ -30,5 +30,5 @@ class LidarVisualizerOperator(erdos.Operator):
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self.config.name))
         msg.point_cloud.visualize(pylot.utils.PYGAME_DISPLAY,
-                                  self._flags.carla_camera_image_width,
-                                  self._flags.carla_camera_image_height)
+                                  self._flags.camera_image_width,
+                                  self._flags.camera_image_height)

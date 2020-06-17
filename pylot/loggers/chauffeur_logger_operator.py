@@ -90,8 +90,8 @@ class ChauffeurLoggerOperator(erdos.Operator):
 
             # Draw trajectory points on segmented image.
             for point in screen_points:
-                if (0 <= point.x <= self._flags.carla_camera_image_width) and \
-                   (0 <= point.y <= self._flags.carla_camera_image_height):
+                if (0 <= point.x <= self._flags.camera_image_width) and \
+                   (0 <= point.y <= self._flags.camera_image_height):
                     r = 3
                     if obstacle.id == self._ground_vehicle_id:
                         r = 10

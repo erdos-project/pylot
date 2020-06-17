@@ -46,9 +46,9 @@ def main(argv):
     # Install the camera.
     camera_blueprint = world.get_blueprint_library().find('sensor.camera.rgb')
     camera_blueprint.set_attribute('image_size_x',
-                                   str(FLAGS.carla_camera_image_width))
+                                   str(FLAGS.camera_image_width))
     camera_blueprint.set_attribute('image_size_y',
-                                   str(FLAGS.carla_camera_image_height))
+                                   str(FLAGS.camera_image_height))
 
     transform = carla.Transform(carla.Location(2.0, 0.0, 1.4),
                                 carla.Rotation(pitch=0, yaw=0, roll=0))

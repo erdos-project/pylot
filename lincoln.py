@@ -1,4 +1,3 @@
-import sys
 import time
 
 from absl import app, flags
@@ -21,9 +20,6 @@ from pylot.planning.waypoints import Waypoints
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_integer('camera_image_width', 2048, 'Camera image width')
-flags.DEFINE_integer('camera_image_height', 2048, 'Camera image height')
-flags.DEFINE_integer('track', 3, 'Track to execute')
 flags.DEFINE_string('waypoints_csv_file', '',
                     'Path to the file storing the waypoints csv file')
 flags.DEFINE_bool('drive_by_wire', False,

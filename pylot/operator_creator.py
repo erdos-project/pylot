@@ -450,9 +450,9 @@ def add_rgb_camera(transform,
                    name='center_rgb_camera',
                    fov=90):
     from pylot.drivers.sensor_setup import RGBCameraSetup
-    rgb_camera_setup = RGBCameraSetup(name, FLAGS.carla_camera_image_width,
-                                      FLAGS.carla_camera_image_height,
-                                      transform, fov)
+    rgb_camera_setup = RGBCameraSetup(name, FLAGS.camera_image_width,
+                                      FLAGS.camera_image_height, transform,
+                                      fov)
     camera_stream, notify_reading_stream = _add_camera_driver(
         vehicle_id_stream, release_sensor_stream, rgb_camera_setup)
     return (camera_stream, notify_reading_stream, rgb_camera_setup)
@@ -464,9 +464,9 @@ def add_depth_camera(transform,
                      name='center_depth_camera',
                      fov=90):
     from pylot.drivers.sensor_setup import DepthCameraSetup
-    depth_camera_setup = DepthCameraSetup(name, FLAGS.carla_camera_image_width,
-                                          FLAGS.carla_camera_image_height,
-                                          transform, fov)
+    depth_camera_setup = DepthCameraSetup(name, FLAGS.camera_image_width,
+                                          FLAGS.camera_image_height, transform,
+                                          fov)
     ground_depth_camera_stream, notify_reading_stream = _add_camera_driver(
         vehicle_id_stream, release_sensor_stream, depth_camera_setup)
     return (ground_depth_camera_stream, notify_reading_stream,
@@ -479,9 +479,10 @@ def add_segmented_camera(transform,
                          name='center_segmented_camera',
                          fov=90):
     from pylot.drivers.sensor_setup import SegmentedCameraSetup
-    segmented_camera_setup = SegmentedCameraSetup(
-        name, FLAGS.carla_camera_image_width, FLAGS.carla_camera_image_height,
-        transform, fov)
+    segmented_camera_setup = SegmentedCameraSetup(name,
+                                                  FLAGS.camera_image_width,
+                                                  FLAGS.camera_image_height,
+                                                  transform, fov)
     ground_segmented_camera_stream, notify_reading_stream = _add_camera_driver(
         vehicle_id_stream, release_sensor_stream, segmented_camera_setup)
     return (ground_segmented_camera_stream, notify_reading_stream,
@@ -496,8 +497,8 @@ def add_left_right_cameras(transform,
         pylot.drivers.sensor_setup.create_left_right_camera_setups(
             'camera',
             transform.location,
-            FLAGS.carla_camera_image_width,
-            FLAGS.carla_camera_image_height,
+            FLAGS.camera_image_width,
+            FLAGS.camera_image_height,
             FLAGS.offset_left_right_cameras,
             fov)
     left_camera_stream, notify_left_stream = _add_camera_driver(
@@ -822,7 +823,7 @@ def add_visualizer(pose_stream=None,
     import pygame
     pygame.init()
     pygame_display = pygame.display.set_mode(
-        (FLAGS.carla_camera_image_width, FLAGS.carla_camera_image_height),
+        (FLAGS.camera_image_width, FLAGS.camera_image_height),
         pygame.HWSURFACE | pygame.DOUBLEBUF)
     pygame.display.set_caption("Pylot")
     streams_to_send_top_on = []

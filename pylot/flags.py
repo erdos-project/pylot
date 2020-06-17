@@ -17,9 +17,16 @@ flags.DEFINE_string(
     'profile_file_name', 'pylot_profile.json',
     'file into which to log runtime profile stats in Chrome trace format')
 
+flags.DEFINE_enum(
+    'execution_mode', 'simulation',
+    ['simulation', 'real-world', 'challenge-map', 'challenge-sensors'],
+    'Sets the mode in which the pipeline executes')
+
 ######################################################################
 # Perception
 ######################################################################
+flags.DEFINE_integer('camera_image_width', 1920, 'Camera image width')
+flags.DEFINE_integer('camera_image_height', 1080, 'Camera image height')
 flags.DEFINE_bool('obstacle_detection', False,
                   'True to enable obstacle detection operator')
 flags.DEFINE_bool('perfect_obstacle_detection', False,

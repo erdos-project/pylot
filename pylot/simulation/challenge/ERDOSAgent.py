@@ -313,12 +313,12 @@ class ERDOSAgent(AutonomousAgent):
 
 def get_track():
     track = None
-    if FLAGS.track == 1:
+    if FLAGS.execution_mode == 'challenge-sensors':
         track = Track.SENSORS
-    elif FLAGS.track == 3:
+    elif FLAGS.execution_mode == 'challenge-map':
         track = Track.MAP
     else:
-        raise ValueError('Unexpected track {}'.format(FLAGS.track))
+        raise ValueError('Unexpected track {}'.format(FLAGS.execution_mode))
     return track
 
 
@@ -406,27 +406,25 @@ def create_camera_setups():
     transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                       pylot.utils.Rotation())
     center_camera_setup = RGBCameraSetup(CENTER_CAMERA_NAME,
-                                         FLAGS.carla_camera_image_width,
-                                         FLAGS.carla_camera_image_height,
-                                         transform, 90)
+                                         FLAGS.camera_image_width,
+                                         FLAGS.camera_image_height, transform,
+                                         90)
     camera_setups[CENTER_CAMERA_NAME] = center_camera_setup
-    tl_camera_setup = RGBCameraSetup(TL_CAMERA_NAME,
-                                     FLAGS.carla_camera_image_width,
-                                     FLAGS.carla_camera_image_height,
-                                     transform, 45)
+    tl_camera_setup = RGBCameraSetup(TL_CAMERA_NAME, FLAGS.camera_image_width,
+                                     FLAGS.camera_image_height, transform, 45)
     camera_setups[TL_CAMERA_NAME] = tl_camera_setup
     # left_transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
     #                                        pylot.utils.Rotation(yaw=-45))
     # left_camera_setup = RGBCameraSetup(LEFT_CAMERA_NAME,
-    #                                    FLAGS.carla_camera_image_width,
-    #                                    FLAGS.carla_camera_image_height,
+    #                                    FLAGS.camera_image_width,
+    #                                    FLAGS.camera_image_height,
     #                                    left_transform, 90)
     # camera_setups[LEFT_CAMERA_NAME] = left_camera_setup
     # right_transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
     #                                         pylot.utils.Rotation(yaw=45))
     # right_camera_setup = RGBCameraSetup(RIGHT_CAMERA_NAME,
-    #                                     FLAGS.carla_camera_image_width,
-    #                                     FLAGS.carla_camera_image_height,
+    #                                     FLAGS.camera_image_width,
+    #                                     FLAGS.camera_image_height,
     #                                     right_transform, 90)
     # camera_setups[RIGHT_CAMERA_NAME] = right_camera_setup
     return camera_setups
