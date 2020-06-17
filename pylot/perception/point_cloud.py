@@ -168,13 +168,13 @@ class PointCloud(object):
     def visualize(self, pygame_display, display_width, display_height):
         # Transform point cloud to top down view.
         lidar_data = np.array(self.global_points[:, :2])
-        lidar_data *= min(display_width, display_height) / 100
+        lidar_data *= min(display_width, display_height) / 200
         lidar_data += (0.5 * display_width, 0.5 * display_height)
-        lidar_data = np.fabs(lidar_data)  # pylint: disable=E1111
+        lidar_data = np.fabs(lidar_data)
         lidar_data = lidar_data.astype(np.int32)
         lidar_data = np.reshape(lidar_data, (-1, 2))
         lidar_img_size = (display_width, display_height, 3)
-        lidar_img = np.zeros((lidar_img_size), dtype=int)
+        lidar_img = np.zeros((lidar_img_size), dtype=np.uint8)
         lidar_img[tuple(lidar_data.T)] = (255, 255, 255)
         pygame.surfarray.blit_array(pygame_display, lidar_img)
         pygame.display.flip()

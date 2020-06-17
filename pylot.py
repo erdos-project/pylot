@@ -13,7 +13,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_list('goal_location', '234, 59, 39', 'Ego-vehicle goal location')
 
 # The location of the center camera relative to the ego-vehicle.
-CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
+CENTER_CAMERA_LOCATION = pylot.utils.Location(1.0, 0.0, 1.8)
 
 
 def add_evaluation_operators(vehicle_id_stream, pose_stream, imu_stream,

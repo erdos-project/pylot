@@ -252,7 +252,7 @@ def main(args):
         world.tick()
 
     # Transform of the cameras.
-    camera_transform = carla.Transform(location=carla.Location(1.5, 0.0, 1.4),
+    camera_transform = carla.Transform(location=carla.Location(1.0, 0.0, 1.8),
                                        rotation=carla.Rotation(0, 0, 0))
 
     # Connect the RGB camera to the vehicle.

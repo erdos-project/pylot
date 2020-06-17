@@ -214,7 +214,7 @@ def main(args):
 
     # Connect the segmentation camera to the vehicle.
     segmentation_camera_transform = carla.Transform(
-        location=carla.Location(1.5, 0.0, 1.4),
+        location=carla.Location(1.0, 0.0, 1.8),
         rotation=carla.Rotation(0, 0, 0))
     segmentation_camera, camera_setup = spawn_camera(
         'sensor.camera.semantic_segmentation', segmentation_camera_transform,

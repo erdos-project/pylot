@@ -1,8 +1,6 @@
 import pickle
 import threading
 
-import carla
-
 import erdos
 
 from pylot.perception.messages import PointCloudMessage
@@ -151,18 +149,13 @@ class CarlaLidarDriverOperator(erdos.Operator):
         transform = self._lidar_setup.get_transform().as_carla_transform()
 
         self._logger.debug("Spawning a lidar: {}".format(self._lidar_setup))
-        if self._flags.carla_version in ['0.9.8', '0.9.9']:
-            # Must attach lidar with a SpringArm, otherwise the point cloud is
-            # empty.
-            self._lidar = world.spawn_actor(
-                lidar_blueprint,
-                transform,
-                attach_to=self._vehicle,
-                attachment_type=carla.AttachmentType.SpringArm)
-        else:
-            self._lidar = world.spawn_actor(lidar_blueprint,
-                                            transform,
-                                            attach_to=self._vehicle)
+        # NOTE: The LiDAR can be attached on a rigid or a spring arm. If the
+        # LiDAR is attached too low, on a rigit, then the point cloud is empty.
+        # Otherwise, if the LiDAR is attached on a SpringArm it won't provide
+        # 360 degrees point clouds.
+        self._lidar = world.spawn_actor(lidar_blueprint,
+                                        transform,
+                                        attach_to=self._vehicle)
 
         # Register the callback on the Lidar.
         self._lidar.listen(self.process_point_clouds)

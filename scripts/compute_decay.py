@@ -18,7 +18,7 @@ flags.DEFINE_integer('decay_max_latency', 400,
                      'Max latency to evaluate in ground truth experiments')
 
 # The location of the center camera relative to the ego-vehicle.
-CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
+CENTER_CAMERA_LOCATION = pylot.utils.Location(1.0, 0.0, 1.8)
 
 
 class SynchronizerOperator(erdos.Operator):
