@@ -1,9 +1,9 @@
-import csv
-import erdos
 import sys
 import time
 
 from absl import app, flags
+
+import erdos
 
 import pylot.component_creator
 import pylot.drivers.sensor_setup
@@ -17,6 +17,7 @@ from pylot.drivers.velodyne_driver_operator import VelodyneDriverOperator
 from pylot.localization.ndt_autoware_operator import NDTAutowareOperator
 from pylot.perception.messages import ObstacleTrajectoriesMessage, \
     ObstaclesMessage, TrafficLightsMessage
+from pylot.planning.waypoints import Waypoints
 
 FLAGS = flags.FLAGS
 
@@ -126,8 +127,9 @@ def create_data_flow():
 
     if FLAGS.traffic_light_detection:
         # The right camera is more likely to contain the traffic lights.
-        traffic_lights_stream = pylot.operator_creator.add_traffic_light_detector(
-            right_camera_stream)
+        traffic_lights_stream = \
+            pylot.operator_creator.add_traffic_light_detector(
+                right_camera_stream)
         # Adds operator that finds the world locations of the traffic lights.
         traffic_lights_stream = \
             pylot.operator_creator.add_obstacle_location_finder(
@@ -137,8 +139,11 @@ def create_data_flow():
         traffic_lights_stream = erdos.IngestStream()
 
     if FLAGS.lane_detection:
-        lane_detection = pylot.operator_creator.add_canny_edge_lane_detection(
-            left_camera_stream)
+        lane_detection_stream = \
+            pylot.operator_creator.add_canny_edge_lane_detection(
+                left_camera_stream)
+    else:
+        lane_detection_stream = None
 
     if FLAGS.obstacle_tracking:
         obstacles_wo_history_tracking_stream = \
@@ -181,7 +186,14 @@ def create_data_flow():
     if pylot.flags.must_visualize():
         control_display_stream, ingest_streams = \
             pylot.operator_creator.add_visualizer(
-                pose_stream, camera_stream=left_camera_stream)
+                pose_stream, camera_stream=left_camera_stream,
+                tl_camera_stream=right_camera_stream,
+                point_cloud_stream=point_cloud_stream,
+                obstacles_stream=obstacles_stream,
+                traffic_lights_stream=traffic_lights_stream,
+                tracked_obstacles_stream=obstacles_tracking_stream,
+                lane_detection_stream=lane_detection_stream,
+                waypoints_stream=waypoints_stream)
         streams_to_send_top_on += ingest_streams
 
     time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
@@ -189,36 +201,29 @@ def create_data_flow():
     time_to_decision_loop_stream.set(time_to_decision_stream)
 
     return (obstacles_stream, traffic_lights_stream, obstacles_tracking_stream,
-            open_drive_stream, global_trajectory_stream)
-
-
-def read_waypoints():
-    csv_file = open(FLAGS.waypoints_csv_file)
-    csv_reader = csv.reader(csv_file)
-    waypoints = []
-    for row in csv_reader:
-        x = float(row[0])
-        y = float(row[1])
-        z = float(row[2])
-        waypoint = pylot.utils.Transform(pylot.utils.Location(x, y, z),
-                                         pylot.utils.Rotation(0, 0, 0))
-        waypoints.append(waypoint)
-    return waypoints
+            open_drive_stream, global_trajectory_stream,
+            control_display_stream, streams_to_send_top_on)
 
 
 def main(argv):
     (obstacles_stream, traffic_lights_stream, obstacles_tracking_stream,
-     open_drive_stream, global_trajectory_stream) = create_data_flow()
+     open_drive_stream, global_trajectory_stream, control_display_stream,
+     streams_to_send_top_on) = create_data_flow()
     # Run the data-flow.
     erdos.run_async()
 
-    top_timestamp = erdos.Timestamp(coordinates=[sys.maxsize])
-    open_drive_stream.send(erdos.WatermarkMessage(top_timestamp))
-
-    waypoints = [[waypoint] for waypoint in read_waypoints()]
+    # Send waypoints.
+    waypoints = Waypoints.read_from_csv_file(FLAGS.waypoints_csv_file,
+                                             FLAGS.target_speed)
     global_trajectory_stream.send(
         erdos.Message(erdos.Timestamp(coordinates=[0]), waypoints))
-    global_trajectory_stream.send(erdos.WatermarkMessage(top_timestamp))
+
+    # Send top watermark on all streams that require it.
+    top_msg = erdos.WatermarkMessage(erdos.Timestamp(is_top=True))
+    open_drive_stream.send(top_msg)
+    global_trajectory_stream.send(top_msg)
+    for stream in streams_to_send_top_on:
+        stream.send(top_msg)
 
     time_to_sleep = 1.0 / FLAGS.sensor_frequency
     count = 0
@@ -235,6 +240,17 @@ def main(argv):
                 ObstacleTrajectoriesMessage(timestamp, []))
             obstacles_tracking_stream.send(erdos.WatermarkMessage(timestamp))
         count += 1
+        if pylot.flags.must_visualize():
+            import pygame
+            from pygame.locals import K_n
+            events = pygame.event.get()
+            for event in events:
+                if event.type == pygame.KEYUP:
+                    if event.key == K_n:
+                        control_display_stream.send(
+                            erdos.Message(erdos.Timestamp(coordinates=[0]),
+                                          event.key))
+
         # NOTE: We should offset sleep time by the time it takes to send the
         # messages.
         time.sleep(time_to_sleep)

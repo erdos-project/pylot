@@ -826,3 +826,19 @@ def set_tf_loglevel(level):
     else:
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
     logging.getLogger('tensorflow').setLevel(level)
+
+
+def run_visualizer_control_loop(control_display_stream):
+    import erdos
+    import pygame
+    clock = pygame.time.Clock()
+    from pygame.locals import K_n
+    while True:
+        clock.tick_busy_loop(60)
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.KEYUP:
+                if event.key == K_n:
+                    control_display_stream.send(
+                        erdos.Message(erdos.Timestamp(coordinates=[0]),
+                                      event.key))

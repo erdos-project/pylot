@@ -1,5 +1,5 @@
+import csv
 import itertools
-import math
 from collections import deque
 
 import numpy as np
@@ -16,6 +16,21 @@ class Waypoints(object):
             self.target_speeds = deque([0 for _ in range(len(waypoints))])
         else:
             self.target_speeds = target_speeds
+
+    @classmethod
+    def read_from_csv_file(cls, csv_file_name, target_speed):
+        csv_file = open(csv_file_name)
+        csv_reader = csv.reader(csv_file)
+        waypoints = []
+        for row in csv_reader:
+            x = float(row[0])
+            y = float(row[1])
+            z = float(row[2])
+            waypoint = pylot.utils.Transform(pylot.utils.Location(x, y, z),
+                                             pylot.utils.Rotation(0, 0, 0))
+            waypoints.append(waypoint)
+        target_speeds = deque([target_speed for _ in range(len(waypoints))])
+        return cls(deque(waypoints), target_speeds),
 
     def as_numpy_array_2D(self):
         wx = []

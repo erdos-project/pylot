@@ -74,9 +74,10 @@ def add_obstacle_detection(center_camera_stream,
             obstacles_stream_wo_depth = obstacles_streams[0]
         if FLAGS.planning_type == 'waypoint':
             # Adds an operator that finds the world locations of the obstacles.
-            obstacles_stream = pylot.operator_creator.add_obstacle_location_finder(
-                obstacles_stream_wo_depth, depth_stream, pose_stream,
-                center_camera_setup)
+            obstacles_stream = \
+                pylot.operator_creator.add_obstacle_location_finder(
+                    obstacles_stream_wo_depth, depth_stream, pose_stream,
+                    center_camera_setup)
         else:
             obstacles_stream = obstacles_stream_wo_depth
 
@@ -207,7 +208,7 @@ def add_depth(transform, vehicle_id_stream, center_camera_setup,
              transform, vehicle_id_stream)
         depth_stream = pylot.operator_creator.add_depth_estimation(
             left_camera_stream, right_camera_stream, center_camera_setup)
-    if FLAGS.perfect_depth_estimation:
+    elif FLAGS.perfect_depth_estimation:
         depth_stream = depth_camera_stream
     return depth_stream
 
@@ -236,7 +237,7 @@ def add_lane_detection(center_camera_stream, pose_stream=None):
         lane_detection_stream = \
             pylot.operator_creator.add_canny_edge_lane_detection(
                 center_camera_stream)
-    if FLAGS.perfect_lane_detection:
+    elif FLAGS.perfect_lane_detection:
         assert pose_stream is not None
         lane_detection_stream = \
             pylot.operator_creator.add_perfect_lane_detector(pose_stream)
@@ -294,7 +295,7 @@ def add_obstacle_tracking(center_camera_stream,
             pylot.operator_creator.add_obstacle_location_history(
                 obstacles_wo_history_tracking_stream, depth_stream,
                 pose_stream, center_camera_setup)
-    if FLAGS.perfect_obstacle_tracking:
+    elif FLAGS.perfect_obstacle_tracking:
         assert (pose_stream is not None
                 and ground_obstacles_stream is not None)
         obstacles_tracking_stream = \
@@ -369,7 +370,6 @@ def add_prediction(obstacles_tracking_stream,
         :py:class:`~pylot.prediction.messages.PredictionMessage` messages are
         published.
     """
-
     prediction_stream = None
     top_down_segmented_camera_stream = None
     notify_reading_stream = None
@@ -465,16 +465,16 @@ def add_planning(goal_location, pose_stream, prediction_stream, camera_stream,
     return waypoints_stream
 
 
-def add_control(ground_vehicle_id_stream, pose_stream, waypoints_stream):
+def add_control(pose_stream, waypoints_stream, ground_vehicle_id_stream=None):
     """Adds ego-vehicle control operators.
 
     Args:
-        ground_vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on
-            which the vehicle id is published.
         pose_stream (:py:class:`erdos.ReadStream`, optional): Stream on
             which pose info is received.
         waypoints_stream (:py:class:`erdos.ReadStream`): Stream on which
             waypoints are received.
+        ground_vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on
+            which the vehicle id is published.
 
     Returns:
         :py:class:`erdos.ReadStream`: Stream on which

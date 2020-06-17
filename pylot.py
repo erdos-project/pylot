@@ -16,6 +16,33 @@ flags.DEFINE_list('goal_location', '234, 59, 39', 'Ego-vehicle goal location')
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.5, 0.0, 1.4)
 
 
+def add_evaluation_operators(vehicle_id_stream, pose_stream, imu_stream,
+                             pose_stream_for_control,
+                             waypoints_stream_for_control):
+    if FLAGS.evaluation:
+        # Add the collision sensor.
+        collision_stream = pylot.operator_creator.add_collision_sensor(
+            vehicle_id_stream)
+
+        # Add the lane invasion sensor.
+        lane_invasion_stream = pylot.operator_creator.add_lane_invasion_sensor(
+            vehicle_id_stream)
+
+        # Add the traffic light invasion sensor.
+        traffic_light_invasion_stream = \
+            pylot.operator_creator.add_traffic_light_invasion_sensor(
+                vehicle_id_stream, pose_stream)
+
+        # Add the evaluation logger.
+        pylot.operator_creator.add_eval_metric_logging(
+            collision_stream, lane_invasion_stream,
+            traffic_light_invasion_stream, imu_stream, pose_stream)
+
+        # Add control evaluation logging operator.
+        pylot.operator_creator.add_control_evaluation(
+            pose_stream_for_control, waypoints_stream_for_control)
+
+
 def driver():
     transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                       pylot.utils.Rotation())
@@ -30,7 +57,7 @@ def driver():
         pipeline_finish_notify_stream = erdos.IngestStream()
     notify_streams = []
 
-    # Create carla operator.
+    # Create operator that bridges between pipeline and CARLA.
     (
         pose_stream,
         pose_stream_for_control,
@@ -66,7 +93,7 @@ def driver():
         ground_segmented_stream = None
 
     if pylot.flags.must_add_lidar_sensor():
-        # Place Lidar sensor in the same location as the center camera.
+        # Place LiDAR sensor in the same location as the center camera.
         (point_cloud_stream, notify_lidar_stream,
          lidar_setup) = pylot.operator_creator.add_lidar(
              transform, vehicle_id_stream, release_sensor_stream)
@@ -155,32 +182,13 @@ def driver():
         pose_stream_for_control = pose_stream
 
     control_stream = pylot.component_creator.add_control(
-        vehicle_id_stream, pose_stream_for_control,
-        waypoints_stream_for_control)
+        pose_stream_for_control, waypoints_stream_for_control,
+        vehicle_id_stream)
     control_loop_stream.set(control_stream)
 
-    if FLAGS.evaluation:
-        # Add the collision sensor.
-        collision_stream = pylot.operator_creator.add_collision_sensor(
-            vehicle_id_stream)
-
-        # Add the lane invasion sensor.
-        lane_invasion_stream = pylot.operator_creator.add_lane_invasion_sensor(
-            vehicle_id_stream)
-
-        # Add the traffic light invasion sensor.
-        traffic_light_invasion_stream = \
-            pylot.operator_creator.add_traffic_light_invasion_sensor(
-                vehicle_id_stream, pose_stream)
-
-        # Add the evaluation logger.
-        pylot.operator_creator.add_eval_metric_logging(
-            collision_stream, lane_invasion_stream,
-            traffic_light_invasion_stream, imu_stream, pose_stream)
-
-        # Add control evaluation logging operator.
-        pylot.operator_creator.add_control_evaluation(
-            pose_stream_for_control, waypoints_stream_for_control)
+    add_evaluation_operators(vehicle_id_stream, pose_stream, imu_stream,
+                             pose_stream_for_control,
+                             waypoints_stream_for_control)
 
     time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
         pose_stream, obstacles_stream)
@@ -212,18 +220,7 @@ def driver():
             erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
     if pylot.flags.must_visualize():
-        import pygame
-        clock = pygame.time.Clock()
-        from pygame.locals import K_n
-        while True:
-            clock.tick_busy_loop(60)
-            events = pygame.event.get()
-            for event in events:
-                if event.type == pygame.KEYUP:
-                    if event.key == K_n:
-                        control_display_stream.send(
-                            erdos.Message(erdos.Timestamp(coordinates=[0]),
-                                          event.key))
+        pylot.utils.run_visualizer_control_loop(control_display_stream)
 
 
 def main(args):

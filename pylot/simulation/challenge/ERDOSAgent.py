@@ -22,6 +22,22 @@ from pylot.perception.point_cloud import PointCloud
 
 FLAGS = flags.FLAGS
 
+
+# Certain visualizations are not supported when running in challenge mode.
+def unsupported_visualizations_validator(flags_dict):
+    return not (flags_dict['visualize_depth_camera']
+                or flags_dict['visualize_imu'] or flags_dict['visualize_pose']
+                or flags_dict['visualize_prediction'])
+
+
+flags.register_multi_flags_validator(
+    [
+        'visualize_depth_camera', 'visualize_imu', 'visualize_pose',
+        'visualize_prediction'
+    ],
+    unsupported_visualizations_validator,
+    message='Trying to visualize unsupported_visualization')
+
 CENTER_CAMERA_LOCATION = pylot.utils.Location(0.0, 0.0, 2.0)
 CENTER_CAMERA_NAME = 'center_camera'
 TL_CAMERA_NAME = 'traffic_lights_camera'
@@ -68,7 +84,7 @@ class ERDOSAgent(AutonomousAgent):
         self._open_drive_data = None
         (camera_streams, pose_stream, global_trajectory_stream,
          open_drive_stream, point_cloud_stream, control_stream,
-         streams_to_send_top_on) = create_data_flow()
+         control_display_stream, streams_to_send_top_on) = create_data_flow()
         self._camera_streams = camera_streams
         self._pose_stream = pose_stream
         self._global_trajectory_stream = global_trajectory_stream
@@ -76,6 +92,7 @@ class ERDOSAgent(AutonomousAgent):
         self._sent_open_drive = False
         self._point_cloud_stream = point_cloud_stream
         self._control_stream = control_stream
+        self._control_display_stream = control_display_stream
         # Execute the dataflow.
         self._node_handle = erdos.run_async()
         for stream in streams_to_send_top_on:
@@ -174,7 +191,7 @@ class ERDOSAgent(AutonomousAgent):
         carla_pc = None
         for key, val in input_data.items():
             # val is a tuple of (data timestamp, data).
-            print("Sensor {} at {}".format(key, val[0]))
+            # print("Sensor {} at {}".format(key, val[0]))
             if key in self._camera_streams:
                 self._camera_streams[key].send(
                     pylot.perception.messages.FrameMessage(
@@ -200,6 +217,17 @@ class ERDOSAgent(AutonomousAgent):
                                            erdos_timestamp)
         self.send_lidar_msg(ego_transform, carla_pc, self._lidar_transform,
                             erdos_timestamp)
+
+        if pylot.flags.must_visualize():
+            import pygame
+            from pygame.locals import K_n
+            events = pygame.event.get()
+            for event in events:
+                if event.type == pygame.KEYUP:
+                    if event.key == K_n:
+                        self._control_display_stream.send(
+                            erdos.Message(erdos.Timestamp(coordinates=[0]),
+                                          event.key))
 
         # Wait until the control is set.
         while True:
@@ -346,16 +374,18 @@ def create_data_flow():
         time_to_decision_loop_stream)
 
     if pylot.flags.must_visualize():
-        _, streams_to_send_top_on = pylot.operator_creator.add_visualizer(
-            pose_stream=pose_stream,
-            camera_stream=camera_streams[CENTER_CAMERA_NAME],
-            tl_camera_stream=camera_streams[TL_CAMERA_NAME],
-            point_cloud_stream=point_cloud_stream,
-            obstacles_stream=obstacles_stream,
-            traffic_lights_stream=traffic_lights_stream,
-            tracked_obstacles_stream=obstacles_tracking_stream,
-            waypoints_stream=waypoints_stream)
+        control_display_stream, streams_to_send_top_on = \
+            pylot.operator_creator.add_visualizer(
+                pose_stream=pose_stream,
+                camera_stream=camera_streams[CENTER_CAMERA_NAME],
+                tl_camera_stream=camera_streams[TL_CAMERA_NAME],
+                point_cloud_stream=point_cloud_stream,
+                obstacles_stream=obstacles_stream,
+                traffic_lights_stream=traffic_lights_stream,
+                tracked_obstacles_stream=obstacles_tracking_stream,
+                waypoints_stream=waypoints_stream)
     else:
+        control_display_stream = None
         streams_to_send_top_on = []
 
     control_stream = pylot.operator_creator.add_pid_agent(
@@ -368,7 +398,7 @@ def create_data_flow():
 
     return (camera_streams, pose_stream, global_trajectory_stream,
             open_drive_stream, point_cloud_stream, extract_control_stream,
-            streams_to_send_top_on)
+            control_display_stream, streams_to_send_top_on)
 
 
 def create_camera_setups():

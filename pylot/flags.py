@@ -1,11 +1,11 @@
 from absl import flags
 
-import pylot.perception.flags
-import pylot.prediction.flags
-import pylot.planning.flags
 import pylot.control.flags
-import pylot.simulation.flags
 import pylot.debug.flags
+import pylot.perception.flags
+import pylot.planning.flags
+import pylot.prediction.flags
+import pylot.simulation.flags
 
 FLAGS = flags.FLAGS
 
@@ -16,20 +16,6 @@ flags.DEFINE_string('csv_log_file_name', None,
 flags.DEFINE_string(
     'profile_file_name', 'pylot_profile.json',
     'file into which to log runtime profile stats in Chrome trace format')
-
-flags.DEFINE_enum(
-    'deadline_enforcement', 'none', ['none', 'static', 'dynamic'],
-    'Controls how end-to-end deadlines are enforced. None means no enforcement'
-)
-flags.DEFINE_float(
-    'detection_deadline', None,
-    'Detection deadline (in ms) when using static deadline enforcement')
-flags.DEFINE_float(
-    'tracking_deadline', None,
-    'Tracking deadline (in ms) when using static deadline enforcement')
-flags.DEFINE_float(
-    'planning_deadline', None,
-    'Planning deadline (on ms) when using static deadline enforcement')
 
 ######################################################################
 # Perception
@@ -106,7 +92,24 @@ flags.DEFINE_enum('control_agent', 'carla_auto_pilot',
                   'Control agent operator to use to drive')
 
 ######################################################################
-# Sensor visualizing flags
+# Deadline enforcement
+######################################################################
+flags.DEFINE_enum(
+    'deadline_enforcement', 'none', ['none', 'static', 'dynamic'],
+    'Controls how end-to-end deadlines are enforced. None means no enforcement'
+)
+flags.DEFINE_float(
+    'detection_deadline', None,
+    'Detection deadline (in ms) when using static deadline enforcement')
+flags.DEFINE_float(
+    'tracking_deadline', None,
+    'Tracking deadline (in ms) when using static deadline enforcement')
+flags.DEFINE_float(
+    'planning_deadline', None,
+    'Planning deadline (on ms) when using static deadline enforcement')
+
+######################################################################
+# Visualizing flags
 ######################################################################
 flags.DEFINE_bool('visualize_rgb_camera', False,
                   'True to enable RGB camera sensor visualization')
@@ -118,10 +121,6 @@ flags.DEFINE_bool('visualize_imu', False,
                   'True to enable CARLA IMU visualization')
 flags.DEFINE_bool('visualize_pose', False,
                   'True to enable CARLA ego-vehicle pose visualization')
-
-######################################################################
-# Visualizing flags for components.
-######################################################################
 flags.DEFINE_bool('visualize_detected_obstacles', False,
                   'True to enable visualization of detected obstacles')
 flags.DEFINE_bool('visualize_detected_traffic_lights', False,
@@ -136,19 +135,6 @@ flags.DEFINE_bool('visualize_waypoints', False,
                   'True to enable visualization of planning waypoints')
 flags.DEFINE_bool('visualize_prediction', False,
                   'True to enable visualization of obstacle predictions')
-
-# Accuracy evaluation flags.
-flags.DEFINE_bool('evaluate_obstacle_detection', False,
-                  'True to enable object detection accuracy evaluation')
-flags.DEFINE_bool('evaluate_obstacle_tracking', False,
-                  'True to enable object tracking evaluation')
-flags.DEFINE_bool('evaluate_prediction', False,
-                  'True to enable prediction evaluation')
-flags.DEFINE_bool('evaluate_control', False,
-                  'True to enable control evaluation')
-flags.DEFINE_bool('evaluate_fusion', False, 'True to enable fusion evaluation')
-flags.DEFINE_bool('evaluate_segmentation', False,
-                  'True to enable segmentation evaluation')
 
 ########################################
 # Recording operators.
@@ -166,6 +152,17 @@ flags.DEFINE_bool('log_traffic_light_detector_output', False,
 ########################################
 flags.DEFINE_bool('evaluation', False,
                   'Enable end-to-end evaluation of the pipeline.')
+flags.DEFINE_bool('evaluate_obstacle_detection', False,
+                  'True to enable object detection accuracy evaluation')
+flags.DEFINE_bool('evaluate_obstacle_tracking', False,
+                  'True to enable object tracking evaluation')
+flags.DEFINE_bool('evaluate_prediction', False,
+                  'True to enable prediction evaluation')
+flags.DEFINE_bool('evaluate_control', False,
+                  'True to enable control evaluation')
+flags.DEFINE_bool('evaluate_fusion', False, 'True to enable fusion evaluation')
+flags.DEFINE_bool('evaluate_segmentation', False,
+                  'True to enable segmentation evaluation')
 
 
 def must_visualize():

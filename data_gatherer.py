@@ -1,5 +1,5 @@
-from absl import app
-from absl import flags
+from absl import app, flags
+
 import erdos
 
 import pylot.flags
@@ -94,6 +94,7 @@ def main(argv):
         pylot.operator_creator.add_imu_logging(imu_stream)
 
     traffic_lights_stream = None
+    traffic_light_camera_stream = None
     if FLAGS.log_traffic_lights:
         (traffic_light_camera_stream, _,
          traffic_light_camera_setup) = pylot.operator_creator.add_rgb_camera(
@@ -207,12 +208,29 @@ def main(argv):
         if obstacles_stream is not None:
             stream_to_sync_on = obstacles_stream
         control_stream = pylot.operator_creator.add_synchronizer(
-            stream_to_sync_on)
+            vehicle_id_stream, stream_to_sync_on)
         control_loop_stream.set(control_stream)
     else:
         raise ValueError(
             "Must be in auto pilot mode. Pass --control_agent=carla_auto_pilot"
         )
+
+    control_display_stream = None
+    streams_to_send_top_on = []
+    if pylot.flags.must_visualize():
+        control_display_stream, ingest_streams = \
+            pylot.operator_creator.add_visualizer(
+                pose_stream=pose_stream,
+                camera_stream=center_camera_stream,
+                tl_camera_stream=traffic_light_camera_stream,
+                depth_stream=depth_camera_stream,
+                point_cloud_stream=point_cloud_stream,
+                segmentation_stream=segmented_stream,
+                imu_stream=imu_stream,
+                obstacles_stream=obstacles_stream,
+                traffic_lights_stream=traffic_lights_stream,
+                tracked_obstacles_stream=obstacles_tracking_stream)
+        streams_to_send_top_on += ingest_streams
 
     # Run the data-flow.
     erdos.run_async()
@@ -220,6 +238,11 @@ def main(argv):
     # Ask all sensors to release their data.
     release_sensor_stream.send(
         erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
+    for stream in streams_to_send_top_on:
+        stream.send(erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
+
+    if pylot.flags.must_visualize():
+        pylot.utils.run_visualizer_control_loop(control_display_stream)
 
 
 if __name__ == '__main__':
