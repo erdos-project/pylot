@@ -34,8 +34,8 @@ def get_world(host="localhost", port=2000, timeout=10):
         world = client.get_world()
     except RuntimeError as r:
         client, world = None, None
-        print("Received an error while connecting to the "
-              "simulator: {}".format(r))
+        raise Exception("Received an error while connecting to the "
+                        "simulator: {}".format(r))
     return (client, world)
 
 
@@ -51,8 +51,6 @@ def get_map(host="localhost", port=2000, timeout=10):
         carla.Map: A map of the Carla city.
     """
     _, world = get_world(host, port, timeout)
-    if world is None:
-        raise ValueError("There was an issue connecting to the simulator.")
     return world.get_map()
 
 

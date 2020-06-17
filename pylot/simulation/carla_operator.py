@@ -62,8 +62,6 @@ class CarlaOperator(erdos.Operator):
         self._client, self._world = pylot.simulation.utils.get_world(
             self._flags.carla_host, self._flags.carla_port,
             self._flags.carla_timeout)
-        if self._client is None or self._world is None:
-            raise ValueError('There was an issue connecting to the simulator.')
 
         if not self._flags.carla_scenario_runner and \
                 self._flags.control_agent != "manual":

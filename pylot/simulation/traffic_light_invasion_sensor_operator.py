@@ -133,22 +133,21 @@ class TrafficLightInvasionSensorOperator(erdos.Operator):
             vehicle_id_msg.timestamp, vehicle_id))
 
         # Connect to the world.
-        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
-                             self._flags.carla_timeout)
-        if world is None:
-            raise ValueError("There was an issue connecting to the simulator.")
-        self._world, self._map = world, world.get_map()
+        _, self._world = get_world(self._flags.carla_host,
+                                   self._flags.carla_port,
+                                   self._flags.carla_timeout)
+        self._map = self._world.get_map()
 
         # Retrieve all the traffic lights from the world.
-        while len(world.get_actors()) == 0:
+        while len(self._world.get_actors()) == 0:
             time.sleep(1)
-        for _actor in world.get_actors():
+        for _actor in self._world.get_actors():
             if 'traffic_light' in _actor.type_id:
                 center, waypoints = self.get_traffic_light_waypoints(_actor)
                 self._traffic_lights.append((_actor, center, waypoints))
 
         # Retrieve the vehicle.
-        self._vehicle = get_vehicle_handle(world, vehicle_id)
+        self._vehicle = get_vehicle_handle(self._world, vehicle_id)
 
     def get_traffic_light_waypoints(self, traffic_light):
         """

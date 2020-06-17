@@ -363,8 +363,6 @@ class VisualizerOperator(erdos.Operator):
             _, self._world = get_world(self._flags.carla_host,
                                        self._flags.carla_port,
                                        self._flags.carla_timeout)
-            if self._world is None:
-                raise ValueError("Error connecting to the simulator.")
 
     def _visualize_pose(self, ego_transform):
         # Draw position. We add 0.5 to z to ensure that the point is above

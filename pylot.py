@@ -1,6 +1,6 @@
 from absl import app, flags
+
 import erdos
-import time
 
 import pylot.flags
 import pylot.component_creator
@@ -154,7 +154,6 @@ def driver():
         waypoints_stream_for_control = waypoints_stream
         pose_stream_for_control = pose_stream
 
-    # Add the behaviour planning and control operator.
     control_stream = pylot.component_creator.add_control(
         vehicle_id_stream, pose_stream_for_control,
         waypoints_stream_for_control)
@@ -232,9 +231,6 @@ def main(args):
     # synchronous mode off after the script finishes running.
     client, world = get_world(FLAGS.carla_host, FLAGS.carla_port,
                               FLAGS.carla_timeout)
-    if client is None or world is None:
-        raise ValueError("There was an issue connecting to the simulator.")
-
     try:
         if FLAGS.simulation_recording_file is not None:
             client.start_recorder(FLAGS.simulation_recording_file)

@@ -7,9 +7,8 @@ import numpy as np
 import os
 import PIL.Image as Image
 
-# Pylot specific imports.
-import pylot.utils
 import pylot.simulation.utils
+import pylot.utils
 
 TL_STATE_TO_PIXEL_COLOR = {
     carla.TrafficLightState.Red: [255, 1, 1],
@@ -62,8 +61,6 @@ class ChauffeurLoggerOperator(erdos.Operator):
         _, self._world = pylot.simulation.utils.get_world(
             self._flags.carla_host, self._flags.carla_port,
             self._flags.carla_timeout)
-        if self._world is None:
-            raise ValueError('There was an issue connecting to the simulator.')
 
     def on_tracking_update(self, msg):
         assert len(msg.timestamp.coordinates) == 1

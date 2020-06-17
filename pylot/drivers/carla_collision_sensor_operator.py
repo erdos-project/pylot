@@ -49,8 +49,6 @@ class CarlaCollisionSensorDriverOperator(erdos.Operator):
         # Connect to the world.
         _, world = get_world(self._flags.carla_host, self._flags.carla_port,
                              self._flags.carla_timeout)
-        if world is None:
-            raise ValueError("There was an issue connecting to the simulator.")
 
         self._vehicle = get_vehicle_handle(world, vehicle_id)
 
