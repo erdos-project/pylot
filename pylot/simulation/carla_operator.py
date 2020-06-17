@@ -64,7 +64,7 @@ class CarlaOperator(erdos.Operator):
             self._flags.carla_timeout)
 
         if not self._flags.carla_scenario_runner and \
-                self._flags.control_agent != "manual":
+                self._flags.control != "manual":
             # Load the appropriate town.
             self._initialize_world()
 
@@ -81,7 +81,7 @@ class CarlaOperator(erdos.Operator):
         pylot.simulation.utils.set_simulation_mode(self._world, self._flags)
 
         if self._flags.carla_scenario_runner or \
-                self._flags.control_agent == "manual":
+                self._flags.control == "manual":
             # Wait until the ego vehicle is spawned by the scenario runner.
             self._logger.info("Waiting for the scenario to be ready ...")
             self._ego_vehicle = pylot.simulation.utils.wait_for_ego_vehicle(
@@ -93,7 +93,7 @@ class CarlaOperator(erdos.Operator):
              self._people) = pylot.simulation.utils.spawn_actors(
                  self._client, self._world, self._flags.carla_version,
                  self._flags.carla_spawn_point_index,
-                 self._flags.control_agent == 'carla_auto_pilot',
+                 self._flags.control == 'carla_auto_pilot',
                  self._flags.carla_num_people, self._flags.carla_num_vehicles,
                  self._logger)
 
@@ -156,7 +156,7 @@ class CarlaOperator(erdos.Operator):
             # If auto pilot or manual mode is enabled then we do not apply the
             # control, but we still want to tick in this method to ensure that
             # all operators finished work before the world ticks.
-            if self._flags.control_agent not in ['carla_auto_pilot', 'manual']:
+            if self._flags.control not in ['carla_auto_pilot', 'manual']:
                 self._apply_control_msg(msg)
             # Tick the world after the operator received a control command.
             # This usually indicates that all the operators have completed

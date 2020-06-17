@@ -640,9 +640,9 @@ def add_fusion(pose_stream, obstacles_stream, depth_stream,
     return obstacle_pos_stream
 
 
-def add_mpc_agent(pose_stream, waypoints_stream):
+def add_mpc(pose_stream, waypoints_stream):
     from pylot.control.mpc.mpc_agent_operator import MPCAgentOperator
-    op_config = erdos.OperatorConfig(name='mpc_agent_operator',
+    op_config = erdos.OperatorConfig(name='mpc_operator',
                                      flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -652,14 +652,14 @@ def add_mpc_agent(pose_stream, waypoints_stream):
     return control_stream
 
 
-def add_pid_agent(pose_stream, waypoints_stream):
-    from pylot.control.pid_agent_operator import PIDAgentOperator
-    op_config = erdos.OperatorConfig(name='pid_agent_operator',
+def add_pid_control(pose_stream, waypoints_stream):
+    from pylot.control.pid_control_operator import PIDControlOperator
+    op_config = erdos.OperatorConfig(name='pid_control_operator',
                                      flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [control_stream] = erdos.connect(PIDAgentOperator, op_config,
+    [control_stream] = erdos.connect(PIDControlOperator, op_config,
                                      [pose_stream, waypoints_stream], FLAGS)
     return control_stream
 

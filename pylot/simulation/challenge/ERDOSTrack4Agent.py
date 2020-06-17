@@ -380,7 +380,7 @@ def create_data_flow():
         pose_stream, ground_obstacles_stream, traffic_lights_stream,
         global_trajectory_stream, open_drive_stream,
         time_to_decision_loop_stream, None)
-    control_stream = pylot.operator_creator.add_pid_agent(
+    control_stream = pylot.operator_creator.add_pid_control(
         pose_stream, waypoints_stream)
     extract_control_stream = erdos.ExtractStream(control_stream)
 

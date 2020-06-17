@@ -1,5 +1,3 @@
-"""Implements an agent operator that uses info from other operators."""
-
 from collections import deque
 
 import erdos
@@ -10,10 +8,10 @@ from pylot.control.messages import ControlMessage
 from pylot.control.pid import PIDLongitudinalController
 
 
-class PIDAgentOperator(erdos.Operator):
-    """Agent operator that uses PID to follow a list of waystops.
+class PIDControlOperator(erdos.Operator):
+    """Operator that uses PID to follow a list of waypoints.
 
-    The agent waits for the pose and waypoint streams to receive a watermark
+    The operator waits for the pose and waypoint streams to receive a watermark
     message for timestamp t, and then it computes and sends a control command.
 
     Args:
@@ -21,8 +19,8 @@ class PIDAgentOperator(erdos.Operator):
             info is received.
         waypoints_stream (:py:class:`erdos.ReadStream`): Stream on which
             :py:class:`~pylot.planning.messages.WaypointMessage` messages are
-            received. The agent receives waypoints from the planning operator,
-            and must follow these waypoints.
+            received. The operator receives waypoints from the planning
+            operator, and must follow these waypoints.
         control_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends :py:class:`~pylot.control.messages.ControlMessage`
             messages.
@@ -36,12 +34,17 @@ class PIDAgentOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
-        # TODO(ionel): Add path to calculate pid error with real time.
+        pid_use_real_time = False
+        if self._flags.execution_mode == 'real-world':
+            # The PID is executing on a real car. Use the real time delta
+            # between two control commands.
+            pid_use_real_time = True
         if self._flags.carla_control_frequency == -1:
             dt = 1.0 / self._flags.carla_fps
         else:
             dt = 1.0 / self._flags.carla_control_frequency
-        self._pid = PIDLongitudinalController(1.0, 0, 0.05, dt)
+        self._pid = PIDLongitudinalController(1.0, 0, 0.05, dt,
+                                              pid_use_real_time)
         # Queues in which received messages are stored.
         self._waypoint_msgs = deque()
         self._pose_msgs = deque()

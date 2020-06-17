@@ -481,20 +481,19 @@ def add_control(pose_stream, waypoints_stream, ground_vehicle_id_stream=None):
         :py:class:`~pylot.control.messages.ControlMessage` messages are
         published.
     """
-    if FLAGS.control_agent == 'pid':
-        control_stream = pylot.operator_creator.add_pid_agent(
+    if FLAGS.control == 'pid':
+        control_stream = pylot.operator_creator.add_pid_control(
             pose_stream, waypoints_stream)
-    elif FLAGS.control_agent == 'mpc':
-        control_stream = pylot.operator_creator.add_mpc_agent(
+    elif FLAGS.control == 'mpc':
+        control_stream = pylot.operator_creator.add_mpc(
             pose_stream, waypoints_stream)
-    elif FLAGS.control_agent in ['carla_auto_pilot', 'manual']:
+    elif FLAGS.control in ['carla_auto_pilot', 'manual']:
         # TODO: Hack! We synchronize on a single stream, based on a
         # guesestimate of which stream is slowest.
         control_stream = pylot.operator_creator.add_synchronizer(
             ground_vehicle_id_stream, waypoints_stream)
     else:
-        raise ValueError('Unexpected control_agent {}'.format(
-            FLAGS.control_agent))
+        raise ValueError('Unexpected control {}'.format(FLAGS.control))
 
     if FLAGS.evaluate_control:
         pylot.operator_creator.add_control_evaluation(pose_stream,

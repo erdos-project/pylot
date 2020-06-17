@@ -22,7 +22,7 @@ pylot.control.messages module
 pylot.control.pid\_agent\_operator module
 -----------------------------------------
 
-.. automodule:: pylot.control.pid_agent_operator
+.. automodule:: pylot.control.pid_control_operator
     :members:
     :undoc-members:
     :show-inheritance:

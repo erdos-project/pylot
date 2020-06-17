@@ -49,7 +49,10 @@ def compute_throttle_and_brake(pid, current_speed, target_speed, flags,
     """
     if current_speed < 0:
         logger.warning('Current speed is negative: {}'.format(current_speed))
-    acceleration = pid.run_step(target_speed, abs(current_speed))
+        non_negative_speed = 0
+    else:
+        non_negative_speed = current_speed
+    acceleration = pid.run_step(target_speed, non_negative_speed)
     if acceleration >= 0.0:
         throttle = min(acceleration, flags.throttle_max)
         brake = 0

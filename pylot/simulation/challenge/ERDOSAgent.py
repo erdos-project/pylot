@@ -388,7 +388,7 @@ def create_data_flow():
         control_display_stream = None
         streams_to_send_top_on = []
 
-    control_stream = pylot.operator_creator.add_pid_agent(
+    control_stream = pylot.operator_creator.add_pid_control(
         pose_stream, waypoints_stream)
     extract_control_stream = erdos.ExtractStream(control_stream)
 

@@ -1,4 +1,5 @@
 import math
+import time
 from collections import deque
 
 import numpy as np
@@ -15,11 +16,18 @@ class PIDLongitudinalController(object):
        K_I: Integral term.
        dt: time differential in seconds.
     """
-    def __init__(self, K_P=1.0, K_D=0.0, K_I=0.0, dt=0.03):
+    def __init__(self,
+                 K_P=1.0,
+                 K_D=0.0,
+                 K_I=0.0,
+                 dt=0.03,
+                 use_real_time=False):
         self._k_p = K_P
         self._k_d = K_D
         self._k_i = K_I
         self._dt = dt
+        self._use_real_time = use_real_time
+        self._last_time = time.time()
         self._error_buffer = deque(maxlen=10)
 
     def run_step(self, target_speed, current_speed):
@@ -36,9 +44,15 @@ class PIDLongitudinalController(object):
         error = (target_speed - current_speed) * 3.6
         self._error_buffer.append(error)
 
+        if self._use_real_time:
+            time_now = time.time()
+            dt = time_now - self._last_time
+            self._last_time = time_now
+        else:
+            dt = self._dt
         if len(self._error_buffer) >= 2:
-            _de = (self._error_buffer[-1] - self._error_buffer[-2]) / self._dt
-            _ie = sum(self._error_buffer) * self._dt
+            _de = (self._error_buffer[-1] - self._error_buffer[-2]) / dt
+            _ie = sum(self._error_buffer) * dt
         else:
             _de = 0.0
             _ie = 0.0
@@ -57,11 +71,18 @@ class PIDLateralController(object):
        K_I: Integral term.
        dt: time differential in seconds.
     """
-    def __init__(self, K_P=1.0, K_D=0.0, K_I=0.0, dt=0.03):
+    def __init__(self,
+                 K_P=1.0,
+                 K_D=0.0,
+                 K_I=0.0,
+                 dt=0.03,
+                 use_real_time=False):
         self._k_p = K_P
         self._k_d = K_D
         self._k_i = K_I
         self._dt = dt
+        self._use_real_time = use_real_time
+        self._last_time = time.time()
         self._e_buffer = deque(maxlen=10)
 
     def run_step(self, waypoint, vehicle_transform):
@@ -85,10 +106,17 @@ class PIDLateralController(object):
         if _cross[2] < 0:
             _dot *= -1.0
 
+        if self._use_real_time:
+            time_now = time.time()
+            dt = time_now - self._last_time
+            self._last_time = time_now
+        else:
+            dt = self._dt
+
         self._e_buffer.append(_dot)
         if len(self._e_buffer) >= 2:
-            _de = (self._e_buffer[-1] - self._e_buffer[-2]) / self._dt
-            _ie = sum(self._e_buffer) * self._dt
+            _de = (self._e_buffer[-1] - self._e_buffer[-2]) / dt
+            _ie = sum(self._e_buffer) * dt
         else:
             _de = 0.0
             _ie = 0.0

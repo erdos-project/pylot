@@ -93,7 +93,7 @@ def main(argv):
     # of which stream is slowest. Instead, We should synchronize on all output
     # streams, and we should ensure that even the operators without output
     # streams complete.
-    if FLAGS.control_agent == 'carla_auto_pilot':
+    if FLAGS.control == 'carla_auto_pilot':
         stream_to_sync_on = iou_stream
         if map_stream is not None:
             stream_to_sync_on = map_stream
@@ -104,8 +104,7 @@ def main(argv):
         control_loop_stream.set(control_stream)
     else:
         raise ValueError(
-            "Must be in auto pilot mode. Pass --control_agent=carla_auto_pilot"
-        )
+            "Must be in auto pilot mode. Pass --control=carla_auto_pilot")
 
     erdos.run_async()
 

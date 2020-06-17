@@ -168,8 +168,8 @@ def create_data_flow():
         obstacles_stream, traffic_lights_stream, open_drive_stream,
         global_trajectory_stream, time_to_decision_loop_stream)
 
-    if FLAGS.control_agent == 'pid':
-        control_stream = pylot.operator_creator.add_pid_agent(
+    if FLAGS.control == 'pid':
+        control_stream = pylot.operator_creator.add_pid_control(
             pose_stream, waypoints_stream)
     else:
         raise ValueError('Only PID control is currently supported')

@@ -181,7 +181,7 @@ using the ```--planning_type``` flag:
 
 ### Driving policies
 Pylot supports three controllers, which can be specified using the
-```control_agent``` flag:
+```control``` flag:
 1. `pid`: an agent that follows the waypoints computed by the planning component
  using a PID controller.
 2. `mpc`: uses model predictive control for speed and steering.
@@ -192,11 +192,11 @@ executing:
 
 ```console
 # Runs all components using the algorithms we implemented and the models we trained:
-python3 pylot.py --flagfile=configs/pid_agent_e2e.conf
+python3 pylot.py --flagfile=configs/e2e.conf
 # Runs the MPC policy
 python3 pylot.py --flagfile=configs/mpc_agent.conf
 # Runs the carla policy
-python3 pylot.py --control_agent=carla_auto_pilot
+python3 pylot.py --control=carla_auto_pilot
 ```
 
 ### Debug logs

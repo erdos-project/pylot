@@ -16,11 +16,11 @@ Execute the following command to run a demo using solely the PID controller:
 
 .. code-block:: bash
 
-    python3 pylot.py --flagfile=configs/pid_agent_e2e.conf
+    python3 pylot.py --flagfile=configs/e2e.conf
 
 Important flags:
 
-- ``--control_agent``: Sets which control algorithm to use: Pylot currently
+- ``--control``: Sets which control algorithm to use: Pylot currently
   offers three alternatives:
 
   1. `mpc <pylot.control.mpc.html#module-pylot.control.mpc.mpc\_agent\_operator>`__:
