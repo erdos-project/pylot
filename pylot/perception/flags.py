@@ -1,6 +1,12 @@
 from absl import flags
 
 # Detection flags.
+flags.DEFINE_list(
+    'obstacle_detection_model_paths',
+    'dependencies/models/obstacle_detection/faster-rcnn/frozen_inference_graph.pb',
+    'Comma-separated list of model paths')
+flags.DEFINE_list('obstacle_detection_model_names', 'faster-rcnn',
+                  'Comma-separated list of model names')
 flags.DEFINE_float(
     'obstacle_detection_gpu_memory_fraction', 0.3,
     'GPU memory fraction allocated to each obstacle detector operator')
@@ -32,6 +38,9 @@ flags.DEFINE_string('depth_estimation_model_path',
                     'Path to AnyNet depth estimation model')
 
 # Tracking flags.
+flags.DEFINE_integer(
+    'tracking_num_steps', 10,
+    'Limit on number of past steps returned by the object tracker.')
 flags.DEFINE_float(
     'min_matching_iou', 0.5,
     'IoU required between detection and track for matching to be considered')

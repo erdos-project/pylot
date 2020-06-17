@@ -1,12 +1,14 @@
 import erdos
+
 import numpy as np
+
 import rospy
+
 from sensor_msgs.msg import PointCloud2
 import sensor_msgs.point_cloud2 as pc2
 
 import pylot.perception.point_cloud
 from pylot.perception.messages import PointCloudMessage
-from pylot.utils import Location
 
 LIDAR_FREQUENCY = 10
 

@@ -1,8 +1,9 @@
 """This module implements an operator that logs IMU sensor readings."""
 
-import erdos
 import json
 import os
+
+import erdos
 
 
 class IMULoggerOperator(erdos.Operator):

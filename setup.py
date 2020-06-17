@@ -23,7 +23,6 @@ setup(
         "opencv-python>=4.1.0.25",
         "opencv-contrib-python>=4.1.0.25",
         "pillow>=6.2.2",
-        "pptk",  # TODO(ionel): Fix pptk install (https://github.com/heremaps/pptk/issues/3)
         "pytest",
         "scikit-image<0.15",
         "scipy==1.2.2",

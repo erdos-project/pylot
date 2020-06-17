@@ -1,5 +1,6 @@
-import erdos
 import threading
+
+import erdos
 
 from pylot.perception.messages import IMUMessage
 from pylot.simulation.utils import get_vehicle_handle, get_world, \

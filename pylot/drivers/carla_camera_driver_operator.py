@@ -1,6 +1,7 @@
-import erdos
 import pickle
 import threading
+
+import erdos
 
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.depth_frame import DepthFrame
@@ -62,6 +63,7 @@ class CarlaCameraDriverOperator(erdos.Operator):
 
     def release_data(self, timestamp):
         if timestamp.is_top:
+            # The operator can always send data ASAP.
             self._release_data = True
         else:
             watermark_msg = erdos.WatermarkMessage(timestamp)
@@ -93,7 +95,6 @@ class CarlaCameraDriverOperator(erdos.Operator):
         # Install the camera.
         camera_blueprint = world.get_blueprint_library().find(
             self._camera_setup.camera_type)
-
         camera_blueprint.set_attribute('image_size_x',
                                        str(self._camera_setup.width))
         camera_blueprint.set_attribute('image_size_y',
@@ -108,7 +109,6 @@ class CarlaCameraDriverOperator(erdos.Operator):
         transform = self._camera_setup.get_transform().as_carla_transform()
 
         self._logger.debug("Spawning a camera: {}".format(self._camera_setup))
-
         self._camera = world.spawn_actor(camera_blueprint,
                                          transform,
                                          attach_to=self._vehicle)
@@ -158,6 +158,7 @@ class CarlaCameraDriverOperator(erdos.Operator):
                     self._camera_stream.send(msg)
                     self._camera_stream.send(watermark_msg)
                 else:
+                    # Pickle the data, and release it upon release msg receipt.
                     pickled_msg = pickle.dumps(
                         msg, protocol=pickle.HIGHEST_PROTOCOL)
                     with self._pickle_lock:

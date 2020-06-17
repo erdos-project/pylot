@@ -1,5 +1,6 @@
-import erdos
 import carla
+
+import erdos
 
 from pylot.simulation.messages import LaneInvasionMessage
 from pylot.simulation.utils import get_vehicle_handle, get_world

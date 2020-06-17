@@ -1,8 +1,9 @@
 """This module implements an operator that logs obstacle trajectories."""
 
-import erdos
 import json
 import os
+
+import erdos
 
 
 class TrajectoryLoggerOperator(erdos.Operator):

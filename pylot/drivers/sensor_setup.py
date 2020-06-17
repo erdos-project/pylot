@@ -506,7 +506,7 @@ class LidarSetup(object):
         # Try to coerce the rotation_frequency to float and throw an error,
         # if not possible.
         rotation_frequency = float(rotation_frequency) if \
-                isinstance(rotation_frequency, int) else rotation_frequency
+            isinstance(rotation_frequency, int) else rotation_frequency
         assert isinstance(rotation_frequency, float), "The rotation_frequency"
         " should be of type 'float'"
         self.rotation_frequency = rotation_frequency
@@ -519,11 +519,11 @@ class LidarSetup(object):
         # Try to coerce the upper_fov and lower_fov to float, and throw an
         # error if not possible.
         upper_fov = float(upper_fov) if \
-                isinstance(upper_fov, int) else upper_fov
+            isinstance(upper_fov, int) else upper_fov
         lower_fov = float(lower_fov) if \
-                isinstance(lower_fov, int) else lower_fov
+            isinstance(lower_fov, int) else lower_fov
         assert isinstance(upper_fov, float) and isinstance(lower_fov, float),\
-                "The upper_fov and lower_fov should be of type 'float'"
+            "The upper_fov and lower_fov should be of type 'float'"
         self.upper_fov, self.lower_fov = upper_fov, lower_fov
 
         # Ensure that the points_per_second is of type 'int'

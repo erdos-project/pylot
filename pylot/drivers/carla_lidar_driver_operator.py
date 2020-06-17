@@ -1,7 +1,9 @@
-import carla
-import erdos
 import pickle
 import threading
+
+import carla
+
+import erdos
 
 from pylot.perception.messages import PointCloudMessage
 from pylot.perception.point_cloud import PointCloud
@@ -39,10 +41,10 @@ class CarlaLidarDriverOperator(erdos.Operator):
         self._lidar_setup = lidar_setup
         # The hero vehicle actor object we obtain from Carla.
         self._vehicle = None
-        self._pickle_lock = threading.Lock()
-        self._pickled_messages = {}
         # Handle to the Lidar Carla actor.
         self._lidar = None
+        self._pickle_lock = threading.Lock()
+        self._pickled_messages = {}
         self._lock = threading.Lock()
         # If false then the operator does not send data until it receives
         # release data watermark. Otherwise, it sends as soon as it
@@ -57,6 +59,7 @@ class CarlaLidarDriverOperator(erdos.Operator):
 
     def release_data(self, timestamp):
         if timestamp.is_top:
+            # The operator can always send data ASAP.
             self._release_data = True
         else:
             watermark_msg = erdos.WatermarkMessage(timestamp)
@@ -97,6 +100,7 @@ class CarlaLidarDriverOperator(erdos.Operator):
                     self._lidar_stream.send(msg)
                     self._lidar_stream.send(watermark_msg)
                 else:
+                    # Pickle the data, and release it upon release msg receipt.
                     pickled_msg = pickle.dumps(
                         msg, protocol=pickle.HIGHEST_PROTOCOL)
                     with self._pickle_lock:
@@ -147,7 +151,6 @@ class CarlaLidarDriverOperator(erdos.Operator):
         transform = self._lidar_setup.get_transform().as_carla_transform()
 
         self._logger.debug("Spawning a lidar: {}".format(self._lidar_setup))
-
         if self._flags.carla_version in ['0.9.8', '0.9.9']:
             # Must attach lidar with a SpringArm, otherwise the point cloud is
             # empty.

@@ -1,8 +1,13 @@
-import cv_bridge
 import cv2
+
+import cv_bridge
+
 import erdos
+
 import numpy as np
+
 import rospy
+
 from sensor_msgs.msg import Image
 
 from pylot.perception.camera_frame import CameraFrame
@@ -47,8 +52,7 @@ class Grasshopper3DriverOperator(erdos.Operator):
         cv2_image = self._bridge.imgmsg_to_cv2(data, "bgr8")
         resized_image = cv2.resize(
             cv2.flip(cv2_image, -1),
-            (self._flags.camera_image_width,
-             self._flags.camera_image_height))
+            (self._flags.camera_image_width, self._flags.camera_image_height))
         numpy_array = np.asarray(resized_image)
         timestamp = erdos.Timestamp(coordinates=[self._msg_cnt])
         camera_frame = CameraFrame(numpy_array, 'BGR', self._camera_setup)

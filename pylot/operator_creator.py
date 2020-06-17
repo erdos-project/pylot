@@ -1,6 +1,5 @@
 from absl import flags
 
-import copy
 import erdos
 
 import pylot.utils

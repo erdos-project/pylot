@@ -1,9 +1,10 @@
 import carla
+
 import erdos
 
-from pylot.utils import Vector3D
-from pylot.simulation.utils import get_world, get_vehicle_handle
 from pylot.simulation.messages import CollisionMessage
+from pylot.simulation.utils import get_vehicle_handle, get_world
+from pylot.utils import Vector3D
 
 
 class CarlaCollisionSensorDriverOperator(erdos.Operator):

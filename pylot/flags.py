@@ -27,21 +27,12 @@ flags.DEFINE_bool('perfect_obstacle_detection', False,
 flags.DEFINE_bool(
     'carla_obstacle_detection', True,
     'True to enable usage of obstacles received directly from CARLA')
-flags.DEFINE_list(
-    'obstacle_detection_model_paths',
-    'dependencies/models/obstacle_detection/faster-rcnn/frozen_inference_graph.pb',
-    'Comma-separated list of model paths')
-flags.DEFINE_list('obstacle_detection_model_names', 'faster-rcnn',
-                  'Comma-separated list of model names')
 flags.DEFINE_bool('obstacle_tracking', False,
                   'True to enable obstacle tracking operator')
 flags.DEFINE_bool('perfect_obstacle_tracking', False,
                   'True to enable perfect obstacle tracking')
 flags.DEFINE_enum('tracker_type', 'sort', ['da_siam_rpn', 'deep_sort', 'sort'],
                   'Sets which obstacle tracker to use')
-flags.DEFINE_integer(
-    'tracking_num_steps', 10,
-    'Limit on number of past steps returned by the object tracker.')
 flags.DEFINE_bool('lane_detection', False, 'True to enable lane detection')
 flags.DEFINE_bool('perfect_lane_detection', False,
                   'True to enable perfect lane detection')
@@ -166,6 +157,7 @@ flags.DEFINE_bool('evaluate_segmentation', False,
 
 
 def must_visualize():
+    """Returns True if any visualization flag is True."""
     return (FLAGS.visualize_rgb_camera or FLAGS.visualize_depth_camera
             or FLAGS.visualize_lidar or FLAGS.visualize_imu
             or FLAGS.visualize_pose or FLAGS.visualize_detected_obstacles

@@ -1,8 +1,8 @@
 """This module implements an operator that logs bounding boxes."""
-
-import erdos
 import json
 import os
+
+import erdos
 
 
 class BoundingBoxLoggerOperator(erdos.Operator):
