@@ -122,10 +122,11 @@ def test_initialize_point_cloud(points, expected):
     "lidar_points, pixel, expected",
     [
 
-        # In this test, lidar points are first converted to camera coordinates,
-        # when constructing the PointCloud. Then, get_pixel_location finds the
-        # closest point in the point cloud, normalizes our query to have the
-        # same depth as this closest point, and converts to unreal coordinates.
+        # In this test for getting pixel locations in CARLA, lidar points
+        # are first converted to camera coordinates, when constructing the
+        # PointCloud. Then, get_pixel_location finds the closest point in
+        # the point cloud, normalizes our query to have the same depth as
+        # this closest point, and converts to unreal coordinates.
         #
         # For example, in the first test case, the lidar points in camera coordinates
         # are (-1,0,1),(1,0,1), and the query pixel is (-0.5, 0, 1). The closest lidar
@@ -139,12 +140,12 @@ def test_initialize_point_cloud(points, expected):
             600, 300), Location(1, 0.5, 0)),
         # Lidar points are left middle and right middle, different depth.
         (np.array([[-2, -2, 0], [1, -1, 0]]), Vector2D(
-            200, 300), Location(2, -0.5, 0)),
+            200, 300), Location(2, -1, 0)),
         (np.array([[-2, -2, 0], [1, -1, 0]]), Vector2D(
             600, 300), Location(1, 0.5, 0)),
         # Lidar points are top left and bottom right, same depth.
         (np.array([[-2, -2, -1.5], [2, -2, 1.5]]), Vector2D(
-            200, 150), Location(2, -0.5, 0.375)),
+            200, 150), Location(2, -1, 0.75)),
     ])
 def test_point_cloud_get_pixel_location(lidar_points, pixel, expected):
     camera_setup = CameraSetup(
