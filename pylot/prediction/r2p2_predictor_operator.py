@@ -64,12 +64,10 @@ class R2P2PredictorOperator(erdos.Operator):
         self._point_cloud_msgs = deque()
         self._tracking_msgs = deque()
 
-        
     @staticmethod
     def connect(point_cloud_stream, tracking_stream):
         prediction_stream = erdos.WriteStream()
         return [prediction_stream]
-
 
     def on_watermark(self, timestamp, prediction_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
@@ -77,19 +75,20 @@ class R2P2PredictorOperator(erdos.Operator):
         point_cloud_msg = self._point_cloud_msgs.popleft()
         tracking_msg = self._tracking_msgs.popleft()
 
-        all_vehicles = [trajectory for trajectory in tracking_msg.obstacle_trajectories if trajectory.label == 'vehicle']
+        all_vehicles = [trajectory for trajectory in tracking_msg.obstacle_trajectories
+                            if trajectory.label in pylot.perception.detection.utils.VEHICLE_LABELS]
         closest_vehicles, ego_vehicle = self._get_closest_vehicles(all_vehicles)
-        self._logger.info('Getting predictions for {} vehicles'.format(
-            len(closest_vehicles)))
+        num_predictions = len(closest_vehicles)
+        self._logger.info('@{}: Getting predictions for {} vehicles'.format(
+            timestamp, num_predictions))
 
         start_time = time.time()
-        if len(closest_vehicles) == 0:
+        if num_predictions == 0:
             self._logger.debug('@{}: no vehicles to make predictions for'.format(timestamp))
             prediction_stream.send(PredictionMessage(timestamp, []))
             return
-        closest_vehicles_ego_transforms = self._get_closest_vehicles_ego_transforms(closest_vehicles, ego_vehicle)
 
-        num_predictions = len(closest_vehicles)
+        closest_vehicles_ego_transforms = self._get_closest_vehicles_ego_transforms(closest_vehicles, ego_vehicle)
 
         # For each vehicle, transform lidar to that vehicle's coordinate frame
         # for purposes of prediction.
@@ -113,7 +112,7 @@ class R2P2PredictorOperator(erdos.Operator):
             # Remove z-coordinate from trajectory.
             closest_trajectories.append(
                 closest_vehicles_ego_transforms[i].inverse_transform_points(cur_trajectory)[:,:2])
-        closest_trajectories = np.stack([self.pad_trajectory(t) for t in closest_trajectories])
+        closest_trajectories = np.stack([self._pad_trajectory(t) for t in closest_trajectories])
 
         # Run the forward pass.
         z = torch.tensor(np.random.normal(
@@ -130,38 +129,10 @@ class R2P2PredictorOperator(erdos.Operator):
                                                         timestamp.coordinates[0],
                                                         'r2p2-modelonly-runtime',
                                                         model_runtime))
-
         prediction_array = prediction_array.cpu().detach().numpy()
 
-        # Transform each predicted trajectory to be in relation to the
-        # ego-vehicle, then convert into an ObstaclePrediction. Because R2P2
-        # performs top-down prediction, we assume the vehicle stays at the same
-        # height as its last location.
-        obstacle_predictions_list = []
-
-        for idx in range(num_predictions):
-            cur_prediction = prediction_array[idx]
-
-            last_location = closest_vehicles_ego_transforms[idx].location
-            predictions = []
-            for t in range(self._flags.prediction_num_future_steps):
-                cur_point = closest_vehicles_ego_transforms[idx].transform_points(
-                                 np.array([[cur_prediction[t][0],
-                                            cur_prediction[t][1],
-                                            last_location.z]]))[0]
-                # R2P2 does not predict vehicle orientation, so we use our
-                # estimated orientation of the vehicle at its latest location.
-                predictions.append(Transform(
-                    location=Location(cur_point[0], cur_point[1], cur_point[2]),
-                    rotation=closest_vehicles_ego_transforms[idx].rotation))
- 
-            obstacle_predictions_list.append(
-                ObstaclePrediction('vehicle',
-                                   closest_vehicles[idx].id,
-                                   closest_vehicles_ego_transforms[idx],
-                                   closest_vehicles[idx].bounding_box,
-                                   1.0, # Probability; currently a filler value because we are taking just one sample from distribution
-                                   predictions))
+        obstacle_predictions_list = self._postprocess_predictions(
+            prediction_array, closest_vehicles, closest_vehicles_ego_transforms)
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.debug("{},{},{},{:.4f}".format(time_epoch_ms(),
                                                         timestamp.coordinates[0],
@@ -170,8 +141,41 @@ class R2P2PredictorOperator(erdos.Operator):
         prediction_stream.send(
             PredictionMessage(timestamp, obstacle_predictions_list))
 
+    def _postprocess_predictions(self, prediction_array, vehicles,
+                                vehicles_ego_transforms):
+        # Transform each predicted trajectory to be in relation to the
+        # ego-vehicle, then convert into an ObstaclePrediction. Because R2P2
+        # performs top-down prediction, we assume the vehicle stays at the same
+        # height as its last location.
+        obstacle_predictions_list = []
+        num_predictions = len(vehicles_ego_transforms)
 
-    def pad_trajectory(self, trajectory):
+        for idx in range(num_predictions):
+            cur_prediction = prediction_array[idx]
+
+            last_location = vehicles_ego_transforms[idx].location
+            predictions = []
+            for t in range(self._flags.prediction_num_future_steps):
+                cur_point = vehicles_ego_transforms[idx].transform_points(
+                                 np.array([[cur_prediction[t][0],
+                                            cur_prediction[t][1],
+                                            last_location.z]]))[0]
+                # R2P2 does not predict vehicle orientation, so we use our
+                # estimated orientation of the vehicle at its latest location.
+                predictions.append(Transform(
+                    location=Location(cur_point[0], cur_point[1], cur_point[2]),
+                    rotation=vehicles_ego_transforms[idx].rotation))
+ 
+            obstacle_predictions_list.append(
+                ObstaclePrediction('vehicle',
+                                   vehicles[idx].id,
+                                   vehicles_ego_transforms[idx],
+                                   vehicles[idx].bounding_box,
+                                   1.0, # Probability; currently a filler value because we are taking just one sample from distribution
+                                   predictions))
+        return obstacle_predictions_list
+
+    def _pad_trajectory(self, trajectory):
         # Take the appropriate number of past steps as specified by flags. 
         # If we have not seen enough past locations of the vehicle, pad the
         # trajectory with the appropriate number of copies of the original
@@ -188,8 +192,6 @@ class R2P2PredictorOperator(erdos.Operator):
         assert trajectory.shape[0] == self._flags.prediction_num_past_steps
         return trajectory
 
-
-
     def _get_closest_vehicles(self, all_vehicles):
         distances = [v.trajectory[-1].get_angle_and_magnitude(Location())[1]
                         for v in all_vehicles]
@@ -202,7 +204,6 @@ class R2P2PredictorOperator(erdos.Operator):
             return sorted_vehicles, sorted_vehicles[0]
         else: # Exclude the ego vehicle.
             return sorted_vehicles[1:], sorted_vehicles[0]
-
 
     def _get_closest_vehicles_ego_transforms(self, closest_vehicles, ego_vehicle):
         closest_vehicles_ego_locations = np.stack([v.trajectory[-1] for v in closest_vehicles])

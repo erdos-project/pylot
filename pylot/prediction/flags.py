@@ -10,7 +10,7 @@ flags.DEFINE_integer(
     'prediction_radius', 50,
     'Make predictions for all vehicles within this radius of the ego-vehicle.')
 flags.DEFINE_boolean(
-    'prediction_ego_agent', True,
+    'prediction_ego_agent', False,
     'Whether we make predictions for the ego agent')
 
 # R2P2 Flags
