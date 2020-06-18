@@ -4,7 +4,6 @@ import erdos
 
 import pylot.simulation.utils
 import pylot.utils
-from pylot.perception.detection.utils import DetectedObstacle
 from pylot.perception.messages import ObstaclesMessage
 
 
@@ -189,8 +188,8 @@ class PerfectDetectorOperator(erdos.Operator):
         Args:
             obstacles (list(:py:class:`~pylot.perception.detection.obstacle.Obstacle`)):
                 List of obstacles.
-            vehicle_transform (:py:class:`~pylot.utils.Transform`): Transform of
-                the ego vehicle.
+            vehicle_transform (:py:class:`~pylot.utils.Transform`): Transform
+                of the ego vehicle.
             depth_frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`):
                 Depth frame taken at the time when obstacles were collected.
             segmented_frame (:py:class:`~pylot.perception.segmentation.segmented_frame.SegmentedFrame`):
@@ -198,7 +197,7 @@ class PerfectDetectorOperator(erdos.Operator):
                 collected.
 
         Returns:
-            list(:py:class:`~pylot.perception.detection.utils.DetectedObstacle`):
+            list(:py:class:`~pylot.perception.detection.obstacle.Obstacle`):
             List of detected obstacles.
         """
         det_obstacles = []
@@ -208,10 +207,8 @@ class PerfectDetectorOperator(erdos.Operator):
             # perfect_detection_max_distance metres away.
             if (obstacle.distance(vehicle_transform) <=
                     self._flags.perfect_detection_max_distance):
-                bbox = obstacle.to_camera_view(depth_frame, segmented_frame)
+                bbox = obstacle.populate_bounding_box_2D(
+                    depth_frame, segmented_frame)
                 if bbox:
-                    det_obstacles.append(
-                        DetectedObstacle(bbox, 1.0, obstacle.label,
-                                         obstacle.id, obstacle.transform,
-                                         obstacle.detailed_label))
+                    det_obstacles.append(obstacle)
         return det_obstacles

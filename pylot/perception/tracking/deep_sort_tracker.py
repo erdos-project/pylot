@@ -1,6 +1,7 @@
 from nanonets_object_tracking.deepsort import deepsort_rbc
 
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
+from pylot.perception.detection.obstacle import Obstacle
+from pylot.perception.detection.utils import BoundingBox2D
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 
@@ -19,7 +20,7 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
         Args:
             frame (:py:class:`~pylot.perception.camera_frame.CameraFrame`):
                 Frame to reinitialize with.
-            obstacles: List of perception.detection.utils.DetectedObstacle.
+            obstacles: List of perception.detection.obstacle.Obstacle.
         """
         # update tracker with new detections
         self.track(frame, obstacles)
@@ -60,7 +61,7 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
                 if xmin < xmax and ymin < ymax:
                     bbox = BoundingBox2D(xmin, xmax, ymin, ymax)
                     tracked_obstacles.append(
-                        DetectedObstacle(bbox, 0, track.label, track.track_id))
+                        Obstacle(bbox, 0, track.label, track.track_id))
                 else:
                     self._logger.error(
                         "Tracker found invalid bounding box {} {} {} {}".

@@ -48,7 +48,7 @@ def stop_person(ego_transform, obstacle, wp_vector, flags, logger, hd_map):
     Args:
         ego_transform (:py:class:`~pylot.utils.Transform`): Transform of
             the ego vehicle in world coordinates.
-        obstacle: A DetectedObstacle or a ObstaclePrediction of a person.
+        obstacle: An Obstacle or an ObstaclePrediction of a person.
         wp_vector (:py:class:`~pylot.utils.Vector2D`): vector from the ego
             vehicle to the target waypoint.
         flags (absl.flags): The flags object.
@@ -130,7 +130,7 @@ def stop_vehicle(ego_transform, obstacle, wp_vector, flags, logger, hd_map):
     Args:
         ego_transform (:py:class:`~pylot.utils.Transform`): Transform of
             the ego vehicle in world coordinates.
-        obstacle: A DetectedObstacle or a ObstaclePrediction of a vehicle.
+        obstacle: An Obstacle or an ObstaclePrediction of a vehicle.
         flags (absl.flags): The flags object.
 
     Returns:

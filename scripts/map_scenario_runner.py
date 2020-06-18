@@ -208,7 +208,8 @@ def process_depth_images(msg,
         if obstacle.distance(vehicle_transform) > 125:
             bbox = None
         else:
-            bbox = obstacle.to_camera_view(depth_frame, semantic_frame.frame)
+            bbox = obstacle.populate_bounding_box_2D(depth_frame,
+                                                     semantic_frame.frame)
         if bbox is not None:
             detected_people.append(bbox)
             if visualize:

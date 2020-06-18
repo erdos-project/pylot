@@ -12,11 +12,11 @@ import pylot.flags
 import pylot.operator_creator
 import pylot.perception.messages
 import pylot.utils
+from pylot.perception.detection.obstacle import Obstacle
 from pylot.perception.detection.speed_limit_sign import SpeedLimitSign
 from pylot.perception.detection.stop_sign import StopSign
 from pylot.perception.detection.traffic_light import TrafficLight, \
     TrafficLightColor
-from pylot.perception.detection.utils import DetectedObstacle
 
 from srunner.challenge.autoagents.autonomous_agent import AutonomousAgent,\
     Track
@@ -192,7 +192,7 @@ class ERDOSTrack4Agent(AutonomousAgent):
                         location))
             else:
                 vehicles_list.append(
-                    DetectedObstacle(
+                    Obstacle(
                         None,  # We currently don't use bounding box
                         1.0,  # confidence
                         'vehicle',
@@ -211,7 +211,7 @@ class ERDOSTrack4Agent(AutonomousAgent):
             roll, pitch, yaw = person_dict['orientation']
             rotation = pylot.utils.Rotation(pitch, yaw, roll)
             people_list.append(
-                DetectedObstacle(
+                Obstacle(
                     None,  # bounding box
                     1.0,  # confidence
                     'person',
@@ -292,7 +292,7 @@ class ERDOSTrack4Agent(AutonomousAgent):
             location = pylot.utils.Location.from_gps(
                 *static_obstacle_dict['position'])
             static_obstacles_list.append(
-                DetectedObstacle(
+                Obstacle(
                     None,  # bounding box
                     1.0,  # confidence
                     'static_obstacle',

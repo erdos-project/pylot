@@ -8,7 +8,8 @@ import numpy as np
 import tensorflow as tf
 
 import pylot.utils
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle,\
+from pylot.perception.detection.obstacle import Obstacle
+from pylot.perception.detection.utils import BoundingBox2D, \
     load_coco_bbox_colors, load_coco_labels
 from pylot.perception.messages import ObstaclesMessage
 
@@ -187,11 +188,10 @@ class EfficientDetOperator(erdos.Operator):
                     ymin, ymax = max(0, ymin), min(ymax, camera_setup.height)
                     if xmin < xmax and ymin < ymax:
                         obstacles.append(
-                            DetectedObstacle(BoundingBox2D(
-                                xmin, xmax, ymin, ymax),
-                                             score,
-                                             self._coco_labels[_class],
-                                             id=self._unique_id))
+                            Obstacle(BoundingBox2D(xmin, xmax, ymin, ymax),
+                                     score,
+                                     self._coco_labels[_class],
+                                     id=self._unique_id))
                         self._unique_id += 1
                         self._csv_logger.info(
                             "{},{},detection,{},{:4f}".format(

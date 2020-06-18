@@ -1,8 +1,10 @@
 import numpy as np
 
 import pylot.utils
-from pylot.perception.detection.utils import BoundingBox3D, \
+from pylot.perception.detection.utils import BoundingBox2D, BoundingBox3D, \
     get_bounding_box_in_camera_view
+
+VEHICLE_LABELS = {'car', 'bicycle', 'motorcycle', 'bus', 'truck', 'vehicle'}
 
 
 class Obstacle(object):
@@ -12,42 +14,46 @@ class Obstacle(object):
     bounding boxes for them.
 
     Args:
-        id (:obj:`int`): The identifier of the obstacle.
+        bounding_box (:py:class:`.BoundingBox2D`): The bounding box of the
+            obstacle (can be 2D or 3D).
+        confidence (:obj:`float`): The confidence of the detection.
         label (:obj:`str`): The label of the obstacle.
-        transform (:py:class:`~pylot.utils.Transform`): Transform of the
-            obstacle.
-        bounding_box (:py:class:`~pylot.utisl.BoundingBox3D`): Bounding box of
-            the obstacle.
-        forward_speed (:obj:`float`): Forward speed of the obstacle (in m/s).
+        id (:obj:`int`): The identifier of the obstacle.
+        transform (:py:class:`~pylot.utils.Transform`, optional): Transform of
+            the obstacle in the world.
 
     Attributes:
-        id (:obj:`int`): The identifier of the obstacle.
+        bounding_box (:py:class:`~pylot.utisl.BoundingBox2D`): Bounding box of
+            the obstacle (can be 2D or 3D).
+        confidence (:obj:`float`): The confidence of the detection.
         label (:obj:`str`): The label of the obstacle.
+        id (:obj:`int`): The identifier of the obstacle.
         transform (:py:class:`~pylot.utils.Transform`): Transform of the
             obstacle.
-        bounding_box (:py:class:`~pylot.utisl.BoundingBox3D`): Bounding box of
-            the obstacle.
-        forward_speed (:obj:`float`): Forward speed of the obstacle (in m/s).
     """
     def __init__(self,
-                 id,
-                 label,
-                 transform,
                  bounding_box,
-                 forward_speed,
+                 confidence,
+                 label,
+                 id=-1,
+                 transform=None,
                  detailed_label=''):
+        self.bounding_box = bounding_box
+        if isinstance(bounding_box, BoundingBox2D):
+            self._bounding_box_2D = bounding_box
+        else:
+            self._bounding_box_2d = None
+        self.confidence = confidence
+        self.label = label
         self.id = id
         self.transform = transform
-        self.bounding_box = bounding_box
-        self.forward_speed = forward_speed
-        self.label = label
         self.detailed_label = detailed_label
         if label == 'vehicle':
             self.segmentation_class = 10
         elif label == 'person':
             self.segmentation_class = 4
         else:
-            raise ValueError('label should be: vehicle or person')
+            self.segmentation_class = None
         # Thresholds to be used for detection of the obstacle.
         self.__segmentation_threshold = 0.20
         self.__depth_threshold = 5
@@ -75,19 +81,26 @@ class Obstacle(object):
         # Convert the bounding box from the simulation to the Pylot one.
         bounding_box = BoundingBox3D.from_carla_bounding_box(
             actor.bounding_box)
-        # Get the speed of the obstacle.
-        vel = actor.get_velocity()
-        forward_speed = np.linalg.norm(np.array([vel.x, vel.y, vel.z]))
         if isinstance(actor, carla.Vehicle):
             label = 'vehicle'
         else:
             label = 'person'
-        # Get the carla actor blueprint from type_id (e.g. vehicle.ford.mustang).
+        # Get the carla actor from type_id (e.g. vehicle.ford.mustang).
         detailed_label = actor.type_id
         # TODO (Sukrit): Move from vehicles and people to separate classes
         # for bicycles, motorcycles, cars and persons.
-        return cls(actor.id, label, transform, bounding_box, forward_speed,
+        return cls(bounding_box, 1.0, label, actor.id, transform,
                    detailed_label)
+
+    def as_mot16_str(self, timestamp):
+        if not self.bounding_box_2D:
+            raise ValueError(
+                'Obstacle {} does not have 2D bounding box'.format(self.id))
+        log_line = "{},{},{},{},{},{},{},{},{},{}\n".format(
+            timestamp, self.id, self.bounding_box_2D.x_min,
+            self.bounding_box_2D.y_min, self.bounding_box_2D.get_width(),
+            self.bounding_box_2D.get_height(), 1.0, -1, -1, -1)
+        return log_line
 
     def distance(self, other_transform):
         """Computes the distance from the obstacle to the other transform.
@@ -105,7 +118,9 @@ class Obstacle(object):
             transform.
         """
         import numpy as np
-
+        if self.transform is None:
+            raise ValueError('Obstacle {} does not have a transform'.format(
+                self.id))
         # Get the location of the vehicle and the obstacle as numpy arrays.
         other_location = other_transform.location.as_numpy_array()
         obstacle_location = self.transform.location.as_numpy_array()
@@ -117,14 +132,84 @@ class Obstacle(object):
             relative_vector * other_transform.forward_vector.as_numpy_array())
         return distance
 
+    def draw_on_image(self,
+                      image_np,
+                      bbox_color_map,
+                      ego_transform=None,
+                      text=None):
+        """Annotate the image with the bounding box of the obstacle."""
+        if not self._bounding_box_2D:
+            raise ValueError(
+                'Obstacle {} does not have 2D bounding box'.format(self.id))
+        import cv2
+        txt_font = cv2.FONT_HERSHEY_SIMPLEX
+        if text is None:
+            text = '{}{:.1f}'.format(self.label, self.confidence)
+            if self.id != -1:
+                text += ', id:{}'.format(self.id)
+            if ego_transform is not None and self.transform is not None:
+                text += ', {:.1f}m'.format(
+                    ego_transform.location.distance(self.transform.location))
+        txt_size = cv2.getTextSize(text, txt_font, 0.5, 2)[0]
+        if self.label in bbox_color_map:
+            color = bbox_color_map[self.label]
+        else:
+            color = [255, 255, 255]
+        # Show bounding box.
+        cv2.rectangle(image_np, self._bounding_box_2D.get_min_point(),
+                      self._bounding_box_2D.get_max_point(), color, 2)
+        # Show text.
+        cv2.rectangle(image_np,
+                      (self._bounding_box_2D.x_min,
+                       self._bounding_box_2D.y_min - txt_size[1] - 2),
+                      (self._bounding_box_2D.x_min + txt_size[0],
+                       self._bounding_box_2D.y_min - 2), color, -1)
+        cv2.putText(
+            image_np,
+            text,
+            (self._bounding_box_2D.x_min, self._bounding_box_2D.y_min - 2),
+            txt_font,
+            0.5, (0, 0, 0),
+            thickness=1,
+            lineType=cv2.LINE_AA)
+
+    def get_in_log_format(self):
+        if not self._bounding_box_2D:
+            raise ValueError(
+                'Obstacle {} does not have 2D bounding box'.format(self.id))
+        return (self.label, self.detailed_label, self.id,
+                (self._bounding_box_2D.get_min_point(),
+                 self._bounding_box_2D.get_max_point()))
+
+    def is_animal(self):
+        return self.label in [
+            'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra',
+            'giraffe'
+        ]
+
     def is_person(self):
         return self.label == 'person'
 
-    def is_vehicle(self):
-        return self.label == 'vehicle'
+    def is_speed_limit(self):
+        return self.label in [
+            'speed limit 30', 'speed limit 60', 'speed limit 90'
+        ]
 
-    def to_camera_view(self, depth_frame, segmented_frame):
-        """Retrieves the 2D bounding box for the obstacle.
+    def is_stop_sign(self):
+        return self.label == 'stop sign' or self.label == 'stop marking'
+
+    def is_traffic_light(self):
+        return self.label in [
+            'red traffic light', 'yellow traffic light', 'green traffic light',
+            'off traffic light'
+        ]
+
+    def is_vehicle(self):
+        # Might want to include train.
+        return self.label in VEHICLE_LABELS
+
+    def populate_bounding_box_2D(self, depth_frame, segmented_frame):
+        """Populates the 2D bounding box for the obstacle.
 
         Heuristically uses the depth frame and segmentation frame to figure out
         if the obstacle is in view of the camera or not.
@@ -141,6 +226,8 @@ class Obstacle(object):
             rectangle over the obstacle if the obstacle is deemed to be
             visible, None otherwise.
         """
+        if self._bounding_box_2D:
+            return self._bounding_box_2D
         # Convert the bounding box of the obstacle to the camera coordinates.
         bb_coordinates = self.bounding_box.to_camera_view(
             self.transform, depth_frame.camera_setup.get_extrinsic_matrix(),
@@ -174,6 +261,7 @@ class Obstacle(object):
                 mean_depth = np.mean(masked_depth) * 1000
                 depth = self.distance(depth_frame.camera_setup.get_transform())
                 if abs(depth - mean_depth) <= self.__depth_threshold:
+                    self._bounding_box_2D = bbox_2d
                     return bbox_2d
         return None
 
@@ -181,6 +269,10 @@ class Obstacle(object):
         return self.__str__()
 
     def __str__(self):
-        return 'Obstacle(id: {}, label: {}, transform: {}, ' \
-            'bounding_box: {})'.format(
-                self.id, self.label, self.transform, self.bounding_box)
+        obstacle = 'Obstacle(id: {}, label: {}, confidence: {}, '\
+            'bbox: {})'.format(self.id, self.label, self.confidence,
+                               self.bounding_box)
+        if self.transform:
+            return obstacle + ' at ' + str(self.transform)
+        else:
+            return obstacle

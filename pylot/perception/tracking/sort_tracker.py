@@ -1,6 +1,7 @@
 import numpy as np
 
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
+from pylot.perception.detection.obstacle import Obstacle
+from pylot.perception.detection.utils import BoundingBox2D
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 from sort.sort import Sort
@@ -19,7 +20,7 @@ class MultiObjectSORTTracker(MultiObjectTracker):
         Args:
             frame (:py:class:`~pylot.perception.camera_frame.CameraFrame`):
                 Frame to reinitialize with.
-            obstacles : List of perception.detection.utils.DetectedObstacle.
+            obstacles : List of perception.detection.obstacle.Obstacle.
         """
         detections, labels, ids = self.convert_detections_for_sort_alg(
             obstacles)
@@ -43,8 +44,7 @@ class MultiObjectSORTTracker(MultiObjectTracker):
             ymax = int(coords[3])
             if xmin < xmax and ymin < ymax:
                 bbox = BoundingBox2D(xmin, xmax, ymin, ymax)
-                obstacles.append(
-                    DetectedObstacle(bbox, 0, track.label, track.id))
+                obstacles.append(Obstacle(bbox, 0, track.label, track.id))
             else:
                 self._logger.error(
                     "Tracker found invalid bounding box {} {} {} {}".format(

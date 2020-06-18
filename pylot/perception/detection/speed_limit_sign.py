@@ -1,8 +1,8 @@
 import pylot.utils
-from pylot.perception.detection.utils import DetectedObstacle
+from pylot.perception.detection.obstacle import Obstacle
 
 
-class SpeedLimitSign(DetectedObstacle):
+class SpeedLimitSign(Obstacle):
     """Class that stores info about a detected speed limit signs.
 
     Args:

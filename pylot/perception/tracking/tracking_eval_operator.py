@@ -1,9 +1,12 @@
 """Implements an operator that eveluates tracking output."""
-import erdos
 import heapq
-import motmetrics as mm
-import numpy as np
 import time
+
+import erdos
+
+import motmetrics as mm
+
+import numpy as np
 
 from pylot.utils import time_epoch_ms
 
@@ -194,8 +197,8 @@ class TrackingEvalOperator(erdos.Operator):
         """Computes several tracker accuracy metrics using motmetrics library.
 
         Args:
-            tracked_obstacles: list of DetectedObstacles from trackers
-            ground_obstacles: list of DetectedObstacles from perfect detector
+            tracked_obstacles: list of Obstacles from trackers
+            ground_obstacles: list of Obstacles from perfect detector
 
         Returns:
             tracker_metrics_df: one-row pandas.DataFrame with columns from
@@ -211,7 +214,8 @@ class TrackingEvalOperator(erdos.Operator):
         ])
         cost_matrix = mm.distances.iou_matrix(ground_bboxes,
                                               tracked_bboxes,
-                                              max_iou=1-self._flags.min_matching_iou)
+                                              max_iou=1 -
+                                              self._flags.min_matching_iou)
         frame_id = self._accumulator.update(ground_ids, track_ids, cost_matrix)
         # Calculate all motchallenge metrics by default. Logged metrics
         # determined by list passed to --tracking_metrics

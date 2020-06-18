@@ -3,8 +3,8 @@ from enum import Enum
 import numpy as np
 
 import pylot.utils
-from pylot.perception.detection.utils import DetectedObstacle, \
-    get_bounding_box_in_camera_view
+from pylot.perception.detection.obstacle import Obstacle
+from pylot.perception.detection.utils import get_bounding_box_in_camera_view
 
 
 class TrafficLightColor(Enum):
@@ -30,7 +30,7 @@ class TrafficLightColor(Enum):
             return 'off traffic light'
 
 
-class TrafficLight(DetectedObstacle):
+class TrafficLight(Obstacle):
     """Class used to store info about traffic lights.
 
     Args:

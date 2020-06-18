@@ -1,5 +1,7 @@
 from pylot.perception.detection.utils import BoundingBox2D, BoundingBox3D
 
+VEHICLE_LABELS = {'car', 'bicycle', 'motorcycle', 'bus', 'truck', 'vehicle'}
+
 
 class ObstaclePrediction(object):
     """Class storing info about an obstacle prediction.
@@ -31,13 +33,34 @@ class ObstaclePrediction(object):
         self.label = label
         self.id = id
         self.transform = transform
-        if not isinstance(bounding_box, BoundingBox3D):
-            if not isinstance(bounding_box, BoundingBox2D):
-                raise ValueError('bounding box should be of type '
-                                 'BoundingBox2D or BoundingBox3D')
+        if not (isinstance(bounding_box, BoundingBox3D)
+                or isinstance(bounding_box, BoundingBox2D)):
+            raise ValueError('bounding box should be of type '
+                             'BoundingBox2D or BoundingBox3D')
         self.bounding_box = bounding_box
         self.probability = probability
         self.trajectory = trajectory
+
+    def is_person(self):
+        return self.label == 'person'
+
+    def is_speed_limit(self):
+        return self.label in [
+            'speed limit 30', 'speed limit 60', 'speed limit 90'
+        ]
+
+    def is_stop_sign(self):
+        return self.label == 'stop sign' or self.label == 'stop marking'
+
+    def is_traffic_light(self):
+        return self.label in [
+            'red traffic light', 'yellow traffic light', 'green traffic light',
+            'off traffic light'
+        ]
+
+    def is_vehicle(self):
+        # Might want to include train.
+        return self.label in VEHICLE_LABELS
 
     def __repr__(self):
         return self.__str__()

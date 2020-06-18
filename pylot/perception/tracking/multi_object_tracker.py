@@ -7,7 +7,7 @@ class MultiObjectTracker(object):
 
         Args:
             frame: perception.camera_frame.CameraFrame to reinitialize with.
-            obstacles: List of perception.detection.utils.DetectedObstacle.
+            obstacles: List of perception.detection.obstacle.Obstacle.
         """
         pass
 

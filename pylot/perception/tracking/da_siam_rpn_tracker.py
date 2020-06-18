@@ -7,7 +7,8 @@ from lapsolver import solve_dense
 
 import numpy as np
 
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle
+from pylot.perception.detection.obstacle import Obstacle
+from pylot.perception.detection.utils import BoundingBox2D
 from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 
 import torch
@@ -20,7 +21,7 @@ class SingleObjectDaSiamRPNTracker(object):
         Args:
             frame (:py:class:`~pylot.perception.camera_frame.CameraFrame`):
                 Frame to reinitialize with.
-            obstacle: perception.detection.utils.DetectedObstacle.
+            obstacle: perception.detection.obstacle.Obstacle.
         """
         self.obstacle = obstacle
         self.missed_det_updates = 0
@@ -48,9 +49,8 @@ class SingleObjectDaSiamRPNTracker(object):
             int(target_pos[0] + target_sz[0] / 2.0),
             int(target_pos[1] - target_sz[1] / 2.0),
             int(target_pos[1] + target_sz[1] / 2.0))
-        return DetectedObstacle(self.obstacle.bounding_box,
-                                self.obstacle.confidence, self.obstacle.label,
-                                self.obstacle.id)
+        return Obstacle(self.obstacle.bounding_box, self.obstacle.confidence,
+                        self.obstacle.label, self.obstacle.id)
 
     def reset_bbox(self, bbox):
         """Resets tracker's bounding box with a new bounding box."""
@@ -77,7 +77,7 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
 
         Args:
             frame: perception.camera_frame.CameraFrame to reinitialize with.
-            obstacles: List of perception.detection.utils.DetectedObstacle.
+            obstacles: List of perception.detection.obstacle.Obstacle.
         """
         # Create a tracker for each obstacle.
         for obstacle in obstacles:
@@ -89,7 +89,7 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
 
         Args:
             frame: perception.camera_frame.CameraFrame to reinitialize with.
-            obstacles: List of perception.detection.utils.DetectedObstacle.
+            obstacles: List of perception.detection.obstacle.Obstacle.
         """
         # If empty obstacles passed in, continue existing tracks and exit.
         if not obstacles:

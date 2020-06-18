@@ -1,7 +1,5 @@
 import copy
 
-import cv2
-
 import numpy as np
 try:
     import queue as queue
@@ -26,8 +24,6 @@ PYLOT_BBOX_COLOR_MAP = {
     'off traffic light': [0, 0, 0],
     '': [255, 255, 255],
 }
-
-VEHICLE_LABELS = {'car', 'bicycle', 'motorcycle', 'bus', 'truck', 'vehicle'}
 
 coco_bbox_color_list = np.array([
     1.000, 1.000, 1.000, 0.850, 0.325, 0.098, 0.929, 0.694, 0.125, 0.494,
@@ -261,128 +257,6 @@ class BoundingBox3D(object):
     def __str__(self):
         return "BoundingBox3D(transform: {}, extent: {})".format(
             self.transform, self.extent)
-
-
-class DetectedObstacle(object):
-    """Class that stores info about a detected obstacle.
-
-    Args:
-        bounding_box (:py:class:`.BoundingBox2D`): The bounding box of the
-            obstacle.
-        confidence (:obj:`float`): The confidence of the detection.
-        label (:obj:`str`): The label of the detected obstacle.
-        id (:obj:`int`, optional): Id associated with the obstacle.
-        transform (:py:class:`~pylot.utils.Transform`, optional): Transform of
-            the obstacle in the world.
-
-    Attributes:
-        bounding_box (:py:class:`.BoundingBox2D`): The bounding box of the
-            obstacle.
-        confidence (:obj:`float`): The confidence of the detection.
-        label (:obj:`str`): The label of the detected obstacle.
-        id (:obj:`int`): Id associated with the obstacle.
-        transform (:py:class:`~pylot.utils.Transform`): Transform of the
-            obstacle in the world.
-    """
-    def __init__(self,
-                 bounding_box,
-                 confidence,
-                 label,
-                 id=-1,
-                 transform=None,
-                 detailed_label=''):
-        self.bounding_box = bounding_box
-        self.confidence = confidence
-        self.label = label
-        self.id = id
-        self.transform = transform
-        self.detailed_label = detailed_label
-
-    def is_animal(self):
-        return self.label in [
-            'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra',
-            'giraffe'
-        ]
-
-    def is_person(self):
-        return self.label == 'person'
-
-    def is_stop_sign(self):
-        return self.label == 'stop sign'
-
-    def is_speed_limit(self):
-        return self.label in [
-            'speed limit 30', 'speed limit 60', 'speed limit 90'
-        ]
-
-    def is_traffic_light(self):
-        return self.label in [
-            'red traffic light', 'yellow traffic light', 'green traffic light',
-            'off traffic light'
-        ]
-
-    def is_vehicle(self):
-        # Might want to include train.
-        return self.label in VEHICLE_LABELS
-
-    def get_in_log_format(self):
-        return (self.label, self.detailed_label, self.id,
-                (self.bounding_box.get_min_point(),
-                 self.bounding_box.get_max_point()))
-
-    def draw_on_image(self,
-                      image_np,
-                      bbox_color_map,
-                      ego_transform=None,
-                      text=None):
-        """Annotate the image with the bounding box of the obstacle."""
-        txt_font = cv2.FONT_HERSHEY_SIMPLEX
-        if text is None:
-            text = '{}{:.1f}'.format(self.label, self.confidence)
-            if self.id != -1:
-                text += ', id:{}'.format(self.id)
-            if ego_transform is not None and self.transform is not None:
-                text += ', {:.1f}m'.format(
-                    ego_transform.location.distance(self.transform.location))
-        txt_size = cv2.getTextSize(text, txt_font, 0.5, 2)[0]
-        if self.label in bbox_color_map:
-            color = bbox_color_map[self.label]
-        else:
-            color = [255, 255, 255]
-        # Show bounding box.
-        cv2.rectangle(image_np, self.bounding_box.get_min_point(),
-                      self.bounding_box.get_max_point(), color, 2)
-        # Show text.
-        cv2.rectangle(image_np, (self.bounding_box.x_min,
-                                 self.bounding_box.y_min - txt_size[1] - 2),
-                      (self.bounding_box.x_min + txt_size[0],
-                       self.bounding_box.y_min - 2), color, -1)
-        cv2.putText(image_np,
-                    text,
-                    (self.bounding_box.x_min, self.bounding_box.y_min - 2),
-                    txt_font,
-                    0.5, (0, 0, 0),
-                    thickness=1,
-                    lineType=cv2.LINE_AA)
-
-    def as_mot16_str(self, timestamp):
-        log_line = "{},{},{},{},{},{},{},{},{},{}\n".format(
-            timestamp, self.id, self.bounding_box.x_min,
-            self.bounding_box.y_min, self.bounding_box.get_width(),
-            self.bounding_box.get_height(), 1.0, -1, -1, -1)
-        return log_line
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        detected_obstacle = 'DetectedObstacle(id: {}, label: {}, ' \
-            'confidence: {}, bbox: {})'.format(
-                self.id, self.label, self.confidence, self.bounding_box)
-        if self.transform:
-            return detected_obstacle + ' at ' + str(self.transform)
-        else:
-            return detected_obstacle
 
 
 class DetectedLane(object):

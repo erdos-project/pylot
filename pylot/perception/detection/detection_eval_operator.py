@@ -179,7 +179,7 @@ class DetectionEvalOperator(erdos.Operator):
             return base + self._sim_interval
 
     def __get_obstacles_by_category(self, obstacles):
-        """ Divides perception.detection.utils.DetectedObstacle by labels."""
+        """Divides perception.detection.obstacle.Obstacle by labels."""
         vehicles = []
         people = []
         traffic_lights = []

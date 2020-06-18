@@ -170,14 +170,14 @@ class ObstaclesMessage(erdos.Message):
     Args:
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
             message.
-        obstacles (list(:py:class:`~pylot.perception.detection.utils.DetectedObstacle`)):
+        obstacles (list(:py:class:`~pylot.perception.detection.obstacle.Obstacle`)):
             Detected obstacles.
         runtime (:obj:`float`, optional): The runtime of the operator that
             produced the obstacles (in ms).
 
 
     Attributes:
-        obstacles (list(:py:class:`~pylot.perception.detection.utils.DetectedObstacle`)):
+        obstacles (list(:py:class:`~pylot.perception.detection.obstacle.Obstacle`)):
             Detected obstacles.
         runtime (:obj:`float`, optional): The runtime of the operator that
             produced the obstacles (in ms).

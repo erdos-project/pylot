@@ -1,9 +1,9 @@
-from pylot.perception.detection.utils import BoundingBox3D, \
-    DetectedObstacle
 import pylot.utils
+from pylot.perception.detection.obstacle import Obstacle
+from pylot.perception.detection.utils import BoundingBox3D
 
 
-class StopSign(DetectedObstacle):
+class StopSign(Obstacle):
     """Class used to store info about stop signs.
 
     Args:

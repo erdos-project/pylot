@@ -7,7 +7,8 @@ import erdos
 import numpy as np
 
 import pylot.utils
-from pylot.perception.detection.utils import BoundingBox2D, DetectedObstacle,\
+from pylot.perception.detection.obstacle import Obstacle
+from pylot.perception.detection.utils import BoundingBox2D, \
     load_coco_bbox_colors, load_coco_labels
 from pylot.perception.messages import ObstaclesMessage
 
@@ -123,7 +124,7 @@ class DetectionOperator(erdos.Operator):
                     if (self._coco_labels[res_classes[i]] in
                             self._important_labels):
                         obstacles.append(
-                            DetectedObstacle(BoundingBox2D(
+                            Obstacle(BoundingBox2D(
                                 int(res_boxes[i][1] *
                                     msg.frame.camera_setup.width),
                                 int(res_boxes[i][3] *
@@ -132,9 +133,9 @@ class DetectionOperator(erdos.Operator):
                                     msg.frame.camera_setup.height),
                                 int(res_boxes[i][2] *
                                     msg.frame.camera_setup.height)),
-                                             res_scores[i],
-                                             self._coco_labels[res_classes[i]],
-                                             id=self._unique_id))
+                                     res_scores[i],
+                                     self._coco_labels[res_classes[i]],
+                                     id=self._unique_id))
                         self._unique_id += 1
                     else:
                         self._logger.warning(
