@@ -184,12 +184,11 @@ class DetectionEvalOperator(erdos.Operator):
         people = []
         traffic_lights = []
         for obstacle in obstacles:
-            if (obstacle.label in
-                    pylot.perception.detection.utils.VEHICLE_LABELS):
+            if obstacle.is_vehicle():
                 vehicles.append(obstacle)
-            elif obstacle.label == 'person':
+            elif obstacle.is_person():
                 people.append(obstacle)
-            elif obstacle.label == 'traffic_light':
+            elif obstacle.is_traffic_light():
                 traffic_lights.append(obstacle)
             else:
                 self._logger.warning('Unexpected label {}'.format(

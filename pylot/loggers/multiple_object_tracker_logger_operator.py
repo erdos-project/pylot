@@ -4,8 +4,6 @@ import os
 
 import erdos
 
-from pylot.perception.detection.utils import VEHICLE_LABELS
-
 
 class MultipleObjectTrackerLoggerOperator(erdos.Operator):
     """Operator that logs tracked obstacles in the MOT16 file format.
@@ -51,7 +49,7 @@ class MultipleObjectTrackerLoggerOperator(erdos.Operator):
         timestamp = msg.timestamp.coordinates[0]
         lines = []
         for obstacle in msg.obstacles:
-            if obstacle.label == 'person' or obstacle.label in VEHICLE_LABELS:
+            if obstacle.is_person() or obstacle.is_vehicle():
                 lines.append(obstacle.as_mot16_str(timestamp))
 
         # Write the data, MOT16 style: https://motchallenge.net/instructions/

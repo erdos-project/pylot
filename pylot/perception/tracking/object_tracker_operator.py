@@ -2,7 +2,6 @@ from collections import deque
 
 import erdos
 
-from pylot.perception.detection.utils import VEHICLE_LABELS
 from pylot.perception.messages import ObstaclesMessage
 
 
@@ -82,8 +81,7 @@ class ObjectTrackerOperator(erdos.Operator):
             assert frame_msg.timestamp == obstacles_msg.timestamp
             detected_obstacles = []
             for obstacle in obstacles_msg.obstacles:
-                if (obstacle.label in VEHICLE_LABELS
-                        or obstacle.label == 'person'):
+                if obstacle.is_vehicle() or obstacle.is_person():
                     detected_obstacles.append(obstacle)
             if (self._watermark_msg_count %
                     self._flags.track_every_nth_detection == 0):

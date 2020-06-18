@@ -1,5 +1,7 @@
 from collections import deque
+
 import erdos
+
 import numpy as np
 
 
@@ -18,7 +20,7 @@ class FusionVerificationOperator(erdos.Operator):
     def on_obstacles_update(self, msg):
         vehicle_positions = []
         for obstacle in msg.obstacles:
-            if obstacle.label == 'vehicle':
+            if obstacle.is_vehicle():
                 position = np.array([
                     obstacle.transform.location.x,
                     obstacle.transform.location.y

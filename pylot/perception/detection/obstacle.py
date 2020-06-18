@@ -117,6 +117,12 @@ class Obstacle(object):
             relative_vector * other_transform.forward_vector.as_numpy_array())
         return distance
 
+    def is_person(self):
+        return self.label == 'person'
+
+    def is_vehicle(self):
+        return self.label == 'vehicle'
+
     def to_camera_view(self, depth_frame, segmented_frame):
         """Retrieves the 2D bounding box for the obstacle.
 

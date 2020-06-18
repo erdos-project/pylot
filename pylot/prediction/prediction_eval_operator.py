@@ -4,7 +4,6 @@ from collections import deque
 
 import erdos
 
-from pylot.perception.detection.utils import VEHICLE_LABELS
 from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 from pylot.prediction.messages import PredictionMessage
 from pylot.prediction.obstacle_prediction import ObstaclePrediction
@@ -147,9 +146,9 @@ class PredictionEvalOperator(erdos.Operator):
                 Vector2D(transform.location.x, transform.location.y)
                 for transform in ground_trajectories[obstacle.id].trajectory
             ]
-            if obstacle.label in VEHICLE_LABELS:
+            if obstacle.is_vehicle():
                 vehicle_cnt += 1
-            elif obstacle.label == 'person':
+            elif obstacle.is_person():
                 person_cnt += 1
             else:
                 raise ValueError('Unexpected obstacle label {}'.format(
@@ -166,11 +165,11 @@ class PredictionEvalOperator(erdos.Operator):
             l2_distance /= len(predicted_trajectory)
             l1_distance /= len(predicted_trajectory)
             fde = predicted_trajectory[-1].l1_distance(ground_trajectory[-1])
-            if obstacle.label in VEHICLE_LABELS:
+            if obstacle.is_vehicle():
                 vehicle_msd += l2_distance
                 vehicle_ade += l1_distance
                 vehicle_fde += fde
-            elif obstacle.label == 'person':
+            elif obstacle.is_person():
                 person_msd += l2_distance
                 person_ade += l1_distance
                 person_fde += fde

@@ -2,7 +2,6 @@ import enum
 import itertools
 import math
 
-import pylot.perception.detection.utils
 from pylot.perception.detection.traffic_light import TrafficLightColor
 
 # Number of predicted locations to consider when computing speed factors.
@@ -305,7 +304,7 @@ def stop_for_agents(ego_transform,
     speed_factor_stop = 1
 
     for obstacle in obstacles:
-        if obstacle.label == 'person' and flags.stop_for_people:
+        if obstacle.is_person() and flags.stop_for_people:
             new_speed_factor_p = stop_person(ego_transform, obstacle,
                                              wp_vector, flags, logger, hd_map)
             if new_speed_factor_p < speed_factor_p:
@@ -313,8 +312,7 @@ def stop_for_agents(ego_transform,
                 logger.debug(
                     '@{}: person {} reduced speed factor to {}'.format(
                         timestamp, obstacle.id, speed_factor_p))
-        elif (obstacle.label in pylot.perception.detection.utils.VEHICLE_LABELS
-              and flags.stop_for_vehicles):
+        elif obstacle.is_vehicle() and flags.stop_for_vehicles:
             new_speed_factor_v = stop_vehicle(ego_transform, obstacle,
                                               wp_vector, flags, logger, hd_map)
             if new_speed_factor_v < speed_factor_v:

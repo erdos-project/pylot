@@ -298,6 +298,33 @@ class DetectedObstacle(object):
         self.transform = transform
         self.detailed_label = detailed_label
 
+    def is_animal(self):
+        return self.label in [
+            'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra',
+            'giraffe'
+        ]
+
+    def is_person(self):
+        return self.label == 'person'
+
+    def is_stop_sign(self):
+        return self.label == 'stop sign'
+
+    def is_speed_limit(self):
+        return self.label in [
+            'speed limit 30', 'speed limit 60', 'speed limit 90'
+        ]
+
+    def is_traffic_light(self):
+        return self.label in [
+            'red traffic light', 'yellow traffic light', 'green traffic light',
+            'off traffic light'
+        ]
+
+    def is_vehicle(self):
+        # Might want to include train.
+        return self.label in VEHICLE_LABELS
+
     def get_in_log_format(self):
         return (self.label, self.detailed_label, self.id,
                 (self.bounding_box.get_min_point(),

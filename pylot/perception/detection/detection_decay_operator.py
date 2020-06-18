@@ -48,7 +48,7 @@ class DetectionDecayOperator(erdos.Operator):
         bboxes = []
         # Select the person bounding boxes.
         for obstacle in msg.obstacles:
-            if obstacle.label == 'person':
+            if obstacle.is_person():
                 bboxes.append(obstacle.bounding_box)
 
         # Remove the buffered bboxes that are too old.
