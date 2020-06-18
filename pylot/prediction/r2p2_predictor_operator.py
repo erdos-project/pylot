@@ -16,7 +16,8 @@ except ImportError:
 import pylot.prediction.flags
 from pylot.prediction.messages import PredictionMessage
 from pylot.prediction.obstacle_prediction import ObstaclePrediction
-from pylot.utils import Location, Rotation, Transform, Vector2D, time_epoch_ms
+import pylot.prediction.utils
+from pylot.utils import Location, Transform, time_epoch_ms
 
 
 class R2P2PredictorOperator(erdos.Operator):
@@ -76,8 +77,11 @@ class R2P2PredictorOperator(erdos.Operator):
             for obstacle_trajectory in tracking_msg.obstacle_trajectories
             if obstacle_trajectory.obstacle.is_vehicle()
         ]
-        closest_vehicles, ego_vehicle = self._get_closest_vehicles(
-            all_vehicles)
+        closest_vehicles, ego_vehicle = \
+            pylot.prediction.utils.get_closest_vehicles(
+                all_vehicles,
+                self._flags.prediction_radius,
+                self._flags.prediction_ego_agent)
         num_predictions = len(closest_vehicles)
         self._logger.info('@{}: Getting predictions for {} vehicles'.format(
             timestamp, num_predictions))
@@ -89,36 +93,9 @@ class R2P2PredictorOperator(erdos.Operator):
             prediction_stream.send(PredictionMessage(timestamp, []))
             return
 
-        closest_vehicles_ego_transforms = \
-            self._get_closest_vehicles_ego_transforms(
-                closest_vehicles, ego_vehicle)
-
-        # For each vehicle, transform lidar to that vehicle's coordinate frame
-        # for purposes of prediction.
-        point_cloud = point_cloud_msg.point_cloud.points
-        binned_lidars = []
-
-        for i in range(num_predictions):
-            rotated_point_cloud = closest_vehicles_ego_transforms[
-                i].inverse_transform_points(point_cloud)
-            binned_lidars.append(self._get_occupancy_grid(rotated_point_cloud))
-
-        binned_lidars = np.concatenate(binned_lidars)
-
-        # Rotate and pad the closest trajectories.
-        closest_trajectories = []
-        for i in range(num_predictions):
-            cur_trajectory = np.stack([[point.location.x,
-                                        point.location.y,
-                                        point.location.z] \
-                for point in closest_vehicles[i].trajectory])
-
-            # Remove z-coordinate from trajectory.
-            closest_trajectories.append(
-                closest_vehicles_ego_transforms[i].inverse_transform_points(
-                    cur_trajectory)[:, :2])
-        closest_trajectories = np.stack(
-            [self._pad_trajectory(t) for t in closest_trajectories])
+        closest_vehicles_ego_transforms, closest_trajectories, binned_lidars = \
+            self._preprocess_input(closest_vehicles, ego_vehicle,
+                                   point_cloud_msg.point_cloud.points)
 
         # Run the forward pass.
         z = torch.tensor(
@@ -148,6 +125,43 @@ class R2P2PredictorOperator(erdos.Operator):
         prediction_stream.send(
             PredictionMessage(timestamp, obstacle_predictions_list))
 
+    def _preprocess_input(self, closest_vehicles, ego_vehicle, point_cloud):
+        num_predictions = len(closest_vehicles)
+
+        closest_vehicles_ego_transforms = \
+            pylot.prediction.utils.get_closest_vehicles_ego_transforms(
+                closest_vehicles, ego_vehicle)
+
+        # Rotate and pad the closest trajectories.
+        closest_trajectories = []
+        for i in range(num_predictions):
+            cur_trajectory = np.stack([[point.location.x,
+                                        point.location.y,
+                                        point.location.z] \
+                for point in closest_vehicles[i].trajectory])
+
+            # Remove z-coordinate from trajectory.
+            closest_trajectories.append(
+                closest_vehicles_ego_transforms[i].inverse_transform_points(
+                    cur_trajectory)[:, :2])
+        closest_trajectories = np.stack(
+            [pylot.prediction.utils.pad_trajectory(t, self._flags.prediction_num_past_steps) \
+                for t in closest_trajectories])
+
+        # For each vehicle, transform the lidar point cloud to that vehicle's
+        # coordinate frame for purposes of prediction.
+        binned_lidars = []
+        for i in range(num_predictions):
+            rotated_point_cloud = closest_vehicles_ego_transforms[
+                i].inverse_transform_points(point_cloud)
+            binned_lidars.append(
+                pylot.prediction.utils.get_occupancy_grid(rotated_point_cloud,
+                    self._lidar_setup.transform.location.z,
+                    int(self._lidar_setup.get_range_in_meters())))
+        binned_lidars = np.concatenate(binned_lidars)
+
+        return closest_vehicles_ego_transforms, closest_trajectories, binned_lidars
+        
     def _postprocess_predictions(self, prediction_array, vehicles,
                                  vehicles_ego_transforms):
         # Transform each predicted trajectory to be in relation to the
@@ -181,124 +195,6 @@ class R2P2PredictorOperator(erdos.Operator):
                 ObstaclePrediction(vehicles[idx], vehicles_ego_transforms[idx],
                                    1.0, predictions))
         return obstacle_predictions_list
-
-    def _pad_trajectory(self, trajectory):
-        # Take the appropriate number of past steps as specified by flags.
-        # If we have not seen enough past locations of the vehicle, pad the
-        # trajectory with the appropriate number of copies of the original
-        # locations.
-        num_past_locations = trajectory.shape[0]
-        if num_past_locations < self._flags.prediction_num_past_steps:
-            initial_copies = np.repeat([np.array(trajectory[0])],
-                                       self._flags.prediction_num_past_steps -
-                                       num_past_locations,
-                                       axis=0)
-            trajectory = np.vstack((initial_copies, trajectory))
-        elif num_past_locations > self._flags.prediction_num_past_steps:
-            trajectory = trajectory[-self._flags.prediction_num_past_steps:]
-        assert trajectory.shape[0] == self._flags.prediction_num_past_steps
-        return trajectory
-
-    def _get_closest_vehicles(self, all_vehicles):
-        distances = [
-            v.trajectory[-1].get_angle_and_magnitude(Location())[1]
-            for v in all_vehicles
-        ]
-        # The first vehicle will always be the ego vehicle.
-        sorted_vehicles = [
-            v for v, d in sorted(zip(all_vehicles, distances),
-                                 key=lambda pair: pair[1])
-            if d <= self._flags.prediction_radius
-        ]
-
-        if self._flags.prediction_ego_agent:
-            return sorted_vehicles, sorted_vehicles[0]
-        else:  # Exclude the ego vehicle.
-            return sorted_vehicles[1:], sorted_vehicles[0]
-
-    def _get_closest_vehicles_ego_transforms(self, closest_vehicles,
-                                             ego_vehicle):
-        closest_vehicles_ego_locations = np.stack(
-            [v.trajectory[-1] for v in closest_vehicles])
-        closest_vehicles_ego_transforms = []
-
-        # Add appropriate rotations to closest_vehicles_ego_transforms, which
-        # we estimate using the direction determined by the last two distinct
-        # locations
-        for i in range(len(closest_vehicles)):
-            cur_vehicle_angle = self._get_vehicle_orientation(
-                closest_vehicles[i])
-            closest_vehicles_ego_transforms.append(
-                Transform(location=closest_vehicles_ego_locations[i].location,
-                          rotation=Rotation(yaw=cur_vehicle_angle)))
-        return closest_vehicles_ego_transforms
-
-    def _get_vehicle_orientation(self, vehicle):
-        # Gets the angle from the positive x-axis for the given vehicle
-        # (trajectory points are in the ego-vehicle's coordinate frame).
-        other_idx = len(vehicle.trajectory) - 2
-        yaw = 0.0  # Default orientation.
-        current_loc = vehicle.trajectory[-1].location.as_vector_2D()
-        while other_idx >= 0:
-            past_ref_loc = vehicle.trajectory[other_idx].location.as_vector_2D(
-            )
-            vec = current_loc - past_ref_loc
-            displacement = current_loc.l2_distance(past_ref_loc)
-            if displacement > 0.001:
-                yaw = vec.get_angle(Vector2D(0, 0))
-                break
-            else:
-                other_idx -= 1
-        # Force angle to be between -180 and 180 degrees.
-        if yaw > 180:
-            yaw -= 360
-        elif yaw < -180:
-            yaw += 360
-        return math.degrees(yaw)
-
-    def _get_occupancy_from_masked_lidar(self, masked_lidar):
-        meters_max = int(self._lidar_setup.get_range_in_meters())
-
-        pixels_per_meter = 2
-        xbins = np.linspace(-meters_max, meters_max,
-                            meters_max * 2 * pixels_per_meter + 1)
-        ybins = np.linspace(-meters_max, meters_max,
-                            meters_max * 2 * pixels_per_meter + 1)
-        grid = np.histogramdd(masked_lidar[..., :2], bins=(xbins, ybins))[0]
-        grid[grid > 0.] = 1
-        return grid
-
-    def _get_occupancy_grid(self, point_cloud):
-        """Get occupancy grids at two different heights."""
-
-        point_cloud = self._point_cloud_to_precog_coordinates(point_cloud)
-
-        # Threshold that was used when generating the PRECOG
-        # (https://arxiv.org/pdf/1905.01296.pdf) dataset
-        z_threshold = -self._lidar_setup.transform.location.z - 2.0
-        above_mask = point_cloud[:, 2] > z_threshold
-
-        feats = ()
-        # Above z_threshold.
-        feats += (self._get_occupancy_from_masked_lidar(
-            point_cloud[above_mask]), )
-        # Below z_threshold.
-        feats += (self._get_occupancy_from_masked_lidar(
-            point_cloud[(1 - above_mask).astype(np.bool)]), )
-
-        stacked_feats = np.stack(feats, axis=-1)
-        return np.expand_dims(stacked_feats, axis=0)
-
-    def _point_cloud_to_precog_coordinates(self, point_cloud):
-        # Converts a LIDAR PointCloud, which is in camera coordinates,
-        # to the coordinates used in the PRECOG dataset, which is LIDAR
-        # coordinates but with the y- and z-coordinates negated (for
-        # a reference describing PRECOG coordinates, see e.g. https://github.com/nrhine1/deep_imitative_models/blob/0d52edfa54cb79da28bd7cf965ebccbe8514fc10/dim/env/preprocess/carla_preprocess.py#L584)
-        to_precog_transform = Transform(matrix=np.array(
-            [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
-        transformed_point_cloud = to_precog_transform.transform_points(
-            point_cloud)
-        return transformed_point_cloud
 
     def on_point_cloud_update(self, msg):
         self._logger.debug('@{}: received point cloud message'.format(
