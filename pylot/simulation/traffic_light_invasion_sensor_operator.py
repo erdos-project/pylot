@@ -49,9 +49,7 @@ class TrafficLightInvasionSensorOperator(erdos.Operator):
         return [traffic_light_invasion_stream]
 
     def is_vehicle_crossing_line(self, seg1, seg2):
-        """
-        check if vehicle crosses a line segment
-        """
+        """Checks if vehicle crosses a line segment."""
         line1 = LineString([(seg1[0].x, seg1[0].y), (seg1[1].x, seg1[1].y)])
         line2 = LineString([(seg2[0].x, seg2[0].y), (seg2[1].x, seg2[1].y)])
         inter = line1.intersection(line2)

@@ -1,9 +1,10 @@
 from enum import Enum
+
 import numpy as np
 
+import pylot.utils
 from pylot.perception.detection.utils import DetectedObstacle, \
     get_bounding_box_in_camera_view
-import pylot.utils
 
 
 class TrafficLightColor(Enum):

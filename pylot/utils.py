@@ -113,8 +113,7 @@ class Vector3D(object):
         return carla.Vector3D(self.x, self.y, self.z)
 
     def l1_distance(self, other):
-        """Calculates the L1 distance between the given point and the other
-        point.
+        """Calculates the L1 distance between the point and another point.
 
         Args:
             other (:py:class:`~.Vector3D`): The other vector used to
@@ -127,6 +126,15 @@ class Vector3D(object):
                                                                    other.z)
 
     def l2_distance(self, other):
+        """Calculates the L2 distance between the point and another point.
+
+        Args:
+            other (:py:class:`~.Vector3D`): The other vector used to
+                calculate the L2 distance to.
+
+        Returns:
+            :obj:`float`: The L2 distance between the two points.
+        """
         vec = np.array([self.x - other.x, self.y - other.y, self.z - other.z])
         return np.linalg.norm(vec)
 
@@ -143,7 +151,8 @@ class Vector3D(object):
             intrinsic_matrix: The intrinsic matrix of the camera.
 
         Returns:
-            An instance with the coordinates converted to the camera view.
+            :py:class:`.Vector3D`: An instance with the coordinates converted
+            to the camera view.
         """
         position_vector = np.array([[self.x], [self.y], [self.z], [1.0]])
 
@@ -161,13 +170,14 @@ class Vector3D(object):
         return location_2D
 
     def rotate(self, angle):
-        """ Rotate the vector by a given angle.
+        """Rotate the vector by a given angle.
 
         Args:
-            angle (float): The angle to rotate the Vector by. (in degrees)
+            angle (float): The angle to rotate the Vector by (in degrees).
 
         Returns:
-            An instance with the coordinates of the rotated vector.
+            :py:class:`.Vector3D`: An instance with the coordinates of the
+            rotated vector.
         """
         x_ = math.cos(math.radians(angle)) * self.x - math.sin(
             math.radians(angle)) * self.y
@@ -214,8 +224,7 @@ class Vector2D(object):
         return angle
 
     def l1_distance(self, other):
-        """Calculates the L1 distance between the given point and the other
-        point.
+        """Calculates the L1 distance between the point and another point.
 
         Args:
             other (:py:class:`~.Vector2D`): The other vector used to
@@ -227,6 +236,15 @@ class Vector2D(object):
         return abs(self.x - other.x) + abs(self.y - other.y)
 
     def l2_distance(self, other):
+        """Calculates the L2 distance between the point and another point.
+
+        Args:
+            other (:py:class:`~.Vector2D`): The other vector used to
+                calculate the L2 distance to.
+
+        Returns:
+            :obj:`float`: The L2 distance between the two points.
+        """
         vec = np.array([self.x - other.x, self.y - other.y])
         return np.linalg.norm(vec)
 
@@ -267,7 +285,7 @@ class Location(Vector3D):
 
     @classmethod
     def from_carla_location(cls, location):
-        """Creates a pylot location from a CARLA location.
+        """Creates a pylot Location from a CARLA location.
 
         Args:
             location (carla.Location): An instance of a CARLA location.
@@ -321,6 +339,14 @@ class Location(Vector3D):
         return (self - other).magnitude()
 
     def as_vector_2D(self):
+        """Transforms the Location into a Vector2D.
+
+        Note:
+            The method just drops the z-axis.
+
+        Returns:
+            :py:class:`.Vector2D`: A 2D vector.
+        """
         return Vector2D(self.x, self.y)
 
     def as_carla_location(self):
@@ -573,7 +599,7 @@ class Transform(object):
             target_loc (:py:class:`.Location`): Location of the target.
 
         Returns:
-            Angle in radians.
+            Angle in radians and vector magnitude.
         """
         target_vec = target_loc.as_vector_2D() - self.location.as_vector_2D()
         magnitude = target_vec.magnitude()
@@ -661,7 +687,7 @@ class Pose(object):
 
 
 class LaneMarkingColor(Enum):
-    """ Enum that defines the lane marking colors according to OpenDrive 1.4.
+    """Enum that defines the lane marking colors according to OpenDrive 1.4.
 
     The goal of this enum is to make sure that lane colors are correctly
     propogated from Carla to Pylot.
@@ -675,7 +701,7 @@ class LaneMarkingColor(Enum):
 
 
 class LaneMarkingType(Enum):
-    """ Enum that defines the lane marking types according to OpenDrive 1.4.
+    """Enum that defines the lane marking types according to OpenDrive 1.4.
 
     The goal of this enum is to make sure that lane markings are correctly
     propogated from Carla to Pylot.
@@ -707,7 +733,7 @@ class LaneChange(Enum):
 
 
 class LaneType(Enum):
-    """ Enum that defines the type of the lane according to OpenDrive 1.4.
+    """Enum that defines the type of the lane according to OpenDrive 1.4.
 
     The goal of this enum is to make sure that the lane change types are
     correctly propogated from Carla to Pylot.
@@ -737,7 +763,7 @@ class LaneType(Enum):
 
 
 class LaneMarking(object):
-    """ Used to represent a lane marking.
+    """Used to represent a lane marking.
 
     Args:
         marking_color (:py:class:`carla.LaneMarkingColor`): The color of the
@@ -829,6 +855,11 @@ def set_tf_loglevel(level):
 
 
 def run_visualizer_control_loop(control_display_stream):
+    """Runs a pygame loop that waits for user commands.
+
+    The user commands are send on the control_display_stream
+    to control the pygame visualization window.
+    """
     import erdos
     import pygame
     clock = pygame.time.Clock()

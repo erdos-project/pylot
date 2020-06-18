@@ -2,7 +2,6 @@ from collections import deque
 
 import erdos
 
-import pylot.utils
 from pylot.perception.messages import TrafficLightsMessage
 from pylot.simulation.utils import get_map, get_traffic_lights_obstacles
 

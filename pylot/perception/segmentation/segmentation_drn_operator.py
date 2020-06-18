@@ -1,10 +1,13 @@
 """Implements an operator that semantically segments frames."""
+import time
+
 import drn.segment
 from drn.segment import DRNSeg
+
 import erdos
-import time
-from torch.autograd import Variable
+
 import torch
+from torch.autograd import Variable
 
 import pylot.utils
 from pylot.perception.messages import SegmentedFrameMessage

@@ -1,7 +1,8 @@
 """Implements an operator that eveluates segmentation output."""
 
-import erdos
 import heapq
+
+import erdos
 
 from pylot.utils import time_epoch_ms
 

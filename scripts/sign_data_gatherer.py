@@ -194,7 +194,7 @@ def log_bounding_boxes(carla_image, depth_msg, segmented_frame, traffic_lights,
         rgb_img.save(file_name)
 
     # Log the bounding boxes.
-    bboxes = [obstacle.get_bbox_label() for obstacle in det_obstacles]
+    bboxes = [obstacle.get_in_log_format() for obstacle in det_obstacles]
     file_name = '{}bboxes-{}_{}_{}.json'.format(FLAGS.data_path, game_time,
                                                 weather, town)
     with open(file_name, 'w') as outfile:

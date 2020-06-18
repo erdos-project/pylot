@@ -206,11 +206,8 @@ class PerfectDetectorOperator(erdos.Operator):
             # Calculate the distance of the obstacle from the vehicle, and
             # convert to camera view if it is less than
             # perfect_detection_max_distance metres away.
-            if obstacle.distance(
-                    vehicle_transform
-            ) > self._flags.perfect_detection_max_distance:
-                bbox = None
-            else:
+            if (obstacle.distance(vehicle_transform) <=
+                    self._flags.perfect_detection_max_distance):
                 bbox = obstacle.to_camera_view(depth_frame, segmented_frame)
                 if bbox:
                     det_obstacles.append(

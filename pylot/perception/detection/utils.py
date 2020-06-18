@@ -1,5 +1,7 @@
 import copy
+
 import cv2
+
 import numpy as np
 try:
     import queue as queue
@@ -8,7 +10,7 @@ except ImportError:
 
 import pylot.utils
 
-GROUND_COLOR_MAP = {
+PYLOT_BBOX_COLOR_MAP = {
     'person': [0, 128, 0],
     'vehicle': [128, 0, 0],
     'car': [128, 0, 0],
@@ -84,6 +86,7 @@ class BoundingBox2D(object):
         return [self.x_min, self.y_min, self.get_width(), self.get_height()]
 
     def is_within(self, point):
+        """Checks if a point is within the bounding box."""
         return (point.x >= self.x_min and point.x <= self.x_max
                 and point.y >= self.y_min and point.y <= self.y_max)
 
@@ -295,16 +298,16 @@ class DetectedObstacle(object):
         self.transform = transform
         self.detailed_label = detailed_label
 
-    def get_bbox_label(self):
+    def get_in_log_format(self):
         return (self.label, self.detailed_label, self.id,
                 (self.bounding_box.get_min_point(),
                  self.bounding_box.get_max_point()))
 
-    def visualize_on_img(self,
-                         image_np,
-                         bbox_color_map,
-                         ego_transform=None,
-                         text=None):
+    def draw_on_image(self,
+                      image_np,
+                      bbox_color_map,
+                      ego_transform=None,
+                      text=None):
         """Annotate the image with the bounding box of the obstacle."""
         txt_font = cv2.FONT_HERSHEY_SIMPLEX
         if text is None:

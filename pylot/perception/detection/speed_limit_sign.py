@@ -1,5 +1,5 @@
-from pylot.perception.detection.utils import DetectedObstacle
 import pylot.utils
+from pylot.perception.detection.utils import DetectedObstacle
 
 
 class SpeedLimitSign(DetectedObstacle):
@@ -51,16 +51,16 @@ class SpeedLimitSign(DetectedObstacle):
         speed_limit = int(actor.type_id.split('.')[-1])
         return cls(speed_limit, 1.0, id=actor.id, transform=transform)
 
-    def get_bbox_label(self):
+    def get_in_log_format(self):
         return (self.label + ' ' + str(self.speed_limit),
                 (self.bounding_box.get_min_point(),
                  self.bounding_box.get_max_point()))
 
-    def visualize_on_img(self, image_np, bbox_color_map, ego_transform=None):
+    def draw_on_image(self, image_np, bbox_color_map, ego_transform=None):
         text = '{} {} {:.1f}'.format(self.speed_limit, self.label,
                                      self.confidence)
-        super(SpeedLimitSign, self).visualize_on_img(image_np, bbox_color_map,
-                                                     ego_transform, text)
+        super(SpeedLimitSign, self).draw_on_image(image_np, bbox_color_map,
+                                                  ego_transform, text)
 
     def __repr__(self):
         return self.__str__()

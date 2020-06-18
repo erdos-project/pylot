@@ -1,6 +1,7 @@
 """Implements an operator that fits a linear model to predict trajectories."""
 
 import erdos
+
 import numpy as np
 
 from pylot.prediction.messages import PredictionMessage

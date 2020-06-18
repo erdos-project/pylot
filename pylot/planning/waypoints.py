@@ -10,15 +10,18 @@ DEFAULT_VIS_TIME = 0.1
 
 
 class Waypoints(object):
+    """Stores waypoints and provides methods to wrangle them."""
     def __init__(self, waypoints, target_speeds=None):
         self.waypoints = waypoints
         if target_speeds is None:
+            # Set target speed to 0 if it is not specified.
             self.target_speeds = deque([0 for _ in range(len(waypoints))])
         else:
             self.target_speeds = target_speeds
 
     @classmethod
     def read_from_csv_file(cls, csv_file_name, target_speed):
+        """Reads waypoints from a csv file."""
         csv_file = open(csv_file_name)
         csv_reader = csv.reader(csv_file)
         waypoints = []
@@ -33,6 +36,7 @@ class Waypoints(object):
         return cls(deque(waypoints), target_speeds),
 
     def as_numpy_array_2D(self):
+        """Returns the waypoints as a numpy array of lists of x and y."""
         wx = []
         wy = []
         for wp in self.waypoints:
@@ -94,17 +98,23 @@ class Waypoints(object):
         return wp_index
 
     def get_angle(self, transform, min_distance):
+        """Returns the angle between the transform and the first waypoint that
+        is at least min_distance away."""
         wp_index = self._get_index(transform, min_distance)
         angle, _ = transform.get_angle_and_magnitude(
             self.waypoints[wp_index].location)
         return angle
 
     def get_vector(self, transform, min_distance):
+        """Returns the vector between the transform and the first waypoint that
+        is at least min_distance away."""
         wp_index = self._get_index(transform, min_distance)
         return self.waypoints[wp_index].location.as_vector_2D() - \
             transform.location.as_vector_2D()
 
     def get_target_speed(self, transform, min_distance):
+        """Gets the target speed at the first waypoint that is at least
+        min_distance away."""
         wp_index = self._get_index(transform, min_distance)
         return self.target_speeds[wp_index]
 
@@ -121,7 +131,8 @@ class Waypoints(object):
                 itertools.islice(self.target_speeds, start_index, end_index))
         return Waypoints(head_wps, head_target_speeds)
 
-    def draw_on_frame(self, bgr_frame):
+    def draw_on_image(self, bgr_frame):
+        """Draw waypoints on a frame."""
         extrinsic_matrix = bgr_frame.camera_setup.get_extrinsic_matrix()
         intrinsic_matrix = bgr_frame.camera_setup.get_intrinsic_matrix()
         for wp in self.waypoints:
@@ -130,6 +141,7 @@ class Waypoints(object):
             bgr_frame.draw_point(pixel_location, [0, 0, 0])
 
     def draw_on_world(self, world):
+        """Draw waypoints on CARLA world."""
         for wp in self.waypoints:
             # Adds 0.5 to z to ensure that the point is above the road surface.
             loc = (wp.location +

@@ -104,6 +104,8 @@ class CarlaOperator(erdos.Operator):
             self._ego_vehicle, self._flags.carla_vehicle_moi,
             self._flags.carla_vehicle_mass)
 
+        # Lock used to ensure that CARLA callbacks are not executed
+        # concurrently.
         self._lock = threading.Lock()
 
         # Dictionary that stores the processing times when sensors are ready

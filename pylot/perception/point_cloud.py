@@ -44,6 +44,11 @@ class PointCloud(object):
         return cls(points, lidar_setup)
 
     def merge(self, point_cloud):
+        """Merges this point cloud with another point cloud.
+
+        Note:
+            The method modifies the point cloud inplace.
+        """
         self.global_points = np.concatenate(
             (self.global_points, point_cloud.global_points), 0)
         self.points = np.concatenate((self.points, point_cloud.points), 0)

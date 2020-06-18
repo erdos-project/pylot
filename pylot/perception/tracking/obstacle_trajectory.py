@@ -23,7 +23,7 @@ class ObstacleTrajectory(object):
         self.bounding_box = bounding_box
         self.trajectory = trajectory
 
-    def visualize_on_img(self, image_np, bbox_color_map, ego_transform=None):
+    def draw_on_image(self, image_np, bbox_color_map, ego_transform=None):
         import cv2
         txt_font = cv2.FONT_HERSHEY_SIMPLEX
         text = '{}, id: {}'.format(self.label, self.id)

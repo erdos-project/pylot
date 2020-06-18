@@ -65,23 +65,26 @@ class CameraFrame(object):
         else:
             return self.frame
 
-    def resize(self, width, height):
-        self.camera_setup.set_resolution(width, height)
-        self.frame = cv2.resize(self.frame,
-                                dsize=(width, height),
-                                interpolation=cv2.INTER_NEAREST)
-
     def annotate_with_bounding_boxes(
         self,
         timestamp,
         detected_obstacles,
         transform=None,
-        bbox_color_map=pylot.perception.detection.utils.GROUND_COLOR_MAP):
+        bbox_color_map=pylot.perception.detection.utils.PYLOT_BBOX_COLOR_MAP):
         pylot.utils.add_timestamp(self.frame, timestamp)
         for obstacle in detected_obstacles:
-            obstacle.visualize_on_img(self.frame,
-                                      bbox_color_map,
-                                      ego_transform=transform)
+            obstacle.draw_on_image(self.frame,
+                                   bbox_color_map,
+                                   ego_transform=transform)
+
+    def draw_point(self, point, color, r=3):
+        cv2.circle(self.frame, (int(point.x), int(point.y)), r, color, -1)
+
+    def resize(self, width, height):
+        self.camera_setup.set_resolution(width, height)
+        self.frame = cv2.resize(self.frame,
+                                dsize=(width, height),
+                                interpolation=cv2.INTER_NEAREST)
 
     def visualize(self, pygame_display, timestamp=None):
         if timestamp is not None:
@@ -93,9 +96,6 @@ class CameraFrame(object):
         image_np = np.transpose(image_np, (1, 0, 2))
         pygame.surfarray.blit_array(pygame_display, image_np)
         pygame.display.flip()
-
-    def draw_point(self, point, color, r=3):
-        cv2.circle(self.frame, (int(point.x), int(point.y)), r, color, -1)
 
     def save(self, timestamp, data_path, file_base):
         """Saves the camera frame to a file.

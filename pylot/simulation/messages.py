@@ -1,7 +1,8 @@
 """This module implements Messages sent out by the simulator-based drivers."""
 
-import erdos
 import carla
+
+import erdos
 
 from pylot.simulation.utils import TrafficInfractionType
 from pylot.utils import LaneMarking, LaneType, Location, Vector3D

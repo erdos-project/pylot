@@ -317,7 +317,7 @@ class VisualizerOperator(erdos.Operator):
             if self._flags.draw_waypoints_on_camera_frames:
                 bgr_frame.camera_setup.set_transform(
                     pose_msg.data.transform * bgr_frame.camera_setup.transform)
-                waypoint_msg.waypoints.draw_on_frame(bgr_frame)
+                waypoint_msg.waypoints.draw_on_image(bgr_frame)
             if self._flags.draw_waypoints_on_world:
                 waypoint_msg.waypoints.draw_on_world(self._world)
             bgr_frame.visualize(self.display, timestamp=timestamp)

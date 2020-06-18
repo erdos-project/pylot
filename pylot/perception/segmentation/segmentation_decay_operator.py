@@ -1,6 +1,7 @@
-from collections import deque
-import erdos
 import time
+from collections import deque
+
+import erdos
 
 from pylot.utils import time_epoch_ms
 

@@ -13,7 +13,6 @@ class PerfectTrackerOperator(erdos.Operator):
     """
     def __init__(self, vehicle_id_stream, ground_obstacles_stream, pose_stream,
                  ground_tracking_stream, flags):
-        """Initializes the PerfectTracker Operator. """
         self._vehicle_id_stream = vehicle_id_stream
         ground_obstacles_stream.add_callback(self.on_obstacles_update)
         pose_stream.add_callback(self.on_pose_update)
