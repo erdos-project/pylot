@@ -1,6 +1,6 @@
-import numpy as np
-
 import bisect
+
+import numpy as np
 
 global_config = {
     'vehicle': {  # configured for lincoln mkz
@@ -292,7 +292,7 @@ class CubicSpline2D:
         closest = np.inf
         for s in np.arange(s0, self.s[-1], 0.2):
             sx, sy = self.calc_position(s)
-            dist = np.linalg.norm([x-sx, y-sy])
+            dist = np.linalg.norm([x - sx, y - sy])
             if dist < closest:
                 closest = dist
                 s_closest = s

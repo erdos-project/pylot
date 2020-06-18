@@ -43,7 +43,8 @@ class PIDControlOperator(erdos.Operator):
             dt = 1.0 / self._flags.carla_fps
         else:
             dt = 1.0 / self._flags.carla_control_frequency
-        self._pid = PIDLongitudinalController(1.0, 0, 0.05, dt,
+        self._pid = PIDLongitudinalController(flags.pid_p, flags.pid_d,
+                                              flags.pid_i, dt,
                                               pid_use_real_time)
         # Queues in which received messages are stored.
         self._waypoint_msgs = deque()

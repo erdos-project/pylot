@@ -320,8 +320,10 @@ def add_r2p2_prediction(point_cloud_stream, obstacles_tracking_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [prediction_stream] = erdos.connect(R2P2PredictorOperator, op_config,
-        [point_cloud_stream, obstacles_tracking_stream], FLAGS, lidar_setup)
+    [prediction_stream
+     ] = erdos.connect(R2P2PredictorOperator, op_config,
+                       [point_cloud_stream, obstacles_tracking_stream], FLAGS,
+                       lidar_setup)
     return prediction_stream
 
 
@@ -638,13 +640,13 @@ def add_fusion(pose_stream, obstacles_stream, depth_stream,
 
 
 def add_mpc(pose_stream, waypoints_stream):
-    from pylot.control.mpc.mpc_agent_operator import MPCAgentOperator
+    from pylot.control.mpc.mpc_operator import MPCOperator
     op_config = erdos.OperatorConfig(name='mpc_operator',
                                      flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [control_stream] = erdos.connect(MPCAgentOperator, op_config,
+    [control_stream] = erdos.connect(MPCOperator, op_config,
                                      [pose_stream, waypoints_stream], FLAGS)
     return control_stream
 

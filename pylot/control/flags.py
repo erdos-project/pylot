@@ -1,9 +1,9 @@
 from absl import flags
 
 # PID controller parameters.
-flags.DEFINE_float('pid_p', 0.25, 'PID p parameter')
-flags.DEFINE_float('pid_i', 0.20, 'PID i parameter')
+flags.DEFINE_float('pid_p', 1.0, 'PID p parameter')
 flags.DEFINE_float('pid_d', 0.0, 'PID d parameter')
+flags.DEFINE_float('pid_i', 0.05, 'PID i parameter')
 flags.DEFINE_integer(
     'min_pid_speed_waypoint_distance', 5,
     'Waypoint used for target speed must be at least this many meters away')

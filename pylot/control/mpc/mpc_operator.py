@@ -1,15 +1,17 @@
 from collections import deque
+
 import erdos
+
 import numpy as np
-from pid_controller.pid import PID
 
 import pylot.control.utils
 from pylot.control.messages import ControlMessage
 from pylot.control.mpc.mpc import ModelPredictiveController
 from pylot.control.mpc.utils import CubicSpline2D, global_config, zero_to_2_pi
+from pylot.control.pid import PIDLongitudinalController
 
 
-class MPCAgentOperator(erdos.Operator):
+class MPCOperator(erdos.Operator):
     def __init__(self, pose_stream, waypoints_stream, control_stream, flags):
         pose_stream.add_callback(self.on_pose_update)
         waypoints_stream.add_callback(self.on_waypoints_update)
@@ -19,7 +21,19 @@ class MPCAgentOperator(erdos.Operator):
                                                  self.config.log_file_name)
         self._flags = flags
         self._config = global_config
-        self._pid = PID(p=flags.pid_p, i=flags.pid_i, d=flags.pid_d)
+
+        pid_use_real_time = False
+        if self._flags.execution_mode == 'real-world':
+            # The PID is executing on a real car. Use the real time delta
+            # between two control commands.
+            pid_use_real_time = True
+        if self._flags.carla_control_frequency == -1:
+            dt = 1.0 / self._flags.carla_fps
+        else:
+            dt = 1.0 / self._flags.carla_control_frequency
+        self._pid = PIDLongitudinalController(flags.pid_p, flags.pid_d,
+                                              flags.pid_i, dt,
+                                              pid_use_real_time)
         self._pose_msgs = deque()
         self._obstacles_msgs = deque()
         self._traffic_light_msgs = deque()
