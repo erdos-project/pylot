@@ -133,8 +133,6 @@ class VisualizerOperator(erdos.Operator):
         mono = default_font if default_font in fonts else fonts[0]
         mono = pygame.font.match_font(mono)
         self.font = pygame.font.Font(mono, 14)
-        self._past_colors = {'person': [255, 0, 0], 'vehicle': [128, 128, 0]}
-        self._future_colors = {'person': [0, 0, 255], 'vehicle': [0, 255, 0]}
 
         # Array of keys to figure out which message to display.
         self.current_display = 0
@@ -325,11 +323,8 @@ class VisualizerOperator(erdos.Operator):
               and prediction_msg):
             frame = prediction_camera_msg.frame
             frame.transform_to_cityscapes()
-            if tracked_obstacle_msg:
-                for obstacle in tracked_obstacle_msg.obstacle_trajectories:
-                    self._draw_trajectory_on_img(obstacle, frame, False)
-            for obstacle in prediction_msg.predictions:
-                self._draw_trajectory_on_img(obstacle, frame, True)
+            for obstacle_prediction in prediction_msg.predictions:
+                obstacle_prediction.draw_trajectory_on_frame(frame)
             frame.visualize(self.display, timestamp=timestamp)
         elif sensor_to_display == "PointCloud" and point_cloud_msg:
             point_cloud_msg.point_cloud.visualize(
@@ -397,52 +392,3 @@ class VisualizerOperator(erdos.Operator):
                                      arrow_size=0.1,
                                      life_time=0.1,
                                      color=carla.Color(255, 0, 0))
-
-    def _draw_trajectory_on_img(self, obstacle, segmented_frame, predict):
-        # Intrinsic and extrinsic matrix of the top down segmentation camera.
-        extrinsic_matrix = segmented_frame.camera_setup.get_extrinsic_matrix()
-        intrinsic_matrix = segmented_frame.camera_setup.get_intrinsic_matrix()
-
-        # Set the color of drawing.
-        if predict:
-            point_color = self._future_colors[obstacle.label]
-        else:
-            point_color = self._past_colors[obstacle.label]
-
-        # Obstacle trajectory points.
-        screen_points = []
-        for transform in obstacle.trajectory:
-            screen_point = transform.location.to_camera_view(
-                extrinsic_matrix, intrinsic_matrix)
-            screen_points.append(screen_point)
-
-        # Draw trajectory on segmented image.
-        for point in screen_points:
-            segmented_frame.draw_point(point, point_color)
-
-        # Obstacle bounding box.
-        if isinstance(obstacle.bounding_box, BoundingBox3D):
-            start_location = obstacle.bounding_box.transform.location - \
-                obstacle.bounding_box.extent
-            end_location = obstacle.bounding_box.transform.location + \
-                obstacle.bounding_box.extent
-            start_points = []
-            end_points = []
-            for transform in obstacle.trajectory:
-                start_transform = transform.transform_locations(
-                    [start_location])
-                end_transform = transform.transform_locations([end_location])
-                start_point = start_transform[0]\
-                    .to_camera_view(extrinsic_matrix, intrinsic_matrix)
-                end_point = end_transform[0]\
-                    .to_camera_view(extrinsic_matrix, intrinsic_matrix)
-                start_points.append(start_point)
-                end_points.append(end_point)
-
-            # Draw bounding box on segmented image.
-            for start_point, end_point in \
-                    zip(start_points, end_points):
-                if (segmented_frame.in_frame(start_point)
-                        or segmented_frame.in_frame(end_point)):
-                    segmented_frame.draw_box(start_point, end_point,
-                                             point_color)

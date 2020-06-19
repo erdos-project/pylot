@@ -171,7 +171,7 @@ class PlanningOperator(erdos.Operator):
         for prediction in prediction_msg.predictions:
             # Use all prediction times as potential obstacles.
             previous_origin = None
-            for transform in prediction.trajectory:
+            for transform in prediction.predicted_trajectory:
                 global_obstacle = ego_transform * transform
                 obstacle_origin = global_obstacle.location.as_numpy_array_2D()
                 # distance filtering
@@ -185,13 +185,12 @@ class PlanningOperator(erdos.Operator):
                     ])
                     if dist_to_ego < self._flags.distance_threshold:
                         # use 3d bounding boxes if available, otherwise use default
-                        if isinstance(prediction.bounding_box, BoundingBox3D):
+                        bbox = prediction.obstacle_trajectory.obstacle.bounding_box
+                        if isinstance(bbox, BoundingBox3D):
                             start_location = \
-                                prediction.bounding_box.transform.location - \
-                                prediction.bounding_box.extent
+                                bbox.transform.location - bbox.extent
                             end_location = \
-                                prediction.bounding_box.transform.location + \
-                                prediction.bounding_box.extent
+                                bbox.transform.location + bbox.extent
                             start_transform = global_obstacle.transform_locations(
                                 [start_location])
                             end_transform = global_obstacle.transform_locations(

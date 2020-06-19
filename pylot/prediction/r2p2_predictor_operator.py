@@ -72,8 +72,9 @@ class R2P2PredictorOperator(erdos.Operator):
         tracking_msg = self._tracking_msgs.popleft()
 
         all_vehicles = [
-            trajectory for trajectory in tracking_msg.obstacle_trajectories
-            if trajectory.is_vehicle()
+            obstacle_trajectory
+            for obstacle_trajectory in tracking_msg.obstacle_trajectories
+            if obstacle_trajectory.obstacle.is_vehicle()
         ]
         closest_vehicles, ego_vehicle = self._get_closest_vehicles(
             all_vehicles)
@@ -174,14 +175,11 @@ class R2P2PredictorOperator(erdos.Operator):
                                                 cur_point[2]),
                               rotation=vehicles_ego_transforms[idx].rotation))
 
+            # Probability; currently a filler value because we are taking
+            # just one sample from distribution
             obstacle_predictions_list.append(
-                ObstaclePrediction(
-                    vehicles[idx].label,
-                    vehicles[idx].id,
-                    vehicles_ego_transforms[idx],
-                    vehicles[idx].bounding_box,
-                    1.0,  # Probability; currently a filler value because we are taking just one sample from distribution
-                    predictions))
+                ObstaclePrediction(vehicles[idx], vehicles_ego_transforms[idx],
+                                   1.0, predictions))
         return obstacle_predictions_list
 
     def _pad_trajectory(self, trajectory):

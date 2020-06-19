@@ -57,12 +57,12 @@ def stop_person(ego_transform, obstacle, wp_vector, flags, logger, hd_map):
         :obj:`float`: A stopping factor between 0 and 1 (i.e., no braking).
     """
     if hd_map is not None:
-        if hasattr(obstacle, 'trajectory'):
+        if hasattr(obstacle, 'predicted_trajectory'):
             if not any(
                     map(
                         lambda transform: hd_map.are_on_same_lane(
                             transform.location, ego_transform.location),
-                        obstacle.trajectory)):
+                        obstacle.predicted_trajectory)):
                 # The person is not going to be on the road.
                 logger.debug(
                     'Ignoring ({},{}); it is not going to be on the same lane'.
@@ -80,10 +80,10 @@ def stop_person(ego_transform, obstacle, wp_vector, flags, logger, hd_map):
     min_speed_factor_p = _compute_person_speed_factor(
         ego_location_2d, obstacle.transform.location.as_vector_2D(), wp_vector,
         flags, logger)
-    if hasattr(obstacle, 'trajectory'):
+    if hasattr(obstacle, 'predicted_trajectory'):
         transforms = itertools.islice(
-            obstacle.trajectory, 0,
-            min(NUM_FUTURE_TRANSFORMS, len(obstacle.trajectory)))
+            obstacle.predicted_trajectory, 0,
+            min(NUM_FUTURE_TRANSFORMS, len(obstacle.predicted_trajectory)))
         for person_transform in transforms:
             speed_factor_p = _compute_person_speed_factor(
                 ego_location_2d, person_transform.location.as_vector_2D(),
@@ -145,11 +145,11 @@ def stop_vehicle(ego_transform, obstacle, wp_vector, flags, logger, hd_map):
         if not hd_map.are_on_same_lane(ego_transform.location,
                                        obstacle.transform.location):
             # Vehicle is not on the same lane as the ego.
-            if (not hasattr(obstacle, 'trajectory') or not any(
+            if (not hasattr(obstacle, 'predicted_trajectory') or not any(
                     map(
                         lambda transform: hd_map.are_on_same_lane(
                             transform.location, ego_transform.location),
-                        obstacle.trajectory))):
+                        obstacle.predicted_trajectory))):
                 # The vehicle is not going to be on the road.
                 logger.debug(
                     'Ignoring ({},{}); it is not going to be on the road'.
@@ -162,10 +162,10 @@ def stop_vehicle(ego_transform, obstacle, wp_vector, flags, logger, hd_map):
     min_speed_factor_v = _compute_vehicle_speed_factor(
         ego_location_2d, obstacle.transform.location.as_vector_2D(), wp_vector,
         flags, logger)
-    if hasattr(obstacle, 'trajectory'):
+    if hasattr(obstacle, 'predicted_trajectory'):
         transforms = itertools.islice(
-            obstacle.trajectory, 0,
-            min(NUM_FUTURE_TRANSFORMS, len(obstacle.trajectory)))
+            obstacle.predicted_trajectory, 0,
+            min(NUM_FUTURE_TRANSFORMS, len(obstacle.predicted_trajectory)))
         for vehicle_transform in transforms:
             speed_factor_v = _compute_vehicle_speed_factor(
                 ego_location_2d, vehicle_transform.location.as_vector_2D(),
@@ -322,7 +322,7 @@ def stop_for_agents(ego_transform,
                         timestamp, obstacle.id, speed_factor_v))
         else:
             logger.debug('@{}: filtering obstacle {}'.format(
-                timestamp, obstacle))
+                timestamp, obstacle.label))
 
     semaphorized_junction = False
     if flags.stop_for_traffic_lights:

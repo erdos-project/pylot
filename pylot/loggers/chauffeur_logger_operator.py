@@ -76,24 +76,24 @@ class ChauffeurLoggerOperator(erdos.Operator):
         intrinsic_matrix = self._top_down_camera_setup.get_intrinsic_matrix()
 
         rotation = pylot.utils.Rotation()
-        for obstacle in msg.obstacle_trajectories:
+        for obstacle_trajectory in msg.obstacle_trajectories:
             # Convert to screen points.
             screen_points = [
                 transform.location.to_camera_view(extrinsic_matrix,
                                                   intrinsic_matrix)
-                for transform in obstacle.trajectory
+                for transform in obstacle_trajectory.trajectory
             ]
 
             # Keep track of ground vehicle waypoints
-            if obstacle.id == self._ground_vehicle_id:
-                self._waypoints = obstacle.trajectory
+            if obstacle_trajectory.id == self._ground_vehicle_id:
+                self._waypoints = obstacle_trajectory.trajectory
 
             # Draw trajectory points on segmented image.
             for point in screen_points:
                 if (0 <= point.x <= self._flags.camera_image_width) and \
                    (0 <= point.y <= self._flags.camera_image_height):
                     r = 3
-                    if obstacle.id == self._ground_vehicle_id:
+                    if obstacle_trajectory.id == self._ground_vehicle_id:
                         r = 10
                     cv2.circle(past_poses, (int(point.x), int(point.y)), r,
                                (100, 100, 100), -1)

@@ -305,10 +305,24 @@ class HDMap(object):
             return (False, None)
 
     def get_left_lane(self, location):
-        raise NotImplementedError
+        waypoint = self._map.get_waypoint(location.as_carla_location(),
+                                          project_to_road=False)
+        if waypoint:
+            left_lane_waypoint = waypoint.get_left_lane()
+            if left_lane_waypoint:
+                return pylot.utils.Transform.from_carla_transform(
+                    waypoint.transform)
+        return None
 
     def get_right_lane(self, location):
-        raise NotImplementedError
+        waypoint = self._map.get_waypoint(location.as_carla_location(),
+                                          project_to_road=False)
+        if waypoint:
+            right_lane_waypoint = waypoint.get_right_lane()
+            if right_lane_waypoint:
+                return pylot.utils.Transform.from_carla_transform(
+                    waypoint.transform)
+        return None
 
     def compute_waypoints(self, source_loc, destination_loc):
         """Computes waypoints between two locations.

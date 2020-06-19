@@ -73,9 +73,7 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
                                           pylot.utils.Rotation()))
             # The trajectory is relative to the current location.
             obstacle_trajectories.append(
-                ObstacleTrajectory(obstacle.label, obstacle.id,
-                                   obstacle.bounding_box,
-                                   cur_obstacle_trajectory))
+                ObstacleTrajectory(obstacle, cur_obstacle_trajectory))
 
         tracked_obstacles_stream.send(
             ObstacleTrajectoriesMessage(timestamp, obstacle_trajectories))

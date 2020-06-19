@@ -77,17 +77,10 @@ class PredictionEvalOperator(erdos.Operator):
             # Convert the tracking message to a dictionary with trajectories
             # in world coordinates, for speedup when calculating metrics.
             ground_trajectories_dict = {}
-            for obstacle in tracking_msg.obstacle_trajectories:
-                cur_trajectory = []
-                for past_transform in obstacle.trajectory:
-                    world_coord = vehicle_transform * past_transform
-                    cur_trajectory.append(world_coord)
-
-                ground_trajectories_dict[obstacle.id] = \
-                    ObstacleTrajectory(obstacle.label,
-                                       obstacle.id,
-                                       obstacle.bounding_box,
-                                       cur_trajectory)
+            for obstacle_trajectory in tracking_msg.obstacle_trajectories:
+                obstacle_trajectory.to_world_coordinates(vehicle_transform)
+                ground_trajectories_dict[obstacle_trajectory.id] = \
+                    obstacle_trajectory
             # Evaluate the prediction corresponding to the current set of
             # ground truth past trajectories.
             self._calculate_metrics(timestamp, ground_trajectories_dict,
@@ -95,25 +88,9 @@ class PredictionEvalOperator(erdos.Operator):
 
         # Convert the prediction to world coordinates and append it to the
         # queue.
-        obstacle_predictions_list = []
-        for obstacle in prediction_msg.predictions:
-            cur_trajectory = []
-            for past_transform in obstacle.trajectory:
-                world_coord = vehicle_transform * past_transform
-                cur_trajectory.append(world_coord)
-            # Get the current transform of the obstacle, which is the last
-            # trajectory value.
-            cur_transform = obstacle.trajectory[-1]
-            obstacle_predictions_list.append(
-                ObstaclePrediction(
-                    obstacle.label,
-                    obstacle.id,
-                    cur_transform,
-                    obstacle.bounding_box,
-                    1.0,  # probability
-                    cur_trajectory))
-        self._predictions.append(
-            PredictionMessage(timestamp, obstacle_predictions_list))
+        for obstacle_prediction in prediction_msg.predictions:
+            obstacle_prediction.to_world_coordinates(vehicle_transform)
+        self._predictions.append(prediction_msg)
 
     def _calculate_metrics(self, timestamp, ground_trajectories, predictions):
         """ Calculates and logs MSD (mean squared distance), ADE (average
@@ -135,24 +112,25 @@ class PredictionEvalOperator(erdos.Operator):
         person_ade = 0.0
         person_fde = 0.0
 
-        for obstacle in predictions:
+        for obstacle_prediction in predictions:
             # We remove altitude from the accuracy calculation because the
             # prediction operators do not currently predict altitude.
             predicted_trajectory = [
                 Vector2D(transform.location.x, transform.location.y)
-                for transform in obstacle.trajectory
+                for transform in obstacle_prediction.predicted_trajectory
             ]
             ground_trajectory = [
                 Vector2D(transform.location.x, transform.location.y)
-                for transform in ground_trajectories[obstacle.id].trajectory
+                for transform in ground_trajectories[
+                    obstacle_prediction.id].trajectory
             ]
-            if obstacle.is_vehicle():
+            if obstacle_prediction.is_vehicle():
                 vehicle_cnt += 1
-            elif obstacle.is_person():
+            elif obstacle_prediction.is_person():
                 person_cnt += 1
             else:
                 raise ValueError('Unexpected obstacle label {}'.format(
-                    obstacle.label))
+                    obstacle_prediction.label))
             l2_distance = 0.0
             l1_distance = 0.0
             for idx in range(1, len(predicted_trajectory) + 1):
@@ -165,17 +143,17 @@ class PredictionEvalOperator(erdos.Operator):
             l2_distance /= len(predicted_trajectory)
             l1_distance /= len(predicted_trajectory)
             fde = predicted_trajectory[-1].l1_distance(ground_trajectory[-1])
-            if obstacle.is_vehicle():
+            if obstacle_prediction.is_vehicle():
                 vehicle_msd += l2_distance
                 vehicle_ade += l1_distance
                 vehicle_fde += fde
-            elif obstacle.is_person():
+            elif obstacle_prediction.is_person():
                 person_msd += l2_distance
                 person_ade += l1_distance
                 person_fde += fde
             else:
                 raise ValueError('Unexpected obstacle label {}'.format(
-                    obstacle.label))
+                    obstacle_prediction.label))
 
         # Log metrics.
         sim_time = timestamp.coordinates[0]

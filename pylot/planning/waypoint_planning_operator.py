@@ -115,8 +115,8 @@ class WaypointPlanningOperator(PlanningOperator):
         for obstacle_prediction in obstacle_predictions:
             obstacle_prediction.transform = ego_transform * \
                 obstacle_prediction.transform
-            obstacle_prediction.trajectory = [
+            obstacle_prediction.predicted_trajectory = [
                 ego_transform * transform
-                for transform in obstacle_prediction.trajectory
+                for transform in obstacle_prediction.predicted_trajectory
             ]
         return obstacle_predictions

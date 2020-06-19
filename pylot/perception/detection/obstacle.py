@@ -42,7 +42,7 @@ class Obstacle(object):
         if isinstance(bounding_box, BoundingBox2D):
             self._bounding_box_2D = bounding_box
         else:
-            self._bounding_box_2d = None
+            self._bounding_box_2D = None
         self.confidence = confidence
         self.label = label
         self.id = id
@@ -172,6 +172,44 @@ class Obstacle(object):
             0.5, (0, 0, 0),
             thickness=1,
             lineType=cv2.LINE_AA)
+
+    def draw_trajectory_on_frame(self, trajectory, frame, point_color):
+        # Intrinsic and extrinsic matrix of the top down camera.
+        extrinsic_matrix = frame.camera_setup.get_extrinsic_matrix()
+        intrinsic_matrix = frame.camera_setup.get_intrinsic_matrix()
+        # Obstacle trajectory points.
+        screen_points = []
+        for transform in trajectory:
+            screen_point = transform.location.to_camera_view(
+                extrinsic_matrix, intrinsic_matrix)
+            screen_points.append(screen_point)
+        # Draw trajectory on frame.
+        for point in screen_points:
+            frame.draw_point(point, point_color)
+
+        # Obstacle bounding box.
+        if isinstance(self.bounding_box, BoundingBox3D):
+            start_location = self.bounding_box.transform.location - \
+                self.bounding_box.extent
+            end_location = self.bounding_box.transform.location + \
+                self.bounding_box.extent
+            start_points = []
+            end_points = []
+            for transform in trajectory:
+                [start_transform,
+                 end_transform] = transform.transform_locations(
+                     [start_location, end_location])
+                start_point = start_transform.to_camera_view(
+                    extrinsic_matrix, intrinsic_matrix)
+                end_point = end_transform.to_camera_view(
+                    extrinsic_matrix, intrinsic_matrix)
+                start_points.append(start_point)
+                end_points.append(end_point)
+
+            # Draw bounding box on segmented image.
+            for start_point, end_point in zip(start_points, end_points):
+                if frame.in_frame(start_point) or frame.in_frame(end_point):
+                    frame.draw_box(start_point, end_point, point_color)
 
     def get_in_log_format(self):
         if not self._bounding_box_2D:

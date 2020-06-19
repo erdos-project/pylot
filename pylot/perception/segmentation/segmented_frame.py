@@ -262,15 +262,15 @@ class SegmentedFrame(object):
         pygame.surfarray.blit_array(pygame_display, image_np)
         pygame.display.flip()
 
-    def draw_point(self, point, color, r=3):
-        """Draws a colored point on the segmented frame."""
-        cv2.circle(self._frame, (int(point.x), int(point.y)), r, color, -1)
-
     def draw_box(self, start_point, end_point, color, thickness=3):
         """Draw a colored box defined by start_point, end_point."""
         start = (int(start_point.x), int(start_point.y))
         end = (int(end_point.x), int(end_point.y))
         cv2.rectangle(self._frame, start, end, color, thickness)
+
+    def draw_point(self, point, color, r=3):
+        """Draws a colored point on the segmented frame."""
+        cv2.circle(self._frame, (int(point.x), int(point.y)), r, color, -1)
 
     def _get_traffic_sign_pixels(self):
         """Returns a frame with the traffic sign pixels set to True."""

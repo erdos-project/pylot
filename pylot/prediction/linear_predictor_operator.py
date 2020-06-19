@@ -53,10 +53,10 @@ class LinearPredictorOperator(erdos.Operator):
             msg.timestamp))
         obstacle_predictions_list = []
 
-        for obstacle in msg.obstacle_trajectories:
+        for obstacle_trajectory in msg.obstacle_trajectories:
             # Time step matrices used in regression.
             num_steps = min(self._flags.prediction_num_past_steps,
-                            len(obstacle.trajectory))
+                            len(obstacle_trajectory.trajectory))
             ts = np.zeros((num_steps, 2))
             future_ts = np.zeros((self._flags.prediction_num_future_steps, 2))
             for t in range(num_steps):
@@ -69,7 +69,7 @@ class LinearPredictorOperator(erdos.Operator):
             xy = np.zeros((num_steps, 2))
             for t in range(num_steps):
                 # t-th most recent step
-                transform = obstacle.trajectory[-(t + 1)]
+                transform = obstacle_trajectory.trajectory[-(t + 1)]
                 xy[t][0] = transform.location.x
                 xy[t][1] = transform.location.y
             linear_model_params = np.linalg.lstsq(ts, xy)[0]
@@ -83,14 +83,9 @@ class LinearPredictorOperator(erdos.Operator):
                               rotation=Rotation()))
             # Get the current transform of the obstacle, which is the last
             # trajectory value.
-            cur_transform = obstacle.trajectory[-1]
+            cur_transform = obstacle_trajectory.trajectory[-1]
             obstacle_predictions_list.append(
-                ObstaclePrediction(
-                    obstacle.label,
-                    obstacle.id,
-                    cur_transform,
-                    obstacle.bounding_box,
-                    1.0,  # probability
-                    predictions))
+                ObstaclePrediction(obstacle_trajectory, cur_transform, 1.0,
+                                   predictions))
         linear_prediction_stream.send(
             PredictionMessage(msg.timestamp, obstacle_predictions_list))

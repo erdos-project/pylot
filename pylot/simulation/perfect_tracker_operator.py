@@ -2,7 +2,6 @@ from collections import defaultdict, deque
 
 import erdos
 
-import pylot.utils
 from pylot.perception.messages import ObstacleTrajectoriesMessage
 from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 
@@ -63,12 +62,11 @@ class PerfectTrackerOperator(erdos.Operator):
                 # box, in relation to the Pose measurement.
                 v_transform = past_obstacle_loc.transform * \
                                 past_obstacle_loc.bounding_box.transform
-                new_transform = pose_transform.inverse_transform() * v_transform
+                new_transform = (pose_transform.inverse_transform() *
+                                 v_transform)
                 cur_obstacle_trajectory.append(new_transform)
             obstacle_trajectories.append(
-                ObstacleTrajectory(obstacle.label, obstacle.id,
-                                   obstacle.bounding_box,
-                                   cur_obstacle_trajectory))
+                ObstacleTrajectory(obstacle, cur_obstacle_trajectory))
 
         output_msg = ObstacleTrajectoriesMessage(timestamp,
                                                  obstacle_trajectories)

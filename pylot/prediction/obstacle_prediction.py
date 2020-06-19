@@ -1,71 +1,69 @@
-from pylot.perception.detection.utils import BoundingBox2D, BoundingBox3D
-
-VEHICLE_LABELS = {'car', 'bicycle', 'motorcycle', 'bus', 'truck', 'vehicle'}
-
-
 class ObstaclePrediction(object):
     """Class storing info about an obstacle prediction.
 
     Args:
-        label (:obj:`str`): The label of the obstacle.
-        id (:obj:`int`): The id of the obstacle.
+        obstacle_trajectory (:py:class:`~pylot.perception.tracking.obstacle_trajectory.ObstacleTrajectory`): Trajectory of the obstacle.
         transform (:py:class:`~pylot.utils.Transform`): The current transform
             of the obstacle.
-        bounding_box (:py:class:`~pylot.perception.detection.utils.BoundingBox3D`):
-            The current bounding box of the obstacle.
         probability (:obj: `float`): The probability of the prediction.
-        trajectory (list(:py:class:`~pylot.utils.Transform`)): The trajectory
-            prediction.
-
-    Attributes:
-        label (:obj:`str`): The label of the obstacle.
-        id (:obj:`int`): The id of the obstacle.
-        transform (:py:class:`~pylot.utils.Transform`): The current transform
-            of the obstacle.
-        bounding_box (:py:class:`~pylot.perception.detection.utils.BoundingBox3D`):
-            The current bounding box of the obstacle.
-        probability (:obj: `float`): The probability of the prediction.
-        trajectory (list(:py:class:`~pylot.utils.Transform`)): The trajectory
-            prediction.
+        predicted_trajectory (list(:py:class:`~pylot.utils.Transform`)): The
+            predicted future trajectory.
     """
-    def __init__(self, label, id, transform, bounding_box, probability,
-                 trajectory):
-        self.label = label
-        self.id = id
+    def __init__(self, obstacle_trajectory, transform, probability,
+                 predicted_trajectory):
+        self.obstacle_trajectory = obstacle_trajectory
         self.transform = transform
-        if not (isinstance(bounding_box, BoundingBox3D)
-                or isinstance(bounding_box, BoundingBox2D)):
-            raise ValueError('bounding box should be of type '
-                             'BoundingBox2D or BoundingBox3D')
-        self.bounding_box = bounding_box
         self.probability = probability
-        self.trajectory = trajectory
+        self.predicted_trajectory = predicted_trajectory
+
+    def draw_trajectory_on_frame(self, frame):
+        """Draws the past and predicted trajectory on a bird's eye frame."""
+        self.obstacle_trajectory.draw_trajectory_on_frame(frame)
+        if self.is_person():
+            color = [0, 0, 255]
+        elif self.is_vehicle():
+            color = [0, 255, 0]
+        else:
+            color = [255, 0, 0]
+        self.obstacle_trajectory.obstacle.draw_trajectory_on_frame(
+            self.predicted_trajectory, frame, color)
+
+    def to_world_coordinates(self, ego_transform):
+        """Transforms the trajectory and prediction into world coordinates."""
+        self.obstacle_trajectory.to_world_coordinates(ego_transform)
+        cur_trajectory = []
+        for future_transform in self.predicted_trajectory:
+            cur_trajectory.append(ego_transform * future_transform)
+        self.predicted_trajectory = cur_trajectory
+
+    @property
+    def id(self):
+        return self.obstacle_trajectory.obstacle.id
+
+    @property
+    def label(self):
+        return self.obstacle_trajectory.obstacle.label
+
+    def is_animal(self):
+        return self.obstacle_trajectory.obstacle.is_animal()
 
     def is_person(self):
-        return self.label == 'person'
+        return self.obstacle_trajectory.obstacle.is_person()
 
     def is_speed_limit(self):
-        return self.label in [
-            'speed limit 30', 'speed limit 60', 'speed limit 90'
-        ]
+        return self.obstacle_trajectory.obstacle.is_speed_limit()
 
     def is_stop_sign(self):
-        return self.label == 'stop sign' or self.label == 'stop marking'
-
-    def is_traffic_light(self):
-        return self.label in [
-            'red traffic light', 'yellow traffic light', 'green traffic light',
-            'off traffic light'
-        ]
+        return self.obstacle_trajectory.obstacle.is_stop_sign()
 
     def is_vehicle(self):
-        # Might want to include train.
-        return self.label in VEHICLE_LABELS
+        return self.obstacle_trajectory.obstacle.is_vehicle()
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return ('Prediction for obstacle {}, label {}, probability {}, '
-                'trajectory {}'.format(self.id, self.label, self.probability,
-                                       self.trajectory))
+        return ('Prediction for obstacle {}, probability {}, '
+                'predicted trajectory {}'.format(
+                    self.obstacle_trajectory.obstacle, self.probability,
+                    self.predicted_trajectory))

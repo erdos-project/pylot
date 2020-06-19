@@ -77,8 +77,19 @@ class CameraFrame(object):
                                    bbox_color_map,
                                    ego_transform=transform)
 
+    def draw_box(self, start_point, end_point, color, thickness=3):
+        """Draw a colored box defined by start_point, end_point."""
+        start = (int(start_point.x), int(start_point.y))
+        end = (int(end_point.x), int(end_point.y))
+        cv2.rectangle(self.frame, start, end, color, thickness)
+
     def draw_point(self, point, color, r=3):
         cv2.circle(self.frame, (int(point.x), int(point.y)), r, color, -1)
+
+    def in_frame(self, point):
+        """Checks if a point is within the frame."""
+        return (0 <= point.x <= self.camera_setup.width
+                and 0 <= point.y <= self.camera_setup.height)
 
     def resize(self, width, height):
         self.camera_setup.set_resolution(width, height)
