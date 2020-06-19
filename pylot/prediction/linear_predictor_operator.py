@@ -6,6 +6,8 @@ import numpy as np
 
 from pylot.prediction.messages import PredictionMessage
 from pylot.prediction.obstacle_prediction import ObstaclePrediction
+from pylot.prediction.utils import get_nearby_obstacles_ego_transforms, \
+    get_nearby_obstacles
 from pylot.utils import Location, Rotation, Transform
 
 
@@ -53,7 +55,19 @@ class LinearPredictorOperator(erdos.Operator):
             msg.timestamp))
         obstacle_predictions_list = []
 
-        for obstacle_trajectory in msg.obstacle_trajectories:
+        nearby_obstacles = get_nearby_obstacles(
+            msg.obstacle_trajectories, self._flags.prediction_radius)
+        num_predictions = len(nearby_obstacles)
+        self._logger.info('@{}: Getting linear predictions for {} obstacles'.format(
+            msg.timestamp, num_predictions))
+
+        # Estimate the orientations of nearby obstacles using their past
+        # trajectories.
+        nearby_obstacles_ego_transforms = get_nearby_obstacles_ego_transforms(
+            nearby_obstacles)
+
+        for idx in range(len(nearby_obstacles)):
+            obstacle_trajectory = nearby_obstacles[idx]
             # Time step matrices used in regression.
             num_steps = min(self._flags.prediction_num_past_steps,
                             len(obstacle_trajectory.trajectory))
@@ -80,7 +94,7 @@ class LinearPredictorOperator(erdos.Operator):
                 predictions.append(
                     Transform(location=Location(x=predict_array[t][0],
                                                 y=predict_array[t][1]),
-                              rotation=Rotation()))
+                              rotation=nearby_obstacles_ego_transforms[idx].rotation))
             obstacle_predictions_list.append(
                 ObstaclePrediction(obstacle_trajectory,
                                    obstacle_trajectory.obstacle.transform, 1.0,

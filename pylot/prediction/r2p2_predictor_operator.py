@@ -77,13 +77,10 @@ class R2P2PredictorOperator(erdos.Operator):
             for obstacle_trajectory in tracking_msg.obstacle_trajectories
             if obstacle_trajectory.obstacle.is_vehicle()
         ]
-        closest_vehicles, ego_vehicle = \
-            pylot.prediction.utils.get_closest_vehicles(
-                all_vehicles,
-                self._flags.prediction_radius,
-                self._flags.prediction_ego_agent)
-        num_predictions = len(closest_vehicles)
-        self._logger.info('@{}: Getting predictions for {} vehicles'.format(
+        nearby_vehicles = pylot.prediction.utils.get_nearby_obstacles(
+                all_vehicles, self._flags.prediction_radius)
+        num_predictions = len(nearby_vehicles)
+        self._logger.info('@{}: Getting R2P2 predictions for {} vehicles'.format(
             timestamp, num_predictions))
 
         start_time = time.time()
@@ -93,21 +90,20 @@ class R2P2PredictorOperator(erdos.Operator):
             prediction_stream.send(PredictionMessage(timestamp, []))
             return
 
-        closest_vehicles_ego_transforms, closest_trajectories, binned_lidars = \
-            self._preprocess_input(closest_vehicles, ego_vehicle,
-                                   point_cloud_msg.point_cloud.points)
+        nearby_vehicles_ego_transforms, nearby_trajectories, binned_lidars = \
+            self._preprocess_input(nearby_vehicles, point_cloud_msg.point_cloud.points)
 
         # Run the forward pass.
         z = torch.tensor(
             np.random.normal(size=(num_predictions,
                                    self._flags.prediction_num_future_steps,
                                    2))).to(torch.float32).to(self._device)
-        closest_trajectories = torch.tensor(closest_trajectories).to(
+        nearby_trajectories = torch.tensor(nearby_trajectories).to(
             torch.float32).to(self._device)
         binned_lidars = torch.tensor(binned_lidars).to(torch.float32).to(
             self._device)
         model_start_time = time.time()
-        prediction_array, _ = self._r2p2_model.forward(z, closest_trajectories,
+        prediction_array, _ = self._r2p2_model.forward(z, nearby_trajectories,
                                                        binned_lidars)
         model_runtime = (time.time() - model_start_time) * 1000
         self._csv_logger.debug("{},{},{},{:.4f}".format(
@@ -116,8 +112,8 @@ class R2P2PredictorOperator(erdos.Operator):
         prediction_array = prediction_array.cpu().detach().numpy()
 
         obstacle_predictions_list = self._postprocess_predictions(
-            prediction_array, closest_vehicles,
-            closest_vehicles_ego_transforms)
+            prediction_array, nearby_vehicles,
+            nearby_vehicles_ego_transforms)
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.debug("{},{},{},{:.4f}".format(
             time_epoch_ms(), timestamp.coordinates[0], 'r2p2-runtime',
@@ -125,34 +121,34 @@ class R2P2PredictorOperator(erdos.Operator):
         prediction_stream.send(
             PredictionMessage(timestamp, obstacle_predictions_list))
 
-    def _preprocess_input(self, closest_vehicles, ego_vehicle, point_cloud):
-        num_predictions = len(closest_vehicles)
+    def _preprocess_input(self, nearby_vehicles, point_cloud):
+        num_predictions = len(nearby_vehicles)
 
-        closest_vehicles_ego_transforms = \
-            pylot.prediction.utils.get_closest_vehicles_ego_transforms(
-                closest_vehicles, ego_vehicle)
+        nearby_vehicles_ego_transforms = \
+            pylot.prediction.utils.get_nearby_obstacles_ego_transforms(
+                nearby_vehicles)
 
-        # Rotate and pad the closest trajectories.
-        closest_trajectories = []
+        # Rotate and pad the trajectory of each nearby vehicle.
+        nearby_trajectories = []
         for i in range(num_predictions):
             cur_trajectory = np.stack([[point.location.x,
                                         point.location.y,
                                         point.location.z] \
-                for point in closest_vehicles[i].trajectory])
+                for point in nearby_vehicles[i].trajectory])
 
             # Remove z-coordinate from trajectory.
-            closest_trajectories.append(
-                closest_vehicles_ego_transforms[i].inverse_transform_points(
+            nearby_trajectories.append(
+                nearby_vehicles_ego_transforms[i].inverse_transform_points(
                     cur_trajectory)[:, :2])
-        closest_trajectories = np.stack(
+        nearby_trajectories = np.stack(
             [pylot.prediction.utils.pad_trajectory(t, self._flags.prediction_num_past_steps) \
-                for t in closest_trajectories])
+                for t in nearby_trajectories])
 
         # For each vehicle, transform the lidar point cloud to that vehicle's
         # coordinate frame for purposes of prediction.
         binned_lidars = []
         for i in range(num_predictions):
-            rotated_point_cloud = closest_vehicles_ego_transforms[
+            rotated_point_cloud = nearby_vehicles_ego_transforms[
                 i].inverse_transform_points(point_cloud)
             binned_lidars.append(
                 pylot.prediction.utils.get_occupancy_grid(rotated_point_cloud,
@@ -160,7 +156,7 @@ class R2P2PredictorOperator(erdos.Operator):
                     int(self._lidar_setup.get_range_in_meters())))
         binned_lidars = np.concatenate(binned_lidars)
 
-        return closest_vehicles_ego_transforms, closest_trajectories, binned_lidars
+        return nearby_vehicles_ego_transforms, nearby_trajectories, binned_lidars
         
     def _postprocess_predictions(self, prediction_array, vehicles,
                                  vehicles_ego_transforms):

@@ -51,8 +51,9 @@ class PerfectTrackerOperator(erdos.Operator):
         # timestamp.
         for obstacle in obstacles_msg.obstacles:
             if obstacle.id == self._vehicle_id and not \
-                (self._flags.prediction and self._flags.prediction_type == 'r2p2'):
-                # Do not track the ego-vehicle.
+                self._flags.prediction_ego_agent:
+                # If we are not performing ego-agent prediction, do not
+                # track the ego-vehicle.
                 continue
             self._obstacles[obstacle.id].append(obstacle)
             cur_obstacle_trajectory = []

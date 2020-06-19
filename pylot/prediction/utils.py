@@ -5,7 +5,7 @@ from pylot.utils import Location, Rotation, Transform, Vector2D
 
 def pad_trajectory(trajectory, num_steps):
     """Take the appropriate number of past steps as specified by num_steps.
-    If we have not seen enough past locations of the vehicle, pad the
+    If we have not seen enough past locations of the obstacle, pad the
     trajectory with the appropriate number of copies of the earliest
     location.
     """
@@ -20,55 +20,54 @@ def pad_trajectory(trajectory, num_steps):
     assert trajectory.shape[0] == num_steps
     return trajectory
 
-def get_closest_vehicles(all_vehicles, radius, include_ego_agent):
-    """Given a list of all vehicles with past trajectories in the ego-vehicle's
-       frame of reference, return a list of vehicles within a specified radius
-       of the ego-vehicle, sorted by increasing distance from the ego-vehicle.
+def get_nearby_obstacles(all_obstacles, radius):
+    """Given a list of obstacles with past trajectories in the ego-vehicle's
+       frame of reference, return a list of obstacles that are within a
+       specified radius of the ego-vehicle, sorted by increasing distance
+       from the ego-vehicle.
     """
     distances = [
         v.trajectory[-1].get_angle_and_magnitude(Location())[1]
-        for v in all_vehicles
+        for v in all_obstacles
     ]
-    # The first vehicle will always be the ego vehicle.
     sorted_vehicles = [
-        v for v, d in sorted(zip(all_vehicles, distances),
+        v for v, d in sorted(zip(all_obstacles, distances),
                              key=lambda pair: pair[1])
         if d <= radius
     ]
 
-    if include_ego_agent:
-        return sorted_vehicles, sorted_vehicles[0]
-    else:  # Exclude the ego vehicle.
-        return sorted_vehicles[1:], sorted_vehicles[0]
+    return sorted_vehicles
 
-def get_closest_vehicles_ego_transforms(closest_vehicles, ego_vehicle):
-    """ Gets the transform relative to the ego-vehicle for each vehicle
-        in a list of closest vehicles."""
-    closest_vehicles_ego_locations = np.stack(
-        [v.trajectory[-1] for v in closest_vehicles])
-    closest_vehicles_ego_transforms = []
+def get_nearby_obstacles_ego_transforms(nearby_obstacles):
+    """ Gets the transform relative to the ego-vehicle for each obstacle
+        in a list of nearby obstacles.
+    """
+    if len(nearby_obstacles) == 0:
+        return []
+    nearby_obstacles_ego_locations = np.stack(
+        [v.trajectory[-1] for v in nearby_obstacles])
+    nearby_obstacles_ego_transforms = []
 
     # Add appropriate rotations to closest_vehicles_ego_transforms, which
     # we estimate using the direction determined by the last two distinct
     # locations
-    for i in range(len(closest_vehicles)):
-        cur_vehicle_angle = _get_vehicle_orientation(
-            closest_vehicles[i])
-        closest_vehicles_ego_transforms.append(
-            Transform(location=closest_vehicles_ego_locations[i].location,
-                      rotation=Rotation(yaw=cur_vehicle_angle)))
-    return closest_vehicles_ego_transforms
+    for i in range(len(nearby_obstacles)):
+        cur_obstacle_angle = _estimate_obstacle_orientation(nearby_obstacles[i])
+        nearby_obstacles_ego_transforms.append(
+            Transform(location=nearby_obstacles_ego_locations[i].location,
+                      rotation=Rotation(yaw=cur_obstacle_angle)))
+    return nearby_obstacles_ego_transforms
 
-def _get_vehicle_orientation(vehicle):
-    """ Uses the vehicle's past trajectory to estimate its angle from the
+def _estimate_obstacle_orientation(obstacle):
+    """ Uses the obstacle's past trajectory to estimate its angle from the
         positive x-axis (trajectory points are in the ego-vehicle's coordinate
         frame).
     """
-    other_idx = len(vehicle.trajectory) - 2
+    other_idx = len(obstacle.trajectory) - 2
     yaw = 0.0  # Default orientation.
-    current_loc = vehicle.trajectory[-1].location.as_vector_2D()
+    current_loc = obstacle.trajectory[-1].location.as_vector_2D()
     while other_idx >= 0:
-        past_ref_loc = vehicle.trajectory[other_idx].location.as_vector_2D(
+        past_ref_loc = obstacle.trajectory[other_idx].location.as_vector_2D(
         )
         vec = current_loc - past_ref_loc
         displacement = current_loc.l2_distance(past_ref_loc)
