@@ -852,12 +852,14 @@ def add_visualizer(pose_stream=None,
     if obstacles_stream is None or not FLAGS.visualize_detected_obstacles:
         obstacles_stream = erdos.IngestStream()
         streams_to_send_top_on.append(obstacles_stream)
-    if (traffic_lights_stream is None or tl_camera_stream is None
-            or not FLAGS.visualize_detected_traffic_lights):
-        traffic_lights_stream = erdos.IngestStream()
-        streams_to_send_top_on.append(traffic_lights_stream)
+    if tl_camera_stream is None or not FLAGS.visualize_detected_traffic_lights:
         tl_camera_stream = erdos.IngestStream()
         streams_to_send_top_on.append(tl_camera_stream)
+    if (traffic_lights_stream is None
+            or not (FLAGS.visualize_detected_traffic_lights
+                    or FLAGS.visualize_world)):
+        traffic_lights_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(traffic_lights_stream)
     if (tracked_obstacles_stream is None
             or not FLAGS.visualize_tracked_obstacles):
         tracked_obstacles_stream = erdos.IngestStream()
@@ -865,12 +867,13 @@ def add_visualizer(pose_stream=None,
     if lane_detection_stream is None or not FLAGS.visualize_detected_lanes:
         lane_detection_stream = erdos.IngestStream()
         streams_to_send_top_on.append(lane_detection_stream)
-    if (prediction_stream is None or prediction_camera_stream is None
-            or not FLAGS.visualize_prediction):
-        prediction_stream = erdos.IngestStream()
-        streams_to_send_top_on.append(prediction_stream)
+    if prediction_camera_stream is None or not FLAGS.visualize_prediction:
         prediction_camera_stream = erdos.IngestStream()
         streams_to_send_top_on.append(prediction_camera_stream)
+    if (prediction_stream is None
+            or not (FLAGS.visualize_prediction or FLAGS.visualize_world)):
+        prediction_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(prediction_stream)
     if waypoints_stream is None or not FLAGS.visualize_waypoints:
         waypoints_stream = erdos.IngestStream()
         streams_to_send_top_on.append(waypoints_stream)

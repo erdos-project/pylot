@@ -6,10 +6,8 @@ from collections import deque
 
 import erdos
 
-import numpy as np
-
-from pylot.perception.detection.obstacle import BoundingBox3D
 from pylot.planning.waypoints import Waypoints
+from pylot.planning.world import World
 from pylot.utils import Location, Rotation, Transform
 
 
@@ -66,6 +64,7 @@ class PlanningOperator(erdos.Operator):
         # running in stand-alone mode.
         self._waypoints = None
         self._goal_location = goal_location
+        self._world = World(flags)
 
         self._pose_msgs = deque()
         self._prediction_msgs = deque()
@@ -162,64 +161,6 @@ class PlanningOperator(erdos.Operator):
         self._logger.debug('@{}: {} received ttd update {}'.format(
             msg.timestamp, self.config.name, msg))
         self._ttd_msgs.append(msg)
-
-    def build_obstacle_list(self, ego_transform, prediction_msg):
-        """
-        Construct an obstacle list of proximal objects given ego_transform.
-        """
-        obstacle_list = []
-        for prediction in prediction_msg.predictions:
-            # Use all prediction times as potential obstacles.
-            previous_origin = None
-            for transform in prediction.predicted_trajectory:
-                global_obstacle = ego_transform * transform
-                obstacle_origin = global_obstacle.location.as_numpy_array_2D()
-                # distance filtering
-                if (previous_origin is None
-                        or np.linalg.norm(previous_origin - obstacle_origin) >
-                        self._flags.obstacle_filtering_distance):
-                    previous_origin = obstacle_origin
-                    dist_to_ego = np.linalg.norm([
-                        ego_transform.location.x - obstacle_origin[0],
-                        ego_transform.location.y - obstacle_origin[1]
-                    ])
-                    if dist_to_ego < self._flags.distance_threshold:
-                        # use 3d bounding boxes if available, otherwise use default
-                        bbox = prediction.obstacle_trajectory.obstacle.bounding_box
-                        if isinstance(bbox, BoundingBox3D):
-                            start_location = \
-                                bbox.transform.location - bbox.extent
-                            end_location = \
-                                bbox.transform.location + bbox.extent
-                            start_transform = global_obstacle.transform_locations(
-                                [start_location])
-                            end_transform = global_obstacle.transform_locations(
-                                [end_location])
-                        else:
-                            start_transform = [
-                                Location(
-                                    obstacle_origin[0] -
-                                    self._flags.obstacle_radius,
-                                    obstacle_origin[1] -
-                                    self._flags.obstacle_radius, 0)
-                            ]
-                            end_transform = [
-                                Location(
-                                    obstacle_origin[0] +
-                                    self._flags.obstacle_radius,
-                                    obstacle_origin[1] +
-                                    self._flags.obstacle_radius, 0)
-                            ]
-                        obstacle_list.append([
-                            min(start_transform[0].x, end_transform[0].x),
-                            min(start_transform[0].y, end_transform[0].y),
-                            max(start_transform[0].x, end_transform[0].x),
-                            max(start_transform[0].y, end_transform[0].y)
-                        ])
-        if len(obstacle_list) == 0:
-            return np.empty((0, 4))
-
-        return np.array(obstacle_list)
 
     def build_output_waypoints(self, path_x, path_y, speeds):
         wps = deque()

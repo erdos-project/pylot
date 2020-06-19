@@ -144,7 +144,7 @@ class Obstacle(object):
         import cv2
         txt_font = cv2.FONT_HERSHEY_SIMPLEX
         if text is None:
-            text = '{}{:.1f}'.format(self.label, self.confidence)
+            text = '{}, {:.1f}'.format(self.label, self.confidence)
             if self.id != -1:
                 text += ', id:{}'.format(self.id)
             if ego_transform is not None and self.transform is not None:
@@ -210,6 +210,28 @@ class Obstacle(object):
             for start_point, end_point in zip(start_points, end_points):
                 if frame.in_frame(start_point) or frame.in_frame(end_point):
                     frame.draw_box(start_point, end_point, point_color)
+
+    def get_bounding_box_corners(self, global_obstacle, obstacle_radius=None):
+        # Use 3d bounding boxes if available, otherwise use default
+        if isinstance(self.bounding_box, BoundingBox3D):
+            start_location = (self.bounding_box.transform.location -
+                              self.bounding_box.extent)
+            end_location = (self.bounding_box.transform.location +
+                            self.bounding_box.extent)
+            [start_location,
+             end_location] = global_obstacle.transform_locations(
+                 [start_location, end_location])
+        else:
+            obstacle_radius_loc = pylot.utils.Location(obstacle_radius,
+                                                       obstacle_radius)
+            start_location = global_obstacle.location - obstacle_radius_loc
+            end_location = global_obstacle.location + obstacle_radius_loc
+        return [
+            min(start_location.x, end_location.x),
+            min(start_location.y, end_location.y),
+            max(start_location.x, end_location.x),
+            max(start_location.y, end_location.y)
+        ]
 
     def get_in_log_format(self):
         if not self._bounding_box_2D:

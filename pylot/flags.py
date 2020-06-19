@@ -133,6 +133,9 @@ flags.DEFINE_bool('visualize_waypoints', False,
                   'True to enable visualization of planning waypoints')
 flags.DEFINE_bool('visualize_prediction', False,
                   'True to enable visualization of obstacle predictions')
+flags.DEFINE_bool(
+    'visualize_world', False,
+    'True to enable visualization of the planning world representation')
 
 ########################################
 # Recording operators.
@@ -172,7 +175,7 @@ def must_visualize():
             or FLAGS.visualize_detected_lanes
             or FLAGS.visualize_tracked_obstacles
             or FLAGS.visualize_segmentation or FLAGS.visualize_waypoints
-            or FLAGS.visualize_prediction)
+            or FLAGS.visualize_prediction or FLAGS.visualize_world)
 
 
 def must_add_depth_camera_sensor():

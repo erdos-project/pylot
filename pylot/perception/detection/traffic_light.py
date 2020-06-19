@@ -29,6 +29,16 @@ class TrafficLightColor(Enum):
         else:
             return 'off traffic light'
 
+    def get_color(self):
+        if self.value == 1:
+            return [255, 0, 0]
+        elif self.value == 2:
+            return [255, 165, 0]
+        elif self.value == 3:
+            return [0, 255, 0]
+        else:
+            return [0, 0, 0]
+
 
 class TrafficLight(Obstacle):
     """Class used to store info about traffic lights.
@@ -98,6 +108,14 @@ class TrafficLight(Obstacle):
             state = TrafficLightColor.GREEN
         return cls(1.0, state, traffic_light.id, transform,
                    trigger_volume_extent)
+
+    def draw_on_frame(self, frame):
+        # Intrinsic and extrinsic matrix of the top down camera.
+        extrinsic_matrix = frame.camera_setup.get_extrinsic_matrix()
+        intrinsic_matrix = frame.camera_setup.get_intrinsic_matrix()
+        point = self.transform.location.to_camera_view(extrinsic_matrix,
+                                                       intrinsic_matrix)
+        frame.draw_point(point, self.state.get_color(), r=10)
 
     def is_traffic_light_visible(self,
                                  camera_transform,

@@ -3,11 +3,15 @@ from functools import partial
 
 import erdos
 
+import numpy as np
+
 import pygame
 from pygame.locals import K_n
 
 import pylot.utils
-from pylot.perception.detection.obstacle import BoundingBox3D
+from pylot.drivers.sensor_setup import RGBCameraSetup
+from pylot.perception.camera_frame import CameraFrame
+from pylot.planning.world import World
 
 DEFAULT_VIS_TIME = 30000.0
 
@@ -168,6 +172,19 @@ class VisualizerOperator(erdos.Operator):
         if flags.visualize_segmentation:
             self.display_array.append("Segmentation")
             self.window_titles.append("Segmentation")
+        if flags.visualize_world:
+            self._world = World(flags)
+            top_down_transform = pylot.utils.get_top_down_transform(
+                pylot.utils.Transform(pylot.utils.Location(),
+                                      pylot.utils.Rotation()),
+                flags.top_down_lateral_view)
+            self._bird_eye_camera_setup = RGBCameraSetup(
+                'bird_eye_camera', flags.camera_image_width,
+                flags.camera_image_height, top_down_transform, 90)
+            self.display_array.append("PlanningWorld")
+            self.window_titles.append("Planning world")
+        else:
+            self._world = None
         assert len(self.display_array) == len(self.window_titles), \
             "The display and titles differ."
 
@@ -333,8 +350,6 @@ class VisualizerOperator(erdos.Operator):
         elif (sensor_to_display == "DetectedLane" and bgr_msg
               and lane_detection_msg):
             import cv2
-            import numpy as np
-            from pylot.perception.camera_frame import CameraFrame
             final_img = np.copy(bgr_msg.frame.as_numpy_array())
             final_img = cv2.addWeighted(final_img, 0.8,
                                         lane_detection_msg.data, 1.0, 0.0)
@@ -344,6 +359,23 @@ class VisualizerOperator(erdos.Operator):
             depth_msg.frame.visualize(self.display, timestamp=timestamp)
         elif sensor_to_display == "Segmentation" and segmentation_msg:
             segmentation_msg.frame.visualize(self.display, timestamp=timestamp)
+        elif sensor_to_display == "PlanningWorld":
+            if prediction_camera_msg is None:
+                # Top-down prediction is not available. Show planning
+                # world on a black image.
+                black_img = np.zeros((self._bird_eye_camera_setup.height,
+                                      self._bird_eye_camera_setup.width, 3),
+                                     dtype=np.dtype("uint8"))
+                frame = CameraFrame(black_img, 'RGB',
+                                    self._bird_eye_camera_setup)
+            else:
+                frame = prediction_camera_msg.frame
+                frame.transform_to_cityscapes()
+            self._world.update(timestamp, ego_transform,
+                               prediction_msg.predictions,
+                               traffic_light_msg.obstacles)
+            self._world.draw_on_frame(frame)
+            frame.visualize(self.display, timestamp=timestamp)
 
         self.render_text(pose_msg.data, control_msg, timestamp)
 

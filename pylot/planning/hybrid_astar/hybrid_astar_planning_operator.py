@@ -56,8 +56,12 @@ class HybridAStarPlanningOperator(PlanningOperator):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         ego_transform = self._pose_msgs.popleft().data.transform
         prediction_msg = self._prediction_msgs.popleft()
-        obstacle_list = self.build_obstacle_list(ego_transform, prediction_msg)
         traffic_lights = self._traffic_light_msgs.popleft()
+        # Update the representation of the world.
+        self._world.update(timestamp, ego_transform,
+                           prediction_msg.predictions,
+                           traffic_lights.obstacles)
+        obstacle_list = self._world.get_obstacle_list()
 
         if not self._waypoints:
             if self._map is not None and self._goal_location is not None:
