@@ -12,6 +12,7 @@ from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 
 import pylot.utils
+from pylot.perception.detection.lane import Lane
 
 
 class HDMap(object):
@@ -304,6 +305,25 @@ class HDMap(object):
         else:
             return (False, None)
 
+    def get_lane(self, location, waypoint_precision=0.05):
+        lane_waypoints = []
+        next_wp = [self._map.get_waypoint(location.as_carla_location())]
+
+        while len(next_wp) == 1:
+            lane_waypoints.append(next_wp[0])
+            next_wp = next_wp[0].next(waypoint_precision)
+
+        # Get the left and right markings of the lane and send it as a message.
+        left_markings = [
+            self._lateral_shift(w.transform, -w.lane_width * 0.5)
+            for w in lane_waypoints
+        ]
+        right_markings = [
+            self._lateral_shift(w.transform, w.lane_width * 0.5)
+            for w in lane_waypoints
+        ]
+        return Lane(left_markings, right_markings)
+
     def get_left_lane(self, location):
         waypoint = self._map.get_waypoint(location.as_carla_location(),
                                           project_to_road=False)
@@ -357,3 +377,8 @@ class HDMap(object):
             pylot.utils.Transform.from_carla_transform(waypoint[0].transform)
             for waypoint in route
         ])
+
+    def _lateral_shift(self, transform, shift):
+        transform.rotation.yaw += 90
+        shifted = transform.location + shift * transform.get_forward_vector()
+        return pylot.utils.Location.from_carla_location(shifted)

@@ -294,8 +294,10 @@ class Location(Vector3D):
             :py:class:`.Location`: A pylot location.
         """
         import carla
-        if not isinstance(location, carla.Location):
-            raise ValueError('The location must be a carla.Location')
+        if not (isinstance(location, carla.Location)
+                or isinstance(location, carla.Vector3D)):
+            raise ValueError(
+                'The location must be a carla.Location or carla.Vector3D')
         return cls(location.x, location.y, location.z)
 
     @classmethod

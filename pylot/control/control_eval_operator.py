@@ -17,7 +17,6 @@ class ControlEvalOperator(erdos.Operator):
            the waypoints are received from the planner.
         flags (absl.flags): Object to be used to access absl flags.
     """
-
     def __init__(self, pose_stream, waypoints_stream, flags):
         # Register callbacks to retrieve pose and waypoints messages.
         pose_stream.add_callback(self.on_pose_update)
@@ -33,7 +32,7 @@ class ControlEvalOperator(erdos.Operator):
         self._csv_logger = erdos.utils.setup_csv_logging(
             self.config.name + '-csv', self.config.csv_log_file_name)
         self._flags = flags
-        self._waypoints = deque()
+        self._waypoints_msgs = deque()
         self._pose_messages = deque()
 
         # Keep track of the last 2 waypoints that the ego vehicle was
@@ -68,7 +67,7 @@ class ControlEvalOperator(erdos.Operator):
                 computed by the planner.
         """
         self._logger.debug('@{}: waypoints update.'.format(msg.timestamp))
-        self._waypoints.append(msg)
+        self._waypoints_msgs.append(msg)
 
     @erdos.profile_method()
     def on_watermark(self, timestamp):
@@ -110,7 +109,7 @@ class ControlEvalOperator(erdos.Operator):
 
         # Add the first waypoint from the last waypoints received
         # by the operator.
-        waypoints = self._waypoints.popleft().waypoints
+        waypoints = self._waypoints_msgs.popleft().waypoints.waypoints
         if len(waypoints) > 0:
             next_waypoint = waypoints.popleft()
             while len(self.last_waypoints) >= 1 and len(

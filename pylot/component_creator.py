@@ -213,7 +213,9 @@ def add_depth(transform, vehicle_id_stream, center_camera_setup,
     return depth_stream
 
 
-def add_lane_detection(center_camera_stream, pose_stream=None):
+def add_lane_detection(center_camera_stream,
+                       pose_stream=None,
+                       open_drive_stream=None):
     """Adds operators for lane detection.
 
     If the `--perfect_lane_detection` flag is set, the method adds a perfect
@@ -226,11 +228,13 @@ def add_lane_detection(center_camera_stream, pose_stream=None):
             camera frames are received.
         pose_stream (:py:class:`erdos.ReadStream`, optional): A stream on
             which pose info is received.
+        open_drive_stream (:py:class:`erdos.ReadStream`, optional): Stream on
+            which open drive string representations are received. The operator
+            can construct HDMaps out of the open drive strings.
 
     Returns:
         :py:class:`erdos.ReadStream`: Stream on which
-        :py:class:`~pylot.perception.messages.DetectedLaneMessage` are
-        published.
+        :py:class:`~pylot.perception.messages.LanesMessage` are published.
     """
     lane_detection_stream = None
     if FLAGS.lane_detection:
@@ -240,7 +244,8 @@ def add_lane_detection(center_camera_stream, pose_stream=None):
     elif FLAGS.perfect_lane_detection:
         assert pose_stream is not None
         lane_detection_stream = \
-            pylot.operator_creator.add_perfect_lane_detector(pose_stream)
+            pylot.operator_creator.add_perfect_lane_detector(
+                pose_stream, open_drive_stream)
     return lane_detection_stream
 
 

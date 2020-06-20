@@ -1,9 +1,6 @@
 import erdos
 
-import pylot.utils
-from pylot.perception.detection.utils import DetectedLane
-from pylot.perception.messages import DetectedLaneMessage
-from pylot.simulation.utils import get_map
+from pylot.perception.messages import LanesMessage
 
 
 class PerfectLaneDetectionOperator(erdos.Operator):
@@ -12,22 +9,24 @@ class PerfectLaneDetectionOperator(erdos.Operator):
     Args:
         pose_stream (:py:class:`erdos.ReadStream`): Stream on which pose
             info is received.
+        open_drive_stream (:py:class:`erdos.ReadStream`): Stream on which open
+            drive string representations are received. The operator can
+            construct HDMaps out of the open drive strings.
         detected_lane_stream (:py:class:`erdos.WriteStream`): Stream on which
             the operator writes
-            :py:class:`~pylot.perception.messages.DetectedLaneMessage`
-            messages.
+            :py:class:`~pylot.perception.messages.LanesMessage` messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, pose_stream, detected_lane_stream, flags):
+    def __init__(self, pose_stream, open_drive_stream, detected_lane_stream,
+                 flags):
         pose_stream.add_callback(self.on_position_update,
                                  [detected_lane_stream])
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
-        self._waypoint_precision = 0.05
 
     @staticmethod
-    def connect(pose_stream):
+    def connect(pose_stream, open_drive_stream):
         detected_lane_stream = erdos.WriteStream()
         return [detected_lane_stream]
 
@@ -35,14 +34,33 @@ class PerfectLaneDetectionOperator(erdos.Operator):
         # Run method is invoked after all operators finished initializing,
         # including the CARLA operator, which reloads the world. Thus, if
         # we get the world here we're sure it is up-to-date.
-        self._world_map = get_map(self._flags.carla_host,
-                                  self._flags.carla_port,
-                                  self._flags.carla_timeout)
+        if self._flags.execution_mode == 'simulation':
+            from pylot.map.hd_map import HDMap
+            from pylot.simulation.utils import get_map
+            self._map = HDMap(
+                get_map(self._flags.carla_host, self._flags.carla_port,
+                        self._flags.carla_timeout))
+            from pylot.simulation.utils import get_world
+            _, self._world = get_world(self._flags.carla_host,
+                                       self._flags.carla_port,
+                                       self._flags.carla_timeout)
 
-    def _lateral_shift(self, transform, shift):
-        transform.rotation.yaw += 90
-        shifted = transform.location + shift * transform.get_forward_vector()
-        return pylot.utils.Location.from_carla_location(shifted)
+    def on_opendrive_map(self, msg):
+        """Invoked whenever a message is received on the open drive stream.
+
+        Args:
+            msg (:py:class:`~erdos.message.Message`): Message that contains
+                the open drive string.
+        """
+        self._logger.debug('@{}: received open drive message'.format(
+            msg.timestamp))
+        try:
+            import carla
+        except ImportError:
+            raise Exception('Error importing carla.')
+        self._logger.info('Initializing HDMap from open drive stream')
+        from pylot.map.hd_map import HDMap
+        self._map = HDMap(carla.Map('map', msg.data))
 
     @erdos.profile_method()
     def on_position_update(self, pose_msg, detected_lane_stream):
@@ -57,29 +75,12 @@ class PerfectLaneDetectionOperator(erdos.Operator):
         self._logger.debug('@{}: received pose message'.format(
             pose_msg.timestamp))
         vehicle_location = pose_msg.data.transform.location
-        lane_waypoints = []
-        next_wp = [
-            self._world_map.get_waypoint(vehicle_location.as_carla_location())
-        ]
-
-        while len(next_wp) == 1:
-            lane_waypoints.append(next_wp[0])
-            next_wp = next_wp[0].next(self._waypoint_precision)
-
-        # Get the left and right markings of the lane and send it as a message.
-        left_markings = [
-            self._lateral_shift(w.transform, -w.lane_width * 0.5)
-            for w in lane_waypoints
-        ]
-        right_markings = [
-            self._lateral_shift(w.transform, w.lane_width * 0.5)
-            for w in lane_waypoints
-        ]
-
-        # Construct the DetectedLaneMessage.
-        detected_lanes = [
-            DetectedLane(left, right)
-            for left, right in zip(left_markings, right_markings)
-        ]
-        output_msg = DetectedLaneMessage(pose_msg.timestamp, detected_lanes)
+        if self._map:
+            lanes = [self._map.get_lane(vehicle_location)]
+            lanes[0].draw_on_world(self._world)
+        else:
+            self._logger.debug('@{}: map is not ready yet'.format(
+                pose_msg.timestamp))
+            lanes = []
+        output_msg = LanesMessage(pose_msg.timestamp, lanes)
         detected_lane_stream.send(output_msg)

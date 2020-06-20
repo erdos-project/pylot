@@ -247,30 +247,27 @@ class ObstacleTrajectoriesMessage(erdos.Message):
                 'trajectories: {})'.format(self.timestamp, trajectories_str))
 
 
-class DetectedLaneMessage(erdos.Message):
+class LanesMessage(erdos.Message):
     """Message to be used to send info about lanes.
 
     Args:
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
             message.
-        detected_lanes (list(:py:class:`~pylot.utils.Location`)): Detected lane
-            locations.
+        lanes (list(:py:class:`~pylot.perception.lane.Lane`)): Lis of lanes.
 
     Attributes:
-        detected_lanes (list(:py:class:`~pylot.utils.Location`)): Detected lane
-            locations.
+        lanes (list(:py:class:`~pylot.perception.lane.Lane`)): List of lanes.
     """
-    def __init__(self, timestamp, detected_lanes):
-        super(DetectedLaneMessage, self).__init__(timestamp, None)
-        self.detected_lanes = detected_lanes
+    def __init__(self, timestamp, lanes):
+        super(LanesMessage, self).__init__(timestamp, None)
+        self.lanes = lanes
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return 'DetectedLaneMessage(timestamp: {}, '\
-                'detected_lanes: {})'.format(
-                    self.timestamp, self.detected_lanes)
+        return 'LaneMessage(timestamp: {}, lanes: {})'.format(
+            self.timestamp, self.lanes)
 
 
 class TrafficLightsMessage(erdos.Message):

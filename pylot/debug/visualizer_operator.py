@@ -100,7 +100,7 @@ class VisualizerOperator(erdos.Operator):
         self._lane_detection_msgs = deque()
         lane_detection_stream.add_callback(
             partial(self.save,
-                    msg_type="DetectedLane",
+                    msg_type="Lanes",
                     queue=self._lane_detection_msgs))
         visualize_streams.append(lane_detection_stream)
 
@@ -164,7 +164,7 @@ class VisualizerOperator(erdos.Operator):
             self.display_array.append("PointCloud")
             self.window_titles.append("LiDAR")
         if flags.visualize_detected_lanes:
-            self.display_array.append("DetectedLane")
+            self.display_array.append("Lanes")
             self.window_titles.append("Detected lanes")
         if flags.visualize_depth_camera:
             self.display_array.append("Depth")
@@ -287,7 +287,7 @@ class VisualizerOperator(erdos.Operator):
         tracked_obstacle_msg = self.get_message(self._tracked_obstacle_msgs,
                                                 timestamp, "TrackedObstacle")
         lane_detection_msg = self.get_message(self._lane_detection_msgs,
-                                              timestamp, "DetectedLane")
+                                              timestamp, "Lanes")
         prediction_camera_msg = self.get_message(self._prediction_camera_msgs,
                                                  timestamp, "PredictionCamera")
         prediction_msg = self.get_message(self._prediction_msgs, timestamp,
@@ -347,8 +347,7 @@ class VisualizerOperator(erdos.Operator):
             point_cloud_msg.point_cloud.visualize(
                 self.display, self._flags.camera_image_width,
                 self._flags.camera_image_height)
-        elif (sensor_to_display == "DetectedLane" and bgr_msg
-              and lane_detection_msg):
+        elif (sensor_to_display == "Lanes" and bgr_msg and lane_detection_msg):
             import cv2
             final_img = np.copy(bgr_msg.frame.as_numpy_array())
             final_img = cv2.addWeighted(final_img, 0.8,

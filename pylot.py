@@ -129,7 +129,7 @@ def driver():
             depth_stream, ground_traffic_lights_stream)
 
     lane_detection_stream = pylot.component_creator.add_lane_detection(
-        center_camera_stream, pose_stream)
+        center_camera_stream, pose_stream, open_drive_stream)
 
     obstacles_tracking_stream = pylot.component_creator.add_obstacle_tracking(
         center_camera_stream, center_camera_setup, obstacles_stream,

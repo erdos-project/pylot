@@ -265,19 +265,6 @@ class BoundingBox3D(object):
             self.transform, self.extent)
 
 
-class DetectedLane(object):
-    def __init__(self, left_marking, right_marking):
-        self.left_marking = left_marking
-        self.right_marking = right_marking
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        return 'DetectedLane(left_marking: {}, right_marking: {})'.format(
-            self.left_marking, self.right_marking)
-
-
 def get_bounding_box_in_camera_view(bb_coordinates, image_width, image_height):
     """Creates the bounding box in the view of the camera image using the
     coordinates generated with respect to the camera transform.

@@ -953,15 +953,16 @@ def add_perfect_traffic_light_detector(ground_traffic_lights_stream,
     return traffic_lights_stream
 
 
-def add_perfect_lane_detector(pose_stream):
+def add_perfect_lane_detector(pose_stream, open_drive_stream):
     from pylot.simulation.perfect_lane_detector_operator import \
         PerfectLaneDetectionOperator
     op_config = erdos.OperatorConfig(name='perfect_lane_detection_operator',
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [detected_lanes_stream] = erdos.connect(PerfectLaneDetectionOperator,
-                                            op_config, [pose_stream], FLAGS)
+    [detected_lanes_stream
+     ] = erdos.connect(PerfectLaneDetectionOperator, op_config,
+                       [pose_stream, open_drive_stream], FLAGS)
     return detected_lanes_stream
 
 

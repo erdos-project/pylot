@@ -8,9 +8,6 @@ import erdos
 
 import numpy as np
 
-import pylot.utils
-from pylot.perception.camera_frame import CameraFrame
-
 Line = namedtuple("Line", "x1, y1, x2, y2, slope")
 
 
@@ -24,8 +21,7 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
             camera frames are received.
         detected_lanes_stream (:py:class:`erdos.WriteStream`): Stream on which
             the operator sends
-            :py:class:`~pylot.perception.messages.DetectedLaneMessage`
-            messages.
+            :py:class:`~pylot.perception.messages.LanesMessage` messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
     def __init__(self, camera_stream, detected_lanes_stream, flags):
@@ -46,8 +42,7 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
 
         Returns:
             :py:class:`erdos.WriteStream`: Stream on which the operator sends
-            :py:class:`~pylot.perception.messages.DetectedLaneMessage`
-            messages.
+            :py:class:`~pylot.perception.messages.LanesMessage` messages.
         """
         detected_lanes_stream = erdos.WriteStream()
         return [detected_lanes_stream]
@@ -60,8 +55,7 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
             msg: A :py:class:`~pylot.perception.messages.FrameMessage`.
             detected_lanes_stream (:py:class:`erdos.WriteStream`): Stream on
                 which the operator sends
-                :py:class:`~pylot.perception.messages.DetectedLaneMessage`
-                messages.
+                :py:class:`~pylot.perception.messages.LanesMessage` messages.
         """
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self.config.name))
