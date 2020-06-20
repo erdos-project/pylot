@@ -136,6 +136,8 @@ flags.DEFINE_bool('visualize_prediction', False,
 flags.DEFINE_bool(
     'visualize_world', False,
     'True to enable visualization of the planning world representation')
+flags.DEFINE_integer('top_down_camera_altitude', 40,
+                     'Altitude of the top-down world camera (in meters).')
 
 ########################################
 # Recording operators.

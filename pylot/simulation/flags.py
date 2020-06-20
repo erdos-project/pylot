@@ -59,10 +59,6 @@ flags.DEFINE_float('carla_vehicle_moi', None,
                    'Modifies the moment of inertia of the ego-vehicle')
 
 # Other flags
-flags.DEFINE_integer(
-    'top_down_lateral_view', 20,
-    'Distance in meters to the left and right of the '
-    'ego-vehicle that the top-down camera shows.')
 flags.DEFINE_integer('random_seed', None,
                      'Random seed for populating the simulation.')
 flags.DEFINE_integer(

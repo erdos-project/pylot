@@ -8,6 +8,12 @@ except ImportError:
 
 import pylot.utils
 
+OBSTACLE_LABELS = {
+    'car', 'bicycle', 'motorcycle', 'bus', 'truck', 'vehicle', 'person',
+    'stop sign', 'parking meter', 'cat', 'dog', 'speed limit 30',
+    'speed limit 60', 'speed limit 90'
+}
+
 PYLOT_BBOX_COLOR_MAP = {
     'person': [0, 128, 0],
     'vehicle': [128, 0, 0],

@@ -36,11 +36,13 @@ class World(object):
             for transform in prediction.predicted_trajectory:
                 # Ignore predictions that are too close.
                 if (previous_origin is None
-                        or previous_origin.l2_distance(transform) >
+                        or previous_origin.location.l2_distance(
+                            transform.location) >
                         self._flags.obstacle_filtering_distance):
                     previous_origin = transform
                     # Ensure the prediction is nearby.
-                    if (self.ego_transform.l2_distance(transform) <
+                    if (self.ego_transform.location.l2_distance(
+                            transform.location) <
                             self._flags.distance_threshold):
                         obstacle_corners = \
                             prediction.obstacle_trajectory.obstacle.get_bounding_box_corners(

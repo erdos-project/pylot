@@ -9,7 +9,7 @@ import numpy as np
 import pylot.utils
 from pylot.perception.detection.obstacle import Obstacle
 from pylot.perception.detection.utils import BoundingBox2D, \
-    load_coco_bbox_colors, load_coco_labels
+    OBSTACLE_LABELS, load_coco_bbox_colors, load_coco_labels
 from pylot.perception.messages import ObstaclesMessage
 
 import tensorflow as tf
@@ -68,11 +68,6 @@ class DetectionOperator(erdos.Operator):
             'num_detections:0')
         self._coco_labels = load_coco_labels(self._flags.path_coco_labels)
         self._bbox_colors = load_coco_bbox_colors(self._coco_labels)
-        self._important_labels = {
-            'car', 'bicycle', 'motorcycle', 'bus', 'truck', 'vehicle',
-            'person', 'stop sign', 'parking meter', 'cat', 'dog',
-            'speed limit 30', 'speed limit 60', 'speed limit 90'
-        }
         # Unique bounding box id. Incremented for each bounding box.
         self._unique_id = 0
         # Serve some junk image to load up the model.
@@ -121,8 +116,7 @@ class DetectionOperator(erdos.Operator):
             if res_classes[i] in self._coco_labels:
                 if (res_scores[i] >=
                         self._flags.obstacle_detection_min_score_threshold):
-                    if (self._coco_labels[res_classes[i]] in
-                            self._important_labels):
+                    if (self._coco_labels[res_classes[i]] in OBSTACLE_LABELS):
                         obstacles.append(
                             Obstacle(BoundingBox2D(
                                 int(res_boxes[i][1] *

@@ -173,18 +173,18 @@ class VisualizerOperator(erdos.Operator):
             self.display_array.append("Segmentation")
             self.window_titles.append("Segmentation")
         if flags.visualize_world:
-            self._world = World(flags)
+            self._planning_world = World(flags)
             top_down_transform = pylot.utils.get_top_down_transform(
                 pylot.utils.Transform(pylot.utils.Location(),
                                       pylot.utils.Rotation()),
-                flags.top_down_lateral_view)
+                flags.top_down_camera_altitude)
             self._bird_eye_camera_setup = RGBCameraSetup(
                 'bird_eye_camera', flags.camera_image_width,
                 flags.camera_image_height, top_down_transform, 90)
             self.display_array.append("PlanningWorld")
             self.window_titles.append("Planning world")
         else:
-            self._world = None
+            self._planning_world = None
         assert len(self.display_array) == len(self.window_titles), \
             "The display and titles differ."
 
@@ -371,10 +371,10 @@ class VisualizerOperator(erdos.Operator):
             else:
                 frame = prediction_camera_msg.frame
                 frame.transform_to_cityscapes()
-            self._world.update(timestamp, ego_transform,
-                               prediction_msg.predictions,
-                               traffic_light_msg.obstacles)
-            self._world.draw_on_frame(frame)
+            self._planning_world.update(timestamp, ego_transform,
+                                        prediction_msg.predictions,
+                                        traffic_light_msg.obstacles)
+            self._planning_world.draw_on_frame(frame)
             frame.visualize(self.display, timestamp=timestamp)
 
         self.render_text(pose_msg.data, control_msg, timestamp)

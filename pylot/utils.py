@@ -832,10 +832,10 @@ def add_timestamp(image_np, timestamp):
                 lineType=cv2.LINE_AA)
 
 
-def get_top_down_transform(transform, top_down_lateral_view):
-    # Height calculation relies on the fact that the camera's FOV is 90.
+def get_top_down_transform(transform, top_down_camera_altitude):
+    # Calculation relies on the fact that the camera's FOV is 90.
     top_down_location = (transform.location +
-                         Location(0, 0, top_down_lateral_view))
+                         Location(0, 0, top_down_camera_altitude))
     return Transform(top_down_location, Rotation(-90, 0, 0))
 
 

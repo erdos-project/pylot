@@ -392,7 +392,7 @@ def add_prediction(obstacles_tracking_stream,
         if FLAGS.visualize_prediction:
             # Add bird's eye camera.
             top_down_transform = pylot.utils.get_top_down_transform(
-                camera_transform, FLAGS.top_down_lateral_view)
+                camera_transform, FLAGS.top_down_camera_altitude)
             (top_down_segmented_camera_stream,
              notify_reading_stream,
              top_down_segmented_camera_setup) = \

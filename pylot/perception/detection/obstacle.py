@@ -211,7 +211,14 @@ class Obstacle(object):
                 if frame.in_frame(start_point) or frame.in_frame(end_point):
                     frame.draw_box(start_point, end_point, point_color)
 
-    def get_bounding_box_corners(self, global_obstacle, obstacle_radius=None):
+    def get_bounding_box_corners(self,
+                                 obstacle_transform,
+                                 obstacle_radius=None):
+        """Gets the corners of the obstacle's bounding box.
+        Note:
+            The bounding box is applied on the given obstacle transfom, and not
+            on the default obstacle transform.
+        """
         # Use 3d bounding boxes if available, otherwise use default
         if isinstance(self.bounding_box, BoundingBox3D):
             start_location = (self.bounding_box.transform.location -
@@ -219,13 +226,13 @@ class Obstacle(object):
             end_location = (self.bounding_box.transform.location +
                             self.bounding_box.extent)
             [start_location,
-             end_location] = global_obstacle.transform_locations(
+             end_location] = obstacle_transform.transform_locations(
                  [start_location, end_location])
         else:
             obstacle_radius_loc = pylot.utils.Location(obstacle_radius,
                                                        obstacle_radius)
-            start_location = global_obstacle.location - obstacle_radius_loc
-            end_location = global_obstacle.location + obstacle_radius_loc
+            start_location = obstacle_transform.location - obstacle_radius_loc
+            end_location = obstacle_transform.location + obstacle_radius_loc
         return [
             min(start_location.x, end_location.x),
             min(start_location.y, end_location.y),

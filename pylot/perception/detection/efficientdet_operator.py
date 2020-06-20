@@ -5,13 +5,13 @@ import erdos
 
 import numpy as np
 
-import tensorflow as tf
-
 import pylot.utils
 from pylot.perception.detection.obstacle import Obstacle
 from pylot.perception.detection.utils import BoundingBox2D, \
-    load_coco_bbox_colors, load_coco_labels
+    OBSTACLE_LABELS, load_coco_bbox_colors, load_coco_labels
 from pylot.perception.messages import ObstaclesMessage
+
+import tensorflow as tf
 
 
 class EfficientDetOperator(erdos.Operator):
@@ -44,11 +44,6 @@ class EfficientDetOperator(erdos.Operator):
         # Load the COCO labels.
         self._coco_labels = load_coco_labels(self._flags.path_coco_labels)
         self._bbox_colors = load_coco_bbox_colors(self._coco_labels)
-        self._important_labels = {
-            'car', 'bicycle', 'motorcycle', 'bus', 'truck', 'vehicle',
-            'person', 'stop sign', 'parking meter', 'cat', 'dog',
-            'speed limit 30', 'speed limit 60', 'speed limit 90'
-        }
 
         assert len(model_names) == len(
             model_paths), 'Model names and paths do not have same length'
@@ -182,8 +177,7 @@ class EfficientDetOperator(erdos.Operator):
             ymax = int(y + height)
             if _class in self._coco_labels:
                 if (score >= self._flags.obstacle_detection_min_score_threshold
-                        and
-                        self._coco_labels[_class] in self._important_labels):
+                        and self._coco_labels[_class] in OBSTACLE_LABELS):
                     xmin, xmax = max(0, xmin), min(xmax, camera_setup.width)
                     ymin, ymax = max(0, ymin), min(ymax, camera_setup.height)
                     if xmin < xmax and ymin < ymax:
