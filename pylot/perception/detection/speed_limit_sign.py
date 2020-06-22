@@ -52,14 +52,15 @@ class SpeedLimitSign(Obstacle):
         return cls(speed_limit, 1.0, id=actor.id, transform=transform)
 
     def get_in_log_format(self):
+        min_point = self._bounding_box_2D.get_min_point()
+        max_point = self._bounding_box_2D.get_max_point()
         return (self.label + ' ' + str(self.speed_limit),
-                (self.bounding_box.get_min_point(),
-                 self.bounding_box.get_max_point()))
+                ((min_point.x, min_point.y), (max_point.x, max_point.y)))
 
-    def draw_on_image(self, image_np, bbox_color_map, ego_transform=None):
+    def draw_on_frame(self, frame, bbox_color_map, ego_transform=None):
         text = '{} {} {:.1f}'.format(self.speed_limit, self.label,
                                      self.confidence)
-        super(SpeedLimitSign, self).draw_on_image(image_np, bbox_color_map,
+        super(SpeedLimitSign, self).draw_on_frame(frame, bbox_color_map,
                                                   ego_transform, text)
 
     def __repr__(self):

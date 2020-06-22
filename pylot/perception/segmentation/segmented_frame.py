@@ -272,6 +272,15 @@ class SegmentedFrame(object):
         """Draws a colored point on the segmented frame."""
         cv2.circle(self._frame, (int(point.x), int(point.y)), r, color, -1)
 
+    def draw_text(self, point, text, color=(255, 255, 255)):
+        cv2.putText(self._frame,
+                    text, (int(point.x), int(point.y)),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    color,
+                    thickness=1,
+                    lineType=cv2.LINE_AA)
+
     def _get_traffic_sign_pixels(self):
         """Returns a frame with the traffic sign pixels set to True."""
         # Shape is height, width

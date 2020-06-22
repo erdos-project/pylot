@@ -69,10 +69,10 @@ class BoundingBox2D(object):
         self.y_max = y_max
 
     def get_min_point(self):
-        return (self.x_min, self.y_min)
+        return pylot.utils.Vector2D(self.x_min, self.y_min)
 
     def get_max_point(self):
-        return (self.x_max, self.y_max)
+        return pylot.utils.Vector2D(self.x_max, self.y_max)
 
     def get_height(self):
         return self.y_max - self.y_min

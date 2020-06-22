@@ -132,8 +132,8 @@ class Obstacle(object):
             relative_vector * other_transform.forward_vector.as_numpy_array())
         return distance
 
-    def draw_on_image(self,
-                      image_np,
+    def draw_on_frame(self,
+                      frame,
                       bbox_color_map,
                       ego_transform=None,
                       text=None):
@@ -141,8 +141,6 @@ class Obstacle(object):
         if not self._bounding_box_2D:
             raise ValueError(
                 'Obstacle {} does not have 2D bounding box'.format(self.id))
-        import cv2
-        txt_font = cv2.FONT_HERSHEY_SIMPLEX
         if text is None:
             text = '{}, {:.1f}'.format(self.label, self.confidence)
             if self.id != -1:
@@ -150,51 +148,29 @@ class Obstacle(object):
             if ego_transform is not None and self.transform is not None:
                 text += ', {:.1f}m'.format(
                     ego_transform.location.distance(self.transform.location))
-        txt_size = cv2.getTextSize(text, txt_font, 0.5, 2)[0]
         if self.label in bbox_color_map:
             color = bbox_color_map[self.label]
         else:
             color = [255, 255, 255]
         # Show bounding box.
-        cv2.rectangle(image_np, self._bounding_box_2D.get_min_point(),
-                      self._bounding_box_2D.get_max_point(), color, 2)
-        # Show text.
-        cv2.rectangle(image_np,
-                      (self._bounding_box_2D.x_min,
-                       self._bounding_box_2D.y_min - txt_size[1] - 2),
-                      (self._bounding_box_2D.x_min + txt_size[0],
-                       self._bounding_box_2D.y_min - 2), color, -1)
-        cv2.putText(
-            image_np,
-            text,
-            (self._bounding_box_2D.x_min, self._bounding_box_2D.y_min - 2),
-            txt_font,
-            0.5, (0, 0, 0),
-            thickness=1,
-            lineType=cv2.LINE_AA)
+        frame.draw_box(self._bounding_box_2D.get_min_point(),
+                       self._bounding_box_2D.get_max_point(), color)
+        frame.draw_text(self._bounding_box_2D.get_min_point(), text, color)
 
-    def draw_trajectory_on_frame(self, trajectory, frame, point_color):
+    def draw_trajectory_on_frame(self,
+                                 trajectory,
+                                 frame,
+                                 point_color,
+                                 draw_label=False):
         # Intrinsic and extrinsic matrix of the top down camera.
         extrinsic_matrix = frame.camera_setup.get_extrinsic_matrix()
         intrinsic_matrix = frame.camera_setup.get_intrinsic_matrix()
-        # Obstacle trajectory points.
-        screen_points = []
-        for transform in trajectory:
-            screen_point = transform.location.to_camera_view(
-                extrinsic_matrix, intrinsic_matrix)
-            screen_points.append(screen_point)
-        # Draw trajectory on frame.
-        for point in screen_points:
-            frame.draw_point(point, point_color)
-
-        # Obstacle bounding box.
         if isinstance(self.bounding_box, BoundingBox3D):
+            # Draw bounding boxes.
             start_location = self.bounding_box.transform.location - \
                 self.bounding_box.extent
             end_location = self.bounding_box.transform.location + \
                 self.bounding_box.extent
-            start_points = []
-            end_points = []
             for transform in trajectory:
                 [start_transform,
                  end_transform] = transform.transform_locations(
@@ -203,13 +179,21 @@ class Obstacle(object):
                     extrinsic_matrix, intrinsic_matrix)
                 end_point = end_transform.to_camera_view(
                     extrinsic_matrix, intrinsic_matrix)
-                start_points.append(start_point)
-                end_points.append(end_point)
-
-            # Draw bounding box on segmented image.
-            for start_point, end_point in zip(start_points, end_points):
                 if frame.in_frame(start_point) or frame.in_frame(end_point):
                     frame.draw_box(start_point, end_point, point_color)
+        else:
+            # Draw points.
+            for transform in trajectory:
+                screen_point = transform.location.to_camera_view(
+                    extrinsic_matrix, intrinsic_matrix)
+                if frame.in_frame(screen_point):
+                    # Draw trajectory on frame.
+                    frame.draw_point(screen_point, point_color)
+        if draw_label and len(trajectory) > 0:
+            text = '{}, {}'.format(self.label, self.id)
+            screen_point = trajectory[-1].location.to_camera_view(
+                extrinsic_matrix, intrinsic_matrix)
+            frame.draw_text(screen_point, text, point_color)
 
     def get_bounding_box_corners(self,
                                  obstacle_transform,
@@ -244,9 +228,10 @@ class Obstacle(object):
         if not self._bounding_box_2D:
             raise ValueError(
                 'Obstacle {} does not have 2D bounding box'.format(self.id))
+        min_point = self._bounding_box_2D.get_min_point()
+        max_point = self._bounding_box_2D.get_max_point()
         return (self.label, self.detailed_label, self.id,
-                (self._bounding_box_2D.get_min_point(),
-                 self._bounding_box_2D.get_max_point()))
+                ((min_point.x, min_point.y), (max_point.x, max_point.y)))
 
     def is_animal(self):
         return self.label in [

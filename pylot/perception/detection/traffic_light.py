@@ -116,6 +116,7 @@ class TrafficLight(Obstacle):
         point = self.transform.location.to_camera_view(extrinsic_matrix,
                                                        intrinsic_matrix)
         frame.draw_point(point, self.state.get_color(), r=10)
+        frame.draw_text(point, self.state.get_label(), self.state.get_color())
 
     def is_traffic_light_visible(self,
                                  camera_transform,

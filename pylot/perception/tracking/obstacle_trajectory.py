@@ -11,11 +11,11 @@ class ObstacleTrajectory(object):
         self.obstacle = obstacle
         self.trajectory = trajectory
 
-    def draw_on_image(self, image_np, bbox_color_map, ego_transform=None):
+    def draw_on_frame(self, frame, bbox_color_map, ego_transform=None):
         """Draws the tracked obstacle as a 2D bounding box."""
-        self.obstacle.draw_on_image(image_np, bbox_color_map, ego_transform)
+        self.obstacle.draw_on_frame(frame, bbox_color_map, ego_transform)
 
-    def draw_trajectory_on_frame(self, frame):
+    def draw_trajectory_on_frame(self, frame, draw_label=False):
         """Draws the trajectory on a bird's eye view frame."""
         if self.obstacle.is_person():
             color = [255, 0, 0]
@@ -23,7 +23,8 @@ class ObstacleTrajectory(object):
             color = [128, 128, 0]
         else:
             color = [255, 255, 0]
-        self.obstacle.draw_trajectory_on_frame(self.trajectory, frame, color)
+        self.obstacle.draw_trajectory_on_frame(self.trajectory, frame, color,
+                                               draw_label)
 
     def to_world_coordinates(self, ego_transform):
         """Transforms the trajectory into world coordinates."""

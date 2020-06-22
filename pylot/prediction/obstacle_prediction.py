@@ -18,7 +18,6 @@ class ObstaclePrediction(object):
 
     def draw_trajectory_on_frame(self, frame):
         """Draws the past and predicted trajectory on a bird's eye frame."""
-        self.obstacle_trajectory.draw_trajectory_on_frame(frame)
         if self.is_person():
             color = [0, 0, 255]
         elif self.is_vehicle():
@@ -27,6 +26,7 @@ class ObstaclePrediction(object):
             color = [255, 0, 0]
         self.obstacle_trajectory.obstacle.draw_trajectory_on_frame(
             self.predicted_trajectory, frame, color)
+        self.obstacle_trajectory.draw_trajectory_on_frame(frame, True)
 
     def to_world_coordinates(self, ego_transform):
         """Transforms the trajectory and prediction into world coordinates."""

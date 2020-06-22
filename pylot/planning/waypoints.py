@@ -131,7 +131,7 @@ class Waypoints(object):
                 itertools.islice(self.target_speeds, start_index, end_index))
         return Waypoints(head_wps, head_target_speeds)
 
-    def draw_on_image(self, bgr_frame):
+    def draw_on_frame(self, bgr_frame):
         """Draw waypoints on a frame."""
         extrinsic_matrix = bgr_frame.camera_setup.get_extrinsic_matrix()
         intrinsic_matrix = bgr_frame.camera_setup.get_intrinsic_matrix()

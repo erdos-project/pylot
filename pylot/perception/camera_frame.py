@@ -73,11 +73,11 @@ class CameraFrame(object):
         bbox_color_map=pylot.perception.detection.utils.PYLOT_BBOX_COLOR_MAP):
         pylot.utils.add_timestamp(self.frame, timestamp)
         for obstacle in detected_obstacles:
-            obstacle.draw_on_image(self.frame,
+            obstacle.draw_on_frame(self,
                                    bbox_color_map,
                                    ego_transform=transform)
 
-    def draw_box(self, start_point, end_point, color, thickness=3):
+    def draw_box(self, start_point, end_point, color, thickness=2):
         """Draw a colored box defined by start_point, end_point."""
         start = (int(start_point.x), int(start_point.y))
         end = (int(end_point.x), int(end_point.y))
@@ -85,6 +85,15 @@ class CameraFrame(object):
 
     def draw_point(self, point, color, r=3):
         cv2.circle(self.frame, (int(point.x), int(point.y)), r, color, -1)
+
+    def draw_text(self, point, text, color=(255, 255, 255)):
+        cv2.putText(self.frame,
+                    text, (int(point.x), int(point.y)),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    color,
+                    thickness=1,
+                    lineType=cv2.LINE_AA)
 
     def in_frame(self, point):
         """Checks if a point is within the frame."""
