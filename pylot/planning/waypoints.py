@@ -131,14 +131,25 @@ class Waypoints(object):
                 itertools.islice(self.target_speeds, start_index, end_index))
         return Waypoints(head_wps, head_target_speeds)
 
-    def draw_on_frame(self, bgr_frame):
-        """Draw waypoints on a frame."""
+    def draw_on_frame(self, bgr_frame, inverse_transform=None):
+        """Draw waypoints on a frame.
+
+        Args:
+            bgr_frame: Frame on which to draw the waypoints.
+            inverse_transform (optional): To be used to transform the waypoints
+                to relative to the ego vehicle.
+        """
         extrinsic_matrix = bgr_frame.camera_setup.get_extrinsic_matrix()
         intrinsic_matrix = bgr_frame.camera_setup.get_intrinsic_matrix()
-        for wp in self.waypoints:
+        for index, wp in enumerate(self.waypoints):
+            if inverse_transform:
+                wp = inverse_transform * wp
             pixel_location = wp.location.to_camera_view(
                 extrinsic_matrix, intrinsic_matrix)
-            bgr_frame.draw_point(pixel_location, [0, 0, 0])
+            bgr_frame.draw_point(pixel_location, [255, 255, 255])
+            if self.target_speeds:
+                speed = '{:.1f}m/s'.format(self.target_speeds[index])
+                bgr_frame.draw_text(pixel_location, speed, [255, 255, 255])
 
     def draw_on_world(self, world):
         """Draw waypoints on CARLA world."""

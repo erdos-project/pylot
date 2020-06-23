@@ -4,8 +4,6 @@ import os
 import numpy as np
 from numpy.linalg import inv
 
-import pygame
-
 from pylot.utils import Location, Transform, Vector2D
 
 
@@ -171,6 +169,7 @@ class PointCloud(object):
         o3d.write_point_cloud(file_name, pcd)
 
     def visualize(self, pygame_display, display_width, display_height):
+        import pygame
         # Transform point cloud to top down view.
         lidar_data = np.array(self.global_points[:, :2])
         lidar_data *= min(display_width, display_height) / 200

@@ -4,6 +4,9 @@ import erdos
 
 import pylot.utils
 
+# TODO: Hack to avoid a tensorflow import error.
+import tensorflow as tf
+
 FLAGS = flags.FLAGS
 
 
@@ -874,7 +877,8 @@ def add_visualizer(pose_stream=None,
             or not (FLAGS.visualize_prediction or FLAGS.visualize_world)):
         prediction_stream = erdos.IngestStream()
         streams_to_send_top_on.append(prediction_stream)
-    if waypoints_stream is None or not FLAGS.visualize_waypoints:
+    if waypoints_stream is None or not (FLAGS.visualize_waypoints
+                                        or FLAGS.visualize_world):
         waypoints_stream = erdos.IngestStream()
         streams_to_send_top_on.append(waypoints_stream)
     if control_stream is None:

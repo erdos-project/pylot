@@ -6,8 +6,6 @@ import numpy as np
 
 import PIL.Image as Image
 
-import pygame
-
 import pylot.perception.detection.utils
 import pylot.utils
 
@@ -107,6 +105,7 @@ class CameraFrame(object):
                                 interpolation=cv2.INTER_NEAREST)
 
     def visualize(self, pygame_display, timestamp=None):
+        import pygame
         if timestamp is not None:
             pylot.utils.add_timestamp(self.frame, timestamp)
         if self.encoding != 'RGB':

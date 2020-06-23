@@ -6,8 +6,6 @@ import numpy as np
 
 import PIL.Image as Image
 
-import pygame
-
 from skimage import measure
 
 import pylot.utils
@@ -255,6 +253,7 @@ class SegmentedFrame(object):
         img.save(file_name)
 
     def visualize(self, pygame_display, timestamp=None):
+        import pygame
         cityscapes_frame = self.as_cityscapes_palette()
         if timestamp is not None:
             pylot.utils.add_timestamp(cityscapes_frame, timestamp)

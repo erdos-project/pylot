@@ -190,6 +190,7 @@ class VisualizerOperator(erdos.Operator):
 
         # Save the flags.
         self._flags = flags
+        self._map = None
 
     @staticmethod
     def connect(pose_stream, rgb_camera_stream, tl_camera_stream,
@@ -372,7 +373,8 @@ class VisualizerOperator(erdos.Operator):
                 frame.transform_to_cityscapes()
             self._planning_world.update(timestamp, ego_transform,
                                         prediction_msg.predictions,
-                                        traffic_light_msg.obstacles)
+                                        traffic_light_msg.obstacles,
+                                        waypoint_msg.waypoints, self._map)
             self._planning_world.draw_on_frame(frame)
             frame.visualize(self.display, timestamp=timestamp)
 
@@ -389,6 +391,12 @@ class VisualizerOperator(erdos.Operator):
             _, self._world = get_world(self._flags.carla_host,
                                        self._flags.carla_port,
                                        self._flags.carla_timeout)
+        if self._flags.execution_mode == 'simulation':
+            from pylot.simulation.utils import get_map
+            from pylot.map.hd_map import HDMap
+            self._map = HDMap(
+                get_map(self._flags.carla_host, self._flags.carla_port,
+                        self._flags.carla_timeout))
 
     def _visualize_pose(self, ego_transform):
         # Draw position. We add 0.5 to z to ensure that the point is above

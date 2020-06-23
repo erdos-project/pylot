@@ -13,10 +13,17 @@ class World(object):
         self._ego_obstacle_predictions = None
         self.ego_trajectory = deque(maxlen=self._flags.tracking_num_steps)
         self.ego_transform = None
+        self._map = None
+        self._waypoints = None
         self.timestamp = None
 
-    def update(self, timestamp, ego_transform, obstacle_predictions,
-               road_signs):
+    def update(self,
+               timestamp,
+               ego_transform,
+               obstacle_predictions,
+               road_signs,
+               waypoints=None,
+               hd_map=None):
         self.timestamp = timestamp
         self.ego_transform = ego_transform
         self.ego_trajectory.append(ego_transform)
@@ -27,6 +34,8 @@ class World(object):
             obstacle_prediction.to_world_coordinates(ego_transform)
         # Road signs are in world coordinates.
         self.road_signs = road_signs
+        self._waypoints = waypoints
+        self._map = hd_map
 
     def get_obstacle_list(self):
         obstacle_list = []
@@ -63,3 +72,12 @@ class World(object):
                                        road_sign.transform)
                 road_sign.draw_on_frame(frame)
                 road_sign.transform = world_transform
+        if self._waypoints:
+            self._waypoints.draw_on_frame(
+                frame, self.ego_transform.inverse_transform())
+        # TODO: Draw lane markings. We do not draw them currently
+        # because we need to transform them from world frame of reference
+        # to ego vehicle frame of reference, which is slow to compute.
+        # if self._map:
+        #     lane = self._map.get_lane(self.ego_transform.location)
+        #     lane.draw_on_frame(frame, self.ego_transform.inverse_transform())
