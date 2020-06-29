@@ -64,6 +64,14 @@ flags.DEFINE_string('da_siam_rpn_model_path',
                     'dependencies/models/tracking/DASiamRPN/SiamRPNVOT.model',
                     'Path to the model')
 
+# Lane detection flags.
+flags.DEFINE_float('lane_detection_gpu_memory_fraction', 0.3,
+                   'GPU memory fraction allocated to Lanenet')
+flags.DEFINE_string(
+    'lanenet_detection_model_path',
+    'dependencies/models/lane_detection/lanenet/tusimple_lanenet.ckpt',
+    'Path to the saved lanenet model')
+
 ## Evaluation metrics.
 
 # Segmentation eval flags.

@@ -13,7 +13,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_list('goal_location', '234, 59, 39', 'Ego-vehicle goal location')
 
 # The location of the center camera relative to the ego-vehicle.
-CENTER_CAMERA_LOCATION = pylot.utils.Location(1.0, 0.0, 1.8)
+CENTER_CAMERA_LOCATION = pylot.utils.Location(1.3, 0.0, 1.8)
 
 
 def add_evaluation_operators(vehicle_id_stream, pose_stream, imu_stream,
@@ -45,7 +45,7 @@ def add_evaluation_operators(vehicle_id_stream, pose_stream, imu_stream,
 
 def driver():
     transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
-                                      pylot.utils.Rotation())
+                                      pylot.utils.Rotation(pitch=-15))
 
     control_loop_stream = erdos.LoopStream()
     time_to_decision_loop_stream = erdos.LoopStream()
