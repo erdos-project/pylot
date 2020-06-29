@@ -3,6 +3,7 @@ from collections import deque
 import erdos
 
 import pylot.planning.cost_functions
+import pylot.utils
 from pylot.planning.utils import BehaviorPlannerState
 
 
@@ -87,7 +88,8 @@ class BehaviorPlanningOperator(erdos.Operator):
             self._goal_location = new_goal_location
             waypoints = self._map.compute_waypoints(
                 self._vehicle_transform.location, self._goal_location)
-            waypoints = [(wp, 0) for wp in waypoints]
+            waypoints = [(wp, pylot.utils.RoadOption.LANE_FOLLOW)
+                         for wp in waypoints]
             if not waypoints or len(waypoints) == 0:
                 # If waypoints are empty (e.g., reached destination), set
                 # waypoints to current vehicle location.

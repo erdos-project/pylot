@@ -304,7 +304,7 @@ class ERDOSAgent(AutonomousAgent):
             # Gets global waypoints from the agent.
             self._waypoints = self._global_plan_world_coord
             data = [(pylot.utils.Transform.from_carla_transform(transform),
-                     road_option)
+                     pylot.utils.RoadOption(road_option.value))
                     for (transform, road_option) in self._waypoints]
             self._global_trajectory_stream.send(erdos.Message(timestamp, data))
             self._global_trajectory_stream.send(

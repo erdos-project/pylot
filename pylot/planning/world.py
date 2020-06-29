@@ -70,7 +70,7 @@ class World(object):
                 # Transform traffic light to ego frame of reference.
                 road_sign.transform = (self.ego_transform.inverse_transform() *
                                        road_sign.transform)
-                road_sign.draw_on_frame(frame)
+                road_sign.draw_on_bird_eye_frame(frame)
                 road_sign.transform = world_transform
         if self._waypoints:
             self._waypoints.draw_on_frame(

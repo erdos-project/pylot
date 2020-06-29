@@ -11,13 +11,14 @@ DEFAULT_VIS_TIME = 1
 
 class Waypoints(object):
     """Stores waypoints and provides methods to wrangle them."""
-    def __init__(self, waypoints, target_speeds=None):
+    def __init__(self, waypoints, target_speeds=None, road_options=None):
         self.waypoints = waypoints
         if target_speeds is None:
             # Set target speed to 0 if it is not specified.
             self.target_speeds = deque([0 for _ in range(len(waypoints))])
         else:
             self.target_speeds = target_speeds
+        self.road_options = road_options
 
     @classmethod
     def read_from_csv_file(cls, csv_file_name, target_speed):
@@ -129,7 +130,12 @@ class Waypoints(object):
             # Otherwise use the already existing target speeds.
             head_target_speeds = deque(
                 itertools.islice(self.target_speeds, start_index, end_index))
-        return Waypoints(head_wps, head_target_speeds)
+        if self.road_options is not None:
+            head_road_options = deque(
+                itertools.islice(self.road_options, start_index, end_index))
+        else:
+            head_road_options = None
+        return Waypoints(head_wps, head_target_speeds, head_road_options)
 
     def draw_on_frame(self, bgr_frame, inverse_transform=None):
         """Draw waypoints on a frame.
@@ -147,14 +153,24 @@ class Waypoints(object):
             pixel_location = wp.location.to_camera_view(
                 extrinsic_matrix, intrinsic_matrix)
             bgr_frame.draw_point(pixel_location, [255, 255, 255])
+            waypoint_txt = ''
             if self.target_speeds:
-                speed = '{:.1f}m/s'.format(self.target_speeds[index])
-                bgr_frame.draw_text(pixel_location, speed, [255, 255, 255])
+                waypoint_txt = '{:.1f}m/s'.format(self.target_speeds[index])
+            if self.road_options:
+                waypoint_txt = '{} {}'.format(waypoint_txt,
+                                              self.road_options[index])
+            if waypoint_txt != '':
+                bgr_frame.draw_text(pixel_location, waypoint_txt,
+                                    [255, 255, 255])
 
     def draw_on_world(self, world):
         """Draw waypoints on CARLA world."""
-        for wp in self.waypoints:
+        for index, wp in enumerate(self.waypoints):
             # Adds 0.5 to z to ensure that the point is above the road surface.
             loc = (wp.location +
                    pylot.utils.Location(0, 0, 0.5)).as_carla_location()
             world.debug.draw_point(loc, size=0.1, life_time=DEFAULT_VIS_TIME)
+            if self.road_options and index < len(self.road_options):
+                world.debug.draw_string(loc,
+                                        str(self.road_options[index]),
+                                        life_time=DEFAULT_VIS_TIME)

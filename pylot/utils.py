@@ -769,6 +769,27 @@ class LaneType(Enum):
     ANY = 4294967294
 
 
+class RoadOption(Enum):
+    """Enum that defines the possible high-level route plans.
+
+    RoadOptions are usually attached to waypoints we receive from
+    the CARLA challenge environment.
+    """
+    VOID = -1
+    LEFT = 1
+    RIGHT = 2
+    STRAIGHT = 3
+    LANE_FOLLOW = 4
+    CHANGE_LANE_LEFT = 5
+    CHANGE_LANE_RIGHT = 6
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return self.name
+
+
 class LaneMarking(object):
     """Used to represent a lane marking.
 

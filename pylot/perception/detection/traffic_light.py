@@ -109,7 +109,7 @@ class TrafficLight(Obstacle):
         return cls(1.0, state, traffic_light.id, transform,
                    trigger_volume_extent)
 
-    def draw_on_frame(self, frame):
+    def draw_on_bird_eye_frame(self, frame):
         # Intrinsic and extrinsic matrix of the top down camera.
         extrinsic_matrix = frame.camera_setup.get_extrinsic_matrix()
         intrinsic_matrix = frame.camera_setup.get_intrinsic_matrix()

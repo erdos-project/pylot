@@ -130,9 +130,11 @@ class PlanningOperator(erdos.Operator):
             # The last waypoint is the goal location.
             self._goal_location = msg.data[-1][0].location
             waypoints = deque()
-            for waypoint_option in msg.data:
-                waypoints.append(waypoint_option[0])
-            self._waypoints = Waypoints(waypoints)
+            road_options = deque()
+            for waypoint, road_option in msg.data:
+                waypoints.append(waypoint)
+                road_options.append(road_option)
+            self._waypoints = Waypoints(waypoints, road_options=road_options)
         else:
             # Trajectory does not contain any waypoints. We assume we have
             # arrived at destionation.
