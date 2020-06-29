@@ -238,9 +238,14 @@ def add_lane_detection(center_camera_stream,
     """
     lane_detection_stream = None
     if FLAGS.lane_detection:
-        lane_detection_stream = \
-            pylot.operator_creator.add_canny_edge_lane_detection(
-                center_camera_stream)
+        if FLAGS.lane_detection_type == 'canny':
+            lane_detection_stream = \
+                pylot.operator_creator.add_canny_edge_lane_detection(
+                    center_camera_stream)
+        elif FLAGS.lane_detection_type == 'lanenet':
+            lane_detection_stream = \
+                pylot.operator_creator.add_lanenet_detection(
+                    center_camera_stream)
     elif FLAGS.perfect_lane_detection:
         assert pose_stream is not None
         lane_detection_stream = \

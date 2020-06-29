@@ -43,6 +43,8 @@ flags.DEFINE_enum('tracker_type', 'sort', ['da_siam_rpn', 'deep_sort', 'sort'],
 flags.DEFINE_bool('lane_detection', False, 'True to enable lane detection')
 flags.DEFINE_bool('perfect_lane_detection', False,
                   'True to enable perfect lane detection')
+flags.DEFINE_enum('lane_detection_type', 'lanenet', ['lanenet', 'canny'],
+                  'Sets which lane detection operator to use')
 flags.DEFINE_bool('fusion', False, 'True to enable fusion operator')
 flags.DEFINE_bool('traffic_light_detection', False,
                   'True to enable traffic light detection operator')

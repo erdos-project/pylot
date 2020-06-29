@@ -6,7 +6,7 @@ import numpy as np
 
 import pylot.utils
 
-DEFAULT_VIS_TIME = 0.1
+DEFAULT_VIS_TIME = 1
 
 
 class Waypoints(object):

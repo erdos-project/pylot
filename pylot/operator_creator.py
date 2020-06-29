@@ -212,6 +212,20 @@ def add_canny_edge_lane_detection(bgr_camera_stream,
     return lane_detection_stream
 
 
+def add_lanenet_detection(bgr_camera_stream, name='lanenet_lane_detection'):
+    from pylot.perception.detection.lanenet_detection_operator import \
+        LanenetDetectionOperator
+    op_config = erdos.OperatorConfig(name=name,
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [lane_detection_stream] = erdos.connect(LanenetDetectionOperator,
+                                            op_config, [bgr_camera_stream],
+                                            FLAGS)
+    return lane_detection_stream
+
+
 def add_obstacle_tracking(obstacles_stream,
                           bgr_camera_stream,
                           time_to_decision_stream,

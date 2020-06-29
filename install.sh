@@ -60,6 +60,13 @@ mkdir -p traffic_light_detection/faster-rcnn ; cd traffic_light_detection/faster
 wget https://www.dropbox.com/s/63ig79xrkubigpu/frozen_inference_graph.pb
 cd ../../
 
+###### Download the Lanenet lane detection model ######
+mkdir -p lane_detection/lanenet ; lane_detection/lanenet
+wget --max-redirect=20 -O download.zip https://www.dropbox.com/sh/hdqpoxr0yo7mk05/AABx5b7QdEmkxWX2VDa19xKCa
+unzip download.zip
+rm download.zip
+cd ../../
+
 ###### Download the DRN segmentation cityscapes models ######
 mkdir -p segmentation/drn ; cd segmentation/drn
 wget https://www.dropbox.com/s/i6v54gng0rao6ff/drn_d_22_cityscapes.pth
@@ -107,6 +114,11 @@ git clone https://github.com/ICGog/sort.git
 git clone https://github.com/ICGog/DaSiamRPN.git
 # Required for lapsolver, used in matching for DaSiamRPN Tracker
 sudo apt-get -y install cmake
+
+##### Download the Lanenet code #####
+git clone https://github.com/ICGog/lanenet-lane-detection.git
+mv lanenet-lane-detection lanenet
+#pip3 install glog loguru
 
 ###### Download the DRN segmentation code ######
 git clone https://github.com/ICGog/drn.git
