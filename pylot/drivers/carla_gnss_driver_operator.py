@@ -67,7 +67,6 @@ class CarlaGNSSDriverOperator(erdos.Operator):
                     timestamp,
                     Transform.from_carla_transform(gnss_msg.transform),
                     gnss_msg.altitude, gnss_msg.latitude, gnss_msg.longitude)
-                print(msg)
                 self._gnss_stream.send(msg)
                 self._gnss_stream.send(watermark_msg)
 
