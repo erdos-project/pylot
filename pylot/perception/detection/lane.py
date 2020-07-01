@@ -22,8 +22,8 @@ class Lane(object):
         for marking in self.right_markings:
             if inverse_transform:
                 marking = inverse_transform * marking
-            pixel_location = marking.to_camera_view(extrinsic_matrix,
-                                                    intrinsic_matrix)
+            pixel_location = marking.location.to_camera_view(
+                extrinsic_matrix, intrinsic_matrix)
             frame.draw_point(pixel_location, [0, 0, 0])
 
     def draw_on_world(self, world):

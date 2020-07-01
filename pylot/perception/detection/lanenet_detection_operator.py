@@ -1,4 +1,5 @@
 import logging
+import math
 import os
 import sys
 sys.path.append("{}/dependencies/lanenet-lane-detection".format(
@@ -14,6 +15,7 @@ from lanenet_model import lanenet_postprocess
 import numpy as np
 
 import pylot.utils
+from pylot.perception.detection.lane import Lane
 
 import tensorflow as tf
 
@@ -77,7 +79,6 @@ class LanenetDetectionOperator(erdos.Operator):
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self.config.name))
         assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
-
         image = cv2.resize(msg.frame.as_rgb_numpy_array(), (512, 256),
                            interpolation=cv2.INTER_LINEAR)
         image = image / 127.5 - 1.0
@@ -96,12 +97,26 @@ class LanenetDetectionOperator(erdos.Operator):
         # embedding_image = np.array(instance_seg_image[0], np.uint8)
 
         lanes = postprocess_result['lanes']
+        ego_lane_markings = []
         for lane in lanes:
-            # TODO: Process detected lanes.
-            pass
-
-        detected_lanes_stream.send(
-            erdos.Message(msg.timestamp, msg.frame.frame))
+            ego_markings = self.lane_to_ego_coordinates(
+                lane, msg.frame.camera_setup)
+            ego_lane_markings.append([
+                pylot.utils.Transform(loc, pylot.utils.Rotation())
+                for loc in ego_markings
+            ])
+        # Sort the lane markings from left to right.
+        ego_lane_markings = sorted(ego_lane_markings,
+                                   key=lambda lane: lane[-1].location.y)
+        detected_lanes = []
+        for index, lane in enumerate(ego_lane_markings):
+            if index > 0:
+                lane = Lane(ego_lane_markings[index - 1], lane)
+                detected_lanes.append(lane)
+        self._logger.debug('@{}: Detected {} lanes'.format(
+            msg.timestamp, len(detected_lanes)))
+        detected_lanes_stream.send(erdos.Message(msg.timestamp,
+                                                 detected_lanes))
         detected_lanes_stream.send(erdos.WatermarkMessage(msg.timestamp))
 
         # plt.figure('binary_image')
@@ -111,6 +126,33 @@ class LanenetDetectionOperator(erdos.Operator):
         # plt.figure('mask_image')
         # plt.imshow(msg.frame.frame[:, :, (2, 1, 0)])
         # plt.show()
+
+    def lane_to_ego_coordinates(self, lane, camera_setup):
+        inverse_intrinsic_matrix = np.linalg.inv(
+            camera_setup.get_intrinsic_matrix())
+        camera_ground_height = camera_setup.get_transform().location.z
+        pitch = -math.radians(camera_setup.get_transform().rotation.pitch)
+        cos_pitch = math.cos(pitch)
+        sin_pitch = math.sin(pitch)
+        pitch_matrix = np.array([[1, 0, 0], [0, cos_pitch, sin_pitch],
+                                 [0, -sin_pitch, cos_pitch]])
+        ego_lane = []
+        locations = []
+        for x, y in lane:
+            # Project the 2D pixel location into 3D space, onto the z=1 plane.
+            p3d = np.dot(inverse_intrinsic_matrix, np.array([[x], [y], [1.0]]))
+            rotate_point = np.dot(pitch_matrix, p3d)
+            scale = camera_ground_height / rotate_point[1][0]
+            loc = pylot.utils.Location(rotate_point[0][0] * scale,
+                                       rotate_point[1][0] * scale,
+                                       rotate_point[2][0] * scale)
+            locations.append(loc)
+        to_world_transform = camera_setup.get_unreal_transform()
+        ego_lane = to_world_transform.transform_locations(locations)
+        # Reset z = ground.
+        for loc in ego_lane:
+            loc.z = 0
+        return ego_lane
 
 
 def minmax_scale(input_arr):

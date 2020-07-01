@@ -349,13 +349,9 @@ class VisualizerOperator(erdos.Operator):
                 self.display, self._flags.camera_image_width,
                 self._flags.camera_image_height)
         elif (sensor_to_display == "Lanes" and bgr_msg and lane_detection_msg):
-            # import cv2
-            # final_img = np.copy(bgr_msg.frame.as_numpy_array())
-            # final_img = cv2.addWeighted(final_img, 0.8,
-            #                             lane_detection_msg.data, 1.0, 0.0)
-            frame = CameraFrame(lane_detection_msg.data, 'BGR',
-                                bgr_msg.frame.camera_setup)
-            frame.visualize(self.display, timestamp)
+            for lane in lane_detection_msg.data:
+                lane.draw_on_frame(bgr_msg.frame)
+            bgr_msg.frame.visualize(self.display, timestamp)
         elif sensor_to_display == "Depth" and depth_msg:
             depth_msg.frame.visualize(self.display, timestamp=timestamp)
         elif sensor_to_display == "Segmentation" and segmentation_msg:
