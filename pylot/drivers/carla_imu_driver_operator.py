@@ -1,4 +1,5 @@
 import threading
+import erdos
 
 from pylot.localization.messages import IMUMessage
 from pylot.simulation.utils import get_vehicle_handle, get_world, \
@@ -89,6 +90,7 @@ class CarlaIMUDriverOperator(erdos.Operator):
 
         # Install the IMU.
         imu_blueprint = world.get_blueprint_library().find('sensor.other.imu')
+
         if self._flags.carla_imu_frequency == -1:
             imu_blueprint.set_attribute('sensor_tick', '0.0')
         else:
