@@ -3,13 +3,11 @@ Author: Edward Fang
 Email: edward.fang@berkeley.edu
 """
 import time
-from collections import deque
 
 import erdos
 
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.planning_operator import PlanningOperator
-from pylot.planning.waypoints import Waypoints
 from pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory_planner. \
     FrenetOptimalTrajectory.fot_wrapper import run_fot
 
@@ -99,44 +97,11 @@ class FOTPlanningOperator(PlanningOperator):
     @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
-        pose_msg = self._pose_msgs.popleft()
-        ego_transform = pose_msg.data.transform
-        prediction_msg = self._prediction_msgs.popleft()
-        predictions = self.get_predictions(prediction_msg, ego_transform)
-        static_obstacles_msg = self._static_obstacles_msgs.popleft()
-        if len(self._lanes_msgs) > 0:
-            lanes = self._lanes_msgs.popleft().data
-        else:
-            lanes = None
-
-        # Update the representation of the world.
-        self._world.update(timestamp,
-                           ego_transform,
-                           predictions,
-                           static_obstacles_msg.obstacles,
-                           hd_map=self._map,
-                           lanes=lanes)
-        obstacle_list = self._world.get_obstacle_list()
-
-        if not self._waypoints:
-            if self._map is not None and self._goal_location is not None:
-                self._waypoints = Waypoints(deque(), deque())
-                self._waypoints.recompute_waypoints(self._map,
-                                                    ego_transform.location,
-                                                    self._goal_location)
-            else:
-                # Haven't received waypoints from global trajectory stream.
-                self._logger.debug(
-                    "@{}: Sending target speed 0, haven't"
-                    "received global trajectory".format(timestamp))
-                waypoints_stream.send(
-                    WaypointsMessage(timestamp, Waypoints(deque(), deque())))
-                return
+        self.update_world(timestamp)
 
         self._logger.debug("@{}: Hyperparameters: {}".format(
             timestamp, self._hyperparameters))
-        initial_conditions = self._compute_initial_conditions(
-            pose_msg, obstacle_list)
+        initial_conditions = self._compute_initial_conditions()
         self._logger.debug("@{}: Initial conditions: {}".format(
             timestamp, initial_conditions))
         start = time.time()
@@ -146,36 +111,35 @@ class FOTPlanningOperator(PlanningOperator):
         self._logger.debug('@{}: Frenet runtime {}'.format(
             timestamp, fot_runtime))
         if success:
-            self._logger.debug(
-                "@{}: Frenet Optimal Trajectory succeeded.".format(timestamp))
+            self._logger.debug("@{}: Frenet succeeded.".format(timestamp))
             self._log_output(timestamp, path_x, path_y, speeds, ix, iy, iyaw,
                              d, s, speeds_x, speeds_y, costs)
             output_wps = self.build_output_waypoints(path_x, path_y, speeds)
         else:
-            self._logger.debug("@{}: Frenet Optimal Trajectory failed. "
-                               "Sending emergency stop.".format(timestamp))
-            self._waypoints.remove_completed(ego_transform.location,
-                                             ego_transform)
-            output_wps = self._waypoints.slice_waypoints(
-                0, self._flags.num_waypoints_ahead, 0)
+            self._logger.debug(
+                "@{}: Frenet failed. Sending emergency stop.".format(
+                    timestamp))
+            output_wps = self.folow_waypoints(0)
 
         # update current pose
         self.s0 = misc['s']
         waypoints_stream.send(WaypointsMessage(timestamp, output_wps))
 
-    def _compute_initial_conditions(self, pose_msg, obstacle_list):
-        current_index = self._waypoints.closest_waypoint(
-            pose_msg.data.transform.location)
+    def _compute_initial_conditions(self):
+        ego_transform = self._world.ego_transform
+        obstacle_list = self._world.get_obstacle_list()
+        current_index = self._world.waypoints.closest_waypoint(
+            ego_transform.location)
         # compute waypoints offset by current location
-        wps = self._waypoints.slice_waypoints(
+        wps = self._world.waypoints.slice_waypoints(
             max(current_index - self._flags.num_waypoints_behind, 0),
             min(current_index + self._flags.num_waypoints_ahead,
-                len(self._waypoints.waypoints)))
+                len(self._world.waypoints.waypoints)))
         initial_conditions = {
             'ps': self.s0,
             'target_speed': self._flags.target_speed,
-            'pos': pose_msg.data.transform.location.as_numpy_array_2D(),
-            'vel': pose_msg.data.velocity_vector.as_numpy_array_2D(),
+            'pos': ego_transform.location.as_numpy_array_2D(),
+            'vel': self._world.ego_velocity_vector.as_numpy_array_2D(),
             'wp': wps.as_numpy_array_2D().T,
             'obs': obstacle_list,
         }

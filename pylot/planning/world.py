@@ -3,6 +3,8 @@ from collections import deque
 
 import numpy as np
 
+from pylot.planning.waypoints import Waypoints
+
 
 class World(object):
     """A representation of the world that is used by the planners."""
@@ -14,10 +16,11 @@ class World(object):
         self._ego_obstacle_predictions = None
         self.ego_trajectory = deque(maxlen=self._flags.tracking_num_steps)
         self.ego_transform = None
+        self.ego_velocity_vector = None
         self._lanes = None
         self._map = None
         self._goal_location = None
-        self._waypoints = None
+        self.waypoints = None
         self.timestamp = None
 
     def update(self,
@@ -25,10 +28,9 @@ class World(object):
                ego_transform,
                obstacle_predictions,
                static_obstacles,
-               waypoints=None,
-               goal_location=None,
                hd_map=None,
-               lanes=None):
+               lanes=None,
+               ego_velocity_vector=None):
         self.timestamp = timestamp
         self.ego_transform = ego_transform
         self.ego_trajectory.append(ego_transform)
@@ -39,10 +41,21 @@ class World(object):
             obstacle_prediction.to_world_coordinates(ego_transform)
         # Road signs are in world coordinates.
         self.static_obstacles = static_obstacles
-        self._waypoints = waypoints
-        self._goal_location = goal_location
         self._map = hd_map
         self._lanes = lanes
+        self.ego_velocity_vector = ego_velocity_vector
+        # The waypoints are not received on the global trajectory stream.
+        # We need to compute them using the map.
+        if not self.waypoints:
+            if self._map is not None and self._goal_location is not None:
+                self.waypoints = Waypoints(deque(), deque())
+                self.waypoints.recompute_waypoints(self._map,
+                                                   ego_transform.location,
+                                                   self._goal_location)
+
+    def update_waypoints(self, goal_location, waypoints):
+        self._goal_location = goal_location
+        self.waypoints = waypoints
 
     def get_obstacle_list(self):
         obstacle_list = []
@@ -79,8 +92,8 @@ class World(object):
                                       obstacle.transform)
                 obstacle.draw_on_bird_eye_frame(frame)
                 obstacle.transform = world_transform
-        if self._waypoints:
-            self._waypoints.draw_on_frame(
+        if self.waypoints:
+            self.waypoints.draw_on_frame(
                 frame, self.ego_transform.inverse_transform())
         # TODO: Draw lane markings. We do not draw them currently
         # because we need to transform them from world frame of reference

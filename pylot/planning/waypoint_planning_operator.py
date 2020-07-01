@@ -1,16 +1,10 @@
 """Implements an operator that computes waypoints to a goal location."""
-
-from collections import deque
-
 import erdos
 
 import pylot.planning.utils
 import pylot.utils
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.planning_operator import PlanningOperator
-from pylot.planning.waypoints import Waypoints
-
-RECOMPUTE_WAYPOINT_EVERY_N_WATERMARKS = 5
 
 
 class WaypointPlanningOperator(PlanningOperator):
@@ -41,7 +35,6 @@ class WaypointPlanningOperator(PlanningOperator):
     @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
-        self._watermark_cnt += 1
         pose_msg = self._pose_msgs.popleft().data
         ego_transform = pose_msg.transform
         prediction_msg = self._prediction_msgs.popleft()
@@ -71,33 +64,13 @@ class WaypointPlanningOperator(PlanningOperator):
             else:
                 distance_since_last_full_stop = 0
 
-        if not self._waypoints:
-            if self._map is not None and self._goal_location is not None:
-                self._waypoints = Waypoints(deque(), deque())
-                self._waypoints.recompute_waypoints(self._map,
-                                                    ego_transform.location,
-                                                    self._goal_location)
-            else:
-                # Haven't received waypoints from global trajectory stream.
-                self._logger.debug(
-                    "@{}: Sending target speed 0, haven't"
-                    "received global trajectory".format(timestamp))
-                waypoints_stream.send(
-                    WaypointsMessage(timestamp, Waypoints(deque(), deque())))
-                waypoints_stream.send(erdos.WatermarkMessage(timestamp))
-                return
-
-        if (self._recompute_waypoints and self._watermark_cnt %
-                RECOMPUTE_WAYPOINT_EVERY_N_WATERMARKS == 0):
-            self._waypoints.recompute_waypoints(self._map,
-                                                ego_transform.location,
-                                                self._goal_location)
-        self._waypoints.remove_completed(ego_transform.location, ego_transform)
+        self._world.waypoints.remove_completed(ego_transform.location,
+                                               ego_transform)
 
         try:
-            wp_vector = self._waypoints.get_vector(
+            wp_vector = self._world.waypoints.get_vector(
                 ego_transform, self._flags.min_pid_steer_waypoint_distance)
-            wp_angle = self._waypoints.get_angle(
+            wp_angle = self._world.waypoints.get_angle(
                 ego_transform, self._flags.min_pid_steer_waypoint_distance)
             speed_factor = pylot.planning.utils.stop_for_agents(
                 ego_transform, wp_angle, wp_vector,
@@ -113,7 +86,7 @@ class WaypointPlanningOperator(PlanningOperator):
             self._logger.debug(
                 '@{}: no more waypoints to follow, target speed 0')
             target_speed = 0
-        head_waypoints = self._waypoints.slice_waypoints(
+        head_waypoints = self._world.waypoints.slice_waypoints(
             0, self._flags.num_waypoints_ahead, target_speed)
         waypoints_stream.send(WaypointsMessage(timestamp, head_waypoints))
         waypoints_stream.send(erdos.WatermarkMessage(timestamp))

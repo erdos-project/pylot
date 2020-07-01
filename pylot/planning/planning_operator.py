@@ -60,7 +60,7 @@ class PlanningOperator(erdos.Operator):
         time_to_decision_stream.add_callback(self.on_time_to_decision)
         erdos.add_watermark_callback([
             pose_stream, prediction_stream, static_obstacles_stream,
-            lanes_stream, time_to_decision_stream
+            lanes_stream, time_to_decision_stream, global_trajectory_stream
         ], [waypoints_stream], self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -68,13 +68,12 @@ class PlanningOperator(erdos.Operator):
         # We do not know yet the vehicle's location.
         self._ego_transform = None
         self._map = None
+        self._world = World(flags, self._logger)
         # Waypoints the vehicle must follow. The waypoints are either
         # received on the global trajectory stream when running using the
         # scenario runner, or computed using the Carla global planner when
         # running in stand-alone mode.
-        self._waypoints = None
-        self._goal_location = goal_location
-        self._world = World(flags, self._logger)
+        self._world.update_waypoints(goal_location, None)
 
         self._pose_msgs = deque()
         self._prediction_msgs = deque()
@@ -100,12 +99,6 @@ class PlanningOperator(erdos.Operator):
                 get_map(self._flags.carla_host, self._flags.carla_port,
                         self._flags.carla_timeout))
             self._logger.info('Planner running in stand-alone mode')
-            # Recompute waypoints every RECOMPUTE_WAYPOINT_EVERY_N_WATERMARKS.
-            self._recompute_waypoints = True
-        else:
-            # Do not recompute waypoints upon each run.
-            self._recompute_waypoints = False
-        self._watermark_cnt = 0
 
     def on_pose_update(self, msg):
         """Invoked whenever a message is received on the pose stream.
@@ -142,20 +135,20 @@ class PlanningOperator(erdos.Operator):
         self._logger.debug('@{}: global trajectory has {} waypoints'.format(
             msg.timestamp, len(msg.data)))
         if len(msg.data) > 0:
-            # The last waypoint is the goal location.
-            self._goal_location = msg.data[-1][0].location
             waypoints = deque()
             road_options = deque()
             for waypoint, road_option in msg.data:
                 waypoints.append(waypoint)
                 road_options.append(road_option)
-            self._waypoints = Waypoints(waypoints, road_options=road_options)
+            # The last waypoint is the goal location.
+            self._world.update_waypoints(
+                msg.data[-1][0].location,
+                Waypoints(waypoints, road_options=road_options))
         else:
             # Trajectory does not contain any waypoints. We assume we have
             # arrived at destionation.
-            self._goal_location = self._ego_transform.location
-            self._waypoints = Waypoints(deque(), deque())
-        assert self._goal_location, 'Planner does not have a goal'
+            self._world.update_waypoints(self._ego_transform.location,
+                                         Waypoints(deque(), deque()))
 
     def on_opendrive_map(self, msg):
         """Invoked whenever a message is received on the open drive stream.
@@ -196,6 +189,13 @@ class PlanningOperator(erdos.Operator):
             target_speeds.append(point[2])
         return Waypoints(wps, target_speeds)
 
+    def follow_waypoints(self, target_speed):
+        ego_transform = self._world.ego_transform
+        self._world.waypoints.remove_completed(ego_transform.location,
+                                               ego_transform)
+        return self._world.waypoints.slice_waypoints(
+            0, self._flags.num_waypoints_ahead, target_speed)
+
     @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
         raise NotImplementedError
@@ -217,3 +217,23 @@ class PlanningOperator(erdos.Operator):
             raise ValueError('Unexpected obstacles msg type {}'.format(
                 type(prediction_msg)))
         return predictions
+
+    def update_world(self, timestamp):
+        pose_msg = self._pose_msgs.popleft()
+        ego_transform = pose_msg.data.transform
+        prediction_msg = self._prediction_msgs.popleft()
+        predictions = self.get_predictions(prediction_msg, ego_transform)
+        static_obstacles_msg = self._static_obstacles_msgs.popleft()
+        if len(self._lanes_msgs) > 0:
+            lanes = self._lanes_msgs.popleft().data
+        else:
+            lanes = None
+
+        # Update the representation of the world.
+        self._world.update(timestamp,
+                           ego_transform,
+                           predictions,
+                           static_obstacles_msg.obstacles,
+                           hd_map=self._map,
+                           lanes=lanes,
+                           ego_velocity_vector=pose_msg.data.velocity_vector)

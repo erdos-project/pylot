@@ -376,9 +376,9 @@ class VisualizerOperator(erdos.Operator):
                                         ego_transform,
                                         prediction_msg.predictions,
                                         traffic_light_msg.obstacles,
-                                        waypoint_msg.waypoints,
                                         self._map,
                                         lanes=lanes)
+            self._planning_world.update_waypoints(None, waypoint_msg.waypoints)
             self._planning_world.draw_on_frame(frame)
             frame.visualize(self.display, timestamp=timestamp)
 

@@ -2,15 +2,12 @@
 Author: Edward Fang
 Email: edward.fang@berkeley.edu
 """
-from collections import deque
-
 import erdos
 
 import numpy as np
 
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.planning_operator import PlanningOperator
-from pylot.planning.waypoints import Waypoints
 from pylot.planning.hybrid_astar.hybrid_astar_planner.HybridAStar.hybrid_astar_wrapper \
     import apply_hybrid_astar
 
@@ -56,45 +53,12 @@ class HybridAStarPlanningOperator(PlanningOperator):
     @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
-        ego_transform = self._pose_msgs.popleft().data.transform
-        prediction_msg = self._prediction_msgs.popleft()
-        predictions = self.get_predictions(prediction_msg, ego_transform)
-        static_obstacles_msg = self._static_obstacles_msgs.popleft()
-        if len(self._lanes_msgs) > 0:
-            lanes = self._lanes_msgs.popleft().data
-        else:
-            lanes = None
-
-        # Update the representation of the world.
-        self._world.update(timestamp,
-                           ego_transform,
-                           predictions,
-                           static_obstacles_msg.obstacles,
-                           hd_map=self._map,
-                           lanes=lanes)
+        self.update_world(timestamp)
         obstacle_list = self._world.get_obstacle_list()
-
-        if not self._waypoints:
-            if self._map is not None and self._goal_location is not None:
-                self._waypoints = Waypoints(deque(), deque())
-                self._waypoints.recompute_waypoints(self._map,
-                                                    ego_transform.location,
-                                                    self._goal_location)
-            else:
-                # Haven't received waypoints from global trajectory stream.
-                self._logger.debug(
-                    "@{}: Sending target speed 0, haven't"
-                    "received global trajectory".format(timestamp))
-                waypoints_stream.send(
-                    WaypointsMessage(timestamp, Waypoints(deque(), deque())))
-                return
 
         if len(obstacle_list) == 0:
             # Do not use Hybrid A* if there are no obstacles.
-            self._waypoints.remove_completed(ego_transform.location,
-                                             ego_transform)
-            output_wps = self._waypoints.slice_waypoints(
-                0, self._flags.num_waypoints_ahead, self._flags.target_speed)
+            output_wps = self._world.folow_waypoints(self._flags.target_speed)
         else:
             # Hybrid a* does not take into account the driveable region.
             # It constructs search space as a top down, minimum bounding
@@ -102,7 +66,7 @@ class HybridAStarPlanningOperator(PlanningOperator):
             self._logger.debug("@{}: Hyperparameters: {}".format(
                 timestamp, self._hyperparameters))
             initial_conditions = self._compute_initial_conditions(
-                ego_transform, obstacle_list)
+                obstacle_list)
             self._logger.debug("@{}: Initial conditions: {}".format(
                 timestamp, initial_conditions))
             path_x, path_y, _, success = apply_hybrid_astar(
@@ -122,28 +86,26 @@ class HybridAStarPlanningOperator(PlanningOperator):
             else:
                 self._logger.error("@{}: Hybrid A* failed. "
                                    "Sending emergency stop.".format(timestamp))
-                self._waypoints.remove_completed(ego_transform.location,
-                                                 ego_transform)
-                output_wps = self._waypoints.slice_waypoints(
-                    0, self._flags.num_waypoints_ahead, 0)
+                output_wps = self.follow_waypoints(0)
 
         waypoints_stream.send(WaypointsMessage(timestamp, output_wps))
 
-    def _compute_initial_conditions(self, ego_transform, obstacles):
+    def _compute_initial_conditions(self, obstacles):
+        ego_transform = self._world.ego_transform
         start = np.array([
             ego_transform.location.x,
             ego_transform.location.y,
             np.deg2rad(ego_transform.rotation.yaw),
         ])
-        self._waypoints.remove_completed(ego_transform.location)
+        self._world.waypoints.remove_completed(ego_transform.location)
         end_index = min(self._flags.num_waypoints_ahead,
-                        len(self._waypoints.waypoints) - 1)
+                        len(self._world.waypoints.waypoints) - 1)
         if end_index < 0:
             # If no more waypoints left. Then our location is our end wp.
             self._logger.debug("@{}: No more waypoints left")
             end_wp = ego_transform
         else:
-            end_wp = self._waypoints.waypoints[end_index]
+            end_wp = self._world.waypoints.waypoints[end_index]
         end = np.array([
             end_wp.location.x, end_wp.location.y,
             np.deg2rad(ego_transform.rotation.yaw)
