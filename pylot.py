@@ -46,7 +46,7 @@ def add_evaluation_operators(vehicle_id_stream, pose_stream, imu_stream,
 def driver():
     transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                       pylot.utils.Rotation(pitch=-15))
-
+    streams_to_send_top_on = []
     control_loop_stream = erdos.LoopStream()
     time_to_decision_loop_stream = erdos.LoopStream()
     if FLAGS.carla_mode == 'pseudo-asynchronous':
@@ -130,6 +130,9 @@ def driver():
 
     lane_detection_stream = pylot.component_creator.add_lane_detection(
         center_camera_stream, pose_stream, open_drive_stream)
+    if lane_detection_stream is None:
+        lane_detection_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(lane_detection_stream)
 
     obstacles_tracking_stream = pylot.component_creator.add_obstacle_tracking(
         center_camera_stream, center_camera_setup, obstacles_stream,
@@ -162,8 +165,9 @@ def driver():
                                          float(FLAGS.goal_location[2]))
     waypoints_stream = pylot.component_creator.add_planning(
         goal_location, pose_stream, prediction_stream, center_camera_stream,
-        obstacles_stream, traffic_lights_stream, open_drive_stream,
-        global_trajectory_stream, time_to_decision_loop_stream)
+        obstacles_stream, traffic_lights_stream, lane_detection_stream,
+        open_drive_stream, global_trajectory_stream,
+        time_to_decision_loop_stream)
 
     if FLAGS.carla_mode == "pseudo-asynchronous":
         # Add a synchronizer in the pseudo-asynchronous mode.
@@ -195,7 +199,6 @@ def driver():
     time_to_decision_loop_stream.set(time_to_decision_stream)
 
     control_display_stream = None
-    streams_to_send_top_on = []
     if pylot.flags.must_visualize():
         control_display_stream, ingest_streams = \
             pylot.operator_creator.add_visualizer(

@@ -26,6 +26,7 @@ class WaypointPlanningOperator(PlanningOperator):
                  pose_stream,
                  prediction_stream,
                  traffic_lights_stream,
+                 lanes_stream,
                  global_trajectory_stream,
                  open_drive_stream,
                  time_to_decision_stream,
@@ -34,9 +35,9 @@ class WaypointPlanningOperator(PlanningOperator):
                  goal_location=None):
         self._last_stop_ego_location = None
         super().__init__(pose_stream, prediction_stream, traffic_lights_stream,
-                         global_trajectory_stream, open_drive_stream,
-                         time_to_decision_stream, waypoints_stream, flags,
-                         goal_location)
+                         lanes_stream, global_trajectory_stream,
+                         open_drive_stream, time_to_decision_stream,
+                         waypoints_stream, flags, goal_location)
 
     @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
@@ -49,11 +50,16 @@ class WaypointPlanningOperator(PlanningOperator):
             self._last_stop_ego_location = ego_transform.location
         else:
             if self._last_stop_ego_location is not None:
-                distance_since_last_full_stop = ego_transform.location.distance(
-                    self._last_stop_ego_location)
+                distance_since_last_full_stop = \
+                    ego_transform.location.distance(
+                        self._last_stop_ego_location)
             else:
                 distance_since_last_full_stop = 0
         tl_msg = self._traffic_light_msgs.popleft()
+        if len(self._lanes_msgs) > 0:
+            lanes = self._lanes_msgs.popleft().data
+        else:
+            lanes = None
         obstacles_msg = self._prediction_msgs.popleft()
         if isinstance(obstacles_msg, ObstaclesMessage):
             obstacles = obstacles_msg.obstacles

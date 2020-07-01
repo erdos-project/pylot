@@ -40,6 +40,8 @@ flags.register_multi_flags_validator(
 
 CENTER_CAMERA_LOCATION = pylot.utils.Location(0.0, 0.0, 2.0)
 CENTER_CAMERA_NAME = 'center_camera'
+LANE_CAMERA_LOCATION = pylot.utils.Location(1.3, 0.0, 1.8)
+LANE_CAMERA_NAME = 'lane_camera'
 TL_CAMERA_NAME = 'traffic_lights_camera'
 LEFT_CAMERA_NAME = 'left_camera'
 RIGHT_CAMERA_NAME = 'right_camera'
@@ -324,6 +326,7 @@ def get_track():
 
 def create_data_flow():
     """ Create the challenge data-flow graph."""
+    streams_to_send_top_on = []
     time_to_decision_loop_stream = erdos.LoopStream()
     camera_setups = create_camera_setups()
     camera_streams = {}
@@ -361,6 +364,13 @@ def create_data_flow():
         pose_stream=pose_stream,
         time_to_decision_stream=time_to_decision_loop_stream)
 
+    if FLAGS.execution_mode == 'challenge-sensors':
+        lanes_stream = pylot.operator_creator.add_lanenet_detection(
+            camera_streams[LANE_CAMERA_NAME])
+    else:
+        lanes_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(lanes_stream)
+
     prediction_stream = pylot.operator_creator.add_linear_prediction(
         obstacles_tracking_stream)
 
@@ -370,11 +380,11 @@ def create_data_flow():
     waypoints_stream = pylot.component_creator.add_planning(
         None, pose_stream, prediction_stream,
         camera_streams[CENTER_CAMERA_NAME], prediction_stream,
-        traffic_lights_stream, open_drive_stream, trajectory_stream,
-        time_to_decision_loop_stream)
+        traffic_lights_stream, lanes_stream, open_drive_stream,
+        trajectory_stream, time_to_decision_loop_stream)
 
     if pylot.flags.must_visualize():
-        control_display_stream, streams_to_send_top_on = \
+        control_display_stream, ingest_streams = \
             pylot.operator_creator.add_visualizer(
                 pose_stream=pose_stream,
                 camera_stream=camera_streams[CENTER_CAMERA_NAME],
@@ -384,9 +394,9 @@ def create_data_flow():
                 traffic_lights_stream=traffic_lights_stream,
                 tracked_obstacles_stream=obstacles_tracking_stream,
                 waypoints_stream=waypoints_stream)
+        streams_to_send_top_on += ingest_streams
     else:
         control_display_stream = None
-        streams_to_send_top_on = []
 
     control_stream = pylot.operator_creator.add_pid_control(
         pose_stream, waypoints_stream)
@@ -413,6 +423,14 @@ def create_camera_setups():
     tl_camera_setup = RGBCameraSetup(TL_CAMERA_NAME, FLAGS.camera_image_width,
                                      FLAGS.camera_image_height, transform, 45)
     camera_setups[TL_CAMERA_NAME] = tl_camera_setup
+    if FLAGS.execution_mode == 'challenge-sensors':
+        # Add camera for lane detection.
+        lane_transform = pylot.utils.Transform(
+            LANE_CAMERA_LOCATION, pylot.utils.Rotation(pitch=-15)),
+        lane_camera_setup = RGBCameraSetup(LANE_CAMERA_NAME, 1280, 720,
+                                           lane_transform, 90)
+        camera_setups[LANE_CAMERA_NAME] = lane_camera_setup
+
     # left_transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
     #                                        pylot.utils.Rotation(yaw=-45))
     # left_camera_setup = RGBCameraSetup(LEFT_CAMERA_NAME,

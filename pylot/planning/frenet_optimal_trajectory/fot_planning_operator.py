@@ -29,6 +29,7 @@ class FOTPlanningOperator(PlanningOperator):
                  pose_stream,
                  prediction_stream,
                  traffic_lights_stream,
+                 lanes_stream,
                  global_trajectory_stream,
                  open_drive_stream,
                  time_to_decision_stream,
@@ -36,9 +37,9 @@ class FOTPlanningOperator(PlanningOperator):
                  flags,
                  goal_location=None):
         super().__init__(pose_stream, prediction_stream, traffic_lights_stream,
-                         global_trajectory_stream, open_drive_stream,
-                         time_to_decision_stream, waypoints_stream, flags,
-                         goal_location)
+                         lanes_stream, global_trajectory_stream,
+                         open_drive_stream, time_to_decision_stream,
+                         waypoints_stream, flags, goal_location)
         self.s0 = 0.0
         self._hyperparameters = {
             "max_speed": flags.max_speed,
@@ -101,10 +102,16 @@ class FOTPlanningOperator(PlanningOperator):
         ego_transform = pose_msg.data.transform
         prediction_msg = self._prediction_msgs.popleft()
         traffic_lights = self._traffic_light_msgs.popleft()
+        if len(self._lanes_msgs) > 0:
+            lanes = self._lanes_msgs.popleft().data
+        else:
+            lanes = None
         # Update the representation of the world.
-        self._world.update(timestamp, ego_transform,
+        self._world.update(timestamp,
+                           ego_transform,
                            prediction_msg.predictions,
-                           traffic_lights.obstacles)
+                           traffic_lights.obstacles,
+                           lanes=lanes)
         obstacle_list = self._world.get_obstacle_list()
 
         if not self._waypoints:

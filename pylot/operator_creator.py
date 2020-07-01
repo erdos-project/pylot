@@ -377,6 +377,7 @@ def add_behavior_planning(pose_stream,
 def add_fot_planning(pose_stream,
                      prediction_stream,
                      traffic_lights_stream,
+                     lanes_stream,
                      global_trajectory_stream,
                      open_drive_stream,
                      time_to_decision_stream,
@@ -389,7 +390,7 @@ def add_fot_planning(pose_stream,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
     [waypoints_stream] = erdos.connect(FOTPlanningOperator, op_config, [
-        pose_stream, prediction_stream, traffic_lights_stream,
+        pose_stream, prediction_stream, traffic_lights_stream, lanes_stream,
         global_trajectory_stream, open_drive_stream, time_to_decision_stream
     ], FLAGS, goal_location)
     return waypoints_stream
@@ -398,6 +399,7 @@ def add_fot_planning(pose_stream,
 def add_rrt_star_planning(pose_stream,
                           prediction_stream,
                           traffic_lights_stream,
+                          lanes_stream,
                           global_trajectory_stream,
                           open_drive_stream,
                           time_to_decision_stream,
@@ -410,7 +412,7 @@ def add_rrt_star_planning(pose_stream,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
     [waypoints_stream] = erdos.connect(RRTStarPlanningOperator, op_config, [
-        pose_stream, prediction_stream, traffic_lights_stream,
+        pose_stream, prediction_stream, traffic_lights_stream, lanes_stream,
         global_trajectory_stream, open_drive_stream, time_to_decision_stream
     ], FLAGS, goal_location)
     return waypoints_stream
@@ -419,6 +421,7 @@ def add_rrt_star_planning(pose_stream,
 def add_hybrid_astar_planning(pose_stream,
                               prediction_stream,
                               traffic_lights_stream,
+                              lanes_stream,
                               global_trajectory_stream,
                               open_drive_stream,
                               time_to_decision_stream,
@@ -432,7 +435,7 @@ def add_hybrid_astar_planning(pose_stream,
                                      profile_file_name=FLAGS.profile_file_name)
     [waypoints_stream
      ] = erdos.connect(HybridAStarPlanningOperator, op_config, [
-         pose_stream, prediction_stream, traffic_lights_stream,
+         pose_stream, prediction_stream, traffic_lights_stream, lanes_stream,
          global_trajectory_stream, open_drive_stream, time_to_decision_stream
      ], FLAGS, goal_location)
     return waypoints_stream
@@ -441,6 +444,7 @@ def add_hybrid_astar_planning(pose_stream,
 def add_waypoint_planning(pose_stream,
                           prediction_stream,
                           traffic_lights_stream,
+                          lanes_stream,
                           global_trajectory_stream,
                           open_drive_stream,
                           time_to_decision_stream,
@@ -454,7 +458,7 @@ def add_waypoint_planning(pose_stream,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
     [waypoints_stream] = erdos.connect(WaypointPlanningOperator, op_config, [
-        pose_stream, prediction_stream, traffic_lights_stream,
+        pose_stream, prediction_stream, traffic_lights_stream, lanes_stream,
         global_trajectory_stream, open_drive_stream, time_to_decision_stream
     ], FLAGS, goal_location)
     return waypoints_stream

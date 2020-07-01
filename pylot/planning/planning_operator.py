@@ -36,6 +36,7 @@ class PlanningOperator(erdos.Operator):
                  pose_stream,
                  prediction_stream,
                  traffic_lights_stream,
+                 lanes_stream,
                  global_trajectory_stream,
                  open_drive_stream,
                  time_to_decision_stream,
@@ -45,12 +46,13 @@ class PlanningOperator(erdos.Operator):
         pose_stream.add_callback(self.on_pose_update)
         prediction_stream.add_callback(self.on_prediction_update)
         traffic_lights_stream.add_callback(self.on_traffic_lights_update)
+        lanes_stream.add_callback(self.on_lanes_update)
         global_trajectory_stream.add_callback(self.on_global_trajectory)
         open_drive_stream.add_callback(self.on_opendrive_map)
         time_to_decision_stream.add_callback(self.on_time_to_decision)
         erdos.add_watermark_callback([
             pose_stream, prediction_stream, traffic_lights_stream,
-            time_to_decision_stream
+            lanes_stream, time_to_decision_stream
         ], [waypoints_stream], self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -69,11 +71,12 @@ class PlanningOperator(erdos.Operator):
         self._pose_msgs = deque()
         self._prediction_msgs = deque()
         self._traffic_light_msgs = deque()
+        self._lanes_msgs = deque()
         self._ttd_msgs = deque()
 
     @staticmethod
     def connect(pose_stream, prediction_stream, traffic_lights_stream,
-                global_trajectory_stream, open_drive_stream,
+                lanes_steam, global_trajectory_stream, open_drive_stream,
                 time_to_decision_stream):
         waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
@@ -117,6 +120,10 @@ class PlanningOperator(erdos.Operator):
         self._logger.debug('@{}: received traffic lights update'.format(
             msg.timestamp))
         self._traffic_light_msgs.append(msg)
+
+    def on_lanes_update(self, msg):
+        self._logger.debug('@{}: received lanes update'.format(msg.timestamp))
+        self._lanes_msgs.append(msg)
 
     def on_global_trajectory(self, msg):
         """Invoked whenever a message is received on the trajectory stream.

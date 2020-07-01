@@ -13,6 +13,7 @@ class World(object):
         self._ego_obstacle_predictions = None
         self.ego_trajectory = deque(maxlen=self._flags.tracking_num_steps)
         self.ego_transform = None
+        self._lanes = None
         self._map = None
         self._waypoints = None
         self.timestamp = None
@@ -23,7 +24,8 @@ class World(object):
                obstacle_predictions,
                road_signs,
                waypoints=None,
-               hd_map=None):
+               hd_map=None,
+               lanes=None):
         self.timestamp = timestamp
         self.ego_transform = ego_transform
         self.ego_trajectory.append(ego_transform)
@@ -36,6 +38,7 @@ class World(object):
         self.road_signs = road_signs
         self._waypoints = waypoints
         self._map = hd_map
+        self._lanes = lanes
 
     def get_obstacle_list(self):
         obstacle_list = []
@@ -81,3 +84,6 @@ class World(object):
         # if self._map:
         #     lane = self._map.get_lane(self.ego_transform.location)
         #     lane.draw_on_frame(frame, self.ego_transform.inverse_transform())
+        if self._lanes:
+            for lane in self._lanes:
+                lane.draw_on_frame(frame)

@@ -18,19 +18,24 @@ class Lane(object):
                 marking = inverse_transform * marking
             pixel_location = marking.location.to_camera_view(
                 extrinsic_matrix, intrinsic_matrix)
-            frame.draw_point(pixel_location, [0, 0, 0])
+            frame.draw_point(pixel_location, [255, 255, 0])
         for marking in self.right_markings:
             if inverse_transform:
                 marking = inverse_transform * marking
             pixel_location = marking.location.to_camera_view(
                 extrinsic_matrix, intrinsic_matrix)
-            frame.draw_point(pixel_location, [0, 0, 0])
+            frame.draw_point(pixel_location, [255, 255, 0])
 
     def draw_on_world(self, world):
+        import carla
         for marking in self.left_markings:
-            world.debug.draw_point(marking.as_carla_location(), size=0.1)
+            world.debug.draw_point(marking.as_carla_location(),
+                                   size=0.1,
+                                   color=carla.Color(255, 255, 0))
         for marking in self.right_markings:
-            world.debug.draw_point(marking.as_carla_location(), size=0.1)
+            world.debug.draw_point(marking.as_carla_location(),
+                                   size=0.1,
+                                   color=carla.Color(255, 255, 0))
 
     def __repr__(self):
         return self.__str__()

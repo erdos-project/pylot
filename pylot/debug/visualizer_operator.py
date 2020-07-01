@@ -368,10 +368,17 @@ class VisualizerOperator(erdos.Operator):
             else:
                 frame = prediction_camera_msg.frame
                 frame.transform_to_cityscapes()
-            self._planning_world.update(timestamp, ego_transform,
+            if lane_detection_msg:
+                lanes = lane_detection_msg.data
+            else:
+                lanes = None
+            self._planning_world.update(timestamp,
+                                        ego_transform,
                                         prediction_msg.predictions,
                                         traffic_light_msg.obstacles,
-                                        waypoint_msg.waypoints, self._map)
+                                        waypoint_msg.waypoints,
+                                        self._map,
+                                        lanes=lanes)
             self._planning_world.draw_on_frame(frame)
             frame.visualize(self.display, timestamp=timestamp)
 

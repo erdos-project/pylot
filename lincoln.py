@@ -92,6 +92,7 @@ def create_data_flow():
     velodyne_transform = pylot.utils.Transform(VELODYNE_LOCATION,
                                                pylot.utils.Rotation())
 
+    streams_to_send_top_on = []
     time_to_decision_loop_stream = erdos.LoopStream()
 
     (left_camera_stream, left_camera_setup) = add_grasshopper3_camera(
@@ -135,11 +136,11 @@ def create_data_flow():
         traffic_lights_stream = erdos.IngestStream()
 
     if FLAGS.lane_detection:
-        lane_detection_stream = \
-            pylot.operator_creator.add_canny_edge_lane_detection(
-                left_camera_stream)
+        lane_detection_stream = pylot.component_creator.add_lane_detection(
+            left_camera_stream)
     else:
-        lane_detection_stream = None
+        lane_detection_stream = erdos.IngestStream()
+        streams_to_send_top_on.append(lane_detection_stream)
 
     if FLAGS.obstacle_tracking:
         obstacles_wo_history_tracking_stream = \
@@ -165,8 +166,9 @@ def create_data_flow():
 
     waypoints_stream = pylot.component_creator.add_planning(
         None, pose_stream, prediction_stream, left_camera_stream,
-        obstacles_stream, traffic_lights_stream, open_drive_stream,
-        global_trajectory_stream, time_to_decision_loop_stream)
+        obstacles_stream, traffic_lights_stream, lane_detection_stream,
+        open_drive_stream, global_trajectory_stream,
+        time_to_decision_loop_stream)
 
     if FLAGS.control == 'pid':
         control_stream = pylot.operator_creator.add_pid_control(
@@ -178,7 +180,6 @@ def create_data_flow():
         add_drive_by_wire_operator(control_stream)
 
     control_display_stream = None
-    streams_to_send_top_on = []
     if pylot.flags.must_visualize():
         control_display_stream, ingest_streams = \
             pylot.operator_creator.add_visualizer(
