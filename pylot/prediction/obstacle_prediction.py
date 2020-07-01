@@ -30,6 +30,7 @@ class ObstaclePrediction(object):
 
     def to_world_coordinates(self, ego_transform):
         """Transforms the trajectory and prediction into world coordinates."""
+        self.transform = ego_transform * self.transform
         self.obstacle_trajectory.to_world_coordinates(ego_transform)
         cur_trajectory = []
         for future_transform in self.predicted_trajectory:

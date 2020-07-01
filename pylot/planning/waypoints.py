@@ -56,6 +56,9 @@ class Waypoints(object):
                 min_index = index
         return min_index
 
+    def is_empty(self):
+        return len(self.waypoints) == 0
+
     def remove_completed(self, location, ego_transform=None):
         """Removes waypoints that the ego vehicle has already completed.
 

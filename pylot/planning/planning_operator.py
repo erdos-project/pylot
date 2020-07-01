@@ -6,8 +6,12 @@ from collections import deque
 
 import erdos
 
+from pylot.perception.messages import ObstaclesMessage
+from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 from pylot.planning.waypoints import Waypoints
 from pylot.planning.world import World
+from pylot.prediction.messages import PredictionMessage
+from pylot.prediction.obstacle_prediction import ObstaclePrediction
 from pylot.utils import Location, Rotation, Transform
 
 
@@ -21,6 +25,10 @@ class PlanningOperator(erdos.Operator):
     Args:
         pose_stream (:py:class:`erdos.ReadStream`): Stream on which pose
             info is received.
+        prediction_stream (:py:class:`erdos.ReadStream`): Stream on which
+            trajectory predictions of dynamic obstacles is received.
+        static_obstacles_stream (:py:class:`erdos.ReadStream`): Stream on
+            which static obstacles (e.g., traffic lights) are received.
         open_drive_stream (:py:class:`erdos.ReadStream`): Stream on which open
             drive string representations are received. The operator can
             construct HDMaps out of the open drive strings.
@@ -35,7 +43,7 @@ class PlanningOperator(erdos.Operator):
     def __init__(self,
                  pose_stream,
                  prediction_stream,
-                 traffic_lights_stream,
+                 static_obstacles_stream,
                  lanes_stream,
                  global_trajectory_stream,
                  open_drive_stream,
@@ -45,13 +53,13 @@ class PlanningOperator(erdos.Operator):
                  goal_location=None):
         pose_stream.add_callback(self.on_pose_update)
         prediction_stream.add_callback(self.on_prediction_update)
-        traffic_lights_stream.add_callback(self.on_traffic_lights_update)
+        static_obstacles_stream.add_callback(self.on_static_obstacles_update)
         lanes_stream.add_callback(self.on_lanes_update)
         global_trajectory_stream.add_callback(self.on_global_trajectory)
         open_drive_stream.add_callback(self.on_opendrive_map)
         time_to_decision_stream.add_callback(self.on_time_to_decision)
         erdos.add_watermark_callback([
-            pose_stream, prediction_stream, traffic_lights_stream,
+            pose_stream, prediction_stream, static_obstacles_stream,
             lanes_stream, time_to_decision_stream
         ], [waypoints_stream], self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -66,16 +74,16 @@ class PlanningOperator(erdos.Operator):
         # running in stand-alone mode.
         self._waypoints = None
         self._goal_location = goal_location
-        self._world = World(flags)
+        self._world = World(flags, self._logger)
 
         self._pose_msgs = deque()
         self._prediction_msgs = deque()
-        self._traffic_light_msgs = deque()
+        self._static_obstacles_msgs = deque()
         self._lanes_msgs = deque()
         self._ttd_msgs = deque()
 
     @staticmethod
-    def connect(pose_stream, prediction_stream, traffic_lights_stream,
+    def connect(pose_stream, prediction_stream, static_obstacles_stream,
                 lanes_steam, global_trajectory_stream, open_drive_stream,
                 time_to_decision_stream):
         waypoints_stream = erdos.WriteStream()
@@ -116,10 +124,10 @@ class PlanningOperator(erdos.Operator):
             msg.timestamp))
         self._prediction_msgs.append(msg)
 
-    def on_traffic_lights_update(self, msg):
-        self._logger.debug('@{}: received traffic lights update'.format(
+    def on_static_obstacles_update(self, msg):
+        self._logger.debug('@{}: received static obstacles update'.format(
             msg.timestamp))
-        self._traffic_light_msgs.append(msg)
+        self._static_obstacles_msgs.append(msg)
 
     def on_lanes_update(self, msg):
         self._logger.debug('@{}: received lanes update'.format(msg.timestamp))
@@ -191,3 +199,21 @@ class PlanningOperator(erdos.Operator):
     @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
         raise NotImplementedError
+
+    def get_predictions(self, prediction_msg, ego_transform):
+        predictions = None
+        if isinstance(prediction_msg, ObstaclesMessage):
+            # Transform the obstacle into a prediction.
+            for obstacle in prediction_msg.obstacles:
+                obstacle_trajectory = ObstacleTrajectory(obstacle, [])
+                prediction = ObstaclePrediction(
+                    obstacle_trajectory,
+                    ego_transform.inverse_transform() * obstacle.transform,
+                    1.0, [])
+                predictions.append(prediction)
+        elif isinstance(prediction_msg, PredictionMessage):
+            predictions = prediction_msg.predictions
+        else:
+            raise ValueError('Unexpected obstacles msg type {}'.format(
+                type(prediction_msg)))
+        return predictions

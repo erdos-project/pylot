@@ -173,7 +173,7 @@ class VisualizerOperator(erdos.Operator):
             self.display_array.append("Segmentation")
             self.window_titles.append("Segmentation")
         if flags.visualize_world:
-            self._planning_world = World(flags)
+            self._planning_world = World(flags, self._logger)
             top_down_transform = pylot.utils.get_top_down_transform(
                 pylot.utils.Transform(pylot.utils.Location(),
                                       pylot.utils.Rotation()),

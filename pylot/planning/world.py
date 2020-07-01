@@ -6,15 +6,17 @@ import numpy as np
 
 class World(object):
     """A representation of the world that is used by the planners."""
-    def __init__(self, flags):
+    def __init__(self, flags, logger):
         self._flags = flags
-        self.road_signs = None
+        self._log_output = logger
+        self.static_obstacles = None
         self.obstacle_predictions = None
         self._ego_obstacle_predictions = None
         self.ego_trajectory = deque(maxlen=self._flags.tracking_num_steps)
         self.ego_transform = None
         self._lanes = None
         self._map = None
+        self._goal_location = None
         self._waypoints = None
         self.timestamp = None
 
@@ -22,8 +24,9 @@ class World(object):
                timestamp,
                ego_transform,
                obstacle_predictions,
-               road_signs,
+               static_obstacles,
                waypoints=None,
+               goal_location=None,
                hd_map=None,
                lanes=None):
         self.timestamp = timestamp
@@ -35,8 +38,9 @@ class World(object):
         for obstacle_prediction in self.obstacle_predictions:
             obstacle_prediction.to_world_coordinates(ego_transform)
         # Road signs are in world coordinates.
-        self.road_signs = road_signs
+        self.static_obstacles = static_obstacles
         self._waypoints = waypoints
+        self._goal_location = goal_location
         self._map = hd_map
         self._lanes = lanes
 
@@ -67,14 +71,14 @@ class World(object):
     def draw_on_frame(self, frame):
         for obstacle_prediction in self._ego_obstacle_predictions:
             obstacle_prediction.draw_trajectory_on_frame(frame)
-        for road_sign in self.road_signs:
-            if road_sign.is_traffic_light():
-                world_transform = road_sign.transform
+        for obstacle in self.static_obstacles:
+            if obstacle.is_traffic_light():
+                world_transform = obstacle.transform
                 # Transform traffic light to ego frame of reference.
-                road_sign.transform = (self.ego_transform.inverse_transform() *
-                                       road_sign.transform)
-                road_sign.draw_on_bird_eye_frame(frame)
-                road_sign.transform = world_transform
+                obstacle.transform = (self.ego_transform.inverse_transform() *
+                                      obstacle.transform)
+                obstacle.draw_on_bird_eye_frame(frame)
+                obstacle.transform = world_transform
         if self._waypoints:
             self._waypoints.draw_on_frame(
                 frame, self.ego_transform.inverse_transform())
