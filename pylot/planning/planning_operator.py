@@ -231,9 +231,8 @@ class PlanningOperator(erdos.Operator):
 
         # Update the representation of the world.
         self._world.update(timestamp,
-                           ego_transform,
+                           pose_msg.data,
                            predictions,
                            static_obstacles_msg.obstacles,
                            hd_map=self._map,
-                           lanes=lanes,
-                           ego_velocity_vector=pose_msg.data.velocity_vector)
+                           lanes=lanes)

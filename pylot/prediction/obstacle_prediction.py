@@ -57,6 +57,9 @@ class ObstaclePrediction(object):
     def is_stop_sign(self):
         return self.obstacle_trajectory.obstacle.is_stop_sign()
 
+    def is_traffic_light(self):
+        return self.obstacle_trajectory.obstacle.is_traffic_light()
+
     def is_vehicle(self):
         return self.obstacle_trajectory.obstacle.is_vehicle()
 

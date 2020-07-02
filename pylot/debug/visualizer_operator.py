@@ -373,7 +373,7 @@ class VisualizerOperator(erdos.Operator):
             else:
                 lanes = None
             self._planning_world.update(timestamp,
-                                        ego_transform,
+                                        pose_msg.data,
                                         prediction_msg.predictions,
                                         traffic_light_msg.obstacles,
                                         self._map,
