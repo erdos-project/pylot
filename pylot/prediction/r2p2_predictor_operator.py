@@ -119,7 +119,7 @@ class R2P2PredictorOperator(erdos.Operator):
         point_cloud = point_cloud_msg.point_cloud.points
         num_nearby_vehicles = len(nearby_vehicle_trajectories)
         if num_nearby_vehicles == 0:
-            return [], [], []
+            return [], [], [], []
 
         # Pad and rotate the trajectory of each nearby vehicle to its
         # coordinate frame. Also, remove the z-coordinate of the trajectory.
