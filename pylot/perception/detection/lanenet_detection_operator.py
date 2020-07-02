@@ -101,17 +101,41 @@ class LanenetDetectionOperator(erdos.Operator):
         for lane in lanes:
             ego_markings = self.lane_to_ego_coordinates(
                 lane, msg.frame.camera_setup)
+            ego_markings.reverse()
             ego_lane_markings.append([
                 pylot.utils.Transform(loc, pylot.utils.Rotation())
                 for loc in ego_markings
             ])
         # Sort the lane markings from left to right.
         ego_lane_markings = sorted(ego_lane_markings,
-                                   key=lambda lane: lane[-1].location.y)
+                                   key=lambda lane: lane[0].location.y)
+        # Get the index of the ego lane.
+        ego_lane_index = None
+        all_lanes_to_the_left = True
+        all_lanes_to_the_right = True
+        for index, lane in enumerate(ego_lane_markings):
+            if index > 0 and ego_lane_markings[
+                    index - 1][0].location.y < 0 and lane[0].location.y > 0:
+                ego_lane_index = index
+            if ego_lane_markings[index][0].location.y < 0:
+                all_lanes_to_the_right = False
+            elif ego_lane_markings[index][0].location.y > 0:
+                all_lanes_to_the_left = False
+
+        if ego_lane_index is None:
+            # No ego lane found.
+            if all_lanes_to_the_left:
+                # All left lanes have negative ids.
+                ego_lane_index = len(ego_lane_markings)
+            if all_lanes_to_the_right:
+                # All right lanes have positive ids.
+                ego_lane_index = 0
+
         detected_lanes = []
         for index, lane in enumerate(ego_lane_markings):
             if index > 0:
-                lane = Lane(ego_lane_markings[index - 1], lane)
+                lane = Lane(index - ego_lane_index,
+                            ego_lane_markings[index - 1], lane)
                 detected_lanes.append(lane)
         self._logger.debug('@{}: Detected {} lanes'.format(
             msg.timestamp, len(detected_lanes)))

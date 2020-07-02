@@ -1,5 +1,14 @@
 class Lane(object):
-    def __init__(self, left_markings, right_markings):
+    """Stores information about a lane.
+
+    Args:
+        id (:obj:`int`): The id of the lane (0 for ego lane, negative for
+            left lanes, and positive for right lanes).
+        left_markings: List of transforms.
+        right_markings: List of transforms.
+    """
+    def __init__(self, id, left_markings, right_markings):
+        self.id = id
         self.left_markings = left_markings
         self.right_markings = right_markings
 
@@ -41,4 +50,5 @@ class Lane(object):
         return self.__str__()
 
     def __str__(self):
-        return 'Lane({})'.format(zip(self.left_markings, self.right_markings))
+        return 'Lane(id: {}, {})'.format(
+            self.id, zip(self.left_markings, self.right_markings))
