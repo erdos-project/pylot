@@ -1,3 +1,8 @@
+import math
+import numpy as np
+
+from pylot.utils import Vector2D
+
 class ObstacleTrajectory(object):
     """Used to store the trajectory of an obstacle.
 
@@ -25,6 +30,42 @@ class ObstacleTrajectory(object):
             color = [255, 255, 0]
         self.obstacle.draw_trajectory_on_frame(self.trajectory, frame, color,
                                                draw_label)
+
+    def estimate_obstacle_orientation(self):
+        """ Uses the obstacle's past trajectory to estimate its angle from the
+            positive x-axis (assumes trajectory points are in the ego-vehicle's
+            coordinate frame).
+        """
+        other_idx = len(self.trajectory) - 2
+        # TODO: Setting a default yaw is dangerous. Find some way to estimate
+        # the orientation of a stationary object.
+        yaw = 0.0 # Default orientation for stationary objects.
+        current_loc = self.trajectory[-1].location.as_vector_2D()
+        while other_idx >= 0:
+            past_ref_loc = self.trajectory[other_idx].location.as_vector_2D()
+            vec = current_loc - past_ref_loc
+            displacement = current_loc.l2_distance(past_ref_loc)
+            if displacement > 0.001:
+                # Angle between displacement vector and the x-axis, i.e.
+                # the (1,0) vector.
+                yaw = vec.get_angle(Vector2D(1, 0))
+                break
+            else:
+                other_idx -= 1
+        return math.degrees(yaw)
+
+    def get_last_n_transforms(self, n):
+        """Returns the last n steps of the trajectory. If we have not seen
+        enough past locations of the obstacle, pad the trajectory with the
+        appropriate number of copies of the earliest location.
+        """
+        num_past_locations = len(self.trajectory)
+        if num_past_locations < n:
+            initial_copies = [self.trajectory[0]] * (n - num_past_locations)
+            last_n_steps = initial_copies + self.trajectory
+        else:
+            last_n_steps = self.trajectory[-n:]
+        return last_n_steps
 
     def to_world_coordinates(self, ego_transform):
         """Transforms the trajectory into world coordinates."""

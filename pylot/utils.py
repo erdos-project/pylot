@@ -379,7 +379,8 @@ class Vector2D(object):
         return np.array([self.x, self.y])
 
     def get_angle(self, other):
-        """Computes the angle between the vector and another vector."""
+        """Computes the angle between the vector and another vector
+           in radians."""
         angle = math.atan2(self.y, self.x) - math.atan2(other.y, other.x)
         if angle > math.pi:
             angle -= 2 * math.pi

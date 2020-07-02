@@ -2,10 +2,13 @@
 
 import erdos
 
+import numpy as np
+
 import pylot.perception.camera_frame
 import pylot.perception.depth_frame
 import pylot.perception.point_cloud
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
+from pylot.utils import Location, Rotation, Transform
 
 
 class FrameMessage(erdos.Message):
@@ -205,6 +208,39 @@ class ObstacleTrajectoriesMessage(erdos.Message):
             [str(traj) for traj in self.obstacle_trajectories])
         return ('ObstacleTrajectoriesMessage(timestamp {}, '
                 'trajectories: {})'.format(self.timestamp, trajectories_str))
+
+    def get_nearby_obstacles_info(self, radius, filter_fn=None):
+        """Using the list of obstacle trajectories in the message (which are
+           in the ego-vehicle's frame of reference), return a list of obstacles
+           that are within a specified radius of the ego-vehicle, as well as
+           a list of their transforms, sorted by increasing distance."""
+        if filter_fn:
+            filtered_trajectories = list(
+                filter(filter_fn, self.obstacle_trajectories))
+        else:
+            filtered_trajectories = self.obstacle_trajectories
+        distances = [v.trajectory[-1].get_angle_and_magnitude(Location())[1]
+            for v in filtered_trajectories]
+        sorted_trajectories = [v for v, d in
+            sorted(zip(filtered_trajectories, distances),
+            key=lambda pair: pair[1]) if d <= radius]
+
+        if len(sorted_trajectories) == 0:
+            return sorted_trajectories, []
+
+        nearby_obstacles_ego_locations = np.stack(
+            [t.trajectory[-1] for t in sorted_trajectories])
+        nearby_obstacles_ego_transforms = []
+
+        # Add appropriate rotations to nearby_obstacles_ego_transforms, which
+        # we estimate using the direction determined by the last two distinct
+        # locations
+        for i in range(len(sorted_trajectories)):
+            cur_obstacle_angle = sorted_trajectories[i].estimate_obstacle_orientation()
+            nearby_obstacles_ego_transforms.append(
+                Transform(location=nearby_obstacles_ego_locations[i].location,
+                          rotation=Rotation(yaw=cur_obstacle_angle)))
+        return sorted_trajectories, nearby_obstacles_ego_transforms
 
 
 class LanesMessage(erdos.Message):
