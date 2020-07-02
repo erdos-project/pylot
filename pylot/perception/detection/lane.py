@@ -1,3 +1,11 @@
+import numpy as np
+
+import pylot.utils
+
+from shapely.geometry import Point
+from shapely.geometry.polygon import Polygon
+
+
 class Lane(object):
     """Stores information about a lane.
 
@@ -11,6 +19,7 @@ class Lane(object):
         self.id = id
         self.left_markings = left_markings
         self.right_markings = right_markings
+        self._lane_polygon = None
 
     def draw_on_frame(self, frame, inverse_transform=None):
         """Draw lane markings on a frame.
@@ -45,6 +54,38 @@ class Lane(object):
             world.debug.draw_point(marking.as_carla_location(),
                                    size=0.1,
                                    color=carla.Color(255, 255, 0))
+
+    def get_closest_lane_waypoint(self, location):
+        if self.is_on_lane(location):
+            return pylot.utils.Transform(location, pylot.utils.Rotation())
+        closest_transform = None
+        min_dist = np.infty
+        for transform in self.left_markings:
+            dist = transform.location.distance(location)
+            if dist < min_dist:
+                min_dist = dist
+                closest_transform = transform
+        for transform in self.right_markings:
+            dist = transform.location.distance(location)
+            if dist < min_dist:
+                min_dist = dist
+                closest_transform = transform
+        return closest_transform
+
+    def is_on_lane(self, location):
+        # We only create the lane polygon if it is necessary.
+        if not self._lane_polygon:
+            self._create_lane_polygon()
+        return self._lane_polygon.contains(Point(location.x, location.y))
+
+    def _create_lane_polygon(self):
+        points = [(0, self.left_markings[0].y)]
+        for transform in self.left_markings:
+            points.append((transform.location.x, transform.location.y))
+        for transform in reversed(self.right_markings):
+            points.append((transform.location.x, transform.location.y))
+        points.append((0, self.right_markings[0].y))
+        self._lane_polygon = Polygon(points)
 
     def __repr__(self):
         return self.__str__()
