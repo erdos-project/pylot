@@ -14,21 +14,21 @@ sudo apt-get install -y python3-opencv
 
 ###### Build the FrenetOptimalTrajectory Planner ######
 export PYLOT_HOME=$(pwd)
-cd pylot/planning/frenet_optimal_trajectory/
+cd dependencies/frenet_optimal_trajectory/
 git clone https://github.com/erdos-project/frenet_optimal_trajectory_planner.git
-cd frenet_optimal_trajectory_planner
+cd frenet_optimal_trajectory_planner/
 bash build.sh
 cd $PYLOT_HOME
 
 ###### Build the RRT* Planner ######
-cd pylot/planning/rrt_star/
-git clone https://github.com/erdos-project/rrt_star_planning
-cd rrt_star_planning
+cd dependencies/rrt_star/
+git clone https://github.com/erdos-project/rrt_star_planner.git
+cd rrt_star_planner/
 bash build.sh
 cd $PYLOT_HOME
 
 ###### Build the Hybrid A* Planner ######
-cd pylot/planning/hybrid_astar/
+cd dependencies/hybrid_astar/
 git clone https://github.com/erdos-project/hybrid_astar_planner.git
 cd hybrid_astar_planner/
 bash build.sh

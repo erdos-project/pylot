@@ -157,6 +157,8 @@ def driver():
             obstacles_tracking_stream, vehicle_id_stream, transform,
             release_sensor_stream, pose_stream, point_cloud_stream,
             lidar_setup)
+    if prediction_stream is None:
+        prediction_stream = obstacles_stream
     if notify_prediction_stream:
         notify_streams.append(notify_prediction_stream)
 
@@ -165,9 +167,8 @@ def driver():
                                          float(FLAGS.goal_location[2]))
     waypoints_stream = pylot.component_creator.add_planning(
         goal_location, pose_stream, prediction_stream, center_camera_stream,
-        obstacles_stream, traffic_lights_stream, lane_detection_stream,
-        open_drive_stream, global_trajectory_stream,
-        time_to_decision_loop_stream)
+        traffic_lights_stream, lane_detection_stream, open_drive_stream,
+        global_trajectory_stream, time_to_decision_loop_stream)
 
     if FLAGS.carla_mode == "pseudo-asynchronous":
         # Add a synchronizer in the pseudo-asynchronous mode.

@@ -1,44 +1,20 @@
-"""
-Author: Edward Fang
-Email: edward.fang@berkeley.edu
-"""
 import time
 
-import erdos
+from frenet_optimal_trajectory_planner.FrenetOptimalTrajectory.fot_wrapper \
+    import run_fot
 
-from pylot.planning.messages import WaypointsMessage
-from pylot.planning.planning_operator import PlanningOperator
-from pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory_planner. \
-    FrenetOptimalTrajectory.fot_wrapper import run_fot
+from pylot.planning.planner import Planner
 
 
-class FOTPlanningOperator(PlanningOperator):
-    """ Frenet Optimal Trajectory (FOT) Planning operator.
+class FOTPlanner(Planner):
+    """Frenet Optimal Trajectory (FOT) planner.
 
-    This planning operator uses a global route and listens for predictions
-    to produce a frenet optimal trajectory plan. Details can be found in
+    This planner uses a global route and predictions to produce a frenet
+    optimal trajectory plan. Details can be found in
     `~pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory.py`.
-
-     Args:
-        flags(:absl.flags:): Object to be used to access absl flags
-        goal_location(:pylot.utils.Location:): Goal location for route planning
     """
-    def __init__(self,
-                 pose_stream,
-                 prediction_stream,
-                 static_obstacles_stream,
-                 lanes_stream,
-                 global_trajectory_stream,
-                 open_drive_stream,
-                 time_to_decision_stream,
-                 waypoints_stream,
-                 flags,
-                 goal_location=None):
-        super().__init__(pose_stream, prediction_stream,
-                         static_obstacles_stream, lanes_stream,
-                         global_trajectory_stream, open_drive_stream,
-                         time_to_decision_stream, waypoints_stream, flags,
-                         goal_location)
+    def __init__(self, world, flags, logger):
+        super().__init__(world, flags, logger)
         self.s0 = 0.0
         self._hyperparameters = {
             "max_speed": flags.max_speed,
@@ -94,11 +70,7 @@ class FOTPlanningOperator(PlanningOperator):
         self._hyperparameters['dt'] = dt
         self._hyperparameters['d_road_w'] = d_road_w
 
-    @erdos.profile_method()
-    def on_watermark(self, timestamp, waypoints_stream):
-        self._logger.debug('@{}: received watermark'.format(timestamp))
-        self.update_world(timestamp)
-
+    def run(self, timestamp):
         self._logger.debug("@{}: Hyperparameters: {}".format(
             timestamp, self._hyperparameters))
         initial_conditions = self._compute_initial_conditions()
@@ -119,11 +91,11 @@ class FOTPlanningOperator(PlanningOperator):
             self._logger.debug(
                 "@{}: Frenet failed. Sending emergency stop.".format(
                     timestamp))
-            output_wps = self.follow_waypoints(0)
+            output_wps = self._world.follow_waypoints(0)
 
         # update current pose
         self.s0 = misc['s']
-        waypoints_stream.send(WaypointsMessage(timestamp, output_wps))
+        return output_wps
 
     def _compute_initial_conditions(self):
         ego_transform = self._world.ego_transform

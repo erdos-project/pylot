@@ -1,38 +1,11 @@
-"""
-Author: Edward Fang
-Email: edward.fang@berkeley.edu
-"""
-import erdos
+from pylot.planning.planner import Planner
 
-from pylot.planning.messages import WaypointsMessage
-from pylot.planning.planning_operator import PlanningOperator
-from pylot.planning.rrt_star.rrt_star_planning.RRTStar.rrt_star_wrapper \
-    import apply_rrt_star
+from rrt_star_planner.RRTStar.rrt_star_wrapper import apply_rrt_star
 
 
-class RRTStarPlanningOperator(PlanningOperator):
-    """RRTStar Planning operator.
-
-    Args:
-        flags: Config flags.
-        goal_location: Goal pylot.utils.Location for planner to route to.
-    """
-    def __init__(self,
-                 pose_stream,
-                 prediction_stream,
-                 static_obstacles_stream,
-                 lanes_stream,
-                 global_trajectory_stream,
-                 open_drive_stream,
-                 time_to_decision_stream,
-                 waypoints_stream,
-                 flags,
-                 goal_location=None):
-        super().__init__(pose_stream, prediction_stream,
-                         static_obstacles_stream, lanes_stream,
-                         global_trajectory_stream, open_drive_stream,
-                         time_to_decision_stream, waypoints_stream, flags,
-                         goal_location)
+class RRTStarPlanner(Planner):
+    def __init__(self, world, flags, logger):
+        super().__init__(world, flags, logger)
         self._hyperparameters = {
             "step_size": flags.step_size,
             "max_iterations": flags.max_iterations,
@@ -41,16 +14,12 @@ class RRTStarPlanningOperator(PlanningOperator):
             "lane_width": flags.lane_width,
         }
 
-    @erdos.profile_method()
-    def on_watermark(self, timestamp, waypoints_stream):
-        self._logger.debug('@{}: received watermark'.format(timestamp))
-        self.update_world(timestamp)
+    def run(self, timestamp):
         obstacle_list = self._world.get_obstacle_list()
-
         if len(obstacle_list) == 0:
             # Do not use RRT* if there are no obstacles.
             # Do not use Hybrid A* if there are no obstacles.
-            output_wps = self.follow_waypoints(self._flags.target_speed)
+            output_wps = self._world.follow_waypoints(self._flags.target_speed)
         else:
             # RRT* does not take into account the driveable region.
             # It constructs search space as a top down, minimum bounding
@@ -77,9 +46,8 @@ class RRTStarPlanningOperator(PlanningOperator):
             else:
                 self._logger.error("@{}: RRT* failed. "
                                    "Sending emergency stop.".format(timestamp))
-                output_wps = self.follow_waypoints(0)
-
-        waypoints_stream.send(WaypointsMessage(timestamp, output_wps))
+                output_wps = self._world.follow_waypoints(0)
+        return output_wps
 
     def _compute_initial_conditions(self, obstacles):
         ego_transform = self._world.ego_transform

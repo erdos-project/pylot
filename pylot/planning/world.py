@@ -20,8 +20,8 @@ class World(object):
         self._flags = flags
         self._logger = logger
         self.static_obstacles = None
-        self.obstacle_predictions = None
-        self._ego_obstacle_predictions = None
+        self.obstacle_predictions = []
+        self._ego_obstacle_predictions = []
         self.ego_trajectory = deque(maxlen=self._flags.tracking_num_steps)
         self.ego_transform = None
         self.ego_velocity_vector = None
@@ -76,6 +76,13 @@ class World(object):
     def update_waypoints(self, goal_location, waypoints):
         self._goal_location = goal_location
         self.waypoints = waypoints
+
+    def follow_waypoints(self, target_speed):
+        self.waypoints.remove_completed(self.ego_transform.location,
+                                        self.ego_transform)
+        return self.waypoints.slice_waypoints(0,
+                                              self._flags.num_waypoints_ahead,
+                                              target_speed)
 
     def get_obstacle_list(self):
         obstacle_list = []
@@ -217,6 +224,11 @@ class World(object):
         return min_speed_factor_v
 
     def stop_for_agents(self, timestamp):
+        """Calculates the speed factor in [0, 1] (0 is full stop).
+
+        Reduces the speed factor whenever the ego vehicle's path is blocked
+        by an obstacle, or the ego vehicle must stop at a traffic light.
+        """
         speed_factor_tl = 1
         speed_factor_p = 1
         speed_factor_v = 1

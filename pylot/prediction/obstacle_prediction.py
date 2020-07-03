@@ -11,9 +11,12 @@ class ObstaclePrediction(object):
     """
     def __init__(self, obstacle_trajectory, transform, probability,
                  predicted_trajectory):
+        # Trajectory in ego frame of coordiantes.
         self.obstacle_trajectory = obstacle_trajectory
+        # The transform is in world coordiantes.
         self.transform = transform
         self.probability = probability
+        # Predicted trajectory in ego frame of coordiantes.
         self.predicted_trajectory = predicted_trajectory
 
     def draw_trajectory_on_frame(self, frame):
@@ -30,7 +33,6 @@ class ObstaclePrediction(object):
 
     def to_world_coordinates(self, ego_transform):
         """Transforms the trajectory and prediction into world coordinates."""
-        self.transform = ego_transform * self.transform
         self.obstacle_trajectory.to_world_coordinates(ego_transform)
         cur_trajectory = []
         for future_transform in self.predicted_trajectory:

@@ -376,7 +376,7 @@ def create_data_flow():
     time_to_decision_loop_stream = erdos.LoopStream()
 
     # Add waypoint planner.
-    waypoints_stream = pylot.operator_creator.add_waypoint_planning(
+    waypoints_stream = pylot.operator_creator.add_planning(
         pose_stream, ground_obstacles_stream, traffic_lights_stream,
         global_trajectory_stream, open_drive_stream,
         time_to_decision_loop_stream, None)

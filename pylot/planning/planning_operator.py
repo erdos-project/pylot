@@ -8,11 +8,11 @@ import erdos
 
 from pylot.perception.messages import ObstaclesMessage
 from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
+from pylot.planning.messages import WaypointsMessage
 from pylot.planning.waypoints import Waypoints
 from pylot.planning.world import World
 from pylot.prediction.messages import PredictionMessage
 from pylot.prediction.obstacle_prediction import ObstaclePrediction
-from pylot.utils import Location, Rotation, Transform
 
 
 class PlanningOperator(erdos.Operator):
@@ -74,6 +74,24 @@ class PlanningOperator(erdos.Operator):
         # scenario runner, or computed using the Carla global planner when
         # running in stand-alone mode.
         self._world.update_waypoints(goal_location, None)
+        if self._flags.planning_type == 'waypoint':
+            pass
+        elif self._flags.planning_type == 'frenet_optimal_trajectory':
+            from pylot.planning.frenet_optimal_trajectory.fot_planner \
+                import FOTPlanner
+            self._planner = FOTPlanner(self._world, self._flags, self._logger)
+        elif self._flags.planning_type == 'hybrid_astar':
+            from pylot.planning.hybrid_astar.hybrid_astar_planner \
+                import HybridAStarPlanner
+            self._planner = HybridAStarPlanner(self._world, self._flags,
+                                               self._logger)
+        elif self._flags.planning_type == 'rrt_star':
+            from pylot.planning.rrt_star.rrt_star_planner import RRTStarPlanner
+            self._planner = RRTStarPlanner(self._world, self._flags,
+                                           self._logger)
+        else:
+            raise ValueError('Unexpected planning type: {}'.format(
+                self._flags.planning_type))
 
         self._pose_msgs = deque()
         self._prediction_msgs = deque()
@@ -172,44 +190,33 @@ class PlanningOperator(erdos.Operator):
             msg.timestamp, self.config.name, msg))
         self._ttd_msgs.append(msg)
 
-    def build_output_waypoints(self, path_x, path_y, speeds):
-        wps = deque()
-        target_speeds = deque()
-        for point in zip(path_x, path_y, speeds):
-            if self._map is not None:
-                p_loc = self._map.get_closest_lane_waypoint(
-                    Location(x=point[0], y=point[1], z=0)).location
-            else:
-                p_loc = Location(x=point[0], y=point[1], z=0)
-            wps.append(
-                Transform(
-                    location=Location(x=point[0], y=point[1], z=p_loc.z),
-                    rotation=Rotation(),
-                ))
-            target_speeds.append(point[2])
-        return Waypoints(wps, target_speeds)
-
-    def follow_waypoints(self, target_speed):
-        ego_transform = self._world.ego_transform
-        self._world.waypoints.remove_completed(ego_transform.location,
-                                               ego_transform)
-        return self._world.waypoints.slice_waypoints(
-            0, self._flags.num_waypoints_ahead, target_speed)
-
     @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
-        raise NotImplementedError
+        self._logger.debug('@{}: received watermark'.format(timestamp))
+        self.update_world(timestamp)
+
+        if self._flags.planning_type == 'waypoint':
+            speed_factor = self._world.stop_for_agents(timestamp)
+            target_speed = speed_factor * self._flags.target_speed
+            self._logger.debug(
+                '@{}: speed factor: {}, target speed: {}'.format(
+                    timestamp, speed_factor, target_speed))
+            output_wps = self._world.follow_waypoints(target_speed)
+        else:
+            output_wps = self._planner.run(timestamp)
+
+        waypoints_stream.send(WaypointsMessage(timestamp, output_wps))
+        waypoints_stream.send(erdos.WatermarkMessage(timestamp))
 
     def get_predictions(self, prediction_msg, ego_transform):
-        predictions = None
+        predictions = []
         if isinstance(prediction_msg, ObstaclesMessage):
             # Transform the obstacle into a prediction.
             for obstacle in prediction_msg.obstacles:
                 obstacle_trajectory = ObstacleTrajectory(obstacle, [])
                 prediction = ObstaclePrediction(
-                    obstacle_trajectory,
-                    ego_transform.inverse_transform() * obstacle.transform,
-                    1.0, [])
+                    obstacle_trajectory, obstacle.transform, 1.0,
+                    [ego_transform.inverse_transform() * obstacle.transform])
                 predictions.append(prediction)
         elif isinstance(prediction_msg, PredictionMessage):
             predictions = prediction_msg.predictions

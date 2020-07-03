@@ -379,9 +379,9 @@ def create_data_flow():
 
     waypoints_stream = pylot.component_creator.add_planning(
         None, pose_stream, prediction_stream,
-        camera_streams[CENTER_CAMERA_NAME], prediction_stream,
-        traffic_lights_stream, lanes_stream, open_drive_stream,
-        trajectory_stream, time_to_decision_loop_stream)
+        camera_streams[CENTER_CAMERA_NAME], traffic_lights_stream,
+        lanes_stream, open_drive_stream, trajectory_stream,
+        time_to_decision_loop_stream)
 
     if pylot.flags.must_visualize():
         control_display_stream, ingest_streams = \

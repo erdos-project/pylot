@@ -1,40 +1,14 @@
-"""
-Author: Edward Fang
-Email: edward.fang@berkeley.edu
-"""
-import erdos
+from hybrid_astar_planner.HybridAStar.hybrid_astar_wrapper \
+    import apply_hybrid_astar
 
 import numpy as np
 
-from pylot.planning.messages import WaypointsMessage
-from pylot.planning.planning_operator import PlanningOperator
-from pylot.planning.hybrid_astar.hybrid_astar_planner.HybridAStar.hybrid_astar_wrapper \
-    import apply_hybrid_astar
+from pylot.planning.planner import Planner
 
 
-class HybridAStarPlanningOperator(PlanningOperator):
-    """HybridAStar Planning operator.
-
-    Args:
-        flags: Config flags.
-        goal_location: Goal pylot.utils.Location for planner to route to.
-    """
-    def __init__(self,
-                 pose_stream,
-                 prediction_stream,
-                 static_obstacles_stream,
-                 lanes_stream,
-                 global_trajectory_stream,
-                 open_drive_stream,
-                 time_to_decision_stream,
-                 waypoints_stream,
-                 flags,
-                 goal_location=None):
-        super().__init__(pose_stream, prediction_stream,
-                         static_obstacles_stream, lanes_stream,
-                         global_trajectory_stream, open_drive_stream,
-                         time_to_decision_stream, waypoints_stream, flags,
-                         goal_location)
+class HybridAStarPlanner(Planner):
+    def __init__(self, world, flags, logger):
+        super().__init__(world, flags, logger)
         self._hyperparameters = {
             "step_size": flags.step_size_hybrid_astar,
             "max_iterations": flags.max_iterations_hybrid_astar,
@@ -50,10 +24,7 @@ class HybridAStarPlanningOperator(PlanningOperator):
             "car_width": flags.car_width,
         }
 
-    @erdos.profile_method()
-    def on_watermark(self, timestamp, waypoints_stream):
-        self._logger.debug('@{}: received watermark'.format(timestamp))
-        self.update_world(timestamp)
+    def run(self, timestamp):
         obstacle_list = self._world.get_obstacle_list()
 
         if len(obstacle_list) == 0:
@@ -86,9 +57,8 @@ class HybridAStarPlanningOperator(PlanningOperator):
             else:
                 self._logger.error("@{}: Hybrid A* failed. "
                                    "Sending emergency stop.".format(timestamp))
-                output_wps = self.follow_waypoints(0)
-
-        waypoints_stream.send(WaypointsMessage(timestamp, output_wps))
+                output_wps = self._world.follow_waypoints(0)
+        return output_wps
 
     def _compute_initial_conditions(self, obstacles):
         ego_transform = self._world.ego_transform

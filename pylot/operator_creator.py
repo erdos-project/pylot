@@ -374,90 +374,22 @@ def add_behavior_planning(pose_stream,
     return trajectory_stream
 
 
-def add_fot_planning(pose_stream,
-                     prediction_stream,
-                     traffic_lights_stream,
-                     lanes_stream,
-                     global_trajectory_stream,
-                     open_drive_stream,
-                     time_to_decision_stream,
-                     goal_location,
-                     name='fot_planning_operator'):
-    from pylot.planning.frenet_optimal_trajectory.fot_planning_operator \
-        import FOTPlanningOperator
-    op_config = erdos.OperatorConfig(name=name,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [waypoints_stream] = erdos.connect(FOTPlanningOperator, op_config, [
-        pose_stream, prediction_stream, traffic_lights_stream, lanes_stream,
-        global_trajectory_stream, open_drive_stream, time_to_decision_stream
-    ], FLAGS, goal_location)
-    return waypoints_stream
-
-
-def add_rrt_star_planning(pose_stream,
-                          prediction_stream,
-                          traffic_lights_stream,
-                          lanes_stream,
-                          global_trajectory_stream,
-                          open_drive_stream,
-                          time_to_decision_stream,
-                          goal_location,
-                          name='rrt_star_planning_operator'):
-    from pylot.planning.rrt_star.rrt_star_planning_operator import \
-        RRTStarPlanningOperator
-    op_config = erdos.OperatorConfig(name=name,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [waypoints_stream] = erdos.connect(RRTStarPlanningOperator, op_config, [
-        pose_stream, prediction_stream, traffic_lights_stream, lanes_stream,
-        global_trajectory_stream, open_drive_stream, time_to_decision_stream
-    ], FLAGS, goal_location)
-    return waypoints_stream
-
-
-def add_hybrid_astar_planning(pose_stream,
-                              prediction_stream,
-                              traffic_lights_stream,
-                              lanes_stream,
-                              global_trajectory_stream,
-                              open_drive_stream,
-                              time_to_decision_stream,
-                              goal_location,
-                              name='hybrid_astar_planning_operator'):
-    from pylot.planning.hybrid_astar.hybrid_astar_planning_operator import \
-        HybridAStarPlanningOperator
-    op_config = erdos.OperatorConfig(name=name,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [waypoints_stream
-     ] = erdos.connect(HybridAStarPlanningOperator, op_config, [
-         pose_stream, prediction_stream, traffic_lights_stream, lanes_stream,
-         global_trajectory_stream, open_drive_stream, time_to_decision_stream
-     ], FLAGS, goal_location)
-    return waypoints_stream
-
-
-def add_waypoint_planning(pose_stream,
-                          prediction_stream,
-                          traffic_lights_stream,
-                          lanes_stream,
-                          global_trajectory_stream,
-                          open_drive_stream,
-                          time_to_decision_stream,
-                          goal_location,
-                          name='waypoint_planning_operator'):
-    from pylot.planning.waypoint_planning_operator import \
-            WaypointPlanningOperator
+def add_planning(pose_stream,
+                 prediction_stream,
+                 traffic_lights_stream,
+                 lanes_stream,
+                 global_trajectory_stream,
+                 open_drive_stream,
+                 time_to_decision_stream,
+                 goal_location,
+                 name='planning_operator'):
+    from pylot.planning.planning_operator import PlanningOperator
     op_config = erdos.OperatorConfig(name=name,
                                      flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [waypoints_stream] = erdos.connect(WaypointPlanningOperator, op_config, [
+    [waypoints_stream] = erdos.connect(PlanningOperator, op_config, [
         pose_stream, prediction_stream, traffic_lights_stream, lanes_stream,
         global_trajectory_stream, open_drive_stream, time_to_decision_stream
     ], FLAGS, goal_location)
