@@ -632,6 +632,20 @@ def add_gnss(transform, vehicle_id_stream, name='gnss'):
     return (gnss_stream, gnss_setup)
 
 
+def add_localization(imu_stream,
+                     gnss_stream,
+                     ground_pose_stream,
+                     name="localization"):
+    from pylot.localization.localization_operator import LocalizationOperator
+    op_config = erdos.OperatorConfig(name=name + "_operator",
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    return erdos.connect(LocalizationOperator, op_config,
+                  [imu_stream, gnss_stream, ground_pose_stream], FLAGS)
+
+
 def add_fusion(pose_stream, obstacles_stream, depth_stream,
                ground_obstacles_stream):
     from pylot.perception.fusion.fusion_operator import FusionOperator
