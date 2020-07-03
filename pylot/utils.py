@@ -84,16 +84,25 @@ class Quaternion(object):
     """
 
     def __init__(self, w, x, y, z):
-        self.w = w
-        self.x = x
-        self.y = y
-        self.z = z
-        self.matrix = Quaternion._create_matrix(w, x, y, z)
+        norm = np.linalg.norm([w, x, y, z])
+        self.w = w / norm
+        self.x = x / norm
+        self.y = y / norm
+        self.z = z / norm
+        self.matrix = Quaternion._create_matrix(self.w, self.x, self.y, self.z)
 
     @staticmethod
     def _create_matrix(w, x, y, z):
         """Creates a Rotation matrix that can be used to transform 3D vectors
         from body frame to world frame.
+
+        Note that this yields the same matrix as a Transform object with the 
+        quaternion converted to the Euler rotation except this matrix only does
+        rotation and no translation. 
+
+        Specifically, this matrix is equivalent to: 
+            Transform(location=Location(0, 0, 0), 
+                      rotation=self.as_rotation()).matrix[:3, :3]
 
         Returns:
             A 3x3 numpy array that can be used to rotate 3D vectors from body
