@@ -58,7 +58,7 @@ class HybridAStarPlanningOperator(PlanningOperator):
 
         if len(obstacle_list) == 0:
             # Do not use Hybrid A* if there are no obstacles.
-            output_wps = self._world.folow_waypoints(self._flags.target_speed)
+            output_wps = self._world.follow_waypoints(self._flags.target_speed)
         else:
             # Hybrid a* does not take into account the driveable region.
             # It constructs search space as a top down, minimum bounding

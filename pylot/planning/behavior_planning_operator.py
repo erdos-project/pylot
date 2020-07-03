@@ -2,6 +2,8 @@ from collections import deque
 
 import erdos
 
+import numpy as np
+
 import pylot.planning.cost_functions
 import pylot.utils
 from pylot.planning.utils import BehaviorPlannerState
@@ -22,9 +24,11 @@ class BehaviorPlanningOperator(erdos.Operator):
         self._flags = flags
         self._goal_location = None
         # Initialize the state of the behaviour planner.
-        #self.__initialize_behaviour_planner()
+        self.__initialize_behaviour_planner()
         self._pose_msgs = deque()
-        self._route = deque()
+        self._ego_info = EgoInfo()
+        self._route = None
+        self._map = None
 
     @staticmethod
     def connect(pose_stream, open_drive_stream, route_stream):
@@ -57,8 +61,7 @@ class BehaviorPlanningOperator(erdos.Operator):
         """
         self._logger.debug('@{}: global trajectory has {} waypoints'.format(
             msg.timestamp, len(msg.data)))
-        for (wp, _) in msg.data:
-            self._route.append(wp)
+        self._route = deque(msg.data)
 
     def on_pose_update(self, msg):
         """Invoked whenever a message is received on the pose stream.
@@ -72,51 +75,65 @@ class BehaviorPlanningOperator(erdos.Operator):
 
     def on_watermark(self, timestamp, trajectory_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
-        self._vehicle_transform = self._pose_msgs.popleft().data.transform
+        pose_msg = self._pose_msgs.popleft()
+        ego_transform = pose_msg.data.transform
+        self._ego_info.update(self._state, pose_msg)
+        next_state = self.__best_state_transition(self._ego_info)
+        self._logger.debug('@{}: agent transitioned from {} to {}'.format(
+            timestamp, self._state, next_state))
+        self._state = next_state
         # Remove the waypoint from the route if we're close to it.
-        if (len(self._route) > 0 and self._vehicle_transform.location.distance(
-                self._route[0].location) < 5):
+        if (len(self._route) > 0 and ego_transform.location.distance(
+                self._route[0][0].location) < 5):
             self._route.popleft()
         new_goal_location = None
         if len(self._route) > 1:
-            new_goal_location = self._route[1].location
+            new_goal_location = self._route[1][0].location
         elif len(self._route) == 1:
-            new_goal_location = self._route[0].location
+            new_goal_location = self._route[0][0].location
         else:
-            new_goal_location = self._vehicle_transform.location
+            new_goal_location = ego_transform.location
         if new_goal_location != self._goal_location:
             self._goal_location = new_goal_location
-            waypoints = self._map.compute_waypoints(
-                self._vehicle_transform.location, self._goal_location)
-            waypoints = [(wp, pylot.utils.RoadOption.LANE_FOLLOW)
-                         for wp in waypoints]
+            if self._map:
+                # Use the map to compute more fine-grained waypoints.
+                waypoints = self._map.compute_waypoints(
+                    ego_transform.location, self._goal_location)
+                waypoints = [(wp, pylot.utils.RoadOption.LANE_FOLLOW)
+                             for wp in waypoints]
+            else:
+                # Map is not available, use send the route.
+                waypoints = self._route
             if not waypoints or len(waypoints) == 0:
                 # If waypoints are empty (e.g., reached destination), set
                 # waypoints to current vehicle location.
-                waypoints = deque([[self._vehicle_transform]])
+                waypoints = deque([[ego_transform]])
             trajectory_stream.send(erdos.Message(timestamp, waypoints))
 
     def __initialize_behaviour_planner(self):
         # State the planner is in.
-        self._state = BehaviorPlannerState.READY
+        self._state = BehaviorPlannerState.FOLLOW_WAYPOINTS
         # Cost functions. Output between 0 and 1.
         self._cost_functions = [
-            pylot.planning.cost_functions.cost_speed,
-            pylot.planning.cost_functions.cost_lane_change,
-            pylot.planning.cost_functions.cost_inefficiency
+            pylot.planning.cost_functions.cost_overtake,
         ]
-        reach_speed_weight = 10**5
-        reach_goal_weight = 10**6
-        efficiency_weight = 10**4
         # How important a cost function is.
-        self._function_weights = [
-            reach_speed_weight, reach_goal_weight, efficiency_weight
-        ]
+        self._function_weights = [1]
 
     def __successor_states(self):
         """ Returns possible state transitions from current state."""
-        if self._state == BehaviorPlannerState.READY:
-            return [BehaviorPlannerState.READY, BehaviorPlannerState.KEEP_LANE]
+        if self._state == BehaviorPlannerState.FOLLOW_WAYPOINTS:
+            # Can transition to OVERTAKE if the ego vehicle has been stuck
+            # behind an obstacle for a while.
+            return [
+                BehaviorPlannerState.FOLLOW_WAYPOINTS,
+                BehaviorPlannerState.OVERTAKE
+            ]
+        elif self._state == BehaviorPlannerState.OVERTAKE:
+            return [
+                BehaviorPlannerState.OVERTAKE,
+                BehaviorPlannerState.FOLLOW_WAYPOINTS
+            ]
         elif self._state == BehaviorPlannerState.KEEP_LANE:
             # 1) keep_lane -> prepare_lane_change_left
             # 2) keep_lane -> prepare_lane_change_right
@@ -156,28 +173,35 @@ class BehaviorPlanningOperator(erdos.Operator):
         else:
             raise ValueError('Unexpected vehicle state {}'.format(self._state))
 
-    def __generate_trajectory(self, next_state, vehicle_transform,
-                              predictions):
-        raise NotImplementedError
-
-    def __best_transition(self, vehicle_transform, predictions):
+    def __best_state_transition(self, ego_info):
         """ Computes most likely state transition from current state."""
         # Get possible next state machine states.
         possible_next_states = self.__successor_states()
         best_next_state = None
-        min_state_cost = 10000000
+        min_state_cost = np.infty
         for state in possible_next_states:
-            # Generate trajectory for next state.
-            vehicle_info, trajectory_for_state = self.__generate_trajectory(
-                state, vehicle_transform, predictions)
             state_cost = 0
             # Compute the cost of the trajectory.
             for i in range(len(self._cost_functions)):
-                cost_func = self._cost_functions[i](vehicle_info, predictions,
-                                                    trajectory_for_state)
+                cost_func = self._cost_functions[i](self._state, state,
+                                                    ego_info)
                 state_cost += self._function_weights[i] * cost_func
             # Check if it's the best trajectory.
-            if best_next_state is None or state_cost < min_state_cost:
+            if state_cost < min_state_cost:
                 best_next_state = state
                 min_state_cost = state_cost
         return best_next_state
+
+
+class EgoInfo(object):
+    def __init__(self):
+        self.last_time_moving = 0
+        self.last_time_stopped = 0
+        self.current_time = 0
+
+    def update(self, state, pose_msg):
+        self.current_time = pose_msg.timestamp.coordinates[0]
+        if pose_msg.data.forward_speed >= 0.1:
+            self.last_time_moving = self.current_time
+        else:
+            self.last_time_stopped = self.current_time

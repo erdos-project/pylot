@@ -425,8 +425,8 @@ def create_camera_setups():
     camera_setups[TL_CAMERA_NAME] = tl_camera_setup
     if FLAGS.execution_mode == 'challenge-sensors':
         # Add camera for lane detection.
-        lane_transform = pylot.utils.Transform(
-            LANE_CAMERA_LOCATION, pylot.utils.Rotation(pitch=-15)),
+        lane_transform = pylot.utils.Transform(LANE_CAMERA_LOCATION,
+                                               pylot.utils.Rotation(pitch=-15))
         lane_camera_setup = RGBCameraSetup(LANE_CAMERA_NAME, 1280, 720,
                                            lane_transform, 90)
         camera_setups[LANE_CAMERA_NAME] = lane_camera_setup

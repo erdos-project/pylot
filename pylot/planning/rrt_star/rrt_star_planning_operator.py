@@ -50,7 +50,7 @@ class RRTStarPlanningOperator(PlanningOperator):
         if len(obstacle_list) == 0:
             # Do not use RRT* if there are no obstacles.
             # Do not use Hybrid A* if there are no obstacles.
-            output_wps = self.folow_waypoints(self._flags.target_speed)
+            output_wps = self.follow_waypoints(self._flags.target_speed)
         else:
             # RRT* does not take into account the driveable region.
             # It constructs search space as a top down, minimum bounding
@@ -77,7 +77,7 @@ class RRTStarPlanningOperator(PlanningOperator):
             else:
                 self._logger.error("@{}: RRT* failed. "
                                    "Sending emergency stop.".format(timestamp))
-                output_wps = self.folow_waypoints(0)
+                output_wps = self.follow_waypoints(0)
 
         waypoints_stream.send(WaypointsMessage(timestamp, output_wps))
 

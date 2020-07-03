@@ -119,7 +119,7 @@ class FOTPlanningOperator(PlanningOperator):
             self._logger.debug(
                 "@{}: Frenet failed. Sending emergency stop.".format(
                     timestamp))
-            output_wps = self.folow_waypoints(0)
+            output_wps = self.follow_waypoints(0)
 
         # update current pose
         self.s0 = misc['s']

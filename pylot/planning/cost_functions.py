@@ -107,6 +107,33 @@ def cost_inefficiency(vehicle_info, predictions, trajectory):
     return cost
 
 
+def cost_overtake(current_state, future_state, ego_info):
+    if ego_info.current_time - ego_info.last_time_moving > 50000:
+        # Switch to OVERTAKE if ego hasn't moved for a while.
+        if future_state == BehaviorPlannerState.OVERTAKE:
+            return 0
+        return 1
+    else:
+        if current_state == BehaviorPlannerState.OVERTAKE:
+            # Do not speed too long in OVERTAKE state.
+            if ego_info.current_time - ego_info.last_time_stopped > 2000:
+                if future_state == BehaviorPlannerState.OVERTAKE:
+                    return 1
+                else:
+                    return 0
+            else:
+                if future_state == BehaviorPlannerState.OVERTAKE:
+                    return 0
+                else:
+                    return 1
+        else:
+            # Do not switch to overtake because the ego is not blocked.
+            if future_state == BehaviorPlannerState.OVERTAKE:
+                return 1
+            return 0
+    raise NotImplementedError
+
+
 def get_lane_speed(predictions, lane_id):
     """ Returns the speed vehicles are driving in a lane.
     Assumes that all vehicles are driving at the same speed.
