@@ -80,8 +80,6 @@ class CarlaGNSSDriverOperator(erdos.Operator):
         # Connect to the world.
         _, world = get_world(self._flags.carla_host, self._flags.carla_port,
                              self._flags.carla_timeout)
-        if world is None:
-            raise ValueError("There was an issue connecting to the simulator.")
         set_simulation_mode(world, self._flags)
 
         # Retrieve the vehicle and install the GNSS sensor.

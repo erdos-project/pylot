@@ -16,27 +16,22 @@ class LocalizationOperator(erdos.Operator):
         self._gnss_updates = deque()
         self._ground_pose_updates = None
 
-        # Streams to register a watermark on.
-        watermark_streams = []
-
         # Register callbacks on both the IMU and GNSS streams.
         imu_stream.add_callback(
             partial(self.save, msg_type="IMU", queue=self._imu_updates))
-        watermark_streams.append(imu_stream)
 
         gnss_stream.add_callback(
             partial(self.save, msg_type="GNSS", queue=self._gnss_updates))
-        watermark_streams.append(gnss_stream)
 
-        # Register the ground pose stream, if provided.
-        if ground_pose_stream:
-            self._ground_pose_updates = deque()
-            ground_pose_stream.add_callback(
-                partial(self.save,
-                        msg_type="pose",
-                        queue=self._ground_pose_updates))
-            watermark_streams.append(ground_pose_stream)
-        erdos.add_watermark_callback(watermark_streams, [], self.on_watermark)
+        # Register the ground pose stream.
+        self._ground_pose_updates = deque()
+        ground_pose_stream.add_callback(
+            partial(self.save,
+                    msg_type="pose",
+                    queue=self._ground_pose_updates))
+        erdos.add_watermark_callback(
+            [imu_stream, gnss_stream, ground_pose_stream], [],
+            self.on_watermark)
 
         # Save the output stream.
         self._pose_stream = pose_stream
