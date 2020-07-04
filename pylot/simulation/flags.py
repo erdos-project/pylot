@@ -69,6 +69,35 @@ flags.DEFINE_integer(
     'perfect_detection_max_distance', 125,
     'Limit perfect detection to a distance of this amount of meters')
 
+# Noise and bias flags for IMU and GNSS.
+flags.DEFINE_float('accel_noise_stddev_x', 0.0,
+                   'Sets the noise on the X-axis of the accelerometer.')
+flags.DEFINE_float('accel_noise_stddev_y', 0.0,
+                   'Sets the noise on the Y-axis of the accelerometer.')
+flags.DEFINE_float('accel_noise_stddev_z', 0.0,
+                   'Sets the noise on the Z-axis of the accelerometer.')
+
+flags.DEFINE_float('gyro_noise_stddev_x', 0.0,
+                   'Sets the noise on the X-axis of the gyroscope.')
+flags.DEFINE_float('gyro_noise_stddev_y', 0.0,
+                   'Sets the noise on the Y-axis of the gyroscope.')
+flags.DEFINE_float('gyro_noise_stddev_z', 0.0,
+                   'Sets the noise on the Z-axis of the gyroscope.')
+
+flags.DEFINE_float('gnss_noise_stddev_alt', 0.0,
+                   'Sets the noise on the altitude of the GNSS sensor.')
+flags.DEFINE_float('gnss_noise_stddev_lat', 0.0,
+                   'Sets the noise on the latitude of the GNSS sensor.')
+flags.DEFINE_float('gnss_noise_stddev_lon', 0.0,
+                   'Sets the noise on the longitude of the GNSS sensor.')
+
+flags.DEFINE_float('gnss_bias_alt', 0.0,
+                   'Sets the bias on the altitude of the GNSS sensor.')
+flags.DEFINE_float('gnss_bias_lat', 0.0,
+                   'Sets the bias on the latitude of the GNSS sensor.')
+flags.DEFINE_float('gnss_bias_lon', 0.0,
+                   'Sets the bias on the longitude of the GNSS sensor.')
+
 
 def sensor_frequency_validator(flags_dict):
     return (

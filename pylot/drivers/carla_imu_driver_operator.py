@@ -91,6 +91,20 @@ class CarlaIMUDriverOperator(erdos.Operator):
         # Install the IMU.
         imu_blueprint = world.get_blueprint_library().find('sensor.other.imu')
 
+        # Set noise attributes.
+        imu_blueprint.set_attribute('noise_accel_stddev_x',
+                                    str(self._flags.accel_noise_stddev_x))
+        imu_blueprint.set_attribute('noise_accel_stddev_y',
+                                    str(self._flags.accel_noise_stddev_y))
+        imu_blueprint.set_attribute('noise_accel_stddev_z',
+                                    str(self._flags.accel_noise_stddev_z))
+        imu_blueprint.set_attribute('noise_gyro_stddev_x',
+                                    str(self._flags.gyro_noise_stddev_x))
+        imu_blueprint.set_attribute('noise_gyro_stddev_y',
+                                    str(self._flags.gyro_noise_stddev_y))
+        imu_blueprint.set_attribute('noise_gyro_stddev_z',
+                                    str(self._flags.gyro_noise_stddev_z))
+
         if self._flags.carla_imu_frequency == -1:
             imu_blueprint.set_attribute('sensor_tick', '0.0')
         else:

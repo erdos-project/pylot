@@ -86,6 +86,21 @@ class CarlaGNSSDriverOperator(erdos.Operator):
         self._vehicle = get_vehicle_handle(world, vehicle_id)
         gnss_blueprint = world.get_blueprint_library().find(
             'sensor.other.gnss')
+
+        # Set the noise and bias parameters.
+        gnss_blueprint.set_attribute('noise_alt_stddev',
+                                     str(self._flags.gnss_noise_stddev_alt))
+        gnss_blueprint.set_attribute('noise_lat_stddev',
+                                     str(self._flags.gnss_noise_stddev_lat))
+        gnss_blueprint.set_attribute('noise_lon_stddev',
+                                     str(self._flags.gnss_noise_stddev_lon))
+        gnss_blueprint.set_attribute('noise_alt_bias',
+                                     str(self._flags.gnss_bias_alt))
+        gnss_blueprint.set_attribute('noise_lat_bias',
+                                     str(self._flags.gnss_bias_lat))
+        gnss_blueprint.set_attribute('noise_lon_bias',
+                                     str(self._flags.gnss_bias_lon))
+
         if self._flags.carla_gnss_frequency == -1:
             gnss_blueprint.set_attribute('sensor_tick', '0.0')
         else:
