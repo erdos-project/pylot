@@ -64,6 +64,9 @@ flags.DEFINE_bool('depth_estimation', False,
                   'True to estimate depth using cameras')
 flags.DEFINE_bool('perfect_depth_estimation', False,
                   'True to use perfect depth')
+flags.DEFINE_bool(
+    'localization', False,
+    'True to run localization. False for ground truth localization')
 flags.DEFINE_float(
     'offset_left_right_cameras', 0.4,
     'How much we offset the left and right cameras from the center.')
@@ -218,7 +221,15 @@ def must_add_imu_sensor():
 
     We don't add all sensors by default because they slow down the simulation
     """
-    return (FLAGS.imu or FLAGS.evaluation)
+    return (FLAGS.imu or FLAGS.evaluation or FLAGS.localization)
+
+def must_add_gnss_sensor():
+    """ Returns true if the GNSS sensor must be added.
+
+    We don't add all sensors by default because they slow down the simulation
+    """
+    return FLAGS.localization
+
 
 
 # Flag validators.

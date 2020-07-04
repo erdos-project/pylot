@@ -115,8 +115,22 @@ def driver():
 
     imu_stream = None
     if pylot.flags.must_add_imu_sensor():
-        (imu_stream,
-         _) = pylot.operator_creator.add_imu(transform, vehicle_id_stream)
+        (imu_stream, _) = pylot.operator_creator.add_imu(
+            pylot.utils.Transform(location=pylot.utils.Location(),
+                                  rotation=pylot.utils.Rotation()),
+            vehicle_id_stream)
+
+    gnss_stream = None
+    if pylot.flags.must_add_gnss_sensor():
+        (gnss_stream, _) = pylot.operator_creator.add_gnss(
+            pylot.utils.Transform(location=pylot.utils.Location(),
+                                  rotation=pylot.utils.Rotation()),
+            vehicle_id_stream)
+
+    if FLAGS.localization:
+        pose_stream = pylot.operator_creator.add_localization(
+            imu_stream, gnss_stream, pose_stream)
+
 
     obstacles_stream = pylot.component_creator.add_obstacle_detection(
         center_camera_stream, center_camera_setup, pose_stream, depth_stream,
