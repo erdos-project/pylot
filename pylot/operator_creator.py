@@ -592,8 +592,10 @@ def add_localization(imu_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    return erdos.connect(LocalizationOperator, op_config,
-                  [imu_stream, gnss_stream, ground_pose_stream], FLAGS)
+    [pose_stream
+     ] = erdos.connect(LocalizationOperator, op_config,
+                       [imu_stream, gnss_stream, ground_pose_stream], FLAGS)
+    return pose_stream
 
 
 def add_fusion(pose_stream, obstacles_stream, depth_stream,

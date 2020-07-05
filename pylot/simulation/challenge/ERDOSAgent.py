@@ -17,6 +17,7 @@ import pylot.operator_creator
 import pylot.perception.messages
 import pylot.utils
 from pylot.drivers.sensor_setup import LidarSetup, RGBCameraSetup
+from pylot.localization.messages import GNSSMessage, IMUMessage
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.point_cloud import PointCloud
 
@@ -84,15 +85,19 @@ class ERDOSAgent(AutonomousAgent):
         self._waypoints = None
         # Stores the open drive string we get when we run in track 3.
         self._open_drive_data = None
-        (camera_streams, pose_stream, global_trajectory_stream,
-         open_drive_stream, point_cloud_stream, control_stream,
-         control_display_stream, streams_to_send_top_on) = create_data_flow()
+        (camera_streams, route_stream, global_trajectory_stream,
+         open_drive_stream, point_cloud_stream, imu_stream, gnss_stream,
+         control_stream, control_display_stream,
+         streams_to_send_top_on) = create_data_flow()
         self._camera_streams = camera_streams
-        self._pose_stream = pose_stream
+        self._route_stream = route_stream
+        self._sent_initial_pose = False
         self._global_trajectory_stream = global_trajectory_stream
         self._open_drive_stream = open_drive_stream
         self._sent_open_drive = False
         self._point_cloud_stream = point_cloud_stream
+        self._imu_stream = imu_stream
+        self._gnss_stream = gnss_stream
         self._control_stream = control_stream
         self._control_display_stream = control_display_stream
         # Execute the dataflow.
@@ -122,7 +127,7 @@ class ERDOSAgent(AutonomousAgent):
             'type': 'sensor.other.gnss',
             'x': 0.0,
             'y': 0.0,
-            'z': 2.0,
+            'z': 0.0,
             'id': 'gnss'
         }]
 
@@ -130,7 +135,7 @@ class ERDOSAgent(AutonomousAgent):
             'type': 'sensor.other.imu',
             'x': 0.0,
             'y': 0.0,
-            'z': 2.0,
+            'z': 0.0,
             'roll': 0.0,
             'pitch': 0.0,
             'yaw': 0.0,
@@ -204,10 +209,12 @@ class ERDOSAgent(AutonomousAgent):
                     erdos.WatermarkMessage(erdos_timestamp))
             elif key == 'imu':
                 imu_data = val[1]
+                self.send_imu_msg(imu_data, erdos_timestamp)
             elif key == 'speed':
                 speed_data = val[1]
             elif key == 'gnss':
                 gnss_data = val[1]
+                self.send_gnss_msg(gnss_data, erdos_timestamp)
             elif key == 'opendrive':
                 self.send_opendrive_map_msg(val[1], erdos_timestamp)
             elif key == 'LIDAR':
@@ -215,10 +222,9 @@ class ERDOSAgent(AutonomousAgent):
             else:
                 self._logger.warning("Sensor {} not used".format(key))
 
-        ego_transform = self.send_pose_msg(speed_data, imu_data, gnss_data,
-                                           erdos_timestamp)
-        self.send_lidar_msg(ego_transform, carla_pc, self._lidar_transform,
-                            erdos_timestamp)
+        # self.send_pose_msg(speed_data, imu_data, gnss_data, erdos_timestamp)
+        self.send_initial_pose_msg(erdos_timestamp)
+        self.send_lidar_msg(carla_pc, self._lidar_transform, erdos_timestamp)
 
         if pylot.flags.must_visualize():
             import pygame
@@ -244,6 +250,25 @@ class ERDOSAgent(AutonomousAgent):
                 output_control.manual_gear_shift = False
                 return output_control
 
+    def send_gnss_msg(self, gnss_data, timestamp):
+        latitude = gnss_data[0]
+        longitude = gnss_data[1]
+        altitude = gnss_data[2]
+        location = pylot.utils.Location.from_gps(latitude, longitude, altitude)
+        transform = pylot.utils.Transform(location, pylot.utils.Rotation())
+        msg = GNSSMessage(timestamp, transform, altitude, latitude, longitude)
+        self._gnss_stream.send(msg)
+        self._gnss_stream.send(erdos.WatermarkMessage(timestamp))
+
+    def send_imu_msg(self, imu_data, timestamp):
+        accelerometer = pylot.utils.Vector3D(imu_data[0], imu_data[1],
+                                             imu_data[2])
+        gyroscope = pylot.utils.Vector3D(imu_data[3], imu_data[4], imu_data[5])
+        compass = imu_data[6]
+        msg = IMUMessage(timestamp, None, accelerometer, gyroscope, compass)
+        self._imu_stream.send(msg)
+        self._imu_stream.send(erdos.WatermarkMessage(timestamp))
+
     def send_opendrive_map_msg(self, data, timestamp):
         # Sending once opendrive data
         if self._open_drive_data is None:
@@ -256,32 +281,36 @@ class ERDOSAgent(AutonomousAgent):
             self._logger.warning(
                 'Agent did not sent open drive data for {}'.format(timestamp))
 
-    def send_pose_msg(self, speed_data, imu_data, gnss_data, timestamp):
-        forward_speed = speed_data['speed']
-        # TODO(ionel): Remove the patch that gives us the perfect transform.
-        vehicle_transform = pylot.utils.Transform.from_carla_transform(
-            speed_data['transform'])
-        # latitude = gnss_data[0]
-        # longitude = gnss_data[1]
-        # altitude = gnss_data[2]
-        # location = pylot.utils.Location.from_gps(latitude, longitude, altitude)
-        # vehicle_transform = pylot.utils.Transform(
-        #     location, pylot.utils.Rotation(yaw=-90))
-        #        carla_north_vector = np.array([0.0, -1.0, 0.0])
-        # compass = imu_data[6]
-        # fwd_y = -math.cos(compass)
-        yaw = vehicle_transform.rotation.yaw
-        velocity_vector = pylot.utils.Vector3D(forward_speed * np.cos(yaw),
-                                               forward_speed * np.sin(yaw), 0)
-        self._pose_stream.send(
-            erdos.Message(
-                timestamp,
-                pylot.utils.Pose(vehicle_transform, forward_speed,
-                                 velocity_vector)))
-        self._pose_stream.send(erdos.WatermarkMessage(timestamp))
-        return vehicle_transform
+    # def send_pose_msg(self, speed_data, imu_data, gnss_data, timestamp):
+    #     forward_speed = speed_data['speed']
+    #     # TODO(ionel): Remove the patch that gives us the perfect transform.
+    #     vehicle_transform = pylot.utils.Transform.from_carla_transform(
+    #         speed_data['transform'])
+    #     yaw = vehicle_transform.rotation.yaw
+    #     velocity_vector = pylot.utils.Vector3D(forward_speed * np.cos(yaw),
+    #                                            forward_speed * np.sin(yaw), 0)
+    #     self._pose_stream.send(
+    #         erdos.Message(
+    #             timestamp,
+    #             pylot.utils.Pose(vehicle_transform, forward_speed,
+    #                              velocity_vector)))
+    #     self._pose_stream.send(erdos.WatermarkMessage(timestamp))
+    def send_initial_pose_msg(self, timestamp):
+        if not self._sent_initial_pose:
+            self._sent_initial_pose = True
+            initial_transform = self._global_plan_world_coord[0][0]
+            initial_pose = pylot.utils.Pose(
+                pylot.utils.Transform.from_carla_transform(initial_transform),
+                0, pylot.utils.Vector3D())
+            self._route_stream.send(erdos.Message(timestamp, initial_pose))
+            self._route_stream.send(
+                erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
-    def send_lidar_msg(self, ego_transform, carla_pc, transform, timestamp):
+    def send_lidar_msg(self,
+                       carla_pc,
+                       transform,
+                       timestamp,
+                       ego_transform=None):
         point_cloud = PointCloud(carla_pc, self._lidar_setup)
         if self._last_point_cloud is not None:
             # TODO(ionel): Should offset the last point cloud wrt to the
@@ -332,10 +361,15 @@ def create_data_flow():
     camera_streams = {}
     for name in camera_setups:
         camera_streams[name] = erdos.IngestStream()
-    pose_stream = erdos.IngestStream()
     global_trajectory_stream = erdos.IngestStream()
     open_drive_stream = erdos.IngestStream()
     point_cloud_stream = erdos.IngestStream()
+    imu_stream = erdos.IngestStream()
+    gnss_stream = erdos.IngestStream()
+    route_stream = erdos.IngestStream()
+
+    pose_stream = pylot.operator_creator.add_localization(
+        imu_stream, gnss_stream, route_stream)
 
     if any('efficientdet' in model
            for model in FLAGS.obstacle_detection_model_names):
@@ -393,7 +427,9 @@ def create_data_flow():
                 obstacles_stream=obstacles_stream,
                 traffic_lights_stream=traffic_lights_stream,
                 tracked_obstacles_stream=obstacles_tracking_stream,
-                waypoints_stream=waypoints_stream)
+                waypoints_stream=waypoints_stream,
+                lane_detection_stream=lanes_stream,
+                prediction_stream=prediction_stream)
         streams_to_send_top_on += ingest_streams
     else:
         control_display_stream = None
@@ -406,9 +442,10 @@ def create_data_flow():
         pose_stream, obstacles_stream)
     time_to_decision_loop_stream.set(time_to_decision_stream)
 
-    return (camera_streams, pose_stream, global_trajectory_stream,
-            open_drive_stream, point_cloud_stream, extract_control_stream,
-            control_display_stream, streams_to_send_top_on)
+    return (camera_streams, route_stream, global_trajectory_stream,
+            open_drive_stream, point_cloud_stream, imu_stream, gnss_stream,
+            extract_control_stream, control_display_stream,
+            streams_to_send_top_on)
 
 
 def create_camera_setups():
