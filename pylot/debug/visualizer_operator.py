@@ -400,7 +400,8 @@ class VisualizerOperator(erdos.Operator):
             from pylot.map.hd_map import HDMap
             self._map = HDMap(
                 get_map(self._flags.carla_host, self._flags.carla_port,
-                        self._flags.carla_timeout))
+                        self._flags.carla_timeout),
+                self.config.log_file_name)
 
     def _visualize_pose(self, ego_transform):
         # Draw position. We add 0.5 to z to ensure that the point is above

@@ -172,7 +172,8 @@ class PointCloud(object):
         import pygame
         # Transform point cloud to top down view.
         lidar_data = np.array(self.global_points[:, :2])
-        lidar_data *= min(display_width, display_height) / 200
+        lidar_data *= (min(display_width, display_height) /
+                       (2.0 * self._lidar_setup.get_range_in_meters()))
         lidar_data += (0.5 * display_width, 0.5 * display_height)
         lidar_data = np.fabs(lidar_data)
         lidar_data = lidar_data.astype(np.int32)

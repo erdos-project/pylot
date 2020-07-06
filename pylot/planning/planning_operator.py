@@ -115,7 +115,8 @@ class PlanningOperator(erdos.Operator):
             from pylot.simulation.utils import get_map
             self._map = HDMap(
                 get_map(self._flags.carla_host, self._flags.carla_port,
-                        self._flags.carla_timeout))
+                        self._flags.carla_timeout),
+                self.config.log_file_name)
             self._logger.info('Planner running in stand-alone mode')
 
     def on_pose_update(self, msg):

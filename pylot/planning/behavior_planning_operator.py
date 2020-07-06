@@ -50,7 +50,7 @@ class BehaviorPlanningOperator(erdos.Operator):
             raise Exception('Error importing carla.')
         self._logger.info('Initializing HDMap from open drive stream')
         from pylot.map.hd_map import HDMap
-        self._map = HDMap(carla.Map('map', msg.data))
+        self._map = HDMap(carla.Map('map', msg.data), self.config.log_file_name)
 
     def on_route_msg(self, msg):
         """Invoked whenever a message is received on the trajectory stream.
