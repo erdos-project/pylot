@@ -9,7 +9,7 @@ import erdos
 from pylot.perception.messages import ObstaclesMessage
 from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 from pylot.planning.messages import WaypointsMessage
-from pylot.planning.waypoints import Waypoints
+from pylot.planning.utils import BehaviorPlannerState
 from pylot.planning.world import World
 from pylot.prediction.messages import PredictionMessage
 from pylot.prediction.obstacle_prediction import ObstaclePrediction
@@ -75,7 +75,10 @@ class PlanningOperator(erdos.Operator):
         # running in stand-alone mode.
         self._world.update_waypoints(goal_location, None)
         if self._flags.planning_type == 'waypoint':
-            pass
+            # Use the FOT planner for overtaking.
+            from pylot.planning.frenet_optimal_trajectory.fot_planner \
+                import FOTPlanner
+            self._planner = FOTPlanner(self._world, self._flags, self._logger)
         elif self._flags.planning_type == 'frenet_optimal_trajectory':
             from pylot.planning.frenet_optimal_trajectory.fot_planner \
                 import FOTPlanner
@@ -92,7 +95,7 @@ class PlanningOperator(erdos.Operator):
         else:
             raise ValueError('Unexpected planning type: {}'.format(
                 self._flags.planning_type))
-
+        self._state = BehaviorPlannerState.FOLLOW_WAYPOINTS
         self._pose_msgs = deque()
         self._prediction_msgs = deque()
         self._static_obstacles_msgs = deque()
@@ -152,6 +155,10 @@ class PlanningOperator(erdos.Operator):
         """
         self._logger.debug('@{}: global trajectory has {} waypoints'.format(
             msg.timestamp, len(msg.waypoints.waypoints)))
+        if msg.agent_state:
+            self._logger.debug('@{}: updating planner state to {}'.format(
+                msg.timestamp, msg.agent_state))
+            self._state = msg.agent_state
         # The last waypoint is the goal location.
         self._world.update_waypoints(msg.waypoints.waypoints[-1].location,
                                      msg.waypoints)
@@ -182,17 +189,24 @@ class PlanningOperator(erdos.Operator):
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         self.update_world(timestamp)
-
-        if self._flags.planning_type == 'waypoint':
-            speed_factor = self._world.stop_for_agents(timestamp)
-            target_speed = speed_factor * self._flags.target_speed
-            self._logger.debug(
-                '@{}: speed factor: {}, target speed: {}'.format(
-                    timestamp, speed_factor, target_speed))
-            output_wps = self._world.follow_waypoints(target_speed)
-        else:
+        if self._state == BehaviorPlannerState.OVERTAKE:
+            # Ignore traffic lights and obstacle.
             output_wps = self._planner.run(timestamp)
-
+        else:
+            (speed_factor, _, _, speed_factor_tl,
+             speed_factor_stop) = self._world.stop_for_agents(timestamp)
+            if self._flags.planning_type == 'waypoint':
+                target_speed = speed_factor * self._flags.target_speed
+                self._logger.debug(
+                    '@{}: speed factor: {}, target speed: {}'.format(
+                        timestamp, speed_factor, target_speed))
+                output_wps = self._world.follow_waypoints(target_speed)
+            else:
+                output_wps = self._planner.run(timestamp)
+                speed_factor = min(speed_factor_stop, speed_factor_tl)
+                self._logger.debug('@{}: speed factor: {}'.format(
+                    timestamp, speed_factor))
+                output_wps.apply_speed_factor(speed_factor)
         waypoints_stream.send(WaypointsMessage(timestamp, output_wps))
         waypoints_stream.send(erdos.WatermarkMessage(timestamp))
 

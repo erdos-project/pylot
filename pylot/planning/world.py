@@ -299,7 +299,8 @@ class World(object):
             '@{}: speed factors: person {}, vehicle {}, traffic light {},'
             ' stop {}'.format(timestamp, speed_factor_p, speed_factor_v,
                               speed_factor_tl, speed_factor_stop))
-        return speed_factor
+        return (speed_factor, speed_factor_p, speed_factor_v, speed_factor_tl,
+                speed_factor_stop)
 
     def stop_traffic_light(self, tl, wp_vector, wp_angle):
         """Computes a stopping factor for ego vehicle given a traffic light.

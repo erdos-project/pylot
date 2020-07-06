@@ -36,6 +36,12 @@ class Waypoints(object):
         target_speeds = deque([target_speed for _ in range(len(waypoints))])
         return cls(deque(waypoints), target_speeds)
 
+    def apply_speed_factor(self, speed_factor):
+        if self.target_speeds:
+            self.target_speeds = [
+                speed_factor * ts for ts in self.target_speeds
+            ]
+
     def as_numpy_array_2D(self):
         """Returns the waypoints as a numpy array of lists of x and y."""
         wx = []
