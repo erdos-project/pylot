@@ -4,6 +4,7 @@ from collections import deque
 import erdos
 
 from pylot.planning.messages import WaypointsMessage
+from pylot.planning.waypoints import Waypoints
 from pylot.utils import time_epoch_ms
 
 
@@ -253,7 +254,7 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
         if waypoints is None:
             # If we haven't received a single waypoint, send an empty message.
             self._waypoints_write_stream.send(
-                WaypointsMessage(timestamp, deque([]), deque([])))
+                WaypointsMessage(timestamp, Waypoints(deque([]), deque([]))))
         else:
             # Send the trimmed waypoints on the write stream.
             waypoints.remove_completed(pose_msg.data.transform.location,

@@ -8,6 +8,7 @@ import pylot.component_creator
 import pylot.drivers.sensor_setup
 import pylot.flags
 import pylot.operator_creator
+import pylot.planning.utils
 import pylot.utils
 from pylot.drivers.drive_by_wire_operator import DriveByWireOperator
 from pylot.drivers.grasshopper3_driver_operator import \
@@ -16,6 +17,7 @@ from pylot.drivers.velodyne_driver_operator import VelodyneDriverOperator
 from pylot.localization.ndt_autoware_operator import NDTAutowareOperator
 from pylot.perception.messages import ObstacleTrajectoriesMessage, \
     ObstaclesMessage, TrafficLightsMessage
+from pylot.planning.messages import WaypointsMessage
 from pylot.planning.waypoints import Waypoints
 
 FLAGS = flags.FLAGS
@@ -212,7 +214,9 @@ def main(argv):
     waypoints = Waypoints.read_from_csv_file(FLAGS.waypoints_csv_file,
                                              FLAGS.target_speed)
     global_trajectory_stream.send(
-        erdos.Message(erdos.Timestamp(coordinates=[0]), waypoints))
+        WaypointsMessage(
+            erdos.Timestamp(coordinates=[0]), waypoints,
+            pylot.planning.utils.BehaviorPlannerState.FOLLOW_WAYPOINTS))
 
     # Send top watermark on all streams that require it.
     top_msg = erdos.WatermarkMessage(erdos.Timestamp(is_top=True))

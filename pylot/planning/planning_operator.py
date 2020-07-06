@@ -115,8 +115,7 @@ class PlanningOperator(erdos.Operator):
             from pylot.simulation.utils import get_map
             self._map = HDMap(
                 get_map(self._flags.carla_host, self._flags.carla_port,
-                        self._flags.carla_timeout),
-                self.config.log_file_name)
+                        self._flags.carla_timeout), self.config.log_file_name)
             self._logger.info('Planner running in stand-alone mode')
 
     def on_pose_update(self, msg):
@@ -152,22 +151,10 @@ class PlanningOperator(erdos.Operator):
                 a list of waypoints to the goal location.
         """
         self._logger.debug('@{}: global trajectory has {} waypoints'.format(
-            msg.timestamp, len(msg.data)))
-        if len(msg.data) > 0:
-            waypoints = deque()
-            road_options = deque()
-            for waypoint, road_option in msg.data:
-                waypoints.append(waypoint)
-                road_options.append(road_option)
-            # The last waypoint is the goal location.
-            self._world.update_waypoints(
-                msg.data[-1][0].location,
-                Waypoints(waypoints, road_options=road_options))
-        else:
-            # Trajectory does not contain any waypoints. We assume we have
-            # arrived at destionation.
-            self._world.update_waypoints(self._ego_transform.location,
-                                         Waypoints(deque(), deque()))
+            msg.timestamp, len(msg.waypoints.waypoints)))
+        # The last waypoint is the goal location.
+        self._world.update_waypoints(msg.waypoints.waypoints[-1].location,
+                                     msg.waypoints)
 
     def on_opendrive_map(self, msg):
         """Invoked whenever a message is received on the open drive stream.

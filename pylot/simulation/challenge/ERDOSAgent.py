@@ -1,4 +1,5 @@
 import logging
+from collections import deque
 
 from absl import flags
 
@@ -20,6 +21,8 @@ from pylot.drivers.sensor_setup import LidarSetup, RGBCameraSetup
 from pylot.localization.messages import GNSSMessage, IMUMessage
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.point_cloud import PointCloud
+from pylot.planning.messages import WaypointsMessage
+from pylot.planning.waypoints import Waypoints
 
 FLAGS = flags.FLAGS
 
@@ -353,11 +356,15 @@ class ERDOSAgent(AutonomousAgent):
         # Send once the global waypoints.
         if self._waypoints is None:
             # Gets global waypoints from the agent.
-            self._waypoints = self._global_plan_world_coord
-            data = [(pylot.utils.Transform.from_carla_transform(transform),
-                     pylot.utils.RoadOption(road_option.value))
-                    for (transform, road_option) in self._waypoints]
-            self._global_trajectory_stream.send(erdos.Message(timestamp, data))
+            waypoints = deque([])
+            road_options = deque([])
+            for (transform, road_option) in self._global_plan_world_coord:
+                waypoints.append(
+                    pylot.utils.Transform.from_carla_transform(transform))
+                road_options.append(pylot.utils.RoadOption(road_option.value))
+            self._waypoints = Waypoints(waypoints, road_options=road_options)
+            self._global_trajectory_stream.send(
+                WaypointsMessage(timestamp, self._waypoints))
             self._global_trajectory_stream.send(
                 erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 

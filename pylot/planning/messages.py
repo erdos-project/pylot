@@ -11,9 +11,10 @@ class WaypointsMessage(erdos.Message):
             the message.
         waypoints (:py:class:`~pylot.planning.Waypoints`): Waypoints.
     """
-    def __init__(self, timestamp, waypoints):
+    def __init__(self, timestamp, waypoints, agent_state=None):
         super(WaypointsMessage, self).__init__(timestamp, None)
         self.waypoints = waypoints
+        self.agent_state = agent_state
 
     def __str__(self):
         return 'WaypointMessage(timestamp: {}, waypoints: {}'.format(

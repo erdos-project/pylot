@@ -34,7 +34,7 @@ class Waypoints(object):
                                              pylot.utils.Rotation(0, 0, 0))
             waypoints.append(waypoint)
         target_speeds = deque([target_speed for _ in range(len(waypoints))])
-        return cls(deque(waypoints), target_speeds),
+        return cls(deque(waypoints), target_speeds)
 
     def as_numpy_array_2D(self):
         """Returns the waypoints as a numpy array of lists of x and y."""
@@ -59,6 +59,17 @@ class Waypoints(object):
     def is_empty(self):
         return len(self.waypoints) == 0
 
+    def remove_waypoint_if_close(self, location, distance=5):
+        """Removes the first waypoint if it is less than distance m away."""
+        if self.waypoints is None or len(self.waypoints) == 0:
+            return
+        if location.distance(self.waypoints[0].location) < distance:
+            self.waypoints.popleft()
+            if self.target_speeds:
+                self.target_speeds.popleft()
+            if self.road_options:
+                self.road_options.popleft()
+
     def remove_completed(self, location, ego_transform=None):
         """Removes waypoints that the ego vehicle has already completed.
 
@@ -76,12 +87,15 @@ class Waypoints(object):
             self.waypoints.popleft()
             if self.target_speeds:
                 self.target_speeds.popleft()
+            if self.road_options:
+                self.road_options.popleft()
             min_index -= 1
 
         if self.waypoints is None or len(self.waypoints) == 0:
             if ego_transform is not None:
                 self.waypoints = deque([ego_transform])
                 self.target_speeds = deque([0])
+                self.road_options = deque([pylot.utils.RoadOption.LANE_FOLLOW])
             else:
                 raise ValueError('No more waypoints to follow')
 

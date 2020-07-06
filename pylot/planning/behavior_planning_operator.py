@@ -6,7 +6,9 @@ import numpy as np
 
 import pylot.planning.cost_functions
 import pylot.utils
+from pylot.planning.messages import WaypointsMessage
 from pylot.planning.utils import BehaviorPlannerState
+from pylot.planning.waypoints import Waypoints
 
 
 class BehaviorPlanningOperator(erdos.Operator):
@@ -50,7 +52,8 @@ class BehaviorPlanningOperator(erdos.Operator):
             raise Exception('Error importing carla.')
         self._logger.info('Initializing HDMap from open drive stream')
         from pylot.map.hd_map import HDMap
-        self._map = HDMap(carla.Map('map', msg.data), self.config.log_file_name)
+        self._map = HDMap(carla.Map('map', msg.data),
+                          self.config.log_file_name)
 
     def on_route_msg(self, msg):
         """Invoked whenever a message is received on the trajectory stream.
@@ -60,8 +63,8 @@ class BehaviorPlanningOperator(erdos.Operator):
                 a list of waypoints to the goal location.
         """
         self._logger.debug('@{}: global trajectory has {} waypoints'.format(
-            msg.timestamp, len(msg.data)))
-        self._route = deque(msg.data)
+            msg.timestamp, len(msg.waypoints.waypoints)))
+        self._route = msg.waypoints
 
     def on_pose_update(self, msg):
         """Invoked whenever a message is received on the pose stream.
@@ -83,14 +86,12 @@ class BehaviorPlanningOperator(erdos.Operator):
             timestamp, self._state, next_state))
         self._state = next_state
         # Remove the waypoint from the route if we're close to it.
-        if (len(self._route) > 0 and ego_transform.location.distance(
-                self._route[0][0].location) < 5):
-            self._route.popleft()
+        self._route.remove_waypoint_if_close(ego_transform.location, 5)
         new_goal_location = None
-        if len(self._route) > 1:
-            new_goal_location = self._route[1][0].location
-        elif len(self._route) == 1:
-            new_goal_location = self._route[0][0].location
+        if len(self._route.waypoints) > 1:
+            new_goal_location = self._route.waypoints[1].location
+        elif len(self._route.waypoints) == 1:
+            new_goal_location = self._route.waypoints[0].location
         else:
             new_goal_location = ego_transform.location
         if new_goal_location != self._goal_location:
@@ -99,16 +100,22 @@ class BehaviorPlanningOperator(erdos.Operator):
                 # Use the map to compute more fine-grained waypoints.
                 waypoints = self._map.compute_waypoints(
                     ego_transform.location, self._goal_location)
-                waypoints = [(wp, pylot.utils.RoadOption.LANE_FOLLOW)
-                             for wp in waypoints]
+                road_options = deque([
+                    pylot.utils.RoadOption.LANE_FOLLOW
+                    for _ in range(len(waypoints))
+                ])
+                waypoints = Waypoints(waypoints, road_options=road_options)
             else:
-                # Map is not available, use send the route.
+                # Map is not available, send the route.
                 waypoints = self._route
-            if not waypoints or len(waypoints) == 0:
+            if not waypoints or waypoints.is_empty():
                 # If waypoints are empty (e.g., reached destination), set
                 # waypoints to current vehicle location.
-                waypoints = deque([[ego_transform]])
-            trajectory_stream.send(erdos.Message(timestamp, waypoints))
+                waypoints = Waypoints(
+                    deque([ego_transform]),
+                    road_options=deque([pylot.utils.RoadOption.LANE_FOLLOW]))
+            trajectory_stream.send(
+                WaypointsMessage(timestamp, waypoints, self._state))
 
     def __initialize_behaviour_planner(self):
         # State the planner is in.
