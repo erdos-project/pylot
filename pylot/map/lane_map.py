@@ -1,9 +1,18 @@
+import copy
+from collections import deque
+
+import erdos
+
 import numpy as np
+
+import pylot.utils
+from pylot.utils import Location, Rotation, Transform
 
 
 class LaneMap(object):
     """Class that provides a map-like interface over lanes."""
-    def __init__(self):
+    def __init__(self, log_file=None):
+        self._logger = erdos.utils.setup_logging('hd_map', log_file)
         self.lanes = []
 
     def get_closest_lane_waypoint(self, location):
@@ -127,3 +136,60 @@ class LaneMap(object):
 
     def compute_waypoints(self, source_loc, destination_loc):
         raise NotImplementedError
+
+    def generate_waypoints(self, ego_transform, waypoint, road_option):
+        # Keep on driving in the same lane/straight if the next waypoint is
+        # far away.
+        if (road_option == pylot.utils.RoadOption.STRAIGHT
+                or road_option == pylot.utils.RoadOption.LANE_FOLLOW
+                or ego_transform.location.distance(
+                    waypoint.location.distance) > 20):
+            for lane in self.lanes:
+                if lane.id == 0:
+                    return lane.get_lane_center_transforms()
+            # Lane detector didn't find ego's lane. Keep on driving
+            # in the same direction.
+            output_wps = deque([])
+            for distance in range(1, 20):
+                wp = (ego_transform *
+                      Transform(Location(x=distance), Rotation()))
+                output_wps.append(wp)
+            return output_wps
+        elif road_option == pylot.utils.RoadOption.LEFT:
+            output_wps = deque([])
+            wp = copy.deepcopy(ego_transform)
+            for distance in range(1, 11):
+                wp = wp * Transform(Location(x=1), Rotation(yaw=-9))
+                output_wps.append(wp)
+            return output_wps
+        elif road_option == pylot.utils.RoadOption.RIGHT:
+            output_wps = deque([])
+            wp = copy.deepcopy(ego_transform)
+            for distance in range(1, 11):
+                wp = wp * Transform(Location(x=1), Rotation(yaw=9))
+                output_wps.append(wp)
+            return output_wps
+        elif road_option == pylot.utils.RoadOption.CHANGE_LANE_LEFT:
+            for lane in self.lanes:
+                if lane.id == -1:
+                    return lane.get_lane_center_transforms()
+            # Lane detector didn't find left lane.
+            output_wps = deque([])
+            wp = copy.deepcopy(ego_transform)
+            for distance in range(1, 11):
+                wp = wp * Transform(Location(x=1), Rotation(yaw=-4))
+                output_wps.append(wp)
+            return output_wps
+        elif road_option == pylot.utils.RoadOption.CHANGE_LANE_RIGHT:
+            for lane in self.lanes:
+                if lane.id == 1:
+                    return lane.get_lane_center_transforms()
+            # Lane detector didn't find right lane.
+            output_wps = deque([])
+            wp = copy.deepcopy(ego_transform)
+            for distance in range(1, 11):
+                wp = wp * Transform(Location(x=1), Rotation(yaw=4))
+                output_wps.append(wp)
+            return output_wps
+        self._logger.debug('Unexpected road option {}'.format(road_option))
+        return deque([ego_transform])

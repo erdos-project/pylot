@@ -1,6 +1,8 @@
+from collections import deque
+
 import numpy as np
 
-import pylot.utils
+from pylot.utils import Location, Rotation, Transform
 
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
@@ -57,7 +59,7 @@ class Lane(object):
 
     def get_closest_lane_waypoint(self, location):
         if self.is_on_lane(location):
-            return pylot.utils.Transform(location, pylot.utils.Rotation())
+            return Transform(location, Rotation())
         closest_transform = None
         min_dist = np.infty
         for transform in self.left_markings:
@@ -71,6 +73,33 @@ class Lane(object):
                 min_dist = dist
                 closest_transform = transform
         return closest_transform
+
+    def get_lane_center_transforms(self):
+        if len(self.left_markings) < len(self.right_markings):
+            anchor_markings = self.left_markings
+            other_markings = self.right_markings
+        else:
+            anchor_markings = self.right_markings
+            other_markings = self.left_markings
+        index_other = 0
+        center_markings = deque([])
+        for transform in anchor_markings:
+            dist = transform.location.distance(
+                other_markings[index_other].location)
+            while (index_other + 1 < len(other_markings)
+                   and dist > transform.location.distance(
+                       other_markings[index_other + 1].location)):
+                index_other += 1
+                dist = transform.location.distance(
+                    other_markings[index_other].location)
+            if index_other < len(other_markings):
+                other_loc = other_markings[index_other].location
+                center_location = Location(
+                    (transform.location.x + other_loc.x) / 2.0,
+                    (transform.location.y + other_loc.y) / 2.0,
+                    (transform.location.z + other_loc.z) / 2.0)
+                center_markings.append(Transform(center_location, Rotation()))
+        return center_markings
 
     def is_on_lane(self, location):
         # We only create the lane polygon if it is necessary.
