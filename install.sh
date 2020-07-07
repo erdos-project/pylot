@@ -14,21 +14,21 @@ sudo apt-get install -y python3-opencv
 
 ###### Build the FrenetOptimalTrajectory Planner ######
 export PYLOT_HOME=$(pwd)
-cd dependencies/frenet_optimal_trajectory/
+cd dependencies/
 git clone https://github.com/erdos-project/frenet_optimal_trajectory_planner.git
 cd frenet_optimal_trajectory_planner/
 bash build.sh
 cd $PYLOT_HOME
 
 ###### Build the RRT* Planner ######
-cd dependencies/rrt_star/
+cd dependencies/
 git clone https://github.com/erdos-project/rrt_star_planner.git
 cd rrt_star_planner/
 bash build.sh
 cd $PYLOT_HOME
 
 ###### Build the Hybrid A* Planner ######
-cd dependencies/hybrid_astar/
+cd dependencies/
 git clone https://github.com/erdos-project/hybrid_astar_planner.git
 cd hybrid_astar_planner/
 bash build.sh
@@ -61,7 +61,7 @@ wget https://www.dropbox.com/s/63ig79xrkubigpu/frozen_inference_graph.pb
 cd ../../
 
 ###### Download the Lanenet lane detection model ######
-mkdir -p lane_detection/lanenet ; lane_detection/lanenet
+mkdir -p lane_detection/lanenet ; cd lane_detection/lanenet
 wget --max-redirect=20 -O download.zip https://www.dropbox.com/sh/hdqpoxr0yo7mk05/AABx5b7QdEmkxWX2VDa19xKCa
 unzip download.zip
 rm download.zip
