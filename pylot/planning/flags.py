@@ -7,7 +7,7 @@ import pylot.planning.rrt_star.flags
 flags.DEFINE_float(
     'target_speed', 10.0,
     'Target speed in m/s , could be controlled by the speed limit')
-flags.DEFINE_float('distance_threshold', 30.0,
+flags.DEFINE_float('obstacle_distance_threshold', 30.0,
                    'Max distance to consider obstacles [m]')
 flags.DEFINE_float('obstacle_radius', 1.0, 'Default obstacle radius [m]')
 flags.DEFINE_integer('num_waypoints_ahead', 60,

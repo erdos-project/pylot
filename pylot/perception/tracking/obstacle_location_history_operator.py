@@ -59,6 +59,11 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
         ids_cur_timestamp = []
         obstacle_trajectories = []
         for obstacle in obstacles_with_location:
+            # Ignore obstacles that are far away.
+            if (vehicle_transform.location.distance(
+                    obstacle.transform.location) >
+                    self._flags.obstacle_distance_threshold):
+                continue
             ids_cur_timestamp.append(obstacle.id)
             self._obstacle_history[obstacle.id].append(obstacle)
             # Transform obstacle location from global world coordinates to

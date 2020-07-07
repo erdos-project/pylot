@@ -98,8 +98,8 @@ class World(object):
                     previous_origin = transform
                     # Ensure the prediction is nearby.
                     if (self.ego_transform.location.l2_distance(
-                            transform.location) <
-                            self._flags.distance_threshold):
+                            transform.location) <=
+                            self._flags.obstacle_distance_threshold):
                         obstacle_corners = \
                             prediction.obstacle_trajectory.obstacle.get_bounding_box_corners(
                                 transform, self._flags.obstacle_radius)
@@ -246,7 +246,7 @@ class World(object):
             # No more waypoints to follow.
             self._logger.debug(
                 '@{}: no more waypoints to follow, target speed 0')
-            return 0
+            return (0, 0, 0, 0, 0)
 
         for obstacle in self.obstacle_predictions:
             if obstacle.is_person() and self._flags.stop_for_people:
