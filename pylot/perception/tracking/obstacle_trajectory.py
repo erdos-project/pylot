@@ -38,7 +38,7 @@ class ObstacleTrajectory(object):
         """
         other_idx = len(self.trajectory) - 2
         # TODO: Setting a default yaw is dangerous. Find some way to estimate
-        # the orientation of a stationary object.
+        # the orientation of a stationary object (e.g. 3D object detection).
         yaw = 0.0 # Default orientation for stationary objects.
         current_loc = self.trajectory[-1].location.as_vector_2D()
         while other_idx >= 0:

@@ -85,6 +85,9 @@ class LinearPredictorOperator(erdos.Operator):
             predict_array = np.matmul(future_ts, linear_model_params)
             predictions = []
             for t in range(self._flags.prediction_num_future_steps):
+                # Linear prediction does not predict vehicle orientation, so we
+                # use our estimated orientation of the vehicle at its latest
+                # location.
                 predictions.append(
                     Transform(location=Location(x=predict_array[t][0],
                                                 y=predict_array[t][1]),
