@@ -219,11 +219,14 @@ class ObstacleTrajectoriesMessage(erdos.Message):
                 filter(filter_fn, self.obstacle_trajectories))
         else:
             filtered_trajectories = self.obstacle_trajectories
-        distances = [v.trajectory[-1].get_angle_and_magnitude(Location())[1]
-            for v in filtered_trajectories]
-        sorted_trajectories = [v for v, d in
-            sorted(zip(filtered_trajectories, distances),
-            key=lambda pair: pair[1]) if d <= radius]
+        distances = [
+            v.trajectory[-1].get_angle_and_magnitude(Location())[1]
+            for v in filtered_trajectories
+        ]
+        sorted_trajectories = [
+            v for v, d in sorted(zip(filtered_trajectories, distances),
+                                 key=lambda pair: pair[1]) if d <= radius
+        ]
 
         if len(sorted_trajectories) == 0:
             return sorted_trajectories, []
@@ -236,7 +239,8 @@ class ObstacleTrajectoriesMessage(erdos.Message):
         # we estimate using the direction determined by the last two distinct
         # locations
         for i in range(len(sorted_trajectories)):
-            cur_obstacle_angle = sorted_trajectories[i].estimate_obstacle_orientation()
+            cur_obstacle_angle = sorted_trajectories[
+                i].estimate_obstacle_orientation()
             nearby_obstacles_ego_transforms.append(
                 Transform(location=nearby_obstacles_ego_locations[i].location,
                           rotation=Rotation(yaw=cur_obstacle_angle)))

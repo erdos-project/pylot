@@ -223,13 +223,13 @@ def must_add_imu_sensor():
     """
     return (FLAGS.imu or FLAGS.evaluation or FLAGS.localization)
 
+
 def must_add_gnss_sensor():
     """ Returns true if the GNSS sensor must be added.
 
     We don't add all sensors by default because they slow down the simulation
     """
     return FLAGS.localization
-
 
 
 # Flag validators.
@@ -259,10 +259,12 @@ flags.register_multi_flags_validator(
     message=
     'prediction requires --obstacle_tracking or --perfect_obstacle_tracking')
 
+
 def prediction_ego_agent_validator(flags_dict):
     if flags_dict['prediction_ego_agent']:
         return flags_dict['perfect_obstacle_tracking']
     return True
+
 
 flags.register_multi_flags_validator(
     ['prediction_ego_agent', 'perfect_obstacle_tracking'],

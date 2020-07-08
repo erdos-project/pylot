@@ -39,8 +39,7 @@ class PerfectLaneDetectionOperator(erdos.Operator):
             from pylot.simulation.utils import get_map
             self._map = HDMap(
                 get_map(self._flags.carla_host, self._flags.carla_port,
-                        self._flags.carla_timeout),
-                self.config.log_file_name)
+                        self._flags.carla_timeout), self.config.log_file_name)
             from pylot.simulation.utils import get_world
             _, self._world = get_world(self._flags.carla_host,
                                        self._flags.carla_port,

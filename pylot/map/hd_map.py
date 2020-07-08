@@ -150,10 +150,9 @@ class HDMap(object):
         Returns:
             bool: True if the transform is on the opposite lane.
         """
-        waypoint = self._get_waypoint(
-            transform.location,
-            project_to_road=False,
-            lane_type=carla.LaneType.Driving)
+        waypoint = self._get_waypoint(transform.location,
+                                      project_to_road=False,
+                                      lane_type=carla.LaneType.Driving)
         if not waypoint:
             return True
         if waypoint.is_intersection:
@@ -227,10 +226,9 @@ class HDMap(object):
         Returns:
             bool: True if the location is on a bidirectional lane.
         """
-        waypoint = self._get_waypoint(
-            location,
-            project_to_road=False,
-            lane_type=carla.LaneType.Bidirectional)
+        waypoint = self._get_waypoint(location,
+                                      project_to_road=False,
+                                      lane_type=carla.LaneType.Bidirectional)
         return not waypoint
 
     def must_obey_traffic_light(self, ego_location, tl_location):
@@ -359,14 +357,12 @@ class HDMap(object):
             list(:py:class:`~pylot.utils.Transform`): List of waypoint
             transforms.
         """
-        start_waypoint = self._get_waypoint(
-            source_loc,
-            project_to_road=True,
-            lane_type=carla.LaneType.Driving)
-        end_waypoint = self._get_waypoint(
-            destination_loc,
-            project_to_road=True,
-            lane_type=carla.LaneType.Driving)
+        start_waypoint = self._get_waypoint(source_loc,
+                                            project_to_road=True,
+                                            lane_type=carla.LaneType.Driving)
+        end_waypoint = self._get_waypoint(destination_loc,
+                                          project_to_road=True,
+                                          lane_type=carla.LaneType.Driving)
         assert start_waypoint and end_waypoint, 'Map could not find waypoints'
         route = self._grp.trace_route(start_waypoint.transform.location,
                                       end_waypoint.transform.location)

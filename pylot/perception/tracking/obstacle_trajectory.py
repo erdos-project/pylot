@@ -1,7 +1,7 @@
 import math
-import numpy as np
 
 from pylot.utils import Vector2D
+
 
 class ObstacleTrajectory(object):
     """Used to store the trajectory of an obstacle.
@@ -39,7 +39,7 @@ class ObstacleTrajectory(object):
         other_idx = len(self.trajectory) - 2
         # TODO: Setting a default yaw is dangerous. Find some way to estimate
         # the orientation of a stationary object (e.g. 3D object detection).
-        yaw = 0.0 # Default orientation for stationary objects.
+        yaw = 0.0  # Default orientation for stationary objects.
         current_loc = self.trajectory[-1].location.as_vector_2D()
         while other_idx >= 0:
             past_ref_loc = self.trajectory[other_idx].location.as_vector_2D()

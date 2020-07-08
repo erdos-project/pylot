@@ -26,7 +26,6 @@ class IMUMessage(erdos.Message):
         compass (:obj:`float`): Orientation measurement w.r.t North direction
             ((0, -1, 0) in Unreal) in radians.
     """
-
     def __init__(self, timestamp, transform, acceleration, gyro, compass):
         super(IMUMessage, self).__init__(timestamp, None)
         self.transform = transform
@@ -61,7 +60,6 @@ class GNSSMessage(erdos.Message):
         latitude (float): North/South value of a point on the map.
         longitude (float): West/East value of a point on the map.
     """
-
     def __init__(self, timestamp, transform, altitude, latitude, longitude):
         super(GNSSMessage, self).__init__(timestamp, None)
         self.transform = transform

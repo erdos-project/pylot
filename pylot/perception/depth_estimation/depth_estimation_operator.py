@@ -1,21 +1,20 @@
 """Implements an operator that estimates depth using two cameras."""
-import erdos
-import cv2
 import os
-from PIL import Image
-import torch
-import torch.nn as nn
-import torch.nn.parallel
-import torch.utils.data
-import torch.backends.cudnn as cudnn
 
 import AnyNet.models.anynet as anynet
 from AnyNet.utils import preprocess
 
-from pylot.drivers.sensor_setup import CameraSetup
-from pylot.perception.depth_frame import DepthFrame
-from pylot.perception.messages import DepthFrameMessage
-from pylot.utils import time_epoch_ms
+from PIL import Image
+
+import cv2
+
+import erdos
+
+import torch
+import torch.backends.cudnn as cudnn
+import torch.nn as nn
+import torch.nn.parallel
+import torch.utils.data
 
 
 class AnyNetArgs(object):
@@ -45,7 +44,6 @@ class DepthEstimationOperator(erdos.Operator):
         fov(:obj:`int`): Field of view of the center camera.
         flags (absl.flags): Object to be used to access absl flags.
     """
-
     def __init__(self, left_camera_stream, right_camera_stream,
                  depth_estimation_stream, transform, fov, flags):
         left_camera_stream.add_callback(self.on_left_camera_msg)

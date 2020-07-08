@@ -57,8 +57,9 @@ class LinearPredictorOperator(erdos.Operator):
             msg.get_nearby_obstacles_info(self._flags.prediction_radius)
         num_predictions = len(nearby_obstacle_trajectories)
 
-        self._logger.info('@{}: Getting linear predictions for {} obstacles'.format(
-            msg.timestamp, num_predictions))
+        self._logger.info(
+            '@{}: Getting linear predictions for {} obstacles'.format(
+                msg.timestamp, num_predictions))
 
         for idx in range(len(nearby_obstacle_trajectories)):
             obstacle_trajectory = nearby_obstacle_trajectories[idx]
@@ -91,7 +92,8 @@ class LinearPredictorOperator(erdos.Operator):
                 predictions.append(
                     Transform(location=Location(x=predict_array[t][0],
                                                 y=predict_array[t][1]),
-                              rotation=nearby_obstacles_ego_transforms[idx].rotation))
+                              rotation=nearby_obstacles_ego_transforms[idx].
+                              rotation))
             obstacle_predictions_list.append(
                 ObstaclePrediction(obstacle_trajectory,
                                    obstacle_trajectory.obstacle.transform, 1.0,

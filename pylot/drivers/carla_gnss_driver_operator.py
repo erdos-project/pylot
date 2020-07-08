@@ -1,5 +1,6 @@
-import erdos
 import threading
+
+import erdos
 
 from pylot.localization.messages import GNSSMessage
 from pylot.simulation.utils import get_vehicle_handle, get_world, \
@@ -25,7 +26,6 @@ class CarlaGNSSDriverOperator(erdos.Operator):
             Setup of the GNSS sensor.
         flags (absl.flags): Object to be used to access absl flags.
     """
-
     def __init__(self, ground_vehicle_id_stream, gnss_stream, gnss_setup,
                  flags):
         # Save the streams.

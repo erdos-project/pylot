@@ -82,7 +82,6 @@ class Quaternion(object):
         matrix: A 3x3 numpy array that can be used to rotate 3D vectors from
             body frame to world frame.
     """
-
     def __init__(self, w, x, y, z):
         norm = np.linalg.norm([w, x, y, z])
         self.w = w / norm

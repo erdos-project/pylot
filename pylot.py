@@ -131,7 +131,6 @@ def driver():
         pose_stream = pylot.operator_creator.add_localization(
             imu_stream, gnss_stream, pose_stream)
 
-
     obstacles_stream = pylot.component_creator.add_obstacle_detection(
         center_camera_stream, center_camera_setup, pose_stream, depth_stream,
         depth_camera_stream, ground_segmented_stream, ground_obstacles_stream,

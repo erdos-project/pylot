@@ -687,7 +687,6 @@ class GNSSSetup(object):
             the location and rotation of the GNSS instance with respect to the
             vehicle
     """
-
     def __init__(self, name, transform):
         # Ensure that the name is of the correct type.
         assert isinstance(name, str), "The name should be of type `str`"
