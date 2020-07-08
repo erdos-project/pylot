@@ -77,8 +77,8 @@ class CarlaOperator(erdos.Operator):
         # handle (which is slow).
         self._spectator = self._world.get_spectator()
 
-        if not (self._carla_version.startswith('0.8')
-                or re.match('0\.9\.[0-7]', self._carla_version) is not None):
+        if not (self._carla_version.startswith('0.8') or re.match(
+                '0\.9\.[0-7]', self._carla_version) is not None):  # noqa: W605
             # Any CARLA version after 0.9.7.
             # Create a traffic manager to that auto pilot works.
             self._traffic_manager = self._client.get_trafficmanager(8000)

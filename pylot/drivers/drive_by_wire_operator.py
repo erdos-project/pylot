@@ -1,8 +1,12 @@
+from dbw_mkz_msgs.msg import BrakeCmd, SteeringCmd, ThrottleCmd
+
 import erdos
-import rospy
-from std_msgs.msg import Empty
-from dbw_mkz_msgs.msg import ThrottleCmd, BrakeCmd, SteeringCmd
+
 from pylot.control.messages import ControlMessage
+
+import rospy
+
+from std_msgs.msg import Empty
 
 ROS_NAMESPACE = "/vehicle/"
 ROS_FREQUENCY = 100  # hz
@@ -52,7 +56,7 @@ class DriveByWireOperator(erdos.Operator):
         rospy.init_node(self.config.name, anonymous=True, disable_signals=True)
 
         # Enable the ADAS.
-        #self.enable_pub.publish(Empty())
+        # self.enable_pub.publish(Empty())
 
         # Pull from the control stream and publish messages continuously.
         r = rospy.Rate(ROS_FREQUENCY)
@@ -103,4 +107,4 @@ class DriveByWireOperator(erdos.Operator):
             r.sleep()
 
         # Disable the ADAS.
-        #self.disable_pub.publish(Empty())
+        # self.disable_pub.publish(Empty())

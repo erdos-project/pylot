@@ -1,10 +1,10 @@
 import os
 
+import PIL.Image as Image
+
 import cv2
 
 import numpy as np
-
-import PIL.Image as Image
 
 import pylot.utils
 from pylot.perception.detection.utils import BoundingBox2D

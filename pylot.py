@@ -3,7 +3,7 @@ from absl import app, flags
 import erdos
 
 import pylot.flags
-import pylot.component_creator
+import pylot.component_creator  # noqa: I100
 import pylot.operator_creator
 import pylot.utils
 from pylot.simulation.utils import get_world, set_asynchronous_mode

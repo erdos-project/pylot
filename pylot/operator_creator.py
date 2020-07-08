@@ -5,7 +5,7 @@ import erdos
 import pylot.utils
 
 # TODO: Hack to avoid a tensorflow import error.
-import tensorflow as tf
+import tensorflow as tf  # noqa: F401
 
 FLAGS = flags.FLAGS
 

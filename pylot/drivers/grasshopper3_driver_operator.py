@@ -6,12 +6,12 @@ import erdos
 
 import numpy as np
 
+from pylot.perception.camera_frame import CameraFrame
+from pylot.perception.messages import FrameMessage
+
 import rospy
 
 from sensor_msgs.msg import Image
-
-from pylot.perception.camera_frame import CameraFrame
-from pylot.perception.messages import FrameMessage
 
 CAMERA_FPS = 30
 

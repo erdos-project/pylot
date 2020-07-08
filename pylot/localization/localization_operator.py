@@ -1,11 +1,12 @@
+from collections import deque
+from functools import partial
+
 import erdos
-from pylot.utils import Quaternion, Pose, Transform, Location, \
-        Vector3D, Rotation
 
 import numpy as np
 
-from functools import partial
-from collections import deque
+from pylot.utils import Location, Pose, Quaternion, Rotation, Transform, \
+        Vector3D
 
 
 class LocalizationOperator(erdos.Operator):
@@ -54,7 +55,7 @@ class LocalizationOperator(erdos.Operator):
         # values have stabilized.
         self._is_started = False
 
-        ## Constants required for the Kalman filtering.
+        # Constants required for the Kalman filtering.
         var_imu_f, var_imu_w, var_gnss = 0.10, 0.25, 0.10
         self.__Q = np.identity(6)
         self.__Q[0:3, 0:3] = self.__Q[0:3, 0:3] * var_imu_f
@@ -181,10 +182,10 @@ class LocalizationOperator(erdos.Operator):
             # world frame, and retrieve location and velocity estimates.
             accelerometer_data = last_rotation_estimate.matrix.dot(
                 imu_msg.acceleration.as_numpy_array()) + self._g
-            last_location_estimate = self._last_pose_estimate.transform.\
-                    location.as_numpy_array()
-            last_velocity_estimate = self._last_pose_estimate.velocity_vector.\
-                    as_numpy_array()
+            last_location_estimate = \
+                self._last_pose_estimate.transform.location.as_numpy_array()
+            last_velocity_estimate = \
+                self._last_pose_estimate.velocity_vector.as_numpy_array()
 
             # Estimate the location.
             location_estimate = last_location_estimate + (
@@ -195,8 +196,8 @@ class LocalizationOperator(erdos.Operator):
             velocity_estimate = last_velocity_estimate + (delta_t *
                                                           accelerometer_data)
 
-            ## Fuse the GNSS values using an EKF to fix drifts and noise in
-            ## the estimates.
+            # Fuse the GNSS values using an EKF to fix drifts and noise in
+            # the estimates.
 
             # Linearize the motion model and compute Jacobians.
             self.__F[0:3, 3:6] = np.identity(3) * delta_t

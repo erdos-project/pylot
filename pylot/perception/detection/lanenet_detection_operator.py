@@ -2,15 +2,10 @@ import logging
 import math
 import os
 import sys
-sys.path.append("{}/dependencies/lanenet-lane-detection".format(
-    os.getenv("PYLOT_HOME")))
 
 import cv2
 
 import erdos
-
-from lanenet_model import lanenet
-from lanenet_model import lanenet_postprocess
 
 import numpy as np
 
@@ -18,6 +13,12 @@ import pylot.utils
 from pylot.perception.detection.lane import Lane
 
 import tensorflow as tf
+
+sys.path.append("{}/dependencies/lanenet-lane-detection".format(
+    os.getenv("PYLOT_HOME")))
+
+from lanenet_model import lanenet  # noqa: I100
+from lanenet_model import lanenet_postprocess  # noqa: I100
 
 
 class LanenetDetectionOperator(erdos.Operator):

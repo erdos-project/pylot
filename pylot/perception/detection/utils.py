@@ -1,10 +1,6 @@
 import copy
 
 import numpy as np
-try:
-    import queue as queue
-except ImportError:
-    import Queue as queue
 
 import pylot.utils
 

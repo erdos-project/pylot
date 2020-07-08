@@ -13,7 +13,7 @@ from leaderboard.autoagents.autonomous_agent import AutonomousAgent, \
 import numpy as np
 
 import pylot.flags
-import pylot.component_creator
+import pylot.component_creator  # noqa: I100
 import pylot.operator_creator
 import pylot.perception.messages
 import pylot.utils

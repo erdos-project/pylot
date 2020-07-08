@@ -10,11 +10,12 @@ Reference Papers:
 - [Kinematic and Dynamic Vehicle Models for Autonomous Driving Control Design]
 (https://borrelli.me.berkeley.edu/pdfpub/IV_KinematicMPC_jason.pdf)
 """
-
-import numpy as np
 import cvxpy
 from cvxpy.expressions import constants
-from pylot.control.mpc.utils import compute_curvature, Vehicle, Trajectory
+
+import numpy as np
+
+from pylot.control.mpc.utils import Trajectory, Vehicle, compute_curvature
 
 
 class ModelPredictiveController:

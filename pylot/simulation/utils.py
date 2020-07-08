@@ -138,8 +138,8 @@ def spawn_actors(client, world, carla_version, ego_spawn_point_index,
     ego_vehicle = spawn_ego_vehicle(world, ego_spawn_point_index, auto_pilot)
     people = []
 
-    if not (carla_version.startswith('0.8')
-            or re.match('0\.9\.[0-5]', carla_version) is not None):
+    if not (carla_version.startswith('0.8') or re.match(
+            '0\.9\.[0-5]', carla_version) is not None):  # noqa: W605
         # People do not move in versions older than 0.9.6.
         (people, people_control_ids) = spawn_people(client, world, num_people,
                                                     logger)

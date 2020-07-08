@@ -5,7 +5,7 @@ import pylot.debug.flags
 import pylot.perception.flags
 import pylot.planning.flags
 import pylot.prediction.flags
-import pylot.simulation.flags
+import pylot.simulation.flags  # noqa: F401
 
 FLAGS = flags.FLAGS
 
@@ -256,8 +256,8 @@ def prediction_validator(flags_dict):
 flags.register_multi_flags_validator(
     ['prediction', 'obstacle_tracking', 'perfect_obstacle_tracking'],
     prediction_validator,
-    message=
-    'prediction requires --obstacle_tracking or --perfect_obstacle_tracking')
+    message='prediction requires --obstacle_tracking or'
+    ' --perfect_obstacle_tracking')
 
 
 def prediction_ego_agent_validator(flags_dict):
@@ -419,8 +419,8 @@ flags.register_multi_flags_validator(
     ],
     obstacle_tracking_evaluation_validator,
     message='--obstacle_tracking and either --obstacle_detection or '
-    '--perfect_obstacle_detection must be set when --evaluate_obstacle_tracking'
-    ' is enabled')
+    '--perfect_obstacle_detection must be set when '
+    '--evaluate_obstacle_tracking is enabled')
 
 
 def fusion_evaluation_validator(flags_dict):

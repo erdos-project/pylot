@@ -1,10 +1,10 @@
 import os
 
+import PIL.Image as Image
+
 import cv2
 
 import numpy as np
-
-import PIL.Image as Image
 
 import pylot.perception.detection.utils
 import pylot.utils

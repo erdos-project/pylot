@@ -72,7 +72,7 @@ flags.DEFINE_string(
     'dependencies/models/lane_detection/lanenet/tusimple_lanenet.ckpt',
     'Path to the saved lanenet model')
 
-## Evaluation metrics.
+# Evaluation metrics.
 
 # Segmentation eval flags.
 flags.DEFINE_enum('segmentation_metric', 'mIoU', ['mIoU', 'timely-mIoU'],

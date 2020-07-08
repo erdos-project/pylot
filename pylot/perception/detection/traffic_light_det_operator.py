@@ -5,13 +5,13 @@ import erdos
 
 import numpy as np
 
-import tensorflow as tf
-
 import pylot.utils
 from pylot.perception.detection.traffic_light import TrafficLight, \
     TrafficLightColor
 from pylot.perception.detection.utils import BoundingBox2D
 from pylot.perception.messages import TrafficLightsMessage
+
+import tensorflow as tf
 
 
 class TrafficLightDetOperator(erdos.Operator):

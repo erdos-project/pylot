@@ -37,8 +37,8 @@ class IMULoggerOperator(erdos.Operator):
         """Invoked upon receipt of an IMU message.
 
         Args:
-            msg (:py:class:`pylot.localization.messages.IMUMessage`): Message to
-                be logged.
+            msg (:py:class:`pylot.localization.messages.IMUMessage`): Message
+                to be logged.
         """
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self.config.name))

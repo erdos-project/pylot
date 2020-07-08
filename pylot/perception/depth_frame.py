@@ -1,11 +1,10 @@
 import copy
 import os
+import pickle
 
 import numpy as np
 from numpy.linalg import inv
 from numpy.matlib import repmat
-
-import pickle
 
 import pylot.utils
 

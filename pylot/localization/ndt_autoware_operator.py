@@ -1,14 +1,16 @@
 import erdos
 
+from geometry_msgs.msg import PoseStamped
+
 import numpy as np
+
+from pylot.utils import Location, Pose, Rotation, Transform
 
 import rospy
 
-from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32
-from tf.transformations import euler_from_quaternion
 
-from pylot.utils import Location, Pose, Rotation, Transform
+from tf.transformations import euler_from_quaternion
 
 # The frequency at which localization messages are published.
 NDT_FREQUENCY = 10
