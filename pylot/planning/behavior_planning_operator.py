@@ -116,7 +116,7 @@ class BehaviorPlanningOperator(erdos.Operator):
                     road_options=deque([pylot.utils.RoadOption.LANE_FOLLOW]))
             trajectory_stream.send(
                 WaypointsMessage(timestamp, waypoints, self._state))
-            trajectory_stream.send(erdos.WatermarkMessage(timestamp))
+        trajectory_stream.send(erdos.WatermarkMessage(timestamp))
 
     def __initialize_behaviour_planner(self):
         # State the planner is in.
