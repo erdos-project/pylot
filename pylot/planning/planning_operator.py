@@ -214,6 +214,7 @@ class PlanningOperator(erdos.Operator):
         predictions = []
         if isinstance(prediction_msg, ObstaclesMessage):
             # Transform the obstacle into a prediction.
+            predictions = []
             for obstacle in prediction_msg.obstacles:
                 obstacle_trajectory = ObstacleTrajectory(obstacle, [])
                 prediction = ObstaclePrediction(

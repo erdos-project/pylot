@@ -259,6 +259,16 @@ flags.register_multi_flags_validator(
     message=
     'prediction requires --obstacle_tracking or --perfect_obstacle_tracking')
 
+def prediction_ego_agent_validator(flags_dict):
+    if flags_dict['prediction_ego_agent']:
+        return flags_dict['perfect_obstacle_tracking']
+    return True
+
+flags.register_multi_flags_validator(
+    ['prediction_ego_agent', 'perfect_obstacle_tracking'],
+    prediction_ego_agent_validator,
+    message='ego-agent prediction requires --perfect_obstacle_tracking')
+
 flags.register_multi_flags_validator(
     [
         'evaluate_prediction', 'prediction_num_future_steps',

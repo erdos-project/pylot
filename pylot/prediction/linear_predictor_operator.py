@@ -6,7 +6,7 @@ import numpy as np
 
 from pylot.prediction.messages import PredictionMessage
 from pylot.prediction.obstacle_prediction import ObstaclePrediction
-from pylot.utils import Location, Rotation, Transform
+from pylot.utils import Location, Transform
 
 
 class LinearPredictorOperator(erdos.Operator):
@@ -53,7 +53,15 @@ class LinearPredictorOperator(erdos.Operator):
             msg.timestamp))
         obstacle_predictions_list = []
 
-        for obstacle_trajectory in msg.obstacle_trajectories:
+        nearby_obstacle_trajectories, nearby_obstacles_ego_transforms = \
+            msg.get_nearby_obstacles_info(self._flags.prediction_radius)
+        num_predictions = len(nearby_obstacle_trajectories)
+
+        self._logger.info('@{}: Getting linear predictions for {} obstacles'.format(
+            msg.timestamp, num_predictions))
+
+        for idx in range(len(nearby_obstacle_trajectories)):
+            obstacle_trajectory = nearby_obstacle_trajectories[idx]
             # Time step matrices used in regression.
             num_steps = min(self._flags.prediction_num_past_steps,
                             len(obstacle_trajectory.trajectory))
@@ -77,10 +85,13 @@ class LinearPredictorOperator(erdos.Operator):
             predict_array = np.matmul(future_ts, linear_model_params)
             predictions = []
             for t in range(self._flags.prediction_num_future_steps):
+                # Linear prediction does not predict vehicle orientation, so we
+                # use our estimated orientation of the vehicle at its latest
+                # location.
                 predictions.append(
                     Transform(location=Location(x=predict_array[t][0],
                                                 y=predict_array[t][1]),
-                              rotation=Rotation()))
+                              rotation=nearby_obstacles_ego_transforms[idx].rotation))
             obstacle_predictions_list.append(
                 ObstaclePrediction(obstacle_trajectory,
                                    obstacle_trajectory.obstacle.transform, 1.0,
