@@ -147,6 +147,7 @@ class DetectionOperator(erdos.Operator):
         # Send out obstacles.
         obstacles_stream.send(
             ObstaclesMessage(msg.timestamp, obstacles, runtime))
+        obstacles_stream.send(erdos.WatermarkMessage(msg.timestamp))
 
         if self._flags.log_detector_output:
             msg.frame.annotate_with_bounding_boxes(msg.timestamp, obstacles,

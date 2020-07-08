@@ -203,6 +203,7 @@ class EfficientDetOperator(erdos.Operator):
                        'detector-{}'.format(self.config.name))
         end_time = time.time()
         obstacles_stream.send(ObstaclesMessage(timestamp, obstacles, 0))
+        obstacles_stream.send(erdos.WatermarkMessage(timestamp))
 
         operator_time_total_end = time.time()
         self._logger.debug("@{}: total time spent: {}".format(

@@ -115,6 +115,7 @@ class TrafficLightDetOperator(erdos.Operator):
 
         traffic_lights_stream.send(
             TrafficLightsMessage(msg.timestamp, traffic_lights))
+        traffic_lights_stream.send(erdos.WatermarkMessage(msg.timestamp))
 
         if self._flags.log_traffic_light_detector_output:
             msg.frame.annotate_with_bounding_boxes(msg.timestamp,

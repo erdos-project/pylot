@@ -32,6 +32,7 @@ def add_efficientdet_obstacle_detection(camera_stream,
     if csv_file_name is None:
         csv_file_name = FLAGS.csv_log_file_name
     op_config = erdos.OperatorConfig(name='efficientdet_operator',
+                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=csv_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -53,6 +54,7 @@ def add_obstacle_detection(camera_stream,
     for i in range(0, len(FLAGS.obstacle_detection_model_paths)):
         op_config = erdos.OperatorConfig(
             name=FLAGS.obstacle_detection_model_names[i],
+            flow_watermarks=False,
             log_file_name=FLAGS.log_file_name,
             csv_log_file_name=csv_file_name,
             profile_file_name=FLAGS.profile_file_name)
@@ -88,6 +90,7 @@ def add_obstacle_location_finder(obstacles_stream, depth_stream, pose_stream,
         ObstacleLocationFinderOperator
     op_config = erdos.OperatorConfig(name=camera_setup.get_name() +
                                      '_location_finder_operator',
+                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -175,6 +178,7 @@ def add_traffic_light_detector(traffic_light_camera_stream):
     from pylot.perception.detection.traffic_light_det_operator import \
         TrafficLightDetOperator
     op_config = erdos.OperatorConfig(name='traffic_light_detector_operator',
+                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -321,6 +325,7 @@ def add_linear_prediction(tracking_stream):
     from pylot.prediction.linear_predictor_operator import \
             LinearPredictorOperator
     op_config = erdos.OperatorConfig(name='linear_prediction_operator',
+                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -365,6 +370,7 @@ def add_behavior_planning(pose_stream,
     from pylot.planning.behavior_planning_operator import \
         BehaviorPlanningOperator
     op_config = erdos.OperatorConfig(name=name,
+                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
