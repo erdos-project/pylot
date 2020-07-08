@@ -27,13 +27,16 @@ def get_world(host="localhost", port=2000, timeout=10):
         simulator and `world` is a handle to the world running inside the
         simulation at the host:port.
     """
-    client, world = None, None
     try:
         client = carla.Client(host, port)
+        client_version = client.get_client_version()
+        server_version = client.get_server_version()
+        err_msg = 'CARLA client {} does not match server {}'.format(
+            client_version, server_version)
+        assert client_version == server_version, err_msg
         client.set_timeout(timeout)
         world = client.get_world()
     except RuntimeError as r:
-        client, world = None, None
         raise Exception("Received an error while connecting to the "
                         "simulator: {}".format(r))
     return (client, world)
@@ -134,7 +137,9 @@ def spawn_actors(client, world, carla_version, ego_spawn_point_index,
     vehicle_ids = spawn_vehicles(client, world, num_vehicles, logger)
     ego_vehicle = spawn_ego_vehicle(world, ego_spawn_point_index, auto_pilot)
     people = []
-    if (carla_version in ['0.9.6', '0.9.7', '0.9.8', '0.9.9']):
+
+    if not (carla_version.startswith('0.8')
+            or re.match('0\.9\.[0-5]', carla_version) is not None):
         # People do not move in versions older than 0.9.6.
         (people, people_control_ids) = spawn_people(client, world, num_people,
                                                     logger)

@@ -1,6 +1,7 @@
 import enum
 import heapq
 import random
+import re
 import threading
 import time
 from functools import total_ordering
@@ -65,6 +66,7 @@ class CarlaOperator(erdos.Operator):
         self._client, self._world = pylot.simulation.utils.get_world(
             self._flags.carla_host, self._flags.carla_port,
             self._flags.carla_timeout)
+        self._carla_version = self._client.get_client_version()
 
         if not self._flags.carla_scenario_runner and \
                 self._flags.control != "manual":
@@ -75,7 +77,9 @@ class CarlaOperator(erdos.Operator):
         # handle (which is slow).
         self._spectator = self._world.get_spectator()
 
-        if self._flags.carla_version in ['0.9.8', '0.9.9']:
+        if not (self._carla_version.startswith('0.8')
+                or re.match('0\.9\.[0-7]', self._carla_version) is not None):
+            # Any CARLA version after 0.9.7.
             # Create a traffic manager to that auto pilot works.
             self._traffic_manager = self._client.get_trafficmanager(8000)
             self._traffic_manager.set_synchronous_mode(
@@ -94,7 +98,7 @@ class CarlaOperator(erdos.Operator):
             # Spawn ego vehicle, people and vehicles.
             (self._ego_vehicle, self._vehicle_ids,
              self._people) = pylot.simulation.utils.spawn_actors(
-                 self._client, self._world, self._flags.carla_version,
+                 self._client, self._world, self._carla_version,
                  self._flags.carla_spawn_point_index,
                  self._flags.control == 'carla_auto_pilot',
                  self._flags.carla_num_people, self._flags.carla_num_vehicles,
@@ -294,7 +298,7 @@ class CarlaOperator(erdos.Operator):
 
     def _initialize_world(self):
         """ Setups the world town, and activates the desired weather."""
-        if self._flags.carla_version == '0.9.5':
+        if self._carla_version == '0.9.5':
             # TODO (Sukrit) :: ERDOS provides no way to retrieve handles to the
             # class objects to do garbage collection. Hence, objects from
             # previous runs of the simulation may persist. We need to clean

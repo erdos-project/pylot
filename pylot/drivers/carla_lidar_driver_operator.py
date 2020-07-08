@@ -1,4 +1,5 @@
 import pickle
+import re
 import threading
 
 import erdos
@@ -115,8 +116,10 @@ class CarlaLidarDriverOperator(erdos.Operator):
 
         # Connect to the world. We connect here instead of in the constructor
         # to ensure we're connected to the latest world.
-        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
-                             self._flags.carla_timeout)
+        client, world = get_world(self._flags.carla_host,
+                                  self._flags.carla_port,
+                                  self._flags.carla_timeout)
+        carla_version = client.get_client_version()
         set_simulation_mode(world, self._flags)
 
         self._vehicle = get_vehicle_handle(world, vehicle_id)
@@ -126,7 +129,9 @@ class CarlaLidarDriverOperator(erdos.Operator):
             self._lidar_setup.lidar_type)
         lidar_blueprint.set_attribute('channels',
                                       str(self._lidar_setup.channels))
-        if (self._flags.carla_version in ['0.9.7', '0.9.8', '0.9.9']):
+        if not (carla_version.startswith('0.8')
+                or re.match('0\.9\.[0-6]', carla_version) is not None):
+            # Any CARLA version after 0.9.6.
             lidar_blueprint.set_attribute(
                 'range', str(self._lidar_setup.get_range_in_meters()))
         else:
