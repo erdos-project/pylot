@@ -17,8 +17,8 @@ import tensorflow as tf
 sys.path.append("{}/dependencies/lanenet-lane-detection".format(
     os.getenv("PYLOT_HOME")))
 
-from lanenet_model import lanenet  # noqa: I100
-from lanenet_model import lanenet_postprocess  # noqa: I100
+from lanenet_model import lanenet  # noqa: I100 E402
+from lanenet_model import lanenet_postprocess  # noqa: I100 E402
 
 
 class LanenetDetectionOperator(erdos.Operator):
