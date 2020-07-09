@@ -6,26 +6,64 @@ traffic lights and lanes. It provides operators that use trained models and
 algorithms, as well as operators that use data from CARLA to perfectly
 detect obstacles, traffic lights, and lanes.
 
-To see a demove of obstacle detection run:
+Obstacle detection
+------------------
+
+Pylot provides two options for obstacle detection:
+
+  1. An obstacle detection operator that can use any model that adheres to the
+     Tensorflow `object detection model zoo <https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md>`__.
+     By default, we provide three models that were trained on 1080p CARLA
+     images (``faster-rcnn``, ``ssd-mobilenet-fpn-640``, and
+     ``ssdlit-mobilenet-v2``), but models that have been trained on other data
+     sets can be easily plugged in by changing the
+     ``--obstacle_detection_model_paths`` flag.
+  2. An operator that can infer any of the
+     `EfficientDet <https://github.com/google/automl>`__ models. The
+     EfficientDet models we use are not trained on CARLA data, but on the COCO
+     data set.
+
+To see a demo of obstacle detection run:
 
 .. code-block:: bash
 
     python3 pylot.py --flagfile=configs/detection.conf
 
-To see a demove of traffic light detection run:
+.. image:: images/pylot-obstacle-detection.png
+     :align: center
+
+Traffic light detection
+-----------------------
+
+The traffic light detection component uses Faster RCNN weight, which have been
+trained on 1080p CARLA images.
+
+To see a demo of traffic light detection run:
 
 .. code-block:: bash
 
     python3 pylot.py --flagfile=configs/traffic_light.conf
 
-To see a demove of lane detection run:
+.. image:: images/pylot-traffic-light-detection.png
+     :align: center
+
+Lane detection
+--------------
+
+To see a demo of lane detection run:
 
 .. code-block:: bash
 
     python3 pylot.py --flagfile=configs/lane_detection.conf
 
+.. image:: images/pylot-lane-detection.png
+     :align: center
 
-Important flags:
+**Warning**: Our lane detection component works optimally with frames have a
+resolution of 1280x720.
+
+Important flags
+---------------
 
 - ``--obstacle_detection``: Enables the obstacle detection component of the
   stack. Depending on accuracy and runtime requirements, the component can use
@@ -55,6 +93,13 @@ Important flags:
   traffic lights.
 - ``--lane_detection``: Enables the lane detection component, which currently
   implements a simple Canny edge detector.
+- ``--lane_detection_type``: Specifies which lane detection solution to use.
+  Pylot current supports a standard vision implementation that uses *Canny edge*,
+  and a neural network-based implementation that uses *Lanenet*.
 - ``--perfect_lane_detection``: Enables the component to perfectly detect lanes
   using information from CARLA.
 - ``--visualize_lane_detection``: Enables visualization of detected lanes.
+
+More information
+----------------
+See the `reference <pylot.perception.detection.html>`_ for more information.  

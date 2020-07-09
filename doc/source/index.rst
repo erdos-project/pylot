@@ -2,10 +2,14 @@ Pylot
 =====
 
 Pylot is an autonomous vehicle platform for developing and testing autonomous
-vehicle components on top of the CARLA simulator.
+vehicle components (e.g., perception, prediction, planning) on the
+CARLA simulator and real-world cars.
 
 .. _`codebase on GitHub`: https://github.com/erdos-project/pylot
 
+
+.. image:: images/pylot.png
+     :align: center
 
 
 More Information
@@ -43,9 +47,27 @@ Getting Involved
 
 .. toctree::
    :maxdepth: -1
+   :caption: Visualization
+
+   visualization.rst
+
+.. toctree::
+   :maxdepth: -1
+   :caption: Simulation
+
+   simulation.rst
+
+.. toctree::
+   :maxdepth: -1
    :caption: Drivers
 
    drivers.rst
+
+.. toctree::
+   :maxdepth: -1
+   :caption: Deploying on a car
+
+   deploy.rst   
 
 .. toctree::
    :maxdepth: -1

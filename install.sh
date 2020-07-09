@@ -129,12 +129,12 @@ cd AnyNet/models/spn_t1/ ; python3 setup.py clean ; python3 setup.py build
 cd ../../../
 
 ###### Download the Carla simulator ######
-if [ "$1" != 'challenge' ] && [ ! -d "CARLA_0.9.6" ]; then
-    mkdir CARLA_0.9.6
-    cd CARLA_0.9.6
-    wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.6.tar.gz
-    tar xvf CARLA_0.9.6.tar.gz
-    rm CARLA_0.9.6.tar.gz
+if [ "$1" != 'challenge' ] && [ ! -d "CARLA_0.9.8" ]; then
+    mkdir CARLA_0.9.8
+    cd CARLA_0.9.8
+    wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.8.tar.gz
+    tar xvf CARLA_0.9.8.tar.gz
+    rm CARLA_0.9.8.tar.gz
     if [ "$1" == 'docker' ]; then
         rm -r CarlaUE4; rm -r HDMaps
     fi

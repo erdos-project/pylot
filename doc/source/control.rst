@@ -18,7 +18,8 @@ Execute the following command to run a demo using solely the PID controller:
 
     python3 pylot.py --flagfile=configs/e2e.conf
 
-Important flags:
+Important flags
+---------------
 
 - ``--control``: Sets which control algorithm to use: Pylot currently
   offers three alternatives:
@@ -34,3 +35,8 @@ Important flags:
 - ``--pid_p``: Sets the p parameter of the PID controller.
 - ``--pid_i``: Sets the i parameter of the PID controller.
 - ``--pid_d``: Sets the d parameter of the PID controller.
+
+
+More information
+----------------
+See the `reference <pylot.control.html>`_ for more information.

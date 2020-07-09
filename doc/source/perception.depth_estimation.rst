@@ -6,13 +6,14 @@ currently offers a DepthEstimationOperator, which implements stereo
 depth estimation using the `AnyNet <https://github.com/mileyan/AnyNet>`_ neural
 network.
 
-Execute the following command to run a semantic segmentation demo:
+Execute the following command to run a depth estimation demo:
 
 .. code-block:: bash
 
     python3 pylot.py --flagfile=configs/depth_estimation.conf
 
-Important flags:
+Important flags
+---------------
 
 - ``--depth_estimation``: Enables stereo depth estimation.
 - ``--depth_estimation_model_path``: File path to a trained Anytime network
@@ -23,3 +24,7 @@ Important flags:
   and right cameras used for depth estimation.
 - ``--visualize_depth_camera``: Enables visualization of the sensor depth
   camera.
+
+More information
+----------------
+See the `reference <pylot.perception.depth_estimation.html>`_ for more information.

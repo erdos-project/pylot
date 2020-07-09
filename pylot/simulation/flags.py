@@ -15,7 +15,7 @@ flags.DEFINE_bool('carla_scenario_runner', False,
                   'True to enable running a scenario.')
 flags.DEFINE_integer('carla_town', 1, 'Sets which Carla town to use')
 flags.DEFINE_integer('carla_fps',
-                     10,
+                     20,
                      'Carla simulator FPS; do not set below 10',
                      lower_bound=10)
 flags.DEFINE_integer(

@@ -21,17 +21,27 @@ Execute the following command to run a semantic segmentation demo:
 
     python3 pylot.py --flagfile=configs/segmentation.conf
 
-Important flags:
+.. image:: images/pylot-segmentation.png
+     :align: center
+
+**Note**: The segmentation model we used has not been trained on CARLA data, and
+the output of the segmentation component is not currently used by any other
+Pylot components.
+
+Important flags
+---------------
 
 - ``--segmentation``: Enables the segmentation component of the stack.
 - ``--segmentation_model_path``: File path to a trained DRN segmentation model.
 - ``--perfect_segmentation``: The component outputs perfectly segmented frames
   it receives from CARLA, instead of the results obtained using a trained model.
-- ``--visualize_segmentation``: Enables visualization of sensor segmented frames
-  received from CARLA.
-- ``--visualize_segmentation_output``: Enables visualization of the output of
-  the segmentation component.
+- ``--visualize_segmentation``: Enables visualization of the output of the
+  segmentation component.
 - ``--evaluate_segmentation``: Compute and log accuracy metrics of the
   segmentation component.
 - ``--segmentation_metric``: Sets the accuracy metric the
   SegmentationEvalOperator computes.
+
+More information
+----------------
+See the `reference <pylot.perception.segmentation.html>`_ for more information.
