@@ -64,7 +64,7 @@ class PerfectLaneDetectionOperator(erdos.Operator):
 
     @erdos.profile_method()
     def on_position_update(self, pose_msg, detected_lane_stream):
-        """ Invoked on the receipt of an update to the position of the vehicle.
+        """Invoked on the receipt of an update to the position of the vehicle.
 
         Uses the position of the vehicle to get future waypoints and draw
         lane markings using those waypoints.

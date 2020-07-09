@@ -19,7 +19,7 @@ pylot.drivers.carla\_collision\_sensor\_operator module
     :members:
     :undoc-members:
     :show-inheritance:
-       
+
 pylot.drivers.carla\_gnss\_driver\_operator module
 --------------------------------------------------
 
@@ -43,7 +43,7 @@ pylot.drivers.carla\_lane\_invasion\_sensor\_operator module
     :members:
     :undoc-members:
     :show-inheritance:
-       
+
 pylot.drivers.carla\_lidar\_driver\_operator module
 ---------------------------------------------------
 
@@ -51,6 +51,15 @@ pylot.drivers.carla\_lidar\_driver\_operator module
     :members:
     :undoc-members:
     :show-inheritance:
+
+pylot.drivers.carla\_traffic\_light\_invasion\_sensor\_operator module
+----------------------------------------------------------------------
+
+.. automodule:: pylot.drivers.carla_traffic_light_invasion_sensor_operator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 pylot.drivers.drive\_by\_wire\_operator module
 ----------------------------------------------
@@ -84,7 +93,7 @@ pylot.drivers.velodyne\_driver\_operator module
     :members:
     :undoc-members:
     :show-inheritance:
-       
+
 Module contents
 ---------------
 

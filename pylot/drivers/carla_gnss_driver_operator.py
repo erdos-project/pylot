@@ -1,3 +1,10 @@
+"""This module implements an operator acts like a GNSS driver when
+using the CARLA simulator.
+
+The operator attaches a GNSS sensor to the ego vehicle, receives GNSS
+ measurements from CARLA, and sends them on its output stream.
+"""
+
 import threading
 
 import erdos
@@ -49,12 +56,12 @@ class CarlaGNSSDriverOperator(erdos.Operator):
         return [gnss_stream]
 
     def process_gnss(self, gnss_msg):
-        """ Invoked when a GNSS message is received from the simulator.
+        """Invoked when a GNSS message is received from the simulator.
 
         Sends GNSS measurements to downstream operators.
 
         Args:
-            gnss_msg: carla.GnssMeasurement
+            gnss_msg (carla.GnssMeasurement): GNSS reading.
         """
         game_time = int(gnss_msg.timestamp * 1000)
         timestamp = erdos.Timestamp(coordinates=[game_time])

@@ -1,3 +1,10 @@
+"""This module implements an operator acts like a camera driver when
+using the CARLA simulator.
+
+The operator attaches a camera to the ego vehicle, receives camera frames from
+CARLA, and sends them on its output stream.
+"""
+
 import pickle
 import threading
 

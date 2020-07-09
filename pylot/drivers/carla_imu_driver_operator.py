@@ -1,3 +1,10 @@
+"""This module implements an operator acts like a IMU driver when
+using the CARLA simulator.
+
+The operator attaches an IMU sensor to the ego vehicle, receives
+IMU measurements from CARLA, and sends them on its output stream.
+"""
+
 import threading
 
 import erdos
@@ -17,7 +24,7 @@ class CarlaIMUDriverOperator(erdos.Operator):
     measurements and publishes it to downstream operators.
 
     Args:
-        ground_vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on
+        ego_vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on
             which the operator receives the id of the ego vehicle. It uses this
             id to get a Carla handle to the vehicle.
         imu_stream (:py:class:`erdos.WriteStream`): Stream on which the
@@ -26,8 +33,8 @@ class CarlaIMUDriverOperator(erdos.Operator):
             Setup of the IMU sensor.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, ground_vehicle_id_stream, imu_stream, imu_setup, flags):
-        self._vehicle_id_stream = ground_vehicle_id_stream
+    def __init__(self, ego_vehicle_id_stream, imu_stream, imu_setup, flags):
+        self._vehicle_id_stream = ego_vehicle_id_stream
         self._imu_stream = imu_stream
         # The operator does not pass watermarks by defaults.
         self._flags = flags
@@ -42,7 +49,7 @@ class CarlaIMUDriverOperator(erdos.Operator):
         self._lock = threading.Lock()
 
     @staticmethod
-    def connect(ground_vehicle_id_stream):
+    def connect(ego_vehicle_id_stream):
         imu_stream = erdos.WriteStream()
         return [imu_stream]
 
@@ -52,7 +59,7 @@ class CarlaIMUDriverOperator(erdos.Operator):
         Sends IMU measurements to downstream operators.
 
         Args:
-            imu_msg: carla.IMUMeasurement
+            imu_msg (carla.IMUMeasurement): IMU reading.
         """
         game_time = int(imu_msg.timestamp * 1000)
         timestamp = erdos.Timestamp(coordinates=[game_time])

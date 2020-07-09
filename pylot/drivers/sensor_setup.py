@@ -8,7 +8,7 @@ def create_rgb_camera_setup(camera_name,
                             width,
                             height,
                             fov=90):
-    """ Creates an RGBCameraSetup instance with the given values.
+    """Creates an RGBCameraSetup instance with the given values.
 
     The Rotation is set to (pitch=0, yaw=0, roll=0).
 
@@ -33,7 +33,7 @@ def create_depth_camera_setup(camera_name_prefix,
                               width,
                               height,
                               fov=90):
-    """ Creates a DepthCameraSetup instance with the given values.
+    """Creates a DepthCameraSetup instance with the given values.
 
     The Rotation is set to (pitch=0, yaw=0, roll=0).
 
@@ -63,7 +63,7 @@ def create_segmented_camera_setup(camera_name_prefix,
                                   width,
                                   height,
                                   fov=90):
-    """ Creates a SegmentedCameraSetup instance with the given values.
+    """Creates a SegmentedCameraSetup instance with the given values.
 
     The Rotation is set to (pitch=0, yaw=0, roll=0).
 
@@ -94,7 +94,7 @@ def create_left_right_camera_setups(camera_name_prefix,
                                     height,
                                     camera_offset,
                                     fov=90):
-    """ Creates a dual-RGB-camera setup with the center at the given location,
+    """Creates a dual-RGB-camera setup with the center at the given location,
     and the two cameras on either side of the center at a distance specified
     by the camera_offset.
 
@@ -134,7 +134,7 @@ def create_left_right_camera_setups(camera_name_prefix,
 
 
 def create_center_lidar_setup(location, rotation_frequency=20):
-    """ Creates a LidarSetup instance with the given location.
+    """Creates a LidarSetup instance with the given location.
 
     The Rotation is set to (pitch=0, roll=0, yaw=0).
 
@@ -162,7 +162,7 @@ def create_center_lidar_setup(location, rotation_frequency=20):
 
 
 class CameraSetup(object):
-    """ CameraSetup stores information about an instance of the camera
+    """CameraSetup stores information about an instance of the camera
     mounted on the vehicle.
 
     Args:
@@ -224,7 +224,7 @@ class CameraSetup(object):
 
     @staticmethod
     def __create_intrinsic_matrix(width, height, fov):
-        """ Creates the intrinsic matrix for a camera with the given
+        """Creates the intrinsic matrix for a camera with the given
         parameters.
 
         Args:
@@ -250,7 +250,7 @@ class CameraSetup(object):
 
     @staticmethod
     def __create_unreal_transform(transform):
-        """ Converts a Transform from the camera coordinate space to the
+        """Converts a Transform from the camera coordinate space to the
         Unreal coordinate space.
 
         The camera space is defined as:
@@ -273,7 +273,7 @@ class CameraSetup(object):
         return transform * to_unreal_transform
 
     def get_intrinsic_matrix(self):
-        """ Get the intrinsic matrix of the camera denoted by the CameraSetup.
+        """Get the intrinsic matrix of the camera denoted by the CameraSetup.
 
         Returns:
             :py:class:`numpy.ndarray`: The 3x3 intrinsic matrix of the camera.
@@ -281,7 +281,7 @@ class CameraSetup(object):
         return self._intrinsic_mat
 
     def get_extrinsic_matrix(self):
-        """ Get the extrinsic matrix of the camera denoted by the transform
+        """Get the extrinsic matrix of the camera denoted by the transform
         of the camera with respect to the vehicle to which it is attached.
 
         Returns:
@@ -298,7 +298,7 @@ class CameraSetup(object):
         return self.name
 
     def get_unreal_transform(self):
-        """ Get the transform of the camera with respect to the vehicle in
+        """Get the transform of the camera with respect to the vehicle in
         the Unreal Engine coordinate space.
 
         Returns:
@@ -308,7 +308,7 @@ class CameraSetup(object):
         return self._unreal_transform
 
     def get_transform(self):
-        """ Get the transform of the camera with respect to the vehicle to
+        """Get the transform of the camera with respect to the vehicle to
         which it is attached.
 
         Returns:
@@ -318,7 +318,7 @@ class CameraSetup(object):
         return self.transform
 
     def set_transform(self, transform):
-        """ Set the transform of the camera with respect to the vehicle to
+        """Set the transform of the camera with respect to the vehicle to
         which it is attached.
 
         Args:
@@ -339,7 +339,7 @@ class CameraSetup(object):
             self.width, self.height, self.fov)
 
     def get_fov(self):
-        """ Get the field of view of the camera.
+        """Get the field of view of the camera.
 
         Returns:
             float: The field of view of the given camera.
@@ -357,7 +357,7 @@ class CameraSetup(object):
 
 
 class RGBCameraSetup(CameraSetup):
-    """ A CameraSetup that denotes an RGB camera from Carla.
+    """A CameraSetup that denotes an RGB camera from Carla.
 
     Args:
         name (str): The name of the camera instance.
@@ -385,7 +385,7 @@ class RGBCameraSetup(CameraSetup):
 
 
 class DepthCameraSetup(CameraSetup):
-    """ A CameraSetup that denotes a Depth camera from Carla.
+    """A CameraSetup that denotes a Depth camera from Carla.
 
     Args:
         name (str): The name of the camera instance.
@@ -413,7 +413,7 @@ class DepthCameraSetup(CameraSetup):
 
 
 class SegmentedCameraSetup(CameraSetup):
-    """ A CameraSetup that denotes a Semantic Segmentation camera from Carla.
+    """A CameraSetup that denotes a Semantic Segmentation camera from Carla.
 
     Args:
         name (str): The name of the camera instance.
@@ -442,7 +442,7 @@ class SegmentedCameraSetup(CameraSetup):
 
 
 class LidarSetup(object):
-    """ LidarSetup stores information about an instance of LIDAR mounted on
+    """LidarSetup stores information about an instance of LIDAR mounted on
     the vehicle.
 
     Args:
@@ -537,7 +537,7 @@ class LidarSetup(object):
 
     @staticmethod
     def __create_unreal_transform(transform):
-        """ Converts a Transform from the LIDAR coordinate space to the
+        """Converts a Transform from the LIDAR coordinate space to the
         Unreal Engine coordinate space.
 
         The LIDAR space is defined as:
@@ -559,7 +559,7 @@ class LidarSetup(object):
         return transform * to_camera_transform
 
     def get_name(self):
-        """ Get the name of the LIDAR instance.
+        """Get the name of the LIDAR instance.
 
         Returns:
             str: The name of the LIDAR instance.
@@ -567,7 +567,7 @@ class LidarSetup(object):
         return self.name
 
     def get_transform(self):
-        """ Get the transform of the LIDAR with respect to the vehicle to
+        """Get the transform of the LIDAR with respect to the vehicle to
         which it is attached.
 
         Returns:
@@ -577,7 +577,7 @@ class LidarSetup(object):
         return self.transform
 
     def set_transform(self, transform):
-        """ Set the transform of the LIDAR with respect to the vehicle to which
+        """Set the transform of the LIDAR with respect to the vehicle to which
         it is attached.
 
         Args:
@@ -592,7 +592,7 @@ class LidarSetup(object):
             self.transform)
 
     def get_unreal_transform(self):
-        """ Get the transform of the LIDAR with respect to the vehicle in the
+        """Get the transform of the LIDAR with respect to the vehicle in the
         Unreal Engine coordinate space.
 
         Returns:
@@ -602,7 +602,7 @@ class LidarSetup(object):
         return self._unreal_transform
 
     def get_range_in_meters(self):
-        """ Get the range of the LIDAR in metres.
+        """Get the range of the LIDAR in metres.
 
         Returns:
             float: The range of the LIDAR in metres.
@@ -622,7 +622,7 @@ class LidarSetup(object):
 
 
 class IMUSetup(object):
-    """ IMUSetup stores information about an instance of the IMU sensor
+    """IMUSetup stores information about an instance of the IMU sensor
     attached to the vehicle.
 
     Args:
@@ -648,7 +648,7 @@ class IMUSetup(object):
         self.transform = transform
 
     def get_name(self):
-        """ Get the name of the IMU instance.
+        """Get the name of the IMU instance.
 
         Returns:
             str: The name of the IMU instance.
@@ -656,7 +656,7 @@ class IMUSetup(object):
         return self.name
 
     def get_transform(self):
-        """ Get the transform of the IMU sensor with respect to the vehicle
+        """Get the transform of the IMU sensor with respect to the vehicle
         to which it is attached.
 
         Returns:
@@ -674,7 +674,7 @@ class IMUSetup(object):
 
 
 class GNSSSetup(object):
-    """ GNSSSetup stores information about an instance of the GNSS sensor
+    """GNSSSetup stores information about an instance of the GNSS sensor
     attached to the vehicle.
 
     Args:
@@ -700,7 +700,7 @@ class GNSSSetup(object):
         self.transform = transform
 
     def get_name(self):
-        """ Get the name of the GNSS instance.
+        """Get the name of the GNSS instance.
 
         Returns:
             str: The name of the GNSS instance.
@@ -708,7 +708,7 @@ class GNSSSetup(object):
         return self.name
 
     def get_transform(self):
-        """ Get the transform of the GNSS sensor with respect to the vehicle
+        """Get the transform of the GNSS sensor with respect to the vehicle
         to which it is attached.
 
         Returns:

@@ -28,6 +28,14 @@ pylot.loggers.chauffeur\_logger\_operator module
     :undoc-members:
     :show-inheritance:
 
+pylot.loggers.eval\_metric\_logger\_operator module
+---------------------------------------------------
+
+.. automodule:: pylot.loggers.eval_metric_logger_operator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pylot.loggers.imu\_logger\_operator module
 ------------------------------------------
 

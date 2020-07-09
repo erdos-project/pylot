@@ -27,8 +27,9 @@ def add_carla_bridge(control_stream, sensor_ready_stream,
 def add_efficientdet_obstacle_detection(camera_stream,
                                         time_to_decision_stream,
                                         csv_file_name=None):
+    """Adds an operator that uses EfficientDet for obstacle detection."""
     from pylot.perception.detection.efficientdet_operator import \
-            EfficientDetOperator
+        EfficientDetOperator
     if csv_file_name is None:
         csv_file_name = FLAGS.csv_log_file_name
     op_config = erdos.OperatorConfig(name='efficientdet_operator',
@@ -189,15 +190,15 @@ def add_traffic_light_detector(traffic_light_camera_stream):
 
 
 def add_traffic_light_invasion_sensor(ground_vehicle_id_stream, pose_stream):
-    from pylot.simulation.traffic_light_invasion_sensor_operator import \
-            TrafficLightInvasionSensorOperator
+    from pylot.drivers.carla_traffic_light_invasion_sensor_operator import \
+            CarlaTrafficLightInvasionSensorOperator
     op_config = erdos.OperatorConfig(
         name='traffic_light_invasion_sensor_operator',
         log_file_name=FLAGS.log_file_name,
         csv_log_file_name=FLAGS.csv_log_file_name,
         profile_file_name=FLAGS.profile_file_name)
     [traffic_light_invasion_stream
-     ] = erdos.connect(TrafficLightInvasionSensorOperator, op_config,
+     ] = erdos.connect(CarlaTrafficLightInvasionSensorOperator, op_config,
                        [ground_vehicle_id_stream, pose_stream], FLAGS)
     return traffic_light_invasion_stream
 

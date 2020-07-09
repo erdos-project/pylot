@@ -22,6 +22,18 @@ from lanenet_model import lanenet_postprocess  # noqa: I100 E402
 
 
 class LanenetDetectionOperator(erdos.Operator):
+    """Detecs driving lanes using a camera.
+
+    The operator uses the Lanenet model.
+
+    Args:
+        camera_stream (:py:class:`erdos.ReadStream`): The stream on which
+            camera frames are received.
+        detected_lanes_stream (:py:class:`erdos.WriteStream`): Stream on which
+            the operator sends
+            :py:class:`~pylot.perception.messages.LanesMessage` messages.
+        flags (absl.flags): Object to be used to access absl flags.
+    """
     def __init__(self, camera_stream, detected_lanes_stream, flags):
         camera_stream.add_callback(self.on_camera_frame,
                                    [detected_lanes_stream])
@@ -153,6 +165,8 @@ class LanenetDetectionOperator(erdos.Operator):
         # plt.show()
 
     def lane_to_ego_coordinates(self, lane, camera_setup):
+        """Transforms a lane represented as a pixel locations into 3D locations
+        relative to the ego vehicle."""
         inverse_intrinsic_matrix = np.linalg.inv(
             camera_setup.get_intrinsic_matrix())
         camera_ground_height = camera_setup.get_transform().location.z

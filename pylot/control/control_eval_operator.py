@@ -8,14 +8,14 @@ from pylot.utils import time_epoch_ms
 
 
 class ControlEvalOperator(erdos.Operator):
-    """ Operator that computes the accuracy metrics using reference waypoints
+    """Operator that computes the accuracy metrics using reference waypoints
     and the achieved waypoints.
 
     Args:
-       pose_stream (:py:class:`erdos.ReadStream`): The stream on which the
-           vehicle transform is received.
+        pose_stream (:py:class:`erdos.ReadStream`): The stream on which the
+            vehicle transform is received.
         waypoints_stream (:py:class:`erdos.ReadStream`): The stream on which
-           the waypoints are received from the planner.
+            the waypoints are received from the planner.
         flags (absl.flags): Object to be used to access absl flags.
     """
     def __init__(self, pose_stream, waypoints_stream, flags):
@@ -46,24 +46,24 @@ class ControlEvalOperator(erdos.Operator):
         return []
 
     def on_pose_update(self, msg):
-        """ Callback function for the pose update messages.
+        """Callback function for the pose update messages.
 
         This function appends the received message to the operator state.
 
         Args:
             msg (:py:class:`erdos.Message`): The message contains an instance
-                of :py:class:`pylot.utils.Pose`.
+                of :py:class:`~pylot.utils.Pose`.
         """
         self._logger.debug('@{}: pose update.'.format(msg.timestamp))
         self._pose_messages.append(msg)
 
     def on_waypoint_update(self, msg):
-        """ Callback function for the waypoint update messages.
+        """Callback function for the waypoint update messages.
 
         This function appends the received message to the operator state.
 
         Args:
-            msg (:py:class:`pylot.planning.messages.WaypointsMessage`): The
+            msg (:py:class:`~pylot.planning.messages.WaypointsMessage`): The
                 message contains the waypoints for the future trajectory, as
                 computed by the planner.
         """
@@ -72,7 +72,7 @@ class ControlEvalOperator(erdos.Operator):
 
     @erdos.profile_method()
     def on_watermark(self, timestamp):
-        """ Computes and logs the metrics of accuracy for the control module.
+        """Computes and logs the metrics of accuracy for the control module.
 
         This operator uses two different metrics of accuracy, as follows:
             1. Crosstrack error: The distance between the waypoint that the
@@ -122,10 +122,10 @@ class ControlEvalOperator(erdos.Operator):
 
     @staticmethod
     def compute_control_metrics(vehicle_transform, reference_waypoints):
-        """ Compute the metrics of accuracy for the control module.
+        """Compute the metrics of accuracy for the control module.
 
         Args:
-            vehicle_transform (:py:class:`pylot.utils.Transform`): The
+            vehicle_transform (:py:class:`~pylot.utils.Transform`): The
                 transform of the vehicle.
             reference_waypoints (:py:class:`tuple`): A tuple of two reference
                 waypoints.

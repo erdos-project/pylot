@@ -121,8 +121,7 @@ class EvalMetricLoggerOperator(erdos.Operator):
         Logs the timestamp of the invasion.
 
         Args:
-            msg
-            (:py:class:`pylot.simulation.messages.TrafficInfractionMessage`):
+            msg (:py:class:`pylot.simulation.messages.TrafficInfractionMessage`):  # noqa: E501
                 The traffic infraction message sent by the sensor.
         """
         sim_time = msg.timestamp.coordinates[0]

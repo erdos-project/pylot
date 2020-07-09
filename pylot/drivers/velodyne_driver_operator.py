@@ -1,3 +1,9 @@
+"""This module implements an operator that forwards messages from the
+ ROS topic created by the Velodyne LiDAR driver.
+
+Similar operators can be implemented for other types of LiDARs.
+"""
+
 import erdos
 
 import numpy as np

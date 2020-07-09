@@ -36,6 +36,7 @@ Getting Involved
 
    perception.rst
    prediction.rst
+   localization.rst
    map.rst
    planning.rst
    control.rst

@@ -51,6 +51,14 @@ pylot.simulation.perfect\_traffic\_light\_detector\_operator module
     :undoc-members:
     :show-inheritance:
 
+pylot.simulation.planning\_pose\_synchronizer\_operator module
+--------------------------------------------------------------
+
+.. automodule:: pylot.simulation.planning_pose_synchronizer_operator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pylot.simulation.synchronizer\_operator module
 ----------------------------------------------
 

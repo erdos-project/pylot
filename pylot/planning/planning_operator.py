@@ -149,6 +149,7 @@ class PlanningOperator(erdos.Operator):
 
     def on_global_trajectory(self, msg):
         """Invoked whenever a message is received on the trajectory stream.
+
         Args:
             msg (:py:class:`~erdos.message.Message`): Message that contains
                 a list of waypoints to the goal location.
@@ -165,6 +166,7 @@ class PlanningOperator(erdos.Operator):
 
     def on_opendrive_map(self, msg):
         """Invoked whenever a message is received on the open drive stream.
+
         Args:
             msg (:py:class:`~erdos.message.Message`): Message that contains
                 the open drive string.

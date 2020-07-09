@@ -1,3 +1,7 @@
+"""This module implements an operator that publishes collision events
+between the ego vehicle and other CARLA agents.
+"""
+
 import carla
 
 import erdos
@@ -8,7 +12,7 @@ from pylot.utils import Vector3D
 
 
 class CarlaCollisionSensorDriverOperator(erdos.Operator):
-    """ Publishes collision events of the ego-vehicle on a stream.
+    """Publishes collision events of the ego-vehicle on a stream.
 
     This operator attaches a CollisionSensor to the ego-vehicle, registers
     callback functions to retrieve the collision events and publishes it to

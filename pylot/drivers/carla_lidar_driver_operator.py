@@ -1,3 +1,10 @@
+"""This module implements an operator acts like a LiDAR driver when
+using the CARLA simulator.
+
+The operator attaches a LiDAR sensor to the ego vehicle, receives point clouds
+from CARLA, and sends them on its output stream.
+"""
+
 import pickle
 import re
 import threading

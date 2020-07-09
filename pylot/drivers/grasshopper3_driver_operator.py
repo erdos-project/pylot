@@ -1,3 +1,9 @@
+"""This module implements an operator that forwards messages from the
+ ROS topic created by the ROS Grasshopper camera driver.
+
+Similar operators can be implemented for other types of cameras.
+"""
+
 import cv2
 
 import cv_bridge

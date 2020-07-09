@@ -1,3 +1,7 @@
+"""This module implements an operator that publishes information whenever
+the ego vehicle invades a lane on the opposite side of the road.
+"""
+
 import carla
 
 import erdos

@@ -4,6 +4,19 @@ from rrt_star_planner.RRTStar.rrt_star_wrapper import apply_rrt_star
 
 
 class RRTStarPlanner(Planner):
+    """Wrapper around the RRT* planner.
+
+    Note:
+        Details can be found at `RRT* Planner`_.
+
+    Args:
+        world: (:py:class:`~pylot.planning.world.World`): A reference to the
+            planning world.
+        flags (absl.flags): Object to be used to access absl flags.
+
+    .. _RRT* Planner:
+       https://github.com/erdos-project/rrt_star_planner
+    """
     def __init__(self, world, flags, logger):
         super().__init__(world, flags, logger)
         self._hyperparameters = {
@@ -15,6 +28,15 @@ class RRTStarPlanner(Planner):
         }
 
     def run(self, timestamp):
+        """Runs the planner.
+
+        Note:
+            The planner assumes that the world is up-to-date.
+
+        Returns:
+            :py:class:`~pylot.planning.waypoints.Waypoints`: Waypoints of the
+            planned trajectory.
+        """
         obstacle_list = self._world.get_obstacle_list()
         if len(obstacle_list) == 0:
             # Do not use RRT* if there are no obstacles.

@@ -20,10 +20,26 @@ pylot.perception.detection.detection\_operator module
     :undoc-members:
     :show-inheritance:
 
+pylot.perception.detection.efficientdet\_operator module
+--------------------------------------------------------
+
+.. automodule:: pylot.perception.detection.efficientdet_operator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pylot.perception.detection.detection\_eval\_operator module
 -----------------------------------------------------------
 
 .. automodule:: pylot.perception.detection.detection_eval_operator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pylot.perception.detection.lane module
+--------------------------------------
+
+.. automodule:: pylot.perception.detection.lane
     :members:
     :undoc-members:
     :show-inheritance:
@@ -36,10 +52,26 @@ pylot.perception.detection.lane\_detection\_canny\_operator module
     :undoc-members:
     :show-inheritance:
 
+pylot.perception.detection.lanenet\_detection\_operator module
+--------------------------------------------------------------
+
+.. automodule:: pylot.perception.detection.lanenet_detection_operator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pylot.perception.detection.obstacle module
 ------------------------------------------
 
 .. automodule:: pylot.perception.detection.obstacle
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pylot.perception.detection.obstacle\_location\_finder\_operator module
+----------------------------------------------------------------------
+
+.. automodule:: pylot.perception.detection.obstacle_location_finder_operator
     :members:
     :undoc-members:
     :show-inheritance:
@@ -70,7 +102,7 @@ pylot.perception.detection.traffic\_light\_det\_operator module
     :show-inheritance:
 
 pylot.perception.detection.traffic\_light module
------------------------------------------------------------
+------------------------------------------------
 
 .. automodule:: pylot.perception.detection.traffic_light
     :members:

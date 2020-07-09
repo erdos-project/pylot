@@ -118,6 +118,7 @@ class DepthFrame(object):
         return abs(self.frame[int(y)][int(x)] * 1000 - z) < threshold
 
     def resize(self, width, height):
+        """Resizes the frame."""
         import cv2
         self.camera_setup.set_resolution(width, height)
         self.frame = cv2.resize(self.frame,
@@ -125,6 +126,7 @@ class DepthFrame(object):
                                 interpolation=cv2.INTER_NEAREST)
 
     def visualize(self, pygame_display, timestamp=None):
+        """Visualizes the frame on a pygame display."""
         if self.original_frame is not None:
             import pygame
             image_np = self.original_frame

@@ -1,3 +1,5 @@
+"""This module implements EKF localization using GNSS and IMU."""
+
 from collections import deque
 from functools import partial
 

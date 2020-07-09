@@ -82,9 +82,22 @@ class CameraFrame(object):
         cv2.rectangle(self.frame, start, end, color, thickness)
 
     def draw_point(self, point, color, r=3):
+        """Draws a point on the frame.
+
+        Args:
+            point (:py:class:`~pylot.utils.Vector2D`): Where to draw the point.
+            color: RGB tuple for the color of the point.
+        """
         cv2.circle(self.frame, (int(point.x), int(point.y)), r, color, -1)
 
     def draw_text(self, point, text, color=(255, 255, 255)):
+        """Draws text on the frame.
+
+        Args:
+            point (:py:class:`~pylot.utils.Vector2D`): Where to draw the text.
+            text (:obj:`str`): The text to draw.
+            color: RGB tuple for the color of the text.
+        """
         cv2.putText(self.frame,
                     text, (int(point.x), int(point.y)),
                     cv2.FONT_HERSHEY_SIMPLEX,
@@ -99,12 +112,14 @@ class CameraFrame(object):
                 and 0 <= point.y <= self.camera_setup.height)
 
     def resize(self, width, height):
+        """Resizes the frame."""
         self.camera_setup.set_resolution(width, height)
         self.frame = cv2.resize(self.frame,
                                 dsize=(width, height),
                                 interpolation=cv2.INTER_NEAREST)
 
     def visualize(self, pygame_display, timestamp=None):
+        """Visualizes the frame on a pygame display."""
         import pygame
         if timestamp is not None:
             pylot.utils.add_timestamp(self.frame, timestamp)

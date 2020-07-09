@@ -7,6 +7,19 @@ from pylot.planning.planner import Planner
 
 
 class HybridAStarPlanner(Planner):
+    """Wrapper around the Hybrid A* planner.
+
+    Note:
+        Details can be found at `Hybrid A* Planner`_.
+
+    Args:
+        world: (:py:class:`~pylot.planning.world.World`): A reference to the
+            planning world.
+        flags (absl.flags): Object to be used to access absl flags.
+
+    .. _Hybrid A* Planner:
+       https://github.com/erdos-project/hybrid_astar_planner
+    """
     def __init__(self, world, flags, logger):
         super().__init__(world, flags, logger)
         self._hyperparameters = {
@@ -25,6 +38,15 @@ class HybridAStarPlanner(Planner):
         }
 
     def run(self, timestamp):
+        """Runs the planner.
+
+        Note:
+            The planner assumes that the world is up-to-date.
+
+        Returns:
+            :py:class:`~pylot.planning.waypoints.Waypoints`: Waypoints of the
+            planned trajectory.
+        """
         obstacle_list = self._world.get_obstacle_list()
 
         if len(obstacle_list) == 0:

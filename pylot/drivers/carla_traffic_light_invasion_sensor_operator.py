@@ -1,3 +1,7 @@
+"""This module implements an operator that publishes traffic lights infractions
+committed by the ego vehicle.
+"""
+
 import time
 
 import carla
@@ -14,7 +18,7 @@ from pylot.utils import Location, Vector3D
 from shapely.geometry import LineString
 
 
-class TrafficLightInvasionSensorOperator(erdos.Operator):
+class CarlaTrafficLightInvasionSensorOperator(erdos.Operator):
     def __init__(self, ground_vehicle_id_stream, pose_stream,
                  traffic_light_invasion_stream, flags):
         # Save the streams.

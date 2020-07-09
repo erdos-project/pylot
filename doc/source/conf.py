@@ -52,15 +52,22 @@ mock_modules = [
     "absl", "agents", "agents.navigation",
     "agents.navigation.global_route_planner",
     "agents.navigation.global_route_planner_dao", "AnyNet", "AnyNet.utils",
-    "AnyNet.models.anynet", "carla", "catkin_pkg.packages", "dbw_mkz_msgs.msg",
-    "drn", "drn.segment", "DaSiamRPN", "DaSiamRPN.code", "DaSiamRPN.code.net",
-    "DaSiamRPN.code.run_SiamRPN", "DaSiamRPN.code.net",
+    "AnyNet.models.anynet", "carla", "catkin_pkg.packages", "cv_bridge",
+    "dbw_mkz_msgs.msg", "drn", "drn.segment", "DaSiamRPN", "DaSiamRPN.code",
+    "DaSiamRPN.code.net", "DaSiamRPN.code.run_SiamRPN", "DaSiamRPN.code.net",
+    "frenet_optimal_trajectory_planner",
+    "frenet_optimal_trajectory_planner.FrenetOptimalTrajectory.fot_wrapper",
+    "geometry_msgs.msg", "hybrid_astar_planner",
+    "hybrid_astar_planner.HybridAStar.hybrid_astar_wrapper", "lanenet_model",
     "leaderboard.autoagents.autonomous_agent", "nanonets_object_tracking",
-    "nanonets_object_tracking.deepsort", "pptk", "rospkg",
-    "rospkg.environment", "rrt_star_planner.RRTStar.rrt_star_wrapper",
-    "segment", "sort", "sort.sort", "srunner", "srunner.challenge",
+    "nanonets_object_tracking.deepsort", "pylot.prediction.prediction.r2p2",
+    "pptk", "R2P2", "rospkg", "rospkg.environment", "rospy",
+    "rrt_star_planner.RRTStar.rrt_star_wrapper", "segment", "sensor_msgs",
+    "sensor_msgs.msg", "sensor_msgs.point_cloud2", "std_msgs.msg", "sort",
+    "sort.sort", "srunner", "srunner.challenge",
     "srunner.challenge.autoagents",
-    "srunner.challenge.autoagents.autonomous_agent", "tensorflow"
+    "srunner.challenge.autoagents.autonomous_agent", "tensorflow",
+    "tf.transformations"
 ]
 for mod_name in mock_modules:
     sys.modules[mod_name] = mock.Mock()

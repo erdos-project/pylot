@@ -37,6 +37,14 @@ pylot.prediction.prediction\_eval\_operator module
     :undoc-members:
     :show-inheritance:
 
+pylot.prediction.utils module
+-----------------------------
+
+.. automodule:: pylot.prediction.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Module contents
 ---------------
 

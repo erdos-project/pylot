@@ -140,9 +140,10 @@ class World(object):
         """Computes a stopping factor for ego vehicle given a person obstacle.
 
         Args:
-        obstacle: An Obstacle or an ObstaclePrediction of a person.
-        wp_vector (:py:class:`~pylot.utils.Vector2D`): vector from the ego
-            vehicle to the target waypoint.
+            obstacle (:py:class:`~pylot.prediction.obstacle_prediction.ObstaclePrediction`):  # noqa: E501
+                Prediction for a person.
+            wp_vector (:py:class:`~pylot.utils.Vector2D`): vector from the ego
+                vehicle to the target waypoint.
 
         Returns:
             :obj:`float`: A stopping factor between 0 and 1 (i.e., no braking).
@@ -182,7 +183,8 @@ class World(object):
         """Computes a stopping factor for ego vehicle given a vehicle pos.
 
         Args:
-            obstacle: An Obstacle or an ObstaclePrediction of a vehicle.
+            obstacle (:py:class:`~pylot.prediction.obstacle_prediction.ObstaclePrediction`):  # noqa: E501
+                Prediction for a vehicle.
             wp_vector (:py:class:`~pylot.utils.Vector2D`): vector from the ego
                 vehicle to the target waypoint.
 

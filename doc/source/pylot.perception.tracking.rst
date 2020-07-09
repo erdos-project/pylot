@@ -37,6 +37,14 @@ pylot.perception.tracking.object\_tracker\_operator module
     :undoc-members:
     :show-inheritance:
 
+pylot.perception.tracking.obstacle\_location\_history\_operator module
+----------------------------------------------------------------------
+
+.. automodule:: pylot.perception.tracking.obstacle_location_history_operator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pylot.perception.tracking.obstacle\_trajectory module
 -----------------------------------------------------
 
@@ -49,6 +57,14 @@ pylot.perception.tracking.sort\_tracker module
 ----------------------------------------------
 
 .. automodule:: pylot.perception.tracking.sort_tracker
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pylot.perception.tracking.tracking\_eval_operator module
+--------------------------------------------------------
+
+.. automodule:: pylot.perception.tracking.tracking_eval_operator
     :members:
     :undoc-members:
     :show-inheritance:

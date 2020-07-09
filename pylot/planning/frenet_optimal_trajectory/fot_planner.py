@@ -10,8 +10,11 @@ class FOTPlanner(Planner):
     """Frenet Optimal Trajectory (FOT) planner.
 
     This planner uses a global route and predictions to produce a frenet
-    optimal trajectory plan. Details can be found in
-    `~pylot.planning.frenet_optimal_trajectory.frenet_optimal_trajectory.py`.
+    optimal trajectory plan. Details can be found at
+    `Frenet Optimal Trajectory Planner`_.
+
+    .. _Frenet Optimal Trajectory Planner:
+       https://github.com/erdos-project/frenet_optimal_trajectory_planner
     """
     def __init__(self, world, flags, logger):
         super().__init__(world, flags, logger)
@@ -71,6 +74,15 @@ class FOTPlanner(Planner):
         self._hyperparameters['d_road_w'] = d_road_w
 
     def run(self, timestamp):
+        """Runs the planner.
+
+        Note:
+            The planner assumes that the world is up-to-date.
+
+        Returns:
+            :py:class:`~pylot.planning.waypoints.Waypoints`: Waypoints of the
+            planned trajectory.
+        """
         self._logger.debug("@{}: Hyperparameters: {}".format(
             timestamp, self._hyperparameters))
         initial_conditions = self._compute_initial_conditions()

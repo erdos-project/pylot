@@ -9,6 +9,7 @@ Subpackages
     pylot.control.rst
     pylot.debug.rst
     pylot.drivers.rst
+    pylot.localization.rst
     pylot.loggers.rst
     pylot.map.rst
     pylot.perception.rst
@@ -19,13 +20,18 @@ Subpackages
 Submodules
 ----------
 
-pylot.config module
--------------------
-
 pylot.component\_creator module
 -------------------------------
 
 .. automodule:: pylot.component_creator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pylot.operator\_creator module
+------------------------------
+
+.. automodule:: pylot.operator_creator
     :members:
     :undoc-members:
     :show-inheritance:

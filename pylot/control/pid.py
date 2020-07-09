@@ -1,3 +1,5 @@
+"""This module implements a longitudinal and lateral controller."""
+
 import math
 import time
 from collections import deque
@@ -11,10 +13,10 @@ class PIDLongitudinalController(object):
     """Implements longitudinal control using a PID.
 
     Args:
-       K_P: Proportional term.
-       K_D: Differential term.
-       K_I: Integral term.
-       dt: time differential in seconds.
+       K_P (:obj:`float`): Proportional term.
+       K_D (:obj:`float`): Differential term.
+       K_I (:obj:`float`): Integral term.
+       dt (:obj:`float`): time differential in seconds.
     """
     def __init__(self,
                  K_P=1.0,
@@ -66,10 +68,10 @@ class PIDLateralController(object):
     """Implements lateral control using a PID.
 
     Args:
-       K_P: Proportional term.
-       K_D: Differential term.
-       K_I: Integral term.
-       dt: time differential in seconds.
+       K_P (:obj:`float`): Proportional term.
+       K_D (:obj:`float`): Differential term.
+       K_I (:obj:`float`): Integral term.
+       dt (:obj:`float`): time differential in seconds.
     """
     def __init__(self,
                  K_P=1.0,

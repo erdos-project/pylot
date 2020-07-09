@@ -1,3 +1,7 @@
+"""This module implements an operator for visualizing the state of
+the different pipeline components (e.g., detections, tracked obstacles,
+planning waypoints)."""
+
 from collections import deque
 from functools import partial
 
