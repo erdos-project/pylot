@@ -4,14 +4,6 @@ pylot.perception.tracking package
 Submodules
 ----------
 
-pylot.perception.tracking.cv2\_tracker module
----------------------------------------------
-
-.. automodule:: pylot.perception.tracking.cv2_tracker
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pylot.perception.tracking.da\_siam\_rpn\_tracker module
 -------------------------------------------------------
 

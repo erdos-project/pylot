@@ -147,8 +147,10 @@ class LocalizationOperator(erdos.Operator):
         gnss_msg = self.get_message(self._gnss_updates, timestamp, "GNSS")
         imu_msg = self.get_message(self._imu_updates, timestamp, "IMU")
 
-        if (self._last_pose_estimate is None or self._last_timestamp is None
-            ) or (abs(imu_msg.acceleration.y) > 100 and not self._is_started):
+        if (self._last_pose_estimate is None or
+            self._last_timestamp is None) or \
+            (abs(imu_msg.acceleration.y) > 100 and
+             not self._is_started):
             self._logger.debug(
                 "@{}: The initial pose estimate is not initialized.".format(
                     timestamp))

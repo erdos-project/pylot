@@ -233,7 +233,7 @@ class CarlaOperator(erdos.Operator):
                         or self._next_localization_sensor_reading is None or
                         game_time == self._next_localization_sensor_reading):
                     if self._flags.carla_mode == 'pseudo-asynchronous':
-                        self._update_next_localization_pseudo_asynchronous_ticks(
+                        self._update_next_localization_pseudo_async_ticks(
                             game_time)
                     self.__send_hero_vehicle_data(self.pose_stream, timestamp,
                                                   watermark_msg)
@@ -250,7 +250,7 @@ class CarlaOperator(erdos.Operator):
                                                   timestamp, watermark_msg)
                     self.__update_spectactor_pose()
 
-    def _update_next_localization_pseudo_asynchronous_ticks(self, game_time):
+    def _update_next_localization_pseudo_async_ticks(self, game_time):
         if self._flags.carla_localization_frequency > -1:
             self._next_localization_sensor_reading = (
                 game_time +

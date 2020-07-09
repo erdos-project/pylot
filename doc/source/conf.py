@@ -51,10 +51,13 @@ import mock
 mock_modules = [
     "absl", "agents", "agents.navigation",
     "agents.navigation.global_route_planner",
-    "agents.navigation.global_route_planner_dao", "anynet", "anynet.anynet",
-    "carla", "drn", "drn.segment", "DaSiamRPN", "DaSiamRPN.code",
-    "DaSiamRPN.code.net", "DaSiamRPN.code.run_SiamRPN", "DaSiamRPN.code.net",
-    "nanonets_object_tracking", "nanonets_object_tracking.deepsort", "pptk",
+    "agents.navigation.global_route_planner_dao", "AnyNet", "AnyNet.utils",
+    "AnyNet.models.anynet", "carla", "catkin_pkg.packages", "dbw_mkz_msgs.msg",
+    "drn", "drn.segment", "DaSiamRPN", "DaSiamRPN.code", "DaSiamRPN.code.net",
+    "DaSiamRPN.code.run_SiamRPN", "DaSiamRPN.code.net",
+    "leaderboard.autoagents.autonomous_agent", "nanonets_object_tracking",
+    "nanonets_object_tracking.deepsort", "pptk", "rospkg",
+    "rospkg.environment", "rrt_star_planner.RRTStar.rrt_star_wrapper",
     "segment", "sort", "sort.sort", "srunner", "srunner.challenge",
     "srunner.challenge.autoagents",
     "srunner.challenge.autoagents.autonomous_agent", "tensorflow"

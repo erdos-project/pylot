@@ -12,6 +12,13 @@ pylot.simulation.challenge.ERDOSAgent module
     :undoc-members:
     :show-inheritance:
 
+pylot.simulation.challenge.ERDOSTrack4Agent module
+--------------------------------------------------
+
+.. automodule:: pylot.simulation.challenge.ERDOSTrack4Agent
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 Module contents
 ---------------

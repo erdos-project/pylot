@@ -11,44 +11,10 @@ Subpackages
 Submodules
 ----------
 
-pylot.simulation.camera\_driver\_operator module
-------------------------------------------------
-
-.. automodule:: pylot.simulation.camera_driver_operator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 pylot.simulation.carla\_operator module
 ---------------------------------------
 
 .. automodule:: pylot.simulation.carla_operator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pylot.simulation.carla\_replay\_operator module
------------------------------------------------
-
-.. automodule:: pylot.simulation.carla_replay_operator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-pylot.simulation.imu\_driver\_operator module
----------------------------------------------
-
-.. automodule:: pylot.simulation.imu_driver_operator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pylot.simulation.lidar\_driver\_operator module
------------------------------------------------
-
-.. automodule:: pylot.simulation.lidar_driver_operator
     :members:
     :undoc-members:
     :show-inheritance:
@@ -84,15 +50,6 @@ pylot.simulation.perfect\_traffic\_light\_detector\_operator module
     :members:
     :undoc-members:
     :show-inheritance:
-
-pylot.simulation.sensor\_setup module
--------------------------------------
-
-.. automodule:: pylot.simulation.sensor_setup
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :inherited-members:
 
 pylot.simulation.synchronizer\_operator module
 ----------------------------------------------

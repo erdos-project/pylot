@@ -373,7 +373,7 @@ def get_traffic_lights_obstacles(traffic_lights, depth_frame, segmented_frame,
         world.
 
     Args:
-        traffic_lights (list(:py:class:`~pylot.perception.detection.traffic_light.TrafficLight`)):
+        traffic_lights (list(:py:class:`~pylot.perception.detection.traffic_light.TrafficLight`)):  # noqa: E501
             List of traffic lights.
         depth_frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`):
             Depth frame captured from the same position as the camera frame.
@@ -406,7 +406,7 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
         world.
 
     Args:
-        speed_signs (list(:py:class:`~pylot.perception.detection.speed_limit_sign.SpeedLimitSign`)):
+        speed_signs (list(:py:class:`~pylot.perception.detection.speed_limit_sign.SpeedLimitSign`)):  # noqa: E501
             List of speed limit signs in the world.
         depth_frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`):
             Depth frame captured from the same position as the camera frame.
@@ -466,7 +466,7 @@ def get_detected_traffic_stops(traffic_stops, depth_frame):
         world.
 
     Args:
-        traffic_stops (list(:py:class:`~pylot.perception.detection.stop_sign.StopSign`)):
+        traffic_stops (list(:py:class:`~pylot.perception.detection.stop_sign.StopSign`)):  # noqa: E501
             List of traffic stops in the world.
         depth_frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`):
             Depth frame captured from the same position as the camera frame.

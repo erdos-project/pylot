@@ -111,9 +111,9 @@ class TrafficLightInvasionSensorOperator(erdos.Operator):
                     rgt_lane_wp = location_wp + carla.Location(rgt_lane_wp)
 
                     # Is the vehicle traversing the stop line?
-                    if self.is_vehicle_crossing_line(
-                        (tail_close_pt, tail_far_pt),
-                        (lft_lane_wp, rgt_lane_wp)):
+                    seg1 = (tail_close_pt, tail_far_pt)
+                    seg2 = (lft_lane_wp, rgt_lane_wp)
+                    if self.is_vehicle_crossing_line(seg1, seg2):
                         location = traffic_light.get_transform().location
                         message = TrafficInfractionMessage(
                             TrafficInfractionType.RED_LIGHT_INVASION,

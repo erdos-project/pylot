@@ -42,6 +42,12 @@ Getting Involved
 
 .. toctree::
    :maxdepth: -1
+   :caption: Drivers
+
+   drivers.rst
+
+.. toctree::
+   :maxdepth: -1
    :caption: Data Gathering
 
    data_gathering.rst

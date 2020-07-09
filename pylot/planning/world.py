@@ -103,8 +103,9 @@ class World(object):
                     if (self.ego_transform.location.l2_distance(
                             transform.location) <=
                             self._flags.obstacle_distance_threshold):
+                        obstacle = prediction.obstacle_trajectory.obstacle
                         obstacle_corners = \
-                            prediction.obstacle_trajectory.obstacle.get_bounding_box_corners(
+                            obstacle.get_bounding_box_corners(
                                 transform, self._flags.obstacle_radius)
                         obstacle_list.append(obstacle_corners)
         if len(obstacle_list) == 0:
@@ -309,7 +310,7 @@ class World(object):
         """Computes a stopping factor for ego vehicle given a traffic light.
 
         Args:
-            tl (:py:class:`~pylot.perception.detection.traffic_light.TrafficLight`):
+            tl (:py:class:`~pylot.perception.detection.traffic_light.TrafficLight`):  # noqa: E501
                 the traffic light.
             wp_vector (:py:class:`~pylot.utils.Vector2D`): vector from the ego
                 vehicle to the target waypoint.

@@ -270,7 +270,7 @@ class Obstacle(object):
             depth_frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`):
                 Depth frame used to compare the depth to the distance of the
                 obstacle from the sensor.
-            segmented_frame (:py:class:`~pylot.perception.segmentation.segmented_frame.SegmentedFrame`):
+            segmented_frame (:py:class:`~pylot.perception.segmentation.segmented_frame.SegmentedFrame`):  # noqa: E501
                 Segmented frame used to refine the conversions.
 
         Returns:

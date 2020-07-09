@@ -11,7 +11,7 @@ class TrajectoryLoggerOperator(erdos.Operator):
 
     Args:
         obstacles_tracking_stream (:py:class:`erdos.ReadStream`): The stream on
-            which :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
+            which :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`  # noqa: E501
             are received.
         flags (absl.flags): Object to be used to access absl flags.
 
@@ -37,7 +37,7 @@ class TrajectoryLoggerOperator(erdos.Operator):
         Invoked upon the receipt of a msg on the obstacles trajectories stream.
 
         Args:
-            msg (:py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`):
+            msg (:py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`):  # noqa: E501
                 Received message.
         """
         self._logger.debug('@{}: {} received message'.format(

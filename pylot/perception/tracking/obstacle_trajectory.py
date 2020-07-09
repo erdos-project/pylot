@@ -7,7 +7,7 @@ class ObstacleTrajectory(object):
     """Used to store the trajectory of an obstacle.
 
     Args:
-        obstacle (:py:class:`~pylot.perception.detection.obstacle.Obstacle):
+        obstacle (:py:class:`~pylot.perception.detection.obstacle.Obstacle`):
             The obstacle for which the trajectory is computed.
         trajectory (list(:py:class:`~pylot.utils.Transform`)): List of past
             transforms.
@@ -32,10 +32,9 @@ class ObstacleTrajectory(object):
                                                draw_label)
 
     def estimate_obstacle_orientation(self):
-        """ Uses the obstacle's past trajectory to estimate its angle from the
-            positive x-axis (assumes trajectory points are in the ego-vehicle's
-            coordinate frame).
-        """
+        """Uses the obstacle's past trajectory to estimate its angle from the
+           positive x-axis (assumes trajectory points are in the ego-vehicle's
+           coordinate frame)."""
         other_idx = len(self.trajectory) - 2
         # TODO: Setting a default yaw is dangerous. Find some way to estimate
         # the orientation of a stationary object (e.g. 3D object detection).
@@ -57,8 +56,7 @@ class ObstacleTrajectory(object):
     def get_last_n_transforms(self, n):
         """Returns the last n steps of the trajectory. If we have not seen
         enough past locations of the obstacle, pad the trajectory with the
-        appropriate number of copies of the earliest location.
-        """
+        appropriate number of copies of the earliest location."""
         num_past_locations = len(self.trajectory)
         if num_past_locations < n:
             initial_copies = [self.trajectory[0]] * (n - num_past_locations)

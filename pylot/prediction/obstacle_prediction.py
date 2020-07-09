@@ -2,7 +2,8 @@ class ObstaclePrediction(object):
     """Class storing info about an obstacle prediction.
 
     Args:
-        obstacle_trajectory (:py:class:`~pylot.perception.tracking.obstacle_trajectory.ObstacleTrajectory`): Trajectory of the obstacle.
+        obstacle_trajectory (:py:class:`~pylot.perception.tracking.obstacle_trajectory.ObstacleTrajectory`):  # noqa: E501
+            Trajectory of the obstacle.
         transform (:py:class:`~pylot.utils.Transform`): The current transform
             of the obstacle.
         probability (:obj: `float`): The probability of the prediction.

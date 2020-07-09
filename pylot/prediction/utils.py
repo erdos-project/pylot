@@ -42,7 +42,7 @@ def _point_cloud_to_precog_coordinates(point_cloud):
     """Converts a LIDAR PointCloud, which is in camera coordinates,
        to the coordinates used in the PRECOG dataset, which is LIDAR
        coordinates but with the y- and z-coordinates negated (for
-       a reference describing PRECOG coordinates, see e.g. https://github.com/nrhine1/deep_imitative_models/blob/0d52edfa54cb79da28bd7cf965ebccbe8514fc10/dim/env/preprocess/carla_preprocess.py#L584)
+       a reference describing PRECOG coordinates, see e.g. https://github.com/nrhine1/deep_imitative_models/blob/0d52edfa54cb79da28bd7cf965ebccbe8514fc10/dim/env/preprocess/carla_preprocess.py#L584)  # noqa: E501
     """
     to_precog_transform = Transform(matrix=np.array(
         [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))

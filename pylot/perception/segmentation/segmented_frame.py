@@ -55,13 +55,13 @@ class SegmentedFrame(object):
     Args:
         frame: A numpy array storring the segmented frame.
         encoding (:obj:`str`): The encoding of the frame (carla | cityscapes).
-        camera_setup (:py:class:`~pylot.drivers.sensor_setup.SegmentedCameraSetup`):
+        camera_setup (:py:class:`~pylot.drivers.sensor_setup.SegmentedCameraSetup`):  # noqa: E501
             The camera setup used by the sensor that generated this frame.
 
     Attributes:
         frame: A numpy array storring the segmented frame.
         encoding (:obj:`str`): The encoding of the frame (carla | cityscapes).
-        camera_setup (:py:class:`~pylot.drivers.sensor_setup.SegmentedCameraSetup`):
+        camera_setup (:py:class:`~pylot.drivers.sensor_setup.SegmentedCameraSetup`):  # noqa: E501
             The camera setup used by the sensor that generated this frame.
     """
     def __init__(self, frame, encoding, camera_setup):

@@ -7,7 +7,7 @@ class PredictionMessage(erdos.Message):
     Args:
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
             the message.
-        predictions (list(:py:class:`~pylot.prediction.obstacle_prediction.ObstaclePrediction`)):
+        predictions (list(:py:class:`~pylot.prediction.obstacle_prediction.ObstaclePrediction`)):  # noqa: E501
             Obstacle predictions.
 
     Attributes:

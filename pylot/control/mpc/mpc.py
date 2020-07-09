@@ -159,8 +159,10 @@ class ModelPredictiveController:
         """
         is_converged = False
         predicted_state = self._predict_state()
-        horizon_x, horizon_y, horizon_vel, horizon_yaw, horizon_accel, horizon_steer, solved = \
-            self._control(reference_state, predicted_state, reference_steer)
+        horizon_x, horizon_y, horizon_vel, horizon_yaw, horizon_accel, \
+            horizon_steer, solved = \
+            self._control(reference_state, predicted_state,
+                          reference_steer)
         iteration_difference = \
             np.linalg.norm(self.horizon_accel - horizon_accel, ord=1) + \
             np.linalg.norm(self.horizon_steer - horizon_steer, ord=1)

@@ -28,8 +28,8 @@ class PerfectTrackerOperator(erdos.Operator):
         # Processed data. Key is actor id, value is deque containing the past
         # trajectory of the corresponding actor. Trajectory is stored in world
         # coordinates, for ease of transformation.
-        trajectory = lambda: deque(maxlen=self._flags.tracking_num_steps)
-        self._obstacles = defaultdict(trajectory)
+        self._obstacles = defaultdict(
+            lambda: deque(maxlen=self._flags.tracking_num_steps))
 
     @staticmethod
     def connect(vehicle_id_stream, ground_obstacles_stream, pose_stream):
@@ -51,7 +51,7 @@ class PerfectTrackerOperator(erdos.Operator):
         # timestamp.
         for obstacle in obstacles_msg.obstacles:
             if obstacle.id == self._vehicle_id and not \
-                self._flags.prediction_ego_agent:
+               self._flags.prediction_ego_agent:
                 # If we are not performing ego-agent prediction, do not
                 # track the ego-vehicle.
                 continue
