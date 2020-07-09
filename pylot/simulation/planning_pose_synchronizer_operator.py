@@ -115,7 +115,7 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
 
         # Ensure that a single invocation of the pipeline is happening.
         assert self._last_localization_update == game_time, \
-                "Concurrent Execution of the pipeline."
+            "Concurrent Execution of the pipeline."
 
         watermark = erdos.WatermarkMessage(msg.timestamp)
         if self._waypoint_num < 10:
@@ -243,8 +243,8 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
 
         # Match the waypoints to the given timestamp.
         waypoint_index, waypoints = -1, None
-        for i, (time, _waypoints) in enumerate(self._waypoints):
-            if time <= game_time:
+        for i, (sim_time, _waypoints) in enumerate(self._waypoints):
+            if sim_time <= game_time:
                 waypoint_index, waypoints = i, _waypoints
             else:
                 break

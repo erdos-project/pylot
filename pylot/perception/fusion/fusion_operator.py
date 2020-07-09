@@ -1,9 +1,10 @@
 from collections import deque
+
 import erdos
+
 import numpy as np
 
 from pylot.perception.messages import ObstaclePositionsSpeedsMessage
-from pylot.utils import time_epoch_ms
 
 
 class FusionOperator(erdos.Operator):

@@ -1,4 +1,5 @@
 import math
+
 import numpy as np
 
 EXPECTED_JERK_IN_ONE_SEC = 2  # m/s/s

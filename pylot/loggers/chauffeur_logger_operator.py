@@ -1,11 +1,16 @@
-import carla
-from collections import deque
-import cv2
-import erdos
 import json
-import numpy as np
 import os
+from collections import deque
+
 import PIL.Image as Image
+
+import carla
+
+import cv2
+
+import erdos
+
+import numpy as np
 
 import pylot.simulation.utils
 import pylot.utils

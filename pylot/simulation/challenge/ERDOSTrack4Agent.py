@@ -136,7 +136,6 @@ class ERDOSTrack4Agent(AutonomousAgent):
     def send_ground_objects(self, data, timestamp):
         # Input parsing is based on the description at
         # https://github.com/carla-simulator/carla/blob/master/PythonAPI/carla/scene_layout.py
-        dynamic_obstacles_list = []
         traffic_lights_list = []
         speed_limit_signs_list = []
         stop_signs_list = []
@@ -147,9 +146,9 @@ class ERDOSTrack4Agent(AutonomousAgent):
         # except with lower altitude).
         hero_vehicle = data['hero_vehicle']
         # Currently, we don't do anything with the road_id and lane_id of the
-        # hero vehicle. This could potentially be useful in conjunction with the
-        # data in scene_layout.
-        #self._logger.debug('Hero vehicle id: {}'.format(hero_vehicle['id']))
+        # hero vehicle. This could potentially be useful in conjunction with
+        # the data in scene_layout.
+        # self._logger.debug('Hero vehicle id: {}'.format(hero_vehicle['id']))
 
         vehicles_list = self.parse_vehicles(data['vehicles'],
                                             hero_vehicle['id'])
@@ -165,8 +164,8 @@ class ERDOSTrack4Agent(AutonomousAgent):
         self._ground_obstacles_stream.send(
             pylot.perception.messages.ObstaclesMessage(
                 timestamp,
-                vehicles_list + people_list + speed_limit_signs_list + \
-                    stop_signs_list + static_obstacles_list))
+                vehicles_list + people_list + speed_limit_signs_list +
+                stop_signs_list + static_obstacles_list))
         self._ground_obstacles_stream.send(erdos.WatermarkMessage(timestamp))
         self._traffic_lights_stream.send(
             pylot.perception.messages.TrafficLightsMessage(
@@ -220,10 +219,11 @@ class ERDOSTrack4Agent(AutonomousAgent):
         return people_list
 
     def parse_traffic_lights(self, traffic_lights):
-        # Each entry of traffic lights is a dictionary that contains four items,
-        # the id, state, position, and trigger volume of the traffic light.
-        # WARNING: Some of the methods in the TrafficLight class may not work here
-        # (e.g. methods that depend knowing the town we are in).
+        # Each entry of traffic lights is a dictionary that contains four
+        # items, the id, state, position, and trigger volume of the traffic
+        # light.
+        # WARNING: Some of the methods in the TrafficLight class may not work
+        # here  (e.g. methods that depend knowing the town we are in).
         traffic_lights_list = []
         traffic_light_labels = {
             0: TrafficLightColor.RED,
@@ -235,7 +235,8 @@ class ERDOSTrack4Agent(AutonomousAgent):
             traffic_light_state = traffic_light_labels[
                 traffic_light_dict['state']]
             # Trigger volume is currently unused.
-            traffic_light_trigger_volume = traffic_light_dict['trigger_volume']
+            # traffic_light_trigger_volume = \
+            #    traffic_light_dict['trigger_volume']
             location = pylot.utils.Location.from_gps(
                 *traffic_light_dict['position'])
             traffic_lights_list.append(
@@ -256,7 +257,7 @@ class ERDOSTrack4Agent(AutonomousAgent):
             location = pylot.utils.Location.from_gps(
                 *stop_sign_dict['position'])
             # Trigger volume is currently unused.
-            trigger_volume = stop_sign_dict['trigger_volume']
+            # trigger_volume = stop_sign_dict['trigger_volume']
             stop_signs_list.append(
                 StopSign(
                     1.0,  # confidence
@@ -301,30 +302,32 @@ class ERDOSTrack4Agent(AutonomousAgent):
         return static_obstacles_list
 
     def send_scene_layout(self, data, timestamp):
-        # data is a dictionary describing the scene layout. Each key is a waypoint
-        # id; the corresponding value is a dictionary with the following attributes:
+        # data is a dictionary describing the scene layout. Each key is a
+        # waypoint id; the corresponding value is a dictionary with the
+        # following attributes:
         #   road_id: ID of the road the waypoint is on. Each road consists of a
         #       list of lanes, each of which has a list of waypoints.
         #   lane_id: ID of the lane the waypoint is on.
         #   position: Location of the waypoint in GPS coordinates.
         #   orientation: Orientation of the waypoint.
-        #   left_margin_position: position shifted in the left edge of the lane,
-        #       in GPS coordinates.
-        #   right_margin_position: position shifted to the right edge of the lane,
-        #       in GPS coordinates.
-        #   next_waypoint_ids: list of ids of future waypoints in the same lane.
+        #   left_margin_position: position shifted in the left edge of the
+        #       lane, in GPS coordinates.
+        #   right_margin_position: position shifted to the right edge of the
+        #       lane,in GPS coordinates.
+        #   next_waypoint_ids: list of ids of future waypoints in the same
+        #       lane.
         #   left_lane_waypoint_id: Id of the waypoint in the lane to the left.
         #       May be -1 if no valid waypoint.
-        #   right_lane_waypoint_id: Id of the waypoint in the lane to the right.
-        #       May be -1 if no valid waypoint.
+        #   right_lane_waypoint_id: Id of the waypoint in the lane to the
+        #       right. May be -1 if no valid waypoint.
 
         # TODO: Parse this information into a useful format for planning.
         pass
 
     def send_gnss_data(self, data, timestamp):
         # GPS coordinates for the ego-vehicle.
-        # This is not useful, because the ground_objects message already gives us
-        # the ego-vehicle's GPS coordinates.
+        # This is not useful, because the ground_objects message already gives
+        # us the ego-vehicle's GPS coordinates.
         pass
 
     def send_pose_msg(self, data, timestamp):

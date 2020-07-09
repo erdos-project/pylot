@@ -490,7 +490,9 @@ class LidarSetup(object):
         self.name = name
 
         # Ensure that the type of LIDAR is currently supported.
-        assert lidar_type == 'sensor.lidar.ray_cast' or lidar_type == 'velodyne', "The LIDAR should be of type 'sensor.lidar.ray_cast' or 'velodyne'"
+        err_msg = "LIDAR must be of type 'sensor.lidar.ray_cast' or 'velodyne'"
+        assert lidar_type == 'sensor.lidar.ray_cast' or \
+            lidar_type == 'velodyne', err_msg
         self.lidar_type = lidar_type
 
         # Ensure that the transform is of the correct type.

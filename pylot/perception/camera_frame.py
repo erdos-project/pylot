@@ -1,10 +1,10 @@
 import os
 
+import PIL.Image as Image
+
 import cv2
 
 import numpy as np
-
-import PIL.Image as Image
 
 import pylot.perception.detection.utils
 import pylot.utils
@@ -63,12 +63,12 @@ class CameraFrame(object):
         else:
             return self.frame
 
-    def annotate_with_bounding_boxes(
-        self,
-        timestamp,
-        detected_obstacles,
-        transform=None,
-        bbox_color_map=pylot.perception.detection.utils.PYLOT_BBOX_COLOR_MAP):
+    def annotate_with_bounding_boxes(self,
+                                     timestamp,
+                                     detected_obstacles,
+                                     transform=None,
+                                     bbox_color_map=pylot.perception.detection.
+                                     utils.PYLOT_BBOX_COLOR_MAP):
         pylot.utils.add_timestamp(self.frame, timestamp)
         for obstacle in detected_obstacles:
             obstacle.draw_on_frame(self,

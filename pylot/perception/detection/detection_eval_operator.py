@@ -100,19 +100,19 @@ class DetectionEvalOperator(erdos.Operator):
         self.__garbage_collect_obstacles()
 
     def __get_ground_obstacles_at(self, timestamp):
-        for (time, obstacles) in self._ground_obstacles:
-            if time == timestamp:
+        for (ground_time, obstacles) in self._ground_obstacles:
+            if ground_time == timestamp:
                 return obstacles
-            elif time > timestamp:
+            elif ground_time > timestamp:
                 break
         self._logger.fatal(
             'Could not find ground obstacles for {}'.format(timestamp))
 
     def __get_obstacles_at(self, timestamp):
-        for (time, obstacles) in self._detected_obstacles:
-            if time == timestamp:
+        for (ground_time, obstacles) in self._detected_obstacles:
+            if ground_time == timestamp:
                 return obstacles
-            elif time > timestamp:
+            elif ground_time > timestamp:
                 break
         self._logger.fatal(
             'Could not find detected obstacles for {}'.format(timestamp))

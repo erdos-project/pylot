@@ -186,7 +186,7 @@ class PerfectDetectorOperator(erdos.Operator):
         """Transforms obstacles into detected obstacles.
 
         Args:
-            obstacles (list(:py:class:`~pylot.perception.detection.obstacle.Obstacle`)):
+            obstacles (list(:py:class:`~pylot.perception.detection.obstacle.Obstacle`)):  # noqa: E501
                 List of obstacles.
             vehicle_transform (:py:class:`~pylot.utils.Transform`): Transform
                 of the ego vehicle.

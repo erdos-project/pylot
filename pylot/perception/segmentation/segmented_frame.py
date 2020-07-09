@@ -1,15 +1,15 @@
 import os
 
+import PIL.Image as Image
+
 import cv2
 
 import numpy as np
 
-import PIL.Image as Image
-
-from skimage import measure
-
 import pylot.utils
 from pylot.perception.detection.utils import BoundingBox2D
+
+from skimage import measure
 
 # Semantic Labels
 CITYSCAPES_LABELS = {
@@ -55,13 +55,13 @@ class SegmentedFrame(object):
     Args:
         frame: A numpy array storring the segmented frame.
         encoding (:obj:`str`): The encoding of the frame (carla | cityscapes).
-        camera_setup (:py:class:`~pylot.drivers.sensor_setup.SegmentedCameraSetup`):
+        camera_setup (:py:class:`~pylot.drivers.sensor_setup.SegmentedCameraSetup`):  # noqa: E501
             The camera setup used by the sensor that generated this frame.
 
     Attributes:
         frame: A numpy array storring the segmented frame.
         encoding (:obj:`str`): The encoding of the frame (carla | cityscapes).
-        camera_setup (:py:class:`~pylot.drivers.sensor_setup.SegmentedCameraSetup`):
+        camera_setup (:py:class:`~pylot.drivers.sensor_setup.SegmentedCameraSetup`):  # noqa: E501
             The camera setup used by the sensor that generated this frame.
     """
     def __init__(self, frame, encoding, camera_setup):
@@ -173,9 +173,8 @@ class SegmentedFrame(object):
         Returns:
             A tuple comprising of mIoU and a list of IoUs.
         """
-        assert (self.encoding == 'cityscapes'
-                and other_frame.encoding == 'cityscapes'
-                ), 'Not implemented on carla encoding'
+        assert (self.encoding == 'cityscapes' and other_frame.encoding
+                == 'cityscapes'), 'Not implemented on carla encoding'
         iou = {}
         for key, value in CITYSCAPES_CLASSES.items():
             #  Do not include None in the mIoU

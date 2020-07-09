@@ -27,14 +27,6 @@ pylot.planning.utils module
     :undoc-members:
     :show-inheritance:
 
-pylot.planning.waypoint\_planning\_operator module
---------------------------------------------------
-
-.. automodule:: pylot.planning.waypoint_planning_operator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 
 Module contents
 ---------------

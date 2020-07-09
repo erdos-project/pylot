@@ -138,8 +138,8 @@ def spawn_actors(client, world, carla_version, ego_spawn_point_index,
     ego_vehicle = spawn_ego_vehicle(world, ego_spawn_point_index, auto_pilot)
     people = []
 
-    if not (carla_version.startswith('0.8')
-            or re.match('0\.9\.[0-5]', carla_version) is not None):
+    if not (carla_version.startswith('0.8') or re.match(
+            '0\.9\.[0-5]', carla_version) is not None):  # noqa: W605
         # People do not move in versions older than 0.9.6.
         (people, people_control_ids) = spawn_people(client, world, num_people,
                                                     logger)
@@ -373,7 +373,7 @@ def get_traffic_lights_obstacles(traffic_lights, depth_frame, segmented_frame,
         world.
 
     Args:
-        traffic_lights (list(:py:class:`~pylot.perception.detection.traffic_light.TrafficLight`)):
+        traffic_lights (list(:py:class:`~pylot.perception.detection.traffic_light.TrafficLight`)):  # noqa: E501
             List of traffic lights.
         depth_frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`):
             Depth frame captured from the same position as the camera frame.
@@ -406,7 +406,7 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
         world.
 
     Args:
-        speed_signs (list(:py:class:`~pylot.perception.detection.speed_limit_sign.SpeedLimitSign`)):
+        speed_signs (list(:py:class:`~pylot.perception.detection.speed_limit_sign.SpeedLimitSign`)):  # noqa: E501
             List of speed limit signs in the world.
         depth_frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`):
             Depth frame captured from the same position as the camera frame.
@@ -466,7 +466,7 @@ def get_detected_traffic_stops(traffic_stops, depth_frame):
         world.
 
     Args:
-        traffic_stops (list(:py:class:`~pylot.perception.detection.stop_sign.StopSign`)):
+        traffic_stops (list(:py:class:`~pylot.perception.detection.stop_sign.StopSign`)):  # noqa: E501
             List of traffic stops in the world.
         depth_frame (:py:class:`~pylot.perception.depth_frame.DepthFrame`):
             Depth frame captured from the same position as the camera frame.

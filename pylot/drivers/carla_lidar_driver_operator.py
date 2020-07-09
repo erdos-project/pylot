@@ -129,8 +129,8 @@ class CarlaLidarDriverOperator(erdos.Operator):
             self._lidar_setup.lidar_type)
         lidar_blueprint.set_attribute('channels',
                                       str(self._lidar_setup.channels))
-        if not (carla_version.startswith('0.8')
-                or re.match('0\.9\.[0-6]', carla_version) is not None):
+        if not (carla_version.startswith('0.8') or re.match(
+                '0\.9\.[0-6]', carla_version) is not None):  # noqa: W605
             # Any CARLA version after 0.9.6.
             lidar_blueprint.set_attribute(
                 'range', str(self._lidar_setup.get_range_in_meters()))

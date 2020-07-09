@@ -1,8 +1,6 @@
 from DaSiamRPN.code.net import SiamRPNvot
 from DaSiamRPN.code.run_SiamRPN import SiamRPN_init, SiamRPN_track
 
-import erdos
-
 from lapsolver import solve_dense
 
 import numpy as np
@@ -196,4 +194,5 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
         unmatched_obstacles = [
             obstacles[i] for i in unmatched_obstacle_indices
         ]
-        return unmatched_obstacle_indices, matched_obstacles, unmatched_obstacles
+        return (unmatched_obstacle_indices, matched_obstacles,
+                unmatched_obstacles)

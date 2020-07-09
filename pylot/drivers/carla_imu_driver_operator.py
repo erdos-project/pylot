@@ -1,4 +1,5 @@
 import threading
+
 import erdos
 
 from pylot.localization.messages import IMUMessage

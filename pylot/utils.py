@@ -95,12 +95,12 @@ class Quaternion(object):
         """Creates a Rotation matrix that can be used to transform 3D vectors
         from body frame to world frame.
 
-        Note that this yields the same matrix as a Transform object with the 
+        Note that this yields the same matrix as a Transform object with the
         quaternion converted to the Euler rotation except this matrix only does
-        rotation and no translation. 
+        rotation and no translation.
 
-        Specifically, this matrix is equivalent to: 
-            Transform(location=Location(0, 0, 0), 
+        Specifically, this matrix is equivalent to:
+            Transform(location=Location(0, 0, 0),
                       rotation=self.as_rotation()).matrix[:3, :3]
 
         Returns:
@@ -207,9 +207,9 @@ class Quaternion(object):
 
         The product is defined in Unreal as:
          [ (Q2.w * Q1.x) + (Q2.x * Q1.w) + (Q2.y * Q1.z) - (Q2.z * Q1.y),
-	   (Q2.w * Q1.y) - (Q2.x * Q1.z) + (Q2.y * Q1.w) + (Q2.z * Q1.x),
-	   (Q2.w * Q1.z) + (Q2.x * Q1.y) - (Q2.y * Q1.x) + (Q2.z * Q1.w),
-	   (Q2.w * Q1.w) - (Q2.x * Q1.x) - (Q2.y * Q1.y) - (Q2.z * Q1.z) ]
+           (Q2.w * Q1.y) - (Q2.x * Q1.z) + (Q2.y * Q1.w) + (Q2.z * Q1.x),
+           (Q2.w * Q1.z) + (Q2.x * Q1.y) - (Q2.y * Q1.x) + (Q2.z * Q1.w),
+           (Q2.w * Q1.w) - (Q2.x * Q1.x) - (Q2.y * Q1.y) - (Q2.z * Q1.z) ]
         Copied from DirectX's XMQuaternionMultiply function.
         """
         q1, q2 = other, self

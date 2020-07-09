@@ -66,12 +66,12 @@ class DepthEstimationOperator(erdos.Operator):
         resume = os.path.join(self._flags.depth_estimation_model_path,
                               'checkpoint/kitti2015_ck/checkpoint.tar')
         if os.path.isfile(pretrained):
-            checkpoint = torch.load(pretrained)
+            _ = torch.load(pretrained)
         else:
             self._logger.warning('No pretrained Anynet model')
 
         if os.path.isfile(resume):
-            checkpoint = torch.load(resume)
+            _ = torch.load(resume)
         else:
             self._logger.warning('No Anynet checkpoint available')
 

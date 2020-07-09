@@ -1,7 +1,8 @@
 """Implements messages related to vehicle control."""
 
-import erdos
 import time
+
+import erdos
 
 
 class ControlMessage(erdos.Message):

@@ -6,12 +6,11 @@ from drn.segment import DRNSeg
 
 import erdos
 
-import torch
-from torch.autograd import Variable
-
-import pylot.utils
 from pylot.perception.messages import SegmentedFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
+
+import torch
+from torch.autograd import Variable
 
 
 class SegmentationDRNOperator(erdos.Operator):

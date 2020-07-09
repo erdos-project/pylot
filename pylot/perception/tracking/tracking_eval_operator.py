@@ -109,14 +109,15 @@ class TrackingEvalOperator(erdos.Operator):
                                         self.config.name,
                                         'ratio_' + metric_name, ratio))
                             elif metric_name == 'motp':
-                                # See https://github.com/cheind/py-motmetrics/issues/92
+                                # See https://github.com/cheind/py-motmetrics/issues/92  # noqa: E501
                                 motp = (1 - metrics_summary_df[metric_name].
                                         values[0]) * 100
                                 self._csv_logger.info(
                                     '{},{},{},{},{:.4f}'.format(
                                         time_epoch_ms(), sim_time,
                                         self.config.name, metric_name, motp))
-                            elif metric_name == 'idf1' or metric_name == 'mota':
+                            elif (metric_name == 'idf1'
+                                  or metric_name == 'mota'):
                                 metric_val = metrics_summary_df[
                                     metric_name].values[0] * 100
                                 self._csv_logger.info(
@@ -144,19 +145,19 @@ class TrackingEvalOperator(erdos.Operator):
         self.__garbage_collect_obstacles()
 
     def __get_ground_obstacles_at(self, timestamp):
-        for (time, obstacles) in self._ground_obstacles:
-            if time == timestamp:
+        for (ground_time, obstacles) in self._ground_obstacles:
+            if ground_time == timestamp:
                 return obstacles
-            elif time > timestamp:
+            elif ground_time > timestamp:
                 break
         self._logger.fatal(
             'Could not find ground obstacles for {}'.format(timestamp))
 
     def __get_tracked_obstacles_at(self, timestamp):
-        for (time, obstacles) in self._tracked_obstacles:
-            if time == timestamp:
+        for (ground_time, obstacles) in self._tracked_obstacles:
+            if ground_time == timestamp:
                 return obstacles
-            elif time > timestamp:
+            elif ground_time > timestamp:
                 break
         self._logger.fatal(
             'Could not find tracked obstacles for {}'.format(timestamp))
@@ -216,7 +217,7 @@ class TrackingEvalOperator(erdos.Operator):
                                               tracked_bboxes,
                                               max_iou=1 -
                                               self._flags.min_matching_iou)
-        frame_id = self._accumulator.update(ground_ids, track_ids, cost_matrix)
+        self._accumulator.update(ground_ids, track_ids, cost_matrix)
         # Calculate all motchallenge metrics by default. Logged metrics
         # determined by list passed to --tracking_metrics
         tracker_metrics_df = self._metrics_host.compute(

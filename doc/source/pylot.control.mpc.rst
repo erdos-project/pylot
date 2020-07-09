@@ -4,10 +4,10 @@ pylot.control.mpc package
 Submodules
 ----------
 
-pylot.control.mpc.mpc\_agent\_operator module
----------------------------------------------
+pylot.control.mpc.mpc\_operator module
+--------------------------------------
 
-.. automodule:: pylot.control.mpc.mpc_agent_operator
+.. automodule:: pylot.control.mpc.mpc_operator
     :members:
     :undoc-members:
     :show-inheritance:

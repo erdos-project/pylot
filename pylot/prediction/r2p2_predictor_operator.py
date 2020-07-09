@@ -126,10 +126,9 @@ class R2P2PredictorOperator(erdos.Operator):
         for i in range(num_nearby_vehicles):
             cur_trajectory = nearby_vehicle_trajectories[
                 i].get_last_n_transforms(self._flags.prediction_num_past_steps)
-            cur_trajectory = np.stack([[point.location.x,
-                                        point.location.y,
-                                        point.location.z] \
-                for point in cur_trajectory])
+            cur_trajectory = np.stack(
+                [[point.location.x, point.location.y, point.location.z]
+                 for point in cur_trajectory])
 
             rotated_trajectory = nearby_vehicle_ego_transforms[
                 i].inverse_transform_points(cur_trajectory)[:, :2]
@@ -156,7 +155,7 @@ class R2P2PredictorOperator(erdos.Operator):
             torch.float32).to(self._device)
 
         return nearby_vehicle_trajectories, nearby_vehicle_ego_transforms, \
-               nearby_trajectories_tensor, binned_lidars_tensor
+            nearby_trajectories_tensor, binned_lidars_tensor
 
     def _postprocess_predictions(self, prediction_array, vehicle_trajectories,
                                  vehicle_ego_transforms):
@@ -171,8 +170,8 @@ class R2P2PredictorOperator(erdos.Operator):
 
             obstacle_transform = vehicle_trajectories[idx].obstacle.transform
             predictions = []
-            # Because R2P2 only predicts (x,y) coordinates, we assume the vehicle
-            # stays at the same height as its last location.
+            # Because R2P2 only predicts (x,y) coordinates, we assume the
+            # vehicle stays at the same height as its last location.
             for t in range(self._flags.prediction_num_future_steps):
                 cur_point = vehicle_ego_transforms[idx].transform_points(
                     np.array([[

@@ -4,9 +4,6 @@ from collections import deque
 
 import erdos
 
-from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
-from pylot.prediction.messages import PredictionMessage
-from pylot.prediction.obstacle_prediction import ObstaclePrediction
 from pylot.utils import Vector2D, time_epoch_ms
 
 

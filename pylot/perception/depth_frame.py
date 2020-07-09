@@ -1,11 +1,10 @@
 import copy
 import os
+import pickle
 
 import numpy as np
 from numpy.linalg import inv
 from numpy.matlib import repmat
-
-import pickle
 
 import pylot.utils
 
@@ -15,7 +14,7 @@ class DepthFrame(object):
 
     Args:
         frame: A numpy array storing the depth frame.
-        camera_setup (:py:class:`~pylot.drivers.sensor_setup.DepthCameraSetup`):
+        camera_setup (:py:class:`~pylot.drivers.sensor_setup.DepthCameraSetup`):  # noqa: E501
             The camera setup used by the sensor that generated this frame.
         original_frame: A numpy array storing the RGB encoded depth image.
 

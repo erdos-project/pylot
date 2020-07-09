@@ -6,12 +6,12 @@ import erdos
 
 import numpy as np
 
-from shapely.geometry import LineString
-
 from pylot.simulation.messages import TrafficInfractionMessage
 from pylot.simulation.utils import TrafficInfractionType, get_vehicle_handle, \
     get_world
 from pylot.utils import Location, Vector3D
+
+from shapely.geometry import LineString
 
 
 class TrafficLightInvasionSensorOperator(erdos.Operator):
@@ -90,8 +90,8 @@ class TrafficLightInvasionSensorOperator(erdos.Operator):
                 # Calculate the dot product
                 ve_dir = transform.forward_vector
                 wp_dir = wp.transform.get_forward_vector()
-                dot_ve_wp=ve_dir.x * wp_dir.x + ve_dir.y * wp_dir.y + \
-                        ve_dir.z * wp_dir.z
+                dot_ve_wp = ve_dir.x * wp_dir.x + ve_dir.y * wp_dir.y + \
+                    ve_dir.z * wp_dir.z
 
                 # Check the lane until all the "tail" has passed
                 if tail_wp.road_id == wp.road_id and \
@@ -111,9 +111,9 @@ class TrafficLightInvasionSensorOperator(erdos.Operator):
                     rgt_lane_wp = location_wp + carla.Location(rgt_lane_wp)
 
                     # Is the vehicle traversing the stop line?
-                    if self.is_vehicle_crossing_line(
-                        (tail_close_pt, tail_far_pt),
-                        (lft_lane_wp, rgt_lane_wp)):
+                    seg1 = (tail_close_pt, tail_far_pt)
+                    seg2 = (lft_lane_wp, rgt_lane_wp)
+                    if self.is_vehicle_crossing_line(seg1, seg2):
                         location = traffic_light.get_transform().location
                         message = TrafficInfractionMessage(
                             TrafficInfractionType.RED_LIGHT_INVASION,

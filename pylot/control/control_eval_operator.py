@@ -1,7 +1,8 @@
-import numpy as np
 from collections import deque
 
 import erdos
+
+import numpy as np
 
 from pylot.utils import time_epoch_ms
 

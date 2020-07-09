@@ -66,4 +66,4 @@ class SynchronizerOperator(erdos.Operator):
                                      vehicle_control.hand_brake,
                                      vehicle_control.reverse, timestamp)
         control_stream.send(control_msg)
-        #control_stream.send(erdos.WatermarkMessage(timestamp))
+        # control_stream.send(erdos.WatermarkMessage(timestamp))

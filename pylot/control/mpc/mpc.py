@@ -10,11 +10,12 @@ Reference Papers:
 - [Kinematic and Dynamic Vehicle Models for Autonomous Driving Control Design]
 (https://borrelli.me.berkeley.edu/pdfpub/IV_KinematicMPC_jason.pdf)
 """
-
-import numpy as np
 import cvxpy
 from cvxpy.expressions import constants
-from pylot.control.mpc.utils import compute_curvature, Vehicle, Trajectory
+
+import numpy as np
+
+from pylot.control.mpc.utils import Trajectory, Vehicle, compute_curvature
 
 
 class ModelPredictiveController:
@@ -158,8 +159,10 @@ class ModelPredictiveController:
         """
         is_converged = False
         predicted_state = self._predict_state()
-        horizon_x, horizon_y, horizon_vel, horizon_yaw, horizon_accel, horizon_steer, solved = \
-            self._control(reference_state, predicted_state, reference_steer)
+        horizon_x, horizon_y, horizon_vel, horizon_yaw, horizon_accel, \
+            horizon_steer, solved = \
+            self._control(reference_state, predicted_state,
+                          reference_steer)
         iteration_difference = \
             np.linalg.norm(self.horizon_accel - horizon_accel, ord=1) + \
             np.linalg.norm(self.horizon_steer - horizon_steer, ord=1)

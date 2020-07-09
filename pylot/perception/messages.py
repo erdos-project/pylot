@@ -73,13 +73,13 @@ class SegmentedFrameMessage(erdos.Message):
     Args:
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
             message.
-        frame (:py:class:`~pylot.perception.segmentation.segmented_frame.SegmentedFrame`):
+        frame (:py:class:`~.segmentation.segmented_frame.SegmentedFrame`):
             The segmented frame.
         runtime (:obj:`float`, optional): The runtime of the operator that
             produced the segmented frame (in ms).
 
     Attributes:
-        frame (:py:class:`~pylot.perception.segmentation.segmented_frame.SegmentedFrame`):
+        frame (:py:class:`~.segmentation.segmented_frame.SegmentedFrame`):
             The segmented frame.
         runtime (:obj:`float`): The runtime of the operator that produced the
             segmented frame (in ms).
@@ -133,14 +133,14 @@ class ObstaclesMessage(erdos.Message):
     Args:
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
             message.
-        obstacles (list(:py:class:`~pylot.perception.detection.obstacle.Obstacle`)):
+        obstacles (list(:py:class:`~.detection.obstacle.Obstacle`)):
             Detected obstacles.
         runtime (:obj:`float`, optional): The runtime of the operator that
             produced the obstacles (in ms).
 
 
     Attributes:
-        obstacles (list(:py:class:`~pylot.perception.detection.obstacle.Obstacle`)):
+        obstacles (list(:py:class:`~.detection.obstacle.Obstacle`)):
             Detected obstacles.
         runtime (:obj:`float`, optional): The runtime of the operator that
             produced the obstacles (in ms).
@@ -189,7 +189,7 @@ class ObstacleTrajectoriesMessage(erdos.Message):
     Args:
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
             message.
-        obstacle_trajectories (list(:py:class:`~pylot.perception.tracking.obstacle_trajectory.ObstacleTrajectory`)):
+        obstacle_trajectories (list(:py:class:`~pylot.perception.tracking.obstacle_trajectory.ObstacleTrajectory`)):  # noqa: E501
             Obstacle trajectories.
 
     Attributes:
@@ -253,10 +253,10 @@ class LanesMessage(erdos.Message):
     Args:
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
             message.
-        lanes (list(:py:class:`~pylot.perception.lane.Lane`)): Lis of lanes.
+        lanes (list(:py:class:`~.detection.lane.Lane`)): Lis of lanes.
 
     Attributes:
-        lanes (list(:py:class:`~pylot.perception.lane.Lane`)): List of lanes.
+        lanes (list(:py:class:`~.detection.lane.Lane`)): List of lanes.
     """
     def __init__(self, timestamp, lanes):
         super(LanesMessage, self).__init__(timestamp, None)
@@ -276,11 +276,11 @@ class TrafficLightsMessage(erdos.Message):
     Args:
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
             message.
-        traffic_lights (list(:py:class:`~pylot.perception.detection.traffic_light.TrafficLight`)):
+        traffic_lights (list(:py:class:`~.detection.traffic_light.TrafficLight`)):  # noqa: E501
             A list of traffic lights.
 
     Attributes:
-        traffic_lights (list(:py:class:`~pylot.perception.detection.traffic_light.TrafficLight`)):
+        traffic_lights (list(:py:class:`~.detection.traffic_light.TrafficLight`)):
             A list of traffic lights.
     """
     def __init__(self, timestamp, traffic_lights):
@@ -302,11 +302,11 @@ class StopSignsMessage(erdos.Message):
     Args:
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
             message.
-        stop_signs (list(:py:class:`~pylot.perception.detection.stop_sign.StopSign`)):
+        stop_signs (list(:py:class:`~.detection.stop_sign.StopSign`)):
             A list of stop signs.
 
     Attributes:
-        stop_signs (list(:py:class:`~pylot.perception.detection.stop_sign.StopSign`)):
+        stop_signs (list(:py:class:`~.detection.stop_sign.StopSign`)):
             A list of stop signs.
     """
     def __init__(self, timestamp, stop_signs):
@@ -327,11 +327,11 @@ class SpeedSignsMessage(erdos.Message):
     Args:
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
             message.
-        speed_signs (list(:py:class:`~pylot.perception.detection.speed_limit_sign.SpeedLimitSign`)):
+        speed_signs (list(:py:class:`~.detection.speed_limit_sign.SpeedLimitSign`)):  # noqa: E501
             A list of speed limit signs.
 
     Attributes:
-        speed_signs (list(:py:class:`~pylot.perception.detection.speed_limit_sign.SpeedLimitSign`)):
+        speed_signs (list(:py:class:`~.detection.speed_limit_sign.SpeedLimitSign`)):
             A list of speed limit signs.
     """
     def __init__(self, timestamp, speed_signs):

@@ -73,5 +73,5 @@ class GNSSMessage(erdos.Message):
     def __str__(self):
         return 'GNSSMessage(timestamp: {}, transform: {}, altitude: {}, ' \
                 'latitude: {}, longitude: {})'.format(
-            self.timestamp, self.transform, self.altitude, self.latitude,
-            self.longitude)
+                    self.timestamp, self.transform, self.altitude,
+                    self.latitude, self.longitude)

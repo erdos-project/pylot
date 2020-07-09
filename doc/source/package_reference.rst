@@ -8,6 +8,7 @@ Subpackages
 
     pylot.control.rst
     pylot.debug.rst
+    pylot.drivers.rst
     pylot.loggers.rst
     pylot.map.rst
     pylot.perception.rst

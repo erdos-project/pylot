@@ -94,7 +94,7 @@ class LaneInvasionMessage(erdos.Message):
     def __str__(self):
         return "LaneInvasionMessage(timestamp: {}, Lane Markings: {}, " \
                 "Lane Type: {})".format(
-            self.timestamp, self.lane_markings, self.lane_type)
+                    self.timestamp, self.lane_markings, self.lane_type)
 
 
 class TrafficInfractionMessage(erdos.Message):
@@ -137,4 +137,4 @@ class TrafficInfractionMessage(erdos.Message):
     def __str__(self):
         return "TrafficInfractionMessage(timestamp: {}, Infraction Type: {}, "\
                 "Location: {})".format(
-            self.timestamp, self.infraction_type, self.location)
+                    self.timestamp, self.infraction_type, self.location)

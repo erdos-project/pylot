@@ -2,7 +2,7 @@ from absl import flags
 
 import pylot.planning.frenet_optimal_trajectory.flags
 import pylot.planning.hybrid_astar.flags
-import pylot.planning.rrt_star.flags
+import pylot.planning.rrt_star.flags  # noqa: F401
 
 flags.DEFINE_float(
     'target_speed', 10.0,

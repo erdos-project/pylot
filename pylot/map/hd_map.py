@@ -6,10 +6,11 @@ with the carla HD map.
 
 from collections import deque
 
-import carla
 # Import Planner from Carla codebase
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
+
+import carla
 
 import erdos
 
@@ -177,9 +178,9 @@ class HDMap(object):
         """
         # TODO(ionel): This method doesn't work yet because the opendrive do
         # not contained waypoints annotated as stops.
-        waypoint = self._get_waypoint(location,
-                                      project_to_road=False,
-                                      lane_type=carla.LaneType.Stop)
+        # waypoint = self._get_waypoint(location,
+        #                               project_to_road=False,
+        #                               lane_type=carla.LaneType.Stop)
         raise NotImplementedError
 
     def distance_to_intersection(self, location, max_distance_to_check=30):

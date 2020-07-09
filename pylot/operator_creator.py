@@ -5,7 +5,7 @@ import erdos
 import pylot.utils
 
 # TODO: Hack to avoid a tensorflow import error.
-import tensorflow as tf
+import tensorflow as tf  # noqa: F401
 
 FLAGS = flags.FLAGS
 
@@ -768,7 +768,7 @@ def add_lidar_logging(point_cloud_stream,
 
 
 def add_multiple_object_tracker_logging(
-    obstacles_stream, name='multiple_object_tracker_logger_operator'):
+        obstacles_stream, name='multiple_object_tracker_logger_operator'):
     from pylot.loggers.multiple_object_tracker_logger_operator import \
         MultipleObjectTrackerLoggerOperator
     op_config = erdos.OperatorConfig(name=name,
