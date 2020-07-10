@@ -17,7 +17,7 @@ Following, start the simulator in the container:
 
 .. code-block:: bash
 
-    nvidia-docker exec -i -t carla /home/erdos/workspace/pylot/scripts/run_simulator.sh
+    nvidia-docker exec -i -t pylot /home/erdos/workspace/pylot/scripts/run_simulator.sh
 
 Finally, start Pylot in the container:
 
@@ -33,14 +33,17 @@ you have to forward X from the container. First, add your public ssh key to the
 
 .. code-block:: bash
 
-    docker cp ~/.ssh/id_rsa.pub pylot_new:/home/erdos/.ssh/authorized_keys
+    nvidia-docker cp ~/.ssh/id_rsa.pub pylot_new:/home/erdos/.ssh/authorized_keys
     nvidia-docker exec -i -t pylot_new sudo chown erdos /home/erdos/.ssh/authorized_keys
+    nvidia-docker exec -i -t pylot /bin/bash
+    sudo service ssh start
+    exit
 
 Finally, ssh into the container with X forwarding:
 
 .. code-block:: bash
 
-    ssh -p 20022 -X erdos@localhost
+    ssh -p 20022 -X erdos@localhost /bin/bash
     cd /home/erdos/workspace/pylot/
     python3 pylot.py --flagfile=configs/detection.conf --visualize_detected_obstacles
 

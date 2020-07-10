@@ -30,7 +30,7 @@ nvidia-docker run -itd --name pylot -p 20022:22 erdosproject/pylot /bin/bash
 Following, start the simulator in the container:
 
 ```console
-nvidia-docker exec -i -t carla /home/erdos/workspace/pylot/scripts/run_simulator.sh
+nvidia-docker exec -i -t pylot /home/erdos/workspace/pylot/scripts/run_simulator.sh
 ```
 
 Finally, start Pylot in the container:
@@ -47,13 +47,16 @@ you have to forward X from the container. First, add your public ssh key to the
 `~/.ssh/authorized_keys` in the container:
 
 ```console
-docker cp ~/.ssh/id_rsa.pub pylot_new:/home/erdos/.ssh/authorized_keys
+nvidia-docker cp ~/.ssh/id_rsa.pub pylot_new:/home/erdos/.ssh/authorized_keys
 nvidia-docker exec -i -t pylot_new sudo chown erdos /home/erdos/.ssh/authorized_keys
+nvidia-docker exec -i -t pylot /bin/bash
+sudo service ssh start
+exit
 ```
 
 Finally, ssh into the container with X forwarding:
 ```console
-ssh -p 20022 -X erdos@localhost
+ssh -p 20022 -X erdos@localhost /bin/bash
 cd /home/erdos/workspace/pylot/
 python3 pylot.py --flagfile=configs/detection.conf --visualize_detected_obstacles
 ```
@@ -224,9 +227,9 @@ executing:
 ```console
 # Runs all components using the algorithms we implemented and the models we trained:
 python3 pylot.py --flagfile=configs/e2e.conf
-# Runs the MPC policy
-python3 pylot.py --flagfile=configs/mpc_agent.conf
-# Runs the carla policy
+# Runs the MPC
+python3 pylot.py --flagfile=configs/mpc.conf
+# Runs the CARLA auto pilot.
 python3 pylot.py --control=carla_auto_pilot
 ```
 

@@ -58,7 +58,6 @@ RUN echo "export PYTHONPATH=/home/erdos/workspace/pylot/dependencies/:/home/erdo
 # Set up ssh access to the container.
 RUN cd ~/ && ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa <<<y 2>&1 >/dev/null
 RUN sudo sed -i 's/#X11UseLocalhost yes/X11UseLocalhost no/g' /etc/ssh/sshd_config
-RUN sudo service ssh restart
 
 # Set the default shell to bash
 ENV SHELL /bin/bash

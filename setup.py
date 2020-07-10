@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 setup(
     name="erdos-pylot",
     version="0.2",
-    author="ERDOS Team",
+    author="Pylot Team",
     description=("A platform for developing autonomous vehicles."),
     long_description=open("README.md").read(),
     url="https://github.com/erdos-project/pylot",
