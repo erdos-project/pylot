@@ -1,34 +1,23 @@
 Quick start
 ===========
 
-The easiest way to run Pylot is to use our Docker images. First, please ensure
+The easiest way to run Pylot is to use our Docker image. First, please ensure
 you have `nvidia-docker` on your machine before you start installing Pylot.
 In case you do not have `nvidia-docker` please
 run ``./scripts/install-nvidia-docker.sh``.
 
-We provide a Docker image to run the CARLA simulator in, and a Docker image with
-Pylot and ERDOS already setup.
+We provide a Docker image with both Pylot and CARLA already setup.
 
 .. code-block:: bash
 
     docker pull erdosproject/pylot
-    docker pull erdosproject/carla
+    nvidia-docker run -itd --name pylot -p 20022:22 erdosproject/pylot /bin/bash
 
-Next, create a Docker network, a CARLA container, and a Pylot container:
-
-.. code-block:: bash
-
-    docker network create carla-net
-    nvidia-docker run -itd --name carla --net carla-net erdosproject/carla /bin/bash
-    nvidia-docker run -itd --name pylot -p 20022:22 --net carla-net erdosproject/pylot /bin/bash
-
-
-Following, start the simulator in the CARLA container:
+Following, start the simulator in the container:    
 
 .. code-block:: bash
 
-    nvidia-docker exec -i -t carla /bin/bash
-    SDL_VIDEODRIVER=offscreen /home/erdos/workspace/CARLA_0.9.6/CarlaUE4.sh -opengl -windowed -carla-server -benchmark -fps=20 -quality-level=Epic
+    nvidia-docker exec -i -t carla /home/erdos/workspace/pylot/scripts/run_simulator.sh
 
 Finally, start Pylot in the container:
 
@@ -36,7 +25,24 @@ Finally, start Pylot in the container:
 
     nvidia-docker exec -i -t pylot /bin/bash
     cd workspace/pylot/
-    python3 pylot.py --flagfile=configs/detection.conf --carla_host=carla
+    python3 pylot.py --flagfile=configs/detection.conf
+
+In case you desire to visualize outputs of different components (e.g., bounding boxes),
+you have to forward X from the container. First, add your public ssh key to the
+``~/.ssh/authorized_keys`` in the container:
+
+.. code-block:: bash
+
+    docker cp ~/.ssh/id_rsa.pub pylot_new:/home/erdos/.ssh/authorized_keys
+    nvidia-docker exec -i -t pylot_new sudo chown erdos /home/erdos/.ssh/authorized_keys
+
+Finally, ssh into the container with X forwarding:
+
+.. code-block:: bash
+
+    ssh -p 20022 -X erdos@localhost
+    cd /home/erdos/workspace/pylot/
+    python3 pylot.py --flagfile=configs/detection.conf --visualize_detected_obstacles
 
 If everything worked ok, you should be able to see a window that visualizes
 detected obstacles like the one below:
