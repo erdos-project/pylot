@@ -248,13 +248,13 @@ Alternatively, you can inspect
 [a link](https://github.com/erdos-project/pylot/blob/master/configs/data_gatherer.conf)
 for an example of a data collection setup.
 
-# Build your own Docker images
+# Build your own Docker image
 
 In case you want to build your own images from the latest code, you can execute:
 
 ```console
 cd docker
-./build_Ubuntu18.04_images.sh
+./build_images.sh
 ```
 
 The script creates two Docker images: one that contains the CARLA simulator and
