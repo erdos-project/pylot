@@ -15,32 +15,22 @@ CARLA simulator and real-world cars.
 
 ## Deploy using Docker
 
-The easiest way to get Pylot running is to use our Docker images. Please ensure
+The easiest way to get Pylot running is to use our Docker image. Please ensure
 you have `nvidia-docker` on your machine before you start installing Pylot.
 In case you do not have `nvidia-docker` please
 run ```./scripts/install-nvidia-docker.sh```
 
-We provide a Docker image to run the CARLA simulator in, and a Docker image with
-Pylot and ERDOS already setup.
+We provide a Docker image with both Pylot and CARLA already setup.
 
 ```console
 docker pull erdosproject/pylot
-docker pull erdosproject/carla
+nvidia-docker run -itd --name pylot -p 20022:22 erdosproject/pylot /bin/bash
 ```
 
-Next, create a Docker network, a CARLA container, and a Pylot container:
+Following, start the simulator in the container:
 
 ```console
-docker network create carla-net
-nvidia-docker run -itd --name carla --net carla-net erdosproject/carla /bin/bash
-nvidia-docker run -itd --name pylot -p 20022:22 --net carla-net erdosproject/pylot /bin/bash
-```
-
-Following, start the simulator in the CARLA container:
-
-```console
-nvidia-docker exec -i -t carla /bin/bash
-SDL_VIDEODRIVER=offscreen /home/erdos/workspace/CARLA_0.9.6/CarlaUE4.sh -opengl -windowed -ResX=800 -ResY=600 -carla-server -benchmark -fps=10 -quality-level=Epic
+nvidia-docker exec -i -t pylot /home/erdos/workspace/pylot/scripts/run_simulator.sh
 ```
 
 Finally, start Pylot in the container:
@@ -48,27 +38,27 @@ Finally, start Pylot in the container:
 ```console
 nvidia-docker exec -i -t pylot /bin/bash
 cd workspace/pylot/
-python3 pylot.py --flagfile=configs/detection.conf --carla_host=carla
+python3 pylot.py --flagfile=configs/detection.conf
 ```
 
 ## Visualizing components
 In case you desire to visualize outputs of different components (e.g., bounding boxes),
-you have to forward X from the pylot container. First, in the container execute the
-following steps:
+you have to forward X from the container. First, add your public ssh key to the
+`~/.ssh/authorized_keys` in the container:
+
 ```console
-ssh-keygen
-# Copy yout public ssh key into .ssh/authorized_keys
-sudo sed -i 's/#X11UseLocalhost yes/X11UseLocalhost no/g' /etc/ssh/sshd_config
-sudo service ssh restart
+nvidia-docker cp ~/.ssh/id_rsa.pub pylot_new:/home/erdos/.ssh/authorized_keys
+nvidia-docker exec -i -t pylot_new sudo chown erdos /home/erdos/.ssh/authorized_keys
+nvidia-docker exec -i -t pylot /bin/bash
+sudo service ssh start
 exit
 ```
 
 Finally, ssh into the container with X forwarding:
 ```console
-ssh -p 20022 -X erdos@localhost
-/bin/bash
+ssh -p 20022 -X erdos@localhost /bin/bash
 cd /home/erdos/workspace/pylot/
-python3 pylot.py --flagfile=configs/detection.conf --carla_host=carla
+python3 pylot.py --flagfile=configs/detection.conf --visualize_detected_obstacles
 ```
 
 If everything worked ok, you should be able to see a visualization like
@@ -237,9 +227,9 @@ executing:
 ```console
 # Runs all components using the algorithms we implemented and the models we trained:
 python3 pylot.py --flagfile=configs/e2e.conf
-# Runs the MPC policy
-python3 pylot.py --flagfile=configs/mpc_agent.conf
-# Runs the carla policy
+# Runs the MPC
+python3 pylot.py --flagfile=configs/mpc.conf
+# Runs the CARLA auto pilot.
 python3 pylot.py --control=carla_auto_pilot
 ```
 

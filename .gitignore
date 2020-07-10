@@ -5,6 +5,7 @@
 *.csv
 *.ipynb
 dependencies/
+pylot/prediction/prediction/
 
 # Generated documentation files
 /doc/build
