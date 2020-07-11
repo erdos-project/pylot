@@ -20,7 +20,7 @@ class MPCOperator(erdos.Operator):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
-        self._config = global_config
+        self._mpc_config = global_config
 
         pid_use_real_time = False
         if self._flags.execution_mode == 'real-world':
@@ -65,7 +65,7 @@ class MPCOperator(erdos.Operator):
         # Get first 50 waypoints (50 meters) waypoints.
         waypoint_msg = self._waypoint_msgs.popleft()
         waypoints = waypoint_msg.waypoints
-        target_speeds = waypoint_msg.target_speeds
+        target_speeds = waypoint_msg.waypoints.target_speeds
 
         # Compute and send control message
         control_msg = self.get_control_message(waypoints, target_speeds,
@@ -77,9 +77,9 @@ class MPCOperator(erdos.Operator):
         control_stream.send(control_msg)
 
     def setup_mpc(self, waypoints, target_speeds):
-        path = np.array([[wp.location.x, wp.location.y] for wp in waypoints])
+        path = waypoints.as_numpy_array_2D()
         # convert target waypoints into spline
-        spline = CubicSpline2D(path[:, 0], path[:, 1])
+        spline = CubicSpline2D(path[0, :], path[1, :])
         ss = []
         vs = []
         xs = []
@@ -97,7 +97,7 @@ class MPCOperator(erdos.Operator):
             ss.append(s)
             vs.append(target_speeds[i])
 
-        self._config["reference"] = {
+        self._mpc_config["reference"] = {
             't_list': [],  # Time [s]
             's_list': ss,  # Arc distance [m]
             'x_list': xs,  # Desired X coordinates [m]
@@ -108,7 +108,7 @@ class MPCOperator(erdos.Operator):
         }
 
         # initialize mpc controller
-        self._mpc = ModelPredictiveController(config=self._config)
+        self._mpc = ModelPredictiveController(config=self._mpc_config)
 
     def get_control_message(self, waypoints, target_speeds, vehicle_transform,
                             current_speed, timestamp):
