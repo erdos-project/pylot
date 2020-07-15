@@ -85,6 +85,12 @@ class CarlaOperator(erdos.Operator):
             self._traffic_manager.set_synchronous_mode(
                 self._flags.carla_mode == 'synchronous')
 
+        if self._flags.carla_scenario_runner:
+            # Tick until 2.5 seconds time so that all synchronous scenario runs
+            # start at exactly the same game time.
+            pylot.simulation.utils.set_synchronous_mode(self._world, 1000)
+            self._tick_simulator_until(2500)
+
         pylot.simulation.utils.set_simulation_mode(self._world, self._flags)
 
         if self._flags.carla_scenario_runner or \

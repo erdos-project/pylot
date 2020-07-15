@@ -302,7 +302,7 @@ def wait_for_ego_vehicle(world):
     """
     # Connect to the ego-vehicle spawned by the scenario runner.
     while True:
-        time.sleep(1)
+        time.sleep(0.1)
         possible_actors = world.get_actors().filter('vehicle.*')
         for actor in possible_actors:
             if actor.attributes['role_name'] == 'hero':
