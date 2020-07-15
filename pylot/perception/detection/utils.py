@@ -536,10 +536,14 @@ def get_obstacle_locations(obstacles, depth_msg, ego_transform, camera_setup,
                         sample_points.append(sample_point)
             locations = depth_frame.get_pixel_locations(sample_points)
             # Choose the closest from the locations of the sampled points.
-            (min_distance, location) = min(
-                (location.distance(ego_transform.location), location)
-                for location in locations)
-            obstacle.transform = pylot.utils.Transform(location,
+            min_distance = np.infty
+            closest_location = None
+            for location in locations:
+                dist = location.distance(ego_transform.location)
+                if dist < min_distance:
+                    min_distance = dist
+                    closest_location = location
+            obstacle.transform = pylot.utils.Transform(closest_location,
                                                        pylot.utils.Rotation())
         return obstacles
     else:
