@@ -10,6 +10,8 @@ flags.DEFINE_list('obstacle_detection_model_names', 'faster-rcnn',
 flags.DEFINE_float(
     'obstacle_detection_gpu_memory_fraction', 0.3,
     'GPU memory fraction allocated to each obstacle detector operator')
+flags.DEFINE_integer('obstacle_detection_gpu_index', 0,
+                     'The index of the GPU to deploy the model on')
 flags.DEFINE_float('obstacle_detection_min_score_threshold', 0.5,
                    'Min score threshold for bounding box')
 flags.DEFINE_string('path_coco_labels', 'dependencies/models/pylot.names',
@@ -25,6 +27,8 @@ flags.DEFINE_float('traffic_light_det_min_score_threshold', 0.3,
 flags.DEFINE_float(
     'traffic_light_det_gpu_memory_fraction', 0.3,
     'GPU memory fraction allocated to each traffic light detector')
+flags.DEFINE_integer('traffic_light_det_gpu_index', 0,
+                     'The index of the GPU to deploy the model on')
 
 # DRN Segmentation flags.
 flags.DEFINE_string(
@@ -67,6 +71,8 @@ flags.DEFINE_string('da_siam_rpn_model_path',
 # Lane detection flags.
 flags.DEFINE_float('lane_detection_gpu_memory_fraction', 0.3,
                    'GPU memory fraction allocated to Lanenet')
+flags.DEFINE_integer('lane_detection_gpu_index', 0,
+                     'The index of the GPU to deploy the model on')
 flags.DEFINE_string(
     'lanenet_detection_model_path',
     'dependencies/models/lane_detection/lanenet/tusimple_lanenet.ckpt',

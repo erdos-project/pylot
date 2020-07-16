@@ -72,13 +72,15 @@ class EfficientDetOperator(erdos.Operator):
         self._ttd_msgs = deque()
 
     def load_serving_model(self, model_name, model_path, gpu_memory_fraction):
-        detection_graph = tf.Graph()
-        with detection_graph.as_default():
-            # Load a frozen graph.
-            graph_def = tf.GraphDef()
-            with tf.gfile.GFile(model_path, 'rb') as f:
-                graph_def.ParseFromString(f.read())
-                tf.import_graph_def(graph_def, name='')
+        with tf.device('/gpu:{}'.format(
+                self._flags.obstacle_detection_gpu_index)):
+            detection_graph = tf.Graph()
+            with detection_graph.as_default():
+                # Load a frozen graph.
+                graph_def = tf.GraphDef()
+                with tf.gfile.GFile(model_path, 'rb') as f:
+                    graph_def.ParseFromString(f.read())
+                    tf.import_graph_def(graph_def, name='')
         gpu_options = tf.GPUOptions(
             per_process_gpu_memory_fraction=gpu_memory_fraction)
         return model_name, tf.Session(

@@ -12,6 +12,7 @@ RUN useradd -r -u ${uid} -g erdos erdos
 RUN echo "erdos ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/erdos
 RUN chmod 0440 /etc/sudoers.d/erdos
 RUN chown ${uid}:${gid} -R /home/erdos
+RUN usermod --shell /bin/bash erdos
 
 
 USER erdos
