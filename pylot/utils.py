@@ -84,10 +84,13 @@ class Quaternion(object):
     """
     def __init__(self, w, x, y, z):
         norm = np.linalg.norm([w, x, y, z])
-        self.w = w / norm
-        self.x = x / norm
-        self.y = y / norm
-        self.z = z / norm
+        if norm < 1e-50:
+            self.w, self.x, self.y, self.z = 0, 0, 0, 0
+        else:
+            self.w = w / norm
+            self.x = x / norm
+            self.y = y / norm
+            self.z = z / norm
         self.matrix = Quaternion._create_matrix(self.w, self.x, self.y, self.z)
 
     @staticmethod
@@ -327,9 +330,12 @@ class Vector3D(object):
         position_2D = np.dot(intrinsic_matrix, transformed_3D_pos[:3])
 
         # Normalize the 2D points.
-        location_2D = type(self)(float(position_2D[0] / position_2D[2]),
-                                 float(position_2D[1] / position_2D[2]),
-                                 float(position_2D[2]))
+        if position_2D[2] < 1e-50:
+            location_2D = type(self)(0, 0, 0)
+        else:
+            location_2D = type(self)(float(position_2D[0] / position_2D[2]),
+                                     float(position_2D[1] / position_2D[2]),
+                                     float(position_2D[2]))
         return location_2D
 
     def rotate(self, angle):
@@ -572,7 +578,8 @@ class Transform(object):
             pitch_r = math.asin(self.forward_vector.z)
             yaw_r = math.acos(
                 np.clip(self.forward_vector.x / math.cos(pitch_r), -1, 1))
-            roll_r = math.asin(matrix[2, 1] / (-1 * math.cos(pitch_r)))
+            roll_r = math.asin(
+                np.clip(matrix[2, 1] / (-1 * math.cos(pitch_r)), -1, 1))
             self.rotation = Rotation(math.degrees(pitch_r),
                                      math.degrees(yaw_r), math.degrees(roll_r))
         else:
