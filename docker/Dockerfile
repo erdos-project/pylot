@@ -52,9 +52,9 @@ RUN cd /home/erdos/workspace/pylot/ && ./install.sh
 RUN cd /home/erdos/workspace/pylot/ && pip3 install -e ./
 # Set this env value to run carla in headless CARLA
 ENV SDL_VIDEODRIVER offscreen
-ENV CARLA_HOME /home/erdos/workspace/pylot/dependencies/CARLA_0.9.8
+ENV CARLA_HOME /home/erdos/workspace/pylot/dependencies/CARLA_0.9.9
 
-RUN echo "export PYTHONPATH=/home/erdos/workspace/pylot/dependencies/:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.8/PythonAPI/carla/dist/carla-0.9.8-py3.5-linux-x86_64.egg:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.8/PythonAPI/carla/" >> ~/.bashrc
+RUN echo "export PYTHONPATH=/home/erdos/workspace/pylot/dependencies/:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.9/PythonAPI/carla/dist/carla-0.9.9-py3.7-linux-x86_64.egg:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.9/PythonAPI/carla/" >> ~/.bashrc
 
 # Set up ssh access to the container.
 RUN cd ~/ && ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa <<<y 2>&1 >/dev/null
