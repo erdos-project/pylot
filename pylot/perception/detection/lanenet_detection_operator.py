@@ -48,7 +48,7 @@ class LanenetDetectionOperator(erdos.Operator):
         self._binary_seg_ret, self._instance_seg_ret = net.inference(
             input_tensor=self._input_tensor, name='LaneNet')
         self._gpu_options = tf.GPUOptions(
-            visible_device_list=str(self._flags.traffic_light_det_gpu_index),
+            visible_device_list=str(self._flags.lane_detection_gpu_index),
             per_process_gpu_memory_fraction=flags.
             lane_detection_gpu_memory_fraction,
             allocator_type='BFC')

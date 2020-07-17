@@ -80,7 +80,7 @@ class EfficientDetOperator(erdos.Operator):
                 graph_def.ParseFromString(f.read())
                 tf.import_graph_def(graph_def, name='')
         gpu_options = tf.GPUOptions(
-            visible_device_list=str(self._flags.traffic_light_det_gpu_index),
+            visible_device_list=str(self._flags.obstacle_detection_gpu_index),
             per_process_gpu_memory_fraction=gpu_memory_fraction)
         return model_name, tf.Session(
             graph=detection_graph,
