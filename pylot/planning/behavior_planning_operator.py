@@ -12,8 +12,29 @@ from pylot.planning.waypoints import Waypoints
 
 
 class BehaviorPlanningOperator(erdos.Operator):
-    def __init__(self, pose_stream, open_drive_stream, route_stream,
-                 trajectory_stream, flags):
+    """Behavior planning operator.
+
+    Args:
+        pose_stream (:py:class:`erdos.ReadStream`): Stream on which pose
+            info is received.
+        open_drive_stream (:py:class:`erdos.ReadStream`): Stream on which open
+            drive string representations are received. The operator can
+            construct HDMaps out of the open drive strings.
+        route_stream (:py:class:`erdos.ReadStream`): Stream on which the
+            scenario runner publishes waypoints.
+        trajectory_stream (:py:class:`erdos.WriteStream`): Stream on which the
+            operator sends waypoints the ego vehicle must follow.
+        flags (absl.flags): Object to be used to access absl flags.
+        goal_location (:py:class:`~pylot.utils.Location`): The goal location of
+            the ego vehicle.
+    """
+    def __init__(self,
+                 pose_stream,
+                 open_drive_stream,
+                 route_stream,
+                 trajectory_stream,
+                 flags,
+                 goal_location=None):
         pose_stream.add_callback(self.on_pose_update)
         open_drive_stream.add_callback(self.on_opendrive_map)
         route_stream.add_callback(self.on_route_msg)
@@ -24,12 +45,17 @@ class BehaviorPlanningOperator(erdos.Operator):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
+        # Do not set the goal location here so that the behavior planner
+        # issues an initial message.
         self._goal_location = None
         # Initialize the state of the behaviour planner.
         self.__initialize_behaviour_planner()
         self._pose_msgs = deque()
         self._ego_info = EgoInfo()
-        self._route = None
+        self._route = Waypoints(
+            deque(
+                [pylot.utils.Transform(goal_location,
+                                       pylot.utils.Rotation())]))
         self._map = None
 
     @staticmethod
@@ -81,10 +107,10 @@ class BehaviorPlanningOperator(erdos.Operator):
         pose_msg = self._pose_msgs.popleft()
         ego_transform = pose_msg.data.transform
         self._ego_info.update(self._state, pose_msg)
-        next_state = self.__best_state_transition(self._ego_info)
+        old_state = self._state
+        self._state = self.__best_state_transition(self._ego_info)
         self._logger.debug('@{}: agent transitioned from {} to {}'.format(
-            timestamp, self._state, next_state))
-        self._state = next_state
+            timestamp, old_state, self._state))
         # Remove the waypoint from the route if we're close to it.
         self._route.remove_waypoint_if_close(ego_transform.location, 5)
         new_goal_location = None
@@ -116,6 +142,10 @@ class BehaviorPlanningOperator(erdos.Operator):
                     road_options=deque([pylot.utils.RoadOption.LANE_FOLLOW]))
             trajectory_stream.send(
                 WaypointsMessage(timestamp, waypoints, self._state))
+        elif old_state != self._state:
+            # Send the state update.
+            trajectory_stream.send(
+                WaypointsMessage(timestamp, None, self._state))
         trajectory_stream.send(erdos.WatermarkMessage(timestamp))
 
     def __initialize_behaviour_planner(self):
@@ -209,7 +239,7 @@ class EgoInfo(object):
 
     def update(self, state, pose_msg):
         self.current_time = pose_msg.timestamp.coordinates[0]
-        if pose_msg.data.forward_speed >= 0.1:
+        if pose_msg.data.forward_speed >= 0.7:
             self.last_time_moving = self.current_time
         else:
             self.last_time_stopped = self.current_time

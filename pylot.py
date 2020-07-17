@@ -181,9 +181,9 @@ def driver():
                                          float(FLAGS.goal_location[1]),
                                          float(FLAGS.goal_location[2]))
     waypoints_stream = pylot.component_creator.add_planning(
-        goal_location, pose_stream, prediction_stream, center_camera_stream,
-        traffic_lights_stream, lane_detection_stream, open_drive_stream,
-        global_trajectory_stream, time_to_decision_loop_stream)
+        goal_location, pose_stream, prediction_stream, traffic_lights_stream,
+        lane_detection_stream, open_drive_stream, global_trajectory_stream,
+        time_to_decision_loop_stream)
 
     if FLAGS.carla_mode == "pseudo-asynchronous":
         # Add a synchronizer in the pseudo-asynchronous mode.

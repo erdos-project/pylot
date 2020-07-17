@@ -167,9 +167,9 @@ def create_data_flow():
     global_trajectory_stream = erdos.IngestStream()
 
     waypoints_stream = pylot.component_creator.add_planning(
-        None, pose_stream, prediction_stream, left_camera_stream,
-        traffic_lights_stream, lane_detection_stream, open_drive_stream,
-        global_trajectory_stream, time_to_decision_loop_stream)
+        None, pose_stream, prediction_stream, traffic_lights_stream,
+        lane_detection_stream, open_drive_stream, global_trajectory_stream,
+        time_to_decision_loop_stream)
 
     if FLAGS.control == 'pid':
         control_stream = pylot.operator_creator.add_pid_control(

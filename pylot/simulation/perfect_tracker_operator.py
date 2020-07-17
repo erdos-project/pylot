@@ -55,6 +55,12 @@ class PerfectTrackerOperator(erdos.Operator):
                 # If we are not performing ego-agent prediction, do not
                 # track the ego-vehicle.
                 continue
+
+            if (pose_transform.location.distance(obstacle.transform.location) >
+                    self._flags.obstacle_distance_threshold):
+                # Ignore the obstacle if it is too far away.
+                continue
+
             self._obstacles[obstacle.id].append(obstacle)
             cur_obstacle_trajectory = []
             # Iterate through past frames of this obstacle.

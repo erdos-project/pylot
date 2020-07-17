@@ -16,7 +16,7 @@ from pylot.prediction.obstacle_prediction import ObstaclePrediction
 
 
 class PlanningOperator(erdos.Operator):
-    """Base Planning Operator.
+    """Planning Operator.
 
     If the operator is running in CARLA challenge mode, then it receives all
     the waypoints from the scenario runner agent (on the global trajectory
@@ -32,35 +32,25 @@ class PlanningOperator(erdos.Operator):
         open_drive_stream (:py:class:`erdos.ReadStream`): Stream on which open
             drive string representations are received. The operator can
             construct HDMaps out of the open drive strings.
-        global_trajectory_stream (:py:class:`erdos.ReadStream`): Stream on
-            which the scenario runner publishes waypoints.
+        route_stream (:py:class:`erdos.ReadStream`): Stream on the planner
+            receives high-level waypoints to follow.
         waypoints_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends waypoints the ego vehicle must follow.
         flags (absl.flags): Object to be used to access absl flags.
-        goal_location (:py:class:`~pylot.utils.Location`): The goal location of
-            the ego vehicle.
     """
-    def __init__(self,
-                 pose_stream,
-                 prediction_stream,
-                 static_obstacles_stream,
-                 lanes_stream,
-                 global_trajectory_stream,
-                 open_drive_stream,
-                 time_to_decision_stream,
-                 waypoints_stream,
-                 flags,
-                 goal_location=None):
+    def __init__(self, pose_stream, prediction_stream, static_obstacles_stream,
+                 lanes_stream, route_stream, open_drive_stream,
+                 time_to_decision_stream, waypoints_stream, flags):
         pose_stream.add_callback(self.on_pose_update)
         prediction_stream.add_callback(self.on_prediction_update)
         static_obstacles_stream.add_callback(self.on_static_obstacles_update)
         lanes_stream.add_callback(self.on_lanes_update)
-        global_trajectory_stream.add_callback(self.on_global_trajectory)
+        route_stream.add_callback(self.on_route)
         open_drive_stream.add_callback(self.on_opendrive_map)
         time_to_decision_stream.add_callback(self.on_time_to_decision)
         erdos.add_watermark_callback([
             pose_stream, prediction_stream, static_obstacles_stream,
-            lanes_stream, time_to_decision_stream, global_trajectory_stream
+            lanes_stream, time_to_decision_stream, route_stream
         ], [waypoints_stream], self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -69,11 +59,6 @@ class PlanningOperator(erdos.Operator):
         self._ego_transform = None
         self._map = None
         self._world = World(flags, self._logger)
-        # Waypoints the vehicle must follow. The waypoints are either
-        # received on the global trajectory stream when running using the
-        # scenario runner, or computed using the Carla global planner when
-        # running in stand-alone mode.
-        self._world.update_waypoints(goal_location, None)
         if self._flags.planning_type == 'waypoint':
             # Use the FOT planner for overtaking.
             from pylot.planning.frenet_optimal_trajectory.fot_planner \
@@ -104,7 +89,7 @@ class PlanningOperator(erdos.Operator):
 
     @staticmethod
     def connect(pose_stream, prediction_stream, static_obstacles_stream,
-                lanes_steam, global_trajectory_stream, open_drive_stream,
+                lanes_steam, route_stream, open_drive_stream,
                 time_to_decision_stream):
         waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
@@ -147,22 +132,23 @@ class PlanningOperator(erdos.Operator):
         self._logger.debug('@{}: received lanes update'.format(msg.timestamp))
         self._lanes_msgs.append(msg)
 
-    def on_global_trajectory(self, msg):
+    def on_route(self, msg):
         """Invoked whenever a message is received on the trajectory stream.
 
         Args:
             msg (:py:class:`~erdos.message.Message`): Message that contains
                 a list of waypoints to the goal location.
         """
-        self._logger.debug('@{}: global trajectory has {} waypoints'.format(
-            msg.timestamp, len(msg.waypoints.waypoints)))
         if msg.agent_state:
             self._logger.debug('@{}: updating planner state to {}'.format(
                 msg.timestamp, msg.agent_state))
             self._state = msg.agent_state
-        # The last waypoint is the goal location.
-        self._world.update_waypoints(msg.waypoints.waypoints[-1].location,
-                                     msg.waypoints)
+        if msg.waypoints:
+            self._logger.debug('@{}: route has {} waypoints'.format(
+                msg.timestamp, len(msg.waypoints.waypoints)))
+            # The last waypoint is the goal location.
+            self._world.update_waypoints(msg.waypoints.waypoints[-1].location,
+                                         msg.waypoints)
 
     def on_opendrive_map(self, msg):
         """Invoked whenever a message is received on the open drive stream.

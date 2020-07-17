@@ -438,13 +438,9 @@ def create_data_flow():
     prediction_stream = pylot.operator_creator.add_linear_prediction(
         obstacles_tracking_stream)
 
-    trajectory_stream = pylot.operator_creator.add_behavior_planning(
-        pose_stream, open_drive_stream, global_trajectory_stream)
-
     waypoints_stream = pylot.component_creator.add_planning(
-        None, pose_stream, prediction_stream,
-        camera_streams[CENTER_CAMERA_NAME], traffic_lights_stream,
-        lanes_stream, open_drive_stream, trajectory_stream,
+        None, pose_stream, prediction_stream, traffic_lights_stream,
+        lanes_stream, open_drive_stream, global_trajectory_stream,
         time_to_decision_loop_stream)
 
     if pylot.flags.must_visualize():

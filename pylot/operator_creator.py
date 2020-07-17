@@ -367,6 +367,7 @@ def add_prediction_evaluation(pose_stream,
 def add_behavior_planning(pose_stream,
                           open_drive_stream,
                           global_trajectory_stream,
+                          goal_location,
                           name='behavior_planning'):
     from pylot.planning.behavior_planning_operator import \
         BehaviorPlanningOperator
@@ -377,7 +378,8 @@ def add_behavior_planning(pose_stream,
                                      profile_file_name=FLAGS.profile_file_name)
     [trajectory_stream] = erdos.connect(
         BehaviorPlanningOperator, op_config,
-        [pose_stream, open_drive_stream, global_trajectory_stream], FLAGS)
+        [pose_stream, open_drive_stream, global_trajectory_stream], FLAGS,
+        goal_location)
     return trajectory_stream
 
 
@@ -388,7 +390,6 @@ def add_planning(pose_stream,
                  global_trajectory_stream,
                  open_drive_stream,
                  time_to_decision_stream,
-                 goal_location,
                  name='planning_operator'):
     from pylot.planning.planning_operator import PlanningOperator
     op_config = erdos.OperatorConfig(name=name,
@@ -399,7 +400,7 @@ def add_planning(pose_stream,
     [waypoints_stream] = erdos.connect(PlanningOperator, op_config, [
         pose_stream, prediction_stream, traffic_lights_stream, lanes_stream,
         global_trajectory_stream, open_drive_stream, time_to_decision_stream
-    ], FLAGS, goal_location)
+    ], FLAGS)
     return waypoints_stream
 
 

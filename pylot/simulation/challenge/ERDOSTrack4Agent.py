@@ -45,7 +45,7 @@ class ERDOSTrack4Agent(AutonomousAgent):
         # Stores the waypoints we get from the challenge planner.
         self._waypoints = None
         (pose_stream, global_trajectory_stream, ground_obstacles_stream,
-         traffic_lights_stream, open_drive_stream,
+         traffic_lights_stream, lanes_stream, open_drive_stream,
          control_stream) = create_data_flow()
         self._pose_stream = pose_stream
         self._global_trajectory_stream = global_trajectory_stream
@@ -376,13 +376,14 @@ def create_data_flow():
     # scene_layout_stream = erdos.IngestStream()
     ground_obstacles_stream = erdos.IngestStream()
     traffic_lights_stream = erdos.IngestStream()
+    lanes_stream = erdos.IngestStream()
     time_to_decision_loop_stream = erdos.LoopStream()
 
     # Add waypoint planner.
-    waypoints_stream = pylot.operator_creator.add_planning(
-        pose_stream, ground_obstacles_stream, traffic_lights_stream,
-        global_trajectory_stream, open_drive_stream,
-        time_to_decision_loop_stream, None)
+    waypoints_stream = pylot.component_creator.add_planning(
+        None, pose_stream, ground_obstacles_stream, traffic_lights_stream,
+        lanes_stream, open_drive_stream, global_trajectory_stream,
+        time_to_decision_loop_stream)
     control_stream = pylot.operator_creator.add_pid_control(
         pose_stream, waypoints_stream)
     extract_control_stream = erdos.ExtractStream(control_stream)
@@ -392,7 +393,8 @@ def create_data_flow():
     time_to_decision_loop_stream.set(time_to_decision_stream)
 
     return (pose_stream, global_trajectory_stream, ground_obstacles_stream,
-            traffic_lights_stream, open_drive_stream, extract_control_stream)
+            traffic_lights_stream, lanes_stream, open_drive_stream,
+            extract_control_stream)
 
 
 def enable_logging():

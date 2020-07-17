@@ -28,7 +28,7 @@ flags.DEFINE_float(
     'traffic_light_max_angle', 0.5,
     'Angle threshold for a traffic light to be considered for stopping [rad]')
 flags.DEFINE_integer(
-    'vehicle_max_distance', 15,
+    'vehicle_max_distance', 18,
     'Max distance for a vehicle to be considered for stopping [m]')
 flags.DEFINE_float(
     'vehicle_max_angle', 0.4,
@@ -39,7 +39,7 @@ flags.DEFINE_integer(
 flags.DEFINE_float('person_angle_hit_zone', 0.15,
                    'Angle threshold for a person to be in the hit zone [rad]')
 flags.DEFINE_integer(
-    'person_distance_emergency_zone', 13,
+    'person_distance_emergency_zone', 15,
     'Distance threshold for a person to be in the emergency zone [m]')
 flags.DEFINE_float(
     'person_angle_emergency_zone', 0.5,

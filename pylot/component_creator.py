@@ -416,7 +416,7 @@ def add_prediction(obstacles_tracking_stream,
             notify_reading_stream)
 
 
-def add_planning(goal_location, pose_stream, prediction_stream, camera_stream,
+def add_planning(goal_location, pose_stream, prediction_stream,
                  traffic_lights_stream, lanes_stream, open_drive_stream,
                  global_trajectory_stream, time_to_decision_stream):
     """Adds planning operators.
@@ -428,9 +428,6 @@ def add_planning(goal_location, pose_stream, prediction_stream, camera_stream,
         prediction_stream (:py:class:`erdos.ReadStream`): Stream of
             :py:class:`~pylot.prediction.messages.PredictionMessage` messages
             for predicted obstacles.
-        camera_stream (:py:class:`erdos.ReadStream`): Stream of
-            :py:class:`~pylot.perception.messages.FrameMessage` messages
-            for camera frames.
         traffic_lights_stream (:py:class:`erdos.ReadStream`): Stream of
             :py:class:`~pylot.perception.messages.TrafficLightsMessage`
             messages for traffic lights.
@@ -444,10 +441,13 @@ def add_planning(goal_location, pose_stream, prediction_stream, camera_stream,
         :py:class:`erdos.ReadStream`: Stream on which the waypoints are
         published.
     """
+    trajectory_stream = pylot.operator_creator.add_behavior_planning(
+        pose_stream, open_drive_stream, global_trajectory_stream,
+        goal_location)
+
     waypoints_stream = pylot.operator_creator.add_planning(
         pose_stream, prediction_stream, traffic_lights_stream, lanes_stream,
-        global_trajectory_stream, open_drive_stream, time_to_decision_stream,
-        goal_location)
+        trajectory_stream, open_drive_stream, time_to_decision_stream)
     return waypoints_stream
 
 
