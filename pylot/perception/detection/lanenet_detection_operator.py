@@ -41,14 +41,14 @@ class LanenetDetectionOperator(erdos.Operator):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         pylot.utils.set_tf_loglevel(logging.ERROR)
-        with tf.device('/gpu:{}'.format(self._flags.lane_detection_gpu_index)):
-            self._input_tensor = tf.placeholder(dtype=tf.float32,
-                                                shape=[1, 256, 512, 3],
-                                                name='input_tensor')
-            net = lanenet.LaneNet(phase='test')
-            self._binary_seg_ret, self._instance_seg_ret = net.inference(
-                input_tensor=self._input_tensor, name='LaneNet')
+        self._input_tensor = tf.placeholder(dtype=tf.float32,
+                                            shape=[1, 256, 512, 3],
+                                            name='input_tensor')
+        net = lanenet.LaneNet(phase='test')
+        self._binary_seg_ret, self._instance_seg_ret = net.inference(
+            input_tensor=self._input_tensor, name='LaneNet')
         self._gpu_options = tf.GPUOptions(
+            visible_device_list=str(self._flags.traffic_light_det_gpu_index),
             per_process_gpu_memory_fraction=flags.
             lane_detection_gpu_memory_fraction,
             allocator_type='BFC')

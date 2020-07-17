@@ -100,6 +100,7 @@ git clone https://github.com/ICGog/automl.git
 
 ###### Get DeepSORT and SORT tracker code bases ######
 git clone https://github.com/ICGog/nanonets_object_tracking.git
+sudo apt-get install python3-tk
 git clone https://github.com/ICGog/sort.git
 
 ###### Download the DaSiamRPN code ######

@@ -76,7 +76,7 @@ RUN chmod +x /workspace/leaderboard/scripts/run_evaluation.sh
 ########################################################################################################################
 ########################################################################################################################
 
-RUN apt-get update && apt-get install -y clang libgeos-dev python-opencv libqt5core5a libeigen3-dev cmake qtbase5-dev
+RUN apt-get update && apt-get install -y clang libgeos-dev python-opencv libqt5core5a libeigen3-dev cmake qtbase5-dev python3-tk
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin/:${PATH}"
 RUN rustup default nightly
