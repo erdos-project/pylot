@@ -330,12 +330,9 @@ class Vector3D(object):
         position_2D = np.dot(intrinsic_matrix, transformed_3D_pos[:3])
 
         # Normalize the 2D points.
-        if position_2D[2] < 1e-50:
-            location_2D = type(self)(0, 0, 0)
-        else:
-            location_2D = type(self)(float(position_2D[0] / position_2D[2]),
-                                     float(position_2D[1] / position_2D[2]),
-                                     float(position_2D[2]))
+        location_2D = type(self)(float(position_2D[0] / position_2D[2]),
+                                 float(position_2D[1] / position_2D[2]),
+                                 float(position_2D[2]))
         return location_2D
 
     def rotate(self, angle):
