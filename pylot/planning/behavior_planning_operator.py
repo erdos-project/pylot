@@ -52,10 +52,14 @@ class BehaviorPlanningOperator(erdos.Operator):
         self.__initialize_behaviour_planner()
         self._pose_msgs = deque()
         self._ego_info = EgoInfo()
-        self._route = Waypoints(
-            deque(
-                [pylot.utils.Transform(goal_location,
-                                       pylot.utils.Rotation())]))
+        if goal_location:
+            self._route = Waypoints(
+                deque([
+                    pylot.utils.Transform(goal_location,
+                                          pylot.utils.Rotation())
+                ]))
+        else:
+            self._route = None
         self._map = None
 
     @staticmethod
