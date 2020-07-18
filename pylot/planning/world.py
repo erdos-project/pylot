@@ -155,7 +155,7 @@ class World(object):
                 if not any(
                         map(
                             lambda transform: self._map.are_on_same_lane(
-                                transform.location, self.ego_transform.location
+                                self.ego_transform.location, transform.location
                             ), obstacle.predicted_trajectory)):
                     # The person is not going to be on the same lane.
                     self._logger.debug(
@@ -204,11 +204,11 @@ class World(object):
                 if not any(
                         map(
                             lambda transform: self._map.are_on_same_lane(
-                                transform.location, self.ego_transform.location
+                                self.ego_transform.location, transform.location
                             ), obstacle.predicted_trajectory)):
                     # The vehicle is not going to be on the same lane as ego.
                     self._logger.debug(
-                        'Ignoring ({},{}); it is not going to be on the road'.
+                        'Ignoring ({},{}); not going to be on the same lane'.
                         format(obstacle.label, obstacle.id))
                     return 1
         else:
