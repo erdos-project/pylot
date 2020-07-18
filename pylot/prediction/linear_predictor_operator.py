@@ -81,7 +81,7 @@ class LinearPredictorOperator(erdos.Operator):
                 transform = obstacle_trajectory.trajectory[-(t + 1)]
                 xy[t][0] = transform.location.x
                 xy[t][1] = transform.location.y
-            linear_model_params = np.linalg.lstsq(ts, xy)[0]
+            linear_model_params = np.linalg.lstsq(ts, xy, rcond=None)[0]
             # Predict future steps and convert to list of locations.
             predict_array = np.matmul(future_ts, linear_model_params)
             predictions = []

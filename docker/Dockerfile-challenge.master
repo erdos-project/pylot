@@ -91,6 +91,10 @@ ENV TEAM_CONFIG ${TEAM_CODE_ROOT}/pylot/simulation/challenge/challenge.conf
 ENV CHALLENGE_PHASE_CODENAME MAP
 ENV PYLOT_HOME ${TEAM_CODE_ROOT}/
 
+RUN cd ${TEAM_CODE_ROOT}/dependencies/frenet_optimal_trajectory_planner && rm -r build && ./build.sh
+RUN cd ${TEAM_CODE_ROOT}/dependencies/hybrid_astar_planner && rm -r build && ./build.sh
+RUN cd ${TEAM_CODE_ROOT}/dependencies/rrt_star_planner && rm -r build && ./build.sh
+
 ########################################################################################################################
 ########################################################################################################################
 ############                                   END OF USER COMMANDS                                         ############
