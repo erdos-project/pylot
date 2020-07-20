@@ -90,8 +90,8 @@ class PointCloud(object):
             if all the point cloud points are behind.
         """
         # Select only points that are in front.
-        # Setting the threshold to 0.1 because super close points cause floating
-        # point errors.
+        # Setting the threshold to 0.1 because super close points cause
+        # floating point errors.
         fwd_points = self.points[np.where(self.points[:, 2] > 0.1)]
         if len(fwd_points) == 0:
             return None
