@@ -52,9 +52,9 @@ class LinearPredictorOperator(erdos.Operator):
         self._logger.debug('@{}: received trajectories message'.format(
             msg.timestamp))
         obstacle_predictions_list = []
-
         nearby_obstacle_trajectories, nearby_obstacles_ego_transforms = \
-            msg.get_nearby_obstacles_info(self._flags.prediction_radius)
+            msg.get_nearby_obstacles_info(self._flags.prediction_radius,
+            lambda t: len(t.trajectory) >= self._flags.ignore_obstacles_with_short_history)  # noqa: E501
         num_predictions = len(nearby_obstacle_trajectories)
 
         self._logger.info(

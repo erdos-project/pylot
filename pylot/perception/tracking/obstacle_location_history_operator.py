@@ -3,20 +3,25 @@ from collections import defaultdict, deque
 import erdos
 
 import pylot.utils
-from pylot.perception.detection.utils import get_obstacle_locations
+from pylot.perception.detection.utils import VEHICLE_LABELS, \
+    get_obstacle_locations
 from pylot.perception.messages import ObstacleTrajectoriesMessage
 from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 
 
 class ObstacleLocationHistoryOperator(erdos.Operator):
     def __init__(self, obstacles_stream, depth_stream, pose_stream,
+                 ground_obstacles_stream, vehicle_id_stream,
                  tracked_obstacles_stream, flags, camera_setup):
+        self._vehicle_id_stream = vehicle_id_stream
         obstacles_stream.add_callback(self.on_obstacles_update)
         depth_stream.add_callback(self.on_depth_update)
         pose_stream.add_callback(self.on_pose_update)
-        erdos.add_watermark_callback(
-            [obstacles_stream, depth_stream, pose_stream],
-            [tracked_obstacles_stream], self.on_watermark)
+        ground_obstacles_stream.add_callback(self.on_ground_obstacles_update)
+        erdos.add_watermark_callback([
+            obstacles_stream, depth_stream, pose_stream,
+            ground_obstacles_stream
+        ], [tracked_obstacles_stream], self.on_watermark)
         self._flags = flags
         self._camera_setup = camera_setup
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -28,6 +33,7 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
         self._obstacles_msgs = deque()
         self._depth_msgs = deque()
         self._pose_msgs = deque()
+        self._ground_obstacles_msgs = deque()
         self._obstacle_history = defaultdict(deque)
         self._timestamp_history = deque()
         # Stores the id of obstacles that have values for a given timestamp.
@@ -35,7 +41,8 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
         self._timestamp_to_id = defaultdict(list)
 
     @staticmethod
-    def connect(obstacles_stream, depth_stream, pose_stream):
+    def connect(obstacles_stream, depth_stream, pose_stream,
+                ground_obstacles_stream, vehicle_id_stream):
         tracked_obstacles_stream = erdos.WriteStream()
         return [tracked_obstacles_stream]
 
@@ -49,6 +56,10 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
         """
         self._logger.debug('@{}: received watermark'.format(timestamp))
         obstacles_msg = self._obstacles_msgs.popleft()
+        ground_obstacles_msg = self._ground_obstacles_msgs.popleft()
+        assert obstacles_msg.timestamp.coordinates[
+            0] == ground_obstacles_msg.timestamp.coordinates[
+                0], 'Ground obstacles are not synchronized with obstacles'
         depth_msg = self._depth_msgs.popleft()
         vehicle_transform = self._pose_msgs.popleft().data.transform
 
@@ -56,6 +67,8 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
             obstacles_msg.obstacles, depth_msg, vehicle_transform,
             self._camera_setup, self._logger)
 
+        self.assign_ground_locations(obstacles_with_location,
+                                     ground_obstacles_msg.obstacles)
         ids_cur_timestamp = []
         obstacle_trajectories = []
         for obstacle in obstacles_with_location:
@@ -96,9 +109,35 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
                     del self._obstacle_history[obstacle_id]
             del self._timestamp_to_id[gc_timestamp]
 
+    def assign_ground_locations(self, obstacles, ground_obstacles):
+        for obstacle in obstacles:
+            min_distance = 100
+            closest_obstacle_index = None
+            for index, ground_obstacle in enumerate(ground_obstacles):
+                if ground_obstacle.id == self._vehicle_id:
+                    continue
+                # We're only matching pedestrians.
+                if (obstacle.label == ground_obstacle.label
+                        or (ground_obstacle.label == 'vehicle'
+                            and obstacle.label in VEHICLE_LABELS)):
+                    distance = obstacle.transform.location.distance(
+                        ground_obstacle.transform.location)
+                    if distance < min_distance and distance < 20:
+                        min_distance = distance
+                        closest_obstacle_index = index
+            if closest_obstacle_index is not None:
+                obstacle.transform = \
+                    ground_obstacles[closest_obstacle_index].transform
+                obstacle.id = ground_obstacles[closest_obstacle_index].id
+
     def on_obstacles_update(self, msg):
         self._logger.debug('@{}: obstacles update'.format(msg.timestamp))
         self._obstacles_msgs.append(msg)
+
+    def on_ground_obstacles_update(self, msg):
+        self._logger.debug('@{}: ground obstacles update'.format(
+            msg.timestamp))
+        self._ground_obstacles_msgs.append(msg)
 
     def on_depth_update(self, msg):
         self._logger.debug('@{}: depth update'.format(msg.timestamp))
@@ -118,3 +157,8 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
                 pylot.utils.time_epoch_ms(), timestamp.coordinates[0],
                 "[{} {}]".format(obstacle.id, obstacle.label),
                 "[{:.4f} {:.4f} {:.4f}]".format(x, y, z)))
+
+    def run(self):
+        # Read the vehicle id from the vehicle id stream
+        vehicle_id_msg = self._vehicle_id_stream.read()
+        self._vehicle_id = vehicle_id_msg.data

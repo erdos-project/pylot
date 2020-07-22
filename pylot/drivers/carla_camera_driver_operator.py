@@ -61,6 +61,9 @@ class CarlaCameraDriverOperator(erdos.Operator):
         # release data watermark. Otherwise, it sends as soon as it
         # receives it.
         self._release_data = False
+        if (self._camera_setup.camera_type == 'sensor.camera.depth'
+                and self._flags.carla_mode == 'pseudo-asynchronous'):
+            self._release_data = True
 
     @staticmethod
     def connect(ground_vehicle_id_stream, release_sensor_stream):
@@ -70,8 +73,7 @@ class CarlaCameraDriverOperator(erdos.Operator):
 
     @erdos.profile_method()
     def release_data(self, timestamp):
-        if timestamp.is_top:
-            # The operator can always send data ASAP.
+        if timestamp.is_top or self._release_data:
             self._release_data = True
         else:
             self._logger.debug("@{}: {} releasing sensor data".format(
@@ -167,6 +169,10 @@ class CarlaCameraDriverOperator(erdos.Operator):
                 if self._release_data:
                     self._camera_stream.send(msg)
                     self._camera_stream.send(watermark_msg)
+                    if (self._camera_setup.camera_type == 'sensor.camera.depth'
+                            and self._flags.carla_mode
+                            == 'pseudo-asynchronous'):
+                        self._notify_reading_stream.send(watermark_msg)
                 else:
                     # Pickle the data, and release it upon release msg receipt.
                     pickled_msg = pickle.dumps(

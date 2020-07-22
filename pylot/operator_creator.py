@@ -37,12 +37,12 @@ def add_efficientdet_obstacle_detection(camera_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=csv_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    obstacles_streams = erdos.connect(EfficientDetOperator, op_config,
-                                      [camera_stream, time_to_decision_stream],
-                                      FLAGS.obstacle_detection_model_names,
-                                      FLAGS.obstacle_detection_model_paths,
-                                      FLAGS)
-    return obstacles_streams
+    [obstacles_stream, runtime_stream
+     ] = erdos.connect(EfficientDetOperator, op_config,
+                       [camera_stream, time_to_decision_stream],
+                       FLAGS.obstacle_detection_model_names,
+                       FLAGS.obstacle_detection_model_paths, FLAGS)
+    return [obstacles_stream], [runtime_stream]
 
 
 def add_obstacle_detection(camera_stream,
@@ -103,6 +103,7 @@ def add_obstacle_location_finder(obstacles_stream, depth_stream, pose_stream,
 
 
 def add_obstacle_location_history(obstacles_stream, depth_stream, pose_stream,
+                                  ground_obstacles_stream, vehicle_id_stream
                                   camera_setup):
     """Adds an operator that finds obstacle trajectories in world coordinates.
 
@@ -132,9 +133,10 @@ def add_obstacle_location_history(obstacles_stream, depth_stream, pose_stream,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
     [tracked_obstacles
-     ] = erdos.connect(ObstacleLocationHistoryOperator, op_config,
-                       [obstacles_stream, depth_stream, pose_stream], FLAGS,
-                       camera_setup)
+     ] = erdos.connect(ObstacleLocationHistoryOperator, op_config, [
+         obstacles_stream, depth_stream, pose_stream, ground_obstacles_stream,
+         vehicle_id_stream
+     ], FLAGS, camera_setup)
     return tracked_obstacles
 
 
@@ -669,7 +671,7 @@ def add_synchronizer(ground_vehicle_id_stream, stream_to_sync_on):
 
 def add_planning_pose_synchronizer(waypoint_stream, pose_stream,
                                    localization_stream, notify_stream1,
-                                   notify_stream2):
+                                   notify_stream2, detector_runtime_stream):
     from pylot.simulation.planning_pose_synchronizer_operator import \
         PlanningPoseSynchronizerOperator
     op_config = erdos.OperatorConfig(
@@ -680,7 +682,7 @@ def add_planning_pose_synchronizer(waypoint_stream, pose_stream,
         profile_file_name=FLAGS.profile_file_name)
     return erdos.connect(PlanningPoseSynchronizerOperator, op_config, [
         waypoint_stream, pose_stream, localization_stream, notify_stream1,
-        notify_stream2
+        notify_stream2, detector_runtime_stream
     ], FLAGS)
 
 

@@ -70,11 +70,9 @@ def driver():
         vehicle_id_stream,
         open_drive_stream,
         global_trajectory_stream,
-    ) = pylot.operator_creator.add_carla_bridge(
-        control_loop_stream,
-        release_sensor_stream,
-        pipeline_finish_notify_stream,
-    )
+    ) = pylot.operator_creator.add_carla_bridge(control_loop_stream,
+                                                release_sensor_stream,
+                                                pipeline_finish_notify_stream)
 
     # Add sensors.
     (center_camera_stream, notify_rgb_stream,
@@ -133,11 +131,15 @@ def driver():
         pose_stream = pylot.operator_creator.add_localization(
             imu_stream, gnss_stream, pose_stream)
 
-    obstacles_stream = pylot.component_creator.add_obstacle_detection(
-        center_camera_stream, center_camera_setup, pose_stream, depth_stream,
-        depth_camera_stream, ground_segmented_stream, ground_obstacles_stream,
-        ground_speed_limit_signs_stream, ground_stop_signs_stream,
-        time_to_decision_loop_stream)
+    obstacles_stream, runtime_stream = \
+        pylot.component_creator.add_obstacle_detection(
+            center_camera_stream, center_camera_setup, pose_stream,
+            depth_stream, depth_camera_stream, ground_segmented_stream,
+            ground_obstacles_stream, ground_speed_limit_signs_stream,
+            ground_stop_signs_stream, time_to_decision_loop_stream)
+    if runtime_stream is None:
+        runtime_stream = erdos.IngestStream()
+
     tl_transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                          pylot.utils.Rotation())
     traffic_lights_stream, tl_camera_stream = \
@@ -196,7 +198,7 @@ def driver():
             _pipeline_finish_notify_stream,
         ) = pylot.operator_creator.add_planning_pose_synchronizer(
             waypoints_stream, pose_stream_for_control, pose_stream,
-            *notify_streams)
+            *notify_streams, runtime_stream)
         release_sensor_stream.set(sensor_ready_stream)
         pipeline_finish_notify_stream.set(_pipeline_finish_notify_stream)
     else:
@@ -213,7 +215,7 @@ def driver():
                              waypoints_stream_for_control)
 
     time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
-        pose_stream, obstacles_stream)
+        pose_stream, obstacles_tracking_stream)
     time_to_decision_loop_stream.set(time_to_decision_stream)
 
     control_display_stream = None

@@ -235,6 +235,7 @@ class CarlaOperator(erdos.Operator):
             with erdos.profile(self.config.name + '.send_actor_data',
                                self,
                                event_data={'timestamp': str(timestamp)}):
+                localization_update = False
                 if (self._flags.carla_localization_frequency == -1
                         or self._next_localization_sensor_reading is None or
                         game_time == self._next_localization_sensor_reading):
@@ -245,11 +246,16 @@ class CarlaOperator(erdos.Operator):
                                                   watermark_msg)
                     self.__send_ground_actors_data(timestamp, watermark_msg)
                     self.__update_spectactor_pose()
+                    localization_update = True
 
                 if self._flags.carla_mode == "pseudo-asynchronous" and (
                         self._flags.carla_control_frequency == -1
                         or self._next_control_sensor_reading is None
-                        or game_time == self._next_control_sensor_reading):
+                        or game_time == self._next_control_sensor_reading
+                ) and not localization_update:
+                    # If localization update was sent for the same timestamp,
+                    # wait for the pipeline to finish before sending a pose
+                    # from the pipeline finish update.
                     self._update_next_control_pseudo_asynchronous_ticks(
                         game_time)
                     self.__send_hero_vehicle_data(self.pose_stream_for_control,
@@ -261,7 +267,9 @@ class CarlaOperator(erdos.Operator):
             self._next_localization_sensor_reading = (
                 game_time +
                 int(1000 / self._flags.carla_localization_frequency))
-            if not self._simulator_in_sync:
+            if (not self._simulator_in_sync
+                    and self._flags.carla_localization_frequency != 8
+                    and self._flags.carla_localization_frequency != 10):
                 # If this is the first sensor reading, then tick
                 # one more time because the second sensor reading
                 # is sometimes delayed by 1 tick.
@@ -288,6 +296,8 @@ class CarlaOperator(erdos.Operator):
                 (self._next_control_sensor_reading, TickEvent.SENSOR_READ))
 
     def run(self):
+        if self._flags.carla_mode == "pseudo-asynchronous":
+            self._tick_simulator_until(8000)
         self.__send_world_data()
         # Tick here once to ensure that the driver operators can get a handle
         # to the ego vehicle.

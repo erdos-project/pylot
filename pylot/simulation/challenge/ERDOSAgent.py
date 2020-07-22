@@ -496,7 +496,7 @@ def create_data_flow():
                 camera_streams[CENTER_CAMERA_NAME],
                 time_to_decision_loop_stream)[0]
     else:
-        obstacles_stream = pylot.operator_creator.add_obstacle_detection(
+        obstacles_stream, _ = pylot.operator_creator.add_obstacle_detection(
             camera_streams[CENTER_CAMERA_NAME],
             time_to_decision_loop_stream)[0]
 

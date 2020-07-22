@@ -31,7 +31,9 @@ class DepthFrame(object):
         # Attribute used to cache the depth frame as a point cloud. We're doing
         # this because it is computationally expensive to transform a depth
         # frame to a point cloud.
-        self._cached_point_cloud = None
+        self._cached_point_cloud = self.as_point_cloud()
+        # Remove the frame to reduce message send time.
+        self.frame = None
 
     @classmethod
     def from_carla_frame(cls, frame, camera_setup, save_original_frame=False):

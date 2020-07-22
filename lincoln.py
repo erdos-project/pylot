@@ -115,7 +115,7 @@ def create_data_flow():
     pose_stream = add_localization()
 
     if FLAGS.obstacle_detection:
-        obstacles_streams = pylot.operator_creator.add_obstacle_detection(
+        obstacles_streams, _ = pylot.operator_creator.add_obstacle_detection(
             left_camera_stream, time_to_decision_loop_stream)
         obstacles_stream = obstacles_streams[0]
         # Adds an operator that finds the world locations of the obstacles.
