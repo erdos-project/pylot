@@ -47,16 +47,14 @@ you have to forward X from the container. First, add your public ssh key to the
 `~/.ssh/authorized_keys` in the container:
 
 ```console
-nvidia-docker cp ~/.ssh/id_rsa.pub pylot_new:/home/erdos/.ssh/authorized_keys
-nvidia-docker exec -i -t pylot_new sudo chown erdos /home/erdos/.ssh/authorized_keys
-nvidia-docker exec -i -t pylot /bin/bash
-sudo service ssh start
-exit
+nvidia-docker cp ~/.ssh/id_rsa.pub pylot:/home/erdos/.ssh/authorized_keys
+nvidia-docker exec -i -t pylot sudo chown erdos /home/erdos/.ssh/authorized_keys
+nvidia-docker exec -i -t pylot sudo service ssh start
 ```
 
 Finally, ssh into the container with X forwarding:
 ```console
-ssh -p 20022 -X erdos@localhost /bin/bash
+ssh -p 20022 -X erdos@localhost
 cd /home/erdos/workspace/pylot/
 python3 pylot.py --flagfile=configs/detection.conf --visualize_detected_obstacles
 ```

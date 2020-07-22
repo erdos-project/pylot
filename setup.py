@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="erdos-pylot",
-    version="0.2",
+    version="0.3",
     author="Pylot Team",
     description=("A platform for developing autonomous vehicles."),
     long_description=open("README.md").read(),
@@ -13,7 +13,7 @@ setup(
     install_requires=[
         "absl-py",
         "cvxpy",
-        "erdos>=0.2.0",
+        "erdos>=0.3.0",
         "gdown",
         "lapsolver",
         "matplotlib==2.2.4",

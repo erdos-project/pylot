@@ -1,6 +1,6 @@
 absl-py
 cvxpy
-erdos>=0.2.0
+erdos>=0.3.0
 gdown
 lapsolver
 matplotlib==2.2.4
