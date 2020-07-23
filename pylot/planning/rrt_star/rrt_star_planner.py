@@ -27,7 +27,7 @@ class RRTStarPlanner(Planner):
             "lane_width": flags.lane_width,
         }
 
-    def run(self, timestamp):
+    def run(self, timestamp, ttd=None):
         """Runs the planner.
 
         Note:

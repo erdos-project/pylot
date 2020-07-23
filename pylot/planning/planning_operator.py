@@ -2,6 +2,7 @@
 Author: Edward Fang
 Email: edward.fang@berkeley.edu
 """
+import time
 from collections import deque
 
 import erdos
@@ -177,9 +178,15 @@ class PlanningOperator(erdos.Operator):
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         self.update_world(timestamp)
+        ttd_msg = self._ttd_msgs.popleft()
+        # Total ttd - time spent up to now
+        ttd = ttd_msg.data[0] - (time.time() -
+                                 self._world.pose.localization_time)
+        self._logger.debug('@{}: adjusting ttd from {} to {}'.format(
+            timestamp, ttd_msg.data[0], ttd))
         if self._state == BehaviorPlannerState.OVERTAKE:
             # Ignore traffic lights and obstacle.
-            output_wps = self._planner.run(timestamp)
+            output_wps = self._planner.run(timestamp, ttd)
         else:
             (speed_factor, _, _, speed_factor_tl,
              speed_factor_stop) = self._world.stop_for_agents(timestamp)
@@ -190,7 +197,7 @@ class PlanningOperator(erdos.Operator):
                         timestamp, speed_factor, target_speed))
                 output_wps = self._world.follow_waypoints(target_speed)
             else:
-                output_wps = self._planner.run(timestamp)
+                output_wps = self._planner.run(timestamp, ttd)
                 speed_factor = min(speed_factor_stop, speed_factor_tl)
                 self._logger.debug('@{}: speed factor: {}'.format(
                     timestamp, speed_factor))

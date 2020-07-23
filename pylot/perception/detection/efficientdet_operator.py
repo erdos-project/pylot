@@ -156,10 +156,10 @@ class EfficientDetOperator(erdos.Operator):
                 messages.
         """
         start_time = time.time()
-        # ttd_msg = self._ttd_msgs.popleft()
+        ttd_msg = self._ttd_msgs.popleft()
         frame_msg = self._frame_msgs.popleft()
-        # ttd, detection_deadline = ttd_msg.data
-        # self.update_model_choice(detection_deadline)
+        ttd, detection_deadline = ttd_msg.data
+        self.update_model_choice(detection_deadline)
         frame = frame_msg.frame
         inputs = frame.as_rgb_numpy_array()
         detector_start_time = time.time()

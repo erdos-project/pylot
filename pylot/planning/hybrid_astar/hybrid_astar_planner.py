@@ -37,7 +37,7 @@ class HybridAStarPlanner(Planner):
             "car_width": flags.car_width,
         }
 
-    def run(self, timestamp):
+    def run(self, timestamp, ttd=None):
         """Runs the planner.
 
         Note:

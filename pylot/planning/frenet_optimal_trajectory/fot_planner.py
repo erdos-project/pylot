@@ -73,7 +73,7 @@ class FOTPlanner(Planner):
         self._hyperparameters['dt'] = dt
         self._hyperparameters['d_road_w'] = d_road_w
 
-    def run(self, timestamp):
+    def run(self, timestamp, ttd=None):
         """Runs the planner.
 
         Note:
@@ -83,6 +83,7 @@ class FOTPlanner(Planner):
             :py:class:`~pylot.planning.waypoints.Waypoints`: Waypoints of the
             planned trajectory.
         """
+        self.update_hyper_parameters(timestamp, ttd)
         self._logger.debug("@{}: Hyperparameters: {}".format(
             timestamp, self._hyperparameters))
         initial_conditions = self._compute_initial_conditions()

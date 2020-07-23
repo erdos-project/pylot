@@ -68,11 +68,14 @@ class CarlaCameraDriverOperator(erdos.Operator):
         notify_reading_stream = erdos.WriteStream()
         return [camera_stream, notify_reading_stream]
 
+    @erdos.profile_method()
     def release_data(self, timestamp):
         if timestamp.is_top:
             # The operator can always send data ASAP.
             self._release_data = True
         else:
+            self._logger.debug("@{}: {} releasing sensor data".format(
+                timestamp, self.config.name))
             watermark_msg = erdos.WatermarkMessage(timestamp)
             self._camera_stream.send_pickled(timestamp,
                                              self._pickled_messages[timestamp])

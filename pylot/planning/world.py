@@ -22,6 +22,7 @@ class World(object):
         self.static_obstacles = None
         self.obstacle_predictions = []
         self._ego_obstacle_predictions = []
+        self.pose = None
         self.ego_trajectory = deque(maxlen=self._flags.tracking_num_steps)
         self.ego_transform = None
         self.ego_velocity_vector = None
@@ -41,6 +42,7 @@ class World(object):
                hd_map=None,
                lanes=None):
         self.timestamp = timestamp
+        self.pose = pose
         self.ego_transform = pose.transform
         self.ego_trajectory.append(self.ego_transform)
         self.obstacle_predictions = obstacle_predictions

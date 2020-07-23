@@ -76,6 +76,7 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
         # Data used by the operator.
         self._pose_map = dict()
         self._waypoints = deque()
+        self._first_waypoint = True
         self._waypoint_num = 0
         self._last_highest_applicable_time = None
         self._last_localization_update = None
@@ -122,7 +123,8 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
             self._logger.debug(
                 "@{}: received waypoint num {}. "
                 "Skipping because the simulator might not be in sync.".format(
-                    self._waypoint_num, msg.timestamp))
+                    msg.timestamp, self._waypoint_num))
+            self._first_waypoint = False
             self._waypoint_num += 1
             # Send a message on the notify stream to ask CARLA to send a new
             # sensor stream.
