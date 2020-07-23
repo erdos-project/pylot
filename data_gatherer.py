@@ -1,3 +1,5 @@
+import signal
+
 from absl import app, flags
 
 import erdos
@@ -231,8 +233,16 @@ def main(argv):
                 tracked_obstacles_stream=obstacles_tracking_stream)
         streams_to_send_top_on += ingest_streams
 
+    # Connect an instance to the simulator to make sure that we can turn the
+    # synchronous mode off after the script finishes running.
+    client, world = pylot.simulation.utils.get_world(FLAGS.carla_host,
+                                                     FLAGS.carla_port,
+                                                     FLAGS.carla_timeout)
+
     # Run the data-flow.
-    erdos.run_async()
+    node_handle = erdos.run_async()
+
+    signal.signal(signal.SIGINT, shutdown)
 
     # Ask all sensors to release their data.
     release_sensor_stream.send(
@@ -240,8 +250,20 @@ def main(argv):
     for stream in streams_to_send_top_on:
         stream.send(erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
-    if pylot.flags.must_visualize():
-        pylot.utils.run_visualizer_control_loop(control_display_stream)
+    try:
+        if pylot.flags.must_visualize():
+            pylot.utils.run_visualizer_control_loop(control_display_stream)
+        node_handle.join()
+    except KeyboardInterrupt:
+        node_handle.shutdown()
+        pylot.simulation.utils.set_asynchronous_mode(world)
+        if pylot.flags.must_visualize():
+            import pygame
+            pygame.quit()
+
+
+def shutdown(sig, frame):
+    raise KeyboardInterrupt
 
 
 if __name__ == '__main__':

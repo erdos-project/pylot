@@ -1069,3 +1069,9 @@ def run_visualizer_control_loop(control_display_stream):
                     control_display_stream.send(
                         erdos.Message(erdos.Timestamp(coordinates=[0]),
                                       event.key))
+            elif event.type == pygame.QUIT:
+                raise KeyboardInterrupt
+            elif event.type == pygame.KEYDOWN:
+                if (event.key == pygame.K_c
+                        and pygame.key.get_mods() & pygame.KMOD_CTRL):
+                    raise KeyboardInterrupt

@@ -180,10 +180,9 @@ class PlanningOperator(erdos.Operator):
         self.update_world(timestamp)
         ttd_msg = self._ttd_msgs.popleft()
         # Total ttd - time spent up to now
-        ttd = ttd_msg.data[0] - (time.time() -
-                                 self._world.pose.localization_time)
+        ttd = ttd_msg.data - (time.time() - self._world.pose.localization_time)
         self._logger.debug('@{}: adjusting ttd from {} to {}'.format(
-            timestamp, ttd_msg.data[0], ttd))
+            timestamp, ttd_msg.data, ttd))
         if self._state == BehaviorPlannerState.OVERTAKE:
             # Ignore traffic lights and obstacle.
             output_wps = self._planner.run(timestamp, ttd)

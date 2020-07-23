@@ -1,3 +1,4 @@
+import signal
 import time
 
 from absl import app, flags
@@ -208,7 +209,8 @@ def main(argv):
      open_drive_stream, global_trajectory_stream, control_display_stream,
      streams_to_send_top_on) = create_data_flow()
     # Run the data-flow.
-    erdos.run_async()
+    node_handle = erdos.run_async()
+    signal.signal(signal.SIGINT, shutdown)
 
     # Send waypoints.
     waypoints = Waypoints.read_from_csv_file(FLAGS.waypoints_csv_file,
@@ -227,33 +229,50 @@ def main(argv):
 
     time_to_sleep = 1.0 / FLAGS.sensor_frequency
     count = 0
-    while True:
-        timestamp = erdos.Timestamp(coordinates=[count])
-        if not FLAGS.obstacle_detection:
-            obstacles_stream.send(ObstaclesMessage(timestamp, []))
-            obstacles_stream.send(erdos.WatermarkMessage(timestamp))
-        if not FLAGS.traffic_light_detection:
-            traffic_lights_stream.send(TrafficLightsMessage(timestamp, []))
-            traffic_lights_stream.send(erdos.WatermarkMessage(timestamp))
-        if not FLAGS.obstacle_tracking:
-            obstacles_tracking_stream.send(
-                ObstacleTrajectoriesMessage(timestamp, []))
-            obstacles_tracking_stream.send(erdos.WatermarkMessage(timestamp))
-        count += 1
+    try:
+        while True:
+            timestamp = erdos.Timestamp(coordinates=[count])
+            if not FLAGS.obstacle_detection:
+                obstacles_stream.send(ObstaclesMessage(timestamp, []))
+                obstacles_stream.send(erdos.WatermarkMessage(timestamp))
+            if not FLAGS.traffic_light_detection:
+                traffic_lights_stream.send(TrafficLightsMessage(timestamp, []))
+                traffic_lights_stream.send(erdos.WatermarkMessage(timestamp))
+            if not FLAGS.obstacle_tracking:
+                obstacles_tracking_stream.send(
+                    ObstacleTrajectoriesMessage(timestamp, []))
+                obstacles_tracking_stream.send(
+                    erdos.WatermarkMessage(timestamp))
+            count += 1
+            if pylot.flags.must_visualize():
+                import pygame
+                from pygame.locals import K_n
+                events = pygame.event.get()
+                for event in events:
+                    if event.type == pygame.KEYUP:
+                        if event.key == K_n:
+                            control_display_stream.send(
+                                erdos.Message(erdos.Timestamp(coordinates=[0]),
+                                              event.key))
+                    elif event.type == pygame.QUIT:
+                        raise KeyboardInterrupt
+                    elif event.type == pygame.KEYDOWN:
+                        if (event.key == pygame.K_c
+                                and pygame.key.get_mods() & pygame.KMOD_CTRL):
+                            raise KeyboardInterrupt
+
+            # NOTE: We should offset sleep time by the time it takes to send
+            # the messages.
+            time.sleep(time_to_sleep)
+    except KeyboardInterrupt:
+        node_handle.shutdown()
         if pylot.flags.must_visualize():
             import pygame
-            from pygame.locals import K_n
-            events = pygame.event.get()
-            for event in events:
-                if event.type == pygame.KEYUP:
-                    if event.key == K_n:
-                        control_display_stream.send(
-                            erdos.Message(erdos.Timestamp(coordinates=[0]),
-                                          event.key))
+            pygame.quit()
 
-        # NOTE: We should offset sleep time by the time it takes to send the
-        # messages.
-        time.sleep(time_to_sleep)
+
+def shutdown(sig, frame):
+    raise KeyboardInterrupt
 
 
 if __name__ == '__main__':

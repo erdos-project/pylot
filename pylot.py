@@ -1,3 +1,5 @@
+import signal
+
 from absl import app, flags
 
 import erdos
@@ -226,7 +228,7 @@ def driver():
                 prediction_stream, waypoints_stream, control_stream)
         streams_to_send_top_on += ingest_streams
 
-    erdos.run_async()
+    node_handle = erdos.run_async()
 
     for stream in streams_to_send_top_on:
         stream.send(erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
@@ -238,8 +240,21 @@ def driver():
         pipeline_finish_notify_stream.send(
             erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
+    return node_handle, control_display_stream
+
+
+def shutdown_pylot(node_handle, client, world):
+    node_handle.shutdown()
+    if FLAGS.simulation_recording_file is not None:
+        client.stop_recorder()
+    set_asynchronous_mode(world)
     if pylot.flags.must_visualize():
-        pylot.utils.run_visualizer_control_loop(control_display_stream)
+        import pygame
+        pygame.quit()
+
+
+def shutdown(sig, frame):
+    raise KeyboardInterrupt
 
 
 def main(args):
@@ -250,15 +265,15 @@ def main(args):
     try:
         if FLAGS.simulation_recording_file is not None:
             client.start_recorder(FLAGS.simulation_recording_file)
-        driver()
+        node_handle, control_display_stream = driver()
+        signal.signal(signal.SIGINT, shutdown)
+        if pylot.flags.must_visualize():
+            pylot.utils.run_visualizer_control_loop(control_display_stream)
+        node_handle.join()
     except KeyboardInterrupt:
-        if FLAGS.simulation_recording_file is not None:
-            client.stop_recorder()
-        set_asynchronous_mode(world)
+        shutdown_pylot(node_handle, client, world)
     except Exception:
-        if FLAGS.simulation_recording_file is not None:
-            client.stop_recorder()
-        set_asynchronous_mode(world)
+        shutdown_pylot(node_handle, client, world)
         raise
 
 
