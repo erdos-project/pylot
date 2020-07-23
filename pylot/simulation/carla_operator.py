@@ -296,8 +296,6 @@ class CarlaOperator(erdos.Operator):
                 (self._next_control_sensor_reading, TickEvent.SENSOR_READ))
 
     def run(self):
-        if self._flags.carla_mode == "pseudo-asynchronous":
-            self._tick_simulator_until(8000)
         self.__send_world_data()
         # Tick here once to ensure that the driver operators can get a handle
         # to the ego vehicle.

@@ -3,8 +3,7 @@ from collections import defaultdict, deque
 import erdos
 
 import pylot.utils
-from pylot.perception.detection.utils import VEHICLE_LABELS, \
-    get_obstacle_locations
+from pylot.perception.detection.utils import get_obstacle_locations
 from pylot.perception.messages import ObstacleTrajectoriesMessage
 from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 
@@ -116,10 +115,8 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
             for index, ground_obstacle in enumerate(ground_obstacles):
                 if ground_obstacle.id == self._vehicle_id:
                     continue
-                # We're only matching pedestrians.
-                if (obstacle.label == ground_obstacle.label
-                        or (ground_obstacle.label == 'vehicle'
-                            and obstacle.label in VEHICLE_LABELS)):
+                if obstacle.label == ground_obstacle.label or \
+                   (ground_obstacle.is_vehicle() and obstacle.is_vehicle()):
                     distance = obstacle.transform.location.distance(
                         ground_obstacle.transform.location)
                     if distance < min_distance and distance < 20:
