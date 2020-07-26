@@ -461,12 +461,15 @@ def get_mAP(ground_obstacles, obstacles):
     """Return mAP with IoU threshold of 0.5"""
     confidence_bbox = []
     for obstacle in obstacles:
-        confidence_bbox.append((obstacle.confidence, obstacle.bounding_box))
+        confidence_bbox.append(
+            (obstacle.confidence, obstacle._bounding_box_2D))
     # Sort bboxes descending by score.
     confidence_bbox.sort()
     confidence_bbox.reverse()
     detected_bboxes = [bbox for (score, bbox) in confidence_bbox]
-    ground_bboxes = [obstacle.bounding_box for obstacle in ground_obstacles]
+    ground_bboxes = [
+        obstacle._bounding_box_2D for obstacle in ground_obstacles
+    ]
     # Compute recall precision. The results are sorted in descending
     # order by recall.
     prec_rec = []
