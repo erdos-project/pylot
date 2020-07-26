@@ -100,7 +100,7 @@ def add_obstacle_detection(center_camera_stream,
     if FLAGS.carla_obstacle_detection:
         obstacles_stream = ground_obstacles_stream
 
-    return obstacles_stream
+    return obstacles_stream, perfect_obstacles_stream
 
 
 def add_traffic_light_detection(tl_transform,
@@ -451,7 +451,10 @@ def add_planning(goal_location, pose_stream, prediction_stream,
     return waypoints_stream
 
 
-def add_control(pose_stream, waypoints_stream, ground_vehicle_id_stream=None):
+def add_control(pose_stream,
+                waypoints_stream,
+                ground_vehicle_id_stream=None,
+                perfect_obstacles_stream=None):
     """Adds ego-vehicle control operators.
 
     Args:
@@ -476,8 +479,14 @@ def add_control(pose_stream, waypoints_stream, ground_vehicle_id_stream=None):
     elif FLAGS.control in ['carla_auto_pilot', 'manual']:
         # TODO: Hack! We synchronize on a single stream, based on a
         # guesestimate of which stream is slowest.
+        stream_to_sync_on = waypoints_stream
+        if (FLAGS.evaluate_obstacle_detection
+                and not FLAGS.perfect_obstacle_detection):
+            # Ensure that the perfect obstacle detector doesn't remain
+            # behind.
+            stream_to_sync_on = perfect_obstacles_stream
         control_stream = pylot.operator_creator.add_synchronizer(
-            ground_vehicle_id_stream, waypoints_stream)
+            ground_vehicle_id_stream, stream_to_sync_on)
     else:
         raise ValueError('Unexpected control {}'.format(FLAGS.control))
 

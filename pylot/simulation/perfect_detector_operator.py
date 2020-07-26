@@ -117,6 +117,7 @@ class PerfectDetectorOperator(erdos.Operator):
             # There's no point to run the perfect detector if collecting
             # data, and only logging every nth frame.
             obstacles_stream.send(ObstaclesMessage(timestamp, []))
+            obstacles_stream.send(erdos.WatermarkMessage(timestamp))
             return
         vehicle_transform = pose_msg.data.transform
 
@@ -141,6 +142,7 @@ class PerfectDetectorOperator(erdos.Operator):
 
         # Send the detected obstacles.
         obstacles_stream.send(ObstaclesMessage(timestamp, det_obstacles))
+        obstacles_stream.send(erdos.WatermarkMessage(timestamp))
 
         if self._flags.log_detector_output:
             bgr_msg.frame.annotate_with_bounding_boxes(bgr_msg.timestamp,

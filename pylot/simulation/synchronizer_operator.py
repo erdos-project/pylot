@@ -25,6 +25,8 @@ class SynchronizerOperator(erdos.Operator):
                  flags):
         erdos.add_watermark_callback([wait_stream], [control_stream],
                                      self.on_watermark)
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
         self._vehicle_id_stream = ground_vehicle_id_stream
         self._vehicle = None
         self._flags = flags
@@ -56,6 +58,7 @@ class SynchronizerOperator(erdos.Operator):
             timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
                 the watermark.
         """
+        self._logger.debug('@{}: received watermark'.format(timestamp))
         # The control message is ignored by the bridge operator because
         # data gathering is conducted using auto pilot.
         # Send the control that the vehicle is currently applying.
@@ -66,4 +69,4 @@ class SynchronizerOperator(erdos.Operator):
                                      vehicle_control.hand_brake,
                                      vehicle_control.reverse, timestamp)
         control_stream.send(control_msg)
-        # control_stream.send(erdos.WatermarkMessage(timestamp))
+        control_stream.send(erdos.WatermarkMessage(timestamp))

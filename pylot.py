@@ -133,11 +133,12 @@ def driver():
         pose_stream = pylot.operator_creator.add_localization(
             imu_stream, gnss_stream, pose_stream)
 
-    obstacles_stream = pylot.component_creator.add_obstacle_detection(
-        center_camera_stream, center_camera_setup, pose_stream, depth_stream,
-        depth_camera_stream, ground_segmented_stream, ground_obstacles_stream,
-        ground_speed_limit_signs_stream, ground_stop_signs_stream,
-        time_to_decision_loop_stream)
+    obstacles_stream, perfect_obstacles_stream = \
+        pylot.component_creator.add_obstacle_detection(
+            center_camera_stream, center_camera_setup, pose_stream,
+            depth_stream, depth_camera_stream, ground_segmented_stream,
+            ground_obstacles_stream, ground_speed_limit_signs_stream,
+            ground_stop_signs_stream, time_to_decision_loop_stream)
     tl_transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                          pylot.utils.Rotation())
     traffic_lights_stream, tl_camera_stream = \
@@ -205,7 +206,7 @@ def driver():
 
     control_stream = pylot.component_creator.add_control(
         pose_stream_for_control, waypoints_stream_for_control,
-        vehicle_id_stream)
+        vehicle_id_stream, perfect_obstacles_stream)
     control_loop_stream.set(control_stream)
 
     add_evaluation_operators(vehicle_id_stream, pose_stream, imu_stream,

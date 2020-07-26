@@ -657,7 +657,7 @@ def add_pid_control(pose_stream, waypoints_stream):
 def add_synchronizer(ground_vehicle_id_stream, stream_to_sync_on):
     from pylot.simulation.synchronizer_operator import SynchronizerOperator
     op_config = erdos.OperatorConfig(name='synchronizer_operator',
-                                     flow_watermarks=True,
+                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -915,6 +915,7 @@ def add_perfect_detector(depth_camera_stream, center_camera_stream,
     from pylot.simulation.perfect_detector_operator import \
         PerfectDetectorOperator
     op_config = erdos.OperatorConfig(name='perfect_detector_operator',
+                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)

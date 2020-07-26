@@ -468,7 +468,8 @@ def get_mAP(ground_obstacles, obstacles):
     confidence_bbox.reverse()
     detected_bboxes = [bbox for (score, bbox) in confidence_bbox]
     ground_bboxes = [
-        obstacle._bounding_box_2D for obstacle in ground_obstacles]
+        obstacle._bounding_box_2D for obstacle in ground_obstacles
+    ]
     # Compute recall precision. The results are sorted in descending
     # order by recall.
     prec_rec = []
