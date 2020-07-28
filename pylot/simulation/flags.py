@@ -5,6 +5,8 @@ from absl import flags
 ######################################################################
 flags.DEFINE_string('carla_host', 'localhost', 'Carla host.')
 flags.DEFINE_integer('carla_port', 2000, 'Carla port.')
+flags.DEFINE_integer('carla_traffic_manager_port', 8000,
+                     'Carla traffic manager port.')
 flags.DEFINE_integer('carla_timeout', 10,
                      'Timeout for connecting to the Carla simulator.')
 flags.DEFINE_enum('carla_mode', 'synchronous', [

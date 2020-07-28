@@ -81,7 +81,8 @@ class CarlaOperator(erdos.Operator):
                 '0\.9\.[0-7]', self._carla_version) is not None):  # noqa: W605
             # Any CARLA version after 0.9.7.
             # Create a traffic manager to that auto pilot works.
-            self._traffic_manager = self._client.get_trafficmanager(8000)
+            self._traffic_manager = self._client.get_trafficmanager(
+                self._flags.carla_traffic_manager_port)
             self._traffic_manager.set_synchronous_mode(
                 self._flags.carla_mode == 'synchronous')
 
