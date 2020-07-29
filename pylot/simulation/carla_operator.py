@@ -354,7 +354,8 @@ class CarlaOperator(erdos.Operator):
         velocity_vector = pylot.utils.Vector3D.from_carla_vector(
             self._ego_vehicle.get_velocity())
         forward_speed = velocity_vector.magnitude()
-        pose = pylot.utils.Pose(vec_transform, forward_speed, velocity_vector)
+        pose = pylot.utils.Pose(vec_transform, forward_speed, velocity_vector,
+                                timestamp.coordinates[0])
         stream.send(erdos.Message(timestamp, pose))
         stream.send(erdos.WatermarkMessage(timestamp))
 

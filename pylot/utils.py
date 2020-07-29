@@ -852,6 +852,8 @@ class Pose(object):
         self.velocity_vector = velocity_vector
         if localization_time is None:
             self.localization_time = time.time()
+        else:
+            self.localization_time = localization_time
 
     def __repr__(self):
         return self.__str__()

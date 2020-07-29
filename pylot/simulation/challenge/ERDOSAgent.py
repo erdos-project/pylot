@@ -99,8 +99,10 @@ class ERDOSAgent(AutonomousAgent):
         # Set the lidar in the same position as the center camera.
         self._lidar_transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                                       pylot.utils.Rotation())
-        self._lidar_setup = LidarSetup('lidar', 'sensor.lidar.ray_cast',
-                                       self._lidar_transform)
+        self._lidar_setup = LidarSetup('lidar',
+                                       'sensor.lidar.ray_cast',
+                                       self._lidar_transform,
+                                       range=8500)
         self._last_point_cloud = None
         self._last_yaw = 0
         # Stores the waypoints we get from the challenge planner.
@@ -257,9 +259,8 @@ class ERDOSAgent(AutonomousAgent):
             else:
                 self._logger.warning("Sensor {} not used".format(key))
 
-        if using_perfect_component():
-            self.send_vehicle_id_msg()
-            self.send_ground_data(erdos_timestamp)
+        self.send_vehicle_id_msg()
+        self.send_ground_data(erdos_timestamp)
 
         if FLAGS.localization:
             self.send_imu_msg(imu_data, erdos_timestamp)
@@ -352,7 +353,8 @@ class ERDOSAgent(AutonomousAgent):
         velocity_vector = pylot.utils.Vector3D(forward_speed * np.cos(yaw),
                                                forward_speed * np.sin(yaw), 0)
         current_pose = pylot.utils.Pose(vehicle_transform, forward_speed,
-                                        velocity_vector)
+                                        velocity_vector,
+                                        timestamp.coordinates[0])
         self._logger.debug("@{}: Predicted pose: {}".format(
             timestamp, current_pose))
         self._pose_stream.send(erdos.Message(timestamp, current_pose))
@@ -364,7 +366,7 @@ class ERDOSAgent(AutonomousAgent):
             initial_transform = self._global_plan_world_coord[0][0]
             initial_pose = pylot.utils.Pose(
                 pylot.utils.Transform.from_carla_transform(initial_transform),
-                0, pylot.utils.Vector3D())
+                0, pylot.utils.Vector3D(), timestamp.coordinates[0])
             self._route_stream.send(erdos.Message(timestamp, initial_pose))
             self._route_stream.send(
                 erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
@@ -374,6 +376,8 @@ class ERDOSAgent(AutonomousAgent):
                        transform,
                        timestamp,
                        ego_transform=None):
+        # Remove the intensity component of the point cloud.
+        # carla_pc = carla_pc[:, [1, 0, 2]]
         point_cloud = PointCloud(carla_pc, self._lidar_setup)
         if self._last_point_cloud is not None:
             # TODO(ionel): Should offset the last point cloud wrt to the
@@ -409,7 +413,8 @@ class ERDOSAgent(AutonomousAgent):
                 erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
     def send_vehicle_id_msg(self):
-        if not self._sent_vehicle_id:
+        if ((FLAGS.carla_localization or FLAGS.perfect_obstacle_tracking)
+                and not self._sent_vehicle_id):
             actor_list = self._world.get_actors()
             vec_actors = actor_list.filter('vehicle.*')
             for actor in vec_actors:
@@ -431,21 +436,28 @@ class ERDOSAgent(AutonomousAgent):
         velocity_vector = pylot.utils.Vector3D.from_carla_vector(
             self._ego_vehicle.get_velocity())
         forward_speed = velocity_vector.magnitude()
-        pose = pylot.utils.Pose(vec_transform, forward_speed, velocity_vector)
+        pose = pylot.utils.Pose(vec_transform, forward_speed, velocity_vector,
+                                timestamp.coordinates[0])
         self._pose_stream.send(erdos.Message(timestamp, pose))
         self._pose_stream.send(erdos.WatermarkMessage(timestamp))
 
     def send_ground_data(self, timestamp):
+        if not (FLAGS.carla_obstacle_detection
+                or FLAGS.carla_traffic_light_detection):
+            return
         actor_list = self._world.get_actors()
         (vehicles, people, traffic_lights, _,
          _) = pylot.simulation.utils.extract_data_in_pylot_format(actor_list)
-        self._ground_obstacles_stream.send(
-            ObstaclesMessage(timestamp, vehicles + people))
-        self._ground_obstacles_stream.send(erdos.WatermarkMessage(timestamp))
-        self._ground_traffic_lights_stream.send(
-            TrafficLightsMessage(timestamp, traffic_lights))
-        self._ground_traffic_lights_stream.send(
-            erdos.WatermarkMessage(timestamp))
+        if FLAGS.carla_obstacle_detection:
+            self._ground_obstacles_stream.send(
+                ObstaclesMessage(timestamp, vehicles + people))
+            self._ground_obstacles_stream.send(
+                erdos.WatermarkMessage(timestamp))
+        if FLAGS.carla_traffic_light_detection:
+            self._ground_traffic_lights_stream.send(
+                TrafficLightsMessage(timestamp, traffic_lights))
+            self._ground_traffic_lights_stream.send(
+                erdos.WatermarkMessage(timestamp))
 
 
 def get_track():
@@ -480,14 +492,13 @@ def create_data_flow():
     else:
         pose_stream = erdos.IngestStream()
 
-    ground_obstacles_stream = None
-    ground_traffic_lights_stream = None
-    vehicle_id_stream = None
-    if FLAGS.perfect_obstacle_tracking:
-        vehicle_id_stream = erdos.IngestStream()
+    ground_obstacles_stream = erdos.IngestStream()
+    ground_traffic_lights_stream = erdos.IngestStream()
+    vehicle_id_stream = erdos.IngestStream()
+    if not (FLAGS.perfect_obstacle_tracking or FLAGS.carla_localization):
+        streams_to_send_top_on.append(vehicle_id_stream)
 
     if FLAGS.carla_obstacle_detection:
-        ground_obstacles_stream = erdos.IngestStream()
         obstacles_stream = ground_obstacles_stream
     elif any('efficientdet' in model
              for model in FLAGS.obstacle_detection_model_names):
@@ -495,13 +506,14 @@ def create_data_flow():
             add_efficientdet_obstacle_detection(
                 camera_streams[CENTER_CAMERA_NAME],
                 time_to_decision_loop_stream)[0]
+        streams_to_send_top_on.append(ground_obstacles_stream)
     else:
         obstacles_stream = pylot.operator_creator.add_obstacle_detection(
             camera_streams[CENTER_CAMERA_NAME],
             time_to_decision_loop_stream)[0]
+        streams_to_send_top_on.append(ground_obstacles_stream)
 
     if FLAGS.carla_traffic_light_detection:
-        ground_traffic_lights_stream = erdos.IngestStream()
         traffic_lights_stream = ground_traffic_lights_stream
         camera_streams[TL_CAMERA_NAME] = erdos.IngestStream()
         streams_to_send_top_on.append(camera_streams[TL_CAMERA_NAME])
@@ -514,6 +526,7 @@ def create_data_flow():
             pylot.operator_creator.add_obstacle_location_finder(
                 traffic_lights_stream, point_cloud_stream, pose_stream,
                 camera_setups[TL_CAMERA_NAME])
+        streams_to_send_top_on.append(ground_traffic_lights_stream)
 
     obstacles_tracking_stream = pylot.component_creator.add_obstacle_tracking(
         camera_streams[CENTER_CAMERA_NAME],
