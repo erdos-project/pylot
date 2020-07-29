@@ -205,7 +205,7 @@ def process_depth_images(msg,
     detected_people = []
     for person in ego_vehicle.get_world().get_actors().filter('walker.*'):
         obstacle = Obstacle.from_carla_actor(person)
-        if obstacle.distance(vehicle_transform) > 125:
+        if obstacle._distance(vehicle_transform) > 125:
             bbox = None
         else:
             bbox = obstacle.populate_bounding_box_2D(depth_frame,

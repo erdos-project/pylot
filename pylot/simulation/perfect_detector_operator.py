@@ -206,9 +206,10 @@ class PerfectDetectorOperator(erdos.Operator):
         for obstacle in obstacles:
             # Calculate the distance of the obstacle from the vehicle, and
             # convert to camera view if it is less than
-            # perfect_detection_max_distance metres away.
-            if (obstacle.distance(vehicle_transform) <=
-                    self._flags.perfect_detection_max_distance):
+            # dynamic_obstacle_distance_threshold metres away.
+            if (obstacle.transform.location.distance(
+                    vehicle_transform.location) <=
+                    self._flags.dynamic_obstacle_distance_threshold):
                 bbox = obstacle.populate_bounding_box_2D(
                     depth_frame, segmented_frame)
                 if bbox:

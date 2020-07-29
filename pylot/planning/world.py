@@ -51,7 +51,13 @@ class World(object):
         for obstacle_prediction in self.obstacle_predictions:
             obstacle_prediction.to_world_coordinates(self.ego_transform)
         # Road signs are in world coordinates.
-        self.static_obstacles = static_obstacles
+        self.static_obstacles = []
+        for obstacle in static_obstacles:
+            if (obstacle.transform.location.distance(
+                    self.ego_transform.location) <=
+                    self._flags.static_obstacle_distance_threshold):
+                self.static_obstacles.append(obstacle)
+
         self._map = hd_map
         self._lanes = lanes
         self.ego_velocity_vector = pose.velocity_vector

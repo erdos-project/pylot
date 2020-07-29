@@ -62,7 +62,7 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
             # Ignore obstacles that are far away.
             if (vehicle_transform.location.distance(
                     obstacle.transform.location) >
-                    self._flags.obstacle_distance_threshold):
+                    self._flags.dynamic_obstacle_distance_threshold):
                 continue
             ids_cur_timestamp.append(obstacle.id)
             self._obstacle_history[obstacle.id].append(obstacle)

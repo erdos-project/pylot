@@ -179,9 +179,9 @@ class Waypoints(object):
             waypoint_txt = ''
             if self.target_speeds:
                 waypoint_txt = '{:.1f}m/s'.format(self.target_speeds[index])
-            if self.road_options:
-                waypoint_txt = '{} {}'.format(waypoint_txt,
-                                              self.road_options[index])
+            # if self.road_options:
+            #     waypoint_txt = '{} {}'.format(waypoint_txt,
+            #                                   self.road_options[index])
             if waypoint_txt != '':
                 bgr_frame.draw_text(pixel_location, waypoint_txt,
                                     [255, 255, 255])
@@ -193,7 +193,7 @@ class Waypoints(object):
             loc = (wp.location +
                    pylot.utils.Location(0, 0, 0.5)).as_carla_location()
             world.debug.draw_point(loc, size=0.1, life_time=DEFAULT_VIS_TIME)
-            if self.road_options and index < len(self.road_options):
-                world.debug.draw_string(loc,
-                                        str(self.road_options[index]),
-                                        life_time=DEFAULT_VIS_TIME)
+            # if self.road_options and index < len(self.road_options):
+            #     world.debug.draw_string(loc,
+            #                             str(self.road_options[index]),
+            #                             life_time=DEFAULT_VIS_TIME)

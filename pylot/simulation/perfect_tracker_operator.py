@@ -57,7 +57,7 @@ class PerfectTrackerOperator(erdos.Operator):
                 continue
 
             if (pose_transform.location.distance(obstacle.transform.location) >
-                    self._flags.obstacle_distance_threshold):
+                    self._flags.dynamic_obstacle_distance_threshold):
                 # Ignore the obstacle if it is too far away.
                 continue
 

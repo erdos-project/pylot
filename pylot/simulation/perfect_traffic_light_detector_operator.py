@@ -110,6 +110,13 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
             traffic_light_msg.obstacles, depth_msg.frame, segmented_msg.frame,
             self._town_name)
 
+        # Filter out traffic lights that are far away.
+        det_traffic_lights = [
+            tl for tl in det_traffic_lights
+            if tl.transform.location.distance(vehicle_transform.location) <=
+            self._flags.static_obstacle_distance_threshold
+        ]
+
         # Send the detected traffic lights.
         traffic_lights_stream.send(
             TrafficLightsMessage(timestamp, det_traffic_lights))

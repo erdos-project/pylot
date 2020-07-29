@@ -102,7 +102,7 @@ class Obstacle(object):
             self.bounding_box_2D.get_height(), 1.0, -1, -1, -1)
         return log_line
 
-    def distance(self, other_transform):
+    def _distance(self, other_transform):
         """Computes the distance from the obstacle to the other transform.
 
         The distance provides an estimate of the depth returned by the depth
@@ -311,7 +311,8 @@ class Obstacle(object):
                 # obstacle is the depth in the image.
                 masked_depth = cropped_depth[np.where(masked_image == 1)]
                 mean_depth = np.mean(masked_depth) * 1000
-                depth = self.distance(depth_frame.camera_setup.get_transform())
+                depth = self._distance(
+                    depth_frame.camera_setup.get_transform())
                 if abs(depth - mean_depth) <= self.__depth_threshold:
                     self._bounding_box_2D = bbox_2d
                     return bbox_2d

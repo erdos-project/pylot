@@ -64,9 +64,6 @@ flags.DEFINE_float('carla_vehicle_moi', None,
 # Other flags
 flags.DEFINE_integer('random_seed', None,
                      'Random seed for populating the simulation.')
-flags.DEFINE_integer(
-    'perfect_detection_max_distance', 125,
-    'Limit perfect detection to a distance of this amount of meters')
 
 # Noise and bias flags for IMU and GNSS.
 flags.DEFINE_float('accel_noise_stddev_x', 0.0,
