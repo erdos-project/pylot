@@ -126,7 +126,7 @@ class TrafficLight(Obstacle):
 
         Args:
             transform (:py:class:`~pylot.utils.Transform`): Transform of the
-                camera.
+                camera in the world frame of reference.
             distance_threshold (:obj:`int`): Maximum distance to the camera
                 (in m).
 

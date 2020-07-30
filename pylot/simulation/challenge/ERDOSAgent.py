@@ -140,6 +140,7 @@ class ERDOSAgent(AutonomousAgent):
             # to the simulator to send perfect data to the data-flow.
             _, self._world = pylot.simulation.utils.get_world(
                 FLAGS.carla_host, FLAGS.carla_port, FLAGS.carla_timeout)
+            self._town_name = self._world.get_map().name
 
     def destroy(self):
         """Clean-up the agent. Invoked between different runs."""
@@ -454,8 +455,25 @@ class ERDOSAgent(AutonomousAgent):
             self._ground_obstacles_stream.send(
                 erdos.WatermarkMessage(timestamp))
         if FLAGS.carla_traffic_light_detection:
+            vec_transform = pylot.utils.Transform.from_carla_transform(
+                self._ego_vehicle.get_transform())
+            tl_camera_transform = pylot.utils.Transform(
+                CENTER_CAMERA_LOCATION, pylot.utils.Rotation())
+            visible_tls = []
+            for tl in traffic_lights:
+                if tl.is_traffic_light_visible(
+                        vec_transform * tl_camera_transform,
+                        self._town_name,
+                        distance_threshold=FLAGS.
+                        static_obstacle_distance_threshold):
+                    if self._town_name not in ['Town01', 'Town02']:
+                        # Move the traffic light location to the road.
+                        tl.transform = tl.transform * pylot.utils.Transform(
+                            pylot.utils.Location(-3, 0, 5),
+                            pylot.utils.Rotation())
+                    visible_tls.append(tl)
             self._ground_traffic_lights_stream.send(
-                TrafficLightsMessage(timestamp, traffic_lights))
+                TrafficLightsMessage(timestamp, visible_tls))
             self._ground_traffic_lights_stream.send(
                 erdos.WatermarkMessage(timestamp))
 

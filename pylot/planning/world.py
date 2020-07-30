@@ -110,7 +110,7 @@ class World(object):
                     # Ensure the prediction is nearby.
                     if (self.ego_transform.location.l2_distance(
                             transform.location) <=
-                            self._flags.obstacle_distance_threshold):
+                            self._flags.dynamic_obstacle_distance_threshold):
                         obstacle = prediction.obstacle_trajectory.obstacle
                         obstacle_corners = \
                             obstacle.get_bounding_box_corners(
@@ -356,7 +356,7 @@ class World(object):
             # The traffic ligh is across the road. Increase the max distance.
             traffic_light_max_distance = \
                 self._flags.traffic_light_max_distance * 2.5
-            traffic_light_max_angle = self._flags.traffic_light_max_angle / 4
+            traffic_light_max_angle = self._flags.traffic_light_max_angle / 3
             american_tl = True
         else:
             self._logger.debug('Traffic light is European style')
@@ -399,10 +399,11 @@ class World(object):
                     dist_to_intersection = self._map.distance_to_intersection(
                         self.ego_transform.location, max_distance_to_check=20)
                     if (dist_to_intersection is not None
-                            and dist_to_intersection < 12
-                            and tl.bounding_box.get_width() *
-                            tl.bounding_box.get_height() > 400):
-                        speed_factor_tl = 0
+                            and dist_to_intersection < 12):
+                        if (tl.bounding_box is None
+                                or tl.bounding_box.get_width() *
+                                tl.bounding_box.get_height() > 400):
+                            speed_factor_tl = 0
                     if (dist_to_intersection is not None and tl_dist < 27
                             and 12 <= dist_to_intersection <= 20):
                         speed_factor_tl = 0
