@@ -116,8 +116,15 @@ class BehaviorPlanningOperator(erdos.Operator):
         self._logger.debug('@{}: agent transitioned from {} to {}'.format(
             timestamp, old_state, self._state))
         # Remove the waypoint from the route if we're close to it.
-        if not self._map.is_intersection(ego_transform.location):
-            self._route.remove_waypoint_if_close(ego_transform.location, 5)
+        if (old_state != self._state
+                and self._state == BehaviorPlannerState.OVERTAKE):
+            self._route.remove_waypoint_if_close(ego_transform.location, 10)
+        else:
+            if not self._map.is_intersection(ego_transform.location):
+                self._route.remove_waypoint_if_close(ego_transform.location, 5)
+            else:
+                self._route.remove_waypoint_if_close(ego_transform.location,
+                                                     3.5)
         new_goal_location = None
         if len(self._route.waypoints) > 1:
             new_goal_location = self._route.waypoints[1].location

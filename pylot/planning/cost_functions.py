@@ -108,7 +108,7 @@ def cost_inefficiency(vehicle_info, predictions, trajectory):
 
 
 def cost_overtake(current_state, future_state, ego_info):
-    if ego_info.current_time - ego_info.last_time_moving > 35000:
+    if ego_info.current_time - ego_info.last_time_moving > 50000:
         # Switch to OVERTAKE if ego hasn't moved for a while.
         if future_state == BehaviorPlannerState.OVERTAKE:
             return 0

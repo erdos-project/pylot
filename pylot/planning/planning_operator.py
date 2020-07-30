@@ -183,24 +183,24 @@ class PlanningOperator(erdos.Operator):
         ttd = ttd_msg.data - (time.time() - self._world.pose.localization_time)
         self._logger.debug('@{}: adjusting ttd from {} to {}'.format(
             timestamp, ttd_msg.data, ttd))
-        if self._state == BehaviorPlannerState.OVERTAKE:
-            # Ignore traffic lights and obstacle.
-            output_wps = self._planner.run(timestamp, ttd)
+        # if self._state == BehaviorPlannerState.OVERTAKE:
+        #     # Ignore traffic lights and obstacle.
+        #     output_wps = self._planner.run(timestamp, ttd)
+        # else:
+        (speed_factor, _, _, speed_factor_tl,
+         speed_factor_stop) = self._world.stop_for_agents(timestamp)
+        if self._flags.planning_type == 'waypoint':
+            target_speed = speed_factor * self._flags.target_speed
+            self._logger.debug(
+                '@{}: speed factor: {}, target speed: {}'.format(
+                    timestamp, speed_factor, target_speed))
+            output_wps = self._world.follow_waypoints(target_speed)
         else:
-            (speed_factor, _, _, speed_factor_tl,
-             speed_factor_stop) = self._world.stop_for_agents(timestamp)
-            if self._flags.planning_type == 'waypoint':
-                target_speed = speed_factor * self._flags.target_speed
-                self._logger.debug(
-                    '@{}: speed factor: {}, target speed: {}'.format(
-                        timestamp, speed_factor, target_speed))
-                output_wps = self._world.follow_waypoints(target_speed)
-            else:
-                output_wps = self._planner.run(timestamp, ttd)
-                speed_factor = min(speed_factor_stop, speed_factor_tl)
-                self._logger.debug('@{}: speed factor: {}'.format(
-                    timestamp, speed_factor))
-                output_wps.apply_speed_factor(speed_factor)
+            output_wps = self._planner.run(timestamp, ttd)
+            speed_factor = min(speed_factor_stop, speed_factor_tl)
+            self._logger.debug('@{}: speed factor: {}'.format(
+                timestamp, speed_factor))
+            output_wps.apply_speed_factor(speed_factor)
         waypoints_stream.send(WaypointsMessage(timestamp, output_wps))
         waypoints_stream.send(erdos.WatermarkMessage(timestamp))
 
