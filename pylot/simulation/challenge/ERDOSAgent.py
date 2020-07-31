@@ -95,6 +95,7 @@ class ERDOSAgent(AutonomousAgent):
                                                  FLAGS.log_file_name)
         enable_logging()
         self.track = get_track()
+        self._town_name = None
         self._camera_setups = create_camera_setups()
         # Set the lidar in the same position as the center camera.
         self._lidar_transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
@@ -140,7 +141,6 @@ class ERDOSAgent(AutonomousAgent):
             # to the simulator to send perfect data to the data-flow.
             _, self._world = pylot.simulation.utils.get_world(
                 FLAGS.carla_host, FLAGS.carla_port, FLAGS.carla_timeout)
-            self._town_name = self._world.get_map().name
 
     def destroy(self):
         """Clean-up the agent. Invoked between different runs."""
@@ -460,6 +460,8 @@ class ERDOSAgent(AutonomousAgent):
             tl_camera_transform = pylot.utils.Transform(
                 CENTER_CAMERA_LOCATION, pylot.utils.Rotation())
             visible_tls = []
+            if self._town_name is None:
+                self._town_name = self._world.get_map().name
             for tl in traffic_lights:
                 if tl.is_traffic_light_visible(
                         vec_transform * tl_camera_transform,

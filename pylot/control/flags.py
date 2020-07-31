@@ -25,7 +25,7 @@ flags.DEFINE_integer(
     'traffic_light_max_distance', 20,
     'Max distance for a traffic light to be considered for stopping [m]')
 flags.DEFINE_float(
-    'traffic_light_max_angle', 0.5,
+    'traffic_light_max_angle', 0.6,
     'Angle threshold for a traffic light to be considered for stopping [rad]')
 flags.DEFINE_integer(
     'vehicle_max_distance', 18,
