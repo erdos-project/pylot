@@ -467,9 +467,12 @@ class ERDOSAgent(AutonomousAgent):
                         distance_threshold=FLAGS.
                         static_obstacle_distance_threshold):
                     if self._town_name not in ['Town01', 'Town02']:
+                        delta_y = -5
+                        if self._town_name == 'Town04':
+                            delta_y = -2
                         # Move the traffic light location to the road.
                         tl.transform = tl.transform * pylot.utils.Transform(
-                            pylot.utils.Location(-3, 0, 5),
+                            pylot.utils.Location(delta_y, 0, 5),
                             pylot.utils.Rotation())
                     visible_tls.append(tl)
             self._ground_traffic_lights_stream.send(

@@ -33,6 +33,7 @@ class World(object):
         self.timestamp = None
         self._last_stop_ego_location = None
         self._distance_since_last_full_stop = 0
+        self._num_ticks_stopped = 0
 
     def update(self,
                timestamp,
@@ -74,9 +75,12 @@ class World(object):
             # We can't just check if forward_speed is zero because localization
             # noise can cause the forward_speed to be non zero even when the
             # ego is stopped.
-            self._distance_since_last_full_stop = 0
-            self._last_stop_ego_location = self.ego_transform.location
+            self._num_ticks_stopped += 1
+            if self._num_ticks_stopped > 10:
+                self._distance_since_last_full_stop = 0
+                self._last_stop_ego_location = self.ego_transform.location
         else:
+            self._num_ticks_stopped = 0
             if self._last_stop_ego_location is not None:
                 self._distance_since_last_full_stop = \
                     self.ego_transform.location.distance(
