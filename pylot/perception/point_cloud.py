@@ -56,9 +56,6 @@ class PointCloud(object):
         # See CameraSetup in pylot/drivers/sensor_setup.py for coordinate
         # axis orientations.
         #
-        # The CARLA Lidar coordinate space is defined as:
-        # +x to right, +y out of the screen, +z down.
-        #
         # The Velodyne coordinate space is defined as:
         # +x into the screen, +y to the left, and +z up.
         #
@@ -67,8 +64,15 @@ class PointCloud(object):
         # Link to the ROS coordinate system:
         # https://www.ros.org/reps/rep-0103.html#axis-orientation
         if self._lidar_setup.lidar_type == 'sensor.lidar.ray_cast':
-            to_camera_transform = Transform(matrix=np.array(
-                [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
+            if self._lidar_setup.legacy:
+                # The legacy CARLA Lidar coordinate space is defined as:
+                # +x to right, +y out of the screen, +z down.
+                to_camera_transform = Transform(matrix=np.array(
+                    [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]))
+            else:
+                # The latest coordiante space is the unreal space.
+                to_camera_transform = Transform(matrix=np.array(
+                    [[0, 1, 0, 0], [0, 0, -1, 0], [1, 0, 0, 0], [0, 0, 0, 1]]))
         elif self._lidar_setup.lidar_type == 'velodyne':
             to_camera_transform = Transform(matrix=np.array(
                 [[0, -1, 0, 0], [0, 0, -1, 0], [1, 0, 0, 0], [0, 0, 0, 1]]))
@@ -84,7 +88,9 @@ class PointCloud(object):
         Args:
             pixel (:py:class:`~pylot.utils.Vector2D`): Pixel coordinates.
             camera_setup (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
-                The setup of the camera.
+                The setup of the camera with its transform in the world frame
+                of reference.
+
         Returns:
             :py:class:`~pylot.utils.Location`: The 3D world location, or None
             if all the point cloud points are behind.

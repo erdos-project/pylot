@@ -103,7 +103,8 @@ class ERDOSAgent(AutonomousAgent):
         self._lidar_setup = LidarSetup('lidar',
                                        'sensor.lidar.ray_cast',
                                        self._lidar_transform,
-                                       range=8500)
+                                       range=8500,
+                                       legacy=False)
         self._last_point_cloud = None
         self._last_yaw = 0
         # Stores the waypoints we get from the challenge planner.
@@ -378,7 +379,7 @@ class ERDOSAgent(AutonomousAgent):
                        timestamp,
                        ego_transform=None):
         # Remove the intensity component of the point cloud.
-        # carla_pc = carla_pc[:, [1, 0, 2]]
+        carla_pc = carla_pc[:, :3]
         point_cloud = PointCloud(carla_pc, self._lidar_setup)
         if self._last_point_cloud is not None:
             # TODO(ionel): Should offset the last point cloud wrt to the

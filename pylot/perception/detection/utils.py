@@ -501,6 +501,7 @@ def get_obstacle_locations(obstacles, depth_msg, ego_transform, camera_setup,
     from pylot.perception.messages import DepthFrameMessage, PointCloudMessage
     if isinstance(depth_msg, PointCloudMessage):
         point_cloud = depth_msg.point_cloud
+        # Get the position of the camera in world frame of reference.
         transformed_camera_setup = copy.deepcopy(camera_setup)
         transformed_camera_setup.set_transform(
             ego_transform * transformed_camera_setup.transform)

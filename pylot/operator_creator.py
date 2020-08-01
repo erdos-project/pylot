@@ -544,7 +544,7 @@ def add_lidar(transform,
         # rotation frequency to the tick frequency.
         rotation_frequency = FLAGS.carla_fps
     lidar_setup = pylot.drivers.sensor_setup.create_center_lidar_setup(
-        transform.location, rotation_frequency)
+        transform.location, rotation_frequency, legacy=True)
     point_cloud_stream, notify_reading_stream = _add_lidar_driver(
         vehicle_id_stream, release_sensor_stream, lidar_setup)
     return (point_cloud_stream, notify_reading_stream, lidar_setup)
