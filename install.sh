@@ -49,7 +49,7 @@ unzip download.zip ; rm download.zip
 ###### Download the traffic light model ######
 cd $PYLOT_HOME/dependencies/models
 mkdir -p traffic_light_detection/faster-rcnn ; cd traffic_light_detection/faster-rcnn
-wget https://www.dropbox.com/s/63ig79xrkubigpu/frozen_inference_graph.pb
+wget https://www.dropbox.com/s/mjf0vj97qmuxc1h/frozen_inference_graph.pb
 
 ###### Download the Lanenet lane detection model ######
 cd $PYLOT_HOME/dependencies/models

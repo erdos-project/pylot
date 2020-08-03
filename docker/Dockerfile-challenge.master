@@ -22,8 +22,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
          vim \
          ca-certificates \
          libjpeg-dev \
-	 libpng16-16 \
-	 libtiff5 \
+	     libpng16-16 \
+	     libtiff5 \
          libpng-dev \
          python-dev \
          python3 \
@@ -45,7 +45,7 @@ RUN curl -o ~/miniconda.sh -LO https://repo.continuum.io/miniconda/Miniconda3-la
      /opt/conda/bin/conda clean -ya && \
      /opt/conda/bin/conda create -n python37 python=3.7 numpy networkx scipy six requests
 
-RUN packages='py_trees==0.8.3 shapely six dictor requests' \
+RUN packages='py_trees==0.8.3 shapely six dictor requests ephem tabulate' \
 	&& pip3 install ${packages}
 
 WORKDIR /workspace
@@ -55,7 +55,7 @@ ENV CARLA_ROOT /workspace/CARLA
 ENV PATH "/workspace/CARLA/PythonAPI/carla/dist/carla-0.9.9-py3.7-linux-x86_64.egg":/opt/conda/envs/python37/bin:/opt/conda/envs/bin:$PATH
 
 # adding CARLA egg to default python environment
-RUN pip install --user setuptools py_trees==0.8.3 psutil shapely six dictor requests
+RUN pip install --user setuptools py_trees==0.8.3 psutil shapely six dictor requests ephem tabulate
 
 ENV SCENARIO_RUNNER_ROOT "/workspace/scenario_runner"
 ENV LEADERBOARD_ROOT "/workspace/leaderboard"
@@ -88,7 +88,7 @@ RUN packages='absl-py cvxpy gdown lapsolver matplotlib==2.2.4 motmetrics numpy<1
 ENV PYTHONPATH ${TEAM_CODE_ROOT}/:${TEAM_CODE_ROOT}/dependencies/:${PYTHONPATH}
 ENV TEAM_AGENT ${TEAM_CODE_ROOT}/pylot/simulation/challenge/ERDOSAgent.py
 ENV TEAM_CONFIG ${TEAM_CODE_ROOT}/pylot/simulation/challenge/challenge.conf
-ENV CHALLENGE_PHASE_CODENAME MAP
+ENV CHALLENGE_TRACK_CODENAME MAP
 ENV PYLOT_HOME ${TEAM_CODE_ROOT}/
 
 RUN cd ${TEAM_CODE_ROOT}/dependencies/frenet_optimal_trajectory_planner && rm -r build && ./build.sh
