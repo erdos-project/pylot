@@ -47,6 +47,7 @@ class TrafficLightDetOperator(erdos.Operator):
                 tf.import_graph_def(od_graph_def, name='')
 
         self._gpu_options = tf.GPUOptions(
+            allow_growth=True,
             visible_device_list=str(self._flags.traffic_light_det_gpu_index),
             per_process_gpu_memory_fraction=flags.
             traffic_light_det_gpu_memory_fraction)
