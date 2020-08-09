@@ -9,9 +9,11 @@ from functools import total_ordering
 import carla
 
 import erdos
+from erdos import ReadStream, Timestamp, WriteStream
 
 import pylot.simulation.utils
 import pylot.utils
+from pylot.control.messages import ControlMessage
 from pylot.perception.messages import ObstaclesMessage, SpeedSignsMessage, \
     StopSignsMessage, TrafficLightsMessage
 
@@ -32,12 +34,18 @@ class CarlaOperator(erdos.Operator):
         _world: A handle to the world running inside the simulation.
         _vehicles: A list of identifiers of the vehicles inside the simulation.
     """
-    def __init__(self, control_stream, release_sensor_stream,
-                 pipeline_finish_notify_stream, pose_stream,
-                 pose_stream_for_control, ground_traffic_lights_stream,
-                 ground_obstacles_stream, ground_speed_limit_signs_stream,
-                 ground_stop_signs_stream, vehicle_id_stream,
-                 open_drive_stream, global_trajectory_stream, flags):
+    def __init__(self, control_stream: ReadStream,
+                 release_sensor_stream: ReadStream,
+                 pipeline_finish_notify_stream: ReadStream,
+                 pose_stream: WriteStream,
+                 pose_stream_for_control: WriteStream,
+                 ground_traffic_lights_stream: WriteStream,
+                 ground_obstacles_stream: WriteStream,
+                 ground_speed_limit_signs_stream: WriteStream,
+                 ground_stop_signs_stream: WriteStream,
+                 vehicle_id_stream: WriteStream,
+                 open_drive_stream: WriteStream,
+                 global_trajectory_stream: WriteStream, flags):
         if flags.random_seed:
             random.seed(flags.random_seed)
         # Register callback on control stream.
@@ -129,8 +137,8 @@ class CarlaOperator(erdos.Operator):
         self._control_msgs = {}
 
     @staticmethod
-    def connect(control_stream, release_sensor_stream,
-                pipeline_finish_notify_stream):
+    def connect(control_stream: ReadStream, release_sensor_stream: ReadStream,
+                pipeline_finish_notify_stream: ReadStream):
         pose_stream = erdos.WriteStream()
         pose_stream_for_control = erdos.WriteStream()
         ground_traffic_lights_stream = erdos.WriteStream()
@@ -153,7 +161,7 @@ class CarlaOperator(erdos.Operator):
         ]
 
     @erdos.profile_method()
-    def on_control_msg(self, msg):
+    def on_control_msg(self, msg: ControlMessage):
         """ Invoked when a ControlMessage is received.
 
         Args:
@@ -193,7 +201,7 @@ class CarlaOperator(erdos.Operator):
                 control_msg = self._control_msgs[sim_time]
                 self._apply_control_msg(control_msg)
 
-    def on_pipeline_finish(self, timestamp):
+    def on_pipeline_finish(self, timestamp: Timestamp):
         self._logger.debug("@{}: Received pipeline finish.".format(timestamp))
         game_time = timestamp.coordinates[0]
         if (self._flags.carla_control_frequency == -1
@@ -202,17 +210,16 @@ class CarlaOperator(erdos.Operator):
             # There was supposed to be a control message for this timestamp
             # too. Send the Pose message and continue after the control message
             # is received.
-            watermark_msg = erdos.WatermarkMessage(timestamp)
             self._update_next_control_pseudo_asynchronous_ticks(game_time)
             self.__send_hero_vehicle_data(self.pose_stream_for_control,
-                                          timestamp, watermark_msg)
+                                          timestamp)
             self.__update_spectactor_pose()
         else:
             # No pose message was supposed to be sent for this timestamp, we
             # need to consume the next event to move the dataflow forward.
             self._consume_next_event()
 
-    def on_sensor_ready(self, timestamp):
+    def on_sensor_ready(self, timestamp: Timestamp):
         # The first sensor reading needs to be discarded because it might
         # not be correctly spaced out.
         if not self._simulator_in_sync:
@@ -232,7 +239,6 @@ class CarlaOperator(erdos.Operator):
             self._logger.info(
                 'The world is at the timestamp {}'.format(game_time))
             timestamp = erdos.Timestamp(coordinates=[game_time])
-            watermark_msg = erdos.WatermarkMessage(timestamp)
             with erdos.profile(self.config.name + '.send_actor_data',
                                self,
                                event_data={'timestamp': str(timestamp)}):
@@ -242,9 +248,8 @@ class CarlaOperator(erdos.Operator):
                     if self._flags.carla_mode == 'pseudo-asynchronous':
                         self._update_next_localization_pseudo_async_ticks(
                             game_time)
-                    self.__send_hero_vehicle_data(self.pose_stream, timestamp,
-                                                  watermark_msg)
-                    self.__send_ground_actors_data(timestamp, watermark_msg)
+                    self.__send_hero_vehicle_data(self.pose_stream, timestamp)
+                    self.__send_ground_actors_data(timestamp)
                     self.__update_spectactor_pose()
 
                 if self._flags.carla_mode == "pseudo-asynchronous" and (
@@ -254,10 +259,10 @@ class CarlaOperator(erdos.Operator):
                     self._update_next_control_pseudo_asynchronous_ticks(
                         game_time)
                     self.__send_hero_vehicle_data(self.pose_stream_for_control,
-                                                  timestamp, watermark_msg)
+                                                  timestamp)
                     self.__update_spectactor_pose()
 
-    def _update_next_localization_pseudo_async_ticks(self, game_time):
+    def _update_next_localization_pseudo_async_ticks(self, game_time: int):
         if self._flags.carla_localization_frequency > -1:
             self._next_localization_sensor_reading = (
                 game_time +
@@ -275,7 +280,7 @@ class CarlaOperator(erdos.Operator):
             self._tick_events,
             (self._next_localization_sensor_reading, TickEvent.SENSOR_READ))
 
-    def _update_next_control_pseudo_asynchronous_ticks(self, game_time):
+    def _update_next_control_pseudo_asynchronous_ticks(self, game_time: int):
         if self._flags.carla_control_frequency > -1:
             self._next_control_sensor_reading = (
                 game_time + int(1000 / self._flags.carla_control_frequency))
@@ -327,7 +332,7 @@ class CarlaOperator(erdos.Operator):
             return
         self._world.tick()
 
-    def _tick_simulator_until(self, goal_time):
+    def _tick_simulator_until(self, goal_time: int):
         while True:
             snapshot = self._world.get_snapshot()
             sim_time = int(snapshot.timestamp.elapsed_seconds * 1000)
@@ -336,7 +341,7 @@ class CarlaOperator(erdos.Operator):
             else:
                 return
 
-    def _apply_control_msg(self, msg):
+    def _apply_control_msg(self, msg: ControlMessage):
         # Transform the message to a carla control cmd.
         vec_control = carla.VehicleControl(throttle=msg.throttle,
                                            steer=msg.steer,
@@ -348,7 +353,8 @@ class CarlaOperator(erdos.Operator):
                                               vec_control)
         ])
 
-    def __send_hero_vehicle_data(self, stream, timestamp, watermark_msg):
+    def __send_hero_vehicle_data(self, stream: WriteStream,
+                                 timestamp: Timestamp):
         vec_transform = pylot.utils.Transform.from_carla_transform(
             self._ego_vehicle.get_transform())
         velocity_vector = pylot.utils.Vector3D.from_carla_vector(
@@ -359,7 +365,7 @@ class CarlaOperator(erdos.Operator):
         stream.send(erdos.Message(timestamp, pose))
         stream.send(erdos.WatermarkMessage(timestamp))
 
-    def __send_ground_actors_data(self, timestamp, watermark_msg):
+    def __send_ground_actors_data(self, timestamp: Timestamp):
         # Get all the actors in the simulation.
         actor_list = self._world.get_actors()
 
@@ -417,7 +423,7 @@ class TickEvent(enum.Enum):
     CONTROL_CMD = 1
     SENSOR_READ = 2
 
-    def __lt__(self, other):
+    def __lt__(self, other: TickEvent):
         if self.__class__ is other.__class__:
             return self.value < other.value
         return NotImplemented

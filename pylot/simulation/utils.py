@@ -14,7 +14,7 @@ from pylot.perception.detection.traffic_light import TrafficLight
 from pylot.perception.detection.utils import BoundingBox2D
 
 
-def get_world(host="localhost", port=2000, timeout=10):
+def get_world(host: str = "localhost", port: int = 2000, timeout: int = 10):
     """Get a handle to the world running inside the simulation.
 
     Args:
@@ -42,7 +42,7 @@ def get_world(host="localhost", port=2000, timeout=10):
     return (client, world)
 
 
-def get_map(host="localhost", port=2000, timeout=10):
+def get_map(host: str = "localhost", port: int = 2000, timeout: int = 10):
     """Get a handle to the Carla map.
 
     Args:
@@ -57,7 +57,7 @@ def get_map(host="localhost", port=2000, timeout=10):
     return world.get_map()
 
 
-def set_weather(world, weather):
+def set_weather(world, weather: str):
     """Sets the simulation weather."""
     names = [
         name for name in dir(carla.WeatherParameters)
@@ -132,8 +132,8 @@ def reset_world(world):
             actor.destroy()
 
 
-def spawn_actors(client, world, carla_version, ego_spawn_point_index,
-                 auto_pilot, num_people, num_vehicles, logger):
+def spawn_actors(client, world, carla_version: str, ego_spawn_point_index: int,
+                 auto_pilot: bool, num_people: int, num_vehicles: int, logger):
     vehicle_ids = spawn_vehicles(client, world, num_vehicles, logger)
     ego_vehicle = spawn_ego_vehicle(world, ego_spawn_point_index, auto_pilot)
     people = []
@@ -152,7 +152,7 @@ def spawn_actors(client, world, carla_version, ego_spawn_point_index,
     return ego_vehicle, vehicle_ids, people
 
 
-def spawn_ego_vehicle(world, spawn_point_index, auto_pilot):
+def spawn_ego_vehicle(world, spawn_point_index: int, auto_pilot: bool):
     # Set our vehicle to be the one used in the CARLA challenge.
     v_blueprint = world.get_blueprint_library().filter(
         'vehicle.lincoln.mkz2017')[0]
@@ -176,7 +176,7 @@ def spawn_ego_vehicle(world, spawn_point_index, auto_pilot):
     return ego_vehicle
 
 
-def spawn_people(client, world, num_people, logger):
+def spawn_people(client, world, num_people: int, logger):
     """Spawns people at random locations inside the world.
 
     Args:
@@ -236,7 +236,7 @@ def spawn_people(client, world, num_people, logger):
     return (ped_ids, ped_control_ids)
 
 
-def spawn_vehicles(client, world, num_vehicles, logger):
+def spawn_vehicles(client, world, num_vehicles: int, logger):
     """ Spawns vehicles at random locations inside the world.
 
     Args:
@@ -530,7 +530,7 @@ def get_detected_traffic_stops(traffic_stops, depth_frame):
     return det_stop_signs
 
 
-def get_vehicle_handle(world, vehicle_id):
+def get_vehicle_handle(world, vehicle_id: int):
     num_tries = 0
     while num_tries < 50:
         vehicle = world.get_actors().find(vehicle_id)

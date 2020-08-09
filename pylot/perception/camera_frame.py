@@ -1,4 +1,5 @@
 import os
+from typing import Tuple, Union
 
 import PIL.Image as Image
 
@@ -8,6 +9,8 @@ import numpy as np
 
 import pylot.perception.detection.utils
 import pylot.utils
+from pylot.drivers.sensor_setup import CameraSetup
+from pylot.utils import Vector2D
 
 
 class CameraFrame(object):
@@ -24,7 +27,10 @@ class CameraFrame(object):
         camera_setup (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
             The camera setup used by the sensor that generated this frame.
     """
-    def __init__(self, frame, encoding, camera_setup=None):
+    def __init__(self,
+                 frame,
+                 encoding: str,
+                 camera_setup: Union[CameraSetup, None] = None):
         self.frame = frame
         if encoding != 'BGR' and encoding != 'RGB':
             raise ValueError('Unsupported encoding {}'.format(encoding))
@@ -32,7 +38,7 @@ class CameraFrame(object):
         self.camera_setup = camera_setup
 
     @classmethod
-    def from_carla_frame(cls, carla_frame, camera_setup):
+    def from_carla_frame(cls, carla_frame, camera_setup: CameraSetup):
         """Creates a pylot camera frame from a CARLA frame.
 
         Returns:
@@ -75,13 +81,17 @@ class CameraFrame(object):
                                    bbox_color_map,
                                    ego_transform=transform)
 
-    def draw_box(self, start_point, end_point, color, thickness=2):
+    def draw_box(self,
+                 start_point: Vector2D,
+                 end_point: Vector2D,
+                 color: Tuple[int, int, int],
+                 thickness: float = 2):
         """Draw a colored box defined by start_point, end_point."""
         start = (int(start_point.x), int(start_point.y))
         end = (int(end_point.x), int(end_point.y))
         cv2.rectangle(self.frame, start, end, color, thickness)
 
-    def draw_point(self, point, color, r=3):
+    def draw_point(self, point: Vector2D, color, r: float = 3):
         """Draws a point on the frame.
 
         Args:
@@ -90,7 +100,10 @@ class CameraFrame(object):
         """
         cv2.circle(self.frame, (int(point.x), int(point.y)), r, color, -1)
 
-    def draw_text(self, point, text, color=(255, 255, 255)):
+    def draw_text(self,
+                  point: Vector2D,
+                  text: str,
+                  color: Tuple[int, int, int] = (255, 255, 255)):
         """Draws text on the frame.
 
         Args:
@@ -106,12 +119,12 @@ class CameraFrame(object):
                     thickness=1,
                     lineType=cv2.LINE_AA)
 
-    def in_frame(self, point):
+    def in_frame(self, point: Vector2D):
         """Checks if a point is within the frame."""
         return (0 <= point.x <= self.camera_setup.width
                 and 0 <= point.y <= self.camera_setup.height)
 
-    def resize(self, width, height):
+    def resize(self, width: int, height: int):
         """Resizes the frame."""
         self.camera_setup.set_resolution(width, height)
         self.frame = cv2.resize(self.frame,
@@ -131,7 +144,7 @@ class CameraFrame(object):
         pygame.surfarray.blit_array(pygame_display, image_np)
         pygame.display.flip()
 
-    def save(self, timestamp, data_path, file_base):
+    def save(self, timestamp: int, data_path: str, file_base: str):
         """Saves the camera frame to a file.
 
         Args:

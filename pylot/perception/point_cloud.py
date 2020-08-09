@@ -4,6 +4,7 @@ import os
 import numpy as np
 from numpy.linalg import inv
 
+from pylot.drivers.sensor_setup import CameraSetup, LidarSetup
 from pylot.utils import Location, Transform, Vector2D
 
 
@@ -22,7 +23,7 @@ class PointCloud(object):
         transform (:py:class:`~pylot.utils.Transform`): Transform of the
             point cloud, relative to the ego-vehicle.
     """
-    def __init__(self, points, lidar_setup):
+    def __init__(self, points, lidar_setup: LidarSetup):
         # Transform point cloud from lidar to camera coordinates.
         self._lidar_setup = lidar_setup
         self.global_points = copy.deepcopy(points)
@@ -30,7 +31,7 @@ class PointCloud(object):
         self.transform = lidar_setup.get_transform()
 
     @classmethod
-    def from_carla_point_cloud(cls, carla_pc, lidar_setup):
+    def from_carla_point_cloud(cls, carla_pc, lidar_setup: LidarSetup):
         """Creates a pylot point cloud from a carla point cloud.
 
         Returns:
@@ -82,7 +83,7 @@ class PointCloud(object):
         transformed_points = to_camera_transform.transform_points(points)
         return transformed_points
 
-    def get_pixel_location(self, pixel, camera_setup):
+    def get_pixel_location(self, pixel, camera_setup: CameraSetup):
         """ Gets the 3D world location from pixel coordinates.
 
         Args:
@@ -129,7 +130,9 @@ class PointCloud(object):
         return pixel_location
 
     @staticmethod
-    def get_closest_point_in_point_cloud(fwd_points, pixel, normalized=False):
+    def get_closest_point_in_point_cloud(fwd_points,
+                                         pixel,
+                                         normalized: bool = False):
         """Finds the closest point in the point cloud to the given point.
 
         Args:
@@ -161,7 +164,7 @@ class PointCloud(object):
                         fwd_points[closest_index][1],
                         fwd_points[closest_index][2])
 
-    def save(self, timestamp, data_path, file_base):
+    def save(self, timestamp: int, data_path: str, file_base: str):
         """Saves the point cloud to a file.
 
         Args:
@@ -176,7 +179,8 @@ class PointCloud(object):
         pcd.points = o3d.Vector3dVector(self.points)
         o3d.write_point_cloud(file_name, pcd)
 
-    def visualize(self, pygame_display, display_width, display_height):
+    def visualize(self, pygame_display, display_width: int,
+                  display_height: int):
         """Visualizes the point cloud on a pygame display."""
         import pygame
         # Transform point cloud to top down view.

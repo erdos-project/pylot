@@ -3,6 +3,7 @@
 import carla
 
 import erdos
+from erdos import Timestamp
 
 from pylot.simulation.utils import TrafficInfractionType
 from pylot.utils import LaneMarking, LaneType, Location, Vector3D
@@ -26,7 +27,8 @@ class CollisionMessage(erdos.Message):
             the collision.
         intensity (:py:class:`float`): The intensity of the collision.
     """
-    def __init__(self, collided_actor, impulse, timestamp):
+    def __init__(self, collided_actor: str, impulse: Vector3D,
+                 timestamp: Timestamp):
         super(CollisionMessage, self).__init__(timestamp, None)
 
         # Ensure the correct types of the arguments.
@@ -73,7 +75,8 @@ class LaneInvasionMessage(erdos.Message):
         timestamp: (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
             the message.
     """
-    def __init__(self, lane_markings, lane_type, timestamp):
+    def __init__(self, lane_markings: LaneMarking, lane_type: LaneType,
+                 timestamp: Timestamp):
         super(LaneInvasionMessage, self).__init__(timestamp, None)
 
         # Ensure the correct types of the arguments.
@@ -116,7 +119,8 @@ class TrafficInfractionMessage(erdos.Message):
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
             the message.
     """
-    def __init__(self, infraction_type, location, timestamp):
+    def __init__(self, infraction_type: TrafficInfractionType,
+                 location: Location, timestamp: Timestamp):
         super(TrafficInfractionMessage, self).__init__(timestamp, None)
 
         # Ensure the correct types of the arguments.

@@ -1,4 +1,5 @@
 import erdos
+from erdos import Message, ReadStream, WriteStream
 
 from pylot.perception.messages import LanesMessage
 
@@ -17,8 +18,8 @@ class PerfectLaneDetectionOperator(erdos.Operator):
             :py:class:`~pylot.perception.messages.LanesMessage` messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, pose_stream, open_drive_stream, detected_lane_stream,
-                 flags):
+    def __init__(self, pose_stream: ReadStream, open_drive_stream: ReadStream,
+                 detected_lane_stream: WriteStream, flags):
         pose_stream.add_callback(self.on_position_update,
                                  [detected_lane_stream])
         self._flags = flags
@@ -26,7 +27,7 @@ class PerfectLaneDetectionOperator(erdos.Operator):
                                                  self.config.log_file_name)
 
     @staticmethod
-    def connect(pose_stream, open_drive_stream):
+    def connect(pose_stream: ReadStream, open_drive_stream: ReadStream):
         detected_lane_stream = erdos.WriteStream()
         return [detected_lane_stream]
 
@@ -45,7 +46,7 @@ class PerfectLaneDetectionOperator(erdos.Operator):
                                        self._flags.carla_port,
                                        self._flags.carla_timeout)
 
-    def on_opendrive_map(self, msg):
+    def on_opendrive_map(self, msg: Message):
         """Invoked whenever a message is received on the open drive stream.
 
         Args:
@@ -63,7 +64,8 @@ class PerfectLaneDetectionOperator(erdos.Operator):
         self._map = HDMap(carla.Map('map', msg.data))
 
     @erdos.profile_method()
-    def on_position_update(self, pose_msg, detected_lane_stream):
+    def on_position_update(self, pose_msg: Message,
+                           detected_lane_stream: WriteStream):
         """Invoked on the receipt of an update to the position of the vehicle.
 
         Uses the position of the vehicle to get future waypoints and draw

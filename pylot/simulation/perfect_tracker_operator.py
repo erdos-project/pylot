@@ -1,6 +1,7 @@
 from collections import defaultdict, deque
 
 import erdos
+from erdos import ReadStream, Timestamp, WriteStream
 
 from pylot.perception.messages import ObstacleTrajectoriesMessage
 from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
@@ -10,8 +11,9 @@ class PerfectTrackerOperator(erdos.Operator):
     """Operator that gives past trajectories of other agents in the environment,
        i.e. their past (x,y,z) locations from an ego-vehicle perspective.
     """
-    def __init__(self, vehicle_id_stream, ground_obstacles_stream, pose_stream,
-                 ground_tracking_stream, flags):
+    def __init__(self, vehicle_id_stream: ReadStream,
+                 ground_obstacles_stream: ReadStream, pose_stream: ReadStream,
+                 ground_tracking_stream: WriteStream, flags):
         self._vehicle_id_stream = vehicle_id_stream
         ground_obstacles_stream.add_callback(self.on_obstacles_update)
         pose_stream.add_callback(self.on_pose_update)
@@ -32,12 +34,14 @@ class PerfectTrackerOperator(erdos.Operator):
             lambda: deque(maxlen=self._flags.tracking_num_steps))
 
     @staticmethod
-    def connect(vehicle_id_stream, ground_obstacles_stream, pose_stream):
+    def connect(vehicle_id_stream: ReadStream,
+                ground_obstacles_stream: ReadStream, pose_stream: ReadStream):
         ground_tracking_stream = erdos.WriteStream()
         return [ground_tracking_stream]
 
     @erdos.profile_method()
-    def on_watermark(self, timestamp, ground_tracking_stream):
+    def on_watermark(self, timestamp: Timestamp,
+                     ground_tracking_stream: WriteStream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         obstacles_msg = self._obstacles_raw_msgs.popleft()
         pose_msg = self._pose_msgs.popleft()
@@ -79,12 +83,12 @@ class PerfectTrackerOperator(erdos.Operator):
                                                  obstacle_trajectories)
         ground_tracking_stream.send(output_msg)
 
-    def on_obstacles_update(self, msg):
+    def on_obstacles_update(self, msg: Message):
         self._logger.debug('@{}: received obstacles message'.format(
             msg.timestamp))
         self._obstacles_raw_msgs.append(msg)
 
-    def on_pose_update(self, msg):
+    def on_pose_update(self, msg: Message):
         self._logger.debug('@{}: received pose message'.format(msg.timestamp))
         self._pose_msgs.append(msg)
 

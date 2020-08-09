@@ -17,7 +17,8 @@ class ControlMessage(erdos.Message):
         timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
             the message.
     """
-    def __init__(self, steer, throttle, brake, hand_brake, reverse, timestamp):
+    def __init__(self, steer: float, throttle: float, brake: float,
+                 hand_brake: bool, reverse: bool, timestamp: erdos.Timestamp):
         super(ControlMessage, self).__init__(timestamp, None)
         assert steer >= -1 and steer <= 1, 'Steer angle must be in [-1, 1]'
         self.steer = steer

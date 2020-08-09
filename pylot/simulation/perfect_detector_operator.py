@@ -1,6 +1,7 @@
 from collections import deque
 
 import erdos
+from erdos import ReadStream, Timestamp, WriteStream
 
 import pylot.simulation.utils
 import pylot.utils
@@ -54,10 +55,13 @@ class PerfectDetectorOperator(erdos.Operator):
             received from Carla.
         _frame_cnt (:obj:`int`): Number of messages received.
     """
-    def __init__(self, depth_camera_stream, center_camera_stream,
-                 segmented_camera_stream, pose_stream, ground_obstacles_stream,
-                 ground_speed_limit_signs_stream, ground_stop_signs_stream,
-                 obstacles_stream, flags):
+    def __init__(self, depth_camera_stream: ReadStream,
+                 center_camera_stream: ReadStream,
+                 segmented_camera_stream: ReadStream, pose_stream: ReadStream,
+                 ground_obstacles_stream: ReadStream,
+                 ground_speed_limit_signs_stream: ReadStream,
+                 ground_stop_signs_stream: ReadStream,
+                 obstacles_stream: WriteStream, flags):
         depth_camera_stream.add_callback(self.on_depth_camera_update)
         center_camera_stream.add_callback(self.on_bgr_camera_update)
         segmented_camera_stream.add_callback(self.on_segmented_frame)
@@ -88,15 +92,19 @@ class PerfectDetectorOperator(erdos.Operator):
         self._frame_cnt = 0
 
     @staticmethod
-    def connect(depth_camera_stream, center_camera_stream,
-                segmented_camera_stream, pose_stream, ground_obstacles_stream,
-                ground_speed_limit_signs_stream, ground_stop_signs_stream):
+    def connect(depth_camera_stream: ReadStream,
+                center_camera_stream: ReadStream,
+                segmented_camera_stream: ReadStream, pose_stream: ReadStream,
+                ground_obstacles_stream: ReadStream,
+                ground_speed_limit_signs_stream: ReadStream,
+                ground_stop_signs_stream: ReadStream):
         obstacles_stream = erdos.WriteStream()
         # Stream on which to output bounding boxes.
         return [obstacles_stream]
 
     @erdos.profile_method()
-    def on_watermark(self, timestamp, obstacles_stream):
+    def on_watermark(self, timestamp: Timestamp,
+                     obstacles_stream: WriteStream):
         """Invoked when all input streams have received a watermark.
 
         Args:
@@ -151,34 +159,34 @@ class PerfectDetectorOperator(erdos.Operator):
             bgr_msg.frame.save(bgr_msg.timestamp.coordinates[0],
                                self._flags.data_path, 'perfect-detector')
 
-    def on_pose_update(self, msg):
+    def on_pose_update(self, msg: Message):
         self._logger.debug('@{}: received pose message'.format(msg.timestamp))
         self._pose_msgs.append(msg)
 
-    def on_speed_limit_signs_update(self, msg):
+    def on_speed_limit_signs_update(self, msg: Message):
         self._logger.debug('@{}: received ground speed limits update'.format(
             msg.timestamp))
         self._speed_limit_signs.append(msg)
 
-    def on_stop_signs_update(self, msg):
+    def on_stop_signs_update(self, msg: Message):
         self._logger.debug('@{}: received ground stop signs update'.format(
             msg.timestamp))
         self._stop_signs.append(msg)
 
-    def on_obstacles_update(self, msg):
+    def on_obstacles_update(self, msg: Message):
         self._logger.debug('@{}: received ground obstacles update'.format(
             msg.timestamp))
         self._obstacles.append(msg)
 
-    def on_depth_camera_update(self, msg):
+    def on_depth_camera_update(self, msg: Message):
         self._logger.debug('@{}: received depth frame'.format(msg.timestamp))
         self._depth_frame_msgs.append(msg)
 
-    def on_bgr_camera_update(self, msg):
+    def on_bgr_camera_update(self, msg: Message):
         self._logger.debug('@{}: received BGR frame'.format(msg.timestamp))
         self._bgr_msgs.append(msg)
 
-    def on_segmented_frame(self, msg):
+    def on_segmented_frame(self, msg: Message):
         self._logger.debug('@{}: received segmented frame'.format(
             msg.timestamp))
         self._segmented_msgs.append(msg)

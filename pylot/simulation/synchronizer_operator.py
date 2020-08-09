@@ -1,4 +1,5 @@
 import erdos
+from erdos import ReadStream, Timestamp, WriteStream
 
 from pylot.control.messages import ControlMessage
 from pylot.simulation.utils import get_vehicle_handle, get_world, \
@@ -21,8 +22,8 @@ class SynchronizerOperator(erdos.Operator):
             messages are published.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, ground_vehicle_id_stream, wait_stream, control_stream,
-                 flags):
+    def __init__(self, ground_vehicle_id_stream: ReadStream,
+                 wait_stream: ReadStream, control_stream: WriteStream, flags):
         erdos.add_watermark_callback([wait_stream], [control_stream],
                                      self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -32,7 +33,7 @@ class SynchronizerOperator(erdos.Operator):
         self._flags = flags
 
     @staticmethod
-    def connect(ground_vehicle_id_stream, wait_stream):
+    def connect(ground_vehicle_id_stream: ReadStream, wait_stream: ReadStream):
         control_stream = erdos.WriteStream()
         return [control_stream]
 
@@ -49,7 +50,7 @@ class SynchronizerOperator(erdos.Operator):
 
         self._vehicle = get_vehicle_handle(world, vehicle_id)
 
-    def on_watermark(self, timestamp, control_stream):
+    def on_watermark(self, timestamp: Timestamp, control_stream: WriteStream):
         """Invoked when the input stream has received a watermark.
 
         The method sends a control message.

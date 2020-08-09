@@ -1,6 +1,7 @@
 from collections import deque
 
 import erdos
+from erdos import Message, ReadStream, Timestamp, WriteStream
 
 from pylot.perception.messages import TrafficLightsMessage
 from pylot.simulation.utils import get_map, get_traffic_lights_obstacles
@@ -42,9 +43,10 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         _pose_msgs (:obj:`collections.deque`): Buffer of pose messages.
         _frame_cnt (:obj:`int`): Number of messages received.
     """
-    def __init__(self, ground_traffic_lights_stream, tl_camera_stream,
-                 depth_camera_stream, segmented_camera_stream, pose_stream,
-                 traffic_lights_stream, flags):
+    def __init__(self, ground_traffic_lights_stream: ReadStream,
+                 tl_camera_stream: ReadStream, depth_camera_stream: ReadStream,
+                 segmented_camera_stream: ReadStream, pose_stream: ReadStream,
+                 traffic_lights_stream: WriteStream, flags):
         ground_traffic_lights_stream.add_callback(self.on_traffic_light_update)
         tl_camera_stream.add_callback(self.on_bgr_camera_update)
         depth_camera_stream.add_callback(self.on_depth_camera_update)
@@ -65,8 +67,9 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         self._frame_cnt = 0
 
     @staticmethod
-    def connect(ground_traffic_lights_stream, tl_camera_stream,
-                depth_camera_stream, segmented_camera_stream, pose_stream):
+    def connect(ground_traffic_lights_stream: ReadStream,
+                tl_camera_stream: ReadStream, depth_camera_stream: ReadStream,
+                segmented_camera_stream: ReadStream, pose_stream: ReadStream):
         traffic_lights_stream = erdos.WriteStream()
         return [traffic_lights_stream]
 
@@ -79,7 +82,8 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         self._town_name = world_map.name
 
     @erdos.profile_method()
-    def on_watermark(self, timestamp, traffic_lights_stream):
+    def on_watermark(self, timestamp: Timestamp,
+                     traffic_lights_stream: WriteStream):
         """Invoked when all input streams have received a watermark.
 
         Args:
@@ -128,24 +132,24 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
             bgr_msg.frame.save(bgr_msg.timestamp.coordinates[0],
                                self._flags.data_path, 'perfect-detector')
 
-    def on_pose_update(self, msg):
+    def on_pose_update(self, msg: Message):
         self._logger.debug('@{}: received pose message'.format(msg.timestamp))
         self._pose_msgs.append(msg)
 
-    def on_traffic_light_update(self, msg):
+    def on_traffic_light_update(self, msg: Message):
         self._logger.debug('@{}: received ground traffic lights update'.format(
             msg.timestamp))
         self._traffic_lights.append(msg)
 
-    def on_bgr_camera_update(self, msg):
+    def on_bgr_camera_update(self, msg: Message):
         self._logger.debug('@{}: received BGR frame'.format(msg.timestamp))
         self._bgr_msgs.append(msg)
 
-    def on_depth_camera_update(self, msg):
+    def on_depth_camera_update(self, msg: Message):
         self._logger.debug('@{}: received depth frame'.format(msg.timestamp))
         self._depth_frame_msgs.append(msg)
 
-    def on_segmented_frame(self, msg):
+    def on_segmented_frame(self, msg: Message):
         self._logger.debug('@{}: received segmented frame'.format(
             msg.timestamp))
         self._segmented_msgs.append(msg)
