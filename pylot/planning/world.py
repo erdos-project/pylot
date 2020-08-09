@@ -71,7 +71,7 @@ class World(object):
                                                    self.ego_transform.location,
                                                    self._goal_location)
 
-        if pose.forward_speed < 0.9:
+        if pose.forward_speed < 0.7:
             # We can't just check if forward_speed is zero because localization
             # noise can cause the forward_speed to be non zero even when the
             # ego is stopped.

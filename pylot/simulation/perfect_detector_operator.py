@@ -1,7 +1,7 @@
 from collections import deque
 
 import erdos
-from erdos import ReadStream, Timestamp, WriteStream
+from erdos import Message, ReadStream, Timestamp, WriteStream
 
 import pylot.simulation.utils
 import pylot.utils

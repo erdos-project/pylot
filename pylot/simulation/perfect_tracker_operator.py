@@ -1,7 +1,7 @@
 from collections import defaultdict, deque
 
 import erdos
-from erdos import ReadStream, Timestamp, WriteStream
+from erdos import Message, ReadStream, Timestamp, WriteStream
 
 from pylot.perception.messages import ObstacleTrajectoriesMessage
 from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
