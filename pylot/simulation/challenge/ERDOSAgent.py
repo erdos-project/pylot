@@ -267,12 +267,17 @@ class ERDOSAgent(AutonomousAgent):
         if FLAGS.localization:
             self.send_imu_msg(imu_data, erdos_timestamp)
             self.send_gnss_msg(gnss_data, erdos_timestamp)
-            self.send_initial_pose_msg(erdos_timestamp)
+            pose = self.compute_pose(speed_data, imu_data, gnss_data,
+                                     erdos_timestamp)
+            self._route_stream.send(erdos.Message(erdos_timestamp, pose))
+            self._route_stream.send(erdos.WatermarkMessage(erdos_timestamp))
         elif FLAGS.carla_localization:
             self.send_perfect_pose_msg(erdos_timestamp)
         else:
-            self.send_pose_msg(speed_data, imu_data, gnss_data,
-                               erdos_timestamp)
+            pose = self.compute_pose(speed_data, imu_data, gnss_data,
+                                     erdos_timestamp)
+            self._pose_stream.send(erdos.Message(erdos_timestamp, pose))
+            self._pose_stream.send(erdos.WatermarkMessage(erdos_timestamp))
 
         if using_lidar():
             self.send_lidar_msg(carla_pc, self._lidar_transform,
@@ -333,7 +338,7 @@ class ERDOSAgent(AutonomousAgent):
             self._logger.warning(
                 'Agent did not sent open drive data for {}'.format(timestamp))
 
-    def send_pose_msg(self, speed_data, imu_data, gnss_data, timestamp):
+    def compute_pose(self, speed_data, imu_data, gnss_data, timestamp):
         forward_speed = speed_data['speed']
         # vehicle_transform = pylot.utils.Transform.from_carla_transform(
         #     speed_data['transform'])
@@ -359,19 +364,7 @@ class ERDOSAgent(AutonomousAgent):
                                         timestamp.coordinates[0])
         self._logger.debug("@{}: Predicted pose: {}".format(
             timestamp, current_pose))
-        self._pose_stream.send(erdos.Message(timestamp, current_pose))
-        self._pose_stream.send(erdos.WatermarkMessage(timestamp))
-
-    def send_initial_pose_msg(self, timestamp):
-        if not self._sent_initial_pose:
-            self._sent_initial_pose = True
-            initial_transform = self._global_plan_world_coord[0][0]
-            initial_pose = pylot.utils.Pose(
-                pylot.utils.Transform.from_carla_transform(initial_transform),
-                0, pylot.utils.Vector3D(), timestamp.coordinates[0])
-            self._route_stream.send(erdos.Message(timestamp, initial_pose))
-            self._route_stream.send(
-                erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
+        return current_pose
 
     def send_lidar_msg(self,
                        carla_pc,

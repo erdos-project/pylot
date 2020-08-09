@@ -34,18 +34,17 @@ class CarlaOperator(erdos.Operator):
         _world: A handle to the world running inside the simulation.
         _vehicles: A list of identifiers of the vehicles inside the simulation.
     """
-    def __init__(self, control_stream: ReadStream,
-                 release_sensor_stream: ReadStream,
-                 pipeline_finish_notify_stream: ReadStream,
-                 pose_stream: WriteStream,
-                 pose_stream_for_control: WriteStream,
-                 ground_traffic_lights_stream: WriteStream,
-                 ground_obstacles_stream: WriteStream,
-                 ground_speed_limit_signs_stream: WriteStream,
-                 ground_stop_signs_stream: WriteStream,
-                 vehicle_id_stream: WriteStream,
-                 open_drive_stream: WriteStream,
-                 global_trajectory_stream: WriteStream, flags):
+    def __init__(
+            self, control_stream: ReadStream,
+            release_sensor_stream: ReadStream,
+            pipeline_finish_notify_stream: ReadStream,
+            pose_stream: WriteStream, pose_stream_for_control: WriteStream,
+            ground_traffic_lights_stream: WriteStream,
+            ground_obstacles_stream: WriteStream,
+            ground_speed_limit_signs_stream: WriteStream,
+            ground_stop_signs_stream: WriteStream,
+            vehicle_id_stream: WriteStream, open_drive_stream: WriteStream,
+            global_trajectory_stream: WriteStream, flags):
         if flags.random_seed:
             random.seed(flags.random_seed)
         # Register callback on control stream.
