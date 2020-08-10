@@ -81,7 +81,14 @@ class HDMap(object):
             # mapped location.
             return False
         else:
-            return waypoint.is_junction
+            return self.__is_intersection(waypoint)
+
+    def __is_intersection(self, waypoint):
+        if waypoint.is_junction:
+            return True
+        if hasattr(waypoint, 'is_intersection'):
+            return waypoint.is_intersection
+        return False
 
     def is_on_lane(self, location):
         """Checks if a location is on a lane.
@@ -132,7 +139,8 @@ class HDMap(object):
         else:
             # Return False if we're in intersection and the other
             # obstacle isn't.
-            if waypoint1.is_intersection and not waypoint2.is_intersection:
+            if self.__is_intersection(
+                    waypoint1) and not self.__is_intersection(waypoint2):
                 return False
             if waypoint2.lane_type == carla.LaneType.Driving:
                 # This may return True when the lane is different, but in
@@ -156,7 +164,7 @@ class HDMap(object):
                                       lane_type=carla.LaneType.Driving)
         if not waypoint:
             return True
-        if waypoint.is_intersection:
+        if self.__is_intersection(waypoint):
             return False
 
         # XXX(ionel): Check logic.
@@ -205,14 +213,14 @@ class HDMap(object):
         if not waypoint:
             return None
         # We're already in an intersection.
-        if waypoint.is_intersection:
+        if self.__is_intersection(waypoint):
             return 0
         for i in range(1, max_distance_to_check + 1):
             waypoints = waypoint.next(1)
             if not waypoints or len(waypoints) == 0:
                 return None
             for w in waypoints:
-                if w.is_intersection:
+                if self.__is_intersection(w):
                     return i
             waypoint = waypoints[0]
         return None
@@ -247,7 +255,7 @@ class HDMap(object):
         waypoint = self._get_waypoint(ego_location,
                                       project_to_road=False,
                                       lane_type=carla.LaneType.Any)
-        if waypoint and waypoint.is_intersection:
+        if waypoint and self.__is_intersection(waypoint):
             # Do not obey traffic light if ego is already in the intersection.
             return False
 
@@ -269,7 +277,7 @@ class HDMap(object):
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Any)
         # We're not on a road, or we're already in the intersection. Carry on.
-        if ego_waypoint is None or ego_waypoint.is_intersection:
+        if ego_waypoint is None or self.__is_intersection(ego_waypoint):
             return (False, None)
         # Iterate through traffic lights.
         for tl_loc in tl_locations:
@@ -288,7 +296,7 @@ class HDMap(object):
                                           project_to_road=False,
                                           lane_type=carla.LaneType.Any)
         # We're not on a road, or we're already in the intersection. Carry on.
-        if ego_waypoint is None or ego_waypoint.is_intersection:
+        if ego_waypoint is None or self.__is_intersection(ego_waypoint):
             return (False, None)
 
         min_angle = 25.0

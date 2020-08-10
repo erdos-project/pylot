@@ -58,7 +58,7 @@ class LocalizationOperator(erdos.Operator):
         self._is_started = False
 
         # Constants required for the Kalman filtering.
-        var_imu_f, var_imu_w, var_gnss = 0.001, 0.001, 0.01
+        var_imu_f, var_imu_w, var_gnss = 0.01, 0.01, 0.1
         self.__Q = np.identity(6)
         self.__Q[0:3, 0:3] = self.__Q[0:3, 0:3] * var_imu_f
         self.__Q[3:6, 3:6] = self.__Q[3:6, 3:6] * var_imu_w
@@ -149,8 +149,8 @@ class LocalizationOperator(erdos.Operator):
         gnss_msg = self.get_message(self._gnss_updates, timestamp, "GNSS")
         imu_msg = self.get_message(self._imu_updates, timestamp, "IMU")
 
-        if (self._last_pose_estimate is None or
-            (abs(imu_msg.acceleration.y) > 100 and not self._is_started)):
+        if self._last_pose_estimate is None or \
+           (abs(imu_msg.acceleration.y) > 100 and not self._is_started):
             self._logger.debug(
                 "@{}: The initial pose estimate is not initialized.".format(
                     timestamp))

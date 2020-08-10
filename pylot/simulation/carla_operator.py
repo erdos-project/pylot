@@ -422,7 +422,7 @@ class TickEvent(enum.Enum):
     CONTROL_CMD = 1
     SENSOR_READ = 2
 
-    def __lt__(self, other: TickEvent):
+    def __lt__(self, other):
         if self.__class__ is other.__class__:
             return self.value < other.value
         return NotImplemented

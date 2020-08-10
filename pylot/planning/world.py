@@ -419,7 +419,7 @@ class World(object):
                     speed_factor_tl = 0
         if speed_factor_tl < 1:
             dist_to_intersection = self._map.distance_to_intersection(
-                self.ego_transform.location, max_distance_to_check=15)
+                self.ego_transform.location, max_distance_to_check=20)
             if dist_to_intersection is None:
                 # Our lidar-based depth estimation does not work when
                 # we're on a hill.

@@ -121,17 +121,11 @@ class BehaviorPlanningOperator(erdos.Operator):
             self._route.remove_waypoint_if_close(ego_transform.location, 10)
         else:
             if not self._map.is_intersection(ego_transform.location):
-                self._route.remove_waypoint_if_close(ego_transform.location, 5)
-            else:
                 self._route.remove_waypoint_if_close(ego_transform.location,
-                                                     3.5)
-        new_goal_location = None
-        if len(self._route.waypoints) > 1:
-            new_goal_location = self._route.waypoints[1].location
-        elif len(self._route.waypoints) == 1:
-            new_goal_location = self._route.waypoints[0].location
-        else:
-            new_goal_location = ego_transform.location
+                                                     10)
+            else:
+                self._route.remove_waypoint_if_close(ego_transform.location, 3)
+        new_goal_location = self.__get_goal_location(ego_transform)
         if new_goal_location != self._goal_location:
             self._goal_location = new_goal_location
             if self._map:
@@ -241,6 +235,15 @@ class BehaviorPlanningOperator(erdos.Operator):
                 best_next_state = state
                 min_state_cost = state_cost
         return best_next_state
+
+    def __get_goal_location(self, ego_transform):
+        if len(self._route.waypoints) > 1:
+            new_goal_location = self._route.waypoints[1].location
+        elif len(self._route.waypoints) == 1:
+            new_goal_location = self._route.waypoints[0].location
+        else:
+            new_goal_location = ego_transform.location
+        return new_goal_location
 
 
 class EgoInfo(object):
