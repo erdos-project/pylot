@@ -19,11 +19,11 @@ class PIDLongitudinalController(object):
        dt (:obj:`float`): time differential in seconds.
     """
     def __init__(self,
-                 K_P=1.0,
-                 K_D=0.0,
-                 K_I=0.0,
-                 dt=0.03,
-                 use_real_time=False):
+                 K_P: float = 1.0,
+                 K_D: float = 0.0,
+                 K_I: float = 0.0,
+                 dt: float = 0.03,
+                 use_real_time: bool = False):
         self._k_p = K_P
         self._k_d = K_D
         self._k_i = K_I
@@ -32,7 +32,7 @@ class PIDLongitudinalController(object):
         self._last_time = time.time()
         self._error_buffer = deque(maxlen=10)
 
-    def run_step(self, target_speed, current_speed):
+    def run_step(self, target_speed: float, current_speed: float):
         """Computes the throttle/brake based on the PID equations.
 
         Args:
@@ -74,11 +74,11 @@ class PIDLateralController(object):
        dt (:obj:`float`): time differential in seconds.
     """
     def __init__(self,
-                 K_P=1.0,
-                 K_D=0.0,
-                 K_I=0.0,
-                 dt=0.03,
-                 use_real_time=False):
+                 K_P: float = 1.0,
+                 K_D: float = 0.0,
+                 K_I: float = 0.0,
+                 dt: float = 0.03,
+                 use_real_time: bool = False):
         self._k_p = K_P
         self._k_d = K_D
         self._k_i = K_I

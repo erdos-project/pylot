@@ -4,6 +4,7 @@ from collections import deque
 from functools import partial
 
 import erdos
+from erdos import Message, ReadStream, Timestamp, WriteStream
 
 import numpy as np
 
@@ -12,8 +13,9 @@ from pylot.utils import Location, Pose, Quaternion, Rotation, Transform, \
 
 
 class LocalizationOperator(erdos.Operator):
-    def __init__(self, imu_stream, gnss_stream, ground_pose_stream,
-                 pose_stream, flags):
+    def __init__(self, imu_stream: ReadStream, gnss_stream: ReadStream,
+                 ground_pose_stream: ReadStream, pose_stream: WriteStream,
+                 flags):
         # Queue of saved messages.
         self._imu_updates = deque()
         self._gnss_updates = deque()
@@ -58,7 +60,7 @@ class LocalizationOperator(erdos.Operator):
         self._is_started = False
 
         # Constants required for the Kalman filtering.
-        var_imu_f, var_imu_w, var_gnss = 0.01, 0.01, 0.1
+        var_imu_f, var_imu_w, var_gnss = 0.5, 0.5, 0.1
         self.__Q = np.identity(6)
         self.__Q[0:3, 0:3] = self.__Q[0:3, 0:3] * var_imu_f
         self.__Q[3:6, 3:6] = self.__Q[3:6, 3:6] * var_imu_w
@@ -73,16 +75,17 @@ class LocalizationOperator(erdos.Operator):
         self._last_covariance = np.zeros((9, 9))
 
     @staticmethod
-    def connect(imu_stream, gnss_stream, ground_pose_stream):
+    def connect(imu_stream: ReadStream, gnss_stream: ReadStream,
+                ground_pose_stream: ReadStream):
         pose_stream = erdos.WriteStream()
         return [pose_stream]
 
-    def save(self, msg, msg_type, queue):
+    def save(self, msg: Message, msg_type: str, queue: deque):
         self._logger.debug("@{}: received {} message.".format(
             msg.timestamp, msg_type))
         queue.append(msg)
 
-    def get_message(self, queue, timestamp, name):
+    def get_message(self, queue: deque, timestamp: Timestamp, name: str):
         msg = None
         if queue:
             while len(queue) > 0:
@@ -140,7 +143,7 @@ class LocalizationOperator(erdos.Operator):
         )
 
     @erdos.profile_method()
-    def on_watermark(self, timestamp):
+    def on_watermark(self, timestamp: Timestamp):
         self._logger.debug("@{}: received watermark.".format(timestamp))
 
         # Retrieve the messages for this timestamp.

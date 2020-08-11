@@ -2,6 +2,8 @@
 
 import erdos
 
+from pylot.utils import Transform, Vector3D
+
 
 class IMUMessage(erdos.Message):
     """Message class to be used to send IMU measurements.
@@ -26,7 +28,8 @@ class IMUMessage(erdos.Message):
         compass (:obj:`float`): Orientation measurement w.r.t North direction
             ((0, -1, 0) in Unreal) in radians.
     """
-    def __init__(self, timestamp, transform, acceleration, gyro, compass):
+    def __init__(self, timestamp: erdos.Timestamp, transform: Transform,
+                 acceleration: Vector3D, gyro: Vector3D, compass: float):
         super(IMUMessage, self).__init__(timestamp, None)
         self.transform = transform
         self.acceleration = acceleration
@@ -60,7 +63,8 @@ class GNSSMessage(erdos.Message):
         latitude (float): North/South value of a point on the map.
         longitude (float): West/East value of a point on the map.
     """
-    def __init__(self, timestamp, transform, altitude, latitude, longitude):
+    def __init__(self, timestamp: erdos.Timestamp, transform: Transform,
+                 altitude: float, latitude: float, longitude: float):
         super(GNSSMessage, self).__init__(timestamp, None)
         self.transform = transform
         self.altitude = altitude

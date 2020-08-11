@@ -22,7 +22,7 @@ class IMULoggerOperator(erdos.Operator):
         _flags (absl.flags): Object to be used to access absl flags.
         _msg_cnt (:obj:`int`): Number of messages received.
     """
-    def __init__(self, imu_stream, flags):
+    def __init__(self, imu_stream: erdos.ReadStream, flags):
         imu_stream.add_callback(self.on_imu_update)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -30,7 +30,7 @@ class IMULoggerOperator(erdos.Operator):
         self._msg_cnt = 0
 
     @staticmethod
-    def connect(imu_stream):
+    def connect(imu_stream: erdos.ReadStream):
         return []
 
     def on_imu_update(self, msg):

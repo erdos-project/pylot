@@ -24,8 +24,10 @@ class EvalMetricLoggerOperator(erdos.Operator):
             messages are received.
         flags (absl.flags): Object to be used to access the absl flags.
     """
-    def __init__(self, collision_stream, lane_invasion_stream,
-                 traffic_light_invasion_stream, imu_stream, pose_stream,
+    def __init__(self, collision_stream: erdos.ReadStream,
+                 lane_invasion_stream: erdos.ReadStream,
+                 traffic_light_invasion_stream: erdos.ReadStream,
+                 imu_stream: erdos.ReadStream, pose_stream: erdos.ReadStream,
                  flags):
         # Save the streams.
         self._collision_stream = collision_stream
@@ -54,8 +56,10 @@ class EvalMetricLoggerOperator(erdos.Operator):
         self._last_timestamp = None
 
     @staticmethod
-    def connect(collision_stream, lane_invasion_stream,
-                traffic_light_invasion_stream, imu_stream, pose_stream):
+    def connect(collision_stream: erdos.ReadStream,
+                lane_invasion_stream: erdos.ReadStream,
+                traffic_light_invasion_stream: erdos.ReadStream,
+                imu_stream: erdos.ReadStream, pose_stream: erdos.ReadStream):
         return []
 
     def on_collision_update(self, msg):

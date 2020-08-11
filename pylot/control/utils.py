@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def radians_to_steer(rad, steer_gain):
+def radians_to_steer(rad: float, steer_gain: float):
     """Converts radians to steer input.
 
     Returns:
@@ -15,7 +15,7 @@ def radians_to_steer(rad, steer_gain):
     return steer
 
 
-def steer_to_radians(steer, steer_gain):
+def steer_to_radians(steer: float, steer_gain: float):
     """Converts radians to steer input.
 
     Assumes max steering angle is -45, 45 degrees.
@@ -31,8 +31,8 @@ def steer_to_radians(steer, steer_gain):
     return rad
 
 
-def compute_throttle_and_brake(pid, current_speed, target_speed, flags,
-                               logger):
+def compute_throttle_and_brake(pid, current_speed: float, target_speed: float,
+                               flags, logger):
     """Computes the throttle/brake required to reach the target speed.
 
     It uses the longitudinal controller to derive the required information.

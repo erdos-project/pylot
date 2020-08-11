@@ -19,7 +19,7 @@ class MultipleObjectTrackerLoggerOperator(erdos.Operator):
         _flags (absl.flags): Object to be used to access absl flags.
         _msg_cnt (:obj:`int`): Number of messages received.
     """
-    def __init__(self, obstacles_stream, flags):
+    def __init__(self, obstacles_stream: erdos.ReadStream, flags):
         # Register a callback on obstacles data stream.
         obstacles_stream.add_callback(self.on_obstacles_msg)
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -28,7 +28,7 @@ class MultipleObjectTrackerLoggerOperator(erdos.Operator):
         self._msg_cnt = 0
 
     @staticmethod
-    def connect(obstacles_stream):
+    def connect(obstacles_stream: erdos.ReadStream):
         return []
 
     def on_obstacles_msg(self, msg):

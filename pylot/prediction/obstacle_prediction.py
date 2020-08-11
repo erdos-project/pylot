@@ -1,3 +1,9 @@
+from typing import List
+
+from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
+from pylot.utils import Transform
+
+
 class ObstaclePrediction(object):
     """Class storing info about an obstacle prediction.
 
@@ -10,8 +16,9 @@ class ObstaclePrediction(object):
         predicted_trajectory (list(:py:class:`~pylot.utils.Transform`)): The
             predicted future trajectory.
     """
-    def __init__(self, obstacle_trajectory, transform, probability,
-                 predicted_trajectory):
+    def __init__(self, obstacle_trajectory: ObstacleTrajectory,
+                 transform: Transform, probability: float,
+                 predicted_trajectory: List[Transform]):
         # Trajectory in ego frame of coordinates.
         self.obstacle_trajectory = obstacle_trajectory
         # The transform is in world coordinates.
@@ -32,7 +39,7 @@ class ObstaclePrediction(object):
             self.predicted_trajectory, frame, color)
         self.obstacle_trajectory.draw_trajectory_on_frame(frame, True)
 
-    def to_world_coordinates(self, ego_transform):
+    def to_world_coordinates(self, ego_transform: Transform):
         """Transforms the trajectory and prediction into world coordinates."""
         self.obstacle_trajectory.to_world_coordinates(ego_transform)
         cur_trajectory = []

@@ -1,6 +1,7 @@
 from collections import deque
 
 import erdos
+from erdos import Message, ReadStream, Timestamp, WriteStream
 
 import pylot.control.utils
 import pylot.planning.utils
@@ -26,7 +27,8 @@ class PIDControlOperator(erdos.Operator):
             messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, pose_stream, waypoints_stream, control_stream, flags):
+    def __init__(self, pose_stream: ReadStream, waypoints_stream: ReadStream,
+                 control_stream: WriteStream, flags):
         pose_stream.add_callback(self.on_pose_update)
         waypoints_stream.add_callback(self.on_waypoints_update)
         erdos.add_watermark_callback([pose_stream, waypoints_stream],
@@ -51,12 +53,12 @@ class PIDControlOperator(erdos.Operator):
         self._pose_msgs = deque()
 
     @staticmethod
-    def connect(pose_stream, waypoints_stream):
+    def connect(pose_stream: ReadStream, waypoints_stream: ReadStream):
         control_stream = erdos.WriteStream()
         return [control_stream]
 
     @erdos.profile_method()
-    def on_watermark(self, timestamp, control_stream):
+    def on_watermark(self, timestamp: Timestamp, control_stream: WriteStream):
         """Computes and sends the control command on the control stream.
 
         Invoked when all input streams have received a watermark.
@@ -93,10 +95,10 @@ class PIDControlOperator(erdos.Operator):
             ControlMessage(steer, throttle, brake, False, False, timestamp))
         control_stream.send(erdos.WatermarkMessage(timestamp))
 
-    def on_waypoints_update(self, msg):
+    def on_waypoints_update(self, msg: Message):
         self._logger.debug('@{}: waypoints update'.format(msg.timestamp))
         self._waypoint_msgs.append(msg)
 
-    def on_pose_update(self, msg):
+    def on_pose_update(self, msg: Message):
         self._logger.debug('@{}: pose update'.format(msg.timestamp))
         self._pose_msgs.append(msg)

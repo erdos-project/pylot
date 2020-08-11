@@ -1,6 +1,7 @@
 """Implements an operator that fits a linear model to predict trajectories."""
 
 import erdos
+from erdos import Message, ReadStream, WriteStream
 
 import numpy as np
 
@@ -24,7 +25,8 @@ class LinearPredictorOperator(erdos.Operator):
             :py:class:`~pylot.prediction.messages.PredictionMessage` messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, tracking_stream, linear_prediction_stream, flags):
+    def __init__(self, tracking_stream: ReadStream,
+                 linear_prediction_stream: WriteStream, flags):
         tracking_stream.add_callback(self.generate_predicted_trajectories,
                                      [linear_prediction_stream])
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -32,7 +34,7 @@ class LinearPredictorOperator(erdos.Operator):
         self._flags = flags
 
     @staticmethod
-    def connect(tracking_stream):
+    def connect(tracking_stream: ReadStream):
         """Connects the operator to other streams.
 
         Args:
@@ -48,7 +50,8 @@ class LinearPredictorOperator(erdos.Operator):
         return [linear_prediction_stream]
 
     @erdos.profile_method()
-    def generate_predicted_trajectories(self, msg, linear_prediction_stream):
+    def generate_predicted_trajectories(self, msg: Message,
+                                        linear_prediction_stream: WriteStream):
         self._logger.debug('@{}: received trajectories message'.format(
             msg.timestamp))
         obstacle_predictions_list = []

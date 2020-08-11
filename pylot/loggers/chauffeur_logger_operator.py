@@ -28,9 +28,12 @@ TL_BBOX_LIFETIME_BUFFER = 0.1
 
 class ChauffeurLoggerOperator(erdos.Operator):
     """ Logs data in Chauffeur format. """
-    def __init__(self, vehicle_id_stream, pose_stream,
-                 obstacle_tracking_stream, top_down_camera_stream,
-                 top_down_segmentation_stream, flags, top_down_camera_setup):
+    def __init__(self, vehicle_id_stream: erdos.ReadStream,
+                 pose_stream: erdos.ReadStream,
+                 obstacle_tracking_stream: erdos.ReadStream,
+                 top_down_camera_stream: erdos.ReadStream,
+                 top_down_segmentation_stream: erdos.ReadStream, flags,
+                 top_down_camera_setup):
         """ Initializes the operator with the given parameters.
 
         Args:
@@ -55,8 +58,11 @@ class ChauffeurLoggerOperator(erdos.Operator):
         self._top_down_camera_setup = top_down_camera_setup
 
     @staticmethod
-    def connect(vehicle_id_stream, pose_stream, obstacle_tracking_stream,
-                top_down_camera_stream, top_down_segmentation_stream):
+    def connect(vehicle_id_stream: erdos.ReadStream,
+                pose_stream: erdos.ReadStream,
+                obstacle_tracking_stream: erdos.ReadStream,
+                top_down_camera_stream: erdos.ReadStream,
+                top_down_segmentation_stream: erdos.ReadStream):
         return []
 
     def run(self):
@@ -67,7 +73,7 @@ class ChauffeurLoggerOperator(erdos.Operator):
             self._flags.carla_host, self._flags.carla_port,
             self._flags.carla_timeout)
 
-    def on_tracking_update(self, msg):
+    def on_tracking_update(self, msg: erdos.Message):
         assert len(msg.timestamp.coordinates) == 1
         past_poses = np.zeros((self._top_down_camera_setup.height,
                                self._top_down_camera_setup.width, 3),
@@ -154,17 +160,17 @@ class ChauffeurLoggerOperator(erdos.Operator):
             'past_poses-{}.png'.format(msg.timestamp.coordinates[0]))
         past_poses_img.save(file_name)
 
-    def on_top_down_segmentation_update(self, msg):
+    def on_top_down_segmentation_update(self, msg: erdos.Message):
         assert len(msg.timestamp.coordinates) == 1
         # Save the segmented channels
         msg.frame.save_per_class_masks(self._flags.data_path, msg.timestamp)
         msg.frame.save(msg.timestamp.coordinates[0], self._flags.data_path,
                        'top_down_segmentation')
 
-    def on_ground_vehicle_id_update(self, msg):
+    def on_ground_vehicle_id_update(self, msg: erdos.Message):
         self._ground_vehicle_id = msg.data
 
-    def on_pose_update(self, msg):
+    def on_pose_update(self, msg: erdos.Message):
         assert len(msg.timestamp.coordinates) == 1
         # Make sure transforms deque is full
         self._current_transform = msg.data.transform
@@ -187,7 +193,7 @@ class ChauffeurLoggerOperator(erdos.Operator):
         with open(file_name, 'w') as outfile:
             json.dump(str(msg.data.forward_speed), outfile)
 
-    def on_top_down_camera_update(self, msg):
+    def on_top_down_camera_update(self, msg: erdos.Message):
         assert len(msg.timestamp.coordinates) == 1
         # Draw traffic light bboxes within TL_LOGGING_RADIUS meters from car
         tl_actors = self._world.get_actors().filter('traffic.traffic_light*')

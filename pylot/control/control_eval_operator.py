@@ -1,10 +1,11 @@
 from collections import deque
 
 import erdos
+from erdos import Message, ReadStream, Timestamp
 
 import numpy as np
 
-from pylot.utils import time_epoch_ms
+from pylot.utils import Transform, time_epoch_ms
 
 
 class ControlEvalOperator(erdos.Operator):
@@ -18,7 +19,8 @@ class ControlEvalOperator(erdos.Operator):
             the waypoints are received from the planner.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, pose_stream, waypoints_stream, flags):
+    def __init__(self, pose_stream: ReadStream, waypoints_stream: ReadStream,
+                 flags):
         # Register callbacks to retrieve pose and waypoints messages.
         pose_stream.add_callback(self.on_pose_update)
         waypoints_stream.add_callback(self.on_waypoint_update)
@@ -41,11 +43,11 @@ class ControlEvalOperator(erdos.Operator):
         self.last_waypoints = deque(maxlen=2)
 
     @staticmethod
-    def connect(pose_stream, waypoints_stream):
+    def connect(pose_stream: ReadStream, waypoints_stream: ReadStream):
         # This operator does not have any write streams.
         return []
 
-    def on_pose_update(self, msg):
+    def on_pose_update(self, msg: Message):
         """Callback function for the pose update messages.
 
         This function appends the received message to the operator state.
@@ -57,7 +59,7 @@ class ControlEvalOperator(erdos.Operator):
         self._logger.debug('@{}: pose update.'.format(msg.timestamp))
         self._pose_messages.append(msg)
 
-    def on_waypoint_update(self, msg):
+    def on_waypoint_update(self, msg: Message):
         """Callback function for the waypoint update messages.
 
         This function appends the received message to the operator state.
@@ -71,7 +73,7 @@ class ControlEvalOperator(erdos.Operator):
         self._waypoints_msgs.append(msg)
 
     @erdos.profile_method()
-    def on_watermark(self, timestamp):
+    def on_watermark(self, timestamp: Timestamp):
         """Computes and logs the metrics of accuracy for the control module.
 
         This operator uses two different metrics of accuracy, as follows:
@@ -121,7 +123,8 @@ class ControlEvalOperator(erdos.Operator):
             self.last_waypoints.append(next_waypoint)
 
     @staticmethod
-    def compute_control_metrics(vehicle_transform, reference_waypoints):
+    def compute_control_metrics(vehicle_transform: Transform,
+                                reference_waypoints):
         """Compute the metrics of accuracy for the control module.
 
         Args:

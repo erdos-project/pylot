@@ -3,6 +3,7 @@
 from collections import deque
 
 import erdos
+from erdos import Message, ReadStream, Timestamp
 
 from pylot.utils import Vector2D, time_epoch_ms
 
@@ -22,7 +23,8 @@ class PredictionEvalOperator(erdos.Operator):
             received from the prediction operator.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, pose_stream, tracking_stream, prediction_stream, flags):
+    def __init__(self, pose_stream: ReadStream, tracking_stream: ReadStream,
+                 prediction_stream: ReadStream, flags):
         pose_stream.add_callback(self._on_pose_update)
         tracking_stream.add_callback(self._on_tracking_update)
         prediction_stream.add_callback(self._on_prediction_update)
@@ -43,19 +45,20 @@ class PredictionEvalOperator(erdos.Operator):
             maxlen=self._flags.prediction_num_future_steps)
 
     @staticmethod
-    def connect(pose_stream, tracking_stream, prediction_stream):
+    def connect(pose_stream: ReadStream, tracking_stream: ReadStream,
+                prediction_stream: ReadStream):
         return []
 
-    def _on_prediction_update(self, msg):
+    def _on_prediction_update(self, msg: Message):
         self._prediction_msgs.append(msg)
 
-    def _on_tracking_update(self, msg):
+    def _on_tracking_update(self, msg: Message):
         self._tracking_msgs.append(msg)
 
-    def _on_pose_update(self, msg):
+    def _on_pose_update(self, msg: Message):
         self._pose_msgs.append(msg)
 
-    def on_watermark(self, timestamp):
+    def on_watermark(self, timestamp: Timestamp):
         """Invoked when all input streams have received a watermark.
 
         Args:
@@ -89,7 +92,8 @@ class PredictionEvalOperator(erdos.Operator):
             obstacle_prediction.to_world_coordinates(vehicle_transform)
         self._predictions.append(prediction_msg)
 
-    def _calculate_metrics(self, timestamp, ground_trajectories, predictions):
+    def _calculate_metrics(self, timestamp: Timestamp, ground_trajectories,
+                           predictions):
         """ Calculates and logs MSD (mean squared distance), ADE (average
             displacement error), and FDE (final displacement error).
 
