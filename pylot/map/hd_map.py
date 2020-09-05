@@ -319,9 +319,11 @@ class HDMap(object):
 
     def get_lane(self, location: Location, waypoint_precision: float = 0.05):
         lane_waypoints = []
-        next_wp = [self._get_waypoint(location,
-                                      project_to_road=False,
-                                      lane_type=carla.LaneType.Any)]
+        next_wp = [
+            self._get_waypoint(location,
+                               project_to_road=False,
+                               lane_type=carla.LaneType.Any)
+        ]
 
         while len(next_wp) == 1:
             lane_waypoints.append(next_wp[0])
