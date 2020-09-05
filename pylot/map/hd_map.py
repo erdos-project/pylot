@@ -319,7 +319,9 @@ class HDMap(object):
 
     def get_lane(self, location: Location, waypoint_precision: float = 0.05):
         lane_waypoints = []
-        next_wp = [self._get_waypoint(location)]
+        next_wp = [self._get_waypoint(location,
+                                      project_to_road=False,
+                                      lane_type=carla.LaneType.Any)]
 
         while len(next_wp) == 1:
             lane_waypoints.append(next_wp[0])
@@ -334,7 +336,7 @@ class HDMap(object):
             self._lateral_shift(w.transform, w.lane_width * 0.5)
             for w in lane_waypoints
         ]
-        return Lane(left_markings, right_markings)
+        return Lane(0, left_markings, right_markings)
 
     def get_left_lane(self, location: Location):
         waypoint = self._get_waypoint(location, project_to_road=False)
