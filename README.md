@@ -10,7 +10,7 @@ CARLA simulator and real-world cars.
 * [**Pylot components**](#pylot-components)
 * [**Data collection**](#data-collection)
 * [**Build Docker image**](#build-your-own-docker-image)
-* [**CARLA Autonomous Driving challenge**](#carla-autonmous-driving-challenge)
+* [**CARLA autonomous driving challenge**](#carla-autonomous-driving-challenge)
 
 # Setup instructions
 
