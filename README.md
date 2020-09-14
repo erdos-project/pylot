@@ -9,7 +9,8 @@ CARLA simulator and real-world cars.
 * [**Documentation**](https://pylot.readthedocs.io/en/latest/)
 * [**Pylot components**](#pylot-components)
 * [**Data collection**](#data-collection)
-* [**Build Docker images**](#build-your-own-docker-images)
+* [**Build Docker image**](#build-your-own-docker-image)
+* [**CARLA Autonomous Driving challenge**](#carla-autonmous-driving-challenge)
 
 # Setup instructions
 
@@ -257,3 +258,7 @@ cd docker
 
 The script creates two Docker images: one that contains the CARLA simulator and
 another one that contains ERDOS and Pylot.
+
+# CARLA autonomous driving challenge
+
+TODO: Guide on how to use Pylot to compete in the CARLA autonomous driving challenge
