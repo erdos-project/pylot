@@ -370,20 +370,23 @@ class HDMap(object):
             wp_left = waypoint.get_left_lane()
             w_rotation = waypoint.transform.rotation
             while wp_left and wp_left.lane_type == carla.LaneType.Driving:
-                camera_transform = pylot.utils.Transform.from_carla_transform(
+                camera_transform_l = pylot.utils.Transform.from_carla_transform(
                     wp_left.transform)
-                lanes.append(self.get_lane(camera_transform.location, lane_id=wp_left.lane_id))
+                lanes.append(
+                    self.get_lane(camera_transform_l.location,
+                                  lane_id=wp_left.lane_id))
                 if w_rotation == wp_left.transform.rotation:
                     wp_left = wp_left.get_left_lane()
                 else:
                     wp_left = wp_left.get_right_lane()
 
             wp_right = waypoint.get_right_lane()
-            w_rotation = waypoint.transform.rotation
             while wp_right and wp_right.lane_type == carla.LaneType.Driving:
-                camera_transform = pylot.utils.Transform.from_carla_transform(
+                camera_transform_r = pylot.utils.Transform.from_carla_transform(
                     wp_right.transform)
-                lanes.append(self.get_lane(camera_transform.location, lane_id=wp_right.lane_id))
+                lanes.append(
+                    self.get_lane(camera_transform_r.location,
+                                  lane_id=wp_right.lane_id))
                 if  w_rotation == wp_right.transform.rotation:
                     wp_right = wp_right.get_right_lane()
                 else:
