@@ -78,8 +78,9 @@ class PerfectLaneDetectionOperator(erdos.Operator):
             pose_msg.timestamp))
         vehicle_location = pose_msg.data.transform.location
         if self._map:
-            lanes = [self._map.get_lane(vehicle_location)]
-            lanes[0].draw_on_world(self._world)
+            lanes = self._map.get_all_lanes(vehicle_location)
+            for lane in lanes:
+                lane.draw_on_world(self._world)
         else:
             self._logger.debug('@{}: map is not ready yet'.format(
                 pose_msg.timestamp))
