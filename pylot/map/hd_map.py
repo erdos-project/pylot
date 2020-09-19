@@ -395,7 +395,7 @@ class HDMap(object):
                 lanes.append(
                     self.get_lane(right_location, lane_id=wp_right.lane_id))
 
-                # Same logic as above. If right lane of current is in 
+                # Same logic as above. If right lane of current is in
                 # opposite direction, move rightwards by selecting it's
                 # left lane.
                 if w_rotation == wp_right.transform.rotation:
