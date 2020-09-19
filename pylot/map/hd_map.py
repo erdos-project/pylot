@@ -341,7 +341,9 @@ class HDMap(object):
         return Lane(lane_id, left_markings, right_markings)
 
     def get_left_lane(self, location):
-        waypoint = self._get_waypoint(location, project_to_road=False, lane_type=carla.LaneType.Any)
+        waypoint = self._get_waypoint(location,
+                                      project_to_road=False,
+                                      lane_type=carla.LaneType.Any)
         if waypoint:
             left_lane_waypoint = waypoint.get_left_lane()
             if left_lane_waypoint:
@@ -350,7 +352,9 @@ class HDMap(object):
         return None
 
     def get_right_lane(self, location):
-        waypoint = self._get_waypoint(location, project_to_road=False, lane_type=carla.LaneType.Any)
+        waypoint = self._get_waypoint(location,
+                                      project_to_road=False,
+                                      lane_type=carla.LaneType.Any)
         if waypoint:
             right_lane_waypoint = waypoint.get_right_lane()
             if right_lane_waypoint:
