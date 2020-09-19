@@ -317,7 +317,10 @@ class HDMap(object):
         else:
             return (False, None)
 
-    def get_lane(self, location: Location, waypoint_precision: float = 0.05, lane_id: int = 0):
+    def get_lane(self,
+                 location: Location,
+                 waypoint_precision: float = 0.05,
+                 lane_id: int = 0):
         lane_waypoints = []
         next_wp = [
             self._get_waypoint(location,
@@ -375,8 +378,7 @@ class HDMap(object):
                 left_location = Location.from_carla_location(
                     wp_left.transform.location)
                 lanes.append(
-                    self.get_lane(left_location,
-                                  lane_id=wp_left.lane_id))
+                    self.get_lane(left_location, lane_id=wp_left.lane_id))
 
                 # If left lane is facing the opposite direction, its left
                 # lane would point back to the current lane, so we select
@@ -391,8 +393,7 @@ class HDMap(object):
                 right_location = Location.from_carla_location(
                     wp_right.transform.location)
                 lanes.append(
-                    self.get_lane(right_location,
-                                  lane_id=wp_right.lane_id))
+                    self.get_lane(right_location, lane_id=wp_right.lane_id))
 
                 # Same logic as above. If right lane of current is in 
                 # opposite direction, move rightwards by selecting it's
