@@ -347,7 +347,7 @@ class HDMap(object):
         if waypoint:
             left_lane_waypoint = waypoint.get_left_lane()
             if left_lane_waypoint:
-                return pylot.utils.Transform.from_carla_transform(
+                return Transform.from_carla_transform(
                     left_lane_waypoint.transform)
         return None
 
@@ -358,7 +358,7 @@ class HDMap(object):
         if waypoint:
             right_lane_waypoint = waypoint.get_right_lane()
             if right_lane_waypoint:
-                return pylot.utils.Transform.from_carla_transform(
+                return Transform.from_carla_transform(
                     right_lane_waypoint.transform)
         return None
 
@@ -372,10 +372,10 @@ class HDMap(object):
             wp_left = waypoint.get_left_lane()
             w_rotation = waypoint.transform.rotation
             while wp_left and wp_left.lane_type == carla.LaneType.Driving:
-                camera_transform_l = pylot.utils.Transform.from_carla_transform(
+                camera_transform = Transform.from_carla_transform(
                     wp_left.transform)
                 lanes.append(
-                    self.get_lane(camera_transform_l.location,
+                    self.get_lane(camera_transform.location,
                                   lane_id=wp_left.lane_id))
                 if w_rotation == wp_left.transform.rotation:
                     wp_left = wp_left.get_left_lane()
@@ -384,10 +384,10 @@ class HDMap(object):
 
             wp_right = waypoint.get_right_lane()
             while wp_right and wp_right.lane_type == carla.LaneType.Driving:
-                camera_transform_r = pylot.utils.Transform.from_carla_transform(
+                camera_transform = Transform.from_carla_transform(
                     wp_right.transform)
                 lanes.append(
-                    self.get_lane(camera_transform_r.location,
+                    self.get_lane(camera_transform.location,
                                   lane_id=wp_right.lane_id))
                 if w_rotation == wp_right.transform.rotation:
                     wp_right = wp_right.get_right_lane()
