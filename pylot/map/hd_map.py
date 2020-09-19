@@ -317,7 +317,7 @@ class HDMap(object):
         else:
             return (False, None)
 
-    def get_lane(self, location, lane_id=0, waypoint_precision=0.05):
+    def get_lane(self, location: Location, waypoint_precision: float = 0.05, lane_id: int = 0):
         lane_waypoints = []
         next_wp = [
             self._get_waypoint(location,
@@ -340,7 +340,7 @@ class HDMap(object):
         ]
         return Lane(lane_id, left_markings, right_markings)
 
-    def get_left_lane(self, location):
+    def get_left_lane(self, location: Location):
         waypoint = self._get_waypoint(location,
                                       project_to_road=False,
                                       lane_type=carla.LaneType.Any)
@@ -351,7 +351,7 @@ class HDMap(object):
                     left_lane_waypoint.transform)
         return None
 
-    def get_right_lane(self, location):
+    def get_right_lane(self, location: Location):
         waypoint = self._get_waypoint(location,
                                       project_to_road=False,
                                       lane_type=carla.LaneType.Any)
@@ -362,7 +362,7 @@ class HDMap(object):
                     right_lane_waypoint.transform)
         return None
 
-    def get_all_lanes(self, location):
+    def get_all_lanes(self, location: Location):
         lanes = [self.get_lane(location)]
 
         waypoint = self._get_waypoint(location,
@@ -372,11 +372,15 @@ class HDMap(object):
             wp_left = waypoint.get_left_lane()
             w_rotation = waypoint.transform.rotation
             while wp_left and wp_left.lane_type == carla.LaneType.Driving:
-                camera_transform = Transform.from_carla_transform(
-                    wp_left.transform)
+                left_location = Location.from_carla_location(
+                    wp_left.transform.location)
                 lanes.append(
-                    self.get_lane(camera_transform.location,
+                    self.get_lane(left_location,
                                   lane_id=wp_left.lane_id))
+
+                # If left lane is facing the opposite direction, its left
+                # lane would point back to the current lane, so we select
+                # its right lane to get the left lane relative to current.
                 if w_rotation == wp_left.transform.rotation:
                     wp_left = wp_left.get_left_lane()
                 else:
@@ -384,15 +388,19 @@ class HDMap(object):
 
             wp_right = waypoint.get_right_lane()
             while wp_right and wp_right.lane_type == carla.LaneType.Driving:
-                camera_transform = Transform.from_carla_transform(
-                    wp_right.transform)
+                right_location = Location.from_carla_location(
+                    wp_right.transform.location)
                 lanes.append(
-                    self.get_lane(camera_transform.location,
+                    self.get_lane(right_location,
                                   lane_id=wp_right.lane_id))
+
+                # Same logic as above. If right lane of current is in 
+                # opposite direction, move rightwards by selecting it's
+                # left lane.
                 if w_rotation == wp_right.transform.rotation:
                     wp_right = wp_right.get_right_lane()
                 else:
-                    wp_right = wp_left.get_right_lane()
+                    wp_right = wp_left.get_left_lane()
         return lanes
 
     def compute_waypoints(self, source_loc: Location,
