@@ -365,7 +365,9 @@ class HDMap(object):
     def get_all_lanes(self, location):
         lanes = [self.get_lane(location)]
 
-        waypoint = self._get_waypoint(location, project_to_road=False, lane_type=carla.LaneType.Any)
+        waypoint = self._get_waypoint(location,
+                                      project_to_road=False,
+                                      lane_type=carla.LaneType.Any)
         if waypoint:
             wp_left = waypoint.get_left_lane()
             w_rotation = waypoint.transform.rotation
@@ -387,7 +389,7 @@ class HDMap(object):
                 lanes.append(
                     self.get_lane(camera_transform_r.location,
                                   lane_id=wp_right.lane_id))
-                if  w_rotation == wp_right.transform.rotation:
+                if w_rotation == wp_right.transform.rotation:
                     wp_right = wp_right.get_right_lane()
                 else:
                     wp_right = wp_left.get_right_lane()
