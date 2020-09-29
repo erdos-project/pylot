@@ -120,12 +120,12 @@ cd AnyNet/models/spn_t1/ ; python3 setup.py clean ; python3 setup.py build
 
 cd $PYLOT_HOME/dependencies/
 ###### Download the Carla simulator ######
-if [ "$1" != 'challenge' ] && [ ! -d "CARLA_0.9.9" ]; then
-    mkdir CARLA_0.9.9
-    cd CARLA_0.9.9
-    wget https://carla-releases.s3.eu-west-3.amazonaws.com/Linux/CARLA_0.9.9.2.tar.gz
-    tar -xvf CARLA_0.9.9.2.tar.gz
-    rm CARLA_0.9.9.2.tar.gz
+if [ "$1" != 'challenge' ] && [ ! -d "CARLA_0.9.10" ]; then
+    mkdir CARLA_0.9.10
+    cd CARLA_0.9.10
+    wget https://carla-releases.s3.eu-west-3.amazonaws.com/Linux/CARLA_0.9.10.tar.gz
+    tar -xvf CARLA_0.9.10.tar.gz
+    rm CARLA_0.9.10.tar.gz
     if [ "$1" == 'docker' ]; then
         rm -r CarlaUE4; rm -r HDMaps
     fi
