@@ -6,7 +6,7 @@ CARLA, and sends them on its output stream.
 """
 
 import erdos
-import np 
+import np
 
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.messages import DepthFrameMessage, FrameMessage, \
@@ -28,6 +28,7 @@ class CarlaCameraLaneDetectionOperator(erdos.Operator):
             Setup of the camera.
         flags (absl.flags): Object to be used to access absl flags.
     """
+
     def __init__(self, detected_lane_stream: ReadStream, camera_setup, flags):
         detected_lane_stream.add_callback(self.on_lane_update, [])
         # erdos.add_watermark_callback([detected_lane_stream], [], self.on_watermark)
@@ -45,8 +46,8 @@ class CarlaCameraLaneDetectionOperator(erdos.Operator):
     def on_lane_update(self, lanes_message: Message):
         detected_lanes = lanes_message.data
         black_img = np.zeros((self._camera_setup.height,
-                        self._camera_setup.width, 3),
-                        dtype=np.dtype("uint8"))
+                              self._camera_setup.width, 3),
+                             dtype=np.dtype("uint8"))
         frame = CameraFrame(black_img, 'BGR',
                             self._camera_setup)
         for lane in detected_lanes:
@@ -56,4 +57,3 @@ class CarlaCameraLaneDetectionOperator(erdos.Operator):
 
     def run(self):
         pass
-
