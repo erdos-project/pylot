@@ -22,6 +22,14 @@ class Lane(object):
         self.left_markings = left_markings
         self.right_markings = right_markings
         self._lane_polygon = None
+        self._color_map = [np.array([255, 0, 0]),
+                           np.array([0, 255, 0]),
+                           np.array([0, 0, 255]),
+                           np.array([125, 125, 0]),
+                           np.array([0, 125, 125]),
+                           np.array([125, 0, 125]),
+                           np.array([50, 100, 50]),
+                           np.array([100, 50, 100])]
 
     def draw_on_frame(self, frame, inverse_transform=None):
         """Draw lane markings on a frame.
@@ -33,18 +41,21 @@ class Lane(object):
         """
         extrinsic_matrix = frame.camera_setup.get_extrinsic_matrix()
         intrinsic_matrix = frame.camera_setup.get_intrinsic_matrix()
+        # change color based on lane id
+        lane_color = self._color_map[self.id % len(self._color_map)]
+
         for marking in self.left_markings:
             if inverse_transform:
                 marking = inverse_transform * marking
             pixel_location = marking.location.to_camera_view(
                 extrinsic_matrix, intrinsic_matrix)
-            frame.draw_point(pixel_location, [255, 255, 0])
+            frame.draw_point(pixel_location, lane_color)
         for marking in self.right_markings:
             if inverse_transform:
                 marking = inverse_transform * marking
             pixel_location = marking.location.to_camera_view(
                 extrinsic_matrix, intrinsic_matrix)
-            frame.draw_point(pixel_location, [255, 255, 0])
+            frame.draw_point(pixel_location, lane_color)
 
     def draw_on_world(self, world):
         import carla
