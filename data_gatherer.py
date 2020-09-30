@@ -16,7 +16,6 @@ flags.DEFINE_integer('log_every_nth_message', 1,
                      'Control how often the script logs messages')
 flags.DEFINE_bool('log_rgb_camera', False,
                   'True to enable center camera RGB logging')
-# make new flag for log_lane
 flags.DEFINE_bool('log_lane_detection_camera', False,
                   'True to enable lane detection camera logging')
 flags.DEFINE_bool('log_segmented_camera', False,
