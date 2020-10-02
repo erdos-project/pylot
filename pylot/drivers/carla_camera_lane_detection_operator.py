@@ -9,6 +9,7 @@ import erdos
 from erdos import Message, ReadStream
 import numpy as np
 
+from pylot.perception.camera_frame import CameraFrame
 
 class CarlaCameraLaneDetectionOperator(erdos.Operator):
     """Publishes images onto the desired stream from a camera.
@@ -26,7 +27,6 @@ class CarlaCameraLaneDetectionOperator(erdos.Operator):
     """
     def __init__(self, detected_lane_stream: ReadStream, camera_setup, flags):
         detected_lane_stream.add_callback(self.on_lane_update, [])
-        # erdos.add_watermark_callback([detected_lane_stream], [], self.on_watermark)
         self._detected_lane_stream = detected_lane_stream
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
