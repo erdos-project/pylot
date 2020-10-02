@@ -30,7 +30,8 @@ class Lane(object):
             np.array([0, 125, 125]),
             np.array([125, 0, 125]),
             np.array([50, 100, 50]),
-            np.array([100, 50, 100])]
+            np.array([100, 50, 100])
+        ]
 
     def draw_on_frame(self, frame, inverse_transform=None):
         """Draw lane markings on a frame.
