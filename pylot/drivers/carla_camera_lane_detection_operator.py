@@ -6,7 +6,8 @@ CARLA, and sends them on its output stream.
 """
 
 import erdos
-import np
+from erdos import Message, ReadStream, WriteStream
+import numpy as np
 
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.messages import DepthFrameMessage, FrameMessage, \
@@ -45,6 +46,8 @@ class CarlaCameraLaneDetectionOperator(erdos.Operator):
     @erdos.profile_method()
     def on_lane_update(self, lanes_message: Message):
         detected_lanes = lanes_message.data
+        if not detected_lanes:
+            return
         black_img = np.zeros((self._camera_setup.height,
                               self._camera_setup.width, 3),
                              dtype=np.dtype("uint8"))
@@ -52,7 +55,7 @@ class CarlaCameraLaneDetectionOperator(erdos.Operator):
                             self._camera_setup)
         for lane in detected_lanes:
             lane.draw_on_frame(frame)
-
+        print(lanes_message.timestamp)
         frame.save(lanes_message.timestamp, self._flags.data_path, "lane")
 
     def run(self):

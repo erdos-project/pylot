@@ -50,6 +50,7 @@ def main(argv):
 
     control_loop_stream = erdos.LoopStream()
     release_sensor_stream = erdos.IngestStream()
+    pipeline_finish_notify_stream = erdos.IngestStream()
     # Create carla operator.
     (
         pose_stream,
@@ -62,7 +63,8 @@ def main(argv):
         open_drive_stream,
         global_trajectory_stream,
     ) = pylot.operator_creator.add_carla_bridge(control_loop_stream,
-                                                release_sensor_stream)
+                                                release_sensor_stream,
+                                                pipeline_finish_notify_stream)
 
     # Add sensors.
     (center_camera_stream, notify_rgb_stream,
@@ -169,6 +171,7 @@ def main(argv):
     if FLAGS.log_trajectories or FLAGS.log_chauffeur:
         obstacles_tracking_stream = \
             pylot.operator_creator.add_perfect_tracking(
+                vehicle_id_stream,
                 ground_obstacles_stream,
                 pose_stream)
         if FLAGS.log_trajectories:
@@ -180,10 +183,11 @@ def main(argv):
     if FLAGS.log_chauffeur or FLAGS.log_top_down_segmentation:
         top_down_transform = pylot.utils.get_top_down_transform(
             transform, FLAGS.top_down_camera_altitude)
-        (top_down_segmented_stream, _) = \
+        (top_down_segmented_stream, _, _) = \
             pylot.operator_creator.add_segmented_camera(
                 top_down_transform,
                 vehicle_id_stream,
+                release_sensor_stream,
                 name='top_down_segmented_camera',
                 fov=90)
 
