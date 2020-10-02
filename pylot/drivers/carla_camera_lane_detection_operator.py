@@ -6,13 +6,8 @@ CARLA, and sends them on its output stream.
 """
 
 import erdos
-from erdos import Message, ReadStream, WriteStream
+from erdos import Message, ReadStream
 import numpy as np
-
-from pylot.perception.camera_frame import CameraFrame
-from pylot.perception.messages import DepthFrameMessage, FrameMessage, \
-    SegmentedFrameMessage
-from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 
 
 class CarlaCameraLaneDetectionOperator(erdos.Operator):
