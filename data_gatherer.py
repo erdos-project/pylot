@@ -83,10 +83,10 @@ def main(argv):
             center_camera_stream, 'center_camera_logger_operator',
             'carla-center-')
 
-    # new flag for lane operator and also add perfect lane detection operator and connect to lane operator
     if FLAGS.log_lane_detection_camera:
-        detected_lanes_stream = pylot.operator_creator.add_perfect_lane_detector(
-            pose_stream, open_drive_stream)
+        detected_lanes_stream = \
+            pylot.operator_creator.add_perfect_lane_detector(
+                pose_stream, open_drive_stream)
         pylot.operator_creator.add_perfect_lane_detection_camera(
             detected_lanes_stream, rgb_camera_setup)
 
