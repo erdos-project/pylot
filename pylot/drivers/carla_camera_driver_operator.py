@@ -38,7 +38,6 @@ class CarlaCameraDriverOperator(erdos.Operator):
             Setup of the camera.
         flags (absl.flags): Object to be used to access absl flags.
     """
-
     def __init__(self, ground_vehicle_id_stream, release_sensor_stream,
                  camera_stream, notify_reading_stream, camera_setup, flags):
         erdos.add_watermark_callback([release_sensor_stream], [],

@@ -29,7 +29,6 @@ class CarlaCameraLaneDetectionOperator(erdos.Operator):
             Setup of the camera.
         flags (absl.flags): Object to be used to access absl flags.
     """
-
     def __init__(self, detected_lane_stream: ReadStream, camera_setup, flags):
         detected_lane_stream.add_callback(self.on_lane_update, [])
         # erdos.add_watermark_callback([detected_lane_stream], [], self.on_watermark)
@@ -48,11 +47,10 @@ class CarlaCameraLaneDetectionOperator(erdos.Operator):
         detected_lanes = lanes_message.data
         if not detected_lanes:
             return
-        black_img = np.zeros((self._camera_setup.height,
-                              self._camera_setup.width, 3),
-                             dtype=np.dtype("uint8"))
-        frame = CameraFrame(black_img, 'BGR',
-                            self._camera_setup)
+        black_img = np.zeros(
+            (self._camera_setup.height, self._camera_setup.width, 3),
+            dtype=np.dtype("uint8"))
+        frame = CameraFrame(black_img, 'BGR', self._camera_setup)
         for lane in detected_lanes:
             lane.draw_on_frame(frame)
         print(lanes_message.timestamp)

@@ -17,20 +17,20 @@ class Lane(object):
         left_markings: List of transforms.
         right_markings: List of transforms.
     """
-
     def __init__(self, id, left_markings, right_markings):
         self.id = id
         self.left_markings = left_markings
         self.right_markings = right_markings
         self._lane_polygon = None
-        self._color_map = [np.array([255, 0, 0]),
-                           np.array([0, 255, 0]),
-                           np.array([0, 0, 255]),
-                           np.array([125, 125, 0]),
-                           np.array([0, 125, 125]),
-                           np.array([125, 0, 125]),
-                           np.array([50, 100, 50]),
-                           np.array([100, 50, 100])]
+        self._color_map = [
+            np.array([255, 0, 0]),
+            np.array([0, 255, 0]),
+            np.array([0, 0, 255]),
+            np.array([125, 125, 0]),
+            np.array([0, 125, 125]),
+            np.array([125, 0, 125]),
+            np.array([50, 100, 50]),
+            np.array([100, 50, 100])]
 
     def draw_on_frame(self, frame, inverse_transform=None):
         """Draw lane markings on a frame.
