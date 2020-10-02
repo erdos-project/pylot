@@ -88,9 +88,7 @@ def main(argv):
         detected_lanes_stream = pylot.operator_creator.add_perfect_lane_detector(
             pose_stream, open_drive_stream)
         pylot.operator_creator.add_perfect_lane_detection_camera(
-            detected_lanes_stream,
-            rgb_camera_setup
-        )
+            detected_lanes_stream, rgb_camera_setup)
 
     if FLAGS.log_segmented_camera:
         pylot.operator_creator.add_camera_logging(
