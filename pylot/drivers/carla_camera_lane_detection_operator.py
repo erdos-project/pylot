@@ -11,6 +11,7 @@ import numpy as np
 
 from pylot.perception.camera_frame import CameraFrame
 
+
 class CarlaCameraLaneDetectionOperator(erdos.Operator):
     """Publishes images onto the desired stream from a camera.
 
