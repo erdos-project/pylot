@@ -987,12 +987,12 @@ def add_time_to_decision(pose_stream, obstacles_stream):
 
 def add_perfect_lane_detection_camera(detected_lanes_stream, camera_setup):
     from pylot.drivers.carla_camera_lane_detection_operator import CarlaCameraLaneDetectionOperator
-    op_config = erdos.OperatorConfig(name='perfect_lane_detection_camera_operator',
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
+    op_config = erdos.OperatorConfig(
+        name='perfect_lane_detection_camera_operator',
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
 
     erdos.connect(CarlaCameraLaneDetectionOperator, op_config,
-                  [detected_lanes_stream],
-                  camera_setup, FLAGS)
+                  [detected_lanes_stream], camera_setup, FLAGS)
     return None
