@@ -40,7 +40,9 @@ class CarlaCameraLaneDetectionOperator(erdos.Operator):
 
     @erdos.profile_method()
     def on_lane_update(self, lanes_message: Message):
-        detected_lanes = lanes_message.data
+        self._logger.debug('@{}: received detected lane message'.format(
+            lanes_message.timestamp))
+        detected_lanes = lanes_message.lanes
         if not detected_lanes:
             return
         black_img = np.zeros(
@@ -49,8 +51,11 @@ class CarlaCameraLaneDetectionOperator(erdos.Operator):
         frame = CameraFrame(black_img, 'BGR', self._camera_setup)
         for lane in detected_lanes:
             lane.draw_on_frame(frame)
-        print(lanes_message.timestamp)
-        frame.save(lanes_message.timestamp, self._flags.data_path, "lane")
+
+        self._logger.debug('@{}: detected {} lanes'.format(
+            lanes_message.timestamp, len(detected_lanes)))
+        frame.save(lanes_message.timestamp.coordinates[0], 
+            self._flags.data_path, "lane")
 
     def run(self):
         pass
