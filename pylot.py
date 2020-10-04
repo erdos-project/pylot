@@ -270,7 +270,7 @@ def main(args):
         signal.signal(signal.SIGINT, shutdown)
         if pylot.flags.must_visualize():
             pylot.utils.run_visualizer_control_loop(control_display_stream)
-        node_handle.join()
+        node_handle.wait()
     except KeyboardInterrupt:
         shutdown_pylot(node_handle, client, world)
     except Exception:
