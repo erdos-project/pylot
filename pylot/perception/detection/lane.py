@@ -20,16 +20,10 @@ class Lane(object):
         self.left_markings = left_markings
         self.right_markings = right_markings
         self._lane_polygon = None
-        self._color_map = [
-            (255, 0, 0),
-            (0, 255, 0),
-            (0, 0, 255),
-            (125, 125, 0),
-            (0, 125, 125),
-            (125, 0, 125),
-            (50, 100, 50),
-            (100, 50, 100)
-        ]
+        self._color_map = [(255, 0, 0), (0, 255, 0), (0, 0, 255),
+                           (125, 125, 0), (0, 125, 125), (125, 0, 125),
+                           (50, 100, 50), (100, 50, 100)]
+
 
     def draw_on_frame(self, frame, inverse_transform=None):
         """Draw lane markings on a frame.
@@ -47,18 +41,20 @@ class Lane(object):
         for marking in self.left_markings:
             if inverse_transform:
                 # marking = inverse_transform * marking
-                marking = inverse_transform.transform_points(np.array([marking.as_numpy_array()]))
+                marking = inverse_transform.transform_points(
+                    np.array([marking.as_numpy_array()]))
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
-            pixel_location = marking.to_camera_view(
-                extrinsic_matrix, intrinsic_matrix)
+            pixel_location = marking.to_camera_view(extrinsic_matrix,
+                                                    intrinsic_matrix)
             frame.draw_point(pixel_location, lane_color)
         for marking in self.right_markings:
             if inverse_transform:
                 # marking = inverse_transform * marking
-                marking = inverse_transform.transform_points(np.array([marking.as_numpy_array()]))
+                marking = inverse_transform.transform_points(
+                    np.array([marking.as_numpy_array()]))
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
-            pixel_location = marking.to_camera_view(
-                extrinsic_matrix, intrinsic_matrix)
+            pixel_location = marking.to_camera_view(extrinsic_matrix,
+                                                    intrinsic_matrix)
             frame.draw_point(pixel_location, lane_color)
 
     def draw_on_world(self, world):

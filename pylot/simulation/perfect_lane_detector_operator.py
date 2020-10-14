@@ -6,6 +6,7 @@ from erdos import Message, ReadStream, Timestamp, WriteStream
 from pylot.perception.messages import LanesMessage
 from pylot.perception.camera_frame import CameraFrame
 
+
 class PerfectLaneDetectionOperator(erdos.Operator):
     """Operator that uses the Carla world to perfectly detect lanes.
 
@@ -21,12 +22,13 @@ class PerfectLaneDetectionOperator(erdos.Operator):
         flags (absl.flags): Object to be used to access absl flags.
     """
     def __init__(self, pose_stream: ReadStream, open_drive_stream: ReadStream,
-                 center_camera_stream: ReadStream, detected_lane_stream: WriteStream, flags):
+                 center_camera_stream: ReadStream,
+                 detected_lane_stream: WriteStream, flags):
         pose_stream.add_callback(self.on_pose_update)
         center_camera_stream.add_callback(self.on_bgr_camera_update)
-        erdos.add_watermark_callback([
-            pose_stream, center_camera_stream
-        ], [detected_lane_stream], self.on_position_update)
+        erdos.add_watermark_callback([pose_stream, center_camera_stream],
+                                     [detected_lane_stream],
+                                     self.on_position_update)
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -34,7 +36,8 @@ class PerfectLaneDetectionOperator(erdos.Operator):
         self._pose_msgs = deque()
 
     @staticmethod
-    def connect(pose_stream: ReadStream, open_drive_stream: ReadStream, center_camera_stream: ReadStream):
+    def connect(pose_stream: ReadStream, open_drive_stream: ReadStream,
+                center_camera_stream: ReadStream):
         detected_lane_stream = erdos.WriteStream()
         return [detected_lane_stream]
 
@@ -110,7 +113,7 @@ class PerfectLaneDetectionOperator(erdos.Operator):
                 self._logger.debug('@{}: detected {} lanes'.format(
                     bgr_msg.timestamp, len(lanes)))
                 frame.save(bgr_msg.timestamp.coordinates[0], 
-                    self._flags.data_path, "lane")
+                           self._flags.data_path, "lane")
         else:
             self._logger.debug('@{}: map is not ready yet'.format(
                 pose_msg.timestamp))
