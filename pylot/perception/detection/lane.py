@@ -1,6 +1,6 @@
 from collections import deque
-
-from pylot.utils import Location, Rotation, Transform
+import numpy as np
+from pylot.utils import Location, Rotation, Transform, Vector3D
 
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
@@ -46,13 +46,17 @@ class Lane(object):
 
         for marking in self.left_markings:
             if inverse_transform:
-                marking = inverse_transform * marking
+                # marking = inverse_transform * marking
+                marking = inverse_transform.transform_points(np.array([marking.as_numpy_array()]))
+                marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
             pixel_location = marking.to_camera_view(
                 extrinsic_matrix, intrinsic_matrix)
             frame.draw_point(pixel_location, lane_color)
         for marking in self.right_markings:
             if inverse_transform:
-                marking = inverse_transform * marking
+                # marking = inverse_transform * marking
+                marking = inverse_transform.transform_points(np.array([marking.as_numpy_array()]))
+                marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
             pixel_location = marking.to_camera_view(
                 extrinsic_matrix, intrinsic_matrix)
             frame.draw_point(pixel_location, lane_color)

@@ -16,8 +16,6 @@ flags.DEFINE_integer('log_every_nth_message', 1,
                      'Control how often the script logs messages')
 flags.DEFINE_bool('log_rgb_camera', False,
                   'True to enable center camera RGB logging')
-flags.DEFINE_bool('log_lane_detection_camera', False,
-                  'True to enable lane detection camera logging')
 flags.DEFINE_bool('log_segmented_camera', False,
                   'True to enable center segmented camera logging')
 flags.DEFINE_bool('log_left_right_cameras', False,
@@ -82,13 +80,6 @@ def main(argv):
         pylot.operator_creator.add_camera_logging(
             center_camera_stream, 'center_camera_logger_operator',
             'carla-center-')
-
-    if FLAGS.log_lane_detection_camera:
-        detected_lanes_stream = \
-            pylot.operator_creator.add_perfect_lane_detector(
-                pose_stream, open_drive_stream)
-        pylot.operator_creator.add_perfect_lane_detection_camera(
-            detected_lanes_stream, rgb_camera_setup)
 
     if FLAGS.log_segmented_camera:
         pylot.operator_creator.add_camera_logging(

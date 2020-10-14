@@ -104,7 +104,9 @@ class PerfectLaneDetectionOperator(erdos.Operator):
                     dtype=np.dtype("uint8"))
                 frame = CameraFrame(black_img, 'BGR', camera_setup)
                 for lane in lanes:
-                    lane.draw_on_frame(frame)
+                    lane.draw_on_frame(frame,
+                                       inverse_transform=pose_msg.data.
+                                       transform.inverse_transform())
                 self._logger.debug('@{}: detected {} lanes'.format(
                     bgr_msg.timestamp, len(lanes)))
                 frame.save(bgr_msg.timestamp.coordinates[0], 
