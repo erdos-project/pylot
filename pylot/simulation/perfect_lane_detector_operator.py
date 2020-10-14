@@ -112,7 +112,7 @@ class PerfectLaneDetectionOperator(erdos.Operator):
                                        transform.inverse_transform())
                 self._logger.debug('@{}: detected {} lanes'.format(
                     bgr_msg.timestamp, len(lanes)))
-                frame.save(bgr_msg.timestamp.coordinates[0], 
+                frame.save(bgr_msg.timestamp.coordinates[0],
                            self._flags.data_path, "lane")
         else:
             self._logger.debug('@{}: map is not ready yet'.format(

@@ -24,7 +24,6 @@ class Lane(object):
                            (125, 125, 0), (0, 125, 125), (125, 0, 125),
                            (50, 100, 50), (100, 50, 100)]
 
-
     def draw_on_frame(self, frame, inverse_transform=None):
         """Draw lane markings on a frame.
 
