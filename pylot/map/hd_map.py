@@ -322,6 +322,18 @@ class HDMap(object):
                  waypoint_precision: float = 0.05,
                  lane_id: int = 0):
         lane_waypoints = []
+        # Consider waypoints in opposite direction of camera so we can get
+        # lane data for adjacent lanes in opposing directions.
+        previous_wp = [
+            self._get_waypoint(location,
+                               project_to_road=False,
+                               lane_type=carla.LaneType.Any)
+        ]
+
+        while len(previous_wp) == 1:
+            lane_waypoints.append(previous_wp[0])
+            previous_wp = previous_wp[0].previous(waypoint_precision)
+
         next_wp = [
             self._get_waypoint(location,
                                project_to_road=False,

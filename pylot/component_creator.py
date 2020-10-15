@@ -250,7 +250,7 @@ def add_lane_detection(center_camera_stream,
         assert pose_stream is not None
         lane_detection_stream = \
             pylot.operator_creator.add_perfect_lane_detector(
-                pose_stream, open_drive_stream)
+                pose_stream, open_drive_stream, center_camera_stream)
     return lane_detection_stream
 
 

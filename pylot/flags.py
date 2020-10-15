@@ -154,7 +154,8 @@ flags.DEFINE_bool('log_detector_output', False,
                   'Enable recording of bbox annotated detector images')
 flags.DEFINE_bool('log_traffic_light_detector_output', False,
                   'Enable recording of bbox annotated tl detector images')
-
+flags.DEFINE_bool('log_lane_detection_camera', False,
+                  'True to enable lane detection camera logging')
 ########################################
 # Evaluation operators.
 ########################################

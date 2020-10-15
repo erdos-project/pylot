@@ -191,7 +191,7 @@ def add_traffic_light_detector(traffic_light_camera_stream):
 
 def add_traffic_light_invasion_sensor(ground_vehicle_id_stream, pose_stream):
     from pylot.drivers.carla_traffic_light_invasion_sensor_operator import \
-            CarlaTrafficLightInvasionSensorOperator
+        CarlaTrafficLightInvasionSensorOperator
     op_config = erdos.OperatorConfig(
         name='traffic_light_invasion_sensor_operator',
         log_file_name=FLAGS.log_file_name,
@@ -324,7 +324,7 @@ def add_segmentation_decay(ground_segmented_stream,
 
 def add_linear_prediction(tracking_stream):
     from pylot.prediction.linear_predictor_operator import \
-            LinearPredictorOperator
+        LinearPredictorOperator
     op_config = erdos.OperatorConfig(name='linear_prediction_operator',
                                      flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
@@ -338,7 +338,7 @@ def add_linear_prediction(tracking_stream):
 def add_r2p2_prediction(point_cloud_stream, obstacles_tracking_stream,
                         lidar_setup):
     from pylot.prediction.r2p2_predictor_operator import \
-            R2P2PredictorOperator
+        R2P2PredictorOperator
     op_config = erdos.OperatorConfig(name='r2p2_prediction_operator',
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -355,7 +355,7 @@ def add_prediction_evaluation(pose_stream,
                               prediction_stream,
                               name='prediction_eval_operator'):
     from pylot.prediction.prediction_eval_operator import \
-            PredictionEvalOperator
+        PredictionEvalOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -578,7 +578,7 @@ def add_imu(transform, vehicle_id_stream, name='imu'):
 
 def add_gnss(transform, vehicle_id_stream, name='gnss'):
     from pylot.drivers.carla_gnss_driver_operator import \
-            CarlaGNSSDriverOperator
+        CarlaGNSSDriverOperator
     gnss_setup = pylot.drivers.sensor_setup.GNSSSetup(name, transform)
     op_config = erdos.OperatorConfig(name=gnss_setup.get_name() + '_operator',
                                      flow_watermarks=False,
@@ -687,7 +687,7 @@ def add_planning_pose_synchronizer(waypoint_stream, pose_stream,
 def add_bounding_box_logging(obstacles_stream,
                              name='bounding_box_logger_operator'):
     from pylot.loggers.bounding_box_logger_operator import \
-            BoundingBoxLoggerOperator
+        BoundingBoxLoggerOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -784,7 +784,7 @@ def add_multiple_object_tracker_logging(
 def add_trajectory_logging(obstacles_tracking_stream,
                            name='trajectory_logger_operator'):
     from pylot.loggers.trajectory_logger_operator import \
-            TrajectoryLoggerOperator
+        TrajectoryLoggerOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
@@ -946,7 +946,8 @@ def add_perfect_traffic_light_detector(ground_traffic_lights_stream,
     return traffic_lights_stream
 
 
-def add_perfect_lane_detector(pose_stream, open_drive_stream):
+def add_perfect_lane_detector(pose_stream, open_drive_stream,
+                              center_camera_stream):
     from pylot.simulation.perfect_lane_detector_operator import \
         PerfectLaneDetectionOperator
     op_config = erdos.OperatorConfig(name='perfect_lane_detection_operator',
@@ -955,7 +956,8 @@ def add_perfect_lane_detector(pose_stream, open_drive_stream):
                                      profile_file_name=FLAGS.profile_file_name)
     [detected_lanes_stream
      ] = erdos.connect(PerfectLaneDetectionOperator, op_config,
-                       [pose_stream, open_drive_stream], FLAGS)
+                       [pose_stream, open_drive_stream, center_camera_stream],
+                       FLAGS)
     return detected_lanes_stream
 
 
