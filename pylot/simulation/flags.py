@@ -1,64 +1,67 @@
 from absl import flags
 
 ######################################################################
-# Carla flags
+# Simulator flags
 ######################################################################
-flags.DEFINE_string('carla_host', 'localhost', 'Carla host.')
-flags.DEFINE_integer('carla_port', 2000, 'Carla port.')
+flags.DEFINE_string('simulator_host', 'localhost', 'Simulator host.')
+flags.DEFINE_integer('simulator_port', 2000, 'Simulator port.')
 flags.DEFINE_integer('carla_traffic_manager_port', 8000,
                      'Carla traffic manager port.')
-flags.DEFINE_integer('carla_timeout', 10,
-                     'Timeout for connecting to the Carla simulator.')
-flags.DEFINE_enum('carla_mode', 'synchronous', [
+flags.DEFINE_integer('simulator_timeout', 10,
+                     'Timeout for connecting to the simulator.')
+flags.DEFINE_enum('simulator_mode', 'synchronous', [
     'synchronous', 'asynchronous', 'asynchronous-fixed-time-step',
     'pseudo-asynchronous'
 ], 'Sets the way in which to run the simulator')
 flags.DEFINE_bool('carla_scenario_runner', False,
                   'True to enable running a scenario.')
-flags.DEFINE_integer('carla_town', 1, 'Sets which Carla town to use')
-flags.DEFINE_integer('carla_fps',
+flags.DEFINE_integer('simulator_town', 1,
+                     'Sets which simulator town to use. Options [1..7]')
+flags.DEFINE_integer('simulator_fps',
                      20,
-                     'Carla simulator FPS; do not set below 10',
+                     'Simulator FPS; do not set below 10',
                      lower_bound=10)
 flags.DEFINE_integer(
-    'carla_camera_frequency', -1,
+    'simulator_camera_frequency', -1,
     'Sets the simulation time frequency at which frames are published. '
     '-1 means that a frame is published for each simulation tick')
 flags.DEFINE_integer(
-    'carla_imu_frequency', -1,
+    'simulator_imu_frequency', -1,
     'Sets the simulation time frequency at which IMUs are published. '
     '-1 means that a IMU message is published for each simulation tick')
 flags.DEFINE_integer(
-    'carla_gnss_frequency', -1,
+    'simulator_gnss_frequency', -1,
     'Sets the simulation time frequency at which GNSS is published. '
     '-1 means that a GNSS message is published for each simulation tick')
 flags.DEFINE_integer(
-    'carla_lidar_frequency', -1,
+    'simulator_lidar_frequency', -1,
     'Sets the simulation time frequency at which point clouds are published. '
     '-1 means that a point cloud is published for each simulation tick')
 flags.DEFINE_integer(
-    'carla_localization_frequency', -1,
+    'simulator_localization_frequency', -1,
     'Sets the simulation time at which ego-vehicle localization info is '
     'published. -1 means that info is published on each simulation tick')
 flags.DEFINE_integer(
-    'carla_control_frequency', -1,
+    'simulator_control_frequency', -1,
     'Sets the simulation time at which ego-vehicle localization info is '
     'published for the control module. -1 means that info is published '
     'on each simulation tick')
-flags.DEFINE_integer('carla_num_vehicles', 20, 'Carla num vehicles.')
-flags.DEFINE_integer('carla_num_people', 40, 'Carla num people.')
-flags.DEFINE_enum('carla_weather', 'ClearNoon', [
+flags.DEFINE_integer('simulator_num_vehicles', 20,
+                     'Sets the number of vehicles in the simulation.')
+flags.DEFINE_integer('simulator_num_people', 40,
+                     'Sets the number of people in the simulation.')
+flags.DEFINE_enum('simulator_weather', 'ClearNoon', [
     'ClearNoon', 'ClearSunset', 'CloudyNoon', 'CloudySunset', 'HardRainNoon',
     'HardRainSunset', 'MidRainSunset', 'MidRainyNoon', 'SoftRainNoon',
     'SoftRainSunset', 'WetCloudyNoon', 'WetCloudySunset', 'WetNoon',
     'WetSunset'
-], 'Carla Weather Presets')
+], 'Simulator weather presets')
 flags.DEFINE_integer(
-    'carla_spawn_point_index', -1,
+    'simulator_spawn_point_index', -1,
     'Index of spawn point where to place ego vehicle. -1 to randomly assign.')
-flags.DEFINE_integer('carla_vehicle_mass', None,
+flags.DEFINE_integer('simulator_vehicle_mass', None,
                      'Modifies the mass of the ego-vehicle')
-flags.DEFINE_float('carla_vehicle_moi', None,
+flags.DEFINE_float('simulator_vehicle_moi', None,
                    'Modifies the moment of inertia of the ego-vehicle')
 
 # Other flags
@@ -96,22 +99,26 @@ flags.DEFINE_float('gnss_bias_lon', 0.0,
 
 
 def sensor_frequency_validator(flags_dict):
-    return (
-        flags_dict['carla_camera_frequency'] <= flags_dict['carla_fps']
-        and flags_dict['carla_lidar_frequency'] <= flags_dict['carla_fps']
-        and flags_dict['carla_imu_frequency'] <= flags_dict['carla_fps'] and
-        flags_dict['carla_localization_frequency'] <= flags_dict['carla_fps']
-        and flags_dict['carla_control_frequency'] <= flags_dict['carla_fps'])
+    return flags_dict['simulator_camera_frequency'] <= \
+        flags_dict['simulator_fps'] and \
+        flags_dict['simulator_lidar_frequency'] <= \
+        flags_dict['simulator_fps'] and \
+        flags_dict['simulator_imu_frequency'] <= \
+        flags_dict['simulator_fps'] and \
+        flags_dict['simulator_localization_frequency'] <= \
+        flags_dict['simulator_fps'] and \
+        flags_dict['simulator_control_frequency'] <= \
+        flags_dict['simulator_fps']
 
 
 flags.register_multi_flags_validator(
     [
-        'carla_fps',
-        'carla_camera_frequency',
-        'carla_imu_frequency',
-        'carla_lidar_frequency',
-        'carla_localization_frequency',
-        'carla_control_frequency',
+        'simulator_fps',
+        'simulator_camera_frequency',
+        'simulator_imu_frequency',
+        'simulator_lidar_frequency',
+        'simulator_localization_frequency',
+        'simulator_control_frequency',
     ],
     sensor_frequency_validator,
-    message='Sensor frequencies cannot be greater than --carla_fps')
+    message='Sensor frequencies cannot be greater than --simulator_fps')

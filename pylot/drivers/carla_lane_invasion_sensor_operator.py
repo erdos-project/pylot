@@ -35,7 +35,7 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
-        # The hero vehicle actor object we obtain from carla.
+        # The hero vehicle actor object we obtain from the simulator.
         self._vehicle = None
         self._lane_invasion_sensor = None
         self._map = None
@@ -53,8 +53,9 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
             vehicle_id_msg.timestamp, vehicle_id))
 
         # Connect to the world.
-        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
-                             self._flags.carla_timeout)
+        _, world = get_world(self._flags.simulator_host,
+                             self._flags.simulator_port,
+                             self._flags.simulator_timeout)
 
         self._vehicle = get_vehicle_handle(world, vehicle_id)
         self._map = world.get_map()
@@ -87,7 +88,8 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
         # Create the lane markings that were invaded.
         lane_markings = []
         for lane_marking in lane_invasion_event.crossed_lane_markings:
-            lane_marking = LaneMarking.from_carla_lane_marking(lane_marking)
+            lane_marking = LaneMarking.from_simulator_lane_marking(
+                lane_marking)
             lane_markings.append(lane_marking)
 
         # Find the type of the lane that was invaded.

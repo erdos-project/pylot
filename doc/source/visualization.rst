@@ -23,8 +23,9 @@ and users can switch between different views by pressing ``n``.
 - ``--visualize_segmentation``: Enables the visualization of segmented frames.
 - ``--visualize_waypoints``: Enables the visualization of the waypoints output
   by the planning component. These waypoints can be drawn on the camera
-  frame (pass ``-draw_waypoints_on_camera_frames``), or directly in CARLA
-  when running in simulation mode (pass ``--draw_waypoints_on_world``).
+  frame (pass ``-draw_waypoints_on_camera_frames``), or directly in the
+  simulator when running in simulation mode
+  (pass ``--draw_waypoints_on_world``).
 - ``--visualize_world``: Enables visualization of the current state of the
   ego-vehicle. This is the best way to visualize what the self-driving car is
   currently perceiving and predicting. This visualization includes the past

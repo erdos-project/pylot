@@ -26,15 +26,15 @@ class HDMap(object):
     with support for other types of HD maps in the future.
 
     Args:
-        carla_map (carla.Map): An instance of a CARLA map.
+        simulator_map (carla.Map): An instance of a CARLA map.
 
     Attributes:
         _map (carla.Map): An instance of a CARLA map.
         _grp: An instance of a CARLA global route planner (uses A*).
     """
-    def __init__(self, carla_map, log_file=None):
+    def __init__(self, simulator_map, log_file=None):
         self._logger = erdos.utils.setup_logging('hd_map', log_file)
-        self._map = carla_map
+        self._map = simulator_map
         # Setup global planner.
         self._grp = GlobalRoutePlanner(
             GlobalRoutePlannerDAO(
@@ -58,7 +58,7 @@ class HDMap(object):
                                       project_to_road=True,
                                       lane_type=carla.LaneType.Any)
         if waypoint:
-            return Transform.from_carla_transform(waypoint.transform)
+            return Transform.from_simulator_transform(waypoint.transform)
         else:
             return None
 
@@ -263,14 +263,6 @@ class HDMap(object):
 
         # TODO(ionel): Implement.
 
-        # return (math.fabs(
-        #   old_carla_map.get_lane_orientation_degrees(
-        #     [vehicle_transform.location.x,
-        #      vehicle_transform.location.y,
-        #      38]) -
-        #   old_carla_map.get_lane_orientation_degrees(
-        #     [closest_lane_point[0], closest_lane_point[1], 38])) < 1)
-
         return True
 
     def _must_obey_european_traffic_light(self, ego_transform: Transform,
@@ -362,7 +354,7 @@ class HDMap(object):
         if waypoint:
             left_lane_waypoint = waypoint.get_left_lane()
             if left_lane_waypoint:
-                return Transform.from_carla_transform(
+                return Transform.from_simulator_transform(
                     left_lane_waypoint.transform)
         return None
 
@@ -373,7 +365,7 @@ class HDMap(object):
         if waypoint:
             right_lane_waypoint = waypoint.get_right_lane()
             if right_lane_waypoint:
-                return Transform.from_carla_transform(
+                return Transform.from_simulator_transform(
                     right_lane_waypoint.transform)
         return None
 
@@ -387,7 +379,7 @@ class HDMap(object):
             wp_left = waypoint.get_left_lane()
             w_rotation = waypoint.transform.rotation
             while wp_left and wp_left.lane_type == carla.LaneType.Driving:
-                left_location = Location.from_carla_location(
+                left_location = Location.from_simulator_location(
                     wp_left.transform.location)
                 lanes.append(
                     self.get_lane(left_location, lane_id=wp_left.lane_id))
@@ -402,7 +394,7 @@ class HDMap(object):
 
             wp_right = waypoint.get_right_lane()
             while wp_right and wp_right.lane_type == carla.LaneType.Driving:
-                right_location = Location.from_carla_location(
+                right_location = Location.from_simulator_location(
                     wp_right.transform.location)
                 lanes.append(
                     self.get_lane(right_location, lane_id=wp_right.lane_id))
@@ -445,19 +437,19 @@ class HDMap(object):
         # TODO(ionel): The planner returns several options in intersections.
         # We always take the first one, but this is not correct.
         return deque([
-            Transform.from_carla_transform(waypoint[0].transform)
+            Transform.from_simulator_transform(waypoint[0].transform)
             for waypoint in route
         ])
 
     def _lateral_shift(self, transform, shift):
         transform.rotation.yaw += 90
         shifted = transform.location + shift * transform.get_forward_vector()
-        return Location.from_carla_location(shifted)
+        return Location.from_simulator_location(shifted)
 
     def _get_waypoint(self, location: Location, project_to_road: bool,
                       lane_type):
         try:
-            waypoint = self._map.get_waypoint(location.as_carla_location(),
+            waypoint = self._map.get_waypoint(location.as_simulator_location(),
                                               project_to_road=project_to_road,
                                               lane_type=lane_type)
         except RuntimeError as err:

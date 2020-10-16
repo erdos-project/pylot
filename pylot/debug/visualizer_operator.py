@@ -388,53 +388,49 @@ class VisualizerOperator(erdos.Operator):
         self.render_text(pose_msg.data, control_msg, timestamp)
 
     def run(self):
-        # Run method is invoked after all operators finished initializing,
-        # including the CARLA operator, which reloads the world. Thus, if
-        # we get the world here we're sure it is up-to-date.
+        # Run method is invoked after all operators finished initializing.
+        # Thus, we're sure the world is up-to-date here.
         if (self._flags.visualize_pose or self._flags.visualize_imu
                 or (self._flags.visualize_waypoints
                     and self._flags.draw_waypoints_on_world)):
             from pylot.simulation.utils import get_world
-            _, self._world = get_world(self._flags.carla_host,
-                                       self._flags.carla_port,
-                                       self._flags.carla_timeout)
+            _, self._world = get_world(self._flags.simulator_host,
+                                       self._flags.simulator_port,
+                                       self._flags.simulator_timeout)
         if self._flags.execution_mode == 'simulation':
             from pylot.simulation.utils import get_map
             from pylot.map.hd_map import HDMap
             self._map = HDMap(
-                get_map(self._flags.carla_host, self._flags.carla_port,
-                        self._flags.carla_timeout), self.config.log_file_name)
+                get_map(self._flags.simulator_host, self._flags.simulator_port,
+                        self._flags.simulator_timeout),
+                self.config.log_file_name)
 
     def _visualize_pose(self, ego_transform):
         # Draw position. We add 0.5 to z to ensure that the point is above
         # the road surface.
         loc = (ego_transform.location +
-               pylot.utils.Location(0, 0, 0.5)).as_carla_location()
+               pylot.utils.Location(0, 0, 0.5)).as_simulator_location()
         self._world.debug.draw_point(loc, size=0.2, life_time=DEFAULT_VIS_TIME)
 
     def _visualize_imu(self, msg):
-        import carla
         transform = msg.transform
         # Acceleration measured in ego frame, not global
         # z acceleration not useful for visualization so set to 0
-        rotation_transform = carla.Transform(
-            location=carla.Location(0, 0, 0),
-            rotation=transform.rotation.as_carla_rotation())
-        acceleration = msg.acceleration.as_carla_vector()
-        rotated_acceleration = rotation_transform.transform(
-            carla.Location(acceleration.x, acceleration.y, 0))
+        rotation_transform = pylot.utils.Transform(
+            location=pylot.utils.Location(0, 0, 0),
+            rotation=transform.rotation)
+        rotated_acceleration = rotation_transform.transform_locations(
+            [pylot.utils.Location(msg.acceleration.x, msg.acceleration.y,
+                                  0)])[0]
 
         # Construct arrow.
-        loc = transform.location.as_carla_location()
-        begin_acc = loc + carla.Location(z=0.5)
-        end_acc = begin_acc + carla.Location(rotated_acceleration.x,
-                                             rotated_acceleration.y,
-                                             0)  # not useful for visualization
+        begin_acc = transform.location + pylot.utils.Location(z=0.5)
+        end_acc = begin_acc + pylot.utils.Location(rotated_acceleration.x,
+                                                   rotated_acceleration.y, 0)
 
         # draw arrow
         self._logger.debug("Acc: {}".format(rotated_acceleration))
-        self._world.debug.draw_arrow(begin_acc,
-                                     end_acc,
+        self._world.debug.draw_arrow(begin_acc.as_simulator_location(),
+                                     end_acc.as_simulator_location(),
                                      arrow_size=0.1,
-                                     life_time=0.1,
-                                     color=carla.Color(255, 0, 0))
+                                     life_time=0.1)

@@ -1,8 +1,8 @@
 """This module implements an operator acts like a IMU driver when
-using the CARLA simulator.
+using the simulator.
 
 The operator attaches an IMU sensor to the ego vehicle, receives
-IMU measurements from CARLA, and sends them on its output stream.
+IMU measurements from the simulator, and sends them on its output stream.
 """
 
 import threading
@@ -16,7 +16,7 @@ from pylot.utils import Transform, Vector3D
 
 
 class CarlaIMUDriverOperator(erdos.Operator):
-    """Publishes carla.IMUMeasurements (transform, acceleration, gyro and
+    """Publishes IMU mesurements (transform, acceleration, gyro and
     compass) from IMU (inertial measurement unit) sensor.
 
     This operator attaches to a vehicle at the required position with respect
@@ -26,7 +26,7 @@ class CarlaIMUDriverOperator(erdos.Operator):
     Args:
         ego_vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on
             which the operator receives the id of the ego vehicle. It uses this
-            id to get a Carla handle to the vehicle.
+            id to get a simulator handle to the vehicle.
         imu_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends IMU info.
         imu_setup (:py:class:`pylot.drivers.sensor_setup.IMUSetup`):
@@ -41,9 +41,9 @@ class CarlaIMUDriverOperator(erdos.Operator):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._imu_setup = imu_setup
-        # The hero vehicle actor object we obtain from Carla.
+        # The hero vehicle actor object we obtain from the simulator.
         self._vehicle = None
-        # The IMU sensor actor object we obtain from Carla.
+        # The IMU sensor actor object we obtain from the simulator.
         self._imu = None
         # Lock to ensure that the callbacks do not execute simultaneously.
         self._lock = threading.Lock()
@@ -70,14 +70,14 @@ class CarlaIMUDriverOperator(erdos.Operator):
             with self._lock:
                 msg = IMUMessage(
                     timestamp,
-                    Transform.from_carla_transform(imu_msg.transform),
-                    Vector3D.from_carla_vector(imu_msg.accelerometer),
-                    Vector3D.from_carla_vector(imu_msg.gyroscope),
+                    Transform.from_simulator_transform(imu_msg.transform),
+                    Vector3D.from_simulator_vector(imu_msg.accelerometer),
+                    Vector3D.from_simulator_vector(imu_msg.gyroscope),
                     imu_msg.compass)
                 self._imu_stream.send(msg)
                 # Note: The operator is set not to automatically propagate
-                # watermark messages received on input streams. Thus, we can
-                # issue watermarks only after the Carla callback is invoked.
+                # watermarks received on input streams. Thus, we can issue
+                # watermarks only after the simulator callback is invoked.
                 self._imu_stream.send(watermark_msg)
 
     def run(self):
@@ -85,13 +85,14 @@ class CarlaIMUDriverOperator(erdos.Operator):
         vehicle_id_msg = self._vehicle_id_stream.read()
         vehicle_id = vehicle_id_msg.data
         self._logger.debug(
-            "The CarlaIMUDriverOperator received the vehicle id: {}".format(
+            "The IMUDriverOperator received the vehicle id: {}".format(
                 vehicle_id))
 
         # Connect to the world. We connect here instead of in the constructor
         # to ensure we're connected to the latest world.
-        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
-                             self._flags.carla_timeout)
+        _, world = get_world(self._flags.simulator_host,
+                             self._flags.simulator_port,
+                             self._flags.simulator_timeout)
         set_simulation_mode(world, self._flags)
 
         self._vehicle = get_vehicle_handle(world, vehicle_id)
@@ -113,13 +114,13 @@ class CarlaIMUDriverOperator(erdos.Operator):
         imu_blueprint.set_attribute('noise_gyro_stddev_z',
                                     str(self._flags.gyro_noise_stddev_z))
 
-        if self._flags.carla_imu_frequency == -1:
+        if self._flags.simulator_imu_frequency == -1:
             imu_blueprint.set_attribute('sensor_tick', '0.0')
         else:
             imu_blueprint.set_attribute(
-                'sensor_tick', str(1.0 / self._flags.carla_imu_frequency))
+                'sensor_tick', str(1.0 / self._flags.simulator_imu_frequency))
 
-        transform = self._imu_setup.get_transform().as_carla_transform()
+        transform = self._imu_setup.get_transform().as_simulator_transform()
 
         self._logger.debug("Spawning an IMU: {}".format(self._imu_setup))
 

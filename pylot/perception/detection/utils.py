@@ -150,30 +150,30 @@ class BoundingBox3D(object):
         self.extent = extent
 
     @classmethod
-    def from_carla_bounding_box(cls, bbox):
-        """Creates a pylot bounding box from a CARLA bounding box.
+    def from_simulator_bounding_box(cls, bbox):
+        """Creates a pylot bounding box from a simulator bounding box.
 
         Args:
-            bbox (carla.BoundingBox): The carla bounding box.
+            bbox: The bounding box to transform.
 
         Returns:
             :py:class:`.BoundingBox3D`: A bounding box instance.
         """
         transform = pylot.utils.Transform(
-            pylot.utils.Location.from_carla_location(bbox.location),
+            pylot.utils.Location.from_simulator_location(bbox.location),
             pylot.utils.Rotation())
-        extent = pylot.utils.Vector3D.from_carla_vector(bbox.extent)
+        extent = pylot.utils.Vector3D.from_simulator_vector(bbox.extent)
         return cls(transform, extent)
 
-    def as_carla_bounding_box(self):
-        """Retrieves the bounding box as instance of a carla bounding box.
+    def as_simulator_bounding_box(self):
+        """Retrieves the bounding box as instance of a simulator bounding box.
 
         Returns:
             carla.BoundingBox: Instance that represents the bounding box.
         """
         import carla
-        bb_loc = self.transform.location.as_carla_location()
-        bb_extent = self.extent.as_carla_vector()
+        bb_loc = self.transform.location.as_simulator_location()
+        bb_extent = self.extent.as_simulator_vector()
         return carla.BoundingBox(bb_loc, bb_extent)
 
     def visualize(self, world, actor_transform, time_between_frames=100):
@@ -187,10 +187,10 @@ class BoundingBox3D(object):
             time_between_frames (:obj:`float`): Time in ms to show the bounding
                 box for.
         """
-        bb = self.as_carla_bounding_box()
+        bb = self.as_simulator_bounding_box()
         bb.location += actor_transform.location()
         world.debug.draw_box(bb,
-                             actor_transform.rotation.as_carla_rotation(),
+                             actor_transform.rotation.as_simulator_rotation(),
                              life_time=time_between_frames / 1000.0)
 
     def to_camera_view(self, obstacle_transform, extrinsic_matrix,

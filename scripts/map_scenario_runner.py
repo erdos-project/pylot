@@ -179,7 +179,7 @@ def process_depth_images(msg,
 
     # Get the semantic image corresponding to the given depth image timestamp.
     semantic_image = retrieve_semantic_image(msg.timestamp)
-    semantic_frame = SegmentedFrame.from_carla_image(semantic_image,
+    semantic_frame = SegmentedFrame.from_simulator_image(semantic_image,
                                                      depth_frame.camera_setup)
 
     # Visualize the image and the bounding boxes if needed.
@@ -193,10 +193,10 @@ def process_depth_images(msg,
         bb_surface = pygame.Surface(resolution)
         bb_surface.set_colorkey((0, 0, 0))
 
-    vehicle_transform = Transform.from_carla_transform(
+    vehicle_transform = Transform.from_simulator_transform(
         ego_vehicle.get_transform())
 
-    depth_frame = DepthFrame.from_carla_frame(msg, depth_camera_setup)
+    depth_frame = DepthFrame.from_simulator_frame(msg, depth_camera_setup)
     # Transform the static camera setup with respect to the location of the
     # vehicle in the world.
     depth_frame.camera_setup.set_transform(vehicle_transform *
@@ -204,7 +204,7 @@ def process_depth_images(msg,
 
     detected_people = []
     for person in ego_vehicle.get_world().get_actors().filter('walker.*'):
-        obstacle = Obstacle.from_carla_actor(person)
+        obstacle = Obstacle.from_simulator_actor(person)
         if obstacle._distance(vehicle_transform) > 125:
             bbox = None
         else:
@@ -294,7 +294,7 @@ def main(args):
 
     depth_camera_setup = DepthCameraSetup(
         "depth_camera", width, height,
-        Transform.from_carla_transform(camera_transform))
+        Transform.from_simulator_transform(camera_transform))
     depth_camera.listen(
         functools.partial(process_depth_images,
                           depth_camera_setup=depth_camera_setup,
@@ -352,7 +352,7 @@ if __name__ == "__main__":
     args = argparser.parse_args()
     if args.delta > 0.1:
         raise ValueError(
-            "The CARLA simulator does not work well with frame rates lower "
+            "The simulator does not work well with frame rates lower "
             "than 10FPS.")
 
     if not args.output.endswith('csv'):

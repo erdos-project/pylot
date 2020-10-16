@@ -51,7 +51,7 @@ class CarlaOperator(erdos.Operator):
         control_stream.add_callback(self.on_control_msg)
         erdos.add_watermark_callback([release_sensor_stream], [],
                                      self.on_sensor_ready)
-        if flags.carla_mode == "pseudo-asynchronous":
+        if flags.simulator_mode == "pseudo-asynchronous":
             erdos.add_watermark_callback([pipeline_finish_notify_stream], [],
                                          self.on_pipeline_finish)
         self.pose_stream = pose_stream
@@ -69,11 +69,11 @@ class CarlaOperator(erdos.Operator):
                                                  self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
             self.config.name + '-csv', self.config.csv_log_file_name)
-        # Connect to CARLA and retrieve the world running.
+        # Connect to simulator and retrieve the world running.
         self._client, self._world = pylot.simulation.utils.get_world(
-            self._flags.carla_host, self._flags.carla_port,
-            self._flags.carla_timeout)
-        self._carla_version = self._client.get_client_version()
+            self._flags.simulator_host, self._flags.simulator_port,
+            self._flags.simulator_timeout)
+        self._simulator_version = self._client.get_client_version()
 
         if not self._flags.carla_scenario_runner and \
                 self._flags.control != "manual":
@@ -84,14 +84,15 @@ class CarlaOperator(erdos.Operator):
         # handle (which is slow).
         self._spectator = self._world.get_spectator()
 
-        if not (self._carla_version.startswith('0.8') or re.match(
-                '0\.9\.[0-7]', self._carla_version) is not None):  # noqa: W605
-            # Any CARLA version after 0.9.7.
+        if not (self._simulator_version.startswith('0.8')
+                or re.match('0\.9\.[0-7]', self._simulator_version)
+                is not None):  # noqa: W605
+            # Any simulator version after 0.9.7.
             # Create a traffic manager to that auto pilot works.
             self._traffic_manager = self._client.get_trafficmanager(
                 self._flags.carla_traffic_manager_port)
             self._traffic_manager.set_synchronous_mode(
-                self._flags.carla_mode == 'synchronous')
+                self._flags.simulator_mode == 'synchronous')
 
         if self._flags.carla_scenario_runner:
             # Tick until 4.0 seconds time so that all synchronous scenario runs
@@ -112,23 +113,24 @@ class CarlaOperator(erdos.Operator):
             # Spawn ego vehicle, people and vehicles.
             (self._ego_vehicle, self._vehicle_ids,
              self._people) = pylot.simulation.utils.spawn_actors(
-                 self._client, self._world, self._carla_version,
-                 self._flags.carla_spawn_point_index,
-                 self._flags.control == 'carla_auto_pilot',
-                 self._flags.carla_num_people, self._flags.carla_num_vehicles,
-                 self._logger)
+                 self._client, self._world, self._simulator_version,
+                 self._flags.simulator_spawn_point_index,
+                 self._flags.control == 'simulator_auto_pilot',
+                 self._flags.simulator_num_people,
+                 self._flags.simulator_num_vehicles, self._logger)
 
         pylot.simulation.utils.set_vehicle_physics(
-            self._ego_vehicle, self._flags.carla_vehicle_moi,
-            self._flags.carla_vehicle_mass)
+            self._ego_vehicle, self._flags.simulator_vehicle_moi,
+            self._flags.simulator_vehicle_mass)
 
-        # Lock used to ensure that CARLA callbacks are not executed
+        # Lock used to ensure that simulator callbacks are not executed
         # concurrently.
         self._lock = threading.Lock()
 
         # Dictionary that stores the processing times when sensors are ready
         # to realease data. This info is used to calculate the real processing
-        # time of our pipeline without including CARLA-induced sensor delays.
+        # time of our pipeline without including simulator-induced sensor
+        # delays.
         self._next_localization_sensor_reading = None
         self._next_control_sensor_reading = None
         self._simulator_in_sync = False
@@ -168,7 +170,7 @@ class CarlaOperator(erdos.Operator):
         """
         self._logger.debug('@{}: received control message'.format(
             msg.timestamp))
-        if self._flags.carla_mode == 'pseudo-asynchronous':
+        if self._flags.simulator_mode == 'pseudo-asynchronous':
             heapq.heappush(
                 self._tick_events,
                 (msg.timestamp.coordinates[0], TickEvent.CONTROL_CMD))
@@ -181,7 +183,7 @@ class CarlaOperator(erdos.Operator):
             # If auto pilot or manual mode is enabled then we do not apply the
             # control, but we still want to tick in this method to ensure that
             # all operators finished work before the world ticks.
-            if self._flags.control not in ['carla_auto_pilot', 'manual']:
+            if self._flags.control not in ['simulator_auto_pilot', 'manual']:
                 self._apply_control_msg(msg)
             # Tick the world after the operator received a control command.
             # This usually indicates that all the operators have completed
@@ -203,7 +205,7 @@ class CarlaOperator(erdos.Operator):
     def on_pipeline_finish(self, timestamp: Timestamp):
         self._logger.debug("@{}: Received pipeline finish.".format(timestamp))
         game_time = timestamp.coordinates[0]
-        if (self._flags.carla_control_frequency == -1
+        if (self._flags.simulator_control_frequency == -1
                 or self._next_control_sensor_reading is None
                 or game_time == self._next_control_sensor_reading):
             # There was supposed to be a control message for this timestamp
@@ -241,18 +243,18 @@ class CarlaOperator(erdos.Operator):
             with erdos.profile(self.config.name + '.send_actor_data',
                                self,
                                event_data={'timestamp': str(timestamp)}):
-                if (self._flags.carla_localization_frequency == -1
+                if (self._flags.simulator_localization_frequency == -1
                         or self._next_localization_sensor_reading is None or
                         game_time == self._next_localization_sensor_reading):
-                    if self._flags.carla_mode == 'pseudo-asynchronous':
+                    if self._flags.simulator_mode == 'pseudo-asynchronous':
                         self._update_next_localization_pseudo_async_ticks(
                             game_time)
                     self.__send_hero_vehicle_data(self.pose_stream, timestamp)
                     self.__send_ground_actors_data(timestamp)
                     self.__update_spectactor_pose()
 
-                if self._flags.carla_mode == "pseudo-asynchronous" and (
-                        self._flags.carla_control_frequency == -1
+                if self._flags.simulator_mode == "pseudo-asynchronous" and (
+                        self._flags.simulator_control_frequency == -1
                         or self._next_control_sensor_reading is None
                         or game_time == self._next_control_sensor_reading):
                     self._update_next_control_pseudo_asynchronous_ticks(
@@ -262,30 +264,31 @@ class CarlaOperator(erdos.Operator):
                     self.__update_spectactor_pose()
 
     def _update_next_localization_pseudo_async_ticks(self, game_time: int):
-        if self._flags.carla_localization_frequency > -1:
+        if self._flags.simulator_localization_frequency > -1:
             self._next_localization_sensor_reading = (
                 game_time +
-                int(1000 / self._flags.carla_localization_frequency))
+                int(1000 / self._flags.simulator_localization_frequency))
             if not self._simulator_in_sync:
                 # If this is the first sensor reading, then tick
                 # one more time because the second sensor reading
                 # is sometimes delayed by 1 tick.
                 self._next_localization_sensor_reading += int(
-                    1000 / self._flags.carla_fps)
+                    1000 / self._flags.simulator_fps)
         else:
             self._next_localization_sensor_reading = (
-                game_time + int(1000 / self._flags.carla_fps))
+                game_time + int(1000 / self._flags.simulator_fps))
         heapq.heappush(
             self._tick_events,
             (self._next_localization_sensor_reading, TickEvent.SENSOR_READ))
 
     def _update_next_control_pseudo_asynchronous_ticks(self, game_time: int):
-        if self._flags.carla_control_frequency > -1:
+        if self._flags.simulator_control_frequency > -1:
             self._next_control_sensor_reading = (
-                game_time + int(1000 / self._flags.carla_control_frequency))
+                game_time +
+                int(1000 / self._flags.simulator_control_frequency))
         else:
             self._next_control_sensor_reading = (
-                game_time + int(1000 / self._flags.carla_fps))
+                game_time + int(1000 / self._flags.simulator_fps))
         if (self._next_control_sensor_reading !=
                 self._next_localization_sensor_reading):
             heapq.heappush(
@@ -297,7 +300,7 @@ class CarlaOperator(erdos.Operator):
         # Tick here once to ensure that the driver operators can get a handle
         # to the ego vehicle.
         # XXX(ionel): Hack to fix a race condition. Driver operators
-        # register a carla listen callback only after they've received
+        # register a simulator listen callback only after they've received
         # the vehicle id value. We miss frames if we tick before
         # they register a listener. Thus, we sleep here a bit to
         # give them sufficient time to register a callback.
@@ -309,7 +312,7 @@ class CarlaOperator(erdos.Operator):
 
     def _initialize_world(self):
         """ Setups the world town, and activates the desired weather."""
-        if self._carla_version == '0.9.5':
+        if self._simulator_version == '0.9.5':
             # TODO (Sukrit) :: ERDOS provides no way to retrieve handles to the
             # class objects to do garbage collection. Hence, objects from
             # previous runs of the simulation may persist. We need to clean
@@ -318,15 +321,15 @@ class CarlaOperator(erdos.Operator):
             pylot.simulation.utils.reset_world(self._world)
         else:
             self._world = self._client.load_world('Town{:02d}'.format(
-                self._flags.carla_town))
+                self._flags.simulator_town))
         self._logger.info('Setting the weather to {}'.format(
-            self._flags.carla_weather))
+            self._flags.simulator_weather))
         pylot.simulation.utils.set_weather(self._world,
-                                           self._flags.carla_weather)
+                                           self._flags.simulator_weather)
 
     def _tick_simulator(self):
-        if (self._flags.carla_mode == 'asynchronous'
-                or self._flags.carla_mode == 'asynchronous-fixed-time-step'):
+        if (self._flags.simulator_mode == 'asynchronous-fixed-time-step'
+                or self._flags.simulator_mode == 'asynchronous'):
             # No need to tick when running in these modes.
             return
         self._world.tick()
@@ -341,7 +344,7 @@ class CarlaOperator(erdos.Operator):
                 return
 
     def _apply_control_msg(self, msg: ControlMessage):
-        # Transform the message to a carla control cmd.
+        # Transform the message to a simulator control cmd.
         vec_control = carla.VehicleControl(throttle=msg.throttle,
                                            steer=msg.steer,
                                            brake=msg.brake,
@@ -354,9 +357,9 @@ class CarlaOperator(erdos.Operator):
 
     def __send_hero_vehicle_data(self, stream: WriteStream,
                                  timestamp: Timestamp):
-        vec_transform = pylot.utils.Transform.from_carla_transform(
+        vec_transform = pylot.utils.Transform.from_simulator_transform(
             self._ego_vehicle.get_transform())
-        velocity_vector = pylot.utils.Vector3D.from_carla_vector(
+        velocity_vector = pylot.utils.Vector3D.from_simulator_vector(
             self._ego_vehicle.get_velocity())
         forward_speed = velocity_vector.magnitude()
         pose = pylot.utils.Pose(vec_transform, forward_speed, velocity_vector,
@@ -392,7 +395,7 @@ class CarlaOperator(erdos.Operator):
 
     def __send_world_data(self):
         """ Sends ego vehicle id, open drive and trajectory messages."""
-        # Send the id of the ego vehicle. This id is used by the CARLA driver
+        # Send the id of the ego vehicle. This id is used by the driver
         # operators to get a handle to the ego vehicle, which they use to
         # attach sensors.
         self.vehicle_id_stream.send(

@@ -37,23 +37,23 @@ class StopSign(Obstacle):
         self.bounding_box_3d = bounding_box_3d
 
     @classmethod
-    def from_carla_actor(cls, actor):
-        """Creates a stop sign from a CARLA actor.
+    def from_simulator_actor(cls, actor):
+        """Creates a stop sign from a simulator actor.
 
         Args:
-            actor (carla.TrafficSign): A carla stop sign actor.
+            actor: A simulator stop sign actor.
 
         Returns:
             :py:class:`.StopSign`: A stop sign.
         """
         import carla
         if not isinstance(actor, carla.TrafficSign):
-            raise ValueError('actor should be of type carla.TrafficSign')
-        transform = pylot.utils.Transform.from_carla_transform(
+            raise ValueError('actor should be of type TrafficSign')
+        transform = pylot.utils.Transform.from_simulator_transform(
             actor.get_transform())
         world_trigger_volume = actor.get_transform().transform(
             actor.trigger_volume.location)
-        extent = pylot.utils.Vector3D.from_carla_vector(
+        extent = pylot.utils.Vector3D.from_simulator_vector(
             actor.trigger_volume.extent)
         trigger_loc = pylot.utils.Location(world_trigger_volume.x,
                                            world_trigger_volume.y,

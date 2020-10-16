@@ -44,7 +44,7 @@ CITYSCAPES_CLASSES = {
     11: [102, 102, 156],  # Walls
     12: [220, 220, 0]  # TrafficSigns
 }
-# XXX(ionel): Note! These Carla cityscapes classes do not cover all
+# XXX(ionel): Note! These classes do not cover all
 # the classes from CITYSCAPES. Hence, we can't compare segmentation
 # outputs to ground truth.
 
@@ -75,8 +75,8 @@ class SegmentedFrame(object):
         self._class_masks = None
 
     @classmethod
-    def from_carla_image(cls, carla_image, camera_setup):
-        """Creates a pylot camera frame from a CARLA frame.
+    def from_simulator_image(cls, simulator_image, camera_setup):
+        """Creates a pylot camera frame from a simulator frame.
 
         Note:
             This conversion is slow.
@@ -84,18 +84,19 @@ class SegmentedFrame(object):
         Returns:
             :py:class:`.SegmentedFrame`: A segmented camera frame.
         """
-        # Converts the array containing CARLA semantic segmentation labels
+        # Converts the array containing simulator semantic segmentation labels
         # to a 2D array containing the label of each pixel.
         import carla
-        if not isinstance(carla_image, carla.Image):
-            raise ValueError('carla_image should be of type carla.Image')
-        __frame = np.frombuffer(carla_image.raw_data, dtype=np.dtype("uint8"))
-        __frame = np.reshape(__frame,
-                             (carla_image.height, carla_image.width, 4))
+        if not isinstance(simulator_image, carla.Image):
+            raise ValueError('simulator_image should be of type Image')
+        __frame = np.frombuffer(simulator_image.raw_data,
+                                dtype=np.dtype("uint8"))
+        __frame = np.reshape(
+            __frame, (simulator_image.height, simulator_image.width, 4))
         return cls(__frame[:, :, 2], 'carla', camera_setup)
 
     def as_cityscapes_palette(self):
-        """Returns the frame to the Carla cityscapes pallete.
+        """Returns the frame to the CARLA cityscapes pallete.
 
         Returns:
            A numpy array.
@@ -284,7 +285,7 @@ class SegmentedFrame(object):
         # Shape is height, width
         traffic_signs_frame = np.zeros(
             (self._frame.shape[0], self._frame.shape[1]), dtype=np.bool)
-        # 12 is the key for TrafficSigns segmentation in Carla.
+        # 12 is the key for TrafficSigns segmentation in CARLA.
         # Apply mask to only select traffic signs and traffic lights.
         traffic_signs_frame[np.where(self._frame == 12)] = True
         return traffic_signs_frame

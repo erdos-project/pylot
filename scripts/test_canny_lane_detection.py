@@ -296,7 +296,6 @@ def spawn_rgb_camera(world, location, rotation, vehicle):
 
 def main():
     global world
-    # Connect to the CARLA instance.
     client = carla.Client('localhost', 2000)
     world = client.get_world()
     settings = world.get_settings()

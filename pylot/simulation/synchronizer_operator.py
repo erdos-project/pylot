@@ -13,7 +13,7 @@ class SynchronizerOperator(erdos.Operator):
     slowest stream in a data-flow completes processing a timestmap.
 
     Warning:
-       The operator should only be used with the CARLA auto pilot enabled.
+       The operator should only be used with the simulator auto pilot enabled.
 
     Args:
         wait_stream (:py:class:`erdos.ReadStream`): The stream on which to wait
@@ -44,8 +44,9 @@ class SynchronizerOperator(erdos.Operator):
 
         # Connect to the world. We connect here instead of in the constructor
         # to ensure we're connected to the latest world.
-        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
-                             self._flags.carla_timeout)
+        _, world = get_world(self._flags.simulator_host,
+                             self._flags.simulator_port,
+                             self._flags.simulator_timeout)
         set_simulation_mode(world, self._flags)
 
         self._vehicle = get_vehicle_handle(world, vehicle_id)

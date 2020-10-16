@@ -3,9 +3,9 @@ from collections import deque
 import erdos
 from erdos import Message, ReadStream, Timestamp, WriteStream
 
-import pylot.simulation.utils
-import pylot.utils
 from pylot.perception.messages import ObstaclesMessage
+from pylot.simulation.utils import get_detected_speed_limits, \
+    get_detected_traffic_stops
 
 
 class PerfectDetectorOperator(erdos.Operator):
@@ -46,13 +46,13 @@ class PerfectDetectorOperator(erdos.Operator):
         _depth_frame_msgs (:obj:`collections.deque`): Buffer of received depth
             frame messages.
         _obstacles (:obj:`collections.deque`): Buffer of obstacle messages
-            received from Carla.
+            received from the simulator.
         _segmented_msgs (:obj:`collections.deque`): Buffer of segmented frame
-            msgs received from Carla.
+            msgs received from the simulator.
         _speed_limit_signs (:obj:`collections.deque`): Buffer of speed limit
             sign msgs.
         _stop_signs (:obj:`collections.deque`): Buffer of stop sign msgs
-            received from Carla.
+            received from the simulator.
         _frame_cnt (:obj:`int`): Number of messages received.
     """
     def __init__(self, depth_camera_stream: ReadStream,
@@ -139,12 +139,12 @@ class PerfectDetectorOperator(erdos.Operator):
                                              depth_msg.frame,
                                              segmented_msg.frame)
 
-        det_speed_limits = pylot.simulation.utils.get_detected_speed_limits(
+        det_speed_limits = get_detected_speed_limits(
             speed_limit_signs_msg.speed_signs, depth_msg.frame,
             segmented_msg.frame)
 
-        det_stop_signs = pylot.simulation.utils.get_detected_traffic_stops(
-            stop_signs_msg.stop_signs, depth_msg.frame)
+        det_stop_signs = get_detected_traffic_stops(stop_signs_msg.stop_signs,
+                                                    depth_msg.frame)
 
         det_obstacles = det_obstacles + det_speed_limits + det_stop_signs
 

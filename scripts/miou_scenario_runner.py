@@ -46,7 +46,7 @@ def spawn_camera(camera_bp,
                                 attach_to=ego_vehicle)
     camera_setup = SegmentedCameraSetup(
         "segmented_camera", width, height,
-        pylot.utils.Transform.from_carla_transform(transform))
+        pylot.utils.Transform.from_simulator_transform(transform))
 
     _world.tick()
     return camera, camera_setup
@@ -163,7 +163,7 @@ def process_segmentation_images(msg,
         sys.exit(0)
 
     # Compute the segmentation mIOU.
-    frame = SegmentedFrame.from_carla_image(msg, camera_setup)
+    frame = SegmentedFrame.from_simulator_image(msg, camera_setup)
     compute_and_log_miou(frame, msg.timestamp, csv)
 
     # Visualize the run.
@@ -287,7 +287,7 @@ if __name__ == "__main__":
     args = argparser.parse_args()
     if args.delta > 0.1:
         raise ValueError(
-            "The CARLA simulator does not work well with frame rates lower "
+            "The simulator does not work well with frame rates lower "
             "than 10FPS.")
 
     if not args.output.endswith('csv'):

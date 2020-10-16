@@ -6,27 +6,27 @@ Using the CARLA simulator
 
 Important flags
 ~~~~~~~~~~~~~~~
-- ``--carla_host``: Specifies the hostname where CARLA is running.
-- ``--carla_port``: Specifies the port on which the CARLA server is listening.
-- ``--carla_mode``:
-- ``--carla_fps``: Specifies the frames per second the simulator must run at.
-- ``--carla_town``: Specifies the CARLA town to use.
-- ``--carla_weather``: Sets the CARLA weather.
-- ``--carla_num_people``: Specifies the number of people agents to spawn. 
-- ``--carla_num_vehicles``: Specifies the number of vehicle agents to spawn. 
-- ``--carla_spawn_point_index``: Specifies the spawning location of the
+- ``--simulator_host``: Specifies the hostname where simulator is running.
+- ``--simulator_port``: Specifies the port on which the simulator server is listening.
+- ``--simulator_mode``:
+- ``--simulator_fps``: Specifies the frames per second the simulator must run at.
+- ``--simulator_town``: Specifies the simulator town to use.
+- ``--simulator_weather``: Sets the weather in the simulator.
+- ``--simulator_num_people``: Specifies the number of people agents to spawn. 
+- ``--simulator_num_vehicles``: Specifies the number of vehicle agents to spawn. 
+- ``--simulator_spawn_point_index``: Specifies the spawning location of the
   ego-vehicle.
-- ``--carla_camera_frequency``: Specifies the frequency at which the cameras
+- ``--simulator_camera_frequency``: Specifies the frequency at which the cameras
   are publishing frames.
-- ``--carla_gnss_frequency``: Specifies the frequency at which the GNSS sensor
+- ``--simulator_gnss_frequency``: Specifies the frequency at which the GNSS sensor
   is publishing readings.
-- ``--carla_imu_frequency``: Specifies the frequency at which the IMU sensor
+- ``--simulator_imu_frequency``: Specifies the frequency at which the IMU sensor
   is publishing readings.
-- ``--carla_lidar_frequency``: Specifies the frequency at which the LiDARs are
+- ``--simulator_lidar_frequency``: Specifies the frequency at which the LiDARs are
   publishing point clouds.
-- ``--carla_localization_frequency``: Specifies the frequency at which
+- ``--simulator_localization_frequency``: Specifies the frequency at which
   pose messages are sent when using perfect localization.
-- ``--carla_control_frequency``: Speicifes the frequenc at which control
+- ``--simulator_control_frequency``: Speicifes the frequenc at which control
   commands are applied.
 
 Running scenarios

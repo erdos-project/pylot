@@ -16,8 +16,9 @@ from pylot.simulation.challenge.ERDOSBaseAgent import ERDOSBaseAgent, \
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_bool('carla_localization', False,
-                  'Set to True to receive ego-vehicle locations from CARLA')
+flags.DEFINE_bool(
+    'perfect_localization', False,
+    'Set to True to receive ego-vehicle locations from the simulator')
 
 
 # Certain visualizations are not supported when running in challenge mode.
@@ -49,7 +50,7 @@ def get_entry_point():
 
 
 class ERDOSAgent(ERDOSBaseAgent):
-    """Agent class that interacts with the CARLA challenge leaderboard.
+    """Agent class that interacts with the challenge leaderboard.
 
     Attributes:
         _camera_setups: Mapping between camera names and
@@ -125,8 +126,7 @@ class ERDOSAgent(ERDOSBaseAgent):
                         erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
             elif key == 'LIDAR':
                 # Send the LiDAR point cloud.
-                carla_pc = val[1]
-                self.send_lidar_msg(self._point_cloud_stream, carla_pc,
+                self.send_lidar_msg(self._point_cloud_stream, val[1],
                                     erdos_timestamp, self._lidar_setup)
             else:
                 self.logger.warning("Sensor {} not used".format(key))
@@ -172,7 +172,7 @@ class ERDOSAgent(ERDOSBaseAgent):
                                      timestamp)
             self._route_stream.send(erdos.Message(timestamp, pose))
             self._route_stream.send(erdos.WatermarkMessage(timestamp))
-        elif FLAGS.carla_localization:
+        elif FLAGS.perfect_localization:
             self.send_perfect_pose_msg(self._pose_stream, timestamp)
         else:
             # In this configuration, the agent is not using a localization
@@ -219,16 +219,16 @@ def create_data_flow():
     else:
         # The agent either directly forwards the poses it receives from
         # the challenge, which are noisy, or the perfect poses if the
-        # --carla_localization flag is set.
+        # --perfect_localization flag is set.
         pose_stream = erdos.IngestStream()
 
     # Stream on which the obstacles are sent when the agent is using perfect
     # detection.
     perfect_obstacles_stream = erdos.IngestStream()
-    if FLAGS.carla_obstacle_detection:
+    if FLAGS.simulator_obstacle_detection:
         # Execute with perfect perception. In this configuration, the agent
-        # directly gets the location of the other agents from CARLA. This
-        # configuration is meant for testing and debugging.
+        # directly gets the location of the other agents from the simulator.
+        # This configuration is meant for testing and debugging.
         obstacles_stream = perfect_obstacles_stream
     elif any('efficientdet' in model
              for model in FLAGS.obstacle_detection_model_names):
@@ -249,10 +249,10 @@ def create_data_flow():
     # Stream on which the traffic lights are sent when the agent is
     # using perfect traffic light detection.
     perfect_traffic_lights_stream = erdos.IngestStream()
-    if FLAGS.carla_traffic_light_detection:
+    if FLAGS.simulator_traffic_light_detection:
         # In this debug configuration, the agent is using perfectly located
-        # traffic lights it receives directly from CARLA. Therefore, there's
-        # no need to a traffic light detector.
+        # traffic lights it receives directly from the simulator. Therefore,
+        # there's no need to a traffic light detector.
         traffic_lights_stream = perfect_traffic_lights_stream
         camera_streams[TL_CAMERA_NAME] = erdos.IngestStream()
         streams_to_send_top_on.append(camera_streams[TL_CAMERA_NAME])
@@ -276,8 +276,8 @@ def create_data_flow():
         streams_to_send_top_on.append(perfect_traffic_lights_stream)
 
     vehicle_id_stream = erdos.IngestStream()
-    if not (FLAGS.perfect_obstacle_tracking or FLAGS.carla_localization):
-        # The vehicle_id_stream is only used when perfect CARLA localization
+    if not (FLAGS.perfect_obstacle_tracking or FLAGS.perfect_localization):
+        # The vehicle_id_stream is only used when perfect localization
         # or perfect obstacle tracking are enabled.
         streams_to_send_top_on.append(vehicle_id_stream)
 
@@ -385,7 +385,7 @@ def create_camera_setups():
                                          90)
     camera_setups[CENTER_CAMERA_NAME] = center_camera_setup
 
-    if not FLAGS.carla_traffic_light_detection:
+    if not FLAGS.simulator_traffic_light_detection:
         # Add a camera with a narrow field of view. The traffic light
         # camera is added in the same position as the center camera.
         # We use this camera for traffic light detection.

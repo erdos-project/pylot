@@ -10,7 +10,7 @@ from pylot.utils import time_epoch_ms
 
 class PlanningPoseSynchronizerOperator(erdos.Operator):
     """ Synchronizes and relays waypoints and pose messages to the control
-    module to enable pseudo-synchronization of the Carla simulation with a
+    module to enable pseudo-synchronization of the simulation with a
     high-frequency control.
 
     This operator receives waypoints (and the corresponding localization
@@ -37,7 +37,8 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
             the waypoints matched to the given pose message are sent to the
             downstream control operator.
         pose_write_stream (:py:class:`erdos.WriteStream`): Stream that relays
-            the pose messages from the CarlaOperator to the control module.
+            the pose messages from the simulator bridge operator to the control
+            module.
         release_sensor_stream (:py:class:`erdos.WriteStream`): Stream that
             synchronizes all the sensors and waits for the slowest sensor in
             order to release data from all the sensor simultaneously.
@@ -126,8 +127,8 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
                     msg.timestamp, self._waypoint_num))
             self._first_waypoint = False
             self._waypoint_num += 1
-            # Send a message on the notify stream to ask CARLA to send a new
-            # sensor stream.
+            # Send a message on the notify stream to ask the simulator to send
+            # a new sensor stream.
             self._pipeline_finish_notify_stream.send(watermark)
             return
 
@@ -173,8 +174,8 @@ class PlanningPoseSynchronizerOperator(erdos.Operator):
         # Delete the pose from the map.
         self._pose_map.pop(game_time, None)
 
-        # Send a message on the notify stream to ask CARLA to send a new
-        # sensor stream.
+        # Send a message on the notify stream to ask the simulator to send a
+        # new sensor stream.
         self._pipeline_finish_notify_stream.send(watermark)
 
     def on_pose_update(self, msg):

@@ -1,5 +1,7 @@
 from collections import deque
+
 import numpy as np
+
 from pylot.utils import Location, Rotation, Transform, Vector3D
 
 from shapely.geometry import Point
@@ -59,11 +61,11 @@ class Lane(object):
     def draw_on_world(self, world):
         import carla
         for marking in self.left_markings:
-            world.debug.draw_point(marking.as_carla_location(),
+            world.debug.draw_point(marking.as_simulator_location(),
                                    size=0.1,
                                    color=carla.Color(255, 255, 0))
         for marking in self.right_markings:
-            world.debug.draw_point(marking.as_carla_location(),
+            world.debug.draw_point(marking.as_simulator_location(),
                                    size=0.1,
                                    color=carla.Color(255, 255, 0))
 

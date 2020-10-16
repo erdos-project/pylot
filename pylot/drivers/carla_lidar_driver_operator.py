@@ -1,8 +1,8 @@
 """This module implements an operator acts like a LiDAR driver when
-using the CARLA simulator.
+using the simulator.
 
 The operator attaches a LiDAR sensor to the ego vehicle, receives point clouds
-from CARLA, and sends them on its output stream.
+from the simulator, and sends them on its output stream.
 """
 
 import pickle
@@ -27,7 +27,7 @@ class CarlaLidarDriverOperator(erdos.Operator):
     Args:
         ground_vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on
             which the operator receives the id of the ego vehicle. It uses this
-            id to get a Carla handle to the vehicle.
+            id to get a simulator handle to the vehicle.
         lidar_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends point cloud messages.
         lidar_setup (:py:class:`pylot.drivers.sensor_setup.LidarSetup`):
@@ -45,9 +45,9 @@ class CarlaLidarDriverOperator(erdos.Operator):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._lidar_setup = lidar_setup
-        # The hero vehicle actor object we obtain from Carla.
+        # The hero vehicle actor object we obtain from the simulator.
         self._vehicle = None
-        # Handle to the Lidar Carla actor.
+        # Handle to the Lidar simulator actor.
         self._lidar = None
         self._pickle_lock = threading.Lock()
         self._pickled_messages = {}
@@ -73,18 +73,18 @@ class CarlaLidarDriverOperator(erdos.Operator):
                                             self._pickled_messages[timestamp])
             # Note: The operator is set not to automatically propagate
             # watermark messages received on input streams. Thus, we can
-            # issue watermarks only after the Carla callback is invoked.
+            # issue watermarks only after the simulator callback is invoked.
             self._lidar_stream.send(watermark_msg)
             with self._pickle_lock:
                 del self._pickled_messages[timestamp]
 
-    def process_point_clouds(self, carla_pc):
+    def process_point_clouds(self, simulator_pc):
         """ Invoked when a pointcloud is received from the simulator.
 
         Args:
-            carla_pc: a carla.SensorData object.
+            simulator_pc: a carla.SensorData object.
         """
-        game_time = int(carla_pc.timestamp * 1000)
+        game_time = int(simulator_pc.timestamp * 1000)
         timestamp = erdos.Timestamp(coordinates=[game_time])
         watermark_msg = erdos.WatermarkMessage(timestamp)
         with erdos.profile(self.config.name + '.process_point_clouds',
@@ -93,14 +93,14 @@ class CarlaLidarDriverOperator(erdos.Operator):
             # Ensure that the code executes serially
             with self._lock:
                 assert len(
-                    carla_pc.raw_data) > 0, 'Lidar did not send any points'
+                    simulator_pc.raw_data) > 0, 'Lidar did not send any points'
                 # Include the transform relative to the vehicle.
-                # Carla carla_pc.transform returns the world transform, but
+                # simulator_pc.transform returns the world transform, but
                 # we do not use it directly.
                 msg = PointCloudMessage(
                     timestamp,
-                    PointCloud.from_carla_point_cloud(carla_pc,
-                                                      self._lidar_setup))
+                    PointCloud.from_simulator_point_cloud(
+                        simulator_pc, self._lidar_setup))
 
                 if self._release_data:
                     self._lidar_stream.send(msg)
@@ -118,15 +118,15 @@ class CarlaLidarDriverOperator(erdos.Operator):
         vehicle_id_msg = self._vehicle_id_stream.read()
         vehicle_id = vehicle_id_msg.data
         self._logger.debug(
-            "The CarlaLidarDriverOperator received the vehicle id: {}".format(
+            "The LidarDriverOperator received the vehicle id: {}".format(
                 vehicle_id))
 
         # Connect to the world. We connect here instead of in the constructor
         # to ensure we're connected to the latest world.
-        client, world = get_world(self._flags.carla_host,
-                                  self._flags.carla_port,
-                                  self._flags.carla_timeout)
-        carla_version = client.get_client_version()
+        client, world = get_world(self._flags.simulator_host,
+                                  self._flags.simulator_port,
+                                  self._flags.simulator_timeout)
+        simulator_version = client.get_client_version()
         set_simulation_mode(world, self._flags)
 
         self._vehicle = get_vehicle_handle(world, vehicle_id)
@@ -136,9 +136,9 @@ class CarlaLidarDriverOperator(erdos.Operator):
             self._lidar_setup.lidar_type)
         lidar_blueprint.set_attribute('channels',
                                       str(self._lidar_setup.channels))
-        if not (carla_version.startswith('0.8') or re.match(
-                '0\.9\.[0-6]', carla_version) is not None):  # noqa: W605
-            # Any CARLA version after 0.9.6.
+        if not (simulator_version.startswith('0.8') or re.match(
+                '0\.9\.[0-6]', simulator_version) is not None):  # noqa: W605
+            # Any simulator version after 0.9.6.
             lidar_blueprint.set_attribute(
                 'range', str(self._lidar_setup.get_range_in_meters()))
         else:
@@ -152,13 +152,14 @@ class CarlaLidarDriverOperator(erdos.Operator):
                                       str(self._lidar_setup.upper_fov))
         lidar_blueprint.set_attribute('lower_fov',
                                       str(self._lidar_setup.lower_fov))
-        if self._flags.carla_lidar_frequency == -1:
+        if self._flags.simulator_lidar_frequency == -1:
             lidar_blueprint.set_attribute('sensor_tick', '0.0')
         else:
             lidar_blueprint.set_attribute(
-                'sensor_tick', str(1.0 / self._flags.carla_lidar_frequency))
+                'sensor_tick',
+                str(1.0 / self._flags.simulator_lidar_frequency))
 
-        transform = self._lidar_setup.get_transform().as_carla_transform()
+        transform = self._lidar_setup.get_transform().as_simulator_transform()
 
         self._logger.debug("Spawning a lidar: {}".format(self._lidar_setup))
         # NOTE: The LiDAR can be attached on a rigid or a spring arm. If the

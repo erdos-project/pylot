@@ -28,7 +28,7 @@ Important flags
      An operator that implements a model predictive controller.
   2. `pid <pylot.control.html#module-pylot.control.pid\_agent\_operator>`__:
      An operator that uses a PID controller to follow the waypoints.
-  3. ``carla_auto_pilot``: The CARLA simulator control the ego-vehicle, and
+  3. ``simulator_auto_pilot``: The simulator controls the ego-vehicle, and
      drives it on a predefined path. The path differs depending on the spawning
      position.
 

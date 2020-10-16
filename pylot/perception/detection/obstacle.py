@@ -59,33 +59,32 @@ class Obstacle(object):
         self.__depth_threshold = 5
 
     @classmethod
-    def from_carla_actor(cls, actor):
-        """Creates an Obstacle from a CARLA actor.
+    def from_simulator_actor(cls, actor):
+        """Creates an Obstacle from a simulator actor.
 
         Args:
-            actor: The actor to initialize the obstacle with. (should be of
-                type carla.Vehicle or carla.Walker)
+            actor: The actor to initialize the obstacle with.
 
         Returns:
             :py:class:`.Obstacle`: An obstacle instance.
         """
         import carla
         if not isinstance(actor, (carla.Vehicle, carla.Walker)):
-            raise ValueError("The actor should be of type carla.Vehicle or "
-                             "carla.Walker to initialize the Obstacle class.")
-        # We do not use everywhere from_carla* methods in order to reduce
+            raise ValueError("The actor should be of type Vehicle or "
+                             "Walker to initialize the Obstacle class.")
+        # We do not use everywhere from_simulator* methods in order to reduce
         # runtime.
         # Convert the transform provided by the simulation to the Pylot class.
-        transform = pylot.utils.Transform.from_carla_transform(
+        transform = pylot.utils.Transform.from_simulator_transform(
             actor.get_transform())
         # Convert the bounding box from the simulation to the Pylot one.
-        bounding_box = BoundingBox3D.from_carla_bounding_box(
+        bounding_box = BoundingBox3D.from_simulator_bounding_box(
             actor.bounding_box)
         if isinstance(actor, carla.Vehicle):
             label = 'vehicle'
         else:
             label = 'person'
-        # Get the carla actor from type_id (e.g. vehicle.ford.mustang).
+        # Get the simulator actor from type_id (e.g. vehicle.ford.mustang).
         detailed_label = actor.type_id
         # TODO (Sukrit): Move from vehicles and people to separate classes
         # for bicycles, motorcycles, cars and persons.
@@ -106,8 +105,8 @@ class Obstacle(object):
         """Computes the distance from the obstacle to the other transform.
 
         The distance provides an estimate of the depth returned by the depth
-        camera sensor in Carla. As a result, the distance is defined as the
-        displacement of the obstacle along either the X or the Y axis.
+        camera sensor in the simulator. As a result, the distance is defined
+        as the displacement of the obstacle along either the X or the Y axis.
 
         Args:
             other_transform (:py:class:`~pylot.utils.Transform`): The other

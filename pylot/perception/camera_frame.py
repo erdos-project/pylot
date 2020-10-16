@@ -38,17 +38,19 @@ class CameraFrame(object):
         self.camera_setup = camera_setup
 
     @classmethod
-    def from_carla_frame(cls, carla_frame, camera_setup: CameraSetup):
-        """Creates a pylot camera frame from a CARLA frame.
+    def from_simulator_frame(cls, simulator_frame, camera_setup: CameraSetup):
+        """Creates a pylot camera frame from a simulator frame.
 
         Returns:
             :py:class:`.CameraFrame`: A BGR camera frame.
         """
         import carla
-        if not isinstance(carla_frame, carla.Image):
-            raise ValueError('carla_frame should be of type carla.Image')
-        _frame = np.frombuffer(carla_frame.raw_data, dtype=np.dtype("uint8"))
-        _frame = np.reshape(_frame, (carla_frame.height, carla_frame.width, 4))
+        if not isinstance(simulator_frame, carla.Image):
+            raise ValueError('simulator_frame should be of type Image')
+        _frame = np.frombuffer(simulator_frame.raw_data,
+                               dtype=np.dtype("uint8"))
+        _frame = np.reshape(_frame,
+                            (simulator_frame.height, simulator_frame.width, 4))
         return cls(_frame[:, :, :3], 'BGR', camera_setup)
 
     def as_numpy_array(self):

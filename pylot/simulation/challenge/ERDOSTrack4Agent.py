@@ -25,7 +25,7 @@ FLAGS = flags.FLAGS
 
 
 class ERDOSTrack4Agent(AutonomousAgent):
-    """Agent class that interacts with the CARLA challenge scenario runner.
+    """Agent class that interacts with the challenge scenario runner.
 
     Warning:
         The agent is designed to work on track 4 only.
@@ -333,7 +333,7 @@ class ERDOSTrack4Agent(AutonomousAgent):
     def send_pose_msg(self, data, timestamp):
         # The can bus dict contains other fields as well, but we don't use
         # them yet.
-        vehicle_transform = pylot.utils.Transform.from_carla_transform(
+        vehicle_transform = pylot.utils.Transform.from_simulator_transform(
             data['transform'])
         forward_speed = data['speed']
         yaw = vehicle_transform.rotation.yaw
@@ -353,7 +353,7 @@ class ERDOSTrack4Agent(AutonomousAgent):
         if self._waypoints is None:
             # Gets global waypoints from the agent.
             self._waypoints = self._global_plan_world_coord
-            data = [(pylot.utils.Transform.from_carla_transform(transform),
+            data = [(pylot.utils.Transform.from_simulator_transform(transform),
                      road_option)
                     for (transform, road_option) in self._waypoints]
             self._global_trajectory_stream.send(erdos.Message(timestamp, data))

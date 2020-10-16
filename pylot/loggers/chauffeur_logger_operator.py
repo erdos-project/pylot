@@ -66,12 +66,11 @@ class ChauffeurLoggerOperator(erdos.Operator):
         return []
 
     def run(self):
-        # Run method is invoked after all operators finished initializing,
-        # including the CARLA operator, which reloads the world. Thus, if
-        # we get the world here we're sure it is up-to-date.
+        # Run method is invoked after all operators finished initializing.
+        # Thus, we're sure the world is up-to-date here.
         _, self._world = pylot.simulation.utils.get_world(
-            self._flags.carla_host, self._flags.carla_port,
-            self._flags.carla_timeout)
+            self._flags.simulator_host, self._flags.simulator_port,
+            self._flags.simulator_timeout)
 
     def on_tracking_update(self, msg: erdos.Message):
         assert len(msg.timestamp.coordinates) == 1
@@ -223,7 +222,8 @@ class ChauffeurLoggerOperator(erdos.Operator):
             bbox_color = carla.Color(r, g, b)
         else:
             bbox_color = carla.Color(0, 0, 0)
-        bbox_life_time = (1 / self._flags.carla_fps + TL_BBOX_LIFETIME_BUFFER)
+        bbox_life_time = \
+            (1 / self._flags.simulator_fps + TL_BBOX_LIFETIME_BUFFER)
         world.debug.draw_box(bbox,
                              transform.rotation,
                              thickness=0.5,
