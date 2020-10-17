@@ -1,5 +1,5 @@
 # This module provides mocked versions of classes and functions provided
-# by Carla in our runtime environment.
+# by CARLA in our runtime environment.
 
 
 class Location(object):

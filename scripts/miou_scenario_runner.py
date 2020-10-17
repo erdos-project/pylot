@@ -58,7 +58,7 @@ def retrieve_actor(world, bp_regex, role_name):
 
     Args:
         world: The instance of the simulator to retrieve the actors from.
-        bp_regex: The blueprint of the actor to be retrieved from the Carla.
+        bp_regex: The actor's blueprint to be retrieved from the simulator.
         role_name: The name of the actor to be retrieved.
 
     Returns:
@@ -250,7 +250,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="CARLA mIoU collector")
+    argparser = argparse.ArgumentParser(description="mIoU data collector")
     argparser.add_argument('-s',
                            '--speed',
                            dest='speed',

@@ -18,7 +18,7 @@ from pylot.simulation.utils import get_vehicle_handle, get_world, \
 
 
 class CarlaLidarDriverOperator(erdos.Operator):
-    """CarlaLidarDriverOperator publishes Lidar point clouds onto a stream.
+    """Publishes Lidar point clouds onto a stream.
 
     This operator attaches a vehicle at the required position with respect to
     the vehicle, registers callback functions to retrieve the point clouds and

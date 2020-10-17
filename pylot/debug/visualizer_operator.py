@@ -193,7 +193,6 @@ class VisualizerOperator(erdos.Operator):
 
         # Save the flags.
         self._flags = flags
-        self._map = None
 
     @staticmethod
     def connect(pose_stream, rgb_camera_stream, tl_camera_stream,
@@ -379,7 +378,7 @@ class VisualizerOperator(erdos.Operator):
                                         pose_msg.data,
                                         prediction_msg.predictions,
                                         traffic_light_msg.obstacles,
-                                        self._map,
+                                        None,
                                         lanes=lanes)
             self._planning_world.update_waypoints(None, waypoint_msg.waypoints)
             self._planning_world.draw_on_frame(frame)
@@ -397,13 +396,6 @@ class VisualizerOperator(erdos.Operator):
             _, self._world = get_world(self._flags.simulator_host,
                                        self._flags.simulator_port,
                                        self._flags.simulator_timeout)
-        if self._flags.execution_mode == 'simulation':
-            from pylot.simulation.utils import get_map
-            from pylot.map.hd_map import HDMap
-            self._map = HDMap(
-                get_map(self._flags.simulator_host, self._flags.simulator_port,
-                        self._flags.simulator_timeout),
-                self.config.log_file_name)
 
     def _visualize_pose(self, ego_transform):
         # Draw position. We add 0.5 to z to ensure that the point is above

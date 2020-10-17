@@ -19,7 +19,7 @@ from pylot.perception.messages import ObstaclesMessage, SpeedSignsMessage, \
 
 
 class CarlaOperator(erdos.Operator):
-    """ CarlaOperator initializes and controls the simulation.
+    """Initializes and controls a CARLA simulation.
 
     This operator connects to the simulation, sets the required weather in the
     simulation world, initializes the required number of actors, and the

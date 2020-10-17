@@ -6,7 +6,7 @@ from absl import flags
 flags.DEFINE_string('simulator_host', 'localhost', 'Simulator host.')
 flags.DEFINE_integer('simulator_port', 2000, 'Simulator port.')
 flags.DEFINE_integer('carla_traffic_manager_port', 8000,
-                     'Carla traffic manager port.')
+                     'CARLA traffic manager port.')
 flags.DEFINE_integer('simulator_timeout', 10,
                      'Timeout for connecting to the simulator.')
 flags.DEFINE_enum('simulator_mode', 'synchronous', [

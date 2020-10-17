@@ -1,12 +1,12 @@
-"""Wrapper module for interacting with the Carla HD map.
+"""Wrapper module for interacting with the CARLA HD map.
 
 This module implements HDMap class which offers utility methods for interacting
-with the carla HD map.
+with the CARLA HD map.
 """
 
 from collections import deque
 
-# Import Planner from Carla codebase
+# Import Planner from CARLA codebase
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 

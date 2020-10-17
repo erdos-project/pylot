@@ -314,7 +314,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="CARLA mIoU collector")
+    argparser = argparse.ArgumentParser(description="mAP data collector")
     argparser.add_argument('-s',
                            '--speed',
                            dest='speed',

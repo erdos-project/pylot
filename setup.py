@@ -7,7 +7,7 @@ setup(
     description=("A platform for developing autonomous vehicles."),
     long_description=open("README.md").read(),
     url="https://github.com/erdos-project/pylot",
-    keywords=("autonomous vehicles driving python carla simulation"),
+    keywords=("autonomous vehicles driving python CARLA simulation"),
     packages=find_packages(),
     license="Apache 2.0",
     install_requires=[
