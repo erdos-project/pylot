@@ -476,8 +476,11 @@ class Location(Vector3D):
         EARTH_RADIUS_EQUA = 6378137.0
         # The following reference values are applicable for towns 1 through 7,
         # and are taken from the corresponding OpenDrive map files.
-        LAT_REF = 49.0
-        LON_REF = 8.0
+        # LAT_REF = 49.0
+        # LON_REF = 8.0
+        # TODO: Do not hardcode. Get the references from the open drive file.
+        LAT_REF = 0.0
+        LON_REF = 0.0
 
         scale = math.cos(LAT_REF * math.pi / 180.0)
         basex = scale * math.pi * EARTH_RADIUS_EQUA / 180.0 * LON_REF
