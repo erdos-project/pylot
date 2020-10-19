@@ -6,7 +6,7 @@ import threading
 import time
 from functools import total_ordering
 
-import carla
+from carla import Location, VehicleControl, command
 
 import erdos
 from erdos import ReadStream, Timestamp, WriteStream
@@ -17,8 +17,6 @@ from pylot.control.messages import ControlMessage
 from pylot.perception.messages import ObstaclesMessage, SpeedSignsMessage, \
     StopSignsMessage, TrafficLightsMessage
 
-import pickle
-import os
 
 class CarlaOperator(erdos.Operator):
     """Initializes and controls a CARLA simulation.
@@ -77,7 +75,7 @@ class CarlaOperator(erdos.Operator):
             self._flags.simulator_timeout)
         self._simulator_version = self._client.get_client_version()
 
-        if not self._flags.carla_scenario_runner and \
+        if not self._flags.scenario_runner and \
                 self._flags.control != "manual":
             # Load the appropriate town.
             self._initialize_world()
@@ -95,7 +93,7 @@ class CarlaOperator(erdos.Operator):
             self._traffic_manager.set_synchronous_mode(
                 self._flags.simulator_mode == 'synchronous')
 
-        if self._flags.carla_scenario_runner:
+        if self._flags.scenario_runner:
             # Tick until 4.0 seconds time so that all synchronous scenario runs
             # start at exactly the same game time.
             pylot.simulation.utils.set_synchronous_mode(self._world, 1000)
@@ -103,8 +101,7 @@ class CarlaOperator(erdos.Operator):
 
         pylot.simulation.utils.set_simulation_mode(self._world, self._flags)
 
-        if self._flags.carla_scenario_runner or \
-                self._flags.control == "manual":
+        if self._flags.scenario_runner or self._flags.control == "manual":
             # Wait until the ego vehicle is spawned by the scenario runner.
             self._logger.info("Waiting for the scenario to be ready ...")
             self._ego_vehicle = pylot.simulation.utils.wait_for_ego_vehicle(
@@ -346,15 +343,13 @@ class CarlaOperator(erdos.Operator):
 
     def _apply_control_msg(self, msg: ControlMessage):
         # Transform the message to a simulator control cmd.
-        vec_control = carla.VehicleControl(throttle=msg.throttle,
-                                           steer=msg.steer,
-                                           brake=msg.brake,
-                                           hand_brake=msg.hand_brake,
-                                           reverse=msg.reverse)
-        self._client.apply_batch_sync([
-            carla.command.ApplyVehicleControl(self._ego_vehicle.id,
-                                              vec_control)
-        ])
+        vec_control = VehicleControl(throttle=msg.throttle,
+                                     steer=msg.steer,
+                                     brake=msg.brake,
+                                     hand_brake=msg.hand_brake,
+                                     reverse=msg.reverse)
+        self._client.apply_batch_sync(
+            [command.ApplyVehicleControl(self._ego_vehicle.id, vec_control)])
 
     def __send_hero_vehicle_data(self, stream: WriteStream,
                                  timestamp: Timestamp):
@@ -365,21 +360,7 @@ class CarlaOperator(erdos.Operator):
         forward_speed = velocity_vector.magnitude()
         pose = pylot.utils.Pose(vec_transform, forward_speed, velocity_vector,
                                 timestamp.coordinates[0])
-        
-        message_stream = []
-        message_stream_filename = 'message_stream.pkl'
-
-        if os.path.exists(message_stream_filename):
-            with open(message_stream_filename,'rb') as rfp:
-                message_stream = pickle.load(rfp)
-        
-        message = erdos.Message(timestamp, pose)
-        message_stream.append(message)
-
-        with open(message_stream_filename,'wb') as wfp:
-            pickle.dump(message_stream, wfp)
-
-        stream.send(message)
+        stream.send(erdos.Message(timestamp, pose))
         stream.send(erdos.WatermarkMessage(timestamp))
 
     def __send_ground_actors_data(self, timestamp: Timestamp):
@@ -430,7 +411,7 @@ class CarlaOperator(erdos.Operator):
     def __update_spectactor_pose(self):
         # Set the world simulation view with respect to the vehicle.
         v_pose = self._ego_vehicle.get_transform()
-        v_pose.location -= 10 * carla.Location(v_pose.get_forward_vector())
+        v_pose.location -= 10 * Location(v_pose.get_forward_vector())
         v_pose.location.z = 5
         self._spectator.set_transform(v_pose)
 
