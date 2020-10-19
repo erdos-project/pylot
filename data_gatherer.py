@@ -23,6 +23,7 @@ flags.DEFINE_bool('log_left_right_cameras', False,
 flags.DEFINE_bool('log_depth_camera', False,
                   'True to enable depth camera logging')
 flags.DEFINE_bool('log_imu', False, 'Enable logging of IMU measurements.')
+flags.DEFINE_bool('log_gnss', False, 'Enable logging of GNSS measurements.')
 flags.DEFINE_bool('log_lidar', False, 'True to enable lidar logging')
 flags.DEFINE_bool('log_obstacles', False,
                   'True to enable obstacle bounding box logging')
@@ -91,9 +92,17 @@ def main(argv):
 
     imu_stream = None
     if FLAGS.log_imu:
-        (imu_stream,
-         _) = pylot.operator_creator.add_imu(transform, vehicle_id_stream)
-        pylot.operator_creator.add_imu_logging(imu_stream)
+        (imu_stream, _) = pylot.operator_creator.add_imu(
+            pylot.utils.Transform(location=pylot.utils.Location(),
+                                  rotation=pylot.utils.Rotation()),
+            vehicle_id_stream)
+
+    gnss_stream = None
+    if FLAGS.log_gnss:
+        (gnss_stream, _) = pylot.operator_creator.add_gnss(
+            pylot.utils.Transform(location=pylot.utils.Location(),
+                                  rotation=pylot.utils.Rotation()),
+            vehicle_id_stream)
 
     traffic_lights_stream = None
     traffic_light_camera_stream = None
