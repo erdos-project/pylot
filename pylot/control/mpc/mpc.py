@@ -236,8 +236,8 @@ class ModelPredictiveController:
                 predicted_state[2, t], predicted_state[3, t],
                 reference_steer[0, t])
             constraints += [
-                x[:,
-                  t + 1] == matrix_a @ x[:, t] + matrix_b @ u[:, t] + matrix_c
+                x[:, t + 1] == matrix_a @ x[:, t] + matrix_b @ u[:, t] +
+                matrix_c
             ]
 
             if t < (self.config['horizon'] - 1):

@@ -230,12 +230,9 @@ class ChauffeurLoggerOperator(erdos.Operator):
                              color=bbox_color,
                              life_time=bbox_life_time)
 
-    def _get_traffic_light_channel_from_top_down_rgb(self,
-                                                     img,
-                                                     tl_bbox_colors=[[
-                                                         200, 0, 0
-                                                     ], [13, 0,
-                                                         196], [5, 200, 0]]):
+    def _get_traffic_light_channel_from_top_down_rgb(
+            self, img, tl_bbox_colors=[[200, 0, 0], [13, 0, 196], [5, 200,
+                                                                   0]]):
         """
         Returns a mask of the traffic light extent bounding boxes seen from a
         top-down view. The bounding boxes in the mask are colored differently

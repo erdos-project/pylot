@@ -174,8 +174,9 @@ class SegmentedFrame(object):
         Returns:
             A tuple comprising of mIoU and a list of IoUs.
         """
-        assert (self.encoding == 'cityscapes' and other_frame.encoding
-                == 'cityscapes'), 'Not implemented on carla encoding'
+        assert (self.encoding == 'cityscapes'
+                and other_frame.encoding == 'cityscapes'
+                ), 'Not implemented on carla encoding'
         iou = {}
         for key, value in CITYSCAPES_CLASSES.items():
             #  Do not include None in the mIoU

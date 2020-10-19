@@ -569,8 +569,8 @@ class Transform(object):
 
             # Forward vector is retrieved from the matrix.
             self.forward_vector = Vector3D(self.matrix[0, 0],
-                                           self.matrix[1, 0], self.matrix[2,
-                                                                          0])
+                                           self.matrix[1, 0],
+                                           self.matrix[2, 0])
             pitch_r = math.asin(np.clip(self.forward_vector.z, -1, 1))
             yaw_r = math.acos(
                 np.clip(self.forward_vector.x / math.cos(pitch_r), -1, 1))
@@ -585,8 +585,8 @@ class Transform(object):
 
             # Forward vector is retrieved from the matrix.
             self.forward_vector = Vector3D(self.matrix[0, 0],
-                                           self.matrix[1, 0], self.matrix[2,
-                                                                          0])
+                                           self.matrix[1, 0],
+                                           self.matrix[2, 0])
 
     @classmethod
     def from_simulator_transform(cls, transform):
