@@ -1,12 +1,18 @@
+import json
+import re
+import time
+
+import PIL.Image as Image
+
 from absl import app
 from absl import flags
-import carla
-import json
-import numpy as np
-import PIL.Image as Image
-import time
-import re
 
+from carla import LaneType, TrafficLightState, WeatherParameters
+
+import numpy as np
+
+import pylot.simulation.utils
+import pylot.utils
 from pylot.drivers.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
     SegmentedCameraSetup
 from pylot.perception.camera_frame import CameraFrame
@@ -17,8 +23,7 @@ from pylot.perception.detection.traffic_light import TrafficLight
 from pylot.perception.messages import DepthFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.simulation.utils import get_world
-import pylot.simulation.utils
-import pylot.utils
+
 
 FLAGS = flags.FLAGS
 SIMULATOR_IMAGE = None
@@ -130,13 +135,13 @@ def get_traffic_light_obstacles(traffic_lights, depth_frame, segmented_frame,
         traffic_lights, depth_frame, segmented_frame, town_name)
     # Overwrite traffic light color because we control it without refreshing
     # the agents.
-    if color == carla.TrafficLightState.Yellow:
+    if color == TrafficLightState.Yellow:
         label = 'yellow'
-    elif color == carla.TrafficLightState.Green:
+    elif color == TrafficLightState.Green:
         label = 'green'
-    elif color == carla.TrafficLightState.Red:
+    elif color == TrafficLightState.Red:
         label = 'red'
-    elif color == carla.TrafficLightState.Off:
+    elif color == TrafficLightState.Off:
         label = 'off'
     else:
         raise ValueError('Unknown traffic light color')
@@ -213,11 +218,11 @@ def change_traffic_light_colors(world, color):
     for tl in tl_actors:
         tl.set_state(color)
         tl.freeze(True)
-        if color == carla.TrafficLightState.Green:
+        if color == TrafficLightState.Green:
             tl.set_green_time(99999999999999999999999999999999999999)
             tl.set_yellow_time(0)
             tl.set_red_time(0)
-        elif color == carla.TrafficLightState.Yellow:
+        elif color == TrafficLightState.Yellow:
             tl.set_green_time(0)
             tl.set_yellow_time(99999999999999999999999999999999999999)
             tl.set_red_time(0)
@@ -303,8 +308,8 @@ def log_traffic_lights(world):
     world_map = world.get_map()
     (traffic_lights, _, _, _) = get_actors(world)
     tl_colors = [
-        carla.TrafficLightState.Yellow, carla.TrafficLightState.Green,
-        carla.TrafficLightState.Red
+        TrafficLightState.Yellow, TrafficLightState.Green,
+        TrafficLightState.Red
     ]
     transforms_of_interest = []
     for light in traffic_lights:
@@ -330,7 +335,7 @@ def log_traffic_lights(world):
             # Get the waypoint nearest to the transform.
             w = world_map.get_waypoint(location,
                                        project_to_road=True,
-                                       lane_type=carla.LaneType.Driving)
+                                       lane_type=LaneType.Driving)
             w_rotation = w.transform.rotation
             camera_transform = pylot.utils.Transform.from_simulator_transform(
                 w.transform)
@@ -340,7 +345,7 @@ def log_traffic_lights(world):
 
             # Get the right lanes.
             wp_right = w.get_right_lane()
-            while wp_right and wp_right.lane_type == carla.LaneType.Driving \
+            while wp_right and wp_right.lane_type == LaneType.Driving \
                     and w_rotation == wp_right.transform.rotation:
                 camera_transform = \
                     pylot.utils.Transform.from_simulator_transform(
@@ -352,7 +357,7 @@ def log_traffic_lights(world):
 
             # Get the left lanes.
             wp_left = w.get_left_lane()
-            while wp_left and wp_left.lane_type == carla.LaneType.Driving and \
+            while wp_left and wp_left.lane_type == LaneType.Driving and \
                     w_rotation == wp_left.transform.rotation:
                 camera_transform = \
                     pylot.utils.Transform.from_simulator_transform(
@@ -395,21 +400,21 @@ def log_speed_limits(world):
             location = transform.location.as_simulator_location()
             w = world_map.get_waypoint(location,
                                        project_to_road=True,
-                                       lane_type=carla.LaneType.Driving)
+                                       lane_type=LaneType.Driving)
             camera_transform = pylot.utils.Transform.from_simulator_transform(
                 w.transform)
             camera_transform.location.z += 2.0
             transform = camera_transform.as_simulator_transform()
             transforms_of_interest.append(transform)
     # Ensure all traffic lights are red.
-    change_traffic_light_colors(world, carla.TrafficLightState.Red)
+    change_traffic_light_colors(world, TrafficLightState.Red)
     world.tick()
     time.sleep(1)
     (_, traffic_lights, traffic_stops, speed_signs) = get_actors(world)
     for weather in find_weather_presets():
         change_weather(world, weather)
         log_obstacles(world, transforms_of_interest, traffic_lights,
-                      carla.TrafficLightState.Red, speed_signs, traffic_stops,
+                      TrafficLightState.Red, speed_signs, traffic_stops,
                       weather, world_map.name)
 
 
@@ -427,31 +432,31 @@ def log_stop_signs(world):
             location = transform.location.as_simulator_location()
             w = world_map.get_waypoint(location,
                                        project_to_road=True,
-                                       lane_type=carla.LaneType.Driving)
+                                       lane_type=LaneType.Driving)
             camera_transform = pylot.utils.Transform.from_simulator_transform(
                 w.transform)
             camera_transform.location.z += 2.0
             transform = camera_transform.as_simulator_transform()
             transforms_of_interest.append(transform)
     # Ensure all traffic lights are red.
-    change_traffic_light_colors(world, carla.TrafficLightState.Red)
+    change_traffic_light_colors(world, TrafficLightState.Red)
     world.tick()
     time.sleep(1)
     (_, traffic_lights, traffic_stops, speed_signs) = get_actors(world)
     for weather in find_weather_presets():
         change_weather(world, weather)
         log_obstacles(world, transforms_of_interest, traffic_lights,
-                      carla.TrafficLightState.Red, speed_signs, traffic_stops,
+                      TrafficLightState.Red, speed_signs, traffic_stops,
                       weather, world_map.name)
 
 
 def change_weather(world, weather):
-    world.set_weather(getattr(carla.WeatherParameters, weather))
+    world.set_weather(getattr(WeatherParameters, weather))
 
 
 def find_weather_presets():
     presets = [
-        x for x in dir(carla.WeatherParameters) if re.match('[A-Z].+', x)
+        x for x in dir(WeatherParameters) if re.match('[A-Z].+', x)
     ]
     return presets
 

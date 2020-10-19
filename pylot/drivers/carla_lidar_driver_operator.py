@@ -79,10 +79,7 @@ class CarlaLidarDriverOperator(erdos.Operator):
                 del self._pickled_messages[timestamp]
 
     def process_point_clouds(self, simulator_pc):
-        """ Invoked when a pointcloud is received from the simulator.
-
-        Args:
-            simulator_pc: a carla.SensorData object.
+        """ Invoked when a point cloud is received from the simulator.
         """
         game_time = int(simulator_pc.timestamp * 1000)
         timestamp = erdos.Timestamp(coordinates=[game_time])

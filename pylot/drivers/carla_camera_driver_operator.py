@@ -129,11 +129,7 @@ class CarlaCameraDriverOperator(erdos.Operator):
         self._camera.listen(self.process_images)
 
     def process_images(self, simulator_image):
-        """ Invoked when an image is received from the simulator.
-
-        Args:
-            simulator_image: a carla.Image.
-        """
+        """Invoked when an image is received from the simulator."""
         game_time = int(simulator_image.timestamp * 1000)
         timestamp = erdos.Timestamp(coordinates=[game_time])
         watermark_msg = erdos.WatermarkMessage(timestamp)

@@ -46,8 +46,8 @@ class StopSign(Obstacle):
         Returns:
             :py:class:`.StopSign`: A stop sign.
         """
-        import carla
-        if not isinstance(actor, carla.TrafficSign):
+        from carla import TrafficSign
+        if not isinstance(actor, TrafficSign):
             raise ValueError('actor should be of type TrafficSign')
         transform = pylot.utils.Transform.from_simulator_transform(
             actor.get_transform())

@@ -32,6 +32,6 @@ Important flags
 Running scenarios
 -----------------
 
-- ``--carla_scenario_runner``:
+- ``--scenario_runner``:
 
 See the `reference <pylot.simulation.html>`_ for more information.

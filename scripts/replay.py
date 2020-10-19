@@ -3,7 +3,7 @@ import time
 from absl import app
 from absl import flags
 
-import carla
+from carla import Location, Rotation, Transform
 
 import pylot.flags
 from pylot.simulation.utils import get_world
@@ -50,8 +50,8 @@ def main(argv):
     camera_blueprint.set_attribute('image_size_y',
                                    str(FLAGS.camera_image_height))
 
-    transform = carla.Transform(carla.Location(2.0, 0.0, 1.4),
-                                carla.Rotation(pitch=0, yaw=0, roll=0))
+    transform = Transform(Location(2.0, 0.0, 1.4),
+                          Rotation(pitch=0, yaw=0, roll=0))
 
     camera = world.spawn_actor(camera_blueprint, transform, attach_to=vehicle)
 

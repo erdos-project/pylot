@@ -3,7 +3,7 @@
 
 
 class Location(object):
-    """ A mock class for carla.Location. """
+    """ A mock class for Location. """
 
     def __init__(self, x, y, z):
         self.x = x
@@ -12,7 +12,7 @@ class Location(object):
 
 
 class Rotation(object):
-    """ A mock class for carla.Rotation. """
+    """ A mock class for Rotation. """
 
     def __init__(self, pitch, yaw, roll):
         self.pitch = pitch
@@ -21,7 +21,7 @@ class Rotation(object):
 
 
 class Vector3D(object):
-    """ A mock class for carla.Vector3D. """
+    """ A mock class for Vector3D. """
 
     def __init__(self, x, y, z):
         self.x = x

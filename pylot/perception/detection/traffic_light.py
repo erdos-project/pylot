@@ -87,8 +87,8 @@ class TrafficLight(Obstacle):
         Returns:
             :py:class:`.TrafficLight`: A traffic light.
         """
-        import carla
-        if not isinstance(traffic_light, carla.TrafficLight):
+        from carla import TrafficLight, TrafficLightState
+        if not isinstance(traffic_light, TrafficLight):
             raise ValueError('The traffic light must be a TrafficLight')
         # Retrieve the Transform of the TrafficLight.
         transform = pylot.utils.Transform.from_simulator_transform(
@@ -100,11 +100,11 @@ class TrafficLight(Obstacle):
             traffic_light.trigger_volume.extent.z)
         traffic_light_state = traffic_light.get_state()
         state = TrafficLightColor.OFF
-        if traffic_light_state == carla.TrafficLightState.Red:
+        if traffic_light_state == TrafficLightState.Red:
             state = TrafficLightColor.RED
-        elif traffic_light_state == carla.TrafficLightState.Yellow:
+        elif traffic_light_state == TrafficLightState.Yellow:
             state = TrafficLightColor.YELLOW
-        elif traffic_light_state == carla.TrafficLightState.Green:
+        elif traffic_light_state == TrafficLightState.Green:
             state = TrafficLightColor.GREEN
         return cls(1.0, state, traffic_light.id, transform,
                    trigger_volume_extent)

@@ -13,8 +13,8 @@ flags.DEFINE_enum('simulator_mode', 'synchronous', [
     'synchronous', 'asynchronous', 'asynchronous-fixed-time-step',
     'pseudo-asynchronous'
 ], 'Sets the way in which to run the simulator')
-flags.DEFINE_bool('carla_scenario_runner', False,
-                  'True to enable running a scenario.')
+flags.DEFINE_bool('scenario_runner', False,
+                  'Set to True to execute pylot with scenario runner.')
 flags.DEFINE_integer('simulator_town', 1,
                      'Sets which simulator town to use. Options [1..7]')
 flags.DEFINE_integer('simulator_fps',

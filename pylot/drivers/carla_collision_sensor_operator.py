@@ -2,13 +2,11 @@
 between the ego vehicle and other simulation agents.
 """
 
-import carla
-
 import erdos
 
 from pylot.simulation.messages import CollisionMessage
 from pylot.simulation.utils import get_vehicle_handle, get_world
-from pylot.utils import Vector3D
+from pylot.utils import Transform, Vector3D
 
 
 class CarlaCollisionSensorDriverOperator(erdos.Operator):
@@ -62,9 +60,10 @@ class CarlaCollisionSensorDriverOperator(erdos.Operator):
         collision_blueprint = world.get_blueprint_library().find(
             'sensor.other.collision')
         self._logger.debug("Spawning a collision sensor.")
-        self._collision_sensor = world.spawn_actor(collision_blueprint,
-                                                   carla.Transform(),
-                                                   attach_to=self._vehicle)
+        self._collision_sensor = world.spawn_actor(
+            collision_blueprint,
+            Transform().as_simulator_transform(),
+            attach_to=self._vehicle)
 
         # Register the callback on the collision sensor.
         self._collision_sensor.listen(self.process_collision)
@@ -72,10 +71,8 @@ class CarlaCollisionSensorDriverOperator(erdos.Operator):
     def process_collision(self, collision_event):
         """ Invoked when a collision event is received from the simulation.
 
-        Args:
-            collision_event (:py:class:`carla.CollisionEvent`): A collision
-                event that contains the impulse, location and the object with
-                which the ego-vehicle collided.
+        The collision event contains the impulse, location and the object with
+        which the ego-vehicle collided.
         """
         game_time = int(collision_event.timestamp * 1000)
         self._logger.debug(

@@ -54,18 +54,18 @@ class SegmentedFrame(object):
 
     Args:
         frame: A numpy array storring the segmented frame.
-        encoding (:obj:`str`): The encoding of the frame (carla | cityscapes).
+        encoding (:obj:`str`): The encoding of the frame (simulator | cityscapes).  # noqa: E501
         camera_setup (:py:class:`~pylot.drivers.sensor_setup.SegmentedCameraSetup`):  # noqa: E501
             The camera setup used by the sensor that generated this frame.
 
     Attributes:
         frame: A numpy array storring the segmented frame.
-        encoding (:obj:`str`): The encoding of the frame (carla | cityscapes).
+        encoding (:obj:`str`): The encoding of the frame (simulator | cityscapes).  # noqa: E501
         camera_setup (:py:class:`~pylot.drivers.sensor_setup.SegmentedCameraSetup`):  # noqa: E501
             The camera setup used by the sensor that generated this frame.
     """
     def __init__(self, frame, encoding, camera_setup):
-        if encoding == 'carla' or encoding == 'cityscapes':
+        if encoding == 'simulator' or encoding == 'cityscapes':
             self._frame = frame
             self.encoding = encoding
             self.camera_setup = camera_setup
@@ -86,14 +86,14 @@ class SegmentedFrame(object):
         """
         # Converts the array containing simulator semantic segmentation labels
         # to a 2D array containing the label of each pixel.
-        import carla
-        if not isinstance(simulator_image, carla.Image):
+        from carla import Image
+        if not isinstance(simulator_image, Image):
             raise ValueError('simulator_image should be of type Image')
         __frame = np.frombuffer(simulator_image.raw_data,
                                 dtype=np.dtype("uint8"))
         __frame = np.reshape(
             __frame, (simulator_image.height, simulator_image.width, 4))
-        return cls(__frame[:, :, 2], 'carla', camera_setup)
+        return cls(__frame[:, :, 2], 'simulator', camera_setup)
 
     def as_cityscapes_palette(self):
         """Returns the frame to the CARLA cityscapes pallete.
@@ -131,7 +131,7 @@ class SegmentedFrame(object):
             list(:py:class:`~pylot.perception.detection.utils.BoundingBox2D`):
             Traffic sign bounding boxes.
         """
-        assert self.encoding == 'carla', \
+        assert self.encoding == 'simulator', \
             'Not implemented on cityscapes encoding'
         # Set the pixels we are interested in to True.
         traffic_signs_frame = self._get_traffic_sign_pixels()
@@ -152,7 +152,7 @@ class SegmentedFrame(object):
 
     def _get_per_class_masks(self):
         """ Build a cache of class key to frame mask."""
-        assert self.encoding == 'carla', \
+        assert self.encoding == 'simulator', \
             'Not implemented on cityscapes encoding'
         if self._class_masks is not None:
             return self._class_masks
@@ -174,9 +174,8 @@ class SegmentedFrame(object):
         Returns:
             A tuple comprising of mIoU and a list of IoUs.
         """
-        assert (self.encoding == 'cityscapes'
-                and other_frame.encoding == 'cityscapes'
-                ), 'Not implemented on carla encoding'
+        assert (self.encoding == 'cityscapes' and other_frame.encoding
+                == 'cityscapes'), 'Not implemented on simulator encoding'
         iou = {}
         for key, value in CITYSCAPES_CLASSES.items():
             #  Do not include None in the mIoU
@@ -210,7 +209,8 @@ class SegmentedFrame(object):
         Returns:
             A tuple comprising of mIoU and a list of IoUs.
         """
-        assert self.encoding == 'carla' and other_frame.encoding == 'carla', \
+        assert self.encoding == 'simulator' and \
+            other_frame.encoding == 'simulator', \
             'Not implemented on cityscapes encoding'
         masks = self._get_per_class_masks()
         other_masks = other_frame._get_per_class_masks()
@@ -228,7 +228,7 @@ class SegmentedFrame(object):
         return (mean_iou, iou)
 
     def save_per_class_masks(self, data_path, timestamp):
-        assert self.encoding == 'carla', \
+        assert self.encoding == 'simulator', \
             'Not implemented on cityscapes encoding'
         masks = self._get_per_class_masks()
         assert len(timestamp.coordinates) == 1

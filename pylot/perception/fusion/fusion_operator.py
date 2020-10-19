@@ -55,8 +55,8 @@ class FusionOperator(erdos.Operator):
             bounding_box_center = np.average(
                 [[bbox.x_min, bbox.x_max], [bbox.y_min, bbox.y_max]], axis=1)
 
-            distance = np.median(
-                distances[bbox.x_min:bbox.x_max, bbox.y_min:bbox.y_max])
+            distance = np.median(distances[bbox.x_min:bbox.x_max,
+                                           bbox.y_min:bbox.y_max])
             vertical_angle, horizontal_angle = (
                 self._camera_fov * (bounding_box_center - distances.shape) /
                 distances.shape)

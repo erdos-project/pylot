@@ -3,6 +3,8 @@ from collections import deque
 
 from absl import flags
 
+from carla import VehicleControl
+
 import erdos
 
 from leaderboard.autoagents.autonomous_agent import AutonomousAgent, \
@@ -358,14 +360,13 @@ def process_visualization_events(control_display_stream):
 
 def read_control_command(control_stream):
     # Wait until the control is set.
-    import carla
     while True:
         # Read the control command from the control stream.
         control_msg = control_stream.read()
         if not isinstance(control_msg, erdos.WatermarkMessage):
             # We have read a control message. Return the command
             # so that the leaderboard can tick the simulator.
-            output_control = carla.VehicleControl()
+            output_control = VehicleControl()
             output_control.throttle = control_msg.throttle
             output_control.brake = control_msg.brake
             output_control.steer = control_msg.steer

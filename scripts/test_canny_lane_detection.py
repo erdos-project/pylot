@@ -1,10 +1,15 @@
-import carla
-from collections import namedtuple
-import cv2
-import numpy as np
 import random
-import scipy.signal
 import time
+from collections import namedtuple
+
+from carla import Client, Location, Rotation, Transform, command
+
+import cv2
+
+import numpy as np
+
+import scipy.signal
+
 
 Threshold = namedtuple("Threshold", "min, max")
 
@@ -239,12 +244,12 @@ def spawn_driving_vehicle(client, world):
     an autopilot mode.
 
     Args:
-        client: The carla.Client instance representing the simulation to
+        client: The client instance representing the simulation to
           connect to.
         world: The world inside the current simulation.
 
     Returns:
-        A carla.Actor instance representing the vehicle that was just spawned.
+        An Actor instance representing the vehicle that was just spawned.
     """
     # Get the blueprint of the vehicle and set it to AutoPilot.
     vehicle_bp = random.choice(
@@ -260,12 +265,12 @@ def spawn_driving_vehicle(client, world):
 
     # Spawn the vehicle.
     batch = [
-        carla.command.SpawnActor(vehicle_bp, start_pose).then(
-            carla.command.SetAutopilot(carla.command.FutureActor, True))
+        command.SpawnActor(vehicle_bp, start_pose).then(
+            command.SetAutopilot(command.FutureActor, True))
     ]
     vehicle_id = client.apply_batch_sync(batch)[0].actor_id
 
-    # Find the vehicle and return the carla.Actor instance.
+    # Find the vehicle and return the Actor instance.
     time.sleep(
         0.5)  # This is so that the vehicle gets registered in the actors.
     return world.get_actors().find(vehicle_id)
@@ -278,11 +283,11 @@ def spawn_rgb_camera(world, location, rotation, vehicle):
 
     Args:
         world: The world inside the current simulation.
-        location: The carla.Location instance representing the location where
+        location: The Location instance representing the location where
           the camera needs to be spawned with respect to the vehicle.
-        rotation: The carla.Rotation instance representing the rotation of the
+        rotation: The Rotation instance representing the rotation of the
           spawned camera.
-        vehicle: The carla.Actor instance to attach the camera to.
+        vehicle: The Actor instance to attach the camera to.
 
     Returns:
         An instance of the camera spawned in the world.
@@ -290,13 +295,13 @@ def spawn_rgb_camera(world, location, rotation, vehicle):
     camera_bp = world.get_blueprint_library().find('sensor.camera.rgb')
     camera_bp.set_attribute('image_size_x', '1280')
     camera_bp.set_attribute('image_size_y', '720')
-    transform = carla.Transform(location=location, rotation=rotation)
+    transform = Transform(location=location, rotation=rotation)
     return world.spawn_actor(camera_bp, transform, attach_to=vehicle)
 
 
 def main():
     global world
-    client = carla.Client('localhost', 2000)
+    client = Client('localhost', 2000)
     world = client.get_world()
     settings = world.get_settings()
     settings.synchronous_mode = True
@@ -307,8 +312,8 @@ def main():
     vehicle = spawn_driving_vehicle(client, world)
 
     # Spawn the camera and register a function to listen to the images.
-    camera = spawn_rgb_camera(world, carla.Location(x=2.0, y=0.0, z=1.8),
-                              carla.Rotation(roll=0, pitch=0, yaw=0), vehicle)
+    camera = spawn_rgb_camera(world, Location(x=2.0, y=0.0, z=1.8),
+                              Rotation(roll=0, pitch=0, yaw=0), vehicle)
     camera.listen(process_images)
     world.tick()
     return vehicle, camera, world

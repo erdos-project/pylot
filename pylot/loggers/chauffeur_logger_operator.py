@@ -4,7 +4,7 @@ from collections import deque
 
 import PIL.Image as Image
 
-import carla
+from carla import BoundingBox, Color, TrafficLightState
 
 import cv2
 
@@ -16,9 +16,9 @@ import pylot.simulation.utils
 import pylot.utils
 
 TL_STATE_TO_PIXEL_COLOR = {
-    carla.TrafficLightState.Red: [255, 1, 1],
-    carla.TrafficLightState.Yellow: [2, 255, 2],
-    carla.TrafficLightState.Green: [3, 3, 255],
+    TrafficLightState.Red: [255, 1, 1],
+    TrafficLightState.Yellow: [2, 255, 2],
+    TrafficLightState.Green: [3, 3, 255],
 }
 
 # Draw bounding boxes and record them within TL_LOGGING_RADIUS meters from car.
@@ -215,13 +215,13 @@ class ChauffeurLoggerOperator(erdos.Operator):
     def _draw_trigger_volume(self, world, tl_actor):
         transform = tl_actor.get_transform()
         tv = transform.transform(tl_actor.trigger_volume.location)
-        bbox = carla.BoundingBox(tv, tl_actor.trigger_volume.extent)
+        bbox = BoundingBox(tv, tl_actor.trigger_volume.extent)
         tl_state = tl_actor.get_state()
         if tl_state in TL_STATE_TO_PIXEL_COLOR:
             r, g, b = TL_STATE_TO_PIXEL_COLOR[tl_state]
-            bbox_color = carla.Color(r, g, b)
+            bbox_color = Color(r, g, b)
         else:
-            bbox_color = carla.Color(0, 0, 0)
+            bbox_color = Color(0, 0, 0)
         bbox_life_time = \
             (1 / self._flags.simulator_fps + TL_BBOX_LIFETIME_BUFFER)
         world.debug.draw_box(bbox,
@@ -230,9 +230,12 @@ class ChauffeurLoggerOperator(erdos.Operator):
                              color=bbox_color,
                              life_time=bbox_life_time)
 
-    def _get_traffic_light_channel_from_top_down_rgb(
-            self, img, tl_bbox_colors=[[200, 0, 0], [13, 0, 196], [5, 200,
-                                                                   0]]):
+    def _get_traffic_light_channel_from_top_down_rgb(self,
+                                                     img,
+                                                     tl_bbox_colors=[[
+                                                         200, 0, 0
+                                                     ], [13, 0,
+                                                         196], [5, 200, 0]]):
         """
         Returns a mask of the traffic light extent bounding boxes seen from a
         top-down view. The bounding boxes in the mask are colored differently

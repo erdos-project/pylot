@@ -169,18 +169,18 @@ class BoundingBox3D(object):
         """Retrieves the bounding box as instance of a simulator bounding box.
 
         Returns:
-            carla.BoundingBox: Instance that represents the bounding box.
+            A instance of a simulator class that represents the bounding box.
         """
-        import carla
+        from carla import BoundingBox
         bb_loc = self.transform.location.as_simulator_location()
         bb_extent = self.extent.as_simulator_vector()
-        return carla.BoundingBox(bb_loc, bb_extent)
+        return BoundingBox(bb_loc, bb_extent)
 
     def visualize(self, world, actor_transform, time_between_frames=100):
         """Visualizes the bounding box on the world.
 
         Args:
-            world (carla.World): The world instance to visualize the bounding
+            world: The simulator world instance to visualize the bounding
                 box on.
             actor_transform (:py:class:`~pylot.utils.Transform`): The current
                 transform of the actor that the bounding box is of.

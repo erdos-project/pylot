@@ -54,12 +54,9 @@ class CarlaIMUDriverOperator(erdos.Operator):
         return [imu_stream]
 
     def process_imu(self, imu_msg):
-        """Invoked when an IMU message is received from the simulator.
+        """Invoked when an IMU measurement is received from the simulator.
 
         Sends IMU measurements to downstream operators.
-
-        Args:
-            imu_msg (carla.IMUMeasurement): IMU reading.
         """
         game_time = int(imu_msg.timestamp * 1000)
         timestamp = erdos.Timestamp(coordinates=[game_time])

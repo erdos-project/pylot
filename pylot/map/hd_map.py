@@ -10,7 +10,7 @@ from collections import deque
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 
-import carla
+from carla import LaneType
 
 import erdos
 
@@ -25,11 +25,8 @@ class HDMap(object):
     accessing a CARLA map. This will make it easier to extend the probject
     with support for other types of HD maps in the future.
 
-    Args:
-        simulator_map (carla.Map): An instance of a CARLA map.
-
     Attributes:
-        _map (carla.Map): An instance of a CARLA map.
+        _map: An instance of a CARLA map.
         _grp: An instance of a CARLA global route planner (uses A*).
     """
     def __init__(self, simulator_map, log_file=None):
@@ -54,9 +51,7 @@ class HDMap(object):
             :py:class:`~pylot.utils.Transform`: Transform or None if no
             waypoint is found.
         """
-        waypoint = self._get_waypoint(location,
-                                      project_to_road=True,
-                                      lane_type=carla.LaneType.Any)
+        waypoint = self._get_waypoint(location, project_to_road=True)
         if waypoint:
             return Transform.from_simulator_transform(waypoint.transform)
         else:
@@ -72,9 +67,7 @@ class HDMap(object):
         Returns:
             bool: True if the location is in an intersection.
         """
-        waypoint = self._get_waypoint(location,
-                                      project_to_road=False,
-                                      lane_type=carla.LaneType.Any)
+        waypoint = self._get_waypoint(location)
         if not waypoint:
             # The map didn't return a waypoint because the location not within
             # mapped location.
@@ -99,9 +92,7 @@ class HDMap(object):
         Returns:
             bool: True if the location is on a lane.
         """
-        waypoint = self._get_waypoint(location,
-                                      project_to_road=False,
-                                      lane_type=carla.LaneType.Driving)
+        waypoint = self._get_waypoint(location, lane_type=LaneType.Driving)
         if not waypoint:
             # The map didn't return a waypoint because the location not within
             # mapped location.
@@ -121,15 +112,11 @@ class HDMap(object):
         Returns:
             bool: True if the two locations are on the same lane.
         """
-        waypoint1 = self._get_waypoint(location1,
-                                       project_to_road=False,
-                                       lane_type=carla.LaneType.Driving)
+        waypoint1 = self._get_waypoint(location1, lane_type=LaneType.Driving)
         if not waypoint1:
             # First location is not on a drivable lane.
             return False
-        waypoint2 = self._get_waypoint(location2,
-                                       project_to_road=False,
-                                       lane_type=carla.LaneType.Driving)
+        waypoint2 = self._get_waypoint(location2, lane_type=LaneType.Driving)
         if not waypoint2:
             # Second location is not on a drivable lane.
             return False
@@ -141,7 +128,7 @@ class HDMap(object):
             if self.__is_intersection(
                     waypoint1) and not self.__is_intersection(waypoint2):
                 return False
-            if waypoint2.lane_type == carla.LaneType.Driving:
+            if waypoint2.lane_type == LaneType.Driving:
                 # This may return True when the lane is different, but in
                 # with a different road_id.
                 # TODO(ionel): Figure out how lane id map across road id.
@@ -159,8 +146,7 @@ class HDMap(object):
             bool: True if the transform is on the opposite lane.
         """
         waypoint = self._get_waypoint(transform.location,
-                                      project_to_road=False,
-                                      lane_type=carla.LaneType.Driving)
+                                      lane_type=LaneType.Driving)
         if not waypoint:
             return True
         if self.__is_intersection(waypoint):
@@ -186,8 +172,7 @@ class HDMap(object):
         # TODO(ionel): This method doesn't work yet because the opendrive do
         # not contained waypoints annotated as stops.
         # waypoint = self._get_waypoint(location,
-        #                               project_to_road=False,
-        #                               lane_type=carla.LaneType.Stop)
+        #                               lane_type=LaneType.Stop)
         raise NotImplementedError
 
     def distance_to_intersection(self,
@@ -208,9 +193,7 @@ class HDMap(object):
             :obj:`int`: The distance in meters, or None if there is no
             intersection within max_distance_to_check.
         """
-        waypoint = self._get_waypoint(location,
-                                      project_to_road=False,
-                                      lane_type=carla.LaneType.Any)
+        waypoint = self._get_waypoint(location)
         if not waypoint:
             return None
         # We're already in an intersection.
@@ -237,8 +220,7 @@ class HDMap(object):
             bool: True if the location is on a bidirectional lane.
         """
         waypoint = self._get_waypoint(location,
-                                      project_to_road=False,
-                                      lane_type=carla.LaneType.Bidirectional)
+                                      lane_type=LaneType.Bidirectional)
         return not waypoint
 
     def must_obey_traffic_light(self, ego_location: Location,
@@ -254,9 +236,7 @@ class HDMap(object):
         Returns:
             bool: True if the ego vehicle must obey the traffic light.
         """
-        waypoint = self._get_waypoint(ego_location,
-                                      project_to_road=False,
-                                      lane_type=carla.LaneType.Any)
+        waypoint = self._get_waypoint(ego_location)
         if waypoint and self.__is_intersection(waypoint):
             # Do not obey traffic light if ego is already in the intersection.
             return False
@@ -268,9 +248,7 @@ class HDMap(object):
     def _must_obey_european_traffic_light(self, ego_transform: Transform,
                                           tl_locations,
                                           tl_max_dist_thresh: float):
-        ego_waypoint = self._get_waypoint(ego_transform.location,
-                                          project_to_road=False,
-                                          lane_type=carla.LaneType.Any)
+        ego_waypoint = self._get_waypoint(ego_transform.location)
         # We're not on a road, or we're already in the intersection. Carry on.
         if ego_waypoint is None or self.__is_intersection(ego_waypoint):
             return (False, None)
@@ -288,9 +266,7 @@ class HDMap(object):
     def _must_obey_american_traffic_light(self, ego_transform: Transform,
                                           tl_locations,
                                           tl_max_dist_thresh: float):
-        ego_waypoint = self._get_waypoint(ego_transform.location,
-                                          project_to_road=False,
-                                          lane_type=carla.LaneType.Any)
+        ego_waypoint = self._get_waypoint(ego_transform.location)
         # We're not on a road, or we're already in the intersection. Carry on.
         if ego_waypoint is None or self.__is_intersection(ego_waypoint):
             return (False, None)
@@ -316,21 +292,13 @@ class HDMap(object):
         lane_waypoints = []
         # Consider waypoints in opposite direction of camera so we can get
         # lane data for adjacent lanes in opposing directions.
-        previous_wp = [
-            self._get_waypoint(location,
-                               project_to_road=False,
-                               lane_type=carla.LaneType.Any)
-        ]
+        previous_wp = [self._get_waypoint(location)]
 
         while len(previous_wp) == 1:
             lane_waypoints.append(previous_wp[0])
             previous_wp = previous_wp[0].previous(waypoint_precision)
 
-        next_wp = [
-            self._get_waypoint(location,
-                               project_to_road=False,
-                               lane_type=carla.LaneType.Any)
-        ]
+        next_wp = [self._get_waypoint(location)]
 
         while len(next_wp) == 1:
             lane_waypoints.append(next_wp[0])
@@ -348,9 +316,7 @@ class HDMap(object):
         return Lane(lane_id, left_markings, right_markings)
 
     def get_left_lane(self, location: Location):
-        waypoint = self._get_waypoint(location,
-                                      project_to_road=False,
-                                      lane_type=carla.LaneType.Any)
+        waypoint = self._get_waypoint(location)
         if waypoint:
             left_lane_waypoint = waypoint.get_left_lane()
             if left_lane_waypoint:
@@ -359,9 +325,7 @@ class HDMap(object):
         return None
 
     def get_right_lane(self, location: Location):
-        waypoint = self._get_waypoint(location,
-                                      project_to_road=False,
-                                      lane_type=carla.LaneType.Any)
+        waypoint = self._get_waypoint(location)
         if waypoint:
             right_lane_waypoint = waypoint.get_right_lane()
             if right_lane_waypoint:
@@ -372,13 +336,11 @@ class HDMap(object):
     def get_all_lanes(self, location: Location):
         lanes = [self.get_lane(location)]
 
-        waypoint = self._get_waypoint(location,
-                                      project_to_road=False,
-                                      lane_type=carla.LaneType.Any)
+        waypoint = self._get_waypoint(location)
         if waypoint:
             wp_left = waypoint.get_left_lane()
             w_rotation = waypoint.transform.rotation
-            while wp_left and wp_left.lane_type == carla.LaneType.Driving:
+            while wp_left and wp_left.lane_type == LaneType.Driving:
                 left_location = Location.from_simulator_location(
                     wp_left.transform.location)
                 lanes.append(
@@ -393,7 +355,7 @@ class HDMap(object):
                     wp_left = wp_left.get_right_lane()
 
             wp_right = waypoint.get_right_lane()
-            while wp_right and wp_right.lane_type == carla.LaneType.Driving:
+            while wp_right and wp_right.lane_type == LaneType.Driving:
                 right_location = Location.from_simulator_location(
                     wp_right.transform.location)
                 lanes.append(
@@ -427,10 +389,10 @@ class HDMap(object):
         """
         start_waypoint = self._get_waypoint(source_loc,
                                             project_to_road=True,
-                                            lane_type=carla.LaneType.Driving)
+                                            lane_type=LaneType.Driving)
         end_waypoint = self._get_waypoint(destination_loc,
                                           project_to_road=True,
-                                          lane_type=carla.LaneType.Driving)
+                                          lane_type=LaneType.Driving)
         assert start_waypoint and end_waypoint, 'Map could not find waypoints'
         route = self._grp.trace_route(start_waypoint.transform.location,
                                       end_waypoint.transform.location)
@@ -446,8 +408,10 @@ class HDMap(object):
         shifted = transform.location + shift * transform.get_forward_vector()
         return Location.from_simulator_location(shifted)
 
-    def _get_waypoint(self, location: Location, project_to_road: bool,
-                      lane_type):
+    def _get_waypoint(self,
+                      location: Location,
+                      project_to_road: bool = False,
+                      lane_type=LaneType.Any):
         try:
             waypoint = self._map.get_waypoint(location.as_simulator_location(),
                                               project_to_road=project_to_road,

@@ -38,8 +38,8 @@ class Rotation(object):
         Returns:
             :py:class:`.Rotation`: A pylot rotation.
         """
-        import carla
-        if not isinstance(rotation, carla.Rotation):
+        from carla import Rotation
+        if not isinstance(rotation, Rotation):
             raise ValueError('rotation should be of type Rotation')
         return cls(rotation.pitch, rotation.yaw, rotation.roll)
 
@@ -47,10 +47,10 @@ class Rotation(object):
         """ Retrieves the rotation as an instance of a simulator rotation.
 
         Returns:
-            carla.Rotation: Instance representing the rotation.
+            An instance of a simulator class representing the rotation.
         """
-        import carla
-        return carla.Rotation(self.pitch, self.yaw, self.roll)
+        from carla import Rotation
+        return Rotation(self.pitch, self.yaw, self.roll)
 
     def as_numpy_array(self):
         """Retrieves the Rotation as a numpy array."""
@@ -256,8 +256,8 @@ class Vector3D(object):
         Returns:
             :py:class:`.Vector3D`: A pylot 3D vector.
         """
-        import carla
-        if not isinstance(vector, carla.Vector3D):
+        from carla import Vector3D
+        if not isinstance(vector, Vector3D):
             raise ValueError('The vector must be a Vector3D')
         return cls(vector.x, vector.y, vector.z)
 
@@ -273,10 +273,10 @@ class Vector3D(object):
         """Retrieves the 3D vector as an instance of simulator 3D vector.
 
         Returns:
-            carla.Vector3D: Instance representing the 3D vector.
+            An instance of the simulator class representing the 3D vector.
         """
-        import carla
-        return carla.Vector3D(self.x, self.y, self.z)
+        from carla import Vector3D
+        return Vector3D(self.x, self.y, self.z)
 
     def l1_distance(self, other):
         """Calculates the L1 distance between the point and another point.
@@ -460,9 +460,9 @@ class Location(Vector3D):
         Returns:
             :py:class:`.Location`: A pylot location.
         """
-        import carla
-        if not (isinstance(location, carla.Location)
-                or isinstance(location, carla.Vector3D)):
+        from carla import Location, Vector3D
+        if not (isinstance(location, Location)
+                or isinstance(location, Vector3D)):
             raise ValueError('The location must be a Location or Vector3D')
         return cls(location.x, location.y, location.z)
 
@@ -521,10 +521,10 @@ class Location(Vector3D):
         """Retrieves the location as a simulator location instance.
 
         Returns:
-            carla.Location: Instance representing the location.
+            An instance of the simulator class representing the location.
         """
-        import carla
-        return carla.Location(self.x, self.y, self.z)
+        from carla import Location
+        return Location(self.x, self.y, self.z)
 
     def __repr__(self):
         return self.__str__()
@@ -568,9 +568,9 @@ class Transform(object):
             self.location = Location(matrix[0, 3], matrix[1, 3], matrix[2, 3])
 
             # Forward vector is retrieved from the matrix.
-            self.forward_vector = Vector3D(self.matrix[0, 0],
-                                           self.matrix[1, 0],
-                                           self.matrix[2, 0])
+            self.forward_vector = \
+                Vector3D(self.matrix[0, 0], self.matrix[1, 0],
+                         self.matrix[2, 0])
             pitch_r = math.asin(np.clip(self.forward_vector.z, -1, 1))
             yaw_r = math.acos(
                 np.clip(self.forward_vector.x / math.cos(pitch_r), -1, 1))
@@ -584,9 +584,9 @@ class Transform(object):
                                                    self.rotation)
 
             # Forward vector is retrieved from the matrix.
-            self.forward_vector = Vector3D(self.matrix[0, 0],
-                                           self.matrix[1, 0],
-                                           self.matrix[2, 0])
+            self.forward_vector = \
+                Vector3D(self.matrix[0, 0], self.matrix[1, 0],
+                         self.matrix[2, 0])
 
     @classmethod
     def from_simulator_transform(cls, transform):
@@ -598,8 +598,8 @@ class Transform(object):
         Returns:
             :py:class:`.Transform`: An instance of a pylot transform.
         """
-        import carla
-        if not isinstance(transform, carla.Transform):
+        from carla import Transform
+        if not isinstance(transform, Transform):
             raise ValueError('transform should be of type Transform')
         return cls(Location.from_simulator_location(transform.location),
                    Rotation.from_simulator_rotation(transform.rotation))
@@ -752,14 +752,14 @@ class Transform(object):
         """Converts the transform to a simulator transform.
 
         Returns:
-            carla.Transform: Instance representing the current Transform.
+            An instance of the simulator class representing the Transform.
         """
-        import carla
-        return carla.Transform(
-            carla.Location(self.location.x, self.location.y, self.location.z),
-            carla.Rotation(pitch=self.rotation.pitch,
-                           yaw=self.rotation.yaw,
-                           roll=self.rotation.roll))
+        from carla import Location, Rotation, Transform
+        return Transform(
+            Location(self.location.x, self.location.y, self.location.z),
+            Rotation(pitch=self.rotation.pitch,
+                     yaw=self.rotation.yaw,
+                     roll=self.rotation.roll))
 
     def get_angle_and_magnitude(self, target_loc):
         """Computes relative angle between the transform and a target location.

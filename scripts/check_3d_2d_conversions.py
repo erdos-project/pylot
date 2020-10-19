@@ -5,7 +5,7 @@ import time
 from absl import app
 from absl import flags
 
-import carla
+from carla import Location, Rotation, Transform
 
 import cv2
 
@@ -182,14 +182,14 @@ def run_scenario(target_vehicle_transform, sensor_transform):
 
 def main(argv):
     global pixels_to_check
-    target_vehicle_transform = carla.Transform(carla.Location(242, 131.24, 0))
-    sensor_transform = carla.Transform(carla.Location(237.7, 132.24, 1.3))
+    target_vehicle_transform = Transform(Location(242, 131.24, 0))
+    sensor_transform = Transform(Location(237.7, 132.24, 1.3))
     pixels_to_check = [(200, 370)]
     run_scenario(target_vehicle_transform, sensor_transform)
 
-    target_vehicle_transform = carla.Transform(carla.Location(2, 12, 0))
-    sensor_transform = carla.Transform(
-        carla.Location(0, 18, 1.4), carla.Rotation(pitch=0, yaw=-90, roll=0))
+    target_vehicle_transform = Transform(Location(2, 12, 0))
+    sensor_transform = Transform(
+        Location(0, 18, 1.4), Rotation(pitch=0, yaw=-90, roll=0))
     pixels_to_check = [(500, 400), (600, 400), (500, 350), (600, 350)]
     run_scenario(target_vehicle_transform, sensor_transform)
 

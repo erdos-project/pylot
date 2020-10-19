@@ -4,16 +4,17 @@ committed by the ego vehicle.
 
 import time
 
-import carla
+from carla import Location, TrafficLightState
 
 import erdos
 
 import numpy as np
 
+import pylot.utils
 from pylot.simulation.messages import TrafficInfractionMessage
 from pylot.simulation.utils import TrafficInfractionType, get_vehicle_handle, \
     get_world
-from pylot.utils import Location, Vector3D
+from pylot.utils import Vector3D
 
 from shapely.geometry import LineString
 
@@ -64,28 +65,28 @@ class CarlaTrafficLightInvasionSensorOperator(erdos.Operator):
         self._logger.debug("@{}: pose update.".format(msg.timestamp))
 
         transform = msg.data.transform
-        location = carla.Location(transform.location.x, transform.location.y,
-                                  transform.location.z)
+        location = Location(transform.location.x, transform.location.y,
+                            transform.location.z)
 
         veh_extent = self._vehicle.bounding_box.extent.x
 
         tail_close_pt = Vector3D(-0.8 * veh_extent, 0.0, location.z).rotate(
             transform.rotation.yaw).as_simulator_vector()
-        tail_close_pt = location + carla.Location(tail_close_pt)
+        tail_close_pt = location + Location(tail_close_pt)
 
         tail_far_pt = Vector3D(-veh_extent - 1, 0.0, location.z).rotate(
             transform.rotation.yaw).as_simulator_vector()
-        tail_far_pt = location + carla.Location(tail_far_pt)
+        tail_far_pt = location + Location(tail_far_pt)
 
         for traffic_light, center, waypoints in self._traffic_lights:
-            center_loc = carla.Location(center)
+            center_loc = Location(center)
 
             if self._last_red_light_id and \
                     self._last_red_light_id == traffic_light.id:
                 continue
             if center_loc.distance(location) > self.DISTANCE_LIGHT:
                 continue
-            if traffic_light.state != carla.TrafficLightState.Red:
+            if traffic_light.state != TrafficLightState.Red:
                 continue
 
             for wp in waypoints:
@@ -109,12 +110,12 @@ class CarlaTrafficLightInvasionSensorOperator(erdos.Operator):
                         0.4 * lane_width, 0.0,
                         location_wp.z).rotate(yaw_wp +
                                               90).as_simulator_vector()
-                    lft_lane_wp = location_wp + carla.Location(lft_lane_wp)
+                    lft_lane_wp = location_wp + Location(lft_lane_wp)
                     rgt_lane_wp = Vector3D(
                         0.4 * lane_width, 0.0,
                         location_wp.z).rotate(yaw_wp -
                                               90).as_simulator_vector()
-                    rgt_lane_wp = location_wp + carla.Location(rgt_lane_wp)
+                    rgt_lane_wp = location_wp + Location(rgt_lane_wp)
 
                     # Is the vehicle traversing the stop line?
                     seg1 = (tail_close_pt, tail_far_pt)
@@ -123,8 +124,8 @@ class CarlaTrafficLightInvasionSensorOperator(erdos.Operator):
                         location = traffic_light.get_transform().location
                         message = TrafficInfractionMessage(
                             TrafficInfractionType.RED_LIGHT_INVASION,
-                            Location.from_simulator_location(location),
-                            msg.timestamp)
+                            pylot.utils.Location.from_simulator_location(
+                                location), msg.timestamp)
                         self._traffic_light_invasion_stream.send(message)
                         self._last_red_light_id = traffic_light.id
                         break
@@ -172,7 +173,7 @@ class CarlaTrafficLightInvasionSensorOperator(erdos.Operator):
 
             point = Vector3D(
                 x, 0, area_ext.z).rotate(base_rot).as_simulator_vector()
-            point_location = area_loc + carla.Location(x=point.x, y=point.y)
+            point_location = area_loc + Location(x=point.x, y=point.y)
             area.append(point_location)
 
         # Get the waypoints of these points, removing duplicates

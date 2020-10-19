@@ -56,12 +56,9 @@ class CarlaGNSSDriverOperator(erdos.Operator):
         return [gnss_stream]
 
     def process_gnss(self, gnss_msg):
-        """Invoked when a GNSS message is received from the simulator.
+        """Invoked when a GNSS measurement is received from the simulator.
 
         Sends GNSS measurements to downstream operators.
-
-        Args:
-            gnss_msg (carla.GnssMeasurement): GNSS reading.
         """
         game_time = int(gnss_msg.timestamp * 1000)
         timestamp = erdos.Timestamp(coordinates=[game_time])

@@ -2,7 +2,7 @@ import logging
 
 from absl import flags
 
-import carla
+from carla import VehicleControl
 
 import erdos
 
@@ -124,7 +124,7 @@ class ERDOSTrack4Agent(AutonomousAgent):
         while True:
             control_msg = self._control_stream.read()
             if not isinstance(control_msg, erdos.WatermarkMessage):
-                output_control = carla.VehicleControl()
+                output_control = VehicleControl()
                 output_control.throttle = control_msg.throttle
                 output_control.brake = control_msg.brake
                 output_control.steer = control_msg.steer
