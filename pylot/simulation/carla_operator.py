@@ -20,6 +20,7 @@ from pylot.perception.messages import ObstaclesMessage, SpeedSignsMessage, \
 import pickle
 import os
 
+
 class CarlaOperator(erdos.Operator):
     """Initializes and controls a CARLA simulation.
 
@@ -366,13 +367,13 @@ class CarlaOperator(erdos.Operator):
         message_stream_filename = 'message_stream.pkl'
 
         if os.path.exists(message_stream_filename):
-            with open(message_stream_filename,'rb') as rfp:
+            with open(message_stream_filename, 'rb') as rfp:
                 message_stream = pickle.load(rfp)
 
         message = erdos.Message(timestamp, pose)
         message_stream.append(message)
 
-        with open(message_stream_filename,'wb') as wfp:
+        with open(message_stream_filename, 'wb') as wfp:
             pickle.dump(message_stream, wfp)
 
         stream.send(message)
