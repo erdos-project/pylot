@@ -1,5 +1,5 @@
 """
-Takes in a folder of Carla observations (carla-center-[timestep].png images,
+Takes in a folder of observations (center-[timestep].png images,
 mot-[timestep].txt tracker logs) and creates and saves crops of the bounding
 boxes. Useful for training the feature extractor model for DeepSORT tracker.
 
@@ -87,7 +87,7 @@ def get_crops(mot_detections_file, imgs_path, out_dir, area_tol=1500):
         info = line.split(",")
         timestamp, obj_id, x, y, w, h = info[0], info[1], int(info[2]), int(
             info[3]), int(info[4]), int(info[5])
-        img = cv2.imread(imgs_path + "/carla-center-{}.png".format(timestamp))
+        img = cv2.imread(imgs_path + "/center-{}.png".format(timestamp))
         crop = img[y:y + h, x:x + w, :]
         if h * w >= area_tol:
             cv2.imwrite(out_dir + "/crop-{}-{}.png".format(timestamp, obj_id),

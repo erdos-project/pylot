@@ -41,10 +41,10 @@ class PIDControlOperator(erdos.Operator):
             # The PID is executing on a real car. Use the real time delta
             # between two control commands.
             pid_use_real_time = True
-        if self._flags.carla_control_frequency == -1:
-            dt = 1.0 / self._flags.carla_fps
+        if self._flags.simulator_control_frequency == -1:
+            dt = 1.0 / self._flags.simulator_fps
         else:
-            dt = 1.0 / self._flags.carla_control_frequency
+            dt = 1.0 / self._flags.simulator_control_frequency
         self._pid = PIDLongitudinalController(flags.pid_p, flags.pid_d,
                                               flags.pid_i, dt,
                                               pid_use_real_time)

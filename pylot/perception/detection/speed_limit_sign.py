@@ -34,19 +34,19 @@ class SpeedLimitSign(Obstacle):
         self.speed_limit = speed_limit
 
     @classmethod
-    def from_carla_actor(cls, actor):
-        """Creates a detected speed limit sign from a CARLA actor.
+    def from_simulator_actor(cls, actor):
+        """Creates a detected speed limit sign from a simulator actor.
 
         Args:
-            actor (carla.TrafficSign): A carla speed limit sign actor.
+            actor: A simulator speed limit sign actor.
 
         Returns:
             :py:class:`.SpeedLimitSign`: A detected speed limit sign.
         """
-        import carla
-        if not isinstance(actor, carla.TrafficSign):
-            raise ValueError('actor should be of type carla.TrafficSign')
-        transform = pylot.utils.Transform.from_carla_transform(
+        from carla import TrafficSign
+        if not isinstance(actor, TrafficSign):
+            raise ValueError('actor should be of type TrafficSign')
+        transform = pylot.utils.Transform.from_simulator_transform(
             actor.get_transform())
         speed_limit = int(actor.type_id.split('.')[-1])
         return cls(speed_limit, 1.0, id=actor.id, transform=transform)

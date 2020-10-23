@@ -70,7 +70,7 @@ class PredictionEvalOperator(erdos.Operator):
         vehicle_transform = self._pose_msgs.popleft().data.transform
 
         # TODO: The evaluator assumes that the obstacle tracker assigns the
-        # same ids to the obstacles as they have in the CARLA simulation.
+        # same ids to the obstacles as they have in the simulation.
 
         # Start calculating metrics when we've taken sufficiently many steps.
         if len(self._predictions) == self._flags.prediction_num_future_steps:

@@ -1,12 +1,14 @@
 # Checks methods for getting 3d world locations from depth map and from point
 # cloud.
+import time
+
 from absl import app
 from absl import flags
 
-import carla
+from carla import Location, Rotation, Transform
+
 import cv2
-import pptk
-import time
+
 
 import pylot.utils
 from pylot.drivers.sensor_setup import CameraSetup, LidarSetup
@@ -17,21 +19,22 @@ from pylot.simulation.utils import get_world
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('carla_host', 'localhost', 'Carla host.')
+flags.DEFINE_string('simulator_host', 'localhost', 'Simulator host.')
 lidar_pc = None
 depth_pc = None
 last_frame = None
 
 
-def on_lidar_msg(carla_pc):
-    game_time = int(carla_pc.timestamp * 1000)
+def on_lidar_msg(simulator_pc):
+    game_time = int(simulator_pc.timestamp * 1000)
     print("Received lidar msg {}".format(game_time))
-    lidar_transform = pylot.utils.Transform.from_carla_transform(
-        carla_pc.transform)
+    lidar_transform = pylot.utils.Transform.from_simulator_transform(
+        simulator_pc.transform)
     lidar_setup = LidarSetup('lidar',
                              lidar_type='sensor.lidar.ray_cast',
                              transform=lidar_transform)
-    point_cloud = PointCloud.from_carla_point_cloud(carla_pc, lidar_setup)
+    point_cloud = PointCloud.from_simulator_point_cloud(simulator_pc,
+                                                        lidar_setup)
     camera_setup = CameraSetup("lidar_camera",
                                "sensor.camera.depth",
                                800,
@@ -48,12 +51,12 @@ def on_lidar_msg(carla_pc):
     # pptk.viewer(point_cloud.points)
 
 
-def on_camera_msg(carla_image):
-    game_time = int(carla_image.timestamp * 1000)
+def on_camera_msg(simulator_image):
+    game_time = int(simulator_image.timestamp * 1000)
     print("Received camera msg {}".format(game_time))
 
-    camera_transform = pylot.utils.Transform.from_carla_transform(
-        carla_image.transform)
+    camera_transform = pylot.utils.Transform.from_simulator_transform(
+        simulator_image.transform)
 
     camera_setup = CameraSetup("rgb_camera",
                                "sensor.camera.rgb",
@@ -62,15 +65,16 @@ def on_camera_msg(carla_image):
                                camera_transform,
                                fov=90.0)
     global last_frame
-    last_frame = CameraFrame.from_carla_frame(carla_image, camera_setup)
+    last_frame = CameraFrame.from_simulator_frame(simulator_image,
+                                                  camera_setup)
 
 
-def on_depth_msg(carla_image):
-    game_time = int(carla_image.timestamp * 1000)
+def on_depth_msg(simulator_image):
+    game_time = int(simulator_image.timestamp * 1000)
     print("Received depth camera msg {}".format(game_time))
 
-    depth_camera_transform = pylot.utils.Transform.from_carla_transform(
-        carla_image.transform)
+    depth_camera_transform = pylot.utils.Transform.from_simulator_transform(
+        simulator_image.transform)
 
     camera_setup = CameraSetup("depth_camera",
                                "sensor.camera.depth",
@@ -78,7 +82,7 @@ def on_depth_msg(carla_image):
                                600,
                                depth_camera_transform,
                                fov=90.0)
-    depth_frame = DepthFrame.from_carla_frame(carla_image, camera_setup)
+    depth_frame = DepthFrame.from_simulator_frame(simulator_image, camera_setup)
 
     for (x, y) in pixels_to_check:
         print("{} Depth at pixel {}".format((x, y), depth_frame.frame[y][x]))
@@ -137,8 +141,7 @@ def run_scenario(target_vehicle_transform, sensor_transform):
     # Reset messages.
     global lidar_pc, last_frame, depth_pc
     lidar_pc, last_frame, depth_pc = None, None, None
-    # Connect to the Carla simulator.
-    client, world = get_world(host=FLAGS.carla_host)
+    client, world = get_world(host=FLAGS.simulator_host)
     world = client.load_world('Town01')
     settings = world.get_settings()
     settings.synchronous_mode = True
@@ -179,14 +182,14 @@ def run_scenario(target_vehicle_transform, sensor_transform):
 
 def main(argv):
     global pixels_to_check
-    target_vehicle_transform = carla.Transform(carla.Location(242, 131.24, 0))
-    sensor_transform = carla.Transform(carla.Location(237.7, 132.24, 1.3))
+    target_vehicle_transform = Transform(Location(242, 131.24, 0))
+    sensor_transform = Transform(Location(237.7, 132.24, 1.3))
     pixels_to_check = [(200, 370)]
     run_scenario(target_vehicle_transform, sensor_transform)
 
-    target_vehicle_transform = carla.Transform(carla.Location(2, 12, 0))
-    sensor_transform = carla.Transform(
-        carla.Location(0, 18, 1.4), carla.Rotation(pitch=0, yaw=-90, roll=0))
+    target_vehicle_transform = Transform(Location(2, 12, 0))
+    sensor_transform = Transform(
+        Location(0, 18, 1.4), Rotation(pitch=0, yaw=-90, roll=0))
     pixels_to_check = [(500, 400), (600, 400), (500, 350), (600, 350)]
     run_scenario(target_vehicle_transform, sensor_transform)
 

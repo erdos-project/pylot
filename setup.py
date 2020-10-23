@@ -7,7 +7,7 @@ setup(
     description=("A platform for developing autonomous vehicles."),
     long_description=open("README.md").read(),
     url="https://github.com/erdos-project/pylot",
-    keywords=("autonomous vehicles driving python carla simulation"),
+    keywords=("autonomous vehicles driving python CARLA simulation"),
     packages=find_packages(),
     license="Apache 2.0",
     install_requires=[
@@ -28,7 +28,7 @@ setup(
         "scikit-image<0.15",
         "scipy==1.2.2",
         "shapely==1.6.4",
-        "tensorflow-gpu==1.15.2",
+        "tensorflow-gpu==1.15.4",
         "torch==1.3.1",
         "torchvision==0.2.1",
         ##### Sort tracking dependencies ####

@@ -29,28 +29,28 @@ class Rotation(object):
         self.roll = roll
 
     @classmethod
-    def from_carla_rotation(cls, rotation):
-        """Creates a pylot Rotation from a CARLA rotation.
+    def from_simulator_rotation(cls, rotation):
+        """Creates a pylot Rotation from a simulator rotation.
 
         Args:
-            rotation (carla.Rotation): An instance of a CARLA rotation.
+            rotation: An instance of a simulator rotation.
 
         Returns:
             :py:class:`.Rotation`: A pylot rotation.
         """
-        import carla
-        if not isinstance(rotation, carla.Rotation):
-            raise ValueError('rotation should be of type carla.Rotation')
+        from carla import Rotation
+        if not isinstance(rotation, Rotation):
+            raise ValueError('rotation should be of type Rotation')
         return cls(rotation.pitch, rotation.yaw, rotation.roll)
 
-    def as_carla_rotation(self):
-        """ Retrieves the rotation as an instance of a CARLA rotation.
+    def as_simulator_rotation(self):
+        """ Retrieves the rotation as an instance of a simulator rotation.
 
         Returns:
-            carla.Rotation: Instance representing the rotation.
+            An instance of a simulator class representing the rotation.
         """
-        import carla
-        return carla.Rotation(self.pitch, self.yaw, self.roll)
+        from carla import Rotation
+        return Rotation(self.pitch, self.yaw, self.roll)
 
     def as_numpy_array(self):
         """Retrieves the Rotation as a numpy array."""
@@ -247,18 +247,18 @@ class Vector3D(object):
         self.x, self.y, self.z = float(x), float(y), float(z)
 
     @classmethod
-    def from_carla_vector(cls, vector):
-        """Creates a pylot Vector3D from a CARLA 3D vector.
+    def from_simulator_vector(cls, vector):
+        """Creates a pylot Vector3D from a simulator 3D vector.
 
         Args:
-            vector (carla.Vector3D): An instance of a CARLA 3D vector.
+            vector: An instance of a simulator 3D vector.
 
         Returns:
             :py:class:`.Vector3D`: A pylot 3D vector.
         """
-        import carla
-        if not isinstance(vector, carla.Vector3D):
-            raise ValueError('The vector must be a carla.Vector3D')
+        from carla import Vector3D
+        if not isinstance(vector, Vector3D):
+            raise ValueError('The vector must be a Vector3D')
         return cls(vector.x, vector.y, vector.z)
 
     def as_numpy_array(self):
@@ -269,14 +269,14 @@ class Vector3D(object):
         """Drops the 3rd dimension."""
         return np.array([self.x, self.y])
 
-    def as_carla_vector(self):
-        """Retrieves the 3D vector as an instance of CARLA 3D vector.
+    def as_simulator_vector(self):
+        """Retrieves the 3D vector as an instance of simulator 3D vector.
 
         Returns:
-            carla.Vector3D: Instance representing the 3D vector.
+            An instance of the simulator class representing the 3D vector.
         """
-        import carla
-        return carla.Vector3D(self.x, self.y, self.z)
+        from carla import Vector3D
+        return Vector3D(self.x, self.y, self.z)
 
     def l1_distance(self, other):
         """Calculates the L1 distance between the point and another point.
@@ -451,20 +451,19 @@ class Location(Vector3D):
         super(Location, self).__init__(x, y, z)
 
     @classmethod
-    def from_carla_location(cls, location):
-        """Creates a pylot Location from a CARLA location.
+    def from_simulator_location(cls, location):
+        """Creates a pylot Location from a simulator location.
 
         Args:
-            location (carla.Location): An instance of a CARLA location.
+            location: An instance of a simulator location.
 
         Returns:
             :py:class:`.Location`: A pylot location.
         """
-        import carla
-        if not (isinstance(location, carla.Location)
-                or isinstance(location, carla.Vector3D)):
-            raise ValueError(
-                'The location must be a carla.Location or carla.Vector3D')
+        from carla import Location, Vector3D
+        if not (isinstance(location, Location)
+                or isinstance(location, Vector3D)):
+            raise ValueError('The location must be a Location or Vector3D')
         return cls(location.x, location.y, location.z)
 
     @classmethod
@@ -476,9 +475,12 @@ class Location(Vector3D):
         """
         EARTH_RADIUS_EQUA = 6378137.0
         # The following reference values are applicable for towns 1 through 7,
-        # and are taken from the corresponding CARLA OpenDrive map files.
-        LAT_REF = 49.0
-        LON_REF = 8.0
+        # and are taken from the corresponding OpenDrive map files.
+        # LAT_REF = 49.0
+        # LON_REF = 8.0
+        # TODO: Do not hardcode. Get the references from the open drive file.
+        LAT_REF = 0.0
+        LON_REF = 0.0
 
         scale = math.cos(LAT_REF * math.pi / 180.0)
         basex = scale * math.pi * EARTH_RADIUS_EQUA / 180.0 * LON_REF
@@ -489,7 +491,7 @@ class Location(Vector3D):
         y = scale * EARTH_RADIUS_EQUA * math.log(
             math.tan((90.0 + latitude) * math.pi / 360.0)) - basey
 
-        # This wasn't in the original carla method, but seems to be necessary.
+        # This wasn't in the original method, but seems to be necessary.
         y *= -1
 
         return cls(x, y, altitude)
@@ -518,14 +520,14 @@ class Location(Vector3D):
         """
         return Vector2D(self.x, self.y)
 
-    def as_carla_location(self):
-        """Retrieves the location as a carla location instance.
+    def as_simulator_location(self):
+        """Retrieves the location as a simulator location instance.
 
         Returns:
-            carla.Location: Instance representing the location.
+            An instance of the simulator class representing the location.
         """
-        import carla
-        return carla.Location(self.x, self.y, self.z)
+        from carla import Location
+        return Location(self.x, self.y, self.z)
 
     def __repr__(self):
         return self.__str__()
@@ -537,8 +539,8 @@ class Location(Vector3D):
 class Transform(object):
     """A class that stores the location and rotation of an obstacle.
 
-    It can be created from a carla.Transform, defines helper functions needed
-    in Pylot, and makes the carla.Transform serializable.
+    It can be created from a simulator transform, defines helper functions
+    needed in Pylot, and makes the simulator transform serializable.
 
     A transform object is instantiated with either a location and a rotation,
     or using a matrix.
@@ -569,9 +571,9 @@ class Transform(object):
             self.location = Location(matrix[0, 3], matrix[1, 3], matrix[2, 3])
 
             # Forward vector is retrieved from the matrix.
-            self.forward_vector = Vector3D(self.matrix[0, 0],
-                                           self.matrix[1, 0], self.matrix[2,
-                                                                          0])
+            self.forward_vector = \
+                Vector3D(self.matrix[0, 0], self.matrix[1, 0],
+                         self.matrix[2, 0])
             pitch_r = math.asin(np.clip(self.forward_vector.z, -1, 1))
             yaw_r = math.acos(
                 np.clip(self.forward_vector.x / math.cos(pitch_r), -1, 1))
@@ -585,25 +587,25 @@ class Transform(object):
                                                    self.rotation)
 
             # Forward vector is retrieved from the matrix.
-            self.forward_vector = Vector3D(self.matrix[0, 0],
-                                           self.matrix[1, 0], self.matrix[2,
-                                                                          0])
+            self.forward_vector = \
+                Vector3D(self.matrix[0, 0], self.matrix[1, 0],
+                         self.matrix[2, 0])
 
     @classmethod
-    def from_carla_transform(cls, transform):
-        """Creates a pylot transform from a carla transform.
+    def from_simulator_transform(cls, transform):
+        """Creates a pylot transform from a simulator transform.
 
         Args:
-            transform (carla.Transform): Carla transform.
+            transform: A simulator transform.
 
         Returns:
             :py:class:`.Transform`: An instance of a pylot transform.
         """
-        import carla
-        if not isinstance(transform, carla.Transform):
-            raise ValueError('transform should be of type carla.Transform')
-        return cls(Location.from_carla_location(transform.location),
-                   Rotation.from_carla_rotation(transform.rotation))
+        from carla import Transform
+        if not isinstance(transform, Transform):
+            raise ValueError('transform should be of type Transform')
+        return cls(Location.from_simulator_location(transform.location),
+                   Rotation.from_simulator_rotation(transform.rotation))
 
     @staticmethod
     def _create_matrix(location, rotation):
@@ -749,18 +751,18 @@ class Transform(object):
                                               np.linalg.inv(self.matrix))
         return [Location(x, y, z) for x, y, z in transformed_points]
 
-    def as_carla_transform(self):
-        """Converts the transform to a carla transform.
+    def as_simulator_transform(self):
+        """Converts the transform to a simulator transform.
 
         Returns:
-            carla.Transform: Instance representing the current Transform.
+            An instance of the simulator class representing the Transform.
         """
-        import carla
-        return carla.Transform(
-            carla.Location(self.location.x, self.location.y, self.location.z),
-            carla.Rotation(pitch=self.rotation.pitch,
-                           yaw=self.rotation.yaw,
-                           roll=self.rotation.roll))
+        from carla import Location, Rotation, Transform
+        return Transform(
+            Location(self.location.x, self.location.y, self.location.z),
+            Rotation(pitch=self.rotation.pitch,
+                     yaw=self.rotation.yaw,
+                     roll=self.rotation.roll))
 
     def get_angle_and_magnitude(self, target_loc):
         """Computes relative angle between the transform and a target location.
@@ -867,7 +869,7 @@ class LaneMarkingColor(Enum):
     """Enum that defines the lane marking colors according to OpenDrive 1.4.
 
     The goal of this enum is to make sure that lane colors are correctly
-    propogated from Carla to Pylot.
+    propogated from the simulator to Pylot.
     """
     WHITE = 0
     BLUE = 1
@@ -881,7 +883,7 @@ class LaneMarkingType(Enum):
     """Enum that defines the lane marking types according to OpenDrive 1.4.
 
     The goal of this enum is to make sure that lane markings are correctly
-    propogated from Carla to Pylot.
+    propogated from the simulator to Pylot.
     """
     OTHER = 0
     BROKEN = 1
@@ -901,7 +903,7 @@ class LaneChange(Enum):
     none for a given lane.
 
     The goal of this enum is to make sure that the lane change types are
-    correctly propogated from Carla to Pylot.
+    correctly propogated from the simulator to Pylot.
     """
     NONE = 0
     RIGHT = 1
@@ -913,7 +915,7 @@ class LaneType(Enum):
     """Enum that defines the type of the lane according to OpenDrive 1.4.
 
     The goal of this enum is to make sure that the lane change types are
-    correctly propogated from Carla to Pylot.
+    correctly propogated from the simulator to Pylot.
     """
     NONE = 1
     DRIVING = 2
@@ -943,7 +945,7 @@ class RoadOption(Enum):
     """Enum that defines the possible high-level route plans.
 
     RoadOptions are usually attached to waypoints we receive from
-    the CARLA challenge environment.
+    the challenge environment.
     """
     VOID = -1
     LEFT = 1
@@ -963,14 +965,6 @@ class RoadOption(Enum):
 class LaneMarking(object):
     """Used to represent a lane marking.
 
-    Args:
-        marking_color (:py:class:`carla.LaneMarkingColor`): The color of the
-            lane marking.
-        marking_type (:py:class:`carla.LaneMarkingType`): The type of the lane
-            marking.
-        lane_change (:py:class:`carla.LaneChange`): The type that defines the
-            permission to either turn left, right, both or none.
-
     Attributes:
         marking_color (:py:class:`.LaneMarkingColor`): The color of the lane
             marking
@@ -985,12 +979,11 @@ class LaneMarking(object):
         self.lane_change = LaneChange(lane_change)
 
     @classmethod
-    def from_carla_lane_marking(cls, lane_marking):
-        """Creates a pylot LaneMarking from a CARLA lane marking.
+    def from_simulator_lane_marking(cls, lane_marking):
+        """Creates a pylot LaneMarking from a simulator lane marking.
 
         Args:
-            lane_marking (:py:class:`carla.LaneMarking`): An instance of a
-                CARLA lane marking.
+            lane_marking: An instance of a simulator lane marking.
 
         Returns:
             :py:class:`.LaneMarking`: A pylot lane-marking.

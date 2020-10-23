@@ -1,5 +1,11 @@
 ## Latest
 
+## Pylot 0.3.1
+  * Improved perfect lane detector to collect all lanes.
+  * Added support for latest CARLA lidar type (CARLA >= 0.9.9.4).
+  * Updated CARLA challenge agent to support perfect perception.
+  * Added logic to close pygame window, and to shutdown on sigint.
+
 ## Pylot 0.3
 
   * Refactored planners to work with a common world representation.

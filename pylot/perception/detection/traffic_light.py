@@ -78,20 +78,20 @@ class TrafficLight(Obstacle):
         self.trigger_volume_extent = trigger_volume_extent
 
     @classmethod
-    def from_carla_actor(cls, traffic_light):
-        """ Creates a TrafficLight from a CARLA traffic light actor.
+    def from_simulator_actor(cls, traffic_light):
+        """ Creates a TrafficLight from a simulator traffic light actor.
 
         Args:
-            traffic_light (carla.TrafficLight): A carla traffic light actor.
+            traffic_light: A simulator traffic light actor.
 
         Returns:
             :py:class:`.TrafficLight`: A traffic light.
         """
-        import carla
-        if not isinstance(traffic_light, carla.TrafficLight):
-            raise ValueError('The traffic light must be a carla.TrafficLight')
+        from carla import TrafficLight, TrafficLightState
+        if not isinstance(traffic_light, TrafficLight):
+            raise ValueError('The traffic light must be a TrafficLight')
         # Retrieve the Transform of the TrafficLight.
-        transform = pylot.utils.Transform.from_carla_transform(
+        transform = pylot.utils.Transform.from_simulator_transform(
             traffic_light.get_transform())
         # Retrieve the Trigger Volume of the TrafficLight.
         trigger_volume_extent = pylot.utils.Vector3D(
@@ -100,11 +100,11 @@ class TrafficLight(Obstacle):
             traffic_light.trigger_volume.extent.z)
         traffic_light_state = traffic_light.get_state()
         state = TrafficLightColor.OFF
-        if traffic_light_state == carla.TrafficLightState.Red:
+        if traffic_light_state == TrafficLightState.Red:
             state = TrafficLightColor.RED
-        elif traffic_light_state == carla.TrafficLightState.Yellow:
+        elif traffic_light_state == TrafficLightState.Yellow:
             state = TrafficLightColor.YELLOW
-        elif traffic_light_state == carla.TrafficLightState.Green:
+        elif traffic_light_state == TrafficLightState.Green:
             state = TrafficLightColor.GREEN
         return cls(1.0, state, traffic_light.id, transform,
                    trigger_volume_extent)
@@ -159,7 +159,7 @@ class TrafficLight(Obstacle):
 
     def get_all_detected_traffic_light_boxes(self, town_name, depth_frame,
                                              segmented_image):
-        """ Returns traffic lights for all boxes of a CARLA traffic light.
+        """ Returns traffic lights for all boxes of a simulator traffic light.
 
         Note:
             All the traffic lights returned will have the same id and

@@ -32,7 +32,7 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         flags (absl.flags): Object to be used to access absl flags.
 
     Attributes:
-        _town_name (:obj:`str`): Name of the Carla town.
+        _town_name (:obj:`str`): Name of the simulator town.
         _traffic_lights (:obj:`collections.deque`): Buffer of ground traffic
             lights messages.
         _bgr_msgs (:obj:`collections.deque`): Buffer of ground camera messages.
@@ -74,11 +74,11 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         return [traffic_lights_stream]
 
     def run(self):
-        # Run method is invoked after all operators finished initializing,
-        # including the CARLA operator, which reloads the world. Thus, if
-        # we get the map here we're sure it is up-to-date.
-        world_map = get_map(self._flags.carla_host, self._flags.carla_port,
-                            self._flags.carla_timeout)
+        # Run method is invoked after all operators finished initializing.
+        # Thus, we're sure the world is up-to-date here.
+        world_map = get_map(self._flags.simulator_host,
+                            self._flags.simulator_port,
+                            self._flags.simulator_timeout)
         self._town_name = world_map.name
 
     @erdos.profile_method()

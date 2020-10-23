@@ -31,13 +31,13 @@ class PointCloud(object):
         self.transform = lidar_setup.get_transform()
 
     @classmethod
-    def from_carla_point_cloud(cls, carla_pc, lidar_setup: LidarSetup):
-        """Creates a pylot point cloud from a carla point cloud.
+    def from_simulator_point_cloud(cls, simulator_pc, lidar_setup: LidarSetup):
+        """Creates a pylot point cloud from a simulator point cloud.
 
         Returns:
           :py:class:`.PointCloud`: A point cloud.
         """
-        points = np.frombuffer(carla_pc.raw_data, dtype=np.dtype('f4'))
+        points = np.frombuffer(simulator_pc.raw_data, dtype=np.dtype('f4'))
         points = copy.deepcopy(points)
         points = np.reshape(points, (int(points.shape[0] / 3), 3))
         return cls(points, lidar_setup)

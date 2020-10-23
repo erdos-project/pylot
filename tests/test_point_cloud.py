@@ -1,10 +1,11 @@
-import pytest
 import numpy as np
 
 from pylot.drivers.sensor_setup import CameraSetup, LidarSetup
 from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.point_cloud import PointCloud
 from pylot.utils import Location, Rotation, Transform, Vector2D
+
+import pytest
 
 # Depth Frame Tests
 
@@ -18,7 +19,7 @@ def test_pixel_has_same_depth(x, y, z, threshold, expected):
     camera_setup = None
     depth_frame = DepthFrame([[0, 0.1, 0], [0, 0, 0.5]], camera_setup)
     assert depth_frame.pixel_has_same_depth(x, y, z, threshold) is expected, \
-           "Depth thresholding did not work correctly."
+        "Depth thresholding did not work correctly."
 
 
 @pytest.mark.parametrize("depth_frame, expected", [
@@ -102,8 +103,7 @@ def test_get_pixel_locations(depth_frame, pixels, expected):
         assert np.isclose(locations[i].z, expected[i].z), 'Returned z '
         'value is not the same as expected'
 
-
-## Point Cloud Tests
+# Point Cloud Tests
 
 
 @pytest.mark.parametrize(
@@ -122,16 +122,17 @@ def test_initialize_point_cloud(points, expected):
     "lidar_points, pixel, expected",
     [
 
-        # In this test for getting pixel locations in CARLA, lidar points
+        # In this test for getting pixel locations, lidar points
         # are first converted to camera coordinates, when constructing the
         # PointCloud. Then, get_pixel_location finds the closest point in
         # the point cloud, normalizes our query to have the same depth as
         # this closest point, and converts to unreal coordinates.
         #
-        # For example, in the first test case, the lidar points in camera coordinates
-        # are (-1,0,1),(1,0,1), and the query pixel is (-0.5, 0, 1). The closest lidar
-        # point is (-1,0,1), so the normalization step has no effect. Finally,
-        # converting the query pixel to unreal coordinates gives (1, -0.5, 0).
+        # For example, in the first test case, the lidar points in camera
+        # coordinates are (-1,0,1),(1,0,1), and the query pixel is
+        # (-0.5, 0, 1). The closest lidar point is (-1,0,1), so the
+        # normalization step has no effect. Finally, converting the query
+        # pixel to unreal coordinates gives (1, -0.5, 0).
 
         # Lidar Points are left middle and right middle, same depth.
         (np.array([[-1, -1, 0], [1, -1, 0]]), Vector2D(

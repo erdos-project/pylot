@@ -1,13 +1,17 @@
-import carla
-import cv2
-import numpy as np
 import random
-import tensorflow as tf
 import time
+
+from carla import Client, Location, Rotation, Transform, command
+
+import cv2
+
+import numpy as np
 
 from config import global_config
 from lanenet_model import lanenet
 from lanenet_model import lanenet_postprocess
+
+import tensorflow as tf
 
 LANENET_MODEL_PATH = "~/code/pylot/dependencies/models/lane_detection/tusimple_lanenet_vgg.ckpt"
 
@@ -77,12 +81,12 @@ def spawn_driving_vehicle(client, world):
     an autopilot mode.
 
     Args:
-        client: The carla.Client instance representing the simulation to
+        client: The Client instance representing the simulation to
           connect to.
         world: The world inside the current simulation.
 
     Returns:
-        A carla.Actor instance representing the vehicle that was just spawned.
+        A Actor instance representing the vehicle that was just spawned.
     """
     # Get the blueprint of the vehicle and set it to AutoPilot.
     vehicle_bp = random.choice(
@@ -98,12 +102,12 @@ def spawn_driving_vehicle(client, world):
 
     # Spawn the vehicle.
     batch = [
-        carla.command.SpawnActor(vehicle_bp, start_pose).then(
-            carla.command.SetAutopilot(carla.command.FutureActor, True))
+        command.SpawnActor(vehicle_bp, start_pose).then(
+            command.SetAutopilot(command.FutureActor, True))
     ]
     vehicle_id = client.apply_batch_sync(batch)[0].actor_id
 
-    # Find the vehicle and return the carla.Actor instance.
+    # Find the vehicle and return the Actor instance.
     time.sleep(
         0.5)  # This is so that the vehicle gets registered in the actors.
     return world.get_actors().find(vehicle_id)
@@ -113,21 +117,20 @@ def spawn_rgb_camera(world, location, rotation, vehicle):
     camera_bp = world.get_blueprint_library().find('sensor.camera.rgb')
     camera_bp.set_attribute('image_size_x', '1280')
     camera_bp.set_attribute('image_size_y', '720')
-    transform = carla.Transform(location=location, rotation=rotation)
+    transform = Transform(location=location, rotation=rotation)
     return world.spawn_actor(camera_bp, transform, attach_to=vehicle)
 
 
 def main(lane_predictor):
-    # Connect to the CARLA instance.
-    client = carla.Client('localhost', 2000)
+    client = Client('localhost', 2000)
     world = client.get_world()
 
     # Spawn the vehicle.
     vehicle = spawn_driving_vehicle(client, world)
 
     # Spawn the camera and register a function to listen to the images.
-    camera = spawn_rgb_camera(world, carla.Location(x=2.0, y=0.0, z=1.8),
-                              carla.Rotation(roll=0, pitch=0, yaw=0), vehicle)
+    camera = spawn_rgb_camera(world, Location(x=2.0, y=0.0, z=1.8),
+                              Rotation(roll=0, pitch=0, yaw=0), vehicle)
     camera.listen(lane_predictor.process_images)
 
     return vehicle, camera, world

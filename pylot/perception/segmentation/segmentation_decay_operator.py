@@ -9,7 +9,7 @@ from pylot.utils import time_epoch_ms
 class SegmentationDecayOperator(erdos.Operator):
     """Computes how much segmentation accuracy decreases over time.
 
-    The operator subscribes to the Carla perfect segmented frames stream.
+    The operator subscribes to the perfect segmented frames stream.
 
     Args:
         ground_segmented_stream (:py:class:`erdos.ReadStream`): Stream on

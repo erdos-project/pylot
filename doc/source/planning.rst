@@ -33,7 +33,7 @@ Important flags
 - ``--visualize_waypoints``: Enables visualization of the waypoints computed
   by the planning operators.
 - ``--draw_waypoints_on_world``: Enables drawing of waypoints directly in the
-  CARLA simulator.
+  simulator.
 - ``--draw_waypoints_on_camera_frames``: Enables drawing of waypoints on camera
   frames.
 - ``--target_speed``: Sets the desired ego-vehicle target speed.

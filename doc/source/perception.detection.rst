@@ -3,7 +3,7 @@ Detection
 
 The package provides operators and classes useful for detecting obstacles,
 traffic lights and lanes. It provides operators that use trained models and
-algorithms, as well as operators that use data from CARLA to perfectly
+algorithms, as well as operators that use data from the simulator to perfectly
 detect obstacles, traffic lights, and lanes.
 
 Obstacle detection
@@ -72,9 +72,9 @@ Important flags
   ``ssdlit-mobilenet-v2``.
 - ``--perfect_obstacle_detection``: Enables the component to use an obstacle
   detector which perfectly detects obstacles using ground information from
-  CARLA.
-- ``--carla_obstacle_detection``: The component outputs obstacle info that is
-  obtained directly from CARLA.
+  the simulator.
+- ``--simulator_obstacle_detection``: The component outputs obstacle info that
+  is obtained directly from the simulator.
 - ``--evaluate_obstacle_detection``: Compute and log accuracy metrics of the
   obstacle detection component.
 - ``--detection_metric``: Sets the accuracy metric to compute and log.
@@ -86,9 +86,9 @@ Important flags
   lights.
 - ``--perfect_traffic_ligth_detection``: Enables the component to use a traffic
   light detector which perfectly detects traffic lights using ground information
-  from CARLA.
-- ``--carla_traffic_light_detection``: The component outputs traffic light info
-  that is obtained directly from CARLA.
+  from the simulator.
+- ``--simulator_traffic_light_detection``: The component outputs traffic light
+  ifo that is obtained directly from the simulator.
 - ``--visualize_detected_traffic_lights``: Enables visualization of detected
   traffic lights.
 - ``--lane_detection``: Enables the lane detection component, which currently
@@ -97,7 +97,7 @@ Important flags
   Pylot current supports a standard vision implementation that uses *Canny edge*,
   and a neural network-based implementation that uses *Lanenet*.
 - ``--perfect_lane_detection``: Enables the component to perfectly detect lanes
-  using information from CARLA.
+  using information from the simulator.
 - ``--visualize_lane_detection``: Enables visualization of detected lanes.
 
 More information

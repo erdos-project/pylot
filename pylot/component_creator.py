@@ -97,7 +97,7 @@ def add_obstacle_detection(center_camera_stream,
         if FLAGS.perfect_obstacle_detection:
             obstacles_stream = perfect_obstacles_stream
 
-    if FLAGS.carla_obstacle_detection:
+    if FLAGS.simulator_obstacle_detection:
         obstacles_stream = ground_obstacles_stream
 
     return obstacles_stream, perfect_obstacles_stream
@@ -122,7 +122,7 @@ def add_traffic_light_detection(tl_transform,
         tl_transform (:py:class:`~pylot.utils.Transform`): Transform of the
              traffic light camera relative to the ego vehicle.
         vehicle_id_stream (:py:class:`erdos.ReadStream`): A stream on which
-            the simulator publishes Carla ego-vehicle id.
+            the simulator publishes simulator ego-vehicle id.
         pose_stream (:py:class:`erdos.ReadStream`, optional): A stream
             on which pose info is received.
         depth_stream (:py:class:`erdos.ReadStream`, optional): Stream on
@@ -172,7 +172,7 @@ def add_traffic_light_detection(tl_transform,
                 tl_depth_camera_stream, tl_segmented_camera_stream,
                 pose_stream)
 
-    if FLAGS.carla_traffic_light_detection:
+    if FLAGS.simulator_traffic_light_detection:
         traffic_lights_stream = ground_traffic_lights_stream
 
     return traffic_lights_stream, tl_camera_stream
@@ -182,14 +182,14 @@ def add_depth(transform, vehicle_id_stream, center_camera_setup,
               depth_camera_stream):
     """Adds operators for depth estimation.
 
-    The operator returns depth frames from CARLA if the
+    The operator returns depth frames from the simulator if the
     `--perfect_depth_estimation` flag is set.
 
     Args:
         transform (:py:class:`~pylot.utils.Transform`): Transform of the
              center camera relative to the ego vehicle.
         vehicle_id_stream (:py:class:`erdos.ReadStream`): A stream on which
-            the simulator publishes Carla ego-vehicle id.
+            the simulator publishes simulator ego-vehicle id.
         center_camera_setup
             (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
             The setup of the center camera.
@@ -250,7 +250,7 @@ def add_lane_detection(center_camera_stream,
         assert pose_stream is not None
         lane_detection_stream = \
             pylot.operator_creator.add_perfect_lane_detector(
-                pose_stream, open_drive_stream)
+                pose_stream, open_drive_stream, center_camera_stream)
     return lane_detection_stream
 
 
@@ -281,7 +281,7 @@ def add_obstacle_tracking(center_camera_stream,
         depth_stream (:py:class:`erdos.ReadStream`, optional): Stream on
             which point cloud or depth frame messages are received.
         vehicle_id_stream (:py:class:`erdos.ReadStream`, optional): A stream on
-             which the simulator publishes Carla ego-vehicle id.
+             which the simulator publishes simulator ego-vehicle id.
         pose_stream (:py:class:`erdos.ReadStream`, optional): A stream on
             which pose info is received.
         ground_obstacles_stream (:py:class:`erdos.ReadStream`, optional):
@@ -367,7 +367,7 @@ def add_prediction(obstacles_tracking_stream,
             :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
             are received.
         vehicle_id_stream (:py:class:`erdos.ReadStream`): A stream on
-             which the simulator publishes Carla ego-vehicle id.
+             which the simulator publishes simulator ego-vehicle id.
         camera_transform (:py:class:`~pylot.utils.Transform`): Transform of the
              center camera relative to the ego vehicle.
         pose_stream (:py:class:`erdos.ReadStream`, optional): Stream on
@@ -476,7 +476,7 @@ def add_control(pose_stream,
     elif FLAGS.control == 'mpc':
         control_stream = pylot.operator_creator.add_mpc(
             pose_stream, waypoints_stream)
-    elif FLAGS.control in ['carla_auto_pilot', 'manual']:
+    elif FLAGS.control in ['simulator_auto_pilot', 'manual']:
         # TODO: Hack! We synchronize on a single stream, based on a
         # guesestimate of which stream is slowest.
         stream_to_sync_on = waypoints_stream
