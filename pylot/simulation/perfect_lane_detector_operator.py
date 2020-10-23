@@ -1,15 +1,7 @@
 from collections import deque
-<<<<<<< HEAD
 import numpy as np
 import erdos
 from erdos import Message, ReadStream, Timestamp, WriteStream
-=======
-
-import erdos
-from erdos import Message, ReadStream, Timestamp, WriteStream
-
-import numpy as np
->>>>>>> 61d85daddc219e66f0aee347cf06d88790a60d98
 
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.messages import LanesMessage
@@ -43,10 +35,7 @@ class PerfectLaneDetectionOperator(erdos.Operator):
                                                  self.config.log_file_name)
         self._bgr_msgs = deque()
         self._pose_msgs = deque()
-<<<<<<< HEAD
         self._frame_cnt = 0
-=======
->>>>>>> 61d85daddc219e66f0aee347cf06d88790a60d98
 
     @staticmethod
     def connect(pose_stream: ReadStream, open_drive_stream: ReadStream,
