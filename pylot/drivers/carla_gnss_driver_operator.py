@@ -1,8 +1,8 @@
 """This module implements an operator acts like a GNSS driver when
-using the CARLA simulator.
+using the simulator.
 
 The operator attaches a GNSS sensor to the ego vehicle, receives GNSS
- measurements from CARLA, and sends them on its output stream.
+ measurements from the simulator, and sends them on its output stream.
 """
 
 import threading
@@ -26,7 +26,7 @@ class CarlaGNSSDriverOperator(erdos.Operator):
     Args:
         ground_vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on
             which the operator receives the id of the ego vehicle. It uses this
-            id to get a Carla handle to the vehicle.
+            id to get a simulator handle to the vehicle.
         gnss_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends GNSS info.
         gnss_setup (:py:class:`pylot.drivers.sensor_setup.GNSSSetup`):
@@ -56,12 +56,9 @@ class CarlaGNSSDriverOperator(erdos.Operator):
         return [gnss_stream]
 
     def process_gnss(self, gnss_msg):
-        """Invoked when a GNSS message is received from the simulator.
+        """Invoked when a GNSS measurement is received from the simulator.
 
         Sends GNSS measurements to downstream operators.
-
-        Args:
-            gnss_msg (carla.GnssMeasurement): GNSS reading.
         """
         game_time = int(gnss_msg.timestamp * 1000)
         timestamp = erdos.Timestamp(coordinates=[game_time])
@@ -72,7 +69,7 @@ class CarlaGNSSDriverOperator(erdos.Operator):
             with self._lock:
                 msg = GNSSMessage(
                     timestamp,
-                    Transform.from_carla_transform(gnss_msg.transform),
+                    Transform.from_simulator_transform(gnss_msg.transform),
                     gnss_msg.altitude, gnss_msg.latitude, gnss_msg.longitude)
                 self._gnss_stream.send(msg)
                 self._gnss_stream.send(watermark_msg)
@@ -81,12 +78,13 @@ class CarlaGNSSDriverOperator(erdos.Operator):
         # Read the vehicle ID from the vehicle ID stream.
         vehicle_id = self._vehicle_id_stream.read().data
         self._logger.debug(
-            "The CarlaGNSSDriverOperator received the vehicle id: {}".format(
+            "The GNSSDriverOperator received the vehicle id: {}".format(
                 vehicle_id))
 
         # Connect to the world.
-        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
-                             self._flags.carla_timeout)
+        _, world = get_world(self._flags.simulator_host,
+                             self._flags.simulator_port,
+                             self._flags.simulator_timeout)
         set_simulation_mode(world, self._flags)
 
         # Retrieve the vehicle and install the GNSS sensor.
@@ -108,12 +106,12 @@ class CarlaGNSSDriverOperator(erdos.Operator):
         gnss_blueprint.set_attribute('noise_lon_bias',
                                      str(self._flags.gnss_bias_lon))
 
-        if self._flags.carla_gnss_frequency == -1:
+        if self._flags.simulator_gnss_frequency == -1:
             gnss_blueprint.set_attribute('sensor_tick', '0.0')
         else:
             gnss_blueprint.set_attribute(
-                'sensor_tick', str(1.0 / self._flags.carla_gnss_frequency))
-        transform = self._gnss_setup.get_transform().as_carla_transform()
+                'sensor_tick', str(1.0 / self._flags.simulator_gnss_frequency))
+        transform = self._gnss_setup.get_transform().as_simulator_transform()
         self._logger.debug("Spawning a GNSS sensor: {}".format(
             self._gnss_setup))
         self._gnss = world.spawn_actor(gnss_blueprint,

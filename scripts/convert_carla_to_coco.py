@@ -1,5 +1,5 @@
 """
-Takes in a folder of Carla observations (images, bounding box annotations) and
+Takes in a folder of observations (images, bounding box annotations) and
  converts them into COCO format (which can be used by e.g. CenterNet).
 
 Example usage:
@@ -39,7 +39,7 @@ def main(_):
     ]
     print("COUNT:", len(idxs))
     for idx in idxs:
-        image_info = {'file_name': 'carla-{}.png'.format(idx), "id": int(idx)}
+        image_info = {'file_name': '{}.png'.format(idx), "id": int(idx)}
         ret['images'].append(image_info)
         bbox_path = 'bboxes-{}.json'.format(idx)
         bbox_data = json.load(open(FLAGS.data + "/" + bbox_path, 'r'))

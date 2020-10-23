@@ -187,11 +187,11 @@ class Waypoints(object):
                                     [255, 255, 255])
 
     def draw_on_world(self, world):
-        """Draw waypoints on CARLA world."""
+        """Draw waypoints on the simulator world."""
         for index, wp in enumerate(self.waypoints):
             # Adds 0.5 to z to ensure that the point is above the road surface.
             loc = (wp.location +
-                   pylot.utils.Location(0, 0, 0.5)).as_carla_location()
+                   pylot.utils.Location(0, 0, 0.5)).as_simulator_location()
             world.debug.draw_point(loc, size=0.1, life_time=DEFAULT_VIS_TIME)
             # if self.road_options and index < len(self.road_options):
             #     world.debug.draw_string(loc,

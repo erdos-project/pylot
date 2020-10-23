@@ -1,8 +1,9 @@
 from __future__ import print_function
+
 import argparse
-import functools
 import collections
 import csv
+import functools
 import sys
 from time import sleep
 try:
@@ -10,21 +11,23 @@ try:
 except ImportError:
     import Queue as queue
 
-import carla
+from carla import Location, Rotation, Transform, Vector3D
+
+from miou_scenario_runner import cleanup_function, retrieve_actor, \
+    setup_world, spawn_camera
+
 import numpy as np
+
 import pygame
 
-from miou_scenario_runner import setup_world, retrieve_actor, spawn_camera
-from miou_scenario_runner import cleanup_function
-
+import pylot.utils
 from pylot.drivers.sensor_setup import DepthCameraSetup
 from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.detection.obstacle import Obstacle
 from pylot.perception.detection.utils import get_precision_recall_at_iou
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
-from pylot.utils import Transform
 
-VEHICLE_DESTINATION = carla.Location(x=387.73 - 370, y=327.07, z=0.5)
+VEHICLE_DESTINATION = Location(x=387.73 - 370, y=327.07, z=0.5)
 SAVED_DETECTIONS = collections.deque()
 CLEANUP_FUNCTION = None
 RGB_IMAGES = queue.Queue()
@@ -170,7 +173,7 @@ def process_depth_images(msg,
 
     # If we are in distance to the destination, stop and exit with success.
     if ego_vehicle.get_location().distance(VEHICLE_DESTINATION) <= 5:
-        ego_vehicle.set_velocity(carla.Vector3D())
+        ego_vehicle.set_velocity(Vector3D())
         CLEANUP_FUNCTION()
         sys.exit(0)
 
@@ -179,7 +182,7 @@ def process_depth_images(msg,
 
     # Get the semantic image corresponding to the given depth image timestamp.
     semantic_image = retrieve_semantic_image(msg.timestamp)
-    semantic_frame = SegmentedFrame.from_carla_image(semantic_image,
+    semantic_frame = SegmentedFrame.from_simulator_image(semantic_image,
                                                      depth_frame.camera_setup)
 
     # Visualize the image and the bounding boxes if needed.
@@ -193,10 +196,10 @@ def process_depth_images(msg,
         bb_surface = pygame.Surface(resolution)
         bb_surface.set_colorkey((0, 0, 0))
 
-    vehicle_transform = Transform.from_carla_transform(
+    vehicle_transform = pylot.utils.Transform.from_simulator_transform(
         ego_vehicle.get_transform())
 
-    depth_frame = DepthFrame.from_carla_frame(msg, depth_camera_setup)
+    depth_frame = DepthFrame.from_simulator_frame(msg, depth_camera_setup)
     # Transform the static camera setup with respect to the location of the
     # vehicle in the world.
     depth_frame.camera_setup.set_transform(vehicle_transform *
@@ -204,7 +207,7 @@ def process_depth_images(msg,
 
     detected_people = []
     for person in ego_vehicle.get_world().get_actors().filter('walker.*'):
-        obstacle = Obstacle.from_carla_actor(person)
+        obstacle = Obstacle.from_simulator_actor(person)
         if obstacle._distance(vehicle_transform) > 125:
             bbox = None
         else:
@@ -226,7 +229,7 @@ def process_depth_images(msg,
     compute_and_log_map(detected_people, msg.timestamp, csv)
 
     # Move the ego_vehicle according to the given speed.
-    ego_vehicle.set_velocity(carla.Vector3D(x=-speed))
+    ego_vehicle.set_velocity(Vector3D(x=-speed))
 
     ego_vehicle.get_world().tick()
 
@@ -253,8 +256,8 @@ def main(args):
         world.tick()
 
     # Transform of the cameras.
-    camera_transform = carla.Transform(location=carla.Location(1.0, 0.0, 1.8),
-                                       rotation=carla.Rotation(0, 0, 0))
+    camera_transform = Transform(location=Location(1.0, 0.0, 1.8),
+                                 rotation=Rotation(0, 0, 0))
 
     # Connect the RGB camera to the vehicle.
     rgb_camera = spawn_camera('sensor.camera.rgb', camera_transform,
@@ -294,7 +297,7 @@ def main(args):
 
     depth_camera_setup = DepthCameraSetup(
         "depth_camera", width, height,
-        Transform.from_carla_transform(camera_transform))
+        pylot.utils.Transform.from_simulator_transform(camera_transform))
     depth_camera.listen(
         functools.partial(process_depth_images,
                           depth_camera_setup=depth_camera_setup,
@@ -314,7 +317,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="CARLA mIoU collector")
+    argparser = argparse.ArgumentParser(description="mAP data collector")
     argparser.add_argument('-s',
                            '--speed',
                            dest='speed',
@@ -352,7 +355,7 @@ if __name__ == "__main__":
     args = argparser.parse_args()
     if args.delta > 0.1:
         raise ValueError(
-            "The CARLA simulator does not work well with frame rates lower "
+            "The simulator does not work well with frame rates lower "
             "than 10FPS.")
 
     if not args.output.endswith('csv'):

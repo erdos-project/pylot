@@ -1,6 +1,10 @@
 from collections import deque
 import numpy as np
+<<<<<<< HEAD
 import random
+=======
+
+>>>>>>> 61d85daddc219e66f0aee347cf06d88790a60d98
 from pylot.utils import Location, Rotation, Transform, Vector3D
 
 from shapely.geometry import Point
@@ -73,15 +77,15 @@ class Lane(object):
                     continue
 
     def draw_on_world(self, world):
-        import carla
+        from carla import Color
         for marking in self.left_markings:
-            world.debug.draw_point(marking.as_carla_location(),
+            world.debug.draw_point(marking.as_simulator_location(),
                                    size=0.1,
-                                   color=carla.Color(255, 255, 0))
+                                   color=Color(255, 255, 0))
         for marking in self.right_markings:
-            world.debug.draw_point(marking.as_carla_location(),
+            world.debug.draw_point(marking.as_simulator_location(),
                                    size=0.1,
-                                   color=carla.Color(255, 255, 0))
+                                   color=Color(255, 255, 0))
 
     def get_closest_lane_waypoint(self, location):
         if self.is_on_lane(location):

@@ -19,7 +19,7 @@ from pylot.prediction.obstacle_prediction import ObstaclePrediction
 class PlanningOperator(erdos.Operator):
     """Planning Operator.
 
-    If the operator is running in CARLA challenge mode, then it receives all
+    If the operator is running in challenge mode, then it receives all
     the waypoints from the scenario runner agent (on the global trajectory
     stream). Otherwise, it computes waypoints using the HD Map.
 
@@ -96,15 +96,15 @@ class PlanningOperator(erdos.Operator):
         return [waypoints_stream]
 
     def run(self):
-        # Run method is invoked after all operators finished initializing,
-        # including the CARLA operator, which reloads the world. Thus, if
-        # we get the map here we're sure it is up-to-date.
+        # Run method is invoked after all operators finished initializing.
+        # Thus, we're sure the world is up-to-date here.
         if self._flags.execution_mode == 'simulation':
             from pylot.map.hd_map import HDMap
             from pylot.simulation.utils import get_map
             self._map = HDMap(
-                get_map(self._flags.carla_host, self._flags.carla_port,
-                        self._flags.carla_timeout), self.config.log_file_name)
+                get_map(self._flags.simulator_host, self._flags.simulator_port,
+                        self._flags.simulator_timeout),
+                self.config.log_file_name)
             self._logger.info('Planner running in stand-alone mode')
 
     def on_pose_update(self, msg):
@@ -160,13 +160,8 @@ class PlanningOperator(erdos.Operator):
         """
         self._logger.debug('@{}: received open drive message'.format(
             msg.timestamp))
-        try:
-            import carla
-        except ImportError:
-            raise Exception('Error importing carla.')
-        self._logger.info('Initializing HDMap from open drive stream')
-        from pylot.map.hd_map import HDMap
-        self._map = HDMap(carla.Map('map', msg.data))
+        from pylot.simulation.utils import map_from_opendrive
+        self._map = map_from_opendrive(msg.data)
 
     @erdos.profile_method()
     def on_time_to_decision(self, msg):

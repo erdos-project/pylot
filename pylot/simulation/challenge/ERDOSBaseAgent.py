@@ -3,7 +3,7 @@ from collections import deque
 
 from absl import flags
 
-import carla
+from carla import VehicleControl
 
 import erdos
 
@@ -12,7 +12,6 @@ from leaderboard.autoagents.autonomous_agent import AutonomousAgent, \
 
 import numpy as np
 
-import pylot.simulation.utils
 import pylot.utils
 from pylot.localization.messages import GNSSMessage, IMUMessage
 from pylot.perception.messages import ObstaclesMessage, TrafficLightsMessage
@@ -42,9 +41,9 @@ class ERDOSBaseAgent(AutonomousAgent):
         enable_logging()
         self.track = get_track()
         # Town name is only used when the agent is directly receiving
-        # traffic lights from CARLA.
+        # traffic lights from the simulator.
         self._town_name = None
-        # Stores a CARLA handle to the ego vehicle. This handle is only
+        # Stores a simulator handle to the ego vehicle. This handle is only
         # used when the agent is using a perfect localization or perception.
         self._ego_vehicle = None
         # Stores ego-vehicle's yaw from last game time. This is used in the
@@ -53,10 +52,12 @@ class ERDOSBaseAgent(AutonomousAgent):
         # Stores the point cloud from the previous sensor reading.
         self._last_point_cloud = None
         if using_perfect_component():
+            from pylot.simulation.utils import get_world
             # The agent is using a perfect component. It must directly connect
             # to the simulator to send perfect data to the data-flow.
-            _, self._world = pylot.simulation.utils.get_world(
-                FLAGS.carla_host, FLAGS.carla_port, FLAGS.carla_timeout)
+            _, self._world = get_world(FLAGS.simulator_host,
+                                       FLAGS.simulator_port,
+                                       FLAGS.simulator_timeout)
 
     def sensors(self):
         """Defines the sensor suite required by the agent."""
@@ -162,7 +163,7 @@ class ERDOSBaseAgent(AutonomousAgent):
                                 tl_camera_location):
         """Send perfect detections for agents and traffic lights.
 
-        This method first connects to the CARLA simulator to extract all the
+        This method first connects to the simulator to extract all the
         agents and traffic light in a scenario. Next, it transforms them into
         the types Pylot expects, and sends them on the streams for perfect
         detections.
@@ -170,18 +171,19 @@ class ERDOSBaseAgent(AutonomousAgent):
         Note: This is only used when executing using a perfect perception
         component.
         """
-        if not (FLAGS.carla_obstacle_detection
-                or FLAGS.carla_traffic_light_detection):
+        if not (FLAGS.simulator_obstacle_detection
+                or FLAGS.simulator_traffic_light_detection):
             return
+        from pylot.simulation.utils import extract_data_in_pylot_format
         actor_list = self._world.get_actors()
         (vehicles, people, traffic_lights, _,
-         _) = pylot.simulation.utils.extract_data_in_pylot_format(actor_list)
-        if FLAGS.carla_obstacle_detection:
+         _) = extract_data_in_pylot_format(actor_list)
+        if FLAGS.simulator_obstacle_detection:
             perfect_obstacles_stream.send(
                 ObstaclesMessage(timestamp, vehicles + people))
             perfect_obstacles_stream.send(erdos.WatermarkMessage(timestamp))
-        if FLAGS.carla_traffic_light_detection:
-            vec_transform = pylot.utils.Transform.from_carla_transform(
+        if FLAGS.simulator_traffic_light_detection:
+            vec_transform = pylot.utils.Transform.from_simulator_transform(
                 self._ego_vehicle.get_transform())
             tl_camera_transform = pylot.utils.Transform(
                 tl_camera_location, pylot.utils.Rotation())
@@ -217,7 +219,7 @@ class ERDOSBaseAgent(AutonomousAgent):
             road_options = deque([])
             for (transform, road_option) in self._global_plan_world_coord:
                 waypoints.append(
-                    pylot.utils.Transform.from_carla_transform(transform))
+                    pylot.utils.Transform.from_simulator_transform(transform))
                 road_options.append(pylot.utils.RoadOption(road_option.value))
             waypoints = Waypoints(waypoints, road_options=road_options)
             global_trajectory_stream.send(
@@ -250,7 +252,7 @@ class ERDOSBaseAgent(AutonomousAgent):
 
     def send_lidar_msg(self,
                        point_cloud_stream,
-                       carla_pc,
+                       simulator_pc,
                        timestamp,
                        lidar_setup,
                        ego_transform=None):
@@ -260,8 +262,8 @@ class ERDOSBaseAgent(AutonomousAgent):
         to the type Pylot uses, and it sends it on the point cloud stream.
         """
         # Remove the intensity component of the point cloud.
-        carla_pc = carla_pc[:, :3]
-        point_cloud = PointCloud(carla_pc, lidar_setup)
+        simulator_pc = simulator_pc[:, :3]
+        point_cloud = PointCloud(simulator_pc, lidar_setup)
         if self._last_point_cloud is not None:
             # TODO(ionel): Should offset the last point cloud wrt to the
             # current location.
@@ -276,20 +278,20 @@ class ERDOSBaseAgent(AutonomousAgent):
             pylot.perception.messages.PointCloudMessage(
                 timestamp, point_cloud))
         point_cloud_stream.send(erdos.WatermarkMessage(timestamp))
-        # global_pc = ego_transform.inverse_transform_points(carla_pc)
-        self._last_point_cloud = PointCloud(carla_pc, lidar_setup)
+        # global_pc = ego_transform.inverse_transform_points(simulator_pc)
+        self._last_point_cloud = PointCloud(simulator_pc, lidar_setup)
 
     def send_perfect_pose_msg(self, pose_stream, timestamp):
         """Sends the perfectly accurate location of the ego-vehicle.
 
-        The perfect ego-vehicle pose is directly fetched from CARLA.
+        The perfect ego-vehicle pose is directly fetched from the simulator.
         This method is only used when the agent is running with perfect
-        CARLA localization. It is meant to be used mostly for debugging
+        localization. It is meant to be used mostly for debugging
         and testing.
         """
-        vec_transform = pylot.utils.Transform.from_carla_transform(
+        vec_transform = pylot.utils.Transform.from_simulator_transform(
             self._ego_vehicle.get_transform())
-        velocity_vector = pylot.utils.Vector3D.from_carla_vector(
+        velocity_vector = pylot.utils.Vector3D.from_simulator_vector(
             self._ego_vehicle.get_velocity())
         forward_speed = velocity_vector.magnitude()
         pose = pylot.utils.Pose(vec_transform, forward_speed, velocity_vector,
@@ -298,13 +300,13 @@ class ERDOSBaseAgent(AutonomousAgent):
         pose_stream.send(erdos.WatermarkMessage(timestamp))
 
     def send_vehicle_id_msg(self, vehicle_id_stream):
-        """Sends the CARLA actor id of the ego-vehicle.
+        """Sends the simulator actor id of the ego-vehicle.
 
-        This method is only used when the agent is running with perfect CARLA
+        This method is only used when the agent is running with perfect
         localization or with perfect obstacle trajectory tracking.
         """
-        if ((FLAGS.carla_localization or FLAGS.perfect_obstacle_tracking
-             or FLAGS.carla_traffic_light_detection)
+        if ((FLAGS.perfect_localization or FLAGS.perfect_obstacle_tracking
+             or FLAGS.simulator_traffic_light_detection)
                 and not self._ego_vehicle):
             actor_list = self._world.get_actors()
             vec_actors = actor_list.filter('vehicle.*')
@@ -364,7 +366,7 @@ def read_control_command(control_stream):
         if not isinstance(control_msg, erdos.WatermarkMessage):
             # We have read a control message. Return the command
             # so that the leaderboard can tick the simulator.
-            output_control = carla.VehicleControl()
+            output_control = VehicleControl()
             output_control.throttle = control_msg.throttle
             output_control.brake = control_msg.brake
             output_control.steer = control_msg.steer
@@ -376,12 +378,12 @@ def read_control_command(control_stream):
 
 def using_lidar():
     """Returns True if Lidar is required for the setup."""
-    return not (FLAGS.carla_obstacle_detection
-                and FLAGS.carla_traffic_light_detection)
+    return not (FLAGS.simulator_obstacle_detection
+                and FLAGS.simulator_traffic_light_detection)
 
 
 def using_perfect_component():
     """Returns True if the agent uses any perfect component."""
-    return (FLAGS.carla_obstacle_detection
-            or FLAGS.carla_traffic_light_detection
-            or FLAGS.perfect_obstacle_tracking or FLAGS.carla_localization)
+    return (FLAGS.simulator_obstacle_detection
+            or FLAGS.simulator_traffic_light_detection
+            or FLAGS.perfect_obstacle_tracking or FLAGS.perfect_localization)

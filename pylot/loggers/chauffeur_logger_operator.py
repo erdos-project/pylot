@@ -4,7 +4,7 @@ from collections import deque
 
 import PIL.Image as Image
 
-import carla
+from carla import BoundingBox, Color, TrafficLightState
 
 import cv2
 
@@ -16,9 +16,9 @@ import pylot.simulation.utils
 import pylot.utils
 
 TL_STATE_TO_PIXEL_COLOR = {
-    carla.TrafficLightState.Red: [255, 1, 1],
-    carla.TrafficLightState.Yellow: [2, 255, 2],
-    carla.TrafficLightState.Green: [3, 3, 255],
+    TrafficLightState.Red: [255, 1, 1],
+    TrafficLightState.Yellow: [2, 255, 2],
+    TrafficLightState.Green: [3, 3, 255],
 }
 
 # Draw bounding boxes and record them within TL_LOGGING_RADIUS meters from car.
@@ -66,12 +66,11 @@ class ChauffeurLoggerOperator(erdos.Operator):
         return []
 
     def run(self):
-        # Run method is invoked after all operators finished initializing,
-        # including the CARLA operator, which reloads the world. Thus, if
-        # we get the world here we're sure it is up-to-date.
+        # Run method is invoked after all operators finished initializing.
+        # Thus, we're sure the world is up-to-date here.
         _, self._world = pylot.simulation.utils.get_world(
-            self._flags.carla_host, self._flags.carla_port,
-            self._flags.carla_timeout)
+            self._flags.simulator_host, self._flags.simulator_port,
+            self._flags.simulator_timeout)
 
     def on_tracking_update(self, msg: erdos.Message):
         assert len(msg.timestamp.coordinates) == 1
@@ -216,14 +215,15 @@ class ChauffeurLoggerOperator(erdos.Operator):
     def _draw_trigger_volume(self, world, tl_actor):
         transform = tl_actor.get_transform()
         tv = transform.transform(tl_actor.trigger_volume.location)
-        bbox = carla.BoundingBox(tv, tl_actor.trigger_volume.extent)
+        bbox = BoundingBox(tv, tl_actor.trigger_volume.extent)
         tl_state = tl_actor.get_state()
         if tl_state in TL_STATE_TO_PIXEL_COLOR:
             r, g, b = TL_STATE_TO_PIXEL_COLOR[tl_state]
-            bbox_color = carla.Color(r, g, b)
+            bbox_color = Color(r, g, b)
         else:
-            bbox_color = carla.Color(0, 0, 0)
-        bbox_life_time = (1 / self._flags.carla_fps + TL_BBOX_LIFETIME_BUFFER)
+            bbox_color = Color(0, 0, 0)
+        bbox_life_time = \
+            (1 / self._flags.simulator_fps + TL_BBOX_LIFETIME_BUFFER)
         world.debug.draw_box(bbox,
                              transform.rotation,
                              thickness=0.5,

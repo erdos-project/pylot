@@ -1,7 +1,7 @@
 How to collect data
 ===================
 
-Pylot also provides a script for collecting Carla data such as: RGB images,
+Pylot also provides a script for collecting CARLA data such as: RGB images,
 segmented images, obstacle 2D bounding boxes, depth frames, point clouds,
 traffic lights, obstacle trajectories, and data in Chauffeur format.
 

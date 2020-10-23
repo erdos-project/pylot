@@ -2,13 +2,13 @@
 the ego vehicle invades a lane on the opposite side of the road.
 """
 
-import carla
+from carla import LaneType, Transform
 
 import erdos
 
+import pylot.utils
 from pylot.simulation.messages import LaneInvasionMessage
 from pylot.simulation.utils import get_vehicle_handle, get_world
-from pylot.utils import LaneMarking, LaneType
 
 
 class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
@@ -35,7 +35,7 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
-        # The hero vehicle actor object we obtain from carla.
+        # The hero vehicle actor object we obtain from the simulator.
         self._vehicle = None
         self._lane_invasion_sensor = None
         self._map = None
@@ -53,8 +53,9 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
             vehicle_id_msg.timestamp, vehicle_id))
 
         # Connect to the world.
-        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
-                             self._flags.carla_timeout)
+        _, world = get_world(self._flags.simulator_host,
+                             self._flags.simulator_port,
+                             self._flags.simulator_timeout)
 
         self._vehicle = get_vehicle_handle(world, vehicle_id)
         self._map = world.get_map()
@@ -65,7 +66,7 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
 
         self._logger.debug("Spawning a lane invasion sensor.")
         self._lane_invasion_sensor = world.spawn_actor(lane_invasion_blueprint,
-                                                       carla.Transform(),
+                                                       Transform(),
                                                        attach_to=self._vehicle)
 
         # Register the callback on the lane-invasion sensor.
@@ -74,10 +75,8 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
     def process_lane_invasion(self, lane_invasion_event):
         """Invoked when a lane invasion event is received from the simulation.
 
-        Args:
-            lane_invasion_event (:py:class:`carla.LaneInvasionEvent`): A lane-
-                invasion event that contains the lane marking which was
-                invaded by the ego-vehicle.
+        The lane-invasion event contains the lane marking which was invaded by
+        the ego-vehicle.
         """
         game_time = int(lane_invasion_event.timestamp * 1000)
         self._logger.debug(
@@ -87,17 +86,18 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
         # Create the lane markings that were invaded.
         lane_markings = []
         for lane_marking in lane_invasion_event.crossed_lane_markings:
-            lane_marking = LaneMarking.from_carla_lane_marking(lane_marking)
+            lane_marking = pylot.utils.LaneMarking.from_simulator_lane_marking(
+                lane_marking)
             lane_markings.append(lane_marking)
 
         # Find the type of the lane that was invaded.
         closest_wp = self._map.get_waypoint(
             self._vehicle.get_transform().location,
             project_to_road=False,
-            lane_type=carla.LaneType.Any)
-        lane_type = LaneType.NONE
+            lane_type=LaneType.Any)
+        lane_type = pylot.utils.LaneType.NONE
         if closest_wp:
-            lane_type = LaneType(closest_wp.lane_type)
+            lane_type = pylot.utils.LaneType(closest_wp.lane_type)
 
         # Create a LaneInvasionMessage.
         timestamp = erdos.Timestamp(coordinates=[game_time])
