@@ -1,10 +1,5 @@
 from collections import deque
 import numpy as np
-<<<<<<< HEAD
-import random
-=======
-
->>>>>>> 61d85daddc219e66f0aee347cf06d88790a60d98
 from pylot.utils import Location, Rotation, Transform, Vector3D
 
 from shapely.geometry import Point
