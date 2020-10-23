@@ -34,6 +34,7 @@ class PerfectLaneDetectionOperator(erdos.Operator):
                                                  self.config.log_file_name)
         self._bgr_msgs = deque()
         self._pose_msgs = deque()
+        self._frame_cnt = 0
 
     @staticmethod
     def connect(pose_stream: ReadStream, open_drive_stream: ReadStream,
@@ -98,22 +99,29 @@ class PerfectLaneDetectionOperator(erdos.Operator):
         vehicle_location = pose_msg.data.transform.location
         if self._map:
             lanes = self._map.get_all_lanes(vehicle_location)
-            for lane in lanes:
-                lane.draw_on_world(self._world)
             if self._flags.log_lane_detection_camera:
                 camera_setup = bgr_msg.frame.camera_setup
                 black_img = np.zeros(
                     (camera_setup.height, camera_setup.width, 3),
                     dtype=np.dtype("uint8"))
                 frame = CameraFrame(black_img, 'BGR', camera_setup)
+                binary_frame = CameraFrame(black_img.copy(), 'BGR', camera_setup)
                 for lane in lanes:
                     lane.draw_on_frame(frame,
                                        inverse_transform=pose_msg.data.
-                                       transform.inverse_transform())
+                                       transform.inverse_transform(),
+                                       binary_frame=binary_frame)
                 self._logger.debug('@{}: detected {} lanes'.format(
                     bgr_msg.timestamp, len(lanes)))
-                frame.save(bgr_msg.timestamp.coordinates[0],
-                           self._flags.data_path, "lane")
+                self._frame_cnt += 1
+                if self._frame_cnt % self._flags.log_every_nth_message == 0:
+                    frame.save(bgr_msg.timestamp.coordinates[0],
+                            self._flags.data_path, "lane")
+                    binary_frame.save(bgr_msg.timestamp.coordinates[0],
+                            self._flags.data_path, "binary-lane")
+            else:
+                for lane in lanes:
+                    lane.draw_on_world(self._world)
         else:
             self._logger.debug('@{}: map is not ready yet'.format(
                 pose_msg.timestamp))
