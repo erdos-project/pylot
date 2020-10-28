@@ -28,11 +28,6 @@ class CollisionMessage(erdos.Message):
     def __init__(self, collided_actor: str, impulse: Vector3D,
                  timestamp: Timestamp):
         super(CollisionMessage, self).__init__(timestamp, None)
-        from carla import Actor
-        # Ensure the correct types of the arguments.
-        if not isinstance(collided_actor, Actor):
-            raise ValueError("The collided_actor should be of type Actor")
-
         if not isinstance(impulse, Vector3D):
             raise ValueError(
                 "The impulse should be of type pylot.utils.Vector3D")

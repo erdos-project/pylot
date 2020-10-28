@@ -38,19 +38,7 @@ class Rotation(object):
         Returns:
             :py:class:`.Rotation`: A pylot rotation.
         """
-        from carla import Rotation
-        if not isinstance(rotation, Rotation):
-            raise ValueError('rotation should be of type Rotation')
         return cls(rotation.pitch, rotation.yaw, rotation.roll)
-
-    def as_simulator_rotation(self):
-        """ Retrieves the rotation as an instance of a simulator rotation.
-
-        Returns:
-            An instance of a simulator class representing the rotation.
-        """
-        from carla import Rotation
-        return Rotation(self.pitch, self.yaw, self.roll)
 
     def as_numpy_array(self):
         """Retrieves the Rotation as a numpy array."""
@@ -256,9 +244,6 @@ class Vector3D(object):
         Returns:
             :py:class:`.Vector3D`: A pylot 3D vector.
         """
-        from carla import Vector3D
-        if not isinstance(vector, Vector3D):
-            raise ValueError('The vector must be a Vector3D')
         return cls(vector.x, vector.y, vector.z)
 
     def as_numpy_array(self):
@@ -268,15 +253,6 @@ class Vector3D(object):
     def as_numpy_array_2D(self):
         """Drops the 3rd dimension."""
         return np.array([self.x, self.y])
-
-    def as_simulator_vector(self):
-        """Retrieves the 3D vector as an instance of simulator 3D vector.
-
-        Returns:
-            An instance of the simulator class representing the 3D vector.
-        """
-        from carla import Vector3D
-        return Vector3D(self.x, self.y, self.z)
 
     def l1_distance(self, other):
         """Calculates the L1 distance between the point and another point.
@@ -460,10 +436,6 @@ class Location(Vector3D):
         Returns:
             :py:class:`.Location`: A pylot location.
         """
-        from carla import Location, Vector3D
-        if not (isinstance(location, Location)
-                or isinstance(location, Vector3D)):
-            raise ValueError('The location must be a Location or Vector3D')
         return cls(location.x, location.y, location.z)
 
     @classmethod
@@ -601,9 +573,6 @@ class Transform(object):
         Returns:
             :py:class:`.Transform`: An instance of a pylot transform.
         """
-        from carla import Transform
-        if not isinstance(transform, Transform):
-            raise ValueError('transform should be of type Transform')
         return cls(Location.from_simulator_location(transform.location),
                    Rotation.from_simulator_rotation(transform.rotation))
 
@@ -751,19 +720,6 @@ class Transform(object):
                                               np.linalg.inv(self.matrix))
         return [Location(x, y, z) for x, y, z in transformed_points]
 
-    def as_simulator_transform(self):
-        """Converts the transform to a simulator transform.
-
-        Returns:
-            An instance of the simulator class representing the Transform.
-        """
-        from carla import Location, Rotation, Transform
-        return Transform(
-            Location(self.location.x, self.location.y, self.location.z),
-            Rotation(pitch=self.rotation.pitch,
-                     yaw=self.rotation.yaw,
-                     roll=self.rotation.roll))
-
     def get_angle_and_magnitude(self, target_loc):
         """Computes relative angle between the transform and a target location.
 
@@ -910,6 +866,10 @@ class LaneChange(Enum):
     LEFT = 2
     BOTH = 3
 
+    @classmethod
+    def from_simulator_lane_change(cls, lane_change):
+        return cls(lane_change.real)
+
 
 class LaneType(Enum):
     """Enum that defines the type of the lane according to OpenDrive 1.4.
@@ -939,6 +899,14 @@ class LaneType(Enum):
     OFFRAMP = 524288
     ONRAMP = 1048576
     ANY = 4294967294
+
+    @classmethod
+    def from_simulator_lane_type(cls, lane_type):
+        return cls(lane_type.real)
+
+    def as_simulator_lane_type(self):
+        from carla import LaneType as SimLaneType
+        return SimLaneType(self.value)
 
 
 class RoadOption(Enum):
@@ -997,6 +965,59 @@ class LaneMarking(object):
     def __str__(self):
         return "LaneMarking(color: {}, type: {}, change: {})".format(
             self.marking_color, self.marking_type, self.lane_change)
+
+
+class Waypoint(object):
+    """Used to represent a waypoint."""
+    def __init__(self, waypoint, sim_transform, transform, lane_type,
+                 is_junction, road_id, lane_id, section_id, left_lane_marking,
+                 right_lane_marking):
+        self._waypoint = waypoint
+        self.lane_type = lane_type
+        self.transform = sim_transform
+        self._transform = transform
+        self.is_junction = is_junction
+        self.road_id = road_id
+        self.lane_id = lane_id
+        self.section_id = section_id
+        self.left_lane_marking = left_lane_marking
+        self.right_lane_marking = right_lane_marking
+
+    def get_left_lane(self):
+        return Waypoint.from_simulator_waypoint(self._waypoint.get_left_lane())
+
+    def get_right_lane(self):
+        return Waypoint.from_simulator_waypoint(
+            self._waypoint.get_right_lane())
+
+    def next(self, distance):
+        return [Waypoint.from_simulator_waypoint(w)
+                for w in self._waypoint.next(distance)]
+
+    @classmethod
+    def from_simulator_waypoint(cls, wp):
+        is_junction = False
+        if wp.is_junction:
+            is_junction = True
+        if hasattr(wp, 'is_intersection'):
+            is_junction = wp.is_intersection
+        return cls(
+            wp,
+            wp.transform,
+            Transform.from_simulator_transform(wp.transform),
+            LaneType.from_simulator_lane_type(wp.lane_type),
+            is_junction,
+            wp.road_id,
+            wp.lane_id,
+            wp.section_id,
+            LaneMarking.from_simulator_lane_marking(wp.left_lane_marking),
+            LaneMarking.from_simulator_lane_marking(wp.right_lane_marking))
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return "Waypoint(Transform: {})".format(self.transform)
 
 
 def add_timestamp(image_np, timestamp):

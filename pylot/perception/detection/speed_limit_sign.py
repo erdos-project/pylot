@@ -43,9 +43,6 @@ class SpeedLimitSign(Obstacle):
         Returns:
             :py:class:`.SpeedLimitSign`: A detected speed limit sign.
         """
-        from carla import TrafficSign
-        if not isinstance(actor, TrafficSign):
-            raise ValueError('actor should be of type TrafficSign')
         transform = pylot.utils.Transform.from_simulator_transform(
             actor.get_transform())
         speed_limit = int(actor.type_id.split('.')[-1])

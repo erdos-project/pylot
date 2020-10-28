@@ -44,9 +44,6 @@ class CameraFrame(object):
         Returns:
             :py:class:`.CameraFrame`: A BGR camera frame.
         """
-        from carla import Image
-        if not isinstance(simulator_frame, Image):
-            raise ValueError('simulator_frame should be of type Image')
         _frame = np.frombuffer(simulator_frame.raw_data,
                                dtype=np.dtype("uint8"))
         _frame = np.reshape(_frame,

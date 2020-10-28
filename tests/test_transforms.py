@@ -74,20 +74,6 @@ def test_l1_distance(point_a, point_b, expected):
     "Distance between point_a and point_b is not the same as expected."
 
 
-def test_as_simulator_location():
-    """Test the as_simulator_location instance method of Location """
-    location = Location(x=1, y=2, z=3)
-    simulator_location = location.as_simulator_location()
-    assert isinstance(simulator_location, carla.Location), "Returned instance is "
-    "not of the type carla.Location"
-    assert np.isclose(simulator_location.x, location.x), "Returned instance x "
-    "value is not the same as the one in location."
-    assert np.isclose(simulator_location.y, location.y), "Returned instance y "
-    "value is not the same as the one in location."
-    assert np.isclose(simulator_location.z, location.z), "Returned instance z "
-    "value is not the same as the one in location."
-
-
 def test_location_as_numpy_array():
     """ Test the as_simulator_location instance method of Location """
     location = Location(x=1, y=2, z=3)
@@ -174,20 +160,6 @@ def test_negative_rotation_from_simulator():
         Rotation.from_simulator_rotation(dummy_instance)
 
 
-def test_as_simulator_rotation():
-    """ Test the as_simulator_rotation instance method of Rotation """
-    rotation = Rotation(pitch=1, yaw=2, roll=3)
-    simulator_rotation = rotation.as_simulator_rotation()
-    assert isinstance(simulator_rotation, carla.Rotation), "Returned instance is "
-    "not of the type carla.Rotation"
-    assert np.isclose(simulator_rotation.pitch, rotation.pitch), "Returned "
-    "instance pitch value is not the same as the one in rotation."
-    assert np.isclose(simulator_rotation.yaw, rotation.yaw), "Returned instance "
-    "yaw value is not the same as the one in rotation."
-    assert np.isclose(simulator_rotation.roll, rotation.roll), "Returned instance "
-    "roll value is not the same as the one in location."
-
-
 ## Vector3D Tests
 
 
@@ -262,18 +234,6 @@ def test_vector_as_numpy_array():
     "type numpy.ndarray"
     assert all(vector_np == [0, 0, 0]), "The values returned in the numpy "
     "array are not the expected values."
-
-
-def test_as_simulator_vector():
-    vector = Vector3D().as_simulator_vector()
-    assert isinstance(vector, carla.Vector3D), "The returned object "
-    "is not of the type carla.Vector3D"
-    assert np.isclose(vector.x, 0), "The x value of the returned vector"
-    " is not 0"
-    assert np.isclose(vector.y, 0), "The y value of the returned vector"
-    " is not 0"
-    assert np.isclose(vector.z, 0), "The z value of the returned vector"
-    " is not 0"
 
 
 @pytest.mark.parametrize("point, expected", [((1, 2, 3), 3.7416573867739413),

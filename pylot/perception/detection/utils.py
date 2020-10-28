@@ -165,34 +165,6 @@ class BoundingBox3D(object):
         extent = pylot.utils.Vector3D.from_simulator_vector(bbox.extent)
         return cls(transform, extent)
 
-    def as_simulator_bounding_box(self):
-        """Retrieves the bounding box as instance of a simulator bounding box.
-
-        Returns:
-            A instance of a simulator class that represents the bounding box.
-        """
-        from carla import BoundingBox
-        bb_loc = self.transform.location.as_simulator_location()
-        bb_extent = self.extent.as_simulator_vector()
-        return BoundingBox(bb_loc, bb_extent)
-
-    def visualize(self, world, actor_transform, time_between_frames=100):
-        """Visualizes the bounding box on the world.
-
-        Args:
-            world: The simulator world instance to visualize the bounding
-                box on.
-            actor_transform (:py:class:`~pylot.utils.Transform`): The current
-                transform of the actor that the bounding box is of.
-            time_between_frames (:obj:`float`): Time in ms to show the bounding
-                box for.
-        """
-        bb = self.as_simulator_bounding_box()
-        bb.location += actor_transform.location()
-        world.debug.draw_box(bb,
-                             actor_transform.rotation.as_simulator_rotation(),
-                             life_time=time_between_frames / 1000.0)
-
     def to_camera_view(self, obstacle_transform, extrinsic_matrix,
                        intrinsic_matrix):
         """Converts the coordinates of the bounding box for the given obstacle

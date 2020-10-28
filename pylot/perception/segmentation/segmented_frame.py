@@ -107,9 +107,6 @@ class SegmentedFrame(object):
         """
         # Converts the array containing simulator semantic segmentation labels
         # to a 2D array containing the label of each pixel.
-        from carla import Image
-        if not isinstance(simulator_image, Image):
-            raise ValueError('simulator_image should be of type Image')
         __frame = np.frombuffer(simulator_image.raw_data,
                                 dtype=np.dtype("uint8"))
         __frame = np.reshape(
