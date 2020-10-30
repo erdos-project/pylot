@@ -78,11 +78,9 @@ def main(argv):
              transform, vehicle_id_stream, release_sensor_stream)
         (depth_camera_stream, _,
          depth_camera_setup) = pylot.operator_creator.add_depth_camera(
-             transform, vehicle_id_stream, release_sensor_stream)
-        (segmented_stream, _,
-         _) = pylot.operator_creator.add_segmented_camera(transform,
-                                                          vehicle_id_stream,
-                                                          release_sensor_stream)
+             transform, vehicile_id_stream, release_sensor_stream)
+        (segmented_stream, _, _) = pylot.operator_creator.add_segmented_camera(
+            transform, vehicle_id_stream, release_sensor_stream)
 
     if FLAGS.log_rgb_camera:
         pylot.operator_creator.add_camera_logging(
@@ -124,7 +122,7 @@ def main(argv):
 
         with open(pickle_pose_stream_filename, 'wb') as wfp:
             pickle.dump(pickle_pose_stream, wfp)
- 
+
     traffic_lights_stream = None
     traffic_light_camera_stream = None
     if FLAGS.log_traffic_lights:
