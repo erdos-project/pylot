@@ -78,7 +78,7 @@ def main(argv):
              transform, vehicle_id_stream, release_sensor_stream)
         (depth_camera_stream, _,
          depth_camera_setup) = pylot.operator_creator.add_depth_camera(
-             transform, vehicile_id_stream, release_sensor_stream)
+             transform, vehicle_id_stream, release_sensor_stream)
         (segmented_stream, _, _) = pylot.operator_creator.add_segmented_camera(
             transform, vehicle_id_stream, release_sensor_stream)
 
