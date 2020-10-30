@@ -269,7 +269,7 @@ def main(argv):
                                                      FLAGS.simulator_port,
                                                      FLAGS.simulator_timeout)
 
-   # Run the data-flow.
+    # Run the data-flow.
     node_handle = erdos.run_async()
 
     signal.signal(signal.SIGINT, shutdown)
