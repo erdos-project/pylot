@@ -17,6 +17,7 @@ from pylot.control.messages import ControlMessage
 from pylot.perception.messages import ObstaclesMessage, SpeedSignsMessage, \
     StopSignsMessage, TrafficLightsMessage
 
+
 class CarlaOperator(erdos.Operator):
     """Initializes and controls a CARLA simulation.
 
