@@ -117,12 +117,12 @@ def main(argv):
         pickle_pose_stream_filename = 'pickle_pose_stream.pkl'
 
         if os.path.exists(pickle_pose_stream_filename):
-            with open(pickle_pose_stream_filename,'rb') as rfp:
+            with open(pickle_pose_stream_filename, 'rb') as rfp:
                 pickle_pose_stream = pickle.load(rfp)
         pose = pose_stream.read()
         pickle_pose_stream.append(pose)
 
-        with open(pickle_pose_stream_filename,'wb') as wfp:
+        with open(pickle_pose_stream_filename, 'wb') as wfp:
             pickle.dump(pickle_pose_stream, wfp)
  
     traffic_lights_stream = None
