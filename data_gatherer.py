@@ -9,6 +9,9 @@ import pylot.operator_creator
 import pylot.simulation.utils
 import pylot.utils
 
+import pickle
+import os
+
 FLAGS = flags.FLAGS
 
 # Flags that control what data is recorded.
@@ -38,6 +41,8 @@ flags.DEFINE_bool('log_chauffeur', False,
                   'True to log data in ChauffeurNet style.')
 flags.DEFINE_bool('log_top_down_segmentation', False,
                   'True to enable logging of top down segmentation')
+flags.DEFINE_bool('perfect_perception', False,
+                  'True to disable the adding of cameras')
 
 # The location of the center camera relative to the ego-vehicle.
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.0, 0.0, 1.8)
@@ -65,17 +70,18 @@ def main(argv):
         control_loop_stream, release_sensor_stream,
         pipeline_finish_notify_stream)
 
-    # Add sensors.
-    (center_camera_stream, notify_rgb_stream,
-     rgb_camera_setup) = pylot.operator_creator.add_rgb_camera(
-         transform, vehicle_id_stream, release_sensor_stream)
-    (depth_camera_stream, _,
-     depth_camera_setup) = pylot.operator_creator.add_depth_camera(
-         transform, vehicle_id_stream, release_sensor_stream)
-    (segmented_stream, _,
-     _) = pylot.operator_creator.add_segmented_camera(transform,
-                                                      vehicle_id_stream,
-                                                      release_sensor_stream)
+    if not FLAGS.perfect_perception:
+        # Add sensors.
+        (center_camera_stream, notify_rgb_stream,
+         rgb_camera_setup) = pylot.operator_creator.add_rgb_camera(
+             transform, vehicle_id_stream, release_sensor_stream)
+        (depth_camera_stream, _,
+         depth_camera_setup) = pylot.operator_creator.add_depth_camera(
+             transform, vehicle_id_stream, release_sensor_stream)
+        (segmented_stream, _,
+         _) = pylot.operator_creator.add_segmented_camera(transform,
+                                                          vehicle_id_stream,
+                                                          release_sensor_stream)
 
     if FLAGS.log_rgb_camera:
         pylot.operator_creator.add_camera_logging(
@@ -247,6 +253,18 @@ def main(argv):
     client, world = pylot.simulation.utils.get_world(FLAGS.simulator_host,
                                                      FLAGS.simulator_port,
                                                      FLAGS.simulator_timeout)
+
+   pickle_pose_stream = []
+   pickle_pose_stream_filename = 'pickle_pose_stream.pkl'
+
+    if os.path.exists(pickle_pose_stream_filename):
+        with open(pickle_pose_stream_filename,'rb') as rfp:
+            pickle_pose_stream = pickle.load(rfp)
+    pose = pose_stream.read()
+    pickle_pose_stream.append(pose)
+
+    with open(pickle_pose_stream_filename,'wb') as wfp:
+        pickle.dump(pickle_pose_stream, wfp)
 
     # Run the data-flow.
     node_handle = erdos.run_async()

@@ -17,10 +17,6 @@ from pylot.control.messages import ControlMessage
 from pylot.perception.messages import ObstaclesMessage, SpeedSignsMessage, \
     StopSignsMessage, TrafficLightsMessage
 
-import pickle
-import os
-
-
 class CarlaOperator(erdos.Operator):
     """Initializes and controls a CARLA simulation.
 
@@ -363,20 +359,7 @@ class CarlaOperator(erdos.Operator):
         forward_speed = velocity_vector.magnitude()
         pose = pylot.utils.Pose(vec_transform, forward_speed, velocity_vector,
                                 timestamp.coordinates[0])
-        message_stream = []
-        message_stream_filename = 'message_stream.pkl'
-
-        if os.path.exists(message_stream_filename):
-            with open(message_stream_filename, 'rb') as rfp:
-                message_stream = pickle.load(rfp)
-
-        message = erdos.Message(timestamp, pose)
-        message_stream.append(message)
-
-        with open(message_stream_filename, 'wb') as wfp:
-            pickle.dump(message_stream, wfp)
-
-        stream.send(message)
+        stream.send(erdos.Message(timestamp, pose))
         stream.send(erdos.WatermarkMessage(timestamp))
 
     def __send_ground_actors_data(self, timestamp: Timestamp):
