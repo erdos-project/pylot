@@ -27,6 +27,7 @@ flags.DEFINE_bool('log_depth_camera', False,
                   'True to enable depth camera logging')
 flags.DEFINE_bool('log_imu', False, 'Enable logging of IMU measurements.')
 flags.DEFINE_bool('log_gnss', False, 'Enable logging of GNSS measurements.')
+flags.DEFINE_bool('log_pose', False, 'Enable logging of pose measurements.')
 flags.DEFINE_bool('log_lidar', False, 'True to enable lidar logging')
 flags.DEFINE_bool('log_obstacles', False,
                   'True to enable obstacle bounding box logging')
@@ -110,6 +111,20 @@ def main(argv):
                                   rotation=pylot.utils.Rotation()),
             vehicle_id_stream)
 
+    pose = None
+    if FLAGS.log_pose:
+        pickle_pose_stream = []
+        pickle_pose_stream_filename = 'pickle_pose_stream.pkl'
+
+        if os.path.exists(pickle_pose_stream_filename):
+            with open(pickle_pose_stream_filename,'rb') as rfp:
+                pickle_pose_stream = pickle.load(rfp)
+        pose = pose_stream.read()
+        pickle_pose_stream.append(pose)
+
+        with open(pickle_pose_stream_filename,'wb') as wfp:
+            pickle.dump(pickle_pose_stream, wfp)
+ 
     traffic_lights_stream = None
     traffic_light_camera_stream = None
     if FLAGS.log_traffic_lights:
@@ -254,19 +269,7 @@ def main(argv):
                                                      FLAGS.simulator_port,
                                                      FLAGS.simulator_timeout)
 
-   pickle_pose_stream = []
-   pickle_pose_stream_filename = 'pickle_pose_stream.pkl'
-
-    if os.path.exists(pickle_pose_stream_filename):
-        with open(pickle_pose_stream_filename,'rb') as rfp:
-            pickle_pose_stream = pickle.load(rfp)
-    pose = pose_stream.read()
-    pickle_pose_stream.append(pose)
-
-    with open(pickle_pose_stream_filename,'wb') as wfp:
-        pickle.dump(pickle_pose_stream, wfp)
-
-    # Run the data-flow.
+   # Run the data-flow.
     node_handle = erdos.run_async()
 
     signal.signal(signal.SIGINT, shutdown)
