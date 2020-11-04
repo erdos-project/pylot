@@ -3,7 +3,6 @@ import numpy as np
 import erdos
 from erdos import Message, ReadStream, Timestamp, WriteStream
 
-from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.messages import LanesMessage
 from pylot.perception.camera_frame import CameraFrame
 
@@ -70,10 +69,6 @@ class PerfectLaneDetectionOperator(erdos.Operator):
         from pylot.simulation.utils import map_from_opendrive
         self._map = map_from_opendrive(msg.data)
 
-    def on_pose_update(self, msg: Message):
-        self._logger.debug('@{}: received pose message'.format(msg.timestamp))
-        self._pose_msgs.append(msg)
-
     def on_bgr_camera_update(self, msg: Message):
         self._logger.debug('@{}: received BGR frame'.format(msg.timestamp))
         self._bgr_msgs.append(msg)
@@ -81,10 +76,6 @@ class PerfectLaneDetectionOperator(erdos.Operator):
     def on_pose_update(self, msg: Message):
         self._logger.debug('@{}: received pose message'.format(msg.timestamp))
         self._pose_msgs.append(msg)
-
-    def on_bgr_camera_update(self, msg: Message):
-        self._logger.debug('@{}: received BGR frame'.format(msg.timestamp))
-        self._bgr_msgs.append(msg)
 
     @erdos.profile_method()
     def on_position_update(self, timestamp: Timestamp,

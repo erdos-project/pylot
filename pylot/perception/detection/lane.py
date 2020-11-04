@@ -52,7 +52,7 @@ class Lane(object):
                     if binary_frame:
                         binary_frame.draw_point(pixel_location,
                                                 (255, 255, 255))
-                except:
+                except Exception:
                     continue
         for marking in self.right_markings:
             if inverse_transform:
@@ -68,7 +68,7 @@ class Lane(object):
                     if binary_frame:
                         binary_frame.draw_point(pixel_location,
                                                 (255, 255, 255))
-                except:
+                except Exception:
                     continue
 
     def draw_on_world(self, world):
