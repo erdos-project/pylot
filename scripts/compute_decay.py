@@ -30,7 +30,7 @@ class SynchronizerOperator(erdos.Operator):
     @staticmethod
     def connect(wait_stream):
         # Set no watermark on the output stream so that we do not
-        # close the watermark loop with the carla operator.
+        # close the watermark loop with the simulator bridge operator.
         control_stream = erdos.WriteStream()
         return [control_stream]
 
@@ -49,7 +49,6 @@ def main(argv):
 
     control_loop_stream = erdos.LoopStream()
     release_sensor_stream = erdos.IngestStream()
-    # Create carla operator.
     (
         pose_stream,
         pose_stream_for_control,
@@ -60,8 +59,8 @@ def main(argv):
         vehicle_id_stream,
         open_drive_stream,
         global_trajectory_stream,
-    ) = pylot.operator_creator.add_carla_bridge(control_loop_stream,
-                                                release_sensor_stream)
+    ) = pylot.operator_creator.add_simulator_bridge(control_loop_stream,
+                                                    release_sensor_stream)
 
     # Add camera sensors.
     (center_camera_stream, notify_rgb_stream,
@@ -93,7 +92,7 @@ def main(argv):
     # of which stream is slowest. Instead, We should synchronize on all output
     # streams, and we should ensure that even the operators without output
     # streams complete.
-    if FLAGS.control == 'carla_auto_pilot':
+    if FLAGS.control == 'simulator_auto_pilot':
         stream_to_sync_on = iou_stream
         if map_stream is not None:
             stream_to_sync_on = map_stream
@@ -104,7 +103,7 @@ def main(argv):
         control_loop_stream.set(control_stream)
     else:
         raise ValueError(
-            "Must be in auto pilot mode. Pass --control=carla_auto_pilot")
+            "Must be in auto pilot mode. Pass --control=simulator_auto_pilot")
 
     erdos.run_async()
 

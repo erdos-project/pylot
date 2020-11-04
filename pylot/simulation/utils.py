@@ -3,8 +3,6 @@ import re
 import time
 from enum import Enum
 
-import carla
-
 import pylot.utils
 from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.detection.obstacle import Obstacle
@@ -28,10 +26,11 @@ def get_world(host: str = "localhost", port: int = 2000, timeout: int = 10):
         simulation at the host:port.
     """
     try:
-        client = carla.Client(host, port)
+        from carla import Client
+        client = Client(host, port)
         client_version = client.get_client_version()
         server_version = client.get_server_version()
-        err_msg = 'CARLA client {} does not match server {}'.format(
+        err_msg = 'Simulator client {} does not match server {}'.format(
             client_version, server_version)
         assert client_version == server_version, err_msg
         client.set_timeout(timeout)
@@ -39,11 +38,13 @@ def get_world(host: str = "localhost", port: int = 2000, timeout: int = 10):
     except RuntimeError as r:
         raise Exception("Received an error while connecting to the "
                         "simulator: {}".format(r))
+    except ImportError:
+        raise Exception('Error importing CARLA.')
     return (client, world)
 
 
 def get_map(host: str = "localhost", port: int = 2000, timeout: int = 10):
-    """Get a handle to the Carla map.
+    """Get a handle to the CARLA map.
 
     Args:
         host (:obj:`str`): The host where the simulator is running.
@@ -51,43 +52,51 @@ def get_map(host: str = "localhost", port: int = 2000, timeout: int = 10):
         timeout (:obj:`int`): The timeout of the connection (in seconds).
 
     Returns:
-        carla.Map: A map of the Carla city.
+        carla.Map: A map of the CARLA town.
     """
     _, world = get_world(host, port, timeout)
     return world.get_map()
 
 
+def map_from_opendrive(opendrive: str, log_file_name: str = None):
+    try:
+        from carla import Map
+    except ImportError:
+        raise Exception('Error importing CARLA.')
+    from pylot.map.hd_map import HDMap
+    return HDMap(Map('map', opendrive), log_file_name)
+
+
 def set_weather(world, weather: str):
     """Sets the simulation weather."""
+    from carla import WeatherParameters
     names = [
-        name for name in dir(carla.WeatherParameters)
-        if re.match('[A-Z].+', name)
+        name for name in dir(WeatherParameters) if re.match('[A-Z].+', name)
     ]
-    weathers = {x: getattr(carla.WeatherParameters, x) for x in names}
+    weathers = {x: getattr(WeatherParameters, x) for x in names}
     world.set_weather(weathers[weather])
     return weathers
 
 
 def set_simulation_mode(world, flags):
     # Turn on the synchronous mode so we can control the simulation.
-    if (flags.carla_mode == 'synchronous'
-            or flags.carla_mode == 'pseudo-asynchronous'):
-        set_synchronous_mode(world, flags.carla_fps)
-    elif flags.carla_mode == 'asynchronous-fixed-time-step':
-        set_asynchronous_fixed_time_step_mode(world, flags.carla_fps)
-    elif flags.carla_mode == 'asynchronous':
+    if (flags.simulator_mode == 'synchronous'
+            or flags.simulator_mode == 'pseudo-asynchronous'):
+        set_synchronous_mode(world, flags.simulator_fps)
+    elif flags.simulator_mode == 'asynchronous-fixed-time-step':
+        set_asynchronous_fixed_time_step_mode(world, flags.simulator_fps)
+    elif flags.simulator_mode == 'asynchronous':
         set_asynchronous_mode(world)
     else:
         raise ValueError('Unexpected simulation mode {}'.format(
-            flags.carla_mode))
+            flags.simulator_mode))
 
 
 def set_synchronous_mode(world, fps):
-    """Sets Carla to run in synchronous mode.
+    """Sets the simulator in synchronous mode.
 
     Args:
-        world (carla.World): A handle to the world running inside the
-            simulator.
+        world: A handle to the world running inside the simulator.
         fps (:obj:`int`): Frames per second rate the simulation should tick at.
     """
     settings = world.get_settings()
@@ -107,8 +116,7 @@ def set_asynchronous_mode(world):
     """Sets the simulator to asynchronous mode.
 
     Args:
-        world (carla.World): A handle to the world running inside the
-            simulation.
+        world: A handle to the world running inside the simulation.
     """
     settings = world.get_settings()
     settings.synchronous_mode = False
@@ -121,8 +129,7 @@ def reset_world(world):
     Removes all the vehicles, sensors and other actors from the environment.
 
     Args:
-        world (carla.World): A handle to the world running inside the
-            simulation.
+        world: A handle to the world running inside the simulation.
     """
     actors = world.get_actors()
     for actor in actors:
@@ -132,14 +139,15 @@ def reset_world(world):
             actor.destroy()
 
 
-def spawn_actors(client, world, carla_version: str, ego_spawn_point_index: int,
-                 auto_pilot: bool, num_people: int, num_vehicles: int, logger):
+def spawn_actors(client, world, simulator_version: str,
+                 ego_spawn_point_index: int, auto_pilot: bool, num_people: int,
+                 num_vehicles: int, logger):
     vehicle_ids = spawn_vehicles(client, world, num_vehicles, logger)
     ego_vehicle = spawn_ego_vehicle(world, ego_spawn_point_index, auto_pilot)
     people = []
 
-    if not (carla_version.startswith('0.8') or re.match(
-            '0\.9\.[0-5]', carla_version) is not None):  # noqa: W605
+    if not (simulator_version.startswith('0.8') or re.match(
+            '0\.9\.[0-5]', simulator_version) is not None):  # noqa: W605
         # People do not move in versions older than 0.9.6.
         (people, people_control_ids) = spawn_people(client, world, num_people,
                                                     logger)
@@ -153,12 +161,9 @@ def spawn_actors(client, world, carla_version: str, ego_spawn_point_index: int,
 
 
 def spawn_ego_vehicle(world, spawn_point_index: int, auto_pilot: bool):
-    # Set our vehicle to be the one used in the CARLA challenge.
     v_blueprint = world.get_blueprint_library().filter(
         'vehicle.lincoln.mkz2017')[0]
-
     ego_vehicle = None
-
     while not ego_vehicle:
         if spawn_point_index == -1:
             # Pick a random spawn point.
@@ -182,6 +187,7 @@ def spawn_people(client, world, num_people: int, logger):
     Args:
         num_people: The number of people to spawn.
     """
+    from carla import command, Transform
     p_blueprints = world.get_blueprint_library().filter('walker.pedestrian.*')
     unique_locs = set([])
     spawn_points = []
@@ -189,7 +195,7 @@ def spawn_people(client, world, num_people: int, logger):
     for i in range(num_people):
         attempt = 0
         while attempt < 10:
-            spawn_point = carla.Transform()
+            spawn_point = Transform()
             loc = world.get_random_location_from_navigation()
             if loc is not None:
                 # Transform to tuple so that location is comparable.
@@ -208,7 +214,7 @@ def spawn_people(client, world, num_people: int, logger):
         p_blueprint = random.choice(p_blueprints)
         if p_blueprint.has_attribute('is_invincible'):
             p_blueprint.set_attribute('is_invincible', 'false')
-        batch.append(carla.command.SpawnActor(p_blueprint, spawn_point))
+        batch.append(command.SpawnActor(p_blueprint, spawn_point))
     # Apply the batch and retrieve the identifiers.
     ped_ids = []
     for response in client.apply_batch_sync(batch, True):
@@ -222,9 +228,8 @@ def spawn_people(client, world, num_people: int, logger):
         'controller.ai.walker')
     batch = []
     for ped_id in ped_ids:
-        batch.append(
-            carla.command.SpawnActor(ped_controller_bp, carla.Transform(),
-                                     ped_id))
+        batch.append(command.SpawnActor(ped_controller_bp, Transform(),
+                                        ped_id))
     ped_control_ids = []
     for response in client.apply_batch_sync(batch, True):
         if response.error:
@@ -242,6 +247,7 @@ def spawn_vehicles(client, world, num_vehicles: int, logger):
     Args:
         num_vehicles: The number of vehicles to spawn.
     """
+    from carla import command
     logger.debug('Trying to spawn {} vehicles.'.format(num_vehicles))
     # Get the spawn points and ensure that the number of vehicles
     # requested are less than the number of spawn points.
@@ -272,8 +278,8 @@ def spawn_vehicles(client, world, num_vehicles: int, logger):
         blueprint.set_attribute('role_name', 'autopilot')
 
         batch.append(
-            carla.command.SpawnActor(blueprint, transform).then(
-                carla.command.SetAutopilot(carla.command.FutureActor, True)))
+            command.SpawnActor(blueprint, transform).then(
+                command.SetAutopilot(command.FutureActor, True)))
 
     # Apply the batch and retrieve the identifiers.
     vehicle_ids = []
@@ -323,28 +329,29 @@ def extract_data_in_pylot_format(actor_list):
     # Note: the output will include the ego vehicle as well.
     vec_actors = actor_list.filter('vehicle.*')
     vehicles = [
-        Obstacle.from_carla_actor(vec_actor) for vec_actor in vec_actors
+        Obstacle.from_simulator_actor(vec_actor) for vec_actor in vec_actors
     ]
 
     person_actors = actor_list.filter('walker.pedestrian.*')
     people = [
-        Obstacle.from_carla_actor(ped_actor) for ped_actor in person_actors
+        Obstacle.from_simulator_actor(ped_actor) for ped_actor in person_actors
     ]
 
     tl_actors = actor_list.filter('traffic.traffic_light*')
     traffic_lights = [
-        TrafficLight.from_carla_actor(tl_actor) for tl_actor in tl_actors
+        TrafficLight.from_simulator_actor(tl_actor) for tl_actor in tl_actors
     ]
 
     speed_limit_actors = actor_list.filter('traffic.speed_limit*')
     speed_limits = [
-        SpeedLimitSign.from_carla_actor(ts_actor)
+        SpeedLimitSign.from_simulator_actor(ts_actor)
         for ts_actor in speed_limit_actors
     ]
 
     traffic_stop_actors = actor_list.filter('traffic.stop')
     traffic_stops = [
-        StopSign.from_carla_actor(ts_actor) for ts_actor in traffic_stop_actors
+        StopSign.from_simulator_actor(ts_actor)
+        for ts_actor in traffic_stop_actors
     ]
 
     return (vehicles, people, traffic_lights, speed_limits, traffic_stops)
@@ -354,13 +361,13 @@ def draw_trigger_volume(world, actor):
     """Draws the trigger volume of an actor.
 
     Args:
-        world (carla.World): A handle to the world running inside the
-            simulation.
-        actor (carla.Actor): A CARLA actor.
+        world: A handle to the world running inside the simulation.
+        actor: A simulator actor.
     """
+    from carla import BoundingBox
     transform = actor.get_transform()
     tv = transform.transform(actor.trigger_volume.location)
-    bbox = carla.BoundingBox(tv, actor.trigger_volume.extent)
+    bbox = BoundingBox(tv, actor.trigger_volume.extent)
     world.debug.draw_box(bbox, transform.rotation, life_time=1000)
 
 

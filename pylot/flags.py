@@ -32,8 +32,8 @@ flags.DEFINE_bool('obstacle_detection', False,
 flags.DEFINE_bool('perfect_obstacle_detection', False,
                   'True to enable perfect obstacle 2D detection')
 flags.DEFINE_bool(
-    'carla_obstacle_detection', True,
-    'True to enable usage of obstacles received directly from CARLA')
+    'simulator_obstacle_detection', True,
+    'True to enable usage of obstacles received from the simulator')
 flags.DEFINE_bool('obstacle_tracking', False,
                   'True to enable obstacle tracking operator')
 flags.DEFINE_bool('perfect_obstacle_tracking', False,
@@ -51,8 +51,8 @@ flags.DEFINE_bool('traffic_light_detection', False,
 flags.DEFINE_bool('perfect_traffic_light_detection', False,
                   'True to enable perfect traffic light 2D detection')
 flags.DEFINE_bool(
-    'carla_traffic_light_detection', True,
-    'True to enable usage of traffic lights received directly from CARLA')
+    'simulator_traffic_light_detection', True,
+    'True to enable usage of traffic lights received from the simulator')
 flags.DEFINE_bool('segmentation', False,
                   'True to enable segmentation operator')
 flags.DEFINE_bool('perfect_segmentation', False,
@@ -90,8 +90,8 @@ flags.DEFINE_bool('imu', False, 'True to enable the IMU sensor')
 ######################################################################
 # Control
 ######################################################################
-flags.DEFINE_enum('control', 'carla_auto_pilot',
-                  ['pid', 'mpc', 'carla_auto_pilot', 'manual'],
+flags.DEFINE_enum('control', 'simulator_auto_pilot',
+                  ['pid', 'mpc', 'simulator_auto_pilot', 'manual'],
                   'Control operator to use to drive')
 
 ######################################################################
@@ -121,9 +121,9 @@ flags.DEFINE_bool('visualize_depth_camera', False,
 flags.DEFINE_bool('visualize_lidar', False,
                   'True to enable Lidar visualization')
 flags.DEFINE_bool('visualize_imu', False,
-                  'True to enable CARLA IMU visualization')
+                  'True to enable simulator IMU visualization')
 flags.DEFINE_bool('visualize_pose', False,
-                  'True to enable CARLA ego-vehicle pose visualization')
+                  'True to enable simulator ego-vehicle pose visualization')
 flags.DEFINE_bool('visualize_detected_obstacles', False,
                   'True to enable visualization of detected obstacles')
 flags.DEFINE_bool('visualize_detected_traffic_lights', False,
@@ -303,11 +303,11 @@ def waypoint_planning_validator(flags_dict):
     if flags_dict['planning_type'] == 'waypoint':
         has_obstacle_detector = (flags_dict['obstacle_detection']
                                  or flags_dict['perfect_obstacle_detection']
-                                 or flags_dict['carla_obstacle_detection'])
+                                 or flags_dict['simulator_obstacle_detection'])
         has_traffic_light_detector = (
             flags_dict['traffic_light_detection']
             or flags_dict['perfect_traffic_light_detection']
-            or flags_dict['carla_traffic_light_detection'])
+            or flags_dict['simulator_traffic_light_detection'])
         # TODO: Add lane detection, obstacle tracking and prediction once
         # the agent depends on these components.
         return (has_obstacle_detector and has_traffic_light_detector)
@@ -317,8 +317,8 @@ def waypoint_planning_validator(flags_dict):
 flags.register_multi_flags_validator(
     [
         'obstacle_detection', 'perfect_obstacle_detection',
-        'carla_obstacle_detection', 'traffic_light_detection',
-        'perfect_traffic_light_detection', 'carla_traffic_light_detection',
+        'simulator_obstacle_detection', 'traffic_light_detection',
+        'perfect_traffic_light_detection', 'simulator_traffic_light_detection',
         'planning_type'
     ],
     waypoint_planning_validator,
@@ -329,11 +329,11 @@ flags.register_multi_flags_validator(
 def obstacle_detection_validator(flags_dict):
     if flags_dict['obstacle_detection']:
         return not (flags_dict['perfect_obstacle_detection']
-                    or flags_dict['carla_obstacle_detection'])
+                    or flags_dict['simulator_obstacle_detection'])
     if flags_dict['perfect_obstacle_detection']:
         return not (flags_dict['obstacle_detection']
-                    or flags_dict['carla_obstacle_detection'])
-    if flags_dict['carla_obstacle_detection']:
+                    or flags_dict['simulator_obstacle_detection'])
+    if flags_dict['simulator_obstacle_detection']:
         return not (flags_dict['obstacle_detection']
                     or flags_dict['perfect_obstacle_detection'])
     return False
@@ -343,11 +343,11 @@ flags.register_multi_flags_validator(
     [
         'obstacle_detection',
         'perfect_obstacle_detection',
-        'carla_obstacle_detection',
+        'simulator_obstacle_detection',
     ],
     obstacle_detection_validator,
     message='Only one of --obstacle_detection, --perfect_obstacle_detection, '
-    'or --carla_obstacle_detection can be True')
+    'or --simulator_obstacle_detection can be True')
 
 
 def obstacle_detection_eval_validator(flags_dict):
@@ -366,11 +366,11 @@ flags.register_multi_flags_validator(
 def traffic_light_detection_validator(flags_dict):
     if flags_dict['traffic_light_detection']:
         return not (flags_dict['perfect_traffic_light_detection']
-                    or flags_dict['carla_traffic_light_detection'])
+                    or flags_dict['simulator_traffic_light_detection'])
     if flags_dict['perfect_traffic_light_detection']:
         return not (flags_dict['traffic_light_detection']
-                    or flags_dict['carla_traffic_light_detection'])
-    if flags_dict['carla_traffic_light_detection']:
+                    or flags_dict['simulator_traffic_light_detection'])
+    if flags_dict['simulator_traffic_light_detection']:
         return not (flags_dict['traffic_light_detection']
                     or flags_dict['perfect_traffic_light_detection'])
 
@@ -378,11 +378,11 @@ def traffic_light_detection_validator(flags_dict):
 flags.register_multi_flags_validator(
     [
         'traffic_light_detection', 'perfect_traffic_light_detection',
-        'carla_traffic_light_detection'
+        'simulator_traffic_light_detection'
     ],
     traffic_light_detection_validator,
     message='Only one of --traffic_light_detection, '
-    '--perfect_traffic_light_detection, or --carla_traffic_light_detection'
+    '--perfect_traffic_light_detection, or --simulator_traffic_light_detection'
     ' can be True')
 
 
@@ -390,18 +390,18 @@ def obstacle_tracking_validator(flags_dict):
     if flags_dict['obstacle_tracking']:
         return (flags_dict['obstacle_detection']
                 or flags_dict['perfect_obstacle_detection']
-                or flags_dict['carla_obstacle_detection'])
+                or flags_dict['simulator_obstacle_detection'])
     return True
 
 
 flags.register_multi_flags_validator(
     [
         'obstacle_detection', 'perfect_obstacle_detection',
-        'carla_obstacle_detection', 'obstacle_tracking'
+        'simulator_obstacle_detection', 'obstacle_tracking'
     ],
     obstacle_tracking_validator,
     message='--obstacle_detection, --perfect_obstacle_detection, or '
-    '--carla_obstacle_detection must be set when --obstacle_tracking is'
+    '--simulator_obstacle_detection must be set when --obstacle_tracking is'
     ' enabled')
 
 

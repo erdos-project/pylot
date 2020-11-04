@@ -51,7 +51,7 @@ def driver():
     streams_to_send_top_on = []
     control_loop_stream = erdos.LoopStream()
     time_to_decision_loop_stream = erdos.LoopStream()
-    if FLAGS.carla_mode == 'pseudo-asynchronous':
+    if FLAGS.simulator_mode == 'pseudo-asynchronous':
         release_sensor_stream = erdos.LoopStream()
         pipeline_finish_notify_stream = erdos.LoopStream()
     else:
@@ -59,7 +59,7 @@ def driver():
         pipeline_finish_notify_stream = erdos.IngestStream()
     notify_streams = []
 
-    # Create operator that bridges between pipeline and CARLA.
+    # Create operator that bridges between pipeline and the simulator.
     (
         pose_stream,
         pose_stream_for_control,
@@ -70,7 +70,7 @@ def driver():
         vehicle_id_stream,
         open_drive_stream,
         global_trajectory_stream,
-    ) = pylot.operator_creator.add_carla_bridge(
+    ) = pylot.operator_creator.add_simulator_bridge(
         control_loop_stream,
         release_sensor_stream,
         pipeline_finish_notify_stream,
@@ -188,7 +188,7 @@ def driver():
         lane_detection_stream, open_drive_stream, global_trajectory_stream,
         time_to_decision_loop_stream)
 
-    if FLAGS.carla_mode == "pseudo-asynchronous":
+    if FLAGS.simulator_mode == "pseudo-asynchronous":
         # Add a synchronizer in the pseudo-asynchronous mode.
         (
             waypoints_stream_for_control,
@@ -235,7 +235,7 @@ def driver():
         stream.send(erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
     # If we did not use the pseudo-asynchronous mode, ask the sensors to
     # release their readings whenever.
-    if FLAGS.carla_mode != "pseudo-asynchronous":
+    if FLAGS.simulator_mode != "pseudo-asynchronous":
         release_sensor_stream.send(
             erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
         pipeline_finish_notify_stream.send(
@@ -261,8 +261,8 @@ def shutdown(sig, frame):
 def main(args):
     # Connect an instance to the simulator to make sure that we can turn the
     # synchronous mode off after the script finishes running.
-    client, world = get_world(FLAGS.carla_host, FLAGS.carla_port,
-                              FLAGS.carla_timeout)
+    client, world = get_world(FLAGS.simulator_host, FLAGS.simulator_port,
+                              FLAGS.simulator_timeout)
     try:
         if FLAGS.simulation_recording_file is not None:
             client.start_recorder(FLAGS.simulation_recording_file)
@@ -270,7 +270,7 @@ def main(args):
         signal.signal(signal.SIGINT, shutdown)
         if pylot.flags.must_visualize():
             pylot.utils.run_visualizer_control_loop(control_display_stream)
-        node_handle.join()
+        node_handle.wait()
     except KeyboardInterrupt:
         shutdown_pylot(node_handle, client, world)
     except Exception:

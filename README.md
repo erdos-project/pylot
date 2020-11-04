@@ -217,7 +217,7 @@ Pylot supports three controllers, which can be specified using the
 1. `pid`: follows the waypoints computed by the planning component using a PID
 controller.
 2. `mpc`: uses model predictive control for speed and waypoint following.
-3. `carla_auto_pilot`: uses the CARLA auto pilot to drive on predefined routes.
+3. `simulator_auto_pilot`: uses the simulator auto pilot to drive on predefined routes.
 This controller drives independent of the output of the other components.
 
 You can run all the components, together with one of the two policies by
@@ -228,8 +228,8 @@ executing:
 python3 pylot.py --flagfile=configs/e2e.conf
 # Runs the MPC
 python3 pylot.py --flagfile=configs/mpc.conf
-# Runs the CARLA auto pilot.
-python3 pylot.py --control=carla_auto_pilot
+# Runs the simulator auto pilot.
+python3 pylot.py --control=simulator_auto_pilot
 ```
 
 ### Debug logs
@@ -260,5 +260,7 @@ The script creates two Docker images: one that contains the CARLA simulator and
 another one that contains ERDOS and Pylot.
 
 # CARLA autonomous driving challenge
+
+[**Leaderboard**](https://leaderboard.carla.org/)
 
 TODO: Guide on how to use Pylot to compete in the CARLA autonomous driving challenge

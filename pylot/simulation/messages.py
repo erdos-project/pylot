@@ -1,7 +1,5 @@
 """This module implements Messages sent out by the simulator-based drivers."""
 
-import carla
-
 import erdos
 from erdos import Timestamp
 
@@ -13,7 +11,7 @@ class CollisionMessage(erdos.Message):
     """ Message class to be used to send collision events.
 
     Args:
-        collided_actor (:py:class:`carla.Actor`): The actor with which the
+        collided_actor: The actor with which the
             ego-vehicle collided.
         impulse (:py:class:`pylot.utils.Vector3D`): The impulse as a result of
             the collision.
@@ -30,11 +28,10 @@ class CollisionMessage(erdos.Message):
     def __init__(self, collided_actor: str, impulse: Vector3D,
                  timestamp: Timestamp):
         super(CollisionMessage, self).__init__(timestamp, None)
-
+        from carla import Actor
         # Ensure the correct types of the arguments.
-        if not isinstance(collided_actor, carla.Actor):
-            raise ValueError(
-                "The collided_actor should be of type carla.Actor")
+        if not isinstance(collided_actor, Actor):
+            raise ValueError("The collided_actor should be of type Actor")
 
         if not isinstance(impulse, Vector3D):
             raise ValueError(

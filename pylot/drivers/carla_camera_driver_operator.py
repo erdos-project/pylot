@@ -1,8 +1,8 @@
 """This module implements an operator acts like a camera driver when
-using the CARLA simulator.
+using the simulator.
 
 The operator attaches a camera to the ego vehicle, receives camera frames from
-CARLA, and sends them on its output stream.
+the simulator, and sends them on its output stream.
 """
 
 import pickle
@@ -29,7 +29,7 @@ class CarlaCameraDriverOperator(erdos.Operator):
     Args:
         ground_vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on
             which the operator receives the id of the ego vehicle. It uses this
-            id to get a Carla handle to the vehicle.
+            id to get a simulator handle to the vehicle.
         camera_stream (:py:class:`erdos.WriteStream`): Stream on which the
             operator sends camera frames.
         notify_reading_stream (:py:class:`erdos.WriteStream`): Stream on which
@@ -49,9 +49,9 @@ class CarlaCameraDriverOperator(erdos.Operator):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._camera_setup = camera_setup
-        # The hero vehicle actor object we obtain from Carla.
+        # The hero vehicle actor object we obtain from the simulator.
         self._vehicle = None
-        # The camera sensor actor object we obtain from Carla.
+        # The camera sensor actor object we obtain from the simulator.
         self._camera = None
         self._pickle_lock = threading.Lock()
         self._pickled_messages = {}
@@ -81,7 +81,7 @@ class CarlaCameraDriverOperator(erdos.Operator):
                                              self._pickled_messages[timestamp])
             # Note: The operator is set not to automatically propagate
             # watermark messages received on input streams. Thus, we can
-            # issue watermarks only after the Carla callback is invoked.
+            # issue watermarks only after the simulator callback is invoked.
             self._camera_stream.send(watermark_msg)
             with self._pickle_lock:
                 del self._pickled_messages[timestamp]
@@ -91,13 +91,14 @@ class CarlaCameraDriverOperator(erdos.Operator):
         vehicle_id_msg = self._vehicle_id_stream.read()
         vehicle_id = vehicle_id_msg.data
         self._logger.debug(
-            "The CarlaCameraDriverOperator received the vehicle id: {}".format(
+            "The CameraDriverOperator received the vehicle id: {}".format(
                 vehicle_id))
 
         # Connect to the world. We connect here instead of in the constructor
         # to ensure we're connected to the latest world.
-        _, world = get_world(self._flags.carla_host, self._flags.carla_port,
-                             self._flags.carla_timeout)
+        _, world = get_world(self._flags.simulator_host,
+                             self._flags.simulator_port,
+                             self._flags.simulator_timeout)
         set_simulation_mode(world, self._flags)
 
         self._vehicle = get_vehicle_handle(world, vehicle_id)
@@ -110,13 +111,14 @@ class CarlaCameraDriverOperator(erdos.Operator):
         camera_blueprint.set_attribute('image_size_y',
                                        str(self._camera_setup.height))
         camera_blueprint.set_attribute('fov', str(self._camera_setup.fov))
-        if self._flags.carla_camera_frequency == -1:
+        if self._flags.simulator_camera_frequency == -1:
             camera_blueprint.set_attribute('sensor_tick', '0.0')
         else:
             camera_blueprint.set_attribute(
-                'sensor_tick', str(1.0 / self._flags.carla_camera_frequency))
+                'sensor_tick',
+                str(1.0 / self._flags.simulator_camera_frequency))
 
-        transform = self._camera_setup.get_transform().as_carla_transform()
+        transform = self._camera_setup.get_transform().as_simulator_transform()
 
         self._logger.debug("Spawning a camera: {}".format(self._camera_setup))
         self._camera = world.spawn_actor(camera_blueprint,
@@ -126,13 +128,9 @@ class CarlaCameraDriverOperator(erdos.Operator):
         # Register the callback on the camera.
         self._camera.listen(self.process_images)
 
-    def process_images(self, carla_image):
-        """ Invoked when an image is received from the simulator.
-
-        Args:
-            carla_image: a carla.Image.
-        """
-        game_time = int(carla_image.timestamp * 1000)
+    def process_images(self, simulator_image):
+        """Invoked when an image is received from the simulator."""
+        game_time = int(simulator_image.timestamp * 1000)
         timestamp = erdos.Timestamp(coordinates=[game_time])
         watermark_msg = erdos.WatermarkMessage(timestamp)
         with erdos.profile(self.config.name + '.process_images',
@@ -144,16 +142,16 @@ class CarlaCameraDriverOperator(erdos.Operator):
                 if self._camera_setup.camera_type == 'sensor.camera.rgb':
                     msg = FrameMessage(
                         timestamp,
-                        CameraFrame.from_carla_frame(carla_image,
-                                                     self._camera_setup))
+                        CameraFrame.from_simulator_frame(
+                            simulator_image, self._camera_setup))
                 elif self._camera_setup.camera_type == 'sensor.camera.depth':
                     # Include the transform relative to the vehicle.
-                    # Carla carla_image.transform returns the world transform,
+                    # simulator_image.transform returns the world transform,
                     # but we do not use it directly.
                     msg = DepthFrameMessage(
                         timestamp,
-                        DepthFrame.from_carla_frame(
-                            carla_image,
+                        DepthFrame.from_simulator_frame(
+                            simulator_image,
                             self._camera_setup,
                             save_original_frame=self._flags.
                             visualize_depth_camera))
@@ -161,8 +159,8 @@ class CarlaCameraDriverOperator(erdos.Operator):
                       'sensor.camera.semantic_segmentation'):
                     msg = SegmentedFrameMessage(
                         timestamp,
-                        SegmentedFrame.from_carla_image(
-                            carla_image, self._camera_setup))
+                        SegmentedFrame.from_simulator_image(
+                            simulator_image, self._camera_setup))
 
                 if self._release_data:
                     self._camera_stream.send(msg)

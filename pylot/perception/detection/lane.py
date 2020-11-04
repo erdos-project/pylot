@@ -1,6 +1,5 @@
 from collections import deque
 import numpy as np
-import random
 from pylot.utils import Location, Rotation, Transform, Vector3D
 
 from shapely.geometry import Point
@@ -37,7 +36,7 @@ class Lane(object):
         intrinsic_matrix = frame.camera_setup.get_intrinsic_matrix()
         # change color based on lane id
         lane_color_l = self._color_map[self.id % len(self._color_map)]
-        lane_color_r = self._color_map[(self.id+2) % len(self._color_map)]
+        lane_color_r = self._color_map[(self.id + 2) % len(self._color_map)]
 
         for marking in self.left_markings:
             if inverse_transform:
@@ -51,7 +50,8 @@ class Lane(object):
                 try:
                     frame.draw_point(pixel_location, lane_color_l)
                     if binary_frame:
-                        binary_frame.draw_point(pixel_location, (255, 255, 255))
+                        binary_frame.draw_point(pixel_location,
+                                                (255, 255, 255))
                 except:
                     continue
         for marking in self.right_markings:
@@ -66,20 +66,21 @@ class Lane(object):
                 try:
                     frame.draw_point(pixel_location, lane_color_r)
                     if binary_frame:
-                        binary_frame.draw_point(pixel_location, (255, 255, 255))
+                        binary_frame.draw_point(pixel_location,
+                                                (255, 255, 255))
                 except:
                     continue
 
     def draw_on_world(self, world):
-        import carla
+        from carla import Color
         for marking in self.left_markings:
-            world.debug.draw_point(marking.as_carla_location(),
+            world.debug.draw_point(marking.as_simulator_location(),
                                    size=0.1,
-                                   color=carla.Color(255, 255, 0))
+                                   color=Color(255, 255, 0))
         for marking in self.right_markings:
-            world.debug.draw_point(marking.as_carla_location(),
+            world.debug.draw_point(marking.as_simulator_location(),
                                    size=0.1,
-                                   color=carla.Color(255, 255, 0))
+                                   color=Color(255, 255, 0))
 
     def get_closest_lane_waypoint(self, location):
         if self.is_on_lane(location):

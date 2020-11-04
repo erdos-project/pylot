@@ -1,20 +1,21 @@
 from __future__ import print_function
-from time import sleep
+
 import argparse
 import collections
 import csv
 import functools
 import os
 import sys
+from time import sleep
 
-import carla
+from carla import Location, Rotation, Transform, Vector3D
 
+import pylot.utils
 from pylot.drivers.sensor_setup import SegmentedCameraSetup
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.simulation.utils import get_world
-import pylot.utils
 
-VEHICLE_DESTINATION = carla.Location(x=387.73 - 370, y=327.07, z=0.5)
+VEHICLE_DESTINATION = Location(x=387.73 - 370, y=327.07, z=0.5)
 SAVED_FRAMES = collections.deque()
 CLEANUP_FUNCTION = None
 
@@ -46,7 +47,7 @@ def spawn_camera(camera_bp,
                                 attach_to=ego_vehicle)
     camera_setup = SegmentedCameraSetup(
         "segmented_camera", width, height,
-        pylot.utils.Transform.from_carla_transform(transform))
+        pylot.utils.Transform.from_simulator_transform(transform))
 
     _world.tick()
     return camera, camera_setup
@@ -58,7 +59,7 @@ def retrieve_actor(world, bp_regex, role_name):
 
     Args:
         world: The instance of the simulator to retrieve the actors from.
-        bp_regex: The blueprint of the actor to be retrieved from the Carla.
+        bp_regex: The actor's blueprint to be retrieved from the simulator.
         role_name: The name of the actor to be retrieved.
 
     Returns:
@@ -158,12 +159,12 @@ def process_segmentation_images(msg,
 
     # If we are in distance to the destination, stop and exit with success.
     if ego_vehicle.get_location().distance(VEHICLE_DESTINATION) <= 5:
-        ego_vehicle.set_velocity(carla.Vector3D())
+        ego_vehicle.set_velocity(Vector3D())
         CLEANUP_FUNCTION()
         sys.exit(0)
 
     # Compute the segmentation mIOU.
-    frame = SegmentedFrame.from_carla_image(msg, camera_setup)
+    frame = SegmentedFrame.from_simulator_image(msg, camera_setup)
     compute_and_log_miou(frame, msg.timestamp, csv)
 
     # Visualize the run.
@@ -171,7 +172,7 @@ def process_segmentation_images(msg,
         frame.save(int(msg.timestamp * 1000), './_out/', 'seg')
 
     # Move the ego_vehicle according to the given speed.
-    ego_vehicle.set_velocity(carla.Vector3D(x=-speed))
+    ego_vehicle.set_velocity(Vector3D(x=-speed))
 
     # Move the simulator forward.
     ego_vehicle.get_world().tick()
@@ -213,9 +214,9 @@ def main(args):
         world.tick()
 
     # Connect the segmentation camera to the vehicle.
-    segmentation_camera_transform = carla.Transform(
-        location=carla.Location(1.0, 0.0, 1.8),
-        rotation=carla.Rotation(0, 0, 0))
+    segmentation_camera_transform = Transform(
+        location=Location(1.0, 0.0, 1.8),
+        rotation=Rotation(0, 0, 0))
     segmentation_camera, camera_setup = spawn_camera(
         'sensor.camera.semantic_segmentation', segmentation_camera_transform,
         ego_vehicle, *args.res.split('x'))
@@ -250,7 +251,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="CARLA mIoU collector")
+    argparser = argparse.ArgumentParser(description="mIoU data collector")
     argparser.add_argument('-s',
                            '--speed',
                            dest='speed',
@@ -287,7 +288,7 @@ if __name__ == "__main__":
     args = argparser.parse_args()
     if args.delta > 0.1:
         raise ValueError(
-            "The CARLA simulator does not work well with frame rates lower "
+            "The simulator does not work well with frame rates lower "
             "than 10FPS.")
 
     if not args.output.endswith('csv'):

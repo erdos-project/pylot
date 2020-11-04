@@ -359,7 +359,7 @@ class CameraSetup(object):
 
 
 class RGBCameraSetup(CameraSetup):
-    """A CameraSetup that denotes an RGB camera from Carla.
+    """A CameraSetup that denotes an RGB camera.
 
     Args:
         name (str): The name of the camera instance.
@@ -387,7 +387,7 @@ class RGBCameraSetup(CameraSetup):
 
 
 class DepthCameraSetup(CameraSetup):
-    """A CameraSetup that denotes a Depth camera from Carla.
+    """A CameraSetup that denotes a Depth camera.
 
     Args:
         name (str): The name of the camera instance.
@@ -415,7 +415,7 @@ class DepthCameraSetup(CameraSetup):
 
 
 class SegmentedCameraSetup(CameraSetup):
-    """A CameraSetup that denotes a Semantic Segmentation camera from Carla.
+    """A CameraSetup that denotes a Semantic Segmentation camera.
 
     Args:
         name (str): The name of the camera instance.

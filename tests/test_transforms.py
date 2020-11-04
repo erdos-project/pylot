@@ -15,7 +15,7 @@ from pylot.utils import Location, Rotation, Transform, Vector3D
 
 
 def test_empty_location():
-    """ Test that an empty Location is initialized at (0, 0, 0) """
+    """Test that an empty Location is initialized at (0, 0, 0) """
     empty_location = Location()
     assert np.isclose(empty_location.x, 0), "X value is not zero"
     assert np.isclose(empty_location.y, 0), "Y value is not zero"
@@ -24,7 +24,7 @@ def test_empty_location():
 
 @pytest.mark.parametrize("x, y, z", [(10, 20, 30), (-10, -20, -30)])
 def test_location_creation(x, y, z):
-    """ Test that the Location is initialized correctly. """
+    """Test that the Location is initialized correctly. """
     location = Location(x, y, z)
     assert np.isclose(location.x, x), "X values are not the same."
     assert np.isclose(location.y, y), "Y values are not the same."
@@ -32,29 +32,29 @@ def test_location_creation(x, y, z):
 
 
 @pytest.mark.parametrize("x, y, z", [(10, 20, 30), (-10, -20, -30)])
-def test_location_from_carla(x, y, z):
-    """ Test that the Location is initialized correctly from a carla.Location
-    instance """
-    location = Location.from_carla_location(carla.Location(x, y, z))
+def test_location_from_simulator(x, y, z):
+    """Test that the Location is initialized correctly from a simulator
+    Location instance """
+    location = Location.from_simulator_location(carla.Location(x, y, z))
     assert np.isclose(location.x, x), "X values are not the same."
     assert np.isclose(location.y, y), "Y values are not the same."
     assert np.isclose(location.z, z), "Z values are not the same."
 
 
-def test_negative_location_from_carla():
-    """ Test that Location throws a ValueError if incorrect carla_loc argument
-    is passed. """
+def test_negative_location_from_simulator():
+    """Test that Location throws a ValueError if incorrect simulator_loc
+    argument is passed. """
     DummyType = namedtuple("DummyType", "x, y, z")
     dummy_instance = DummyType(10, 20, 30)
     with pytest.raises(ValueError):
-        Location.from_carla_location(dummy_instance)
+        Location.from_simulator_location(dummy_instance)
 
 
 @pytest.mark.parametrize("point_a, point_b, expected",
                          [((1, 2, 3), (1, 2, 3), 0),
                           ((10, 20, 30), (40, 50, 60), 51.961524227)])
 def test_distance(point_a, point_b, expected):
-    """ Test the distance computed between two points is the same as expected"""
+    """Test the distance computed between two points is the same as expected"""
     location_a, location_b = Location(*point_a), Location(*point_b)
     assert np.isclose(location_a.distance(location_b), expected), "Distance "
     "between point_a and point_b is not the same as the expected distance."
@@ -66,7 +66,7 @@ def test_distance(point_a, point_b, expected):
                          [((1, 2, 3), (1, 2, 3), 0),
                           ((10, 20, 30), (40, 50, 60), 90)])
 def test_l1_distance(point_a, point_b, expected):
-    """ Test the L1 distance computed between the two points. """
+    """Test the L1 distance computed between the two points. """
     location_a, location_b = Location(*point_a), Location(*point_b)
     assert np.isclose(location_a.l1_distance(location_b), expected), "L1 "
     "Distance between point_a and point_b is not the same as expected."
@@ -74,22 +74,22 @@ def test_l1_distance(point_a, point_b, expected):
     "Distance between point_a and point_b is not the same as expected."
 
 
-def test_as_carla_location():
-    """ Test the as_carla_location instance method of Location """
+def test_as_simulator_location():
+    """Test the as_simulator_location instance method of Location """
     location = Location(x=1, y=2, z=3)
-    carla_location = location.as_carla_location()
-    assert isinstance(carla_location, carla.Location), "Returned instance is "
+    simulator_location = location.as_simulator_location()
+    assert isinstance(simulator_location, carla.Location), "Returned instance is "
     "not of the type carla.Location"
-    assert np.isclose(carla_location.x, location.x), "Returned instance x "
+    assert np.isclose(simulator_location.x, location.x), "Returned instance x "
     "value is not the same as the one in location."
-    assert np.isclose(carla_location.y, location.y), "Returned instance y "
+    assert np.isclose(simulator_location.y, location.y), "Returned instance y "
     "value is not the same as the one in location."
-    assert np.isclose(carla_location.z, location.z), "Returned instance z "
+    assert np.isclose(simulator_location.z, location.z), "Returned instance z "
     "value is not the same as the one in location."
 
 
 def test_location_as_numpy_array():
-    """ Test the as_carla_location instance method of Location """
+    """ Test the as_simulator_location instance method of Location """
     location = Location(x=1, y=2, z=3)
     np_array = location.as_numpy_array()
     assert isinstance(np_array, np.ndarray), "Returned instance is "
@@ -155,36 +155,36 @@ def test_rotation(pitch, yaw, roll):
 
 
 @pytest.mark.parametrize("pitch, yaw, roll", [(90, 90, 90), (0, 0, 0)])
-def test_rotation_from_carla(pitch, yaw, roll):
+def test_rotation_from_simulator(pitch, yaw, roll):
     """ Test that the Rotation is initialized correctly from a carla.Rotation
     instance """
-    carla_rotation = carla.Rotation(pitch, yaw, roll)
-    rotation = Rotation.from_carla_rotation(carla_rotation)
+    simulator_rotation = carla.Rotation(pitch, yaw, roll)
+    rotation = Rotation.from_simulator_rotation(simulator_rotation)
     assert np.isclose(rotation.pitch, pitch), "pitch values are not the same."
     assert np.isclose(rotation.yaw, yaw), "yaw values are not the same."
     assert np.isclose(rotation.roll, roll), "roll values are not the same."
 
 
-def test_negative_rotation_from_carla():
-    """ Test that Rotation throws a ValueError if incorrect carla_rot argument
+def test_negative_rotation_from_simulator():
+    """ Test that Rotation throws a ValueError if incorrect simulator_rot argument
     is passed. """
     DummyType = namedtuple("DummyType", "pitch, yaw, roll")
     dummy_instance = DummyType(10, 20, 30)
     with pytest.raises(ValueError):
-        Rotation.from_carla_rotation(dummy_instance)
+        Rotation.from_simulator_rotation(dummy_instance)
 
 
-def test_as_carla_rotation():
-    """ Test the as_carla_rotation instance method of Rotation """
+def test_as_simulator_rotation():
+    """ Test the as_simulator_rotation instance method of Rotation """
     rotation = Rotation(pitch=1, yaw=2, roll=3)
-    carla_rotation = rotation.as_carla_rotation()
-    assert isinstance(carla_rotation, carla.Rotation), "Returned instance is "
+    simulator_rotation = rotation.as_simulator_rotation()
+    assert isinstance(simulator_rotation, carla.Rotation), "Returned instance is "
     "not of the type carla.Rotation"
-    assert np.isclose(carla_rotation.pitch, rotation.pitch), "Returned "
+    assert np.isclose(simulator_rotation.pitch, rotation.pitch), "Returned "
     "instance pitch value is not the same as the one in rotation."
-    assert np.isclose(carla_rotation.yaw, rotation.yaw), "Returned instance "
+    assert np.isclose(simulator_rotation.yaw, rotation.yaw), "Returned instance "
     "yaw value is not the same as the one in rotation."
-    assert np.isclose(carla_rotation.roll, rotation.roll), "Returned instance "
+    assert np.isclose(simulator_rotation.roll, rotation.roll), "Returned instance "
     "roll value is not the same as the one in location."
 
 
@@ -200,24 +200,24 @@ def test_empty_vector3d():
 
 
 @pytest.mark.parametrize("x, y, z", [(1, 2, 3), (-1, -2, -3)])
-def test_from_carla_vector(x, y, z):
-    """ Tests the creation of Vector3D from Carla. """
-    carla_vector3d = carla.Vector3D(x, y, z)
-    vector3d = Vector3D.from_carla_vector(carla_vector3d)
+def test_from_simulator_vector(x, y, z):
+    """ Tests the creation of Vector3D. """
+    simulator_vector3d = carla.Vector3D(x, y, z)
+    vector3d = Vector3D.from_simulator_vector(simulator_vector3d)
     assert isinstance(vector3d, Vector3D), "The returned object is not of type"
     "Vector3D"
-    assert np.isclose(carla_vector3d.x, vector3d.x), "X value is not the same"
-    assert np.isclose(carla_vector3d.y, vector3d.y), "Y value is not the same"
-    assert np.isclose(carla_vector3d.z, vector3d.z), "Z value is not the same"
+    assert np.isclose(simulator_vector3d.x, vector3d.x), "X value is not the same"
+    assert np.isclose(simulator_vector3d.y, vector3d.y), "Y value is not the same"
+    assert np.isclose(simulator_vector3d.z, vector3d.z), "Z value is not the same"
 
 
-def test_negative_vector_from_carla():
+def test_negative_vector_from_simulator():
     """ Tests that Vector3D throws a ValueError if incorrect vector is
     passed. """
     DummyType = namedtuple("DummyType", "x, y, z")
     dummy_instance = DummyType(0, 0, 0)
     with pytest.raises(ValueError):
-        Vector3D.from_carla_vector(dummy_instance)
+        Vector3D.from_simulator_vector(dummy_instance)
 
 
 @pytest.mark.parametrize('point_a, point_b, expected',
@@ -264,15 +264,15 @@ def test_vector_as_numpy_array():
     "array are not the expected values."
 
 
-def test_as_carla_vector():
-    vector_carla = Vector3D().as_carla_vector()
-    assert isinstance(vector_carla, carla.Vector3D), "The returned object "
+def test_as_simulator_vector():
+    vector = Vector3D().as_simulator_vector()
+    assert isinstance(vector, carla.Vector3D), "The returned object "
     "is not of the type carla.Vector3D"
-    assert np.isclose(vector_carla.x, 0), "The x value of the returned vector"
+    assert np.isclose(vector.x, 0), "The x value of the returned vector"
     " is not 0"
-    assert np.isclose(vector_carla.y, 0), "The y value of the returned vector"
+    assert np.isclose(vector.y, 0), "The y value of the returned vector"
     " is not 0"
-    assert np.isclose(vector_carla.z, 0), "The z value of the returned vector"
+    assert np.isclose(vector.z, 0), "The z value of the returned vector"
     " is not 0"
 
 

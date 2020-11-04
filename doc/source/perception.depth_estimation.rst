@@ -19,7 +19,7 @@ Important flags
 - ``--depth_estimation_model_path``: File path to a trained Anytime network
   model.
 - ``--perfect_depth_estimation``: The component outputs frames with perfect
-  depth values. This frames are obtained from CARLA.
+  depth values. This frames are obtained from the simulator.
 - ``--offset_left_right_cameras``: Offset distance (in meteres) between the left
   and right cameras used for depth estimation.
 - ``--visualize_depth_camera``: Enables visualization of the sensor depth

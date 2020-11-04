@@ -49,7 +49,7 @@ def main(argv):
     control_loop_stream = erdos.LoopStream()
     release_sensor_stream = erdos.IngestStream()
     pipeline_finish_notify_stream = erdos.IngestStream()
-    # Create carla operator.
+    # Create an operator that connects to the simulator.
     (
         pose_stream,
         pose_stream_for_control,
@@ -60,9 +60,9 @@ def main(argv):
         vehicle_id_stream,
         open_drive_stream,
         global_trajectory_stream,
-    ) = pylot.operator_creator.add_carla_bridge(control_loop_stream,
-                                                release_sensor_stream,
-                                                pipeline_finish_notify_stream)
+    ) = pylot.operator_creator.add_simulator_bridge(
+        control_loop_stream, release_sensor_stream,
+        pipeline_finish_notify_stream)
 
     # Add sensors.
     (center_camera_stream, notify_rgb_stream,
@@ -78,18 +78,16 @@ def main(argv):
 
     if FLAGS.log_rgb_camera:
         pylot.operator_creator.add_camera_logging(
-            center_camera_stream, 'center_camera_logger_operator',
-            'carla-center-')
+            center_camera_stream, 'center_camera_logger_operator', 'center-')
 
     if FLAGS.log_segmented_camera:
         pylot.operator_creator.add_camera_logging(
             segmented_stream, 'center_segmented_camera_logger_operator',
-            'carla-segmented-')
+            'segmented-')
 
     if FLAGS.log_depth_camera:
         pylot.operator_creator.add_camera_logging(
-            depth_camera_stream, 'depth_camera_logger_operator',
-            'carla-depth-')
+            depth_camera_stream, 'depth_camera_logger_operator', 'depth-')
 
     imu_stream = None
     if FLAGS.log_imu:
@@ -106,7 +104,7 @@ def main(argv):
              'traffic_light_camera', 45)
         pylot.operator_creator.add_camera_logging(
             traffic_light_camera_stream,
-            'traffic_light_camera_logger_operator', 'carla-traffic-light-')
+            'traffic_light_camera_logger_operator', 'traffic-light-')
         (traffic_light_segmented_camera_stream, _, _) = \
             pylot.operator_creator.add_segmented_camera(
                 transform,
@@ -132,10 +130,9 @@ def main(argv):
          _) = pylot.operator_creator.add_left_right_cameras(
              transform, vehicle_id_stream, release_sensor_stream)
         pylot.operator_creator.add_camera_logging(
-            left_camera_stream, 'left_camera_logger_operator', 'carla-left-')
+            left_camera_stream, 'left_camera_logger_operator', 'left-')
         pylot.operator_creator.add_camera_logging(
-            right_camera_stream, 'right_camera_logger_operator',
-            'carla-right-')
+            right_camera_stream, 'right_camera_logger_operator', 'right-')
 
     point_cloud_stream = None
     if FLAGS.log_lidar:
@@ -183,8 +180,7 @@ def main(argv):
         if FLAGS.log_top_down_segmentation:
             pylot.operator_creator.add_camera_logging(
                 top_down_segmented_stream,
-                'top_down_segmented_logger_operator',
-                'carla-top-down-segmented-')
+                'top_down_segmented_logger_operator', 'top-down-segmented-')
 
         if FLAGS.log_chauffeur:
             (top_down_camera_stream,
@@ -208,7 +204,7 @@ def main(argv):
     # of which stream is slowest. Instead, We should synchronize on all output
     # streams, and we should ensure that even the operators without output
     # streams complete.
-    if FLAGS.control == 'carla_auto_pilot':
+    if FLAGS.control == 'simulator_auto_pilot':
         # We insert a synchronizing operator that sends back a command when
         # the low watermark progresses on all input stream.
         stream_to_sync_on = center_camera_stream
@@ -223,7 +219,7 @@ def main(argv):
         control_loop_stream.set(control_stream)
     else:
         raise ValueError(
-            "Must be in auto pilot mode. Pass --control=carla_auto_pilot")
+            "Must be in auto pilot mode. Pass --control=simulator_auto_pilot")
 
     control_display_stream = None
     streams_to_send_top_on = []
@@ -244,9 +240,9 @@ def main(argv):
 
     # Connect an instance to the simulator to make sure that we can turn the
     # synchronous mode off after the script finishes running.
-    client, world = pylot.simulation.utils.get_world(FLAGS.carla_host,
-                                                     FLAGS.carla_port,
-                                                     FLAGS.carla_timeout)
+    client, world = pylot.simulation.utils.get_world(FLAGS.simulator_host,
+                                                     FLAGS.simulator_port,
+                                                     FLAGS.simulator_timeout)
 
     # Run the data-flow.
     node_handle = erdos.run_async()
@@ -262,7 +258,7 @@ def main(argv):
     try:
         if pylot.flags.must_visualize():
             pylot.utils.run_visualizer_control_loop(control_display_stream)
-        node_handle.join()
+        node_handle.wait()
     except KeyboardInterrupt:
         node_handle.shutdown()
         pylot.simulation.utils.set_asynchronous_mode(world)

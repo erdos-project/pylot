@@ -44,7 +44,8 @@ Important flags
 - ``--obstacle_tracking``: Enables the obstacle tracking component of the stack.
 - ``--tracker_type``: Sets which obstacle tracker the component use.
 - ``--perfect_obstacle_tracking``: Enables the component to perfectly track
-  obstacles using information it receives from CARLA (only works in simulation).
+  obstacles using information it receives from the simulator (only works in
+  simulation).
 - ``--visualize_tracked_obstacles``: Enables visualization of tracked obstacles.
 
 - ``--tracking_num_steps``: Limit on the number of past bounding boxes to track.

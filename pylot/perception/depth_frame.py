@@ -34,11 +34,14 @@ class DepthFrame(object):
         self._cached_point_cloud = None
 
     @classmethod
-    def from_carla_frame(cls, frame, camera_setup, save_original_frame=False):
-        """Creates a pylot depth frame from a carla depth frame.
+    def from_simulator_frame(cls,
+                             frame,
+                             camera_setup,
+                             save_original_frame=False):
+        """Creates a pylot depth frame from a simulator depth frame.
 
         Args:
-            frame: A carla.Image instance containing the depth image.
+            frame: An image instance containing the depth image.
             camera_setup: The setup of the depth camera.
             save_original_frame: True if the original RGB image needs to be
                 saved.
@@ -47,7 +50,7 @@ class DepthFrame(object):
             :py:class:`.DepthFrame`: A depth frame.
         """
         original_frame = None
-        # Convert an image containing CARLA encoded depth-map to a 2D
+        # Convert an image containing simulator encoded depth-map to a 2D
         # array containing the depth value of each pixel normalized
         # between [0.0, 1.0]
         _frame = np.frombuffer(frame.raw_data, dtype=np.dtype("uint8"))
