@@ -196,8 +196,7 @@ def main(argv):
                 top_down_camera_setup)
 
     if FLAGS.log_lane_detection_camera:
-        lane_detection_stream = \
-            pylot.operator_creator.add_perfect_lane_detector(
+        _ = pylot.operator_creator.add_perfect_lane_detector(
                 pose_stream, open_drive_stream, center_camera_stream)
 
     # TODO: Hack! We synchronize on a single stream, based on a guesestimate
