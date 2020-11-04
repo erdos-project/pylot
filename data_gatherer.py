@@ -197,7 +197,7 @@ def main(argv):
 
     if FLAGS.log_lane_detection_camera:
         _ = pylot.operator_creator.add_perfect_lane_detector(
-                pose_stream, open_drive_stream, center_camera_stream)
+            pose_stream, open_drive_stream, center_camera_stream)
 
     # TODO: Hack! We synchronize on a single stream, based on a guesestimate
     # of which stream is slowest. Instead, We should synchronize on all output
