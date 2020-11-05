@@ -51,7 +51,7 @@ class CameraFrame(object):
                                dtype=np.dtype("uint8"))
         _frame = np.reshape(_frame,
                             (simulator_frame.height, simulator_frame.width, 4))
-        return cls(_frame[:, :, :3], 'BGR', camera_setup)
+        return cls(np.array(_frame[:, :, :3]), 'BGR', camera_setup)
 
     def as_numpy_array(self):
         """Returns the camera frame as a numpy array."""
@@ -60,7 +60,7 @@ class CameraFrame(object):
     def as_bgr_numpy_array(self):
         """Returns the camera frame as a BGR encoded numpy array."""
         if self.encoding == 'RGB':
-            return self.frame[:, :, ::-1]
+            return np.array(self.frame[:, :, ::-1])
         else:
             return self.frame
 
