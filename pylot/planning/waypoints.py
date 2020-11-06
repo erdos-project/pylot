@@ -116,7 +116,7 @@ class Waypoints(object):
             if distance >= min_distance:
                 min_index = index
                 break
-        wp_index = min(len(self.waypoints) - 1, min_index)
+        wp_index = max(len(self.waypoints) - 1, min_index)
         if wp_index < 0:
             raise ValueError('No more waypoints')
         return wp_index
