@@ -25,7 +25,7 @@ class LanePredictor():
             weights: The path of the weights to be used in the prediction.
             config: The config to be used for tensorflow.
         """
-        self.input_tensor = tf.placeholder(dtype=tf.float32,
+        self.input_tensor = tf.compat.v1.placeholder(dtype=tf.float32,
                                            shape=[1, 256, 512, 3],
                                            name='input_tensor')
         self.net = lanenet.LaneNet(phase='test', net_flag='vgg')
@@ -36,13 +36,13 @@ class LanePredictor():
             ipm_remap_file_path=
             './dependencies/lanenet-lane-detection/data/tusimple_ipm_remap.yml'
         )
-        sess_config = tf.ConfigProto()
+        sess_config = tf.compat.v1.ConfigProto()
         sess_config.gpu_options.per_process_gpu_memory_fraction = \
             config.TEST.GPU_MEMORY_FRACTION
         sess_config.gpu_options.allow_growth = config.TRAIN.TF_ALLOW_GROWTH
         sess_config.gpu_options.allocator_type = 'BFC'
-        self.sess = tf.Session(config=sess_config).__enter__()
-        saver = tf.train.Saver()
+        self.sess = tf.compat.v1.Session(config=sess_config).__enter__()
+        saver = tf.compat.v1.train.Saver()
         saver.restore(sess=self.sess, save_path=weights)
 
     def process_images(self, msg):

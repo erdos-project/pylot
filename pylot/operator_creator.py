@@ -24,27 +24,6 @@ def add_simulator_bridge(control_stream, sensor_ready_stream,
         FLAGS)
 
 
-def add_efficientdet_obstacle_detection(camera_stream,
-                                        time_to_decision_stream,
-                                        csv_file_name=None):
-    """Adds an operator that uses EfficientDet for obstacle detection."""
-    from pylot.perception.detection.efficientdet_operator import \
-        EfficientDetOperator
-    if csv_file_name is None:
-        csv_file_name = FLAGS.csv_log_file_name
-    op_config = erdos.OperatorConfig(name='efficientdet_operator',
-                                     flow_watermarks=False,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=csv_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    obstacles_streams = erdos.connect(EfficientDetOperator, op_config,
-                                      [camera_stream, time_to_decision_stream],
-                                      FLAGS.obstacle_detection_model_names,
-                                      FLAGS.obstacle_detection_model_paths,
-                                      FLAGS)
-    return obstacles_streams
-
-
 def add_obstacle_detection(camera_stream,
                            time_to_decision_stream,
                            csv_file_name=None):

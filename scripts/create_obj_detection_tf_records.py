@@ -11,7 +11,7 @@ import os
 import random
 from object_detection.utils import dataset_util
 
-flags = tf.app.flags
+flags = tf.compat.v1.app.flags
 flags.DEFINE_string('input_path', '', 'Path to data folder.')
 flags.DEFINE_string('output_path', '', 'Path to output TFRecords.')
 
@@ -35,7 +35,7 @@ def create_tf_example(idx):
         idx) + '.png'  # Filename of the image.
     filename = filename.encode()
 
-    with tf.gfile.GFile(filename, 'rb') as fid:
+    with tf.io.gfile.GFile(filename, 'rb') as fid:
         encoded_image = fid.read()
 
     image_format = 'png'.encode()
@@ -93,9 +93,9 @@ def create_tf_example(idx):
 
 def main(_):
 
-    train_writer = tf.python_io.TFRecordWriter(FLAGS.output_path +
+    train_writer = tf.io.TFRecordWriter(FLAGS.output_path +
                                                "/train_set.record")
-    eval_writer = tf.python_io.TFRecordWriter(FLAGS.output_path +
+    eval_writer = tf.io.TFRecordWriter(FLAGS.output_path +
                                               "/eval_set.record")
 
     # Looks for files of the form bboxes-*.json
@@ -119,4 +119,4 @@ def main(_):
 
 
 if __name__ == '__main__':
-    tf.app.run()
+    tf.compat.v1.app.run()

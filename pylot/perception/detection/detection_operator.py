@@ -1,6 +1,7 @@
 """Implements an operator that detects obstacles."""
 import logging
 import time
+import os
 
 import erdos
 
@@ -38,42 +39,14 @@ class DetectionOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
-        self._detection_graph = tf.Graph()
-        # Load the model from the model file.
-        pylot.utils.set_tf_loglevel(logging.ERROR)
-        with self._detection_graph.as_default():
-            od_graph_def = tf.GraphDef()
-            with tf.gfile.GFile(model_path, 'rb') as fid:
-                serialized_graph = fid.read()
-                od_graph_def.ParseFromString(serialized_graph)
-                tf.import_graph_def(od_graph_def, name='')
 
-        self._gpu_options = tf.GPUOptions(
-            allow_growth=True,
-            visible_device_list=str(self._flags.obstacle_detection_gpu_index),
-            per_process_gpu_memory_fraction=flags.
-            obstacle_detection_gpu_memory_fraction)
-        # Create a TensorFlow session.
-        self._tf_session = tf.Session(
-            graph=self._detection_graph,
-            config=tf.ConfigProto(gpu_options=self._gpu_options))
-        # Get the tensors we're interested in.
-        self._image_tensor = self._detection_graph.get_tensor_by_name(
-            'image_tensor:0')
-        self._detection_boxes = self._detection_graph.get_tensor_by_name(
-            'detection_boxes:0')
-        self._detection_scores = self._detection_graph.get_tensor_by_name(
-            'detection_scores:0')
-        self._detection_classes = self._detection_graph.get_tensor_by_name(
-            'detection_classes:0')
-        self._num_detections = self._detection_graph.get_tensor_by_name(
-            'num_detections:0')
+        _model_dir = (os.sep).join(model_path.split(os.sep)[:-1])
+        self._model = tf.saved_model.load(str(_model_dir))
         self._coco_labels = load_coco_labels(self._flags.path_coco_labels)
         self._bbox_colors = load_coco_bbox_colors(self._coco_labels)
+
         # Unique bounding box id. Incremented for each bounding box.
         self._unique_id = 0
-        # Serve some junk image to load up the model.
-        self.__run_model(np.zeros((108, 192, 3)))
 
     @staticmethod
     def connect(camera_stream, time_to_decision_stream):
@@ -161,15 +134,18 @@ class DetectionOperator(erdos.Operator):
         # Expand dimensions since the model expects images to have
         # shape: [1, None, None, 3]
         image_np_expanded = np.expand_dims(image_np, axis=0)
-        (boxes, scores, classes, num_detections) = self._tf_session.run(
-            [
-                self._detection_boxes, self._detection_scores,
-                self._detection_classes, self._num_detections
-            ],
-            feed_dict={self._image_tensor: image_np_expanded})
+        image_tensor_expanded = tf.convert_to_tensor(image_np_expanded)
 
-        num_detections = int(num_detections[0])
-        res_classes = [int(cls) for cls in classes[0][:num_detections]]
-        res_boxes = boxes[0][:num_detections]
-        res_scores = scores[0][:num_detections]
-        return num_detections, res_boxes, res_scores, res_classes
+        model_fn = self._model.signatures['serving_default']
+        output_dict = model_fn(image_tensor_expanded)
+
+        _num_detections = int(output_dict.pop('num_detections'))
+        output_dict = {key:value[0, :_num_detections].numpy()
+                        for key,value in output_dict.items()}
+        output_dict['detection_classes'] = output_dict['detection_classes'].astype(np.int64)
+        output_dict['num_detections'] = _num_detections
+
+        return (output_dict['num_detections'],
+                output_dict['detection_boxes'],
+                output_dict['detection_scores'],
+                output_dict['detection_classes'])

@@ -61,17 +61,12 @@ def add_obstacle_detection(center_camera_stream,
     perfect_obstacles_stream = None
     if FLAGS.obstacle_detection:
         obstacles_stream_wo_depth = None
-        if any('efficientdet' in model
-               for model in FLAGS.obstacle_detection_model_names):
-            obstacles_streams = pylot.operator_creator.\
-                    add_efficientdet_obstacle_detection(
-                        center_camera_stream, time_to_decision_stream)
-            obstacles_stream_wo_depth = obstacles_streams[0]
-        else:
-            # TODO: Only returns the first obstacles stream.
-            obstacles_streams = pylot.operator_creator.add_obstacle_detection(
-                center_camera_stream, time_to_decision_stream)
-            obstacles_stream_wo_depth = obstacles_streams[0]
+
+        # TODO: Only returns the first obstacles stream.
+        obstacles_streams = pylot.operator_creator.add_obstacle_detection(
+            center_camera_stream, time_to_decision_stream)
+        obstacles_stream_wo_depth = obstacles_streams[0]
+
         if FLAGS.planning_type == 'waypoint':
             # Adds an operator that finds the world locations of the obstacles.
             obstacles_stream = \

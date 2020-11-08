@@ -75,17 +75,17 @@ class EfficientDetOperator(erdos.Operator):
         detection_graph = tf.Graph()
         with detection_graph.as_default():
             # Load a frozen graph.
-            graph_def = tf.GraphDef()
-            with tf.gfile.GFile(model_path, 'rb') as f:
+            graph_def = tf.compat.v1.GraphDef()
+            with tf.io.gfile.GFile(model_path, 'rb') as f:
                 graph_def.ParseFromString(f.read())
                 tf.import_graph_def(graph_def, name='')
-        gpu_options = tf.GPUOptions(
+        gpu_options = tf.compat.v1.GPUOptions(
             allow_growth=True,
             visible_device_list=str(self._flags.obstacle_detection_gpu_index),
             per_process_gpu_memory_fraction=gpu_memory_fraction)
-        return model_name, tf.Session(
+        return model_name, tf.compat.v1.Session(
             graph=detection_graph,
-            config=tf.ConfigProto(gpu_options=gpu_options))
+            config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
 
     @staticmethod
     def connect(camera_stream, time_to_decision_stream):
@@ -159,7 +159,8 @@ class EfficientDetOperator(erdos.Operator):
         start_time = time.time()
         ttd_msg = self._ttd_msgs.popleft()
         frame_msg = self._frame_msgs.popleft()
-        ttd, detection_deadline = ttd_msg.data
+        ttd = ttd_msg.data
+        detection_deadline = ttd_msg.data # TODO: Fix
         self.update_model_choice(detection_deadline)
         frame = frame_msg.frame
         inputs = frame.as_rgb_numpy_array()
