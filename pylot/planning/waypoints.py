@@ -116,10 +116,11 @@ class Waypoints(object):
             if distance >= min_distance:
                 min_index = index
                 break
-        wp_index = max(len(self.waypoints) - 1, min_index)
-        if wp_index < 0:
+        if min_index == -1:
+            min_index = len(self.waypoints) - 1
+        if min_index < 0:
             raise ValueError('No more waypoints')
-        return wp_index
+        return min_index
 
     def get_angle(self, transform, min_distance):
         """Returns the angle between the transform and the first waypoint that
