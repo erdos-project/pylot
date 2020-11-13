@@ -71,7 +71,7 @@ def main(argv):
         control_loop_stream, release_sensor_stream,
         pipeline_finish_notify_stream)
 
-    # TODO: Define a function that ensures consistency of this flag with the other flags.
+    # TODO: Define a function that ensures consistency of this flag.
     if not FLAGS.skip_cameras:
         # Add sensors.
         (center_camera_stream, notify_rgb_stream,
