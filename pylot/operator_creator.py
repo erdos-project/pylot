@@ -591,6 +591,20 @@ def add_gnss(transform, vehicle_id_stream, name='gnss'):
     return (gnss_stream, gnss_setup)
 
 
+def add_pose(transform, vehicle_id_stream, name='pose'):
+    from pylot.drivers.carla_pose_driver_operator import \
+        CarlaPoseDriverOperator
+    pose_setup = pylot.drivers.sensor_setup.PoseSetup(name, transform)
+    op_config = erdos.OperatorConfig(name=pose_setup.get_name() + '_operator',
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [pose_stream] = erdos.connect(CarlaPoseDriverOperator, op_config,
+                                  [vehicle_id_stream], pose_setup, FLAGS)
+    return (pose_stream, pose_setup)
+
+
 def add_localization(imu_stream,
                      gnss_stream,
                      ground_pose_stream,
