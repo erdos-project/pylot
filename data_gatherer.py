@@ -71,6 +71,8 @@ def main(argv):
         control_loop_stream, release_sensor_stream,
         pipeline_finish_notify_stream)
 
+    
+    # TODO: Define a function that ensures consistency of this flag with the other flags.
     if not FLAGS.skip_cameras:
         # Add sensors.
         (center_camera_stream, notify_rgb_stream,
@@ -229,7 +231,6 @@ def main(argv):
     # of which stream is slowest. Instead, We should synchronize on all output
     # streams, and we should ensure that even the operators without output
     # streams complete.
-    # TODO: synchronize on slowest stream (including imu and gnss)
     if FLAGS.control == 'simulator_auto_pilot':
         # We insert a synchronizing operator that sends back a command when
         # the low watermark progresses on all input stream.
