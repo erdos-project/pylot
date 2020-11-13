@@ -42,7 +42,7 @@ flags.DEFINE_bool('log_chauffeur', False,
                   'True to log data in ChauffeurNet style.')
 flags.DEFINE_bool('log_top_down_segmentation', False,
                   'True to enable logging of top down segmentation')
-flags.DEFINE_bool('perfect_perception', False,
+flags.DEFINE_bool('skip_cameras', False,
                   'True to disable the adding of cameras')
 
 # The location of the center camera relative to the ego-vehicle.
@@ -71,7 +71,7 @@ def main(argv):
         control_loop_stream, release_sensor_stream,
         pipeline_finish_notify_stream)
 
-    if not FLAGS.perfect_perception:
+    if not FLAGS.skip_cameras:
         # Add sensors.
         (center_camera_stream, notify_rgb_stream,
          rgb_camera_setup) = pylot.operator_creator.add_rgb_camera(
@@ -101,6 +101,7 @@ def main(argv):
             pylot.utils.Transform(location=pylot.utils.Location(),
                                   rotation=pylot.utils.Rotation()),
             vehicle_id_stream)
+        pylot.operator_creator.add_imu_logging(imu_stream)
 
     gnss_stream = None
     if FLAGS.log_gnss:
@@ -108,6 +109,7 @@ def main(argv):
             pylot.utils.Transform(location=pylot.utils.Location(),
                                   rotation=pylot.utils.Rotation()),
             vehicle_id_stream)
+        pylot.operator_creator.add_gnss_logging(gnss_stream)
 
     pose = None
     if FLAGS.log_pose:
@@ -227,6 +229,7 @@ def main(argv):
     # of which stream is slowest. Instead, We should synchronize on all output
     # streams, and we should ensure that even the operators without output
     # streams complete.
+    # TODO: synchronize on slowest stream (including imu and gnss)
     if FLAGS.control == 'simulator_auto_pilot':
         # We insert a synchronizing operator that sends back a command when
         # the low watermark progresses on all input stream.

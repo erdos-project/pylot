@@ -758,6 +758,15 @@ def add_imu_logging(imu_stream, name='imu_logger_operator'):
     erdos.connect(IMULoggerOperator, op_config, [imu_stream], FLAGS)
 
 
+def add_gnss_logging(gnss_stream, name='gnss_logger_operator'):
+    from pylot.loggers.gnss_logger_operator import GNSSLoggerOperator
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(GNSSLoggerOperator, op_config, [gnss_stream], FLAGS)
+
+
 def add_lidar_logging(point_cloud_stream,
                       name='lidar_logger_operator',
                       filename_prefix='lidar-'):
