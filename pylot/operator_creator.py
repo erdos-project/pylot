@@ -590,6 +590,7 @@ def add_gnss(transform, vehicle_id_stream, name='gnss'):
                                   [vehicle_id_stream], gnss_setup, FLAGS)
     return (gnss_stream, gnss_setup)
 
+
 def add_localization(imu_stream,
                      gnss_stream,
                      ground_pose_stream,
