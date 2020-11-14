@@ -112,14 +112,6 @@ def main(argv):
             vehicle_id_stream)
         pylot.operator_creator.add_gnss_logging(gnss_stream)
 
-    pose_stream = None
-    if FLAGS.log_pose:
-        (pose_stream, _) = pylot.operator_creator.add_pose(
-            pylot.utils.Transform(location=pylot.utils.Location(),
-                                  rotation=pylot.utils.Rotation()),
-            vehicle_id_stream)
-        pylot.operator_creator.add_pose_logging(pose_stream)
-
     traffic_lights_stream = None
     traffic_light_camera_stream = None
     if FLAGS.log_traffic_lights:
@@ -267,26 +259,10 @@ def main(argv):
     # Run the data-flow.
     node_handle = erdos.run_async()
 
-    pose = None
+    pose_stream = None
     if FLAGS.log_pose:
-        pickle_pose_stream = []
-        pickle_pose_stream_filename = 'pickle_pose_stream.pkl'
-        if os.path.exists(pickle_pose_stream_filename):
-            with open(pickle_pose_stream_filename, 'rb') as rfp:
-                pickle_pose_stream = pickle.load(rfp)
-        pose_synchronize_camera_stream = erdos.ExtractStream(pose_stream)
-        while True:
-            pose = pose_stream.read()
-            if type(
-                    pose
-            ) is not erdos.WatermarkMessage and pose.data.transform.location.l2_distance(
-                    pylot.utils.Location(0, 0, 0)) < 0.01:
-                shutdown_pylot(node_handle, client, world)
-                video.release()
-                break
-            pickle_pose_stream.append(pose)
-            with open(pickle_pose_stream_filename, 'wb') as wfp:
-                pickle.dump(pickle_pose_stream, wfp)    
+        pylot.operator_creator.add_pose_logging(pose_stream)
+
     signal.signal(signal.SIGINT, shutdown)
 
     # Ask all sensors to release their data.

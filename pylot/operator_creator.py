@@ -590,21 +590,6 @@ def add_gnss(transform, vehicle_id_stream, name='gnss'):
                                   [vehicle_id_stream], gnss_setup, FLAGS)
     return (gnss_stream, gnss_setup)
 
-
-def add_pose(transform, vehicle_id_stream, name='pose'):
-    from pylot.drivers.carla_pose_driver_operator import \
-        CarlaPoseDriverOperator
-    pose_setup = pylot.drivers.sensor_setup.PoseSetup(name, transform)
-    op_config = erdos.OperatorConfig(name=pose_setup.get_name() + '_operator',
-                                     flow_watermarks=False,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [pose_stream] = erdos.connect(CarlaPoseDriverOperator, op_config,
-                                  [vehicle_id_stream], pose_setup, FLAGS)
-    return (pose_stream, pose_setup)
-
-
 def add_localization(imu_stream,
                      gnss_stream,
                      ground_pose_stream,
@@ -779,6 +764,15 @@ def add_gnss_logging(gnss_stream, name='gnss_logger_operator'):
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
     erdos.connect(GNSSLoggerOperator, op_config, [gnss_stream], FLAGS)
+
+
+def add_pose_logging(pose_stream, name='pose_logger_operator'):
+    from pylot.loggers.pose_logger_operator import PoseLoggerOperator
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(PoseLoggerOperator, op_config, [pose_stream], FLAGS)
 
 
 def add_lidar_logging(point_cloud_stream,
