@@ -216,22 +216,24 @@ def main(argv):
     # of which stream is slowest. Instead, We should synchronize on all output
     # streams, and we should ensure that even the operators without output
     # streams complete.
-    if FLAGS.control == 'simulator_auto_pilot':
-        # We insert a synchronizing operator that sends back a command when
-        # the low watermark progresses on all input stream.
-        stream_to_sync_on = center_camera_stream
-        if obstacles_tracking_stream is not None:
-            stream_to_sync_on = obstacles_tracking_stream
-        if traffic_lights_stream is not None:
-            stream_to_sync_on = traffic_lights_stream
-        if obstacles_stream is not None:
-            stream_to_sync_on = obstacles_stream
-        control_stream = pylot.operator_creator.add_synchronizer(
-            vehicle_id_stream, stream_to_sync_on)
-        control_loop_stream.set(control_stream)
-    else:
-        raise ValueError(
-            "Must be in auto pilot mode. Pass --control=simulator_auto_pilot")
+
+    # TODO: Uncomment this section when pulling
+    # if FLAGS.control == 'simulator_auto_pilot':
+    #     # We insert a synchronizing operator that sends back a command when
+    #     # the low watermark progresses on all input stream.
+    #     stream_to_sync_on = center_camera_stream
+    #     if obstacles_tracking_stream is not None:
+    #         stream_to_sync_on = obstacles_tracking_stream
+    #     if traffic_lights_stream is not None:
+    #         stream_to_sync_on = traffic_lights_stream
+    #     if obstacles_stream is not None:
+    #         stream_to_sync_on = obstacles_stream
+    #     control_stream = pylot.operator_creator.add_synchronizer(
+    #         vehicle_id_stream, stream_to_sync_on)
+    #     control_loop_stream.set(control_stream)
+    # else:
+    #     raise ValueError(
+    #         "Must be in auto pilot mode. Pass --control=simulator_auto_pilot")
 
     control_display_stream = None
     streams_to_send_top_on = []
