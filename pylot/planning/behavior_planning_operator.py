@@ -118,7 +118,7 @@ class BehaviorPlanningOperator(erdos.Operator):
                 self._route.remove_waypoint_if_close(ego_transform.location,
                                                      10)
             else:
-                self._route.remove_waypoint_if_close(ego_transform.location, 2)
+                self._route.remove_waypoint_if_close(ego_transform.location, 3)
         new_goal_location = self.__get_goal_location(ego_transform)
         if new_goal_location != self._goal_location:
             self._goal_location = new_goal_location

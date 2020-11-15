@@ -25,7 +25,7 @@ RUN mkdir -p /home/erdos/workspace
 RUN cd /home/erdos/workspace
 
 # Install tzdata without prompt.
-RUN sudo apt-get -y update
+RUN sudo apt-get -y --fix-missing update
 ENV DEBIAN_FRONTEND=noninteractive
 RUN sudo DEBIAN_FRONTEND=noninteractive sudo DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata
 
