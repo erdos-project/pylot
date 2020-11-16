@@ -9,9 +9,6 @@ import pylot.operator_creator
 import pylot.simulation.utils
 import pylot.utils
 
-import pickle
-import os
-
 FLAGS = flags.FLAGS
 
 # Flags that control what data is recorded.
@@ -221,7 +218,7 @@ def main(argv):
     if FLAGS.control == 'simulator_auto_pilot':
         # We insert a synchronizing operator that sends back a command when
         # the low watermark progresses on all input stream.
-        stream_to_sync_on = center_camera_stream
+        # stream_to_sync_on = center_camera_stream
         if obstacles_tracking_stream is not None:
             stream_to_sync_on = obstacles_tracking_stream
         if traffic_lights_stream is not None:
