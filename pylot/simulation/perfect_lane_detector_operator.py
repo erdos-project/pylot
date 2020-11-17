@@ -124,3 +124,4 @@ class PerfectLaneDetectionOperator(erdos.Operator):
             lanes = []
         output_msg = LanesMessage(pose_msg.timestamp, lanes)
         detected_lane_stream.send(output_msg)
+        detected_lane_stream.send(erdos.WatermarkMessage(pose_msg.timestamp))
