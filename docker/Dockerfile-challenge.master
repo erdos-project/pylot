@@ -52,7 +52,7 @@ WORKDIR /workspace
 COPY .tmp/PythonAPI /workspace/CARLA/PythonAPI
 ENV CARLA_ROOT /workspace/CARLA
 
-ENV PATH "/workspace/CARLA/PythonAPI/carla/dist/carla-0.9.10-py3.7-linux-x86_64.egg":/opt/conda/envs/python37/bin:/opt/conda/envs/bin:$PATH
+ENV PATH "/workspace/CARLA/PythonAPI/carla/dist/carla-leaderboard-py3x.egg":/opt/conda/envs/python37/bin:/opt/conda/envs/bin:$PATH
 
 # adding CARLA egg to default python environment
 RUN pip install --user setuptools py_trees==0.8.3 psutil shapely six dictor requests ephem tabulate
@@ -60,7 +60,7 @@ RUN pip install --user setuptools py_trees==0.8.3 psutil shapely six dictor requ
 ENV SCENARIO_RUNNER_ROOT "/workspace/scenario_runner"
 ENV LEADERBOARD_ROOT "/workspace/leaderboard"
 ENV TEAM_CODE_ROOT "/workspace/team_code"
-ENV PYTHONPATH "/workspace/CARLA/PythonAPI/carla/dist/carla-0.9.10-py3.7-linux-x86_64.egg":"${SCENARIO_RUNNER_ROOT}":"${CARLA_ROOT}/PythonAPI/carla":"${LEADERBOARD_ROOT}":${PYTHONPATH}
+ENV PYTHONPATH "/workspace/CARLA/PythonAPI/carla/dist/carla-leaderboard-py3x.egg":"${SCENARIO_RUNNER_ROOT}":"${CARLA_ROOT}/PythonAPI/carla":"${LEADERBOARD_ROOT}":${PYTHONPATH}
 
 COPY .tmp/scenario_runner ${SCENARIO_RUNNER_ROOT}
 COPY .tmp/leaderboard ${LEADERBOARD_ROOT}

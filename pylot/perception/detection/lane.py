@@ -1,7 +1,5 @@
 from collections import deque
-
 import numpy as np
-
 from pylot.utils import Location, Rotation, Transform, Vector3D
 
 from shapely.geometry import Point
@@ -26,7 +24,7 @@ class Lane(object):
                            (125, 125, 0), (0, 125, 125), (125, 0, 125),
                            (50, 100, 50), (100, 50, 100)]
 
-    def draw_on_frame(self, frame, inverse_transform=None):
+    def draw_on_frame(self, frame, inverse_transform=None, binary_frame=None):
         """Draw lane markings on a frame.
 
         Args:
@@ -37,7 +35,8 @@ class Lane(object):
         extrinsic_matrix = frame.camera_setup.get_extrinsic_matrix()
         intrinsic_matrix = frame.camera_setup.get_intrinsic_matrix()
         # change color based on lane id
-        lane_color = self._color_map[self.id % len(self._color_map)]
+        lane_color_l = self._color_map[self.id % len(self._color_map)]
+        lane_color_r = self._color_map[(self.id + 2) % len(self._color_map)]
 
         for marking in self.left_markings:
             if inverse_transform:
@@ -47,7 +46,14 @@ class Lane(object):
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
             pixel_location = marking.to_camera_view(extrinsic_matrix,
                                                     intrinsic_matrix)
-            frame.draw_point(pixel_location, lane_color)
+            if (pixel_location.z >= 0):
+                try:
+                    frame.draw_point(pixel_location, lane_color_l)
+                    if binary_frame:
+                        binary_frame.draw_point(pixel_location,
+                                                (255, 255, 255))
+                except Exception:
+                    continue
         for marking in self.right_markings:
             if inverse_transform:
                 # marking = inverse_transform * marking
@@ -56,7 +62,14 @@ class Lane(object):
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
             pixel_location = marking.to_camera_view(extrinsic_matrix,
                                                     intrinsic_matrix)
-            frame.draw_point(pixel_location, lane_color)
+            if (pixel_location.z >= 0):
+                try:
+                    frame.draw_point(pixel_location, lane_color_r)
+                    if binary_frame:
+                        binary_frame.draw_point(pixel_location,
+                                                (255, 255, 255))
+                except Exception:
+                    continue
 
     def draw_on_world(self, world):
         from carla import Color

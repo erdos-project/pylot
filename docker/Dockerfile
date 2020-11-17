@@ -25,7 +25,7 @@ RUN mkdir -p /home/erdos/workspace
 RUN cd /home/erdos/workspace
 
 # Install tzdata without prompt.
-RUN sudo apt-get -y update
+RUN sudo apt-get -y --fix-missing update
 ENV DEBIAN_FRONTEND=noninteractive
 RUN sudo DEBIAN_FRONTEND=noninteractive sudo DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata
 
@@ -50,15 +50,15 @@ ENV PYLOT_HOME /home/erdos/workspace/pylot/
 RUN cd /home/erdos/workspace/pylot/ && ./install.sh
 # Install all the Python dependencies.
 RUN cd /home/erdos/workspace/pylot/ && pip3 install -e ./
-ENV CARLA_HOME /home/erdos/workspace/pylot/dependencies/CARLA_0.9.10
+ENV CARLA_HOME /home/erdos/workspace/pylot/dependencies/CARLA_0.9.10.1
 # Clone scenario_runner.
 RUN cd /home/erdos/workspace &&  git clone https://github.com/erdos-project/scenario_runner.git
 # Install scenario_runner's dependencies.
 RUN pip3 install py-trees==0.8.3 networkx==2.2 Shapely==1.6.4 psutil xmlschema==1.0.18 ephem tabulate
 
-RUN echo "export PYTHONPATH=/home/erdos/workspace/pylot/dependencies/:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.10/PythonAPI/carla/dist/carla-0.9.10-py3.7-linux-x86_64.egg:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.10/PythonAPI/carla/:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.10/PythonAPI/carla/agents/:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.10/PythonAPI/:/home/erdos/workspace/scenario_runner" >> ~/.bashrc
+RUN echo "export PYTHONPATH=/home/erdos/workspace/pylot/dependencies/:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.10.1/PythonAPI/carla/dist/carla-0.9.10-py3.7-linux-x86_64.egg:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.10.1/PythonAPI/carla/:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.10.1/PythonAPI/carla/agents/:/home/erdos/workspace/pylot/dependencies/CARLA_0.9.10.1/PythonAPI/:/home/erdos/workspace/scenario_runner" >> ~/.bashrc
 RUN echo "export PYLOT_HOME=/home/erdos/workspace/pylot/" >> ~/.bashrc
-RUN echo "export CARLA_HOME=/home/erdos/workspace/pylot/dependencies/CARLA_0.9.10" >> ~/.bashrc
+RUN echo "export CARLA_HOME=/home/erdos/workspace/pylot/dependencies/CARLA_0.9.10.1" >> ~/.bashrc
 RUN echo "if [ -f ~/.bashrc ]; then . ~/.bashrc ; fi" >> ~/.bash_profile
 
 # Set up ssh access to the container.

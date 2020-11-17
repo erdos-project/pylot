@@ -20,7 +20,6 @@ from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.detection.speed_limit_sign import SpeedLimitSign
 from pylot.perception.detection.stop_sign import StopSign
 from pylot.perception.detection.traffic_light import TrafficLight
-from pylot.perception.messages import DepthFrameMessage
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.simulation.utils import get_world
 
@@ -49,12 +48,11 @@ def on_depth_msg(simulator_image):
     transform = pylot.utils.Transform.from_simulator_transform(
         simulator_image.transform)
     camera_setup = DepthCameraSetup("depth_camera", FLAGS.frame_width,
-                                    FLAGS.camera_height, transform,
+                                    FLAGS.frame_height, transform,
                                     FLAGS.camera_fov)
 
-    DEPTH_FRAME = DepthFrameMessage(
-        int(simulator_image.timestamp * 1000),
-        DepthFrame.from_simulator_frame(simulator_image, camera_setup))
+    DEPTH_FRAME = DepthFrame.from_simulator_frame(simulator_image,
+                                                  camera_setup)
 
 
 def on_segmented_msg(simulator_image):
@@ -62,9 +60,10 @@ def on_segmented_msg(simulator_image):
     transform = pylot.utils.Transform.from_simulator_transform(
         simulator_image.transform)
     camera_setup = SegmentedCameraSetup("segmented_camera", FLAGS.frame_width,
-                                        FLAGS.camera_height, transform,
+                                        FLAGS.frame_height, transform,
                                         FLAGS.camera_fov)
-    SEGMENTED_FRAME = SegmentedFrame(simulator_image, 'carla', camera_setup)
+    SEGMENTED_FRAME = SegmentedFrame.from_simulator_image(simulator_image,
+                                                          camera_setup)
 
 
 def add_camera(world, transform, callback):
@@ -101,7 +100,7 @@ def add_segmented_camera(world, transform, callback):
 
 
 def setup_world():
-    client, world = get_world()
+    client, world = get_world(timeout=20)
     settings = world.get_settings()
     settings.synchronous_mode = True
     settings.fixed_delta_seconds = 0.02
@@ -152,7 +151,7 @@ def get_traffic_light_obstacles(traffic_lights, depth_frame, segmented_frame,
     return det_obstacles
 
 
-def log_bounding_boxes(simulator_image, depth_msg, segmented_frame,
+def log_bounding_boxes(simulator_image, depth_frame, segmented_frame,
                        traffic_lights, tl_color, speed_signs, stop_signs,
                        weather, town):
     game_time = int(simulator_image.timestamp * 1000)
@@ -161,29 +160,26 @@ def log_bounding_boxes(simulator_image, depth_msg, segmented_frame,
     transform = pylot.utils.Transform.from_simulator_transform(
         simulator_image.transform)
     camera_setup = RGBCameraSetup("rgb_camera", FLAGS.frame_width,
-                                  FLAGS.camera_height, transform,
+                                  FLAGS.frame_height, transform,
                                   FLAGS.camera_fov)
     frame = CameraFrame.from_simulator_frame(simulator_image, camera_setup)
-    _, world = get_world()
-    town_name = world.get_map().name
 
     speed_limit_det_obstacles = []
     if speed_signs:
         speed_limit_det_obstacles = \
             pylot.simulation.utils.get_detected_speed_limits(
-                speed_signs, depth_msg.frame, segmented_frame)
+                speed_signs, depth_frame, segmented_frame)
 
     traffic_stop_det_obstacles = []
     if stop_signs:
         traffic_stop_det_obstacles = \
             pylot.simulation.utils.get_detected_traffic_stops(
-                stop_signs, depth_msg.frame)
+                stop_signs, depth_frame)
 
     traffic_light_det_obstacles = []
     if traffic_lights:
         traffic_light_det_obstacles = get_traffic_light_obstacles(
-            traffic_lights, depth_msg.frame, segmented_frame, tl_color,
-            town_name)
+            traffic_lights, depth_frame, segmented_frame, tl_color, town)
 
     det_obstacles = (speed_limit_det_obstacles + traffic_stop_det_obstacles +
                      traffic_light_det_obstacles)

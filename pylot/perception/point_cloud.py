@@ -39,7 +39,12 @@ class PointCloud(object):
         """
         points = np.frombuffer(simulator_pc.raw_data, dtype=np.dtype('f4'))
         points = copy.deepcopy(points)
-        points = np.reshape(points, (int(points.shape[0] / 3), 3))
+        if lidar_setup.legacy:
+            points = np.reshape(points, (int(points.shape[0] / 3), 3))
+        else:
+            points = np.reshape(points, (int(points.shape[0] / 4), 4))
+            # Remove the intensity component of the point cloud.
+            points = points[:, :3]
         return cls(points, lidar_setup)
 
     def merge(self, point_cloud):
