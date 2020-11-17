@@ -26,6 +26,16 @@ CITYSCAPES_LABELS = {
     10: "car",
     11: "wall",
     12: "traffic_sign",
+    13: "sky",
+    14: "ground",
+    15: "bridge",
+    16: "rail_track",
+    17: "guard_rail",
+    18: "traffic_light",
+    19: "static",
+    20: "dynamic",
+    21: "water",
+    22: "terrain",
 }
 
 # Cityscapes palette.
@@ -42,8 +52,19 @@ CITYSCAPES_CLASSES = {
     9: [107, 142, 35],  # Vegetation
     10: [0, 0, 255],  # Vehicles
     11: [102, 102, 156],  # Walls
-    12: [220, 220, 0]  # TrafficSigns
+    12: [220, 220, 0],  # TrafficSigns
+    13: [70, 130, 180],  # Sky
+    14: [81, 0, 81],  # Ground
+    15: [150, 100, 100],  # Bridge
+    16: [230, 150, 140],  # RailTrack
+    17: [180, 165, 180],  # GuardRail
+    18: [250, 170, 30],  # TrafficLight
+    19: [110, 190, 160],  # Static
+    20: [170, 120, 50],  # Dynamic
+    21: [45, 60, 150],  # Water
+    22: [145, 170, 100]  # Terrain
 }
+
 # XXX(ionel): Note! These classes do not cover all
 # the classes from CITYSCAPES. Hence, we can't compare segmentation
 # outputs to ground truth.
@@ -288,5 +309,6 @@ class SegmentedFrame(object):
             (self._frame.shape[0], self._frame.shape[1]), dtype=np.bool)
         # 12 is the key for TrafficSigns segmentation in CARLA.
         # Apply mask to only select traffic signs and traffic lights.
-        traffic_signs_frame[np.where(self._frame == 12)] = True
+        traffic_signs_frame[np.where(
+            np.logical_or(self._frame == 12, self._frame == 18))] = True
         return traffic_signs_frame

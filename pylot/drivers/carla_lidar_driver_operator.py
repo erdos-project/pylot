@@ -128,13 +128,19 @@ class CarlaLidarDriverOperator(erdos.Operator):
 
         self._vehicle = get_vehicle_handle(world, vehicle_id)
 
+        if not (simulator_version.startswith('0.8') or re.match(
+                '0\.9\.[02-9]', simulator_version) is not None or  # noqa: W605
+                simulator_version == '0.9.1'):
+            self._lidar_setup.set_legacy(False)
+
         # Install the Lidar.
         lidar_blueprint = world.get_blueprint_library().find(
             self._lidar_setup.lidar_type)
         lidar_blueprint.set_attribute('channels',
                                       str(self._lidar_setup.channels))
         if not (simulator_version.startswith('0.8') or re.match(
-                '0\.9\.[0-6]', simulator_version) is not None):  # noqa: W605
+                '0\.9\.[02-6]', simulator_version) is not None or  # noqa: W605
+                simulator_version == '0.9.1'):
             # Any simulator version after 0.9.6.
             lidar_blueprint.set_attribute(
                 'range', str(self._lidar_setup.get_range_in_meters()))

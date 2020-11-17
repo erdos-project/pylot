@@ -49,7 +49,7 @@ unzip download.zip ; rm download.zip
 ###### Download the traffic light model ######
 cd $PYLOT_HOME/dependencies/models
 mkdir -p traffic_light_detection/faster-rcnn ; cd traffic_light_detection/faster-rcnn
-wget https://www.dropbox.com/s/63ig79xrkubigpu/frozen_inference_graph.pb
+wget https://www.dropbox.com/s/nfq93v3th0fnedu/frozen_inference_graph.pb
 
 ###### Download the Lanenet lane detection model ######
 cd $PYLOT_HOME/dependencies/models
@@ -120,12 +120,12 @@ cd AnyNet/models/spn_t1/ ; python3 setup.py clean ; python3 setup.py build
 
 cd $PYLOT_HOME/dependencies/
 ###### Download the Carla simulator ######
-if [ "$1" != 'challenge' ] && [ ! -d "CARLA_0.9.10" ]; then
-    mkdir CARLA_0.9.10
-    cd CARLA_0.9.10
-    wget https://carla-releases.s3.eu-west-3.amazonaws.com/Linux/CARLA_0.9.10.tar.gz
-    tar -xvf CARLA_0.9.10.tar.gz
-    rm CARLA_0.9.10.tar.gz
+if [ "$1" != 'challenge' ] && [ ! -d "CARLA_0.9.10.1" ]; then
+    mkdir CARLA_0.9.10.1
+    cd CARLA_0.9.10.1
+    wget https://carla-releases.s3.eu-west-3.amazonaws.com/Linux/CARLA_0.9.10.1.tar.gz
+    tar -xvf CARLA_0.9.10.1.tar.gz
+    rm CARLA_0.9.10.1.tar.gz
     if [ "$1" == 'docker' ]; then
         rm -r CarlaUE4; rm -r HDMaps
     fi

@@ -245,7 +245,10 @@ def driver():
 
 
 def shutdown_pylot(node_handle, client, world):
-    node_handle.shutdown()
+    if node_handle:
+        node_handle.shutdown()
+    else:
+        print('The Pylot dataflow failed to initialize.')
     if FLAGS.simulation_recording_file is not None:
         client.stop_recorder()
     set_asynchronous_mode(world)

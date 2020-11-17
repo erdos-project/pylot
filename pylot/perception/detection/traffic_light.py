@@ -202,7 +202,9 @@ class TrafficLight(Obstacle):
 
             if cropped_image.size > 0:
                 masked_image = np.zeros_like(cropped_image)
-                masked_image[np.where(cropped_image == 12)] = 1
+                masked_image[np.where(
+                    np.logical_or(cropped_image == 12,
+                                  cropped_image == 18))] = 1
                 if np.sum(masked_image) >= 0.20 * masked_image.size:
                     masked_depth = cropped_depth[np.where(masked_image == 1)]
                     mean_depth = np.mean(masked_depth) * 1000

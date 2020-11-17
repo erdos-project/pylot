@@ -600,6 +600,11 @@ class LidarSetup(object):
         self._unreal_transform = LidarSetup.__create_unreal_transform(
             self.transform, self.legacy)
 
+    def set_legacy(self, legacy):
+        self.legacy = legacy
+        self._unreal_transform = LidarSetup.__create_unreal_transform(
+            self.transform, self.legacy)
+
     def get_unreal_transform(self):
         """Get the transform of the LIDAR with respect to the vehicle in the
         Unreal Engine coordinate space.

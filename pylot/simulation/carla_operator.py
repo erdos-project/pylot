@@ -85,7 +85,8 @@ class CarlaOperator(erdos.Operator):
         self._spectator = self._world.get_spectator()
 
         if not (self._simulator_version.startswith('0.8')
-                or re.match('0.9.[0-7]', self._simulator_version) is not None):
+                or re.match('0.9.[02-7]', self._simulator_version) is not None
+                or self._simulator_version == '0.9.1'):
             # Any simulator version after 0.9.7.
             # Create a traffic manager to that auto pilot works.
             self._traffic_manager = self._client.get_trafficmanager(

@@ -5,6 +5,8 @@
   * Added support for latest CARLA lidar type (CARLA >= 0.9.9.4).
   * Updated CARLA challenge agent to support perfect perception.
   * Added logic to close pygame window, and to shutdown on sigint.
+  * Updated traffic light data collection script to work with latest CARLA versions.
+  * Reduced dependency on CARLA throughout the code base.
 
 ## Pylot 0.3
 

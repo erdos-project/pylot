@@ -6,7 +6,7 @@ import erdos
 
 from pylot.simulation.messages import CollisionMessage
 from pylot.simulation.utils import get_vehicle_handle, get_world
-from pylot.utils import Transform, Vector3D
+from pylot.utils import Location, Rotation, Transform, Vector3D
 
 
 class CarlaCollisionSensorDriverOperator(erdos.Operator):
@@ -62,7 +62,7 @@ class CarlaCollisionSensorDriverOperator(erdos.Operator):
         self._logger.debug("Spawning a collision sensor.")
         self._collision_sensor = world.spawn_actor(
             collision_blueprint,
-            Transform().as_simulator_transform(),
+            Transform(Location(), Rotation()).as_simulator_transform(),
             attach_to=self._vehicle)
 
         # Register the callback on the collision sensor.
