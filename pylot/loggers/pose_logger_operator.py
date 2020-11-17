@@ -23,7 +23,7 @@ class PoseLoggerOperator(erdos.Operator):
         _msg_cnt (:obj:`int`): Number of messages received.
     """
     def __init__(self, pose_stream: erdos.ReadStream, flags):
-        pose_stream.add_callback(self.on_pse_update)
+        pose_stream.add_callback(self.on_pose_update)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
@@ -50,12 +50,12 @@ class PoseLoggerOperator(erdos.Operator):
         file_name = os.path.join(self._flags.data_path,
                                  'pose-{}.json'.format(timestamp))
         measurements = {
-            "x": str(msg.x),
-            "y": str(msg.y),
-            "z": str(msg.z),
-            "pitch": str(msg.pitch),
-            "yaw": str(msg.yaw),
-            "roll": str(msg.roll),
+            "x": str(msg.data.transform.location.x),
+            "y": str(msg.data.transform.location.y),
+            "z": str(msg.data.transform.location.z),
+            "pitch": str(msg.data.transform.rotation.pitch),
+            "yaw": str(msg.data.transform.rotation.yaw),
+            "roll": str(msg.data.transform.rotation.roll),
             "timestamp": str(timestamp)
         }
         with open(file_name, 'w') as outfile:

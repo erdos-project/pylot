@@ -109,6 +109,9 @@ def main(argv):
             vehicle_id_stream)
         pylot.operator_creator.add_gnss_logging(gnss_stream)
 
+    if FLAGS.log_pose:
+        pylot.operator_creator.add_pose_logging(pose_stream)
+
     traffic_lights_stream = None
     traffic_light_camera_stream = None
     if FLAGS.log_traffic_lights:
@@ -218,13 +221,17 @@ def main(argv):
     if FLAGS.control == 'simulator_auto_pilot':
         # We insert a synchronizing operator that sends back a command when
         # the low watermark progresses on all input stream.
-        # stream_to_sync_on = center_camera_stream
+        stream_to_sync_on = None
+        if not FLAGS.skip_cameras:
+            stream_to_sync_on = center_camera_stream
         if obstacles_tracking_stream is not None:
             stream_to_sync_on = obstacles_tracking_stream
         if traffic_lights_stream is not None:
             stream_to_sync_on = traffic_lights_stream
         if obstacles_stream is not None:
             stream_to_sync_on = obstacles_stream
+        if FLAGS.log_pose:
+            stream_to_sync_on = pose_stream
         control_stream = pylot.operator_creator.add_synchronizer(
             vehicle_id_stream, stream_to_sync_on)
         control_loop_stream.set(control_stream)
@@ -257,10 +264,6 @@ def main(argv):
 
     # Run the data-flow.
     node_handle = erdos.run_async()
-
-    pose_stream = None
-    if FLAGS.log_pose:
-        pylot.operator_creator.add_pose_logging(pose_stream)
 
     signal.signal(signal.SIGINT, shutdown)
 
