@@ -212,6 +212,7 @@ def main(argv):
                 top_down_camera_stream, top_down_segmented_stream,
                 top_down_camera_setup)
 
+    perfect_lane_stream = None
     if FLAGS.log_lane_detection_camera:
         perfect_lane_stream = pylot.operator_creator.add_perfect_lane_detector(
             pose_stream, open_drive_stream, center_camera_stream)
