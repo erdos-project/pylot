@@ -296,11 +296,16 @@ def add_obstacle_tracking(center_camera_stream,
     """
     obstacles_tracking_stream = None
     if FLAGS.obstacle_tracking:
-        obstacles_wo_history_tracking_stream = \
-            pylot.operator_creator.add_obstacle_tracking(
-                obstacles_stream,
-                center_camera_stream,
-                time_to_decision_stream)
+        if FLAGS.tracker_type == 'center_track':
+            obstacles_wo_history_tracking_stream = \
+                pylot.operator_creator.add_center_track_tracking(
+                    center_camera_stream, center_camera_setup)
+        else:
+            obstacles_wo_history_tracking_stream = \
+                pylot.operator_creator.add_obstacle_tracking(
+                    obstacles_stream,
+                    center_camera_stream,
+                    time_to_decision_stream)
         obstacles_tracking_stream = \
             pylot.operator_creator.add_obstacle_location_history(
                 obstacles_wo_history_tracking_stream, depth_stream,
