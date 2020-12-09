@@ -145,9 +145,38 @@ class BoundingBox3D(object):
         extent (:py:class:`~pylot.utils.Vector3D`): The extent of the bounding
             box.
     """
-    def __init__(self, transform, extent):
+    def __init__(self, transform=None, extent=None, corners=None):
         self.transform = transform
         self.extent = extent
+        self.corners = corners
+
+    @classmethod
+    def from_dimensions(cls, bbox_dimensions, location, rotation_y):
+        """Creates a 3D bounding box.
+
+        Args:
+            bbox_dimensions: The height, width and length of the bbox.
+            location: The location of the box in the camera frame.
+            rotation: The rotation of the bbox.
+
+        Returns:
+            :py:class:`.BoundingBox3D`: A bounding box instance.
+        """
+        c, s = np.cos(rotation_y), np.sin(rotation_y)
+        R = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]], dtype=np.float32)
+        l, w, h = bbox_dimensions[2], bbox_dimensions[1], bbox_dimensions[0]
+        x_corners = [
+            l / 2, l / 2, -l / 2, -l / 2, l / 2, l / 2, -l / 2, -l / 2
+        ]
+        y_corners = [0, 0, 0, 0, -h, -h, -h, -h]
+        z_corners = [
+            w / 2, -w / 2, -w / 2, w / 2, w / 2, -w / 2, -w / 2, w / 2
+        ]
+        corners = np.array([x_corners, y_corners, z_corners], dtype=np.float32)
+        corners_3d = np.dot(R, corners).transpose(1, 0)
+        corners_3d = corners_3d + np.array(location, dtype=np.float32).reshape(
+            1, 3)
+        return cls(corners=corners_3d)
 
     @classmethod
     def from_simulator_bounding_box(cls, bbox):
@@ -462,9 +491,9 @@ def get_mAP(ground_obstacles, obstacles):
     # Sort bboxes descending by score.
     sorted_obstacles = \
         sorted(obstacles, key=lambda o: o.confidence, reverse=True)
-    detected_bboxes = [o._bounding_box_2D for o in sorted_obstacles]
+    detected_bboxes = [o.bounding_box_2D for o in sorted_obstacles]
     ground_bboxes = [
-        obstacle._bounding_box_2D for obstacle in ground_obstacles
+        obstacle.bounding_box_2D for obstacle in ground_obstacles
     ]
     # Compute recall precision. The results are sorted in descending
     # order by recall.
@@ -505,7 +534,7 @@ def get_obstacle_locations(obstacles, depth_msg, ego_transform, camera_setup,
         obstacles_with_location = []
         for obstacle in obstacles:
             location = point_cloud.get_pixel_location(
-                obstacle.bounding_box.get_center_point(),
+                obstacle.bounding_box_2D.get_center_point(),
                 transformed_camera_setup)
             if location is not None:
                 obstacle.transform = pylot.utils.Transform(
@@ -522,7 +551,7 @@ def get_obstacle_locations(obstacles, depth_msg, ego_transform, camera_setup,
             ego_transform * depth_frame.camera_setup.transform)
 
         for obstacle in obstacles:
-            center_point = obstacle.bounding_box.get_center_point()
+            center_point = obstacle.bounding_box_2D.get_center_point()
             # Sample several points around the center of the bounding box
             # in case the bounding box is not well centered on the obstacle.
             # In such situations the center point might be in between legs,

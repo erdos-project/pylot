@@ -17,12 +17,17 @@ scikit-image<0.15
 scipy==1.2.2
 shapely==1.6.4
 tensorflow-gpu==1.15.4
-torch==1.3.1
-torchvision==0.2.1
+torch==1.4.0
+torchvision==0.5.0
 ##### SORT tracking dependencies #####
 filterpy==1.4.1
 numba==0.50.0
-scikit-learn==0.20.0
+scikit-learn==0.22.2
 ##### DeepSORT tracking dependencies #####
 imgaug==0.2.8
 nonechucks==0.3.1
+##### CenterTrack dependencies #####
+Cython
+progress
+pyquaternion
+nuscenes-devkit

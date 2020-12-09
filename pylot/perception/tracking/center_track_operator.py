@@ -6,7 +6,7 @@ import numpy as np
 
 from pylot.perception.detection.obstacle import Obstacle
 from pylot.perception.detection.utils import BoundingBox2D, \
-    OBSTACLE_LABELS
+    BoundingBox3D, OBSTACLE_LABELS
 from pylot.perception.messages import ObstaclesMessage
 
 import torch
@@ -109,10 +109,15 @@ class CenterTrackOperator(erdos.Operator):
             elif label == 'Cyclist':
                 label == 'bicycle'
             if label in OBSTACLE_LABELS:
-                bounding_box = BoundingBox2D(bbox[0], bbox[2], bbox[1],
-                                             bbox[3])
-                obstacles.append(Obstacle(bounding_box, score, label,
-                                          track_id))
+                bounding_box_2D = BoundingBox2D(bbox[0], bbox[2], bbox[1],
+                                                bbox[3])
+                bounding_box_3D = None
+                if 'dim' in res and 'loc' in res and 'rot_y' in res:
+                    bounding_box_3D = BoundingBox3D.from_dimensions(
+                        res['dim'], res['loc'], res['rot_y'])
+                obstacles.append(Obstacle(bounding_box_3D, score, label,
+                                          track_id,
+                                          bounding_box_2D=bounding_box_2D))
                 print("{},{},{},{}".format(label, track_id, score, bbox))
         obstacle_tracking_stream.send(
             ObstaclesMessage(msg.timestamp, obstacles, 0))

@@ -46,10 +46,10 @@ RUN sudo apt-get install -y python3-pip libcudnn7 cuda-toolkit-10-0 ssh libqt5co
 RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/pylot.git
 WORKDIR /home/erdos/workspace/pylot/
 ENV PYLOT_HOME /home/erdos/workspace/pylot/
-# Get the Pylot models and code dependencies.
-RUN cd /home/erdos/workspace/pylot/ && ./install.sh
 # Install all the Python dependencies.
 RUN cd /home/erdos/workspace/pylot/ && pip3 install -e ./
+# Get the Pylot models and code dependencies.
+RUN cd /home/erdos/workspace/pylot/ && ./install.sh
 ENV CARLA_HOME /home/erdos/workspace/pylot/dependencies/CARLA_0.9.10.1
 # Clone scenario_runner.
 RUN cd /home/erdos/workspace &&  git clone https://github.com/erdos-project/scenario_runner.git
