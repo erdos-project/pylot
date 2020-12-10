@@ -27,6 +27,7 @@ class CenterTrackOperator(erdos.Operator):
                                                  self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
             self.config.name + '-csv', self.config.csv_log_file_name)
+        self._camera_setup = camera_setup
         # TODO(ionel): Might have to filter labels when running with a coco
         # and a nuscenes model.
         num_classes = {

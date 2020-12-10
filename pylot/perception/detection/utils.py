@@ -252,6 +252,15 @@ class BoundingBox3D(object):
         # Retrieve the eight coordinates of the bounding box with respect to
         # the origin of the bounding box.
         import numpy as np
+        if self.corners is not None:
+            pts_2d = np.dot(intrinsic_matrix,
+                            self.corners.transpose(1, 0)).transpose(1, 0)
+            pts_2d = pts_2d[:, :2] / pts_2d[:, 2:]
+            camera_coordinates = [
+                pylot.utils.Vector2D(pt[0], pt[1]) for pt in pts_2d
+            ]
+            return camera_coordinates
+
         extent = self.extent
         bbox = np.array([
             pylot.utils.Location(x=+extent.x, y=+extent.y, z=-extent.z),

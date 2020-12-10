@@ -93,6 +93,10 @@ class CameraFrame(object):
         end = (int(end_point.x), int(end_point.y))
         cv2.rectangle(self.frame, start, end, color, thickness)
 
+    def draw_3d_box(self, corners, color: Tuple[int, int, int]):
+        for corner in corners:
+            self.draw_point(corner, color)
+
     def draw_point(self, point: Vector2D, color, r: float = 3):
         """Draws a point on the frame.
 
