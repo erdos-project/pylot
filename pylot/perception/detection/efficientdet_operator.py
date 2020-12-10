@@ -172,11 +172,8 @@ class EfficientDetOperator(erdos.Operator):
             timestamp, (detector_end_time - detector_start_time) * 1000))
         obstacles = []
         camera_setup = frame.camera_setup
-        for _, y, x, height, width, score, _class in outputs_np:
-            xmin = int(x)
-            ymin = int(y)
-            xmax = int(x + width)
-            ymax = int(y + height)
+        for _, ymin, xmin, ymax, xmax, score, _class in outputs_np:
+            xmin, ymin, xmax, ymax = int(xmin), int(ymin), int(xmax), int(ymax)
             if _class in self._coco_labels:
                 if (score >= self._flags.obstacle_detection_min_score_threshold
                         and self._coco_labels[_class] in OBSTACLE_LABELS):
