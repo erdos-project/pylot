@@ -79,17 +79,17 @@ class Lane(object):
         """Draw lane markings on input frames for lane data collection.
 
         Args:
-            frame: Grayscale frame on which to draw the waypoints.
-            binary_frame: Grayscale frame on which to draw the waypoints in white. 
+            frame: Grayscale image on which to draw the waypoints.
+            binary_frame: Black and white image on which to draw the waypoints.
             camera_setup: Camera setup used to generate the frame.
             inverse_transform (optional): To be used to transform the waypoints
                 to relative to the ego vehicle.
         """
         extrinsic_matrix = camera_setup.get_extrinsic_matrix()
         intrinsic_matrix = camera_setup.get_intrinsic_matrix()
-        # change color based on lane id
         gray_color_map = [(20, 20), (70, 70), (120, 120), (170, 170),
                           (220, 220), (250, 250)]
+        # change color based on lane id
         lane_color_l = gray_color_map[self.id % len(gray_color_map)]
         lane_color_r = gray_color_map[(self.id + 2) % len(gray_color_map)]
 
