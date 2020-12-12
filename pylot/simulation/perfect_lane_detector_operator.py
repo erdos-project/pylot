@@ -35,8 +35,8 @@ class PerfectLaneDetectionOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
-        self._logger_lane = erdos.utils.setup_logging(self.config.name+"_lane",
-                                                self.config.log_file_name + "_lane")
+        self._logger_lane = erdos.utils.setup_logging(
+            self.config.name + "_lane", self.config.log_file_name + "_lane")
         self._bgr_msgs = deque()
         self._pose_msgs = deque()
         self._frame_cnt = 0
@@ -102,27 +102,33 @@ class PerfectLaneDetectionOperator(erdos.Operator):
             lanes = self._map.get_all_lanes(vehicle_location)
             if self._flags.log_lane_detection_camera:
                 camera_setup = bgr_msg.frame.camera_setup
-                frame = np.zeros(
-                    (camera_setup.height, camera_setup.width),
-                    dtype=np.dtype("uint8"))
+                frame = np.zeros((camera_setup.height, camera_setup.width),
+                                 dtype=np.dtype("uint8"))
                 binary_frame = frame.copy()
                 for lane in lanes:
-                    lane.draw_on_frame_data(frame, binary_frame, camera_setup,
-                                       inverse_transform=pose_msg.data.
-                                       transform.inverse_transform())
+                    lane.collect_frame_data(frame,
+                                            binary_frame,
+                                            camera_setup,
+                                            inverse_transform=pose_msg.data.
+                                            transform.inverse_transform())
                 self._logger.debug('@{}: detected {} lanes'.format(
                     bgr_msg.timestamp, len(lanes)))
                 if self._frame_cnt % self._flags.log_every_nth_message == 0:
-                    instance_file_name = os.path.join(self._flags.data_path,
-                                 '{}-{}.png'.format("lane-", bgr_msg.timestamp.coordinates[0]))
-                    binary_file_name = os.path.join(self._flags.data_path,
-                                 '{}-{}.png'.format("binary_lane-", bgr_msg.timestamp.coordinates[0]))
+                    instance_file_name = os.path.join(
+                        self._flags.data_path,
+                        '{}-{}.png'.format("lane-",
+                                           bgr_msg.timestamp.coordinates[0]))
+                    binary_file_name = os.path.join(
+                        self._flags.data_path,
+                        '{}-{}.png'.format("binary_lane-",
+                                           bgr_msg.timestamp.coordinates[0]))
                     instance_img = Image.fromarray(frame)
                     binary_img = Image.fromarray(binary_frame)
                     instance_img.save(instance_file_name)
                     binary_img.save(binary_file_name)
-                    self._logger_lane.debug('@{}: Created binary lane and lane images in {}'.format(
-                        pose_msg.timestamp, self._flags.data_path))
+                    self._logger_lane.debug(
+                        '@{}: Created binary lane and lane images in {}'.
+                        format(pose_msg.timestamp, self._flags.data_path))
             else:
                 for lane in lanes:
                     lane.draw_on_world(self._world)
