@@ -26,7 +26,7 @@ def main(argv):
         m = re.search(r"-(\d+)\.", f)
         timestamp = m.group(1)
         new_f = FLAGS.town_start + "_" + timestamp + ".png" if FLAGS.town_start else timestamp +".png"
-        if re.search(r"binary-lane-.+\.png", f):
+        if re.search(r"binary_lane-.+\.png", f):
             new_fname = os.path.join(binary_img_dir, new_f)
             i+=1
         elif re.search(r"lane-.+\.png", f):
@@ -52,7 +52,7 @@ def main(argv):
                     curr_path = rename[new_fname]
                     Path(curr_path).rename(new_fname)
                 i+=1
-        print(i)
+        print(f"{i} data points ")
                 
         
 if __name__ == "__main__":
