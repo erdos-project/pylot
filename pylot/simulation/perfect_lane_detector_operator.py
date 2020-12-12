@@ -2,12 +2,10 @@ from collections import deque
 import numpy as np
 import erdos
 import PIL.Image as Image
-import cv2
 import os
 from erdos import Message, ReadStream, Timestamp, WriteStream
 
 from pylot.perception.messages import LanesMessage
-from pylot.perception.camera_frame import CameraFrame
 
 
 class PerfectLaneDetectionOperator(erdos.Operator):
