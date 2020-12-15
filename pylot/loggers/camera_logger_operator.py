@@ -20,7 +20,8 @@ class CameraLoggerOperator(erdos.Operator):
         _filename_prefix (:obj:`str`): Used to construct the names of the files
             it logs to.
     """
-    def __init__(self, camera_stream: erdos.ReadStream, flags,
+    def __init__(self, camera_stream: erdos.ReadStream,
+                 finished_indicator_stream: erdos.WriteStream, flags,
                  filename_prefix: str):
         camera_stream.add_callback(self.on_frame)
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -33,10 +34,10 @@ class CameraLoggerOperator(erdos.Operator):
     def connect(camera_stream: erdos.ReadStream):
         """Connects the operator to other streams.
 
-        The operator receives an obstacles stream and does not write to any
-        output stream.
+        The operator receives a camera stream.
         """
-        return []
+        finished_indicator_stream = erdos.WriteStream()
+        return [finished_indicator_stream]
 
     def on_frame(self, msg: erdos.Message):
         """Invoked whenever a frame message is received on the stream."""

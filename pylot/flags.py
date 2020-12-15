@@ -156,6 +156,8 @@ flags.DEFINE_bool('log_traffic_light_detector_output', False,
                   'Enable recording of bbox annotated tl detector images')
 flags.DEFINE_bool('log_lane_detection_camera', False,
                   'True to enable lane detection camera logging')
+flags.DEFINE_integer('log_every_nth_message', 1,
+                     'Control how often the script logs messages')
 ########################################
 # Evaluation operators.
 ########################################

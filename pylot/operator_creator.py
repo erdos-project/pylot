@@ -693,8 +693,10 @@ def add_bounding_box_logging(obstacles_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(BoundingBoxLoggerOperator, op_config, [obstacles_stream],
-                  FLAGS)
+    [finished_indicator_stream] = erdos.connect(BoundingBoxLoggerOperator,
+                                                op_config, [obstacles_stream],
+                                                FLAGS)
+    return finished_indicator_stream
 
 
 def add_camera_logging(stream, name, filename_prefix):
@@ -703,8 +705,10 @@ def add_camera_logging(stream, name, filename_prefix):
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(CameraLoggerOperator, op_config, [stream], FLAGS,
-                  filename_prefix)
+    [finished_indicator_stream] = erdos.connect(CameraLoggerOperator,
+                                                op_config, [stream], FLAGS,
+                                                filename_prefix)
+    return finished_indicator_stream
 
 
 def add_chauffeur_logging(vehicle_id_stream, pose_stream,
@@ -743,10 +747,12 @@ def add_eval_metric_logging(collision_stream, lane_invasion_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(EvalMetricLoggerOperator, op_config, [
-        collision_stream, lane_invasion_stream, traffic_light_invasion_stream,
-        imu_stream, pose_stream
-    ], FLAGS)
+    [finished_indicator_stream
+     ] = erdos.connect(EvalMetricLoggerOperator, op_config, [
+         collision_stream, lane_invasion_stream, traffic_light_invasion_stream,
+         imu_stream, pose_stream
+     ], FLAGS)
+    return finished_indicator_stream
 
 
 def add_imu_logging(imu_stream, name='imu_logger_operator'):
@@ -755,7 +761,9 @@ def add_imu_logging(imu_stream, name='imu_logger_operator'):
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(IMULoggerOperator, op_config, [imu_stream], FLAGS)
+    [finished_indicator_stream] = erdos.connect(IMULoggerOperator, op_config,
+                                                [imu_stream], FLAGS)
+    return finished_indicator_stream
 
 
 def add_lidar_logging(point_cloud_stream,
@@ -766,8 +774,10 @@ def add_lidar_logging(point_cloud_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(LidarLoggerOperator, op_config, [point_cloud_stream], FLAGS,
-                  filename_prefix)
+    [finished_indicator_stream] = erdos.connect(LidarLoggerOperator, op_config,
+                                                [point_cloud_stream], FLAGS,
+                                                filename_prefix)
+    return finished_indicator_stream
 
 
 def add_multiple_object_tracker_logging(
@@ -778,8 +788,10 @@ def add_multiple_object_tracker_logging(
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(MultipleObjectTrackerLoggerOperator, op_config,
-                  [obstacles_stream], FLAGS)
+    [finished_indicator_stream
+     ] = erdos.connect(MultipleObjectTrackerLoggerOperator, op_config,
+                       [obstacles_stream], FLAGS)
+    return finished_indicator_stream
 
 
 def add_trajectory_logging(obstacles_tracking_stream,
@@ -790,8 +802,10 @@ def add_trajectory_logging(obstacles_tracking_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(TrajectoryLoggerOperator, op_config,
-                  [obstacles_tracking_stream], FLAGS)
+    [finished_indicator_stream
+     ] = erdos.connect(TrajectoryLoggerOperator, op_config,
+                       [obstacles_tracking_stream], FLAGS)
+    return finished_indicator_stream
 
 
 def add_visualizer(pose_stream=None,

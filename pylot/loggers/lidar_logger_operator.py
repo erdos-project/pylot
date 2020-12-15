@@ -20,7 +20,8 @@ class LidarLoggerOperator(erdos.Operator):
         _filename_prefix (:obj:`str`): Used to construct the names of the files
              it logs to.
     """
-    def __init__(self, lidar_stream: erdos.ReadStream, flags,
+    def __init__(self, lidar_stream: erdos.ReadStream,
+                 finished_indicator_stream: erdos.WriteStream, flags,
                  filename_prefix: str):
         lidar_stream.add_callback(self.on_lidar_frame)
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -31,7 +32,8 @@ class LidarLoggerOperator(erdos.Operator):
 
     @staticmethod
     def connect(lidar_stream: erdos.ReadStream):
-        return []
+        finished_indicator_stream = erdos.WriteStream()
+        return [finished_indicator_stream]
 
     def on_lidar_frame(self, msg):
         """Invoked upon the receipt of a msg on the point cloud stream.

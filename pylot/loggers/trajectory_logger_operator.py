@@ -20,7 +20,8 @@ class TrajectoryLoggerOperator(erdos.Operator):
         _flags (absl.flags): Object to be used to access absl flags.
         _msg_cnt (:obj:`int`): Number of messages received.
     """
-    def __init__(self, obstacle_tracking_stream: erdos.ReadStream, flags):
+    def __init__(self, obstacle_tracking_stream: erdos.ReadStream,
+                 finished_indicator_stream: erdos.WriteStream, flags):
         obstacle_tracking_stream.add_callback(self.on_trajectories_msg)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -29,7 +30,8 @@ class TrajectoryLoggerOperator(erdos.Operator):
 
     @staticmethod
     def connect(obstacle_tracking_stream: erdos.ReadStream):
-        return []
+        finished_indicator_stream = erdos.WriteStream()
+        return [finished_indicator_stream]
 
     def on_trajectories_msg(self, msg):
         """Logs obstacle trajectories to files.

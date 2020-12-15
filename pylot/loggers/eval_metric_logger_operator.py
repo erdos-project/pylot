@@ -28,7 +28,7 @@ class EvalMetricLoggerOperator(erdos.Operator):
                  lane_invasion_stream: erdos.ReadStream,
                  traffic_light_invasion_stream: erdos.ReadStream,
                  imu_stream: erdos.ReadStream, pose_stream: erdos.ReadStream,
-                 flags):
+                 finished_indicator_stream: erdos.WriteStream, flags):
         # Save the streams.
         self._collision_stream = collision_stream
         self._lane_invasion_stream = lane_invasion_stream
@@ -60,7 +60,8 @@ class EvalMetricLoggerOperator(erdos.Operator):
                 lane_invasion_stream: erdos.ReadStream,
                 traffic_light_invasion_stream: erdos.ReadStream,
                 imu_stream: erdos.ReadStream, pose_stream: erdos.ReadStream):
-        return []
+        finished_indicator_stream = erdos.WriteStream()
+        return [finished_indicator_stream]
 
     def on_collision_update(self, msg):
         """ Invoked upon receipt of a collision update.

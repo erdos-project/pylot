@@ -19,7 +19,8 @@ class BoundingBoxLoggerOperator(erdos.Operator):
         _flags (absl.flags): Object to be used to access absl flags.
         _msg_cnt (:obj:`int`): Number of messages received.
     """
-    def __init__(self, obstacles_stream: erdos.ReadStream, flags):
+    def __init__(self, obstacles_stream: erdos.ReadStream,
+                 finished_indicator_stream: erdos.WriteStream, flags):
         obstacles_stream.add_callback(self.on_obstacles_msg)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -30,10 +31,10 @@ class BoundingBoxLoggerOperator(erdos.Operator):
     def connect(obstacles_stream: erdos.ReadStream):
         """Connects the operator to other streams.
 
-        The operator receives an obstacles stream and does not write to any
-        output stream.
+        The operator receives an obstacles stream.
         """
-        return []
+        finished_indicator_stream = erdos.WriteStream()
+        return [finished_indicator_stream]
 
     def on_obstacles_msg(self, msg: erdos.Message):
         """Logs bounding boxes to files.
