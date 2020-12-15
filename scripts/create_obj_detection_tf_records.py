@@ -4,21 +4,22 @@ for use in object detection.
 
 Usage: python create_obj_detection_tf_records.py --input_path input_folder_name --output_path output_folder_name
 '''
-
+from absl import app, flags
 import tensorflow as tf
 import json
 import os
 import random
 from object_detection.utils import dataset_util
 
-flags = tf.app.flags
+FLAGS = flags.FLAGS
 flags.DEFINE_string('input_path', '', 'Path to data folder.')
 flags.DEFINE_string('output_path', '', 'Path to output TFRecords.')
+flags.DEFINE_string('camera_file_prefix', 'carla-center-',
+                    'Prefix of the camera files')
+flags.DEFINE_integer('camera_width', 1920, 'Camera resolution width.')
+flags.DEFINE_integer('camera_height', 1080, 'Camera resolution height.')
 
 FLAGS = flags.FLAGS
-
-IMAGE_WIDTH = 1920
-IMAGE_HEIGHT = 1080
 
 LABEL_DICT = {
     "person": 1,
@@ -31,11 +32,11 @@ LABEL_DICT = {
 
 def create_tf_example(idx):
 
-    filename = FLAGS.input_path + '/carla-center-' + str(
+    filename = FLAGS.input_path + FLAGS.camera_file_prefix + str(
         idx) + '.png'  # Filename of the image.
     filename = filename.encode()
 
-    with tf.gfile.GFile(filename, 'rb') as fid:
+    with tf.io.gfile.GFile(filename, 'rb') as fid:
         encoded_image = fid.read()
 
     image_format = 'png'.encode()
@@ -53,27 +54,27 @@ def create_tf_example(idx):
 
     objs = json.load(
         open(FLAGS.input_path + '/bboxes-' + str(idx) + '.json', 'rb'))
-    for label, box in objs:
+    for label, _, obstacle_id, box in objs:
         if 'traffic light' in label:  # for now, disregard traffic light colors
             label = 'traffic light'
         if 'speed limit' in label:  # for now, disregard values for speed limit
             label = 'speed limit'
-        assert 0 <= box[0][0] <= IMAGE_WIDTH and \
-               0 <= box[0][1] <= IMAGE_HEIGHT, 'min out of bounds ' + str(box) + ' ' + str(label)
-        assert box[0][0] <= box[1][0] <= IMAGE_WIDTH and \
-               box[0][1] <= box[1][1] <= IMAGE_HEIGHT, 'max out of bounds ' + str(box) + ' ' + str(label)
-        xmins.append(float(box[0][0] / IMAGE_WIDTH))
-        xmaxs.append(float(box[1][0] / IMAGE_WIDTH))
-        ymins.append(float(box[0][1] / IMAGE_HEIGHT))
-        ymaxs.append(float(box[1][1] / IMAGE_HEIGHT))
+        assert 0 <= int(box[0][0]) <= FLAGS.camera_width and \
+               0 <= int(box[0][1]) <= FLAGS.camera_height, 'min out of bounds ' + str(box) + ' ' + str(label)
+        assert int(box[0][0]) <= int(box[1][0]) <= FLAGS.camera_width and \
+               int(box[0][1]) <= int(box[1][1]) <= FLAGS.camera_height, 'max out of bounds ' + str(box) + ' ' + str(label)
+        xmins.append(float(box[0][0] / FLAGS.camera_width))
+        xmaxs.append(float(box[1][0] / FLAGS.camera_width))
+        ymins.append(float(box[0][1] / FLAGS.camera_height))
+        ymaxs.append(float(box[1][1] / FLAGS.camera_height))
         classes_text.append(label.encode())
         assert label in LABEL_DICT.keys(), label
         classes.append(int(LABEL_DICT[label]))
 
     tf_example = tf.train.Example(features=tf.train.Features(
         feature={
-            'image/height': dataset_util.int64_feature(IMAGE_HEIGHT),
-            'image/width': dataset_util.int64_feature(IMAGE_WIDTH),
+            'image/height': dataset_util.int64_feature(FLAGS.camera_height),
+            'image/width': dataset_util.int64_feature(FLAGS.camera_width),
             'image/filename': dataset_util.bytes_feature(filename),
             'image/source_id': dataset_util.bytes_feature(filename),
             'image/encoded': dataset_util.bytes_feature(encoded_image),
@@ -91,12 +92,10 @@ def create_tf_example(idx):
     return tf_example
 
 
-def main(_):
+def main(args):
 
-    train_writer = tf.python_io.TFRecordWriter(FLAGS.output_path +
-                                               "/train_set.record")
-    eval_writer = tf.python_io.TFRecordWriter(FLAGS.output_path +
-                                              "/eval_set.record")
+    train_writer = tf.io.TFRecordWriter(FLAGS.output_path + "/train_set.record")
+    eval_writer = tf.io.TFRecordWriter(FLAGS.output_path + "/eval_set.record")
 
     # Looks for files of the form bboxes-*.json
     idxs = [f[7:-5] for f in os.listdir(FLAGS.input_path) \
@@ -119,4 +118,4 @@ def main(_):
 
 
 if __name__ == '__main__':
-    tf.app.run()
+    app.run(main)
