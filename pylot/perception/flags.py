@@ -16,7 +16,7 @@ flags.DEFINE_float('obstacle_detection_min_score_threshold', 0.5,
                    'Min score threshold for bounding box')
 flags.DEFINE_string('path_coco_labels', 'dependencies/models/pylot.names',
                     'Path to the COCO labels')
-flags.DEFINE_float('dynamic_obstacle_distance_threshold', 30.0,
+flags.DEFINE_float('dynamic_obstacle_distance_threshold', 50.0,
                    'Max distance to consider dynamic obstacles [m]')
 flags.DEFINE_float(
     'static_obstacle_distance_threshold', 70.0,
@@ -72,6 +72,15 @@ flags.DEFINE_string(
 flags.DEFINE_string('da_siam_rpn_model_path',
                     'dependencies/models/tracking/DASiamRPN/SiamRPNVOT.model',
                     'Path to the model')
+
+# CenterTrack tracking flags.
+flags.DEFINE_string(
+    'center_track_model_path',
+    'dependencies/models/tracking/CenterTrack/kitti_fulltrain.pth',
+    'Path to the model')
+flags.DEFINE_enum('center_track_model', 'kitti_tracking',
+                  ['kitti_tracking', 'coco', 'mot', 'nuscenes'],
+                  'CenterTrack available models')
 
 # Lane detection flags.
 flags.DEFINE_float('lane_detection_gpu_memory_fraction', 0.3,

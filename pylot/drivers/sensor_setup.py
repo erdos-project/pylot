@@ -282,6 +282,9 @@ class CameraSetup(object):
         """
         return self._intrinsic_mat
 
+    def get_focal_length(self):
+        return self._intrinsic_mat[0, 0]
+
     def get_extrinsic_matrix(self):
         """Get the extrinsic matrix of the camera denoted by the transform
         of the camera with respect to the vehicle to which it is attached.

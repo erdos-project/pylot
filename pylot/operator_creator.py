@@ -250,6 +250,22 @@ def add_obstacle_tracking(obstacles_stream,
     return obstacle_tracking_stream
 
 
+def add_center_track_tracking(bgr_camera_stream,
+                              camera_setup,
+                              name='center_track'):
+    from pylot.perception.tracking.center_track_operator import \
+        CenterTrackOperator
+    op_config = erdos.OperatorConfig(name='center_track_operator',
+                                     flow_watermarks=True,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [obstacle_tracking_stream] = erdos.connect(CenterTrackOperator, op_config,
+                                               [bgr_camera_stream], FLAGS,
+                                               camera_setup)
+    return obstacle_tracking_stream
+
+
 def add_tracking_evaluation(obstacle_tracking_stream,
                             ground_obstacles_stream,
                             name='tracking_eval_operator'):

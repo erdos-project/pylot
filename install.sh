@@ -88,6 +88,18 @@ cd ../
 mkdir deep-sort-carla ; cd deep-sort-carla
 wget https://www.dropbox.com/s/j007vs40f9tlcui/feature_extractor
 
+###### Download CenterTrack models ######
+cd $PYLOT_HOME/dependencies/models
+mkdir -p tracking/center_track ; cd tracking/center_track
+# MOT model
+~/.local/bin/gdown https://drive.google.com/uc?id=1h_8Ts11rf0GQ4_n6FgmCeBuFcWrRjJfa
+# KITTI model
+~/.local/bin/gdown https://drive.google.com/uc?id=1kBX4AgQj7R7HvgMdbgBcwvIac-IFp95h
+# nuScenes
+~/.local/bin/gdown https://drive.google.com/uc?id=1e8zR1m1QMJne-Tjp-2iY_o81hn2CiQRt
+# COCO model
+~/.local/bin/gdown https://drive.google.com/uc?id=1tJCEJmdtYIh8VuN8CClGNws3YO7QGd40
+
 ###### Download the R2P2 prediction model ######
 cd $PYLOT_HOME/dependencies/models
 mkdir -p prediction/r2p2 ; cd prediction/r2p2
@@ -105,6 +117,15 @@ git clone https://github.com/ICGog/sort.git
 
 ###### Download the DaSiamRPN code ######
 git clone https://github.com/ICGog/DaSiamRPN.git
+
+###### Install CenterTrack ######
+git clone https://github.com/ICGog/CenterTrack
+cd CenterTrack/src/lib/model/networks/
+git clone https://github.com/CharlesShang/DCNv2/
+cd DCNv2
+sudo apt-get install llvm-9
+export LLVM_CONFIG=/usr/bin/llvm-config-9
+python3 setup.py build develop --user
 
 ##### Download the Lanenet code #####
 git clone https://github.com/ICGog/lanenet-lane-detection.git
