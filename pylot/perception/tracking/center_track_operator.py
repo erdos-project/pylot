@@ -116,10 +116,12 @@ class CenterTrackOperator(erdos.Operator):
                 if 'dim' in res and 'loc' in res and 'rot_y' in res:
                     bounding_box_3D = BoundingBox3D.from_dimensions(
                         res['dim'], res['loc'], res['rot_y'])
-                obstacles.append(Obstacle(bounding_box_3D, score, label,
-                                          track_id,
-                                          bounding_box_2D=bounding_box_2D))
-                print("{},{},{},{}".format(label, track_id, score, bbox))
+                obstacles.append(
+                    Obstacle(bounding_box_3D,
+                             score,
+                             label,
+                             track_id,
+                             bounding_box_2D=bounding_box_2D))
         obstacle_tracking_stream.send(
             ObstaclesMessage(msg.timestamp, obstacles, 0))
 

@@ -501,9 +501,7 @@ def get_mAP(ground_obstacles, obstacles):
     sorted_obstacles = \
         sorted(obstacles, key=lambda o: o.confidence, reverse=True)
     detected_bboxes = [o.bounding_box_2D for o in sorted_obstacles]
-    ground_bboxes = [
-        obstacle.bounding_box_2D for obstacle in ground_obstacles
-    ]
+    ground_bboxes = [obstacle.bounding_box_2D for obstacle in ground_obstacles]
     # Compute recall precision. The results are sorted in descending
     # order by recall.
     prec_rec = []

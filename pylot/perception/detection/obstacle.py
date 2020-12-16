@@ -155,8 +155,7 @@ class Obstacle(object):
                 raise ValueError(
                     'Obstacle {} does not have bbox corners'.format(self.id))
             corners = self.bounding_box.to_camera_view(
-                None,
-                frame.camera_setup.get_extrinsic_matrix(),
+                None, frame.camera_setup.get_extrinsic_matrix(),
                 frame.camera_setup.get_intrinsic_matrix())
             frame.draw_3d_box(corners, color)
         else:
