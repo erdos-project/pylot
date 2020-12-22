@@ -7,6 +7,8 @@ import pylot.flags
 import pylot.operator_creator
 import pylot.utils
 from pylot.control.messages import ControlMessage
+from pylot.drivers.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
+    SegmentedCameraSetup
 
 FLAGS = flags.FLAGS
 
@@ -63,16 +65,32 @@ def main(argv):
                                                     release_sensor_stream)
 
     # Add camera sensors.
-    (center_camera_stream, notify_rgb_stream,
-     rgb_camera_setup) = pylot.operator_creator.add_rgb_camera(
-         transform, vehicle_id_stream, release_sensor_stream)
-    (depth_camera_stream, notify_depth_stream,
-     depth_camera_setup) = pylot.operator_creator.add_depth_camera(
-         transform, vehicle_id_stream, release_sensor_stream)
-    (segmented_stream, _,
-     _) = pylot.operator_creator.add_segmented_camera(transform,
-                                                      vehicle_id_stream,
-                                                      release_sensor_stream)
+    rgb_camera_setup = RGBCameraSetup('center_camera',
+                                      FLAGS.camera_image_width,
+                                      FLAGS.camera_image_height, transform,
+                                      FLAGS.camera_fov)
+    (center_camera_stream,
+     _) = pylot.operator_creator.add_camera_driver(rgb_camera_setup,
+                                                   vehicle_id_stream,
+                                                   release_sensor_stream)
+
+    depth_camera_setup = DepthCameraSetup('depth_center_camera',
+                                          FLAGS.camera_image_width,
+                                          FLAGS.camera_image_height, transform,
+                                          FLAGS.camera_fov)
+    (depth_camera_stream,
+     _) = pylot.operator_creator.add_camera_driver(depth_camera_setup,
+                                                   vehicle_id_stream,
+                                                   release_sensor_stream)
+
+    segmented_camera_setup = SegmentedCameraSetup('segmented_center_camera',
+                                                  FLAGS.camera_image_width,
+                                                  FLAGS.camera_image_height,
+                                                  transform, FLAGS.camera_fov)
+    (segmented_stream,
+     _) = pylot.operator_creator.add_camera_driver(segmented_camera_setup,
+                                                   vehicle_id_stream,
+                                                   release_sensor_stream)
 
     map_stream = None
     if FLAGS.compute_detection_decay:

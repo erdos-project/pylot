@@ -8,6 +8,8 @@ import pylot.flags
 import pylot.operator_creator
 import pylot.simulation.utils
 import pylot.utils
+from pylot.drivers.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
+    SegmentedCameraSetup
 
 FLAGS = flags.FLAGS
 
@@ -63,16 +65,29 @@ def main(argv):
         pipeline_finish_notify_stream)
 
     # Add sensors.
-    (center_camera_stream, notify_rgb_stream,
-     rgb_camera_setup) = pylot.operator_creator.add_rgb_camera(
-         transform, vehicle_id_stream, release_sensor_stream)
-    (depth_camera_stream, _,
-     depth_camera_setup) = pylot.operator_creator.add_depth_camera(
-         transform, vehicle_id_stream, release_sensor_stream)
-    (segmented_stream, _,
-     _) = pylot.operator_creator.add_segmented_camera(transform,
-                                                      vehicle_id_stream,
-                                                      release_sensor_stream)
+    rgb_camera_setup = RGBCameraSetup('center_camera',
+                                      FLAGS.camera_image_width,
+                                      FLAGS.camera_image_height, transform,
+                                      FLAGS.camera_fov)
+    (center_camera_stream, notify_rgb_stream) = \
+        pylot.operator_creator.add_camera_driver(
+            rgb_camera_setup, vehicle_id_stream, release_sensor_stream)
+    depth_camera_setup = DepthCameraSetup('depth_center_camera',
+                                          FLAGS.camera_image_width,
+                                          FLAGS.camera_image_height, transform,
+                                          FLAGS.camera_fov)
+    (depth_camera_stream,
+     _) = pylot.operator_creator.add_camera_driver(depth_camera_setup,
+                                                   vehicle_id_stream,
+                                                   release_sensor_stream)
+    seg_camera_setup = SegmentedCameraSetup('seg_center_camera',
+                                            FLAGS.camera_image_width,
+                                            FLAGS.camera_image_height,
+                                            transform, FLAGS.camera_fov)
+    (segmented_stream,
+     _) = pylot.operator_creator.add_camera_driver(seg_camera_setup,
+                                                   vehicle_id_stream,
+                                                   release_sensor_stream)
 
     if FLAGS.log_rgb_camera:
         pylot.operator_creator.add_camera_logging(
@@ -96,24 +111,35 @@ def main(argv):
     traffic_lights_stream = None
     traffic_light_camera_stream = None
     if FLAGS.log_traffic_lights:
-        (traffic_light_camera_stream, _,
-         traffic_light_camera_setup) = pylot.operator_creator.add_rgb_camera(
-             transform, vehicle_id_stream, release_sensor_stream,
-             'traffic_light_camera', 45)
+        tl_camera_setup = RGBCameraSetup('traffic_light_camera',
+                                         FLAGS.camera_image_width,
+                                         FLAGS.camera_image_height, transform,
+                                         45)
+        (traffic_light_camera_stream, _) = \
+            pylot.operator_creator.add_camera_driver(
+                tl_camera_setup, vehicle_id_stream, release_sensor_stream)
         pylot.operator_creator.add_camera_logging(
             traffic_light_camera_stream,
             'traffic_light_camera_logger_operator', 'traffic-light-')
-        (traffic_light_segmented_camera_stream, _, _) = \
-            pylot.operator_creator.add_segmented_camera(
-                transform,
+
+        tl_seg_camera_setup = SegmentedCameraSetup(
+            'traffic_light_segmented_camera', FLAGS.camera_image_width,
+            FLAGS.camera_image_height, transform, 45)
+        (traffic_light_segmented_camera_stream, _) = \
+            pylot.operator_creator.add_camera_driver(
+                tl_seg_camera_setup,
                 vehicle_id_stream,
-                release_sensor_stream,
-                'traffic_light_segmented_camera',
-                45)
-        (traffic_light_depth_camera_stream, _, _) = \
-            pylot.operator_creator.add_depth_camera(
-                transform, vehicle_id_stream, release_sensor_stream,
-                'traffic_light_depth_camera', 45)
+                release_sensor_stream)
+
+        tl_depth_camera_setup = DepthCameraSetup('traffic_light_depth_camera',
+                                                 FLAGS.camera_image_width,
+                                                 FLAGS.camera_image_height,
+                                                 transform, 45)
+        (traffic_light_depth_camera_stream, _) = \
+            pylot.operator_creator.add_camera_driver(
+                tl_depth_camera_setup, vehicle_id_stream,
+                release_sensor_stream)
+
         traffic_lights_stream = \
             pylot.operator_creator.add_perfect_traffic_light_detector(
                 ground_traffic_lights_stream,
@@ -167,13 +193,15 @@ def main(argv):
     if FLAGS.log_chauffeur or FLAGS.log_top_down_segmentation:
         top_down_transform = pylot.utils.get_top_down_transform(
             transform, FLAGS.top_down_camera_altitude)
-        (top_down_segmented_stream, _, _) = \
-            pylot.operator_creator.add_segmented_camera(
-                top_down_transform,
+        top_down_seg_cs = SegmentedCameraSetup('top_down_segmented_camera',
+                                               FLAGS.camera_image_width,
+                                               FLAGS.camera_image_height,
+                                               top_down_transform, 90)
+        (top_down_segmented_stream, _) = \
+            pylot.operator_creator.add_camera_driver(
+                top_down_seg_cs,
                 vehicle_id_stream,
-                release_sensor_stream,
-                name='top_down_segmented_camera',
-                fov=90)
+                release_sensor_stream)
 
         if FLAGS.log_top_down_segmentation:
             pylot.operator_creator.add_camera_logging(
@@ -181,13 +209,14 @@ def main(argv):
                 'top_down_segmented_logger_operator', 'top-down-segmented-')
 
         if FLAGS.log_chauffeur:
+            top_down_camera_setup = RGBCameraSetup('top_down_rgb_camera',
+                                                   FLAGS.camera_image_width,
+                                                   FLAGS.camera_image_height,
+                                                   top_down_transform, 90)
             (top_down_camera_stream,
-             top_down_camera_setup) = \
-                pylot.operator_creator.add_rgb_camera(
-                    top_down_transform,
-                    vehicle_id_stream,
-                    name='top_down_rgb_camera',
-                    fov=90)
+             _) = pylot.operator_creator.add_camera_driver(
+                 top_down_camera_setup, vehicle_id_stream,
+                 release_sensor_stream)
             pylot.operator_creator.add_chauffeur_logging(
                 vehicle_id_stream, pose_stream, obstacles_tracking_stream,
                 top_down_camera_stream, top_down_segmented_stream,

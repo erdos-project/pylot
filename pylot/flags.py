@@ -27,6 +27,7 @@ flags.DEFINE_enum(
 ######################################################################
 flags.DEFINE_integer('camera_image_width', 1920, 'Camera image width')
 flags.DEFINE_integer('camera_image_height', 1080, 'Camera image height')
+flags.DEFINE_float('camera_fov', 90.0, 'Camera field of view')
 flags.DEFINE_bool('obstacle_detection', False,
                   'True to enable obstacle detection operator')
 flags.DEFINE_bool('perfect_obstacle_detection', False,

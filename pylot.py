@@ -8,6 +8,8 @@ import pylot.flags
 import pylot.component_creator  # noqa: I100
 import pylot.operator_creator
 import pylot.utils
+from pylot.drivers.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
+    SegmentedCameraSetup
 from pylot.simulation.utils import get_world, set_asynchronous_mode
 
 FLAGS = flags.FLAGS
@@ -77,20 +79,32 @@ def driver():
     )
 
     # Add sensors.
-    (center_camera_stream, notify_rgb_stream,
-     center_camera_setup) = pylot.operator_creator.add_rgb_camera(
-         transform, vehicle_id_stream, release_sensor_stream)
+    center_camera_setup = RGBCameraSetup('center_camera',
+                                         FLAGS.camera_image_width,
+                                         FLAGS.camera_image_height, transform,
+                                         FLAGS.camera_fov)
+    (center_camera_stream, notify_rgb_stream) = \
+        pylot.operator_creator.add_camera_driver(
+            center_camera_setup, vehicle_id_stream, release_sensor_stream)
     notify_streams.append(notify_rgb_stream)
     if pylot.flags.must_add_depth_camera_sensor():
-        (depth_camera_stream, notify_depth_stream,
-         depth_camera_setup) = pylot.operator_creator.add_depth_camera(
-             transform, vehicle_id_stream, release_sensor_stream)
+        depth_camera_setup = DepthCameraSetup('depth_center_camera',
+                                              FLAGS.camera_image_width,
+                                              FLAGS.camera_image_height,
+                                              transform, FLAGS.camera_fov)
+        (depth_camera_stream, notify_depth_stream) = \
+            pylot.operator_creator.add_camera_driver(
+                depth_camera_setup, vehicle_id_stream, release_sensor_stream)
     else:
         depth_camera_stream = None
     if pylot.flags.must_add_segmented_camera_sensor():
-        (ground_segmented_stream, notify_segmented_stream,
-         _) = pylot.operator_creator.add_segmented_camera(
-             transform, vehicle_id_stream, release_sensor_stream)
+        segmented_camera_setup = SegmentedCameraSetup(
+            'segmented_center_camera', FLAGS.camera_image_width,
+            FLAGS.camera_image_height, transform, FLAGS.camera_fov)
+        (ground_segmented_stream, notify_segmented_stream) = \
+            pylot.operator_creator.add_camera_driver(
+                segmented_camera_setup, vehicle_id_stream,
+                release_sensor_stream)
     else:
         ground_segmented_stream = None
 

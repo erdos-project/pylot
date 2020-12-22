@@ -1,6 +1,8 @@
 from absl import flags
 
 import pylot.operator_creator
+from pylot.drivers.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
+    SegmentedCameraSetup
 
 FLAGS = flags.FLAGS
 
@@ -136,10 +138,14 @@ def add_traffic_light_detection(tl_transform,
     tl_camera_stream = None
     if FLAGS.traffic_light_detection or FLAGS.perfect_traffic_light_detection:
         # Only add the TL camera if traffic light detection is enabled.
-        (tl_camera_stream, _,
-         tl_camera_setup) = pylot.operator_creator.add_rgb_camera(
-             tl_transform, vehicle_id_stream, release_sensor_stream,
-             'traffic_light_camera', 45)
+        tl_camera_setup = RGBCameraSetup('traffic_light_camera',
+                                         FLAGS.camera_image_width,
+                                         FLAGS.camera_image_height,
+                                         tl_transform, 45)
+        (tl_camera_stream,
+         _) = pylot.operator_creator.add_camera_driver(tl_camera_setup,
+                                                       vehicle_id_stream,
+                                                       release_sensor_stream)
 
     traffic_lights_stream = None
     if FLAGS.traffic_light_detection:
@@ -157,14 +163,22 @@ def add_traffic_light_detection(tl_transform,
                 and ground_traffic_lights_stream is not None)
         # Add segmented and depth cameras with fov 45. These cameras are needed
         # by the perfect traffic light detector.
+        tl_depth_camera_setup = DepthCameraSetup('traffic_light_depth_camera',
+                                                 FLAGS.camera_image_width,
+                                                 FLAGS.camera_image_height,
+                                                 tl_transform, 45)
         (tl_depth_camera_stream, _,
-         _) = pylot.operator_creator.add_depth_camera(
-             tl_transform, vehicle_id_stream, release_sensor_stream,
-             'traffic_light_depth_camera', 45)
-        (tl_segmented_camera_stream, _,
-         _) = pylot.operator_creator.add_segmented_camera(
-             tl_transform, vehicle_id_stream, release_sensor_stream,
-             'traffic_light_segmented_camera', 45)
+         _) = pylot.operator_creator.add_camera_driver(tl_depth_camera_setup,
+                                                       vehicle_id_stream,
+                                                       release_sensor_stream)
+
+        segmented_tl_camera_setup = SegmentedCameraSetup(
+            'traffic_light_segmented_camera', FLAGS.camera_image_width,
+            FLAGS.camera_image_height, tl_transform, 45)
+        (tl_segmented_camera_stream, _) = \
+            pylot.operator_creator.add_camera_driver(
+                segmented_tl_camera_setup, vehicle_id_stream,
+                release_sensor_stream)
 
         traffic_lights_stream = \
             pylot.operator_creator.add_perfect_traffic_light_detector(
@@ -408,15 +422,13 @@ def add_prediction(obstacles_tracking_stream,
             # Add bird's eye camera.
             top_down_transform = pylot.utils.get_top_down_transform(
                 camera_transform, FLAGS.top_down_camera_altitude)
+            top_down_seg_camera_setup = SegmentedCameraSetup(
+                'top_down_segmented_camera', FLAGS.camera_image_width,
+                FLAGS.camera_image_height, top_down_transform, 90)
             (top_down_segmented_camera_stream,
-             notify_reading_stream,
-             top_down_segmented_camera_setup) = \
-                pylot.operator_creator.add_segmented_camera(
-                    top_down_transform,
-                    vehicle_id_stream,
-                    release_sensor_stream,
-                    name='top_down_segmented_camera',
-                    fov=90)
+             notify_reading_stream) = pylot.operator_creator.add_camera_driver(
+                 top_down_seg_camera_setup, vehicle_id_stream,
+                 release_sensor_stream)
     return (prediction_stream, top_down_segmented_camera_stream,
             notify_reading_stream)
 

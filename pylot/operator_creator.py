@@ -420,51 +420,6 @@ def add_planning(pose_stream,
     return waypoints_stream
 
 
-def add_rgb_camera(transform,
-                   vehicle_id_stream,
-                   release_sensor_stream,
-                   name='center_rgb_camera',
-                   fov=90):
-    from pylot.drivers.sensor_setup import RGBCameraSetup
-    rgb_camera_setup = RGBCameraSetup(name, FLAGS.camera_image_width,
-                                      FLAGS.camera_image_height, transform,
-                                      fov)
-    camera_stream, notify_reading_stream = _add_camera_driver(
-        vehicle_id_stream, release_sensor_stream, rgb_camera_setup)
-    return (camera_stream, notify_reading_stream, rgb_camera_setup)
-
-
-def add_depth_camera(transform,
-                     vehicle_id_stream,
-                     release_sensor_stream,
-                     name='center_depth_camera',
-                     fov=90):
-    from pylot.drivers.sensor_setup import DepthCameraSetup
-    depth_camera_setup = DepthCameraSetup(name, FLAGS.camera_image_width,
-                                          FLAGS.camera_image_height, transform,
-                                          fov)
-    ground_depth_camera_stream, notify_reading_stream = _add_camera_driver(
-        vehicle_id_stream, release_sensor_stream, depth_camera_setup)
-    return (ground_depth_camera_stream, notify_reading_stream,
-            depth_camera_setup)
-
-
-def add_segmented_camera(transform,
-                         vehicle_id_stream,
-                         release_sensor_stream,
-                         name='center_segmented_camera',
-                         fov=90):
-    from pylot.drivers.sensor_setup import SegmentedCameraSetup
-    segmented_camera_setup = SegmentedCameraSetup(name,
-                                                  FLAGS.camera_image_width,
-                                                  FLAGS.camera_image_height,
-                                                  transform, fov)
-    ground_segmented_camera_stream, notify_reading_stream = _add_camera_driver(
-        vehicle_id_stream, release_sensor_stream, segmented_camera_setup)
-    return (ground_segmented_camera_stream, notify_reading_stream,
-            segmented_camera_setup)
-
-
 def add_left_right_cameras(transform,
                            vehicle_id_stream,
                            release_sensor_stream,
@@ -477,10 +432,10 @@ def add_left_right_cameras(transform,
             FLAGS.camera_image_height,
             FLAGS.offset_left_right_cameras,
             fov)
-    left_camera_stream, notify_left_stream = _add_camera_driver(
-        vehicle_id_stream, release_sensor_stream, left_camera_setup)
-    right_camera_stream, notify_right_stream = _add_camera_driver(
-        vehicle_id_stream, release_sensor_stream, right_camera_setup)
+    left_camera_stream, notify_left_stream = add_camera_driver(
+        left_camera_setup, vehicle_id_stream, release_sensor_stream)
+    right_camera_stream, notify_right_stream = add_camera_driver(
+        right_camera_setup, vehicle_id_stream, release_sensor_stream)
     return (left_camera_stream, right_camera_stream, notify_left_stream,
             notify_right_stream)
 
@@ -536,7 +491,7 @@ def add_lane_invasion_sensor(vehicle_id_stream):
     return lane_invasion_stream
 
 
-def _add_camera_driver(vehicle_id_stream, release_sensor_stream, camera_setup):
+def add_camera_driver(camera_setup, vehicle_id_stream, release_sensor_stream):
     from pylot.drivers.carla_camera_driver_operator import \
         CarlaCameraDriverOperator
     op_config = erdos.OperatorConfig(name=camera_setup.get_name() +
