@@ -4,21 +4,16 @@ import os
 import sys
 
 import cv2
+import numpy as np
+import tensorflow as tf
 
 import erdos
 
-import numpy as np
+from lanenet.lanenet_model import lanenet  # noqa: I100 E402
+from lanenet.lanenet_model import lanenet_postprocess  # noqa: I100 E402
 
 import pylot.utils
 from pylot.perception.detection.lane import Lane
-
-import tensorflow as tf
-
-sys.path.append("{}/dependencies/lanenet".format(
-    os.getenv("PYLOT_HOME")))
-
-from lanenet.lanenet_model import lanenet  # noqa: I100 E402
-from lanenet.lanenet_model import lanenet_postprocess  # noqa: I100 E402
 
 
 class LanenetDetectionOperator(erdos.Operator):
