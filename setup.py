@@ -23,7 +23,7 @@ setup(
         "opencv-python>=4.1.0.25",
         "opencv-contrib-python>=4.1.0.25",
         "pillow>=6.2.2",
-        "pygame",
+        "pygame==1.9.6",
         "pytest",
         "scikit-image<0.15",
         "scipy==1.2.2",
