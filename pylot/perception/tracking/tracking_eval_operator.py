@@ -74,7 +74,6 @@ class TrackingEvalOperator(erdos.Operator):
         game_time = timestamp.coordinates[0]
         if not self._last_notification:
             self._last_notification = game_time
-            finished_indicator_stream.send(erdos.WatermarkMessage(timestamp))
             return
         else:
             self._sim_interval = (game_time - self._last_notification)
@@ -105,7 +104,6 @@ class TrackingEvalOperator(erdos.Operator):
             else:
                 # The remaining entries require newer ground obstacles.
                 break
-        finished_indicator_stream.send(erdos.WatermarkMessage(timestamp))
         self.__garbage_collect_obstacles()
 
     def __write_metrics_to_csv(self, metrics_summary_df, sim_time):
