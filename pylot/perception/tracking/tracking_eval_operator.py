@@ -29,8 +29,7 @@ class TrackingEvalOperator(erdos.Operator):
         ground_obstacles_stream.add_callback(self.on_ground_obstacles)
         erdos.add_watermark_callback(
             [obstacle_tracking_stream, ground_obstacles_stream],
-            [finished_indicator_stream],
-            self.on_watermark)
+            [finished_indicator_stream], self.on_watermark)
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -113,41 +112,30 @@ class TrackingEvalOperator(erdos.Operator):
                         or metric_name == 'mostly_lost'
                         or metric_name == 'partially_tracked'):
                     ratio = metrics_summary_df[metric_name].values[
-                        0] / metrics_summary_df[
-                            'num_unique_objects'].values[0]
-                    self._csv_logger.info(
-                        "{},{},{},{},{:.4f}".format(
-                            time_epoch_ms(), sim_time,
-                            self.config.name,
-                            'ratio_' + metric_name, ratio))
+                        0] / metrics_summary_df['num_unique_objects'].values[0]
+                    self._csv_logger.info("{},{},{},{},{:.4f}".format(
+                        time_epoch_ms(), sim_time, self.config.name,
+                        'ratio_' + metric_name, ratio))
                 elif metric_name == 'motp':
                     # See https://github.com/cheind/py-motmetrics/issues/92
-                    motp = (1 - metrics_summary_df[metric_name].
-                            values[0]) * 100
-                    self._csv_logger.info(
-                        '{},{},{},{},{:.4f}'.format(
-                            time_epoch_ms(), sim_time,
-                            self.config.name, metric_name, motp))
-                elif (metric_name == 'idf1'
-                        or metric_name == 'mota'):
-                    metric_val = metrics_summary_df[
-                        metric_name].values[0] * 100
-                    self._csv_logger.info(
-                        '{},{},{},{},{:.4f}'.format(
-                            time_epoch_ms(), sim_time,
-                            self.config.name, metric_name,
-                            metric_val))
+                    motp = (1 -
+                            metrics_summary_df[metric_name].values[0]) * 100
+                    self._csv_logger.info('{},{},{},{},{:.4f}'.format(
+                        time_epoch_ms(), sim_time, self.config.name,
+                        metric_name, motp))
+                elif (metric_name == 'idf1' or metric_name == 'mota'):
+                    metric_val = metrics_summary_df[metric_name].values[0] * 100
+                    self._csv_logger.info('{},{},{},{},{:.4f}'.format(
+                        time_epoch_ms(), sim_time, self.config.name,
+                        metric_name, metric_val))
                 else:
-                    self._csv_logger.info(
-                        '{},{},{},{},{:.4f}'.format(
-                            time_epoch_ms(), sim_time,
-                            self.config.name, metric_name,
-                            metrics_summary_df[metric_name].
-                            values[0]))
+                    self._csv_logger.info('{},{},{},{},{:.4f}'.format(
+                        time_epoch_ms(), sim_time, self.config.name,
+                        metric_name,
+                        metrics_summary_df[metric_name].values[0]))
             else:
                 raise ValueError(
-                    'Unexpected tracking metric: {}'.format(
-                        metric_name))
+                    'Unexpected tracking metric: {}'.format(metric_name))
 
     def __get_ground_obstacles_at(self, timestamp):
         for (ground_time, obstacles) in self._ground_obstacles:
@@ -238,11 +226,10 @@ class TrackingEvalOperator(erdos.Operator):
         # Calculate all motchallenge metrics by default. Logged metrics
         # determined by list passed to --tracking_metrics
         tracker_metrics_df = self._metrics_host.compute(
-            self._accumulator, metrics=list(
+            self._accumulator,
+            metrics=list(
                 set(self._flags.tracking_metrics).union(
-                    set(mm.metrics.motchallenge_metrics))
-            )
-        )
+                    set(mm.metrics.motchallenge_metrics))))
         return tracker_metrics_df
 
     def __compute_closest_frame_time(self, time):
