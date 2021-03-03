@@ -109,7 +109,8 @@ class ObjectTrackerOperator(erdos.Operator):
             ObstaclesMessage(timestamp, tracked_obstacles, tracker_delay))
         obstacle_tracking_stream.send(erdos.WatermarkMessage(timestamp))
 
-    def __compute_tracker_delay(self, world_time, tracker_runtime):
+    def __compute_tracker_delay(self, world_time, detector_runtime,
+                                tracker_runtime):
         if (world_time + detector_runtime >
                 self._last_tracker_run_completion_time):
             # The detector finished after the previous tracker invocation

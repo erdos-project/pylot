@@ -124,7 +124,8 @@ class TrackingEvalOperator(erdos.Operator):
                         time_epoch_ms(), sim_time, self.config.name,
                         metric_name, motp))
                 elif (metric_name == 'idf1' or metric_name == 'mota'):
-                    metric_val = metrics_summary_df[metric_name].values[0] * 100
+                    metric_val = \
+                        metrics_summary_df[metric_name].values[0] * 100
                     self._csv_logger.info('{},{},{},{},{:.4f}'.format(
                         time_epoch_ms(), sim_time, self.config.name,
                         metric_name, metric_val))
