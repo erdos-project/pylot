@@ -1,5 +1,6 @@
 """Implements an operator that eveluates tracking output."""
 import heapq
+import math
 import time
 
 import erdos
@@ -23,11 +24,12 @@ class TrackingEvalOperator(erdos.Operator):
         flags (absl.flags): Object to be used to access absl flags.
     """
     def __init__(self, obstacle_tracking_stream, ground_obstacles_stream,
-                 flags):
+                 finished_indicator_stream, evaluate_timely, flags):
         obstacle_tracking_stream.add_callback(self.on_tracker_obstacles)
         ground_obstacles_stream.add_callback(self.on_ground_obstacles)
         erdos.add_watermark_callback(
-            [obstacle_tracking_stream, ground_obstacles_stream], [],
+            [obstacle_tracking_stream, ground_obstacles_stream],
+            [finished_indicator_stream],
             self.on_watermark)
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -35,7 +37,7 @@ class TrackingEvalOperator(erdos.Operator):
         self._csv_logger = erdos.utils.setup_csv_logging(
             self.config.name + '-csv', self.config.csv_log_file_name)
         self._last_notification = None
-        # Buffer of detected obstacles.
+        # Buffer of tracked obstacles.
         self._tracked_obstacles = []
         # Buffer of ground obstacles.
         self._ground_obstacles = []
@@ -44,6 +46,7 @@ class TrackingEvalOperator(erdos.Operator):
         self._sim_interval = None
         self._accumulator = mm.MOTAccumulator(auto_id=True)
         self._metrics_host = mm.metrics.create()
+        self._evaluate_timely = evaluate_timely
 
     @staticmethod
     def connect(obstacle_tracking_stream, ground_obstacles_stream):
@@ -56,9 +59,10 @@ class TrackingEvalOperator(erdos.Operator):
                 :py:class:`~pylot.perception.messages.ObstaclesMessage` are
                 received from the simulator.
         """
-        return []
+        finished_indicator_stream = erdos.WriteStream()
+        return [finished_indicator_stream]
 
-    def on_watermark(self, timestamp):
+    def on_watermark(self, timestamp, finished_indicator_stream):
         """Invoked when all input streams have received a watermark.
 
         Args:
@@ -70,6 +74,7 @@ class TrackingEvalOperator(erdos.Operator):
         game_time = timestamp.coordinates[0]
         if not self._last_notification:
             self._last_notification = game_time
+            finished_indicator_stream.send(erdos.WatermarkMessage(timestamp))
             return
         else:
             self._sim_interval = (game_time - self._last_notification)
@@ -86,63 +91,65 @@ class TrackingEvalOperator(erdos.Operator):
                 ground_obstacles = self.__get_ground_obstacles_at(end_time)
                 # Get tracker output obstacles.
                 tracker_obstacles = self.__get_tracked_obstacles_at(start_time)
-                if (len(tracker_obstacles) > 0 or len(ground_obstacles) > 0):
-                    metrics_summary_df = self.get_tracker_metrics(
-                        tracker_obstacles, ground_obstacles)
-                    # Get runtime in ms
-                    runtime = (time.time() - op_start_time) * 1000
-                    self._csv_logger.info('{},{},{},{},{}'.format(
-                        time_epoch_ms(), sim_time, self.config.name, 'runtime',
-                        runtime))
-                    # Write metrics to csv log file
-                    for metric_name in self._flags.tracking_metrics:
-                        if metric_name in metrics_summary_df.columns:
-                            if (metric_name == 'mostly_tracked'
-                                    or metric_name == 'mostly_lost'
-                                    or metric_name == 'partially_tracked'):
-                                ratio = metrics_summary_df[metric_name].values[
-                                    0] / metrics_summary_df[
-                                        'num_unique_objects'].values[0]
-                                self._csv_logger.info(
-                                    "{},{},{},{},{:.4f}".format(
-                                        time_epoch_ms(), sim_time,
-                                        self.config.name,
-                                        'ratio_' + metric_name, ratio))
-                            elif metric_name == 'motp':
-                                # See https://github.com/cheind/py-motmetrics/issues/92  # noqa: E501
-                                motp = (1 - metrics_summary_df[metric_name].
-                                        values[0]) * 100
-                                self._csv_logger.info(
-                                    '{},{},{},{},{:.4f}'.format(
-                                        time_epoch_ms(), sim_time,
-                                        self.config.name, metric_name, motp))
-                            elif (metric_name == 'idf1'
-                                  or metric_name == 'mota'):
-                                metric_val = metrics_summary_df[
-                                    metric_name].values[0] * 100
-                                self._csv_logger.info(
-                                    '{},{},{},{},{:.4f}'.format(
-                                        time_epoch_ms(), sim_time,
-                                        self.config.name, metric_name,
-                                        metric_val))
-                            else:
-                                self._csv_logger.info(
-                                    '{},{},{},{},{:.4f}'.format(
-                                        time_epoch_ms(), sim_time,
-                                        self.config.name, metric_name,
-                                        metrics_summary_df[metric_name].
-                                        values[0]))
-                        else:
-                            raise ValueError(
-                                'Unexpected tracking metric: {}'.format(
-                                    metric_name))
+                metrics_summary_df = self.__get_tracker_metrics(
+                    tracker_obstacles, ground_obstacles)
+                # Get runtime in ms
+                runtime = (time.time() - op_start_time) * 1000
+                self._csv_logger.info('{},{},{},{},{}'.format(
+                    time_epoch_ms(), sim_time, self.config.name, 'runtime',
+                    runtime))
+                # Write metrics to csv log file
+                self.__write_metrics_to_csv(metrics_summary_df, sim_time)
                 self._logger.debug('Computing accuracy for {} {}'.format(
                     end_time, start_time))
             else:
                 # The remaining entries require newer ground obstacles.
                 break
-
+        finished_indicator_stream.send(erdos.WatermarkMessage(timestamp))
         self.__garbage_collect_obstacles()
+
+    def __write_metrics_to_csv(self, metrics_summary_df, sim_time):
+        for metric_name in self._flags.tracking_metrics:
+            if metric_name in metrics_summary_df.columns:
+                if (metric_name == 'mostly_tracked'
+                        or metric_name == 'mostly_lost'
+                        or metric_name == 'partially_tracked'):
+                    ratio = metrics_summary_df[metric_name].values[
+                        0] / metrics_summary_df[
+                            'num_unique_objects'].values[0]
+                    self._csv_logger.info(
+                        "{},{},{},{},{:.4f}".format(
+                            time_epoch_ms(), sim_time,
+                            self.config.name,
+                            'ratio_' + metric_name, ratio))
+                elif metric_name == 'motp':
+                    # See https://github.com/cheind/py-motmetrics/issues/92
+                    motp = (1 - metrics_summary_df[metric_name].
+                            values[0]) * 100
+                    self._csv_logger.info(
+                        '{},{},{},{},{:.4f}'.format(
+                            time_epoch_ms(), sim_time,
+                            self.config.name, metric_name, motp))
+                elif (metric_name == 'idf1'
+                        or metric_name == 'mota'):
+                    metric_val = metrics_summary_df[
+                        metric_name].values[0] * 100
+                    self._csv_logger.info(
+                        '{},{},{},{},{:.4f}'.format(
+                            time_epoch_ms(), sim_time,
+                            self.config.name, metric_name,
+                            metric_val))
+                else:
+                    self._csv_logger.info(
+                        '{},{},{},{},{:.4f}'.format(
+                            time_epoch_ms(), sim_time,
+                            self.config.name, metric_name,
+                            metrics_summary_df[metric_name].
+                            values[0]))
+            else:
+                raise ValueError(
+                    'Unexpected tracking metric: {}'.format(
+                        metric_name))
 
     def __get_ground_obstacles_at(self, timestamp):
         for (ground_time, obstacles) in self._ground_obstacles:
@@ -170,7 +177,7 @@ class TrackingEvalOperator(erdos.Operator):
                 watermark = start_time
         if watermark is None:
             return
-        # Remove all detected obstacles that are below the watermark.
+        # Remove all tracked obstacles that are below the watermark.
         index = 0
         while (index < len(self._tracked_obstacles)
                and self._tracked_obstacles[index][0] < watermark):
@@ -188,13 +195,25 @@ class TrackingEvalOperator(erdos.Operator):
     def on_tracker_obstacles(self, msg):
         game_time = msg.timestamp.coordinates[0]
         self._tracked_obstacles.append((game_time, msg.obstacles))
-        heapq.heappush(self._tracker_start_end_times, (game_time, game_time))
+        # Two metrics: 1) mAP, and 2) timely-mAP
+        if not self._evaluate_timely:
+            # We will compare the obstacles with the ground truth at the same
+            # game time.
+            heapq.heappush(self._tracker_start_end_times,
+                           (game_time, game_time))
+        else:
+            # Ground obstacles time should be as close as possible to the time
+            # of the obstacles + detector + tracker runtime.
+            ground_obstacles_time = self.__compute_closest_frame_time(
+                game_time + msg.runtime)
+            heapq.heappush(self._tracker_start_end_times,
+                           (ground_obstacles_time, game_time))
 
     def on_ground_obstacles(self, msg):
         game_time = msg.timestamp.coordinates[0]
         self._ground_obstacles.append((game_time, msg.obstacles))
 
-    def get_tracker_metrics(self, tracked_obstacles, ground_obstacles):
+    def __get_tracker_metrics(self, tracked_obstacles, ground_obstacles):
         """Computes several tracker accuracy metrics using motmetrics library.
 
         Args:
@@ -221,12 +240,20 @@ class TrackingEvalOperator(erdos.Operator):
         # Calculate all motchallenge metrics by default. Logged metrics
         # determined by list passed to --tracking_metrics
         tracker_metrics_df = self._metrics_host.compute(
-            self._accumulator, metrics=mm.metrics.motchallenge_metrics)
+            self._accumulator, metrics=list(
+                set(self._flags.tracking_metrics).union(
+                    set(mm.metrics.motchallenge_metrics))
+            )
+        )
         return tracker_metrics_df
 
     def __compute_closest_frame_time(self, time):
-        base = int(time) / self._sim_interval * self._sim_interval
-        if time - base < self._sim_interval / 2:
-            return base
-        else:
-            return base + self._sim_interval
+        base = math.ceil(int(time) / self._sim_interval) * self._sim_interval
+        return base
+
+    # def __compute_closest_frame_time(self, time):
+    #     base = int(time) / self._sim_interval * self._sim_interval
+    #     if time - base < self._sim_interval / 2:
+    #         return base
+    #     else:
+    #         return base + self._sim_interval
