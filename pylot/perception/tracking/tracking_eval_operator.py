@@ -1,7 +1,5 @@
 """Implements an operator that eveluates tracking output."""
-import heapq
 import math
-import time
 
 import erdos
 
@@ -24,7 +22,7 @@ class TrackingEvalOperator(erdos.Operator):
         flags (absl.flags): Object to be used to access absl flags.
     """
     def __init__(self, obstacle_tracking_stream, ground_obstacles_stream,
-                 finished_indicator_stream, evaluate_timely, flags):
+                 finished_indicator_stream, evaluate_timely, frame_gap, flags):
         obstacle_tracking_stream.add_callback(self.on_tracker_obstacles)
         ground_obstacles_stream.add_callback(self.on_ground_obstacles)
         erdos.add_watermark_callback(
@@ -40,12 +38,19 @@ class TrackingEvalOperator(erdos.Operator):
         self._tracked_obstacles = []
         # Buffer of ground obstacles.
         self._ground_obstacles = []
-        # Heap storing pairs of (ground/output time, game time).
+        # Storing pairs of (game time, ground/output time).
         self._tracker_start_end_times = []
-        self._sim_interval = None
-        self._accumulator = mm.MOTAccumulator(auto_id=True)
+        self._frame_gap = frame_gap
+        self._start_anchroned_accumulator = mm.MOTAccumulator(auto_id=True)
+        self._end_anchroned_accumulator = mm.MOTAccumulator(auto_id=True)
         self._metrics_host = mm.metrics.create()
         self._evaluate_timely = evaluate_timely
+        # The start and end times of the last inference used for computing
+        # accuracy.
+        self._last_inference = None
+        # Index in tracker_start_end_times to the inference with the next
+        # unprocessed start time.
+        self._start_time_frontier = 0
 
     @staticmethod
     def connect(obstacle_tracking_stream, ground_obstacles_stream):
@@ -69,43 +74,68 @@ class TrackingEvalOperator(erdos.Operator):
                 the watermark.
         """
         assert len(timestamp.coordinates) == 1
-        op_start_time = time.time()
         game_time = timestamp.coordinates[0]
-        if not self._last_notification:
-            self._last_notification = game_time
+        self.__compute_frame_gap(game_time)
+        if timestamp.is_top:
             return
-        else:
-            self._sim_interval = (game_time - self._last_notification)
-            self._last_notification = game_time
-
-        sim_time = timestamp.coordinates[0]
-        while len(self._tracker_start_end_times) > 0:
-            (end_time, start_time) = self._tracker_start_end_times[0]
-            # We can compute tracker metrics if the endtime is not greater than
-            # the ground time.
-            if end_time <= game_time:
-                # This is the closest ground bounding box to the end time.
-                heapq.heappop(self._tracker_start_end_times)
-                ground_obstacles = self.__get_ground_obstacles_at(end_time)
-                # Get tracker output obstacles.
-                tracker_obstacles = self.__get_tracked_obstacles_at(start_time)
-                metrics_summary_df = self.__get_tracker_metrics(
-                    tracker_obstacles, ground_obstacles)
-                # Get runtime in ms
-                runtime = (time.time() - op_start_time) * 1000
-                self._csv_logger.info('{},{},{},{},{}'.format(
-                    time_epoch_ms(), sim_time, self.config.name, 'runtime',
-                    runtime))
-                # Write metrics to csv log file
-                self.__write_metrics_to_csv(metrics_summary_df, sim_time)
-                self._logger.debug('Computing accuracy for {} {}'.format(
-                    end_time, start_time))
-            else:
-                # The remaining entries require newer ground obstacles.
+        (start_time,
+         end_time) = self._tracker_start_end_times[self._start_time_frontier]
+        assert start_time == game_time, 'Incorrect frontier'
+        # Compute the accuracy anchored on the start time.
+        self.__compute_accuracy(start_time, end_time, False)
+        # Compute the accuracy anchored on the end time.
+        index = self._start_time_frontier
+        while index >= 0:
+            (p_start_time, p_end_time) = self._tracker_start_end_times[index]
+            if start_time == p_end_time:
+                # This is the result that arrived before start_time, and
+                # uses the most up-to-date data (tracker_start_end_times
+                # is sorted by start_times).
+                self._last_inference = (p_start_time, p_end_time)
+                # It is safe to garbage collect older entries. We therefore
+                # prioritize freshness of sensor data over possibly accuray.
+                # For example, if we have the following start and end times:
+                # 100, 500
+                # 200, 400
+                # 300, 600
+                # 400, ...
+                # We would pick 200, 400, and GC anything before that.
+                self.__gc_obstacles_earlier_than(p_start_time)
+                self._tracker_start_end_times = \
+                    self._tracker_start_end_times[index:]
+                self._start_time_frontier -= index - 1
                 break
-        self.__garbage_collect_obstacles()
+            index += 1
+        self._start_time_frontier += 1
+        if self._last_inference:
+            (start_time, end_time) = self._last_inference
+            self.__compute_accuracy(start_time, end_time, True)
 
-    def __write_metrics_to_csv(self, metrics_summary_df, sim_time):
+    def __compute_frame_gap(self, game_time):
+        if not self._frame_gap:
+            if not self._last_notification:
+                self._last_notification = game_time
+                return
+            else:
+                self._frame_gap = (game_time - self._last_notification)
+                self._last_notification = game_time
+
+    def __compute_accuracy(self, frame_time, ground_time, end_anchored):
+        tracker_obstacles = self.__get_tracked_obstacles_at(frame_time)
+        ground_obstacles = self.__get_ground_obstacles_at(ground_time)
+        if end_anchored:
+            metrics_summary_df = self.__get_tracker_metrics(
+                tracker_obstacles, ground_obstacles,
+                self._end_anchroned_accumulator)
+            self.__write_metrics_to_csv(metrics_summary_df, ground_time)
+        else:
+            metrics_summary_df = self.__get_tracker_metrics(
+                tracker_obstacles, ground_obstacles,
+                self._start_anchroned_accumulator)
+            self.__write_metrics_to_csv(metrics_summary_df, frame_time)
+
+    def __write_metrics_to_csv(self, metrics_summary_df, anchor_type,
+                               anchor_time):
         for metric_name in self._flags.tracking_metrics:
             if metric_name in metrics_summary_df.columns:
                 if (metric_name == 'mostly_tracked'
@@ -113,26 +143,26 @@ class TrackingEvalOperator(erdos.Operator):
                         or metric_name == 'partially_tracked'):
                     ratio = metrics_summary_df[metric_name].values[
                         0] / metrics_summary_df['num_unique_objects'].values[0]
-                    self._csv_logger.info("{},{},{},{},{:.4f}".format(
-                        time_epoch_ms(), sim_time, self.config.name,
-                        'ratio_' + metric_name, ratio))
+                    self._csv_logger.info("{},{},{},{},{},{:.4f}".format(
+                        time_epoch_ms(), anchor_type, anchor_time,
+                        self.config.name, 'ratio_' + metric_name, ratio))
                 elif metric_name == 'motp':
                     # See https://github.com/cheind/py-motmetrics/issues/92
                     motp = (1 -
                             metrics_summary_df[metric_name].values[0]) * 100
-                    self._csv_logger.info('{},{},{},{},{:.4f}'.format(
-                        time_epoch_ms(), sim_time, self.config.name,
-                        metric_name, motp))
+                    self._csv_logger.info('{},{},{},{},{},{:.4f}'.format(
+                        time_epoch_ms(), anchor_type, anchor_time,
+                        self.config.name, metric_name, motp))
                 elif (metric_name == 'idf1' or metric_name == 'mota'):
                     metric_val = \
                         metrics_summary_df[metric_name].values[0] * 100
-                    self._csv_logger.info('{},{},{},{},{:.4f}'.format(
-                        time_epoch_ms(), sim_time, self.config.name,
-                        metric_name, metric_val))
+                    self._csv_logger.info('{},{},{},{},{},{:.4f}'.format(
+                        time_epoch_ms(), anchor_type, anchor_time,
+                        self.config.name, metric_name, metric_val))
                 else:
-                    self._csv_logger.info('{},{},{},{},{:.4f}'.format(
-                        time_epoch_ms(), sim_time, self.config.name,
-                        metric_name,
+                    self._csv_logger.info('{},{},{},{},{},{:.4f}'.format(
+                        time_epoch_ms(), anchor_type, anchor_time,
+                        self.config.name, metric_name,
                         metrics_summary_df[metric_name].values[0]))
             else:
                 raise ValueError(
@@ -148,33 +178,24 @@ class TrackingEvalOperator(erdos.Operator):
             'Could not find ground obstacles for {}'.format(timestamp))
 
     def __get_tracked_obstacles_at(self, timestamp):
-        for (ground_time, obstacles) in self._tracked_obstacles:
-            if ground_time == timestamp:
+        for (start_time, obstacles) in self._tracked_obstacles:
+            if start_time == timestamp:
                 return obstacles
-            elif ground_time > timestamp:
+            elif start_time > timestamp:
                 break
         self._logger.fatal(
             'Could not find tracked obstacles for {}'.format(timestamp))
 
-    def __garbage_collect_obstacles(self):
-        # Get the minimum watermark.
-        watermark = None
-        for (_, start_time) in self._tracker_start_end_times:
-            if watermark is None or start_time < watermark:
-                watermark = start_time
-        if watermark is None:
-            return
-        # Remove all tracked obstacles that are below the watermark.
+    def __gc_obstacles_earlier_than(self, game_time):
         index = 0
         while (index < len(self._tracked_obstacles)
-               and self._tracked_obstacles[index][0] < watermark):
+               and self._tracked_obstacles[index][0] < game_time):
             index += 1
         if index > 0:
             self._tracked_obstacles = self._tracked_obstacles[index:]
-        # Remove all the ground obstacles that are below the watermark.
         index = 0
         while (index < len(self._ground_obstacles)
-               and self._ground_obstacles[index][0] < watermark):
+               and self._ground_obstacles[index][0] < game_time):
             index += 1
         if index > 0:
             self._ground_obstacles = self._ground_obstacles[index:]
@@ -186,21 +207,21 @@ class TrackingEvalOperator(erdos.Operator):
         if not self._evaluate_timely:
             # We will compare the obstacles with the ground truth at the same
             # game time.
-            heapq.heappush(self._tracker_start_end_times,
-                           (game_time, game_time))
+            self._tracker_start_end_times.append((game_time, game_time))
         else:
             # Ground obstacles time should be as close as possible to the time
             # of the obstacles + detector + tracker runtime.
             ground_obstacles_time = self.__compute_closest_frame_time(
                 game_time + msg.runtime)
-            heapq.heappush(self._tracker_start_end_times,
-                           (ground_obstacles_time, game_time))
+            self._tracker_start_end_times.append(
+                (game_time, ground_obstacles_time))
 
     def on_ground_obstacles(self, msg):
         game_time = msg.timestamp.coordinates[0]
         self._ground_obstacles.append((game_time, msg.obstacles))
 
-    def __get_tracker_metrics(self, tracked_obstacles, ground_obstacles):
+    def __get_tracker_metrics(self, tracked_obstacles, ground_obstacles,
+                              accumulator):
         """Computes several tracker accuracy metrics using motmetrics library.
 
         Args:
@@ -223,23 +244,23 @@ class TrackingEvalOperator(erdos.Operator):
                                               tracked_bboxes,
                                               max_iou=1 -
                                               self._flags.min_matching_iou)
-        self._accumulator.update(ground_ids, track_ids, cost_matrix)
+        accumulator.update(ground_ids, track_ids, cost_matrix)
         # Calculate all motchallenge metrics by default. Logged metrics
         # determined by list passed to --tracking_metrics
         tracker_metrics_df = self._metrics_host.compute(
-            self._accumulator,
+            accumulator,
             metrics=list(
                 set(self._flags.tracking_metrics).union(
                     set(mm.metrics.motchallenge_metrics))))
         return tracker_metrics_df
 
     def __compute_closest_frame_time(self, time):
-        base = math.ceil(int(time) / self._sim_interval) * self._sim_interval
+        base = math.ceil(int(time) / self._frame_gap) * self._frame_gap
         return base
 
     # def __compute_closest_frame_time(self, time):
-    #     base = int(time) / self._sim_interval * self._sim_interval
-    #     if time - base < self._sim_interval / 2:
+    #     base = int(time) / self._frame_gap * self._frame_gap
+    #     if time - base < self._frame_gap / 2:
     #         return base
     #     else:
-    #         return base + self._sim_interval
+    #         return base + self._frame_gap

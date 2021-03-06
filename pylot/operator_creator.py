@@ -269,6 +269,7 @@ def add_center_track_tracking(bgr_camera_stream,
 def add_tracking_evaluation(obstacle_tracking_stream,
                             ground_obstacles_stream,
                             evaluate_timely=False,
+                            frame_gap=None,
                             name='tracking_eval_operator'):
     from pylot.perception.tracking.tracking_eval_operator import \
         TrackingEvalOperator
@@ -279,7 +280,7 @@ def add_tracking_evaluation(obstacle_tracking_stream,
     [finished_indicator_stream
      ] = erdos.connect(TrackingEvalOperator, op_config,
                        [obstacle_tracking_stream, ground_obstacles_stream],
-                       evaluate_timely, FLAGS)
+                       evaluate_timely, frame_gap, FLAGS)
     return finished_indicator_stream
 
 

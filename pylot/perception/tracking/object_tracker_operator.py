@@ -111,6 +111,9 @@ class ObjectTrackerOperator(erdos.Operator):
 
     def __compute_tracker_delay(self, world_time, detector_runtime,
                                 tracker_runtime):
+        # If the tracker runtime does not fit within the frame gap, then
+        # the tracker will fall behind. We need a scheduler to better
+        # handle such situations.
         if (world_time + detector_runtime >
                 self._last_tracker_run_completion_time):
             # The detector finished after the previous tracker invocation
@@ -125,3 +128,4 @@ class ObjectTrackerOperator(erdos.Operator):
             self._last_tracker_run_completion_time += tracker_runtime
             tracker_runtime = \
                 self._last_tracker_run_completion_time - world_time
+        return tracker_runtime
