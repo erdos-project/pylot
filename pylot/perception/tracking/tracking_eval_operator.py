@@ -89,7 +89,7 @@ class TrackingEvalOperator(erdos.Operator):
             (p_start_time, p_end_time) = self._tracker_start_end_times[index]
             if start_time == p_end_time:
                 # This is the result that arrived before start_time, and
-                # uses the most up-to-date data (tracker_start_end_times
+                # uses the most up-to-date sensor data (tracker_start_end_times
                 # is sorted by start_times).
                 self._last_inference = (p_start_time, p_end_time)
                 # It is safe to garbage collect older entries. We therefore
@@ -105,7 +105,7 @@ class TrackingEvalOperator(erdos.Operator):
                     self._tracker_start_end_times[index:]
                 self._start_time_frontier -= index - 1
                 break
-            index += 1
+            index -= 1
         self._start_time_frontier += 1
         if self._last_inference:
             (start_time, end_time) = self._last_inference

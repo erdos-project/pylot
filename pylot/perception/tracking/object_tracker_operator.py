@@ -49,7 +49,7 @@ class ObjectTrackerOperator(erdos.Operator):
 
         self._obstacles_msgs = deque()
         self._frame_msgs = deque()
-        self._detection_update_count = 0
+        self._detection_update_count = -1
 
     @staticmethod
     def connect(obstacles_stream, camera_stream, time_to_decision_stream):
@@ -76,6 +76,8 @@ class ObjectTrackerOperator(erdos.Operator):
     @erdos.profile_method()
     def on_watermark(self, timestamp, obstacle_tracking_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
+        if timestamp.is_top:
+            return
         frame_msg = self._frame_msgs.popleft()
         camera_frame = frame_msg.frame
         tracked_obstacles = []
