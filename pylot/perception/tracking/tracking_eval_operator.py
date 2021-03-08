@@ -41,8 +41,8 @@ class TrackingEvalOperator(erdos.Operator):
         # Storing pairs of (game time, ground/output time).
         self._tracker_start_end_times = []
         self._frame_gap = frame_gap
-        self._start_anchroned_accumulator = mm.MOTAccumulator(auto_id=True)
-        self._end_anchroned_accumulator = mm.MOTAccumulator(auto_id=True)
+        self._start_anchored_accumulator = mm.MOTAccumulator(auto_id=True)
+        self._end_anchored_accumulator = mm.MOTAccumulator(auto_id=True)
         self._metrics_host = mm.metrics.create()
         self._evaluate_timely = evaluate_timely
         # The start and end times of the last inference used for computing
@@ -73,11 +73,11 @@ class TrackingEvalOperator(erdos.Operator):
             timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
                 the watermark.
         """
+        if timestamp.is_top:
+            return
         assert len(timestamp.coordinates) == 1
         game_time = timestamp.coordinates[0]
         self.__compute_frame_gap(game_time)
-        if timestamp.is_top:
-            return
         (start_time,
          end_time) = self._tracker_start_end_times[self._start_time_frontier]
         assert start_time == game_time, 'Incorrect frontier'
@@ -87,7 +87,7 @@ class TrackingEvalOperator(erdos.Operator):
         index = self._start_time_frontier
         while index >= 0:
             (p_start_time, p_end_time) = self._tracker_start_end_times[index]
-            if start_time == p_end_time:
+            if p_end_time <= start_time:
                 # This is the result that arrived before start_time, and
                 # uses the most up-to-date sensor data (tracker_start_end_times
                 # is sorted by start_times).
@@ -112,6 +112,7 @@ class TrackingEvalOperator(erdos.Operator):
             self.__compute_accuracy(start_time, end_time, True)
 
     def __compute_frame_gap(self, game_time):
+        """Infer frame gap if not explicitly provided in constructor."""
         if not self._frame_gap:
             if not self._last_notification:
                 self._last_notification = game_time
@@ -126,13 +127,14 @@ class TrackingEvalOperator(erdos.Operator):
         if end_anchored:
             metrics_summary_df = self.__get_tracker_metrics(
                 tracker_obstacles, ground_obstacles,
-                self._end_anchroned_accumulator)
-            self.__write_metrics_to_csv(metrics_summary_df, ground_time)
+                self._end_anchored_accumulator)
+            self.__write_metrics_to_csv(metrics_summary_df, "end", ground_time)
         else:
             metrics_summary_df = self.__get_tracker_metrics(
                 tracker_obstacles, ground_obstacles,
-                self._start_anchroned_accumulator)
-            self.__write_metrics_to_csv(metrics_summary_df, frame_time)
+                self._start_anchored_accumulator)
+            self.__write_metrics_to_csv(metrics_summary_df, "start",
+                                        frame_time)
 
     def __write_metrics_to_csv(self, metrics_summary_df, anchor_type,
                                anchor_time):
@@ -203,6 +205,9 @@ class TrackingEvalOperator(erdos.Operator):
     def on_tracker_obstacles(self, msg):
         game_time = msg.timestamp.coordinates[0]
         self._tracked_obstacles.append((game_time, msg.obstacles))
+        if len(self._tracked_obstacles) > 1:
+            assert game_time >= self._tracked_obstackes[-2], \
+                'Obstacle messages did not arrive in order'
         # Two metrics: 1) mAP, and 2) timely-mAP
         if not self._evaluate_timely:
             # We will compare the obstacles with the ground truth at the same
