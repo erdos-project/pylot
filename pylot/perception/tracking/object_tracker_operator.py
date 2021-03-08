@@ -73,8 +73,21 @@ class ObjectTrackerOperator(erdos.Operator):
         self._logger.debug('@{}: {} received ttd update {}'.format(
             msg.timestamp, self.config.name, msg))
 
+    def _reinit_tracker(self, camera_frame, detected_obstacles):
+        start = time.time()
+        result = self._tracker.reinitialize(camera_frame, detected_obstacles)
+        return (time.time() - start) * 1000, result
+
+    def _run_tracker(self, camera_frame):
+        start = time.time()
+        result = self._tracker.track(camera_frame)
+        return (time.time() - start) * 1000, result
+
     @erdos.profile_method()
     def on_watermark(self, timestamp, obstacle_tracking_stream):
+        if timestamp.is_top:
+            obstacle_tracking_stream.send(erdos.WatermarkMessage(timestamp))
+            return
         self._logger.debug('@{}: received watermark'.format(timestamp))
         if timestamp.is_top:
             return
@@ -82,7 +95,7 @@ class ObjectTrackerOperator(erdos.Operator):
         camera_frame = frame_msg.frame
         tracked_obstacles = []
         detector_runtime = 0
-        tracker_start_time = time.time()
+        reinit_runtime = 0
         # Check if the most recent obstacle message has this timestamp.
         # If it doesn't, then the detector might have skipped sending
         # an obstacle message.
@@ -99,11 +112,13 @@ class ObjectTrackerOperator(erdos.Operator):
                 for obstacle in obstacles_msg.obstacles:
                     if obstacle.is_vehicle() or obstacle.is_person():
                         detected_obstacles.append(obstacle)
-                self._tracker.reinitialize(camera_frame, detected_obstacles)
+                reinit_runtime, _ = self._reinit_tracker(camera_frame,
+                                                         detected_obstacles)
                 detector_runtime = obstacles_msg.runtime
-        ok, tracked_obstacles = self._tracker.track(camera_frame)
+        tracker_runtime, (ok, tracked_obstacles) = \
+            self._run_tracker(camera_frame)
         assert ok, 'Tracker failed at timestamp {}'.format(timestamp)
-        tracker_runtime = (time.time() - tracker_start_time) * 1000
+        tracker_runtime = tracker_runtime + reinit_runtime
         tracker_delay = self.__compute_tracker_delay(timestamp.coordinates[0],
                                                      detector_runtime,
                                                      tracker_runtime)
