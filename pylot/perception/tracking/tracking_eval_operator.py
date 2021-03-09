@@ -67,12 +67,6 @@ class TrackingEvalOperator(erdos.Operator):
         return [finished_indicator_stream]
 
     def on_watermark(self, timestamp, finished_indicator_stream):
-        """Invoked when all input streams have received a watermark.
-
-        Args:
-            timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
-                the watermark.
-        """
         if timestamp.is_top:
             return
         assert len(timestamp.coordinates) == 1
@@ -88,18 +82,7 @@ class TrackingEvalOperator(erdos.Operator):
         while index >= 0:
             (p_start_time, p_end_time) = self._tracker_start_end_times[index]
             if p_end_time <= start_time:
-                # This is the result that arrived before start_time, and
-                # uses the most up-to-date sensor data (tracker_start_end_times
-                # is sorted by start_times).
                 self._last_inference = (p_start_time, p_end_time)
-                # It is safe to garbage collect older entries. We therefore
-                # prioritize freshness of sensor data over possibly accuray.
-                # For example, if we have the following start and end times:
-                # 100, 500
-                # 200, 400
-                # 300, 600
-                # 400, ...
-                # We would pick 200, 400, and GC anything before that.
                 self.__gc_obstacles_earlier_than(p_start_time)
                 self._tracker_start_end_times = \
                     self._tracker_start_end_times[index:]
