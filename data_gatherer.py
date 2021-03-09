@@ -91,16 +91,16 @@ def main(argv):
 
     if FLAGS.log_rgb_camera:
         pylot.operator_creator.add_camera_logging(
-            center_camera_stream, 'center_camera_logger_operator', 'center-')
+            center_camera_stream, 'center_camera_logger_operator', 'center')
 
     if FLAGS.log_segmented_camera:
         pylot.operator_creator.add_camera_logging(
             segmented_stream, 'center_segmented_camera_logger_operator',
-            'segmented-')
+            'segmented')
 
     if FLAGS.log_depth_camera:
         pylot.operator_creator.add_camera_logging(
-            depth_camera_stream, 'depth_camera_logger_operator', 'depth-')
+            depth_camera_stream, 'depth_camera_logger_operator', 'depth')
 
     imu_stream = None
     if FLAGS.log_imu:
@@ -120,7 +120,7 @@ def main(argv):
                 tl_camera_setup, vehicle_id_stream, release_sensor_stream)
         pylot.operator_creator.add_camera_logging(
             traffic_light_camera_stream,
-            'traffic_light_camera_logger_operator', 'traffic-light-')
+            'traffic_light_camera_logger_operator', 'traffic-light')
 
         tl_seg_camera_setup = SegmentedCameraSetup(
             'traffic_light_segmented_camera', FLAGS.camera_image_width,
@@ -154,9 +154,9 @@ def main(argv):
          _) = pylot.operator_creator.add_left_right_cameras(
              transform, vehicle_id_stream, release_sensor_stream)
         pylot.operator_creator.add_camera_logging(
-            left_camera_stream, 'left_camera_logger_operator', 'left-')
+            left_camera_stream, 'left_camera_logger_operator', 'left')
         pylot.operator_creator.add_camera_logging(
-            right_camera_stream, 'right_camera_logger_operator', 'right-')
+            right_camera_stream, 'right_camera_logger_operator', 'right')
 
     point_cloud_stream = None
     if FLAGS.log_lidar:
@@ -206,7 +206,7 @@ def main(argv):
         if FLAGS.log_top_down_segmentation:
             pylot.operator_creator.add_camera_logging(
                 top_down_segmented_stream,
-                'top_down_segmented_logger_operator', 'top-down-segmented-')
+                'top_down_segmented_logger_operator', 'top-down-segmented')
 
         if FLAGS.log_chauffeur:
             top_down_camera_setup = RGBCameraSetup('top_down_rgb_camera',
@@ -238,10 +238,10 @@ def main(argv):
             stream_to_sync_on = obstacles_tracking_stream
         if traffic_lights_stream is not None:
             stream_to_sync_on = traffic_lights_stream
-        if obstacles_stream is not None:
-            stream_to_sync_on = obstacles_stream
         if perfect_lane_stream is not None:
             stream_to_sync_on = perfect_lane_stream
+        if obstacles_stream is not None:
+            stream_to_sync_on = obstacles_stream
         control_stream = pylot.operator_creator.add_synchronizer(
             vehicle_id_stream, stream_to_sync_on)
         control_loop_stream.set(control_stream)

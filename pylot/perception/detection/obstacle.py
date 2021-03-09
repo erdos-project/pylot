@@ -150,7 +150,12 @@ class Obstacle(object):
         else:
             color = [255, 255, 255]
         # Show bounding box.
-        if isinstance(self.bounding_box, BoundingBox3D):
+        if self.bounding_box_2D:
+            # Draw the 2D bounding box if available.
+            frame.draw_box(self.bounding_box_2D.get_min_point(),
+                           self.bounding_box_2D.get_max_point(), color)
+            frame.draw_text(self.bounding_box_2D.get_min_point(), text, color)
+        elif isinstance(self.bounding_box, BoundingBox3D):
             if self.bounding_box.corners is None:
                 raise ValueError(
                     'Obstacle {} does not have bbox corners'.format(self.id))
@@ -159,9 +164,8 @@ class Obstacle(object):
                 frame.camera_setup.get_intrinsic_matrix())
             frame.draw_3d_box(corners, color)
         else:
-            frame.draw_box(self.bounding_box_2D.get_min_point(),
-                           self.bounding_box_2D.get_max_point(), color)
-            frame.draw_text(self.bounding_box_2D.get_min_point(), text, color)
+            raise ValueError('Obstacle {} does not have bounding box'.format(
+                self.id))
 
     def draw_trajectory_on_frame(self,
                                  trajectory,
