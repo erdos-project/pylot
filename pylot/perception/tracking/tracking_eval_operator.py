@@ -87,7 +87,7 @@ class TrackingEvalOperator(erdos.Operator):
         index = self._start_time_frontier
         while index >= 0:
             (p_start_time, p_end_time) = self._tracker_start_end_times[index]
-            if p_end_time <= start_time:
+            if p_end_time == start_time:
                 # This is the result that arrived before start_time, and
                 # uses the most up-to-date sensor data (tracker_start_end_times
                 # is sorted by start_times).
@@ -103,7 +103,7 @@ class TrackingEvalOperator(erdos.Operator):
                 self.__gc_obstacles_earlier_than(p_start_time)
                 self._tracker_start_end_times = \
                     self._tracker_start_end_times[index:]
-                self._start_time_frontier -= index - 1
+                self._start_time_frontier -= index
                 break
             index -= 1
         self._start_time_frontier += 1
@@ -206,7 +206,7 @@ class TrackingEvalOperator(erdos.Operator):
         game_time = msg.timestamp.coordinates[0]
         self._tracked_obstacles.append((game_time, msg.obstacles))
         if len(self._tracked_obstacles) > 1:
-            assert game_time >= self._tracked_obstackes[-2], \
+            assert game_time >= self._tracked_obstackes[-2][0], \
                 'Obstacle messages did not arrive in order'
         # Two metrics: 1) mAP, and 2) timely-mAP
         if not self._evaluate_timely:
