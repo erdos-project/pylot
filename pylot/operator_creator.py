@@ -739,7 +739,7 @@ def add_imu_logging(imu_stream, name='imu_logger_operator'):
 
 def add_lidar_logging(point_cloud_stream,
                       name='lidar_logger_operator',
-                      filename_prefix='lidar-'):
+                      filename_prefix='lidar'):
     from pylot.loggers.lidar_logger_operator import LidarLoggerOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
