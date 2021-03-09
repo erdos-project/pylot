@@ -45,11 +45,13 @@ class TrackingEvalOperator(erdos.Operator):
         self._end_anchored_accumulator = mm.MOTAccumulator(auto_id=True)
         self._metrics_host = mm.metrics.create()
         self._evaluate_timely = evaluate_timely
-        # The start and end times of the last inference used for computing
-        # accuracy.
-        self._last_inference = None
+        # The start time of the most recent inference that completed before
+        # the timestamp of the watermark.
+        self._start_time_best_inference = None
         # Index in tracker_start_end_times to the inference with the next
-        # unprocessed start time.
+        # unprocessed start time. We need to maintain this index because
+        # the start_tracker_end_times list might contain entries with
+        # start time beyond current watermark.
         self._start_time_frontier = 0
 
     @staticmethod
@@ -78,38 +80,38 @@ class TrackingEvalOperator(erdos.Operator):
         assert len(timestamp.coordinates) == 1
         game_time = timestamp.coordinates[0]
         self.__compute_frame_gap(game_time)
-        (start_time,
-         end_time) = self._tracker_start_end_times[self._start_time_frontier]
-        assert start_time == game_time, 'Incorrect frontier'
+        (start_time, end_time) = self._tracker_start_end_times[0]
+        # Skip until the watermark is at least as big as the end time of the
+        # first inference.
+        if end_time > game_time:
+            return
         # Compute the accuracy anchored on the start time.
         self.__compute_accuracy(start_time, end_time, False)
-        # Compute the accuracy anchored on the end time.
+
+        # Compute the accuracy anchored on the end time (i.e., find the
+        # prediction with the latest start time with an end time smaller or
+        # equal to the start time of the frontier.
+        (st, _) = self._tracker_start_end_times[self._start_time_frontier]
         index = self._start_time_frontier
         while index >= 0:
             (p_start_time, p_end_time) = self._tracker_start_end_times[index]
-            if p_end_time == start_time:
+            if p_end_time == st:
                 # This is the result that arrived before start_time, and
                 # uses the most up-to-date sensor data (tracker_start_end_times
                 # is sorted by start_times).
-                self._last_inference = (p_start_time, p_end_time)
-                # It is safe to garbage collect older entries. We therefore
-                # prioritize freshness of sensor data over possibly accuray.
-                # For example, if we have the following start and end times:
-                # 100, 500
-                # 200, 400
-                # 300, 600
-                # 400, ...
-                # We would pick 200, 400, and GC anything before that.
+                self._start_time_best_inference = p_start_time
                 self.__gc_obstacles_earlier_than(p_start_time)
                 self._tracker_start_end_times = \
                     self._tracker_start_end_times[index:]
                 self._start_time_frontier -= index
                 break
             index -= 1
+        if self._start_time_best_inference:
+            # Compute accuracy if we have a prediction with end_time less than
+            # current frontier.
+            self.__compute_accuracy(self._start_time_best_inference, st, True)
+        # Increase the frontier to process the next start time.
         self._start_time_frontier += 1
-        if self._last_inference:
-            (start_time, end_time) = self._last_inference
-            self.__compute_accuracy(start_time, end_time, True)
 
     def __compute_frame_gap(self, game_time):
         """Infer frame gap if not explicitly provided in constructor."""
