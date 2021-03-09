@@ -51,6 +51,9 @@ class TrackingEvalOperator(erdos.Operator):
         # Index in tracker_start_end_times to the inference with the next
         # unprocessed start time.
         self._start_time_frontier = 0
+        # compute buffer (for when a matching is decided on before the ground
+        # truths are available)
+        self._compute_buffer = []
 
     @staticmethod
     def connect(obstacle_tracking_stream, ground_obstacles_stream):
@@ -76,23 +79,38 @@ class TrackingEvalOperator(erdos.Operator):
          end_time) = self._tracker_start_end_times[self._start_time_frontier]
         assert start_time == game_time, 'Incorrect frontier'
         # Compute the accuracy anchored on the start time.
-        self.__compute_accuracy(start_time, end_time, False)
+        self._compute_buffer.append((start_time, end_time, False))
         # Compute the accuracy anchored on the end time.
         index = self._start_time_frontier
         while index >= 0:
             (p_start_time, p_end_time) = self._tracker_start_end_times[index]
-            if p_end_time <= start_time:
+            if p_end_time == start_time:
                 self._last_inference = (p_start_time, p_end_time)
-                self.__gc_obstacles_earlier_than(p_start_time)
                 self._tracker_start_end_times = \
                     self._tracker_start_end_times[index:]
-                self._start_time_frontier -= index - 1
+                self._start_time_frontier -= index
                 break
             index -= 1
         self._start_time_frontier += 1
         if self._last_inference:
-            (start_time, end_time) = self._last_inference
-            self.__compute_accuracy(start_time, end_time, True)
+            (p_start_time, _) = self._last_inference
+            self._compute_buffer.append((p_start_time, start_time, True))
+        self.drain_compute_buffer(up_to_inclusive=start_time)
+
+    def drain_compute_buffer(self, up_to_inclusive):
+        lowest_starting_time = None  # for GCing
+        for args in self._compute_buffer:
+            if args[1] <= up_to_inclusive:
+                if lowest_starting_time is None:
+                    lowest_starting_time = args[0]
+                else:
+                    lowest_starting_time = min(lowest_starting_time, args[0])
+                self.compute_accuracy(*args)
+        self._compute_buffer = list(
+            filter(lambda args: args[1] > up_to_inclusive,
+                   self._compute_buffer))
+        if lowest_starting_time is not None:
+            self.__gc_obstacles_earlier_than(lowest_starting_time)
 
     def __compute_frame_gap(self, game_time):
         """Infer frame gap if not explicitly provided in constructor."""
@@ -104,7 +122,7 @@ class TrackingEvalOperator(erdos.Operator):
                 self._frame_gap = (game_time - self._last_notification)
                 self._last_notification = game_time
 
-    def __compute_accuracy(self, frame_time, ground_time, end_anchored):
+    def compute_accuracy(self, frame_time, ground_time, end_anchored):
         tracker_obstacles = self.__get_tracked_obstacles_at(frame_time)
         ground_obstacles = self.__get_ground_obstacles_at(ground_time)
         if end_anchored:
@@ -189,7 +207,7 @@ class TrackingEvalOperator(erdos.Operator):
         game_time = msg.timestamp.coordinates[0]
         self._tracked_obstacles.append((game_time, msg.obstacles))
         if len(self._tracked_obstacles) > 1:
-            assert game_time >= self._tracked_obstackes[-2], \
+            assert game_time >= self._tracked_obstacles[-2][0], \
                 'Obstacle messages did not arrive in order'
         # Two metrics: 1) mAP, and 2) timely-mAP
         if not self._evaluate_timely:
