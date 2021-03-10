@@ -1,3 +1,4 @@
+import time
 from collections import deque
 
 import erdos
@@ -21,6 +22,8 @@ class ObjectTrackerOperator(erdos.Operator):
         self._csv_logger = erdos.utils.setup_csv_logging(
             self.config.name + '-csv', self.config.csv_log_file_name)
         self._tracker_type = tracker_type
+        # Absolute time when the last tracker run completed.
+        self._last_tracker_run_completion_time = 0
         try:
             if tracker_type == 'da_siam_rpn':
                 from pylot.perception.tracking.da_siam_rpn_tracker import\
@@ -40,12 +43,13 @@ class ObjectTrackerOperator(erdos.Operator):
             else:
                 raise ValueError(
                     'Unexpected tracker type {}'.format(tracker_type))
-        except ImportError:
+        except ImportError as error:
             self._logger.fatal('Error importing {}'.format(tracker_type))
+            raise error
 
         self._obstacles_msgs = deque()
         self._frame_msgs = deque()
-        self._watermark_msg_count = 0
+        self._detection_update_count = -1
 
     @staticmethod
     def connect(obstacles_stream, camera_stream, time_to_decision_stream):
@@ -72,29 +76,59 @@ class ObjectTrackerOperator(erdos.Operator):
     @erdos.profile_method()
     def on_watermark(self, timestamp, obstacle_tracking_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
+        if timestamp.is_top:
+            obstacle_tracking_stream.send(erdos.WatermarkMessage(timestamp))
+            return
         frame_msg = self._frame_msgs.popleft()
         camera_frame = frame_msg.frame
         tracked_obstacles = []
-        self._watermark_msg_count += 1
-        if len(self._obstacles_msgs) > 0:
+        detector_runtime = 0
+        tracker_start_time = time.time()
+        # Check if the most recent obstacle message has this timestamp.
+        # If it doesn't, then the detector might have skipped sending
+        # an obstacle message.
+        if (len(self._obstacles_msgs) > 0
+                and self._obstacles_msgs[0].timestamp == timestamp):
             obstacles_msg = self._obstacles_msgs.popleft()
-            assert frame_msg.timestamp == obstacles_msg.timestamp
-            detected_obstacles = []
-            for obstacle in obstacles_msg.obstacles:
-                if obstacle.is_vehicle() or obstacle.is_person():
-                    detected_obstacles.append(obstacle)
-            if (self._watermark_msg_count %
+            self._detection_update_count += 1
+            if (self._detection_update_count %
                     self._flags.track_every_nth_detection == 0):
                 # Reinitialize the tracker with new detections.
                 self._logger.debug(
                     'Restarting trackers at frame {}'.format(timestamp))
+                detected_obstacles = []
+                for obstacle in obstacles_msg.obstacles:
+                    if obstacle.is_vehicle() or obstacle.is_person():
+                        detected_obstacles.append(obstacle)
                 self._tracker.reinitialize(camera_frame, detected_obstacles)
-
-        self._logger.debug('Processing frame {}'.format(timestamp))
+                detector_runtime = obstacles_msg.runtime
         ok, tracked_obstacles = self._tracker.track(camera_frame)
-        if not ok:
-            self._logger.error(
-                'Tracker failed at timestamp {}'.format(timestamp))
+        assert ok, 'Tracker failed at timestamp {}'.format(timestamp)
+        tracker_runtime = (time.time() - tracker_start_time) * 1000
+        tracker_delay = self.__compute_tracker_delay(timestamp.coordinates[0],
+                                                     detector_runtime,
+                                                     tracker_runtime)
         obstacle_tracking_stream.send(
-            ObstaclesMessage(timestamp, tracked_obstacles, 0))
+            ObstaclesMessage(timestamp, tracked_obstacles, tracker_delay))
         obstacle_tracking_stream.send(erdos.WatermarkMessage(timestamp))
+
+    def __compute_tracker_delay(self, world_time, detector_runtime,
+                                tracker_runtime):
+        # If the tracker runtime does not fit within the frame gap, then
+        # the tracker will fall behind. We need a scheduler to better
+        # handle such situations.
+        if (world_time + detector_runtime >
+                self._last_tracker_run_completion_time):
+            # The detector finished after the previous tracker invocation
+            # completed. Therefore, the tracker is already sequenced.
+            tracker_runtime = detector_runtime + tracker_runtime
+            self._last_tracker_run_completion_time = \
+                world_time + tracker_runtime
+        else:
+            # The detector finished before the previous tracker invocation
+            # completed. The tracker can only run after the previous
+            # invocation completes.
+            self._last_tracker_run_completion_time += tracker_runtime
+            tracker_runtime = \
+                self._last_tracker_run_completion_time - world_time
+        return tracker_runtime

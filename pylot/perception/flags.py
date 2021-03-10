@@ -105,5 +105,5 @@ flags.DEFINE_enum('detection_metric', 'mAP', ['mAP', 'timely-mAP'],
 # Tracking eval flags.
 flags.DEFINE_list('tracking_metrics', [
     'num_misses', 'num_switches', 'num_false_positives', 'mota', 'motp',
-    'mostly_tracked', 'mostly_lost', 'partially_tracked', 'idf1'
+    'mostly_tracked', 'mostly_lost', 'partially_tracked', 'idf1', 'num_objects'
 ], 'Tracking evaluation metrics')
