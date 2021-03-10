@@ -88,7 +88,6 @@ class TrackingEvalOperator(erdos.Operator):
                 # uses the most up-to-date sensor data (tracker_start_end_times
                 # is sorted by start_times).
                 self._start_time_best_inference = p_start_time
-                self.__gc_obstacles_earlier_than(p_start_time)
                 self._tracker_start_end_times = \
                     self._tracker_start_end_times[index:]
                 self._start_time_frontier -= index
@@ -120,10 +119,19 @@ class TrackingEvalOperator(erdos.Operator):
         self._accuracy_compute_buffer = list(
             filter(lambda args: args[1] > up_to_time,
                    self._accuracy_compute_buffer))
+        # Getting minimum of two items which may be None. If one of the values
+        # is None then pick the other, if both are None then set min to None.
+        smallest_start_time = min(self._accuracy_compute_buffer,
+                                  default=[None])[0]
+        candidate_list = [smallest_start_time, self._start_time_best_inference]
+        gc_upper_threshold = min([x for x in candidate_list if x is not None],
+                                 default=None)
+        if gc_upper_threshold is not None:
+            self.__gc_obstacles_earlier_than(gc_upper_threshold)
 
     def compute_accuracy(self, frame_time, ground_time, end_anchored):
-        tracker_obstacles = self.__get_tracked_obstacles_at(frame_time)
-        ground_obstacles = self.__get_ground_obstacles_at(ground_time)
+        tracker_obstacles = self.get_tracked_obstacles_at(frame_time)
+        ground_obstacles = self.get_ground_obstacles_at(ground_time)
         if end_anchored:
             metrics_summary_df = self.__get_tracker_metrics(
                 tracker_obstacles, ground_obstacles,
@@ -170,7 +178,7 @@ class TrackingEvalOperator(erdos.Operator):
                 raise ValueError(
                     'Unexpected tracking metric: {}'.format(metric_name))
 
-    def __get_ground_obstacles_at(self, timestamp):
+    def get_ground_obstacles_at(self, timestamp):
         for (ground_time, obstacles) in self._ground_obstacles:
             if ground_time == timestamp:
                 return obstacles
@@ -179,7 +187,7 @@ class TrackingEvalOperator(erdos.Operator):
         self._logger.fatal(
             'Could not find ground obstacles for {}'.format(timestamp))
 
-    def __get_tracked_obstacles_at(self, timestamp):
+    def get_tracked_obstacles_at(self, timestamp):
         for (start_time, obstacles) in self._tracked_obstacles:
             if start_time == timestamp:
                 return obstacles
