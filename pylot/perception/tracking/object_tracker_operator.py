@@ -90,6 +90,7 @@ class ObjectTrackerOperator(erdos.Operator):
             return
         self._logger.debug('@{}: received watermark'.format(timestamp))
         if timestamp.is_top:
+            obstacle_tracking_stream.send(erdos.WatermarkMessage(timestamp))
             return
         frame_msg = self._frame_msgs.popleft()
         camera_frame = frame_msg.frame
