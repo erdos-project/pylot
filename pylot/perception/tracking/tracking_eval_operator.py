@@ -22,7 +22,8 @@ class TrackingEvalOperator(erdos.Operator):
         flags (absl.flags): Object to be used to access absl flags.
     """
     def __init__(self, obstacle_tracking_stream, ground_obstacles_stream,
-                 finished_indicator_stream, evaluate_timely, frame_gap, flags):
+                 finished_indicator_stream, evaluate_timely, matching_policy,
+                 frame_gap, flags):
         obstacle_tracking_stream.add_callback(self.on_tracker_obstacles)
         ground_obstacles_stream.add_callback(self.on_ground_obstacles)
         erdos.add_watermark_callback(
@@ -45,6 +46,7 @@ class TrackingEvalOperator(erdos.Operator):
         self._end_anchored_accumulator = mm.MOTAccumulator(auto_id=True)
         self._metrics_host = mm.metrics.create()
         self._evaluate_timely = evaluate_timely
+        self._matching_policy = matching_policy
         # The start time of the most recent inference that completed before
         # the timestamp of the watermark.
         self._start_time_best_inference = None
@@ -128,8 +130,9 @@ class TrackingEvalOperator(erdos.Operator):
         # Can safely GC until the minimum between the min start time in the
         # accuracy compute buffer and the best inference start time.
         gc_threshold = min(self._accuracy_compute_buffer, default=[None])[0]
-        if (gc_threshold is None
-                or gc_threshold > self._start_time_best_inference):
+        if (self._start_time_best_inference is not None
+                and (gc_threshold is None
+                     or gc_threshold > self._start_time_best_inference)):
             gc_threshold = self._start_time_best_inference
         if gc_threshold is not None:
             self.__gc_obstacles_earlier_than(gc_threshold)
@@ -158,26 +161,28 @@ class TrackingEvalOperator(erdos.Operator):
                         or metric_name == 'partially_tracked'):
                     ratio = metrics_summary_df[metric_name].values[
                         0] / metrics_summary_df['num_unique_objects'].values[0]
-                    self._csv_logger.info("{},{},{},{},{},{:.4f}".format(
-                        time_epoch_ms(), anchor_type, anchor_time,
-                        self.config.name, 'ratio_' + metric_name, ratio))
+                    self._csv_logger.info("{},{},{},{},{},{},{:.4f}".format(
+                        time_epoch_ms(), anchor_time, self.config.name,
+                        anchor_type, self._matching_policy,
+                        'ratio_' + metric_name, ratio))
                 elif metric_name == 'motp':
                     # See https://github.com/cheind/py-motmetrics/issues/92
                     motp = (1 -
                             metrics_summary_df[metric_name].values[0]) * 100
-                    self._csv_logger.info('{},{},{},{},{},{:.4f}'.format(
-                        time_epoch_ms(), anchor_type, anchor_time,
-                        self.config.name, metric_name, motp))
+                    self._csv_logger.info('{},{},{},{},{},{},{:.4f}'.format(
+                        time_epoch_ms(), anchor_time, self.config.name,
+                        anchor_type, self._matching_policy, metric_name, motp))
                 elif (metric_name == 'idf1' or metric_name == 'mota'):
                     metric_val = \
                         metrics_summary_df[metric_name].values[0] * 100
-                    self._csv_logger.info('{},{},{},{},{},{:.4f}'.format(
-                        time_epoch_ms(), anchor_type, anchor_time,
-                        self.config.name, metric_name, metric_val))
+                    self._csv_logger.info('{},{},{},{},{},{},{:.4f}'.format(
+                        time_epoch_ms(), anchor_time, self.config.name,
+                        anchor_type, self._matching_policy, metric_name,
+                        metric_val))
                 else:
-                    self._csv_logger.info('{},{},{},{},{},{:.4f}'.format(
-                        time_epoch_ms(), anchor_type, anchor_time,
-                        self.config.name, metric_name,
+                    self._csv_logger.info('{},{},{},{},{},{},{:.4f}'.format(
+                        time_epoch_ms(), anchor_time, self.config.name,
+                        anchor_type, self._matching_policy, metric_name,
                         metrics_summary_df[metric_name].values[0]))
             else:
                 raise ValueError(
@@ -273,12 +278,11 @@ class TrackingEvalOperator(erdos.Operator):
         return tracker_metrics_df
 
     def __compute_closest_frame_time(self, time):
-        base = math.ceil(int(time) / self._frame_gap) * self._frame_gap
+        if self._matching_policy == 'ceil':
+            base = math.ceil(int(time) / self._frame_gap) * self._frame_gap
+        elif self._matching_policy == 'round':
+            base = round(int(time) / self._frame_gap) * self._frame_gap
+        else:
+            raise ValueError('Matching policy {} not supported'.format(
+                self._matching_policy))
         return base
-
-    # def __compute_closest_frame_time(self, time):
-    #     base = int(time) / self._frame_gap * self._frame_gap
-    #     if time - base < self._frame_gap / 2:
-    #         return base
-    #     else:
-    #         return base + self._frame_gap
