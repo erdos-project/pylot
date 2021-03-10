@@ -130,7 +130,7 @@ class TrackingEvalOperator(erdos.Operator):
         # Can safely GC until the minimum between the min start time in the
         # accuracy compute buffer and the best inference start time.
         gc_threshold = min(self._accuracy_compute_buffer, default=[None])[0]
-        if (self._start_time_best_inference
+        if (self._start_time_best_inference is not None
                 and (gc_threshold is None
                      or gc_threshold > self._start_time_best_inference)):
             gc_threshold = self._start_time_best_inference
