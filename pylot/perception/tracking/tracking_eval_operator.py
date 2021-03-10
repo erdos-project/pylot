@@ -53,6 +53,10 @@ class TrackingEvalOperator(erdos.Operator):
         # the start_tracker_end_times list might contain entries with
         # start time beyond current watermark.
         self._start_time_frontier = 0
+        # Buffer storing start times and ground times of predictions we have
+        # to compute accuracy for. The buffer is used to ensure that these
+        # accuracies are computed only once the ground data is available.
+        self._accuracy_compute_buffer = []
 
     @staticmethod
     def connect(obstacle_tracking_stream, ground_obstacles_stream):
@@ -79,19 +83,9 @@ class TrackingEvalOperator(erdos.Operator):
             return
         assert len(timestamp.coordinates) == 1
         game_time = timestamp.coordinates[0]
-        self.__compute_frame_gap(game_time)
-        (start_time, end_time) = self._tracker_start_end_times[0]
-        # Skip until the watermark is at least as big as the end time of the
-        # first inference.
-        if end_time > game_time:
-            return
-        # Compute the accuracy anchored on the start time.
-        self.__compute_accuracy(start_time, end_time, False)
-
-        # Compute the accuracy anchored on the end time (i.e., find the
-        # prediction with the latest start time with an end time smaller or
-        # equal to the start time of the frontier.
-        (st, _) = self._tracker_start_end_times[self._start_time_frontier]
+        (st, et) = self._tracker_start_end_times[self._start_time_frontier]
+        assert st == game_time, 'Incorrect frontier'
+        self._accuracy_compute_buffer.append((st, et, False))
         index = self._start_time_frontier
         while index >= 0:
             (p_start_time, p_end_time) = self._tracker_start_end_times[index]
@@ -109,7 +103,9 @@ class TrackingEvalOperator(erdos.Operator):
         if self._start_time_best_inference:
             # Compute accuracy if we have a prediction with end_time less than
             # current frontier.
-            self.__compute_accuracy(self._start_time_best_inference, st, True)
+            self._accuracy_compute_buffer.append(
+                (self._start_time_best_inference, st, True))
+        self.__drain_accuracy_compute_buffer(st)
         # Increase the frontier to process the next start time.
         self._start_time_frontier += 1
 
@@ -123,7 +119,15 @@ class TrackingEvalOperator(erdos.Operator):
                 self._frame_gap = (game_time - self._last_notification)
                 self._last_notification = game_time
 
-    def __compute_accuracy(self, frame_time, ground_time, end_anchored):
+    def __drain_accuracy_compute_buffer(self, up_to_time):
+        for (st, et, end_anchored) in self._accuracy_compute_buffer:
+            if et <= up_to_time:
+                self.compute_accuracy(st, et, end_anchored)
+        self._accuracy_compute_buffer = list(
+            filter(lambda args: args[1] > up_to_time,
+                   self._accuracy_compute_buffer))
+
+    def compute_accuracy(self, frame_time, ground_time, end_anchored):
         tracker_obstacles = self.__get_tracked_obstacles_at(frame_time)
         ground_obstacles = self.__get_ground_obstacles_at(ground_time)
         if end_anchored:
