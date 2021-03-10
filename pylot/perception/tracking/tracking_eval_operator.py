@@ -208,7 +208,7 @@ class TrackingEvalOperator(erdos.Operator):
         game_time = msg.timestamp.coordinates[0]
         self._tracked_obstacles.append((game_time, msg.obstacles))
         if len(self._tracked_obstacles) > 1:
-            assert game_time >= self._tracked_obstackes[-2][0], \
+            assert game_time >= self._tracked_obstacles[-2][0], \
                 'Obstacle messages did not arrive in order'
         # Two metrics: 1) mAP, and 2) timely-mAP
         if not self._evaluate_timely:
