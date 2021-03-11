@@ -113,8 +113,8 @@ class ObjectTrackerOperator(erdos.Operator):
                 for obstacle in obstacles_msg.obstacles:
                     if obstacle.is_vehicle() or obstacle.is_person():
                         detected_obstacles.append(obstacle)
-                reinit_runtime, _ = self._reinit_tracker(camera_frame,
-                                                         detected_obstacles)
+                reinit_runtime, _ = self._reinit_tracker(
+                    camera_frame, detected_obstacles)
                 detector_runtime = obstacles_msg.runtime
         tracker_runtime, (ok, tracked_obstacles) = \
             self._run_tracker(camera_frame)
