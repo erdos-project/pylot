@@ -446,7 +446,7 @@ def get_detected_speed_limits(speed_signs, depth_frame, segmented_frame):
             elif yaw_diff >= 360:
                 yaw_diff -= 360
             if best_dist < 5**2 and yaw_diff > 30 and yaw_diff < 150:
-                best_ts.bounding_box = bbox
+                best_ts.bounding_box_2D = bbox
                 result.append(best_ts)
         return result
 
@@ -532,7 +532,7 @@ def get_detected_traffic_stops(traffic_stops, depth_frame):
         bbox_2d = get_stop_markings_bbox(stop_sign.bounding_box_3d,
                                          depth_frame)
         if bbox_2d is not None:
-            stop_sign.bounding_box = bbox_2d
+            stop_sign.bounding_box_2D = bbox_2d
             det_stop_signs.append(stop_sign)
     return det_stop_signs
 

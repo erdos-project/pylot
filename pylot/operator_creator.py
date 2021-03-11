@@ -269,6 +269,7 @@ def add_center_track_tracking(bgr_camera_stream,
 def add_tracking_evaluation(obstacle_tracking_stream,
                             ground_obstacles_stream,
                             evaluate_timely=False,
+                            matching_policy='ceil',
                             frame_gap=None,
                             name='tracking_eval_operator'):
     from pylot.perception.tracking.tracking_eval_operator import \
@@ -280,7 +281,7 @@ def add_tracking_evaluation(obstacle_tracking_stream,
     [finished_indicator_stream
      ] = erdos.connect(TrackingEvalOperator, op_config,
                        [obstacle_tracking_stream, ground_obstacles_stream],
-                       evaluate_timely, frame_gap, FLAGS)
+                       evaluate_timely, matching_policy, frame_gap, FLAGS)
     return finished_indicator_stream
 
 
@@ -744,7 +745,7 @@ def add_imu_logging(imu_stream, name='imu_logger_operator'):
 
 def add_lidar_logging(point_cloud_stream,
                       name='lidar_logger_operator',
-                      filename_prefix='lidar-'):
+                      filename_prefix='lidar'):
     from pylot.loggers.lidar_logger_operator import LidarLoggerOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,

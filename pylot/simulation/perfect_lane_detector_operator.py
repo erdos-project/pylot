@@ -114,11 +114,11 @@ class PerfectLaneDetectionOperator(erdos.Operator):
                 if self._frame_cnt % self._flags.log_every_nth_message == 0:
                     instance_file_name = os.path.join(
                         self._flags.data_path,
-                        '{}-{}.png'.format("lane-",
+                        '{}-{}.png'.format("lane",
                                            bgr_msg.timestamp.coordinates[0]))
                     binary_file_name = os.path.join(
                         self._flags.data_path,
-                        '{}-{}.png'.format("binary_lane-",
+                        '{}-{}.png'.format("binary_lane",
                                            bgr_msg.timestamp.coordinates[0]))
                     instance_img = Image.fromarray(frame)
                     binary_img = Image.fromarray(binary_frame)
