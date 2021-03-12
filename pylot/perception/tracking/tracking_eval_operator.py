@@ -5,7 +5,8 @@ import motmetrics as mm
 
 import numpy as np
 
-from pylot.perception.base_perception_eval import BasePerceptionEvalOperator
+from pylot.perception.base_perception_eval_operator import \
+    BasePerceptionEvalOperator
 from pylot.utils import time_epoch_ms
 
 
