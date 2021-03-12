@@ -3,7 +3,7 @@ import math
 import erdos
 
 
-class StreamEvalOperator(erdos.Operator):
+class BasePerceptionEvalOperator(erdos.Operator):
     """Operator that computes accuracy metrics using tracked obstacles.
 
     Args:
