@@ -67,6 +67,9 @@ class BehaviorPlanningOperator(erdos.Operator):
         trajectory_stream = erdos.WriteStream()
         return [trajectory_stream]
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     def on_opendrive_map(self, msg):
         """Invoked whenever a message is received on the open drive stream.
 
@@ -102,6 +105,8 @@ class BehaviorPlanningOperator(erdos.Operator):
 
     def on_watermark(self, timestamp, trajectory_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
+        if timestamp.is_top:
+            return
         pose_msg = self._pose_msgs.popleft()
         ego_transform = pose_msg.data.transform
         self._ego_info.update(self._state, pose_msg)
@@ -146,7 +151,6 @@ class BehaviorPlanningOperator(erdos.Operator):
             # Send the state update.
             trajectory_stream.send(
                 WaypointsMessage(timestamp, None, self._state))
-        trajectory_stream.send(erdos.WatermarkMessage(timestamp))
 
     def __initialize_behaviour_planner(self):
         # State the planner is in.

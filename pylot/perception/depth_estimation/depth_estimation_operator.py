@@ -94,6 +94,9 @@ class DepthEstimationOperator(erdos.Operator):
         depth_estimation_stream = erdos.WriteStream()
         return [depth_estimation_stream]
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     def on_left_camera_msg(self, msg):
         self._logger.debug('@{}: {} received left camera message'.format(
             msg.timestamp, self.config.name))
@@ -122,6 +125,8 @@ class DepthEstimationOperator(erdos.Operator):
     def compute_depth(self, timestamp, depth_estimation_stream):
         self._logger.debug('@{}: {} received watermark'.format(
             timestamp, self.config.name))
+        if timestamp.is_top:
+            return
         imgL = self._left_imgs.pop(timestamp)
         imgR = self._right_imgs.pop(timestamp)
         cudnn.benchmark = False

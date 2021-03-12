@@ -80,6 +80,9 @@ class LocalizationOperator(erdos.Operator):
         pose_stream = erdos.WriteStream()
         return [pose_stream]
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     def save(self, msg: Message, msg_type: str, queue: deque):
         self._logger.debug("@{}: received {} message.".format(
             msg.timestamp, msg_type))
@@ -145,6 +148,9 @@ class LocalizationOperator(erdos.Operator):
     @erdos.profile_method()
     def on_watermark(self, timestamp: Timestamp):
         self._logger.debug("@{}: received watermark.".format(timestamp))
+        if timestamp.is_top:
+            self._pose_stream.send(erdos.WatermarkMessage(timestamp))
+            return
 
         # Retrieve the messages for this timestamp.
         pose_msg = self.get_message(self._ground_pose_updates, timestamp,

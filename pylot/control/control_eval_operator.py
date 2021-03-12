@@ -47,6 +47,9 @@ class ControlEvalOperator(erdos.Operator):
         # This operator does not have any write streams.
         return []
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     def on_pose_update(self, msg: Message):
         """Callback function for the pose update messages.
 
@@ -91,6 +94,8 @@ class ControlEvalOperator(erdos.Operator):
                 of the watermark.
         """
         self._logger.debug('@{}: received watermark.'.format(timestamp))
+        if timestamp.is_top:
+            return
 
         # Get the transform of the ego vehicle.
         pose_msg = self._pose_messages.popleft()

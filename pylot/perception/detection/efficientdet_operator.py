@@ -104,6 +104,9 @@ class EfficientDetOperator(erdos.Operator):
         obstacles_stream = erdos.WriteStream()
         return [obstacles_stream]
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     def _pick_model(self, ttd):
         """Decides which model to use based on time to decision."""
         runtimes = [('efficientdet-d6', 190), ('efficientdet-d5', 141),
@@ -156,6 +159,8 @@ class EfficientDetOperator(erdos.Operator):
                 :py:class:`~pylot.perception.messages.ObstaclesMessage`
                 messages.
         """
+        if timestamp.is_top:
+            return
         start_time = time.time()
         ttd_msg = self._ttd_msgs.popleft()
         frame_msg = self._frame_msgs.popleft()
@@ -202,7 +207,6 @@ class EfficientDetOperator(erdos.Operator):
                        'detector-{}'.format(self.config.name))
         # end_time = time.time()
         obstacles_stream.send(ObstaclesMessage(timestamp, obstacles, 0))
-        obstacles_stream.send(erdos.WatermarkMessage(timestamp))
 
         operator_time_total_end = time.time()
         self._logger.debug("@{}: total time spent: {}".format(

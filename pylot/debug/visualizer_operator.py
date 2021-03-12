@@ -203,6 +203,9 @@ class VisualizerOperator(erdos.Operator):
                 control_stream, display_control_stream):
         return []
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     def save(self, msg, msg_type, queue):
         self._logger.debug("@{}: Received {} message.".format(
             msg.timestamp, msg_type))
@@ -273,6 +276,8 @@ class VisualizerOperator(erdos.Operator):
 
     def on_watermark(self, timestamp):
         self._logger.debug("@{}: received watermark.".format(timestamp))
+        if timestamp.is_top:
+            return
         pose_msg = self.get_message(self._pose_msgs, timestamp, "Pose")
         bgr_msg = self.get_message(self._bgr_msgs, timestamp, "BGR")
         tl_camera_msg = self.get_message(self._tl_camera_msgs, timestamp,

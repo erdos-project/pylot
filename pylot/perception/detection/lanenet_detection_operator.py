@@ -73,6 +73,9 @@ class LanenetDetectionOperator(erdos.Operator):
         detected_lanes_stream = erdos.WriteStream()
         return [detected_lanes_stream]
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     @erdos.profile_method()
     def on_camera_frame(self, msg, detected_lanes_stream):
         """Invoked whenever a frame message is received on the stream.
@@ -148,7 +151,6 @@ class LanenetDetectionOperator(erdos.Operator):
             msg.timestamp, len(detected_lanes)))
         detected_lanes_stream.send(erdos.Message(msg.timestamp,
                                                  detected_lanes))
-        detected_lanes_stream.send(erdos.WatermarkMessage(msg.timestamp))
 
         # plt.figure('binary_image')
         # plt.imshow(binary_seg_image[0] * 255, cmap='gray')

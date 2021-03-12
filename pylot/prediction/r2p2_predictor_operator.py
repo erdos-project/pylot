@@ -64,9 +64,13 @@ class R2P2PredictorOperator(erdos.Operator):
         prediction_stream = erdos.WriteStream()
         return [prediction_stream]
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     def on_watermark(self, timestamp, prediction_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
-
+        if timestamp.is_top:
+            return
         point_cloud_msg = self._point_cloud_msgs.popleft()
         tracking_msg = self._tracking_msgs.popleft()
 

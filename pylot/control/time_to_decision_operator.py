@@ -15,6 +15,9 @@ class TimeToDecisionOperator(erdos.Operator):
     def connect(pose_stream, obstacles_stream):
         return [erdos.WriteStream()]
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     def on_pose_update(self, msg, time_to_decision_stream):
         self._logger.debug('@{}: {} received pose message'.format(
             msg.timestamp, self.config.name))
@@ -22,7 +25,6 @@ class TimeToDecisionOperator(erdos.Operator):
                                                       msg.data.forward_speed,
                                                       None)
         time_to_decision_stream.send(erdos.Message(msg.timestamp, ttd))
-        time_to_decision_stream.send(erdos.WatermarkMessage(msg.timestamp))
 
     def on_obstacles_update(self, msg):
         self._last_obstacles_msg = msg

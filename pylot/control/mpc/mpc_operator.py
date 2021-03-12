@@ -45,6 +45,9 @@ class MPCOperator(erdos.Operator):
         control_stream = erdos.WriteStream()
         return [control_stream]
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     def on_waypoints_update(self, msg):
         self._logger.debug('@{}: waypoints update'.format(msg.timestamp))
         self._waypoint_msgs.append(msg)
@@ -56,6 +59,8 @@ class MPCOperator(erdos.Operator):
     @erdos.profile_method()
     def on_watermark(self, timestamp, control_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
+        if timestamp.is_top:
+            return
 
         # Get hero vehicle info.
         pose_msg = self._pose_msgs.popleft()

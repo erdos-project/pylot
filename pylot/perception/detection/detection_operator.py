@@ -38,6 +38,7 @@ class DetectionOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
+        self._obstacles_stream = obstacles_stream
         self._detection_graph = tf.Graph()
         # Load the model from the model file.
         pylot.utils.set_tf_loglevel(logging.ERROR)
@@ -89,6 +90,13 @@ class DetectionOperator(erdos.Operator):
         """
         obstacles_stream = erdos.WriteStream()
         return [obstacles_stream]
+
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+        # Sending top watermark because the operator is not flowing
+        # watermarks.
+        self._obstacles_stream.send(
+            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
     def on_time_to_decision_update(self, msg):
         self._logger.debug('@{}: {} received ttd update {}'.format(

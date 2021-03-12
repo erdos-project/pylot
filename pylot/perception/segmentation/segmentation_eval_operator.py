@@ -57,6 +57,9 @@ class SegmentationEvalOperator(erdos.Operator):
         """
         return []
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     def on_watermark(self, timestamp):
         """Invoked when all input streams have received a watermark.
 
@@ -64,6 +67,8 @@ class SegmentationEvalOperator(erdos.Operator):
             timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
                 the watermark.
         """
+        if timestamp.is_top:
+            return
         assert len(timestamp.coordinates) == 1
         if not self._last_notification:
             self._last_notification = timestamp.coordinates[0]
