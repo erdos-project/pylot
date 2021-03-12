@@ -47,7 +47,6 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
         detected_lanes_stream = erdos.WriteStream()
         return [detected_lanes_stream]
 
-
     def destroy(self):
         self._logger.warn('destroying {}'.format(self.config.name))
 
