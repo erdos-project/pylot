@@ -276,7 +276,7 @@ class VisualizerOperator(erdos.Operator):
 
     def on_watermark(self, timestamp):
         self._logger.debug("@{}: received watermark.".format(timestamp))
-        if timestmap.is_top:
+        if timestamp.is_top:
             return
         pose_msg = self.get_message(self._pose_msgs, timestamp, "Pose")
         bgr_msg = self.get_message(self._bgr_msgs, timestamp, "BGR")
