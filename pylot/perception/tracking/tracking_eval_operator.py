@@ -5,11 +5,11 @@ import motmetrics as mm
 
 import numpy as np
 
-from ..base_perception_eval import StreamEvalOperator
+from ..base_perception_eval import BasePerceptionEvalOperator
 from ...utils import time_epoch_ms
 
 
-class TrackingEvalOperatorV2(StreamEvalOperator):
+class TrackingEvalOperatorV2(BasePerceptionEvalOperator):
     def __init__(self, prediction_stream, ground_truth_stream,
                  finished_indicator_stream, evaluate_timely, matching_policy,
                  frame_gap, flags):
