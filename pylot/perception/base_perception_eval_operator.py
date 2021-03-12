@@ -25,9 +25,9 @@ class BasePerceptionEvalOperator(erdos.Operator):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._last_notification = None
-        # Buffer of tracked obstacles.
+        # Buffer of predictions.
         self._predictions = []
-        # Buffer of ground obstacles.
+        # Buffer of ground data.
         self._ground_truths = []
         # Storing pairs of (game time, ground/output time).
         self._prediction_start_end_times = []
@@ -37,7 +37,7 @@ class BasePerceptionEvalOperator(erdos.Operator):
         # The start time of the most recent inference that completed before
         # the timestamp of the watermark.
         self._start_time_best_inference = None
-        # Index in tracker_start_end_times to the inference with the next
+        # Index in prediction_start_end_times to the inference with the next
         # unprocessed start time. We need to maintain this index because
         # the start_tracker_end_times list might contain entries with
         # start time beyond current watermark.
@@ -113,7 +113,7 @@ class BasePerceptionEvalOperator(erdos.Operator):
                      or gc_threshold > self._start_time_best_inference)):
             gc_threshold = self._start_time_best_inference
         if gc_threshold is not None:
-            self.__gc_obstacles_earlier_than(gc_threshold)
+            self.__gc_data_earlier_than(gc_threshold)
 
     def compute_accuracy(self, frame_time, ground_time, end_anchored):
         raise NotImplementedError("To be implemented by child class.")
@@ -146,7 +146,7 @@ class BasePerceptionEvalOperator(erdos.Operator):
         self._logger.fatal(
             'Could not find tracked obstacles for {}'.format(timestamp))
 
-    def __gc_obstacles_earlier_than(self, game_time):
+    def __gc_data_earlier_than(self, game_time):
         index = 0
         while (index < len(self._predictions)
                and self._predictions[index][0] < game_time):
