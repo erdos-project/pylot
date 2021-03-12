@@ -72,16 +72,15 @@ class BasePerceptionEvalOperator(erdos.Operator):
             return
         assert len(timestamp.coordinates) == 1
         game_time = timestamp.coordinates[0]
-        on_new_prediction = self._start_time_frontier == len(
-            self._prediction_start_end_times) - 1
-        if on_new_prediction:
+        on_new_prediction = False
+        if self._start_time_frontier < len(self._prediction_start_end_times):
             (st,
              et) = self._prediction_start_end_times[self._start_time_frontier]
-            assert st == game_time, 'Incorrect frontier'
-            self._accuracy_compute_buffer.append((st, et, False))
-        if on_new_prediction:
-            index = self._start_time_frontier
-        else:
+            if st == game_time:
+                on_new_prediction = True
+                self._accuracy_compute_buffer.append((st, et, False))
+        index = self._start_time_frontier
+        if not on_new_prediction:
             index = self._start_time_frontier - 1
         while index >= 0:
             (p_start_time,
