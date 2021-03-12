@@ -35,6 +35,7 @@ class TrafficLightDetOperator(erdos.Operator):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
+        self._traffic_lights_stream = traffic_lights_stream
         self._detection_graph = tf.Graph()
         # Load the model from the model file.
         pylot.utils.set_tf_loglevel(logging.ERROR)
@@ -90,6 +91,11 @@ class TrafficLightDetOperator(erdos.Operator):
         """
         traffic_lights_stream = erdos.WriteStream()
         return [traffic_lights_stream]
+
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+        self._traffic_lights_stream.send(
+            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
     @erdos.profile_method()
     def on_frame(self, msg, traffic_lights_stream):

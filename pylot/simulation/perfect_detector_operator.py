@@ -102,6 +102,9 @@ class PerfectDetectorOperator(erdos.Operator):
         # Stream on which to output bounding boxes.
         return [obstacles_stream]
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     @erdos.profile_method()
     def on_watermark(self, timestamp: Timestamp,
                      obstacles_stream: WriteStream):
@@ -112,6 +115,8 @@ class PerfectDetectorOperator(erdos.Operator):
                 the watermark.
         """
         self._logger.debug('@{}: received watermark'.format(timestamp))
+        if timestamp.is_top:
+            return
         depth_msg = self._depth_frame_msgs.popleft()
         bgr_msg = self._bgr_msgs.popleft()
         segmented_msg = self._segmented_msgs.popleft()
@@ -125,7 +130,6 @@ class PerfectDetectorOperator(erdos.Operator):
             # There's no point to run the perfect detector if collecting
             # data, and only logging every nth frame.
             obstacles_stream.send(ObstaclesMessage(timestamp, []))
-            obstacles_stream.send(erdos.WatermarkMessage(timestamp))
             return
         vehicle_transform = pose_msg.data.transform
 
@@ -150,7 +154,6 @@ class PerfectDetectorOperator(erdos.Operator):
 
         # Send the detected obstacles.
         obstacles_stream.send(ObstaclesMessage(timestamp, det_obstacles))
-        obstacles_stream.send(erdos.WatermarkMessage(timestamp))
 
         if self._flags.log_detector_output:
             bgr_msg.frame.annotate_with_bounding_boxes(bgr_msg.timestamp,

@@ -73,6 +73,9 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
         traffic_lights_stream = erdos.WriteStream()
         return [traffic_lights_stream]
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     def run(self):
         # Run method is invoked after all operators finished initializing.
         # Thus, we're sure the world is up-to-date here.
@@ -91,6 +94,8 @@ class PerfectTrafficLightDetectorOperator(erdos.Operator):
                 the watermark.
         """
         self._logger.debug('@{}: received watermark'.format(timestamp))
+        if timestamp.is_top:
+            return
         traffic_light_msg = self._traffic_lights.popleft()
         bgr_msg = self._bgr_msgs.popleft()
         depth_msg = self._depth_frame_msgs.popleft()

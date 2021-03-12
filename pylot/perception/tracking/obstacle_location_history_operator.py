@@ -23,7 +23,7 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
                                                  self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
             self.config.name + '-csv', self.config.csv_log_file_name)
-
+        self._tracked_obstacles_stream = tracked_obstacles_stream
         # Queues in which received messages are stored.
         self._obstacles_msgs = deque()
         self._depth_msgs = deque()
@@ -39,6 +39,9 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
         tracked_obstacles_stream = erdos.WriteStream()
         return [tracked_obstacles_stream]
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     @erdos.profile_method()
     def on_watermark(self, timestamp, tracked_obstacles_stream):
         """Invoked when all input streams have received a watermark.
@@ -48,6 +51,9 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
                 the watermark.
         """
         self._logger.debug('@{}: received watermark'.format(timestamp))
+        if timestamp.is_top:
+            tracked_obstacles_stream.send(erdos.WatermarkMessage(timestamp))
+            return
         obstacles_msg = self._obstacles_msgs.popleft()
         depth_msg = self._depth_msgs.popleft()
         vehicle_transform = self._pose_msgs.popleft().data.transform

@@ -95,6 +95,9 @@ class PlanningOperator(erdos.Operator):
         waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     def run(self):
         # Run method is invoked after all operators finished initializing.
         # Thus, we're sure the world is up-to-date here.
@@ -172,6 +175,8 @@ class PlanningOperator(erdos.Operator):
     @erdos.profile_method()
     def on_watermark(self, timestamp, waypoints_stream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
+        if timestamp.is_top:
+            return
         self.update_world(timestamp)
         ttd_msg = self._ttd_msgs.popleft()
         # Total ttd - time spent up to now
@@ -197,7 +202,6 @@ class PlanningOperator(erdos.Operator):
                 timestamp, speed_factor))
             output_wps.apply_speed_factor(speed_factor)
         waypoints_stream.send(WaypointsMessage(timestamp, output_wps))
-        waypoints_stream.send(erdos.WatermarkMessage(timestamp))
 
     def get_predictions(self, prediction_msg, ego_transform):
         predictions = []

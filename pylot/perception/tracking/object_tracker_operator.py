@@ -56,6 +56,9 @@ class ObjectTrackerOperator(erdos.Operator):
         obstacle_tracking_stream = erdos.WriteStream()
         return [obstacle_tracking_stream]
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     def on_frame_msg(self, msg):
         """Invoked when a FrameMessage is received on the camera stream."""
         self._logger.debug('@{}: {} received frame'.format(
@@ -85,12 +88,8 @@ class ObjectTrackerOperator(erdos.Operator):
 
     @erdos.profile_method()
     def on_watermark(self, timestamp, obstacle_tracking_stream):
-        if timestamp.is_top:
-            obstacle_tracking_stream.send(erdos.WatermarkMessage(timestamp))
-            return
         self._logger.debug('@{}: received watermark'.format(timestamp))
         if timestamp.is_top:
-            obstacle_tracking_stream.send(erdos.WatermarkMessage(timestamp))
             return
         frame_msg = self._frame_msgs.popleft()
         camera_frame = frame_msg.frame
@@ -125,7 +124,6 @@ class ObjectTrackerOperator(erdos.Operator):
                                                      tracker_runtime)
         obstacle_tracking_stream.send(
             ObstaclesMessage(timestamp, tracked_obstacles, tracker_delay))
-        obstacle_tracking_stream.send(erdos.WatermarkMessage(timestamp))
 
     def __compute_tracker_delay(self, world_time, detector_runtime,
                                 tracker_runtime):

@@ -57,6 +57,9 @@ class PIDControlOperator(erdos.Operator):
         control_stream = erdos.WriteStream()
         return [control_stream]
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     @erdos.profile_method()
     def on_watermark(self, timestamp: Timestamp, control_stream: WriteStream):
         """Computes and sends the control command on the control stream.
@@ -68,6 +71,8 @@ class PIDControlOperator(erdos.Operator):
                 the watermark.
         """
         self._logger.debug('@{}: received watermark'.format(timestamp))
+        if timestamp.is_top:
+            return
         pose_msg = self._pose_msgs.popleft()
         ego_transform = pose_msg.data.transform
         # Vehicle speed in m/s.
@@ -93,7 +98,6 @@ class PIDControlOperator(erdos.Operator):
                    brake))
         control_stream.send(
             ControlMessage(steer, throttle, brake, False, False, timestamp))
-        control_stream.send(erdos.WatermarkMessage(timestamp))
 
     def on_waypoints_update(self, msg: Message):
         self._logger.debug('@{}: waypoints update'.format(msg.timestamp))

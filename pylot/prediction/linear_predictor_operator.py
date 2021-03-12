@@ -49,6 +49,9 @@ class LinearPredictorOperator(erdos.Operator):
         linear_prediction_stream = erdos.WriteStream()
         return [linear_prediction_stream]
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     @erdos.profile_method()
     def generate_predicted_trajectories(self, msg: Message,
                                         linear_prediction_stream: WriteStream):
@@ -103,4 +106,3 @@ class LinearPredictorOperator(erdos.Operator):
                                    predictions))
         linear_prediction_stream.send(
             PredictionMessage(msg.timestamp, obstacle_predictions_list))
-        linear_prediction_stream.send(erdos.WatermarkMessage(msg.timestamp))

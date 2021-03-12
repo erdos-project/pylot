@@ -49,6 +49,9 @@ class PredictionEvalOperator(erdos.Operator):
                 prediction_stream: ReadStream):
         return []
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     def _on_prediction_update(self, msg: Message):
         self._prediction_msgs.append(msg)
 
@@ -65,6 +68,8 @@ class PredictionEvalOperator(erdos.Operator):
             timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
                 the watermark.
         """
+        if timestamp.is_top:
+            return
         tracking_msg = self._tracking_msgs.popleft()
         prediction_msg = self._prediction_msgs.popleft()
         vehicle_transform = self._pose_msgs.popleft().data.transform

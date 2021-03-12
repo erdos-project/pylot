@@ -57,6 +57,9 @@ class ObstacleLocationFinderOperator(erdos.Operator):
         obstacles_output_stream = erdos.WriteStream()
         return [obstacles_output_stream]
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     @erdos.profile_method()
     def on_watermark(self, timestamp, obstacles_output_stream):
         """Invoked when all input streams have received a watermark.
@@ -66,20 +69,18 @@ class ObstacleLocationFinderOperator(erdos.Operator):
                 the watermark.
         """
         self._logger.debug('@{}: received watermark'.format(timestamp))
+        if timestamp.is_top:
+            return
         obstacles_msg = self._obstacles_msgs.popleft()
         depth_msg = self._depth_msgs.popleft()
         vehicle_transform = self._pose_msgs.popleft().data.transform
-
         obstacles_with_location = get_obstacle_locations(
             obstacles_msg.obstacles, depth_msg, vehicle_transform,
             self._camera_setup, self._logger)
-
         self._logger.debug('@{}: {}'.format(timestamp,
                                             obstacles_with_location))
-
         obstacles_output_stream.send(
             ObstaclesMessage(timestamp, obstacles_with_location))
-        obstacles_output_stream.send(erdos.WatermarkMessage(timestamp))
 
     def on_obstacles_update(self, msg):
         self._logger.debug('@{}: obstacles update'.format(msg.timestamp))

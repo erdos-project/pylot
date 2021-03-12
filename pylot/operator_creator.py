@@ -33,7 +33,6 @@ def add_efficientdet_obstacle_detection(camera_stream,
     if csv_file_name is None:
         csv_file_name = FLAGS.csv_log_file_name
     op_config = erdos.OperatorConfig(name='efficientdet_operator',
-                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=csv_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -91,7 +90,6 @@ def add_obstacle_location_finder(obstacles_stream, depth_stream, pose_stream,
         ObstacleLocationFinderOperator
     op_config = erdos.OperatorConfig(name=camera_setup.get_name() +
                                      '_location_finder_operator',
-                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -221,7 +219,6 @@ def add_lanenet_detection(bgr_camera_stream, name='lanenet_lane_detection'):
     from pylot.perception.detection.lanenet_detection_operator import \
         LanenetDetectionOperator
     op_config = erdos.OperatorConfig(name=name,
-                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -238,7 +235,6 @@ def add_obstacle_tracking(obstacles_stream,
     from pylot.perception.tracking.object_tracker_operator import \
         ObjectTrackerOperator
     op_config = erdos.OperatorConfig(name=name_prefix + FLAGS.tracker_type,
-                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -256,7 +252,6 @@ def add_center_track_tracking(bgr_camera_stream,
     from pylot.perception.tracking.center_track_operator import \
         CenterTrackOperator
     op_config = erdos.OperatorConfig(name='center_track_operator',
-                                     flow_watermarks=True,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -348,7 +343,6 @@ def add_linear_prediction(tracking_stream):
     from pylot.prediction.linear_predictor_operator import \
         LinearPredictorOperator
     op_config = erdos.OperatorConfig(name='linear_prediction_operator',
-                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -394,7 +388,6 @@ def add_behavior_planning(pose_stream,
     from pylot.planning.behavior_planning_operator import \
         BehaviorPlanningOperator
     op_config = erdos.OperatorConfig(name=name,
-                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -415,7 +408,6 @@ def add_planning(pose_stream,
                  name='planning_operator'):
     from pylot.planning.planning_operator import PlanningOperator
     op_config = erdos.OperatorConfig(name=name,
-                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -611,7 +603,6 @@ def add_fusion(pose_stream, obstacles_stream, depth_stream,
 def add_mpc(pose_stream, waypoints_stream):
     from pylot.control.mpc.mpc_operator import MPCOperator
     op_config = erdos.OperatorConfig(name='mpc_operator',
-                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -623,7 +614,6 @@ def add_mpc(pose_stream, waypoints_stream):
 def add_pid_control(pose_stream, waypoints_stream):
     from pylot.control.pid_control_operator import PIDControlOperator
     op_config = erdos.OperatorConfig(name='pid_control_operator',
-                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -907,7 +897,6 @@ def add_perfect_detector(depth_camera_stream, center_camera_stream,
     from pylot.simulation.perfect_detector_operator import \
         PerfectDetectorOperator
     op_config = erdos.OperatorConfig(name='perfect_detector_operator',
-                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -970,7 +959,6 @@ def add_perfect_tracking(vehicle_id_stream, ground_obstacles_stream,
 def add_time_to_decision(pose_stream, obstacles_stream):
     from pylot.control.time_to_decision_operator import TimeToDecisionOperator
     op_config = erdos.OperatorConfig(name='time_to_decision_operator',
-                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)

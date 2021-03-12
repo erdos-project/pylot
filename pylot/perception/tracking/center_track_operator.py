@@ -86,6 +86,9 @@ class CenterTrackOperator(erdos.Operator):
         obstacle_tracking_stream = erdos.WriteStream()
         return [obstacle_tracking_stream]
 
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     @erdos.profile_method()
     def on_frame_msg(self, msg, obstacle_tracking_stream):
         """Invoked when a FrameMessage is received on the camera stream."""
