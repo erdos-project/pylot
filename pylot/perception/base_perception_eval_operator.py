@@ -72,14 +72,21 @@ class BasePerceptionEvalOperator(erdos.Operator):
             return
         assert len(timestamp.coordinates) == 1
         game_time = timestamp.coordinates[0]
-        (st, et) = self._prediction_start_end_times[self._start_time_frontier]
-        assert st == game_time, 'Incorrect frontier'
-        self._accuracy_compute_buffer.append((st, et, False))
-        index = self._start_time_frontier
+        on_new_prediction = self._start_time_frontier == len(
+            self._prediction_start_end_times) - 1
+        if on_new_prediction:
+            (st,
+             et) = self._prediction_start_end_times[self._start_time_frontier]
+            assert st == game_time, 'Incorrect frontier'
+            self._accuracy_compute_buffer.append((st, et, False))
+        if on_new_prediction:
+            index = self._start_time_frontier
+        else:
+            index = self._start_time_frontier - 1
         while index >= 0:
             (p_start_time,
              p_end_time) = self._prediction_start_end_times[index]
-            if p_end_time == st:
+            if p_end_time == game_time:
                 # This is the result that arrived before start_time, and
                 # uses the most up-to-date sensor data (tracker_start_end_times
                 # is sorted by start_times).
@@ -93,10 +100,11 @@ class BasePerceptionEvalOperator(erdos.Operator):
             # Compute accuracy if we have a prediction with end_time less than
             # current frontier.
             self._accuracy_compute_buffer.append(
-                (self._start_time_best_inference, st, True))
-        self.__drain_accuracy_compute_buffer(st)
+                (self._start_time_best_inference, game_time, True))
+        self.__drain_accuracy_compute_buffer(game_time)
         # Increase the frontier to process the next start time.
-        self._start_time_frontier += 1
+        if on_new_prediction:
+            self._start_time_frontier += 1
 
     def __drain_accuracy_compute_buffer(self, up_to_time):
         for (st, et, end_anchored) in self._accuracy_compute_buffer:
