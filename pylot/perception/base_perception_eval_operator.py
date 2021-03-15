@@ -2,6 +2,8 @@ import math
 
 import erdos
 
+from pylot.utils import time_epoch_ms
+
 
 class BasePerceptionEvalOperator(erdos.Operator):
     """Operator that computes accuracy metrics using tracked obstacles.
@@ -16,7 +18,7 @@ class BasePerceptionEvalOperator(erdos.Operator):
     """
     def __init__(self, prediction_stream, ground_truth_stream,
                  finished_indicator_stream, evaluate_timely, matching_policy,
-                 frame_gap, flags):
+                 frame_gap, scoring_module, flags):
         prediction_stream.add_callback(self.on_prediction)
         ground_truth_stream.add_callback(self.on_ground_truth)
         erdos.add_watermark_callback([prediction_stream, ground_truth_stream],
@@ -46,6 +48,14 @@ class BasePerceptionEvalOperator(erdos.Operator):
         # to compute accuracy for. The buffer is used to ensure that these
         # accuracies are computed only once the ground data is available.
         self._accuracy_compute_buffer = []
+        # See interface below this function
+        self._scoring_module = scoring_module
+        self.scoring_modules = {
+            "start": scoring_module(flags),
+            "end": scoring_module(flags)
+        }
+        self._csv_logger = erdos.utils.setup_csv_logging(
+            self.config.name + '-csv', self.config.csv_log_file_name)
 
     @staticmethod
     def connect(prediction_stream, ground_truth_stream):
@@ -123,7 +133,17 @@ class BasePerceptionEvalOperator(erdos.Operator):
             self.__gc_data_earlier_than(gc_threshold)
 
     def compute_accuracy(self, frame_time, ground_time, end_anchored):
-        raise NotImplementedError("To be implemented by child class.")
+        anchor_type = "end" if end_anchored else "start"
+        anchor_time = ground_time if end_anchored else frame_time
+        predictions = self.get_prediction_at(frame_time)
+        ground_truths = self.get_ground_truth_at(ground_time)
+        self.scoring_modules[anchor_type].add_datapoint(
+            predictions, ground_truths)
+        new_scores = self.scoring_modules[anchor_type].get_scores()
+        for k, v in new_scores.items():
+            self._csv_logger.info("{},{},{},{},{},{},{:.4f}".format(
+                time_epoch_ms(), anchor_time, self.config.name, anchor_type,
+                self._matching_policy, k, v))
 
     def __compute_frame_gap(self, game_time):
         """Infer frame gap if not explicitly provided in constructor."""
@@ -199,3 +219,17 @@ class BasePerceptionEvalOperator(erdos.Operator):
             raise ValueError('Matching policy {} not supported'.format(
                 self._matching_policy))
         return base
+
+
+class ScoringModule:
+    def __init__(self, flags):
+        raise NotImplementedError("To be implemented by child class")
+
+    def add_datapoint(self, predictions, ground_truth):
+        raise NotImplementedError("To be implemented by child class")
+
+    def get_scores(self):
+        """
+        Returns a dictionary from score name to score value
+        """
+        raise NotImplementedError("To be implemented by child class")
