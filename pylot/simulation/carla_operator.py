@@ -1,7 +1,6 @@
 import enum
 import heapq
 import random
-import re
 import threading
 import time
 from functools import total_ordering

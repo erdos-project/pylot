@@ -6,7 +6,6 @@ from the simulator, and sends them on its output stream.
 """
 
 import pickle
-import re
 import threading
 
 import erdos
@@ -128,8 +127,9 @@ class CarlaLidarDriverOperator(erdos.Operator):
 
         self._vehicle = get_vehicle_handle(world, vehicle_id)
 
-        if check_simulator_version(
-                simulator_version, required_minor=9, required_patch=10):
+        if check_simulator_version(simulator_version,
+                                   required_minor=9,
+                                   required_patch=10):
             self._lidar_setup.set_legacy(False)
 
         # Install the Lidar.
@@ -137,8 +137,9 @@ class CarlaLidarDriverOperator(erdos.Operator):
             self._lidar_setup.lidar_type)
         lidar_blueprint.set_attribute('channels',
                                       str(self._lidar_setup.channels))
-        if check_simulator_version(
-                simulator_version, required_minor=9, required_patch=7):
+        if check_simulator_version(simulator_version,
+                                   required_minor=9,
+                                   required_patch=7):
             lidar_blueprint.set_attribute(
                 'range', str(self._lidar_setup.get_range_in_meters()))
         else:
