@@ -13,8 +13,8 @@ import erdos
 
 from pylot.perception.messages import PointCloudMessage
 from pylot.perception.point_cloud import PointCloud
-from pylot.simulation.utils import get_vehicle_handle, get_world, \
-    set_simulation_mode
+from pylot.simulation.utils import check_simulator_version, \
+    get_vehicle_handle, get_world, set_simulation_mode
 
 
 class CarlaLidarDriverOperator(erdos.Operator):
@@ -128,9 +128,8 @@ class CarlaLidarDriverOperator(erdos.Operator):
 
         self._vehicle = get_vehicle_handle(world, vehicle_id)
 
-        if not (simulator_version.startswith('0.8') or re.match(
-                '0\.9\.[02-9]', simulator_version) is not None or  # noqa: W605
-                simulator_version == '0.9.1'):
+        if check_simulator_version(
+                simulator_version, required_minor=9, required_patch=10):
             self._lidar_setup.set_legacy(False)
 
         # Install the Lidar.
@@ -138,10 +137,8 @@ class CarlaLidarDriverOperator(erdos.Operator):
             self._lidar_setup.lidar_type)
         lidar_blueprint.set_attribute('channels',
                                       str(self._lidar_setup.channels))
-        if not (simulator_version.startswith('0.8') or re.match(
-                '0\.9\.[02-6]', simulator_version) is not None or  # noqa: W605
-                simulator_version == '0.9.1'):
-            # Any simulator version after 0.9.6.
+        if check_simulator_version(
+                simulator_version, required_minor=9, required_patch=7):
             lidar_blueprint.set_attribute(
                 'range', str(self._lidar_setup.get_range_in_meters()))
         else:
