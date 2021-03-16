@@ -153,7 +153,8 @@ class DepthFrame(object):
                     protocol=pickle.HIGHEST_PROTOCOL)
 
     def __repr__(self):
-        return self.__str__()
+        return 'DepthFrame(camera_setup: {}, frame: {})'.format(
+            self.camera_setup, self.frame)
 
     def __str__(self):
         return 'DepthFrame(camera_setup: {})'.format(self.camera_setup)

@@ -168,7 +168,8 @@ class CameraFrame(object):
         img.save(file_name)
 
     def __repr__(self):
-        return self.__str__()
+        return 'CameraFrame(encoding: {}, camera_setup: {}, frame: {})'.format(
+            self.encoding, self.camera_setup, self.frame)
 
     def __str__(self):
         return 'CameraFrame(encoding: {}, camera_setup: {})'.format(

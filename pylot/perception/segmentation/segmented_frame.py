@@ -312,3 +312,11 @@ class SegmentedFrame(object):
         traffic_signs_frame[np.where(
             np.logical_or(self._frame == 12, self._frame == 18))] = True
         return traffic_signs_frame
+
+    def __repr__(self):
+        return 'SegmentedFrame(encoding: {}, camera_setup: {}, frame: {})'.format(  # noqa: E501
+            self.encoding, self.camera_setup, self._frame)
+
+    def __str__(self):
+        return 'SegmentedFrame(encoding: {}, camera_setup: {}, frame: {})'.format(  # noqa: E501
+            self.encoding, self.camera_setup, self._frame)

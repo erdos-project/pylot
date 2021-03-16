@@ -203,7 +203,8 @@ class PointCloud(object):
         pygame.display.flip()
 
     def __repr__(self):
-        return self.__str__()
+        return 'PointCloud(lidar setup: {}, points: {})'.format(
+            self._lidar_setup, self.points)
 
     def __str__(self):
         return 'PointCloud(transform: {}, number of points: {})'.format(
