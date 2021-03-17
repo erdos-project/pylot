@@ -70,6 +70,7 @@ class EfficientDetOperator(erdos.Operator):
         self._unique_id = 0
         self._frame_msgs = deque()
         self._ttd_msgs = deque()
+        self._last_ttd = 400
 
     def load_serving_model(self, model_name, model_path, gpu_memory_fraction):
         detection_graph = tf.Graph()
@@ -162,10 +163,11 @@ class EfficientDetOperator(erdos.Operator):
         if timestamp.is_top:
             return
         start_time = time.time()
-        ttd_msg = self._ttd_msgs.popleft()
+        if len(self._ttd_msgs) > 0:
+            ttd_msg = self._ttd_msgs.popleft()
+            self._last_ttd = ttd_msg.data
         frame_msg = self._frame_msgs.popleft()
-        ttd = ttd_msg.data
-        self.update_model_choice(ttd)
+        self.update_model_choice(self._last_ttd)
         frame = frame_msg.frame
         inputs = frame.as_rgb_numpy_array()
         detector_start_time = time.time()
@@ -173,8 +175,9 @@ class EfficientDetOperator(erdos.Operator):
             self._signitures['prediction'],
             feed_dict={self._signitures['image_arrays']: [inputs]})[0]
         detector_end_time = time.time()
+        runtime = (detector_end_time - detector_start_time) * 1000
         self._logger.debug("@{}: detector runtime {}".format(
-            timestamp, (detector_end_time - detector_start_time) * 1000))
+            timestamp, runtime))
         obstacles = []
         camera_setup = frame.camera_setup
         for _, ymin, xmin, ymax, xmax, score, _class in outputs_np:
@@ -206,7 +209,8 @@ class EfficientDetOperator(erdos.Operator):
             frame.save(timestamp.coordinates[0], self._flags.data_path,
                        'detector-{}'.format(self.config.name))
         # end_time = time.time()
-        obstacles_stream.send(ObstaclesMessage(timestamp, obstacles, 0))
+        obstacles_stream.send(ObstaclesMessage(timestamp, obstacles, runtime))
+        obstacles_stream.send(erdos.WatermarkMessage(timestamp))
 
         operator_time_total_end = time.time()
         self._logger.debug("@{}: total time spent: {}".format(
