@@ -38,6 +38,8 @@ class ERDOSBaseAgent(AutonomousAgent):
         flags.FLAGS([__file__, '--flagfile={}'.format(path_to_conf_file)])
         self.logger = erdos.utils.setup_logging('erdos_agent',
                                                 FLAGS.log_file_name)
+        self.csv_logger = erdos.utils.setup_csv_logging(
+            'erdos_agent_csv', FLAGS.csv_log_file_name)
         enable_logging()
         self.track = get_track()
         # Town name is only used when the agent is directly receiving

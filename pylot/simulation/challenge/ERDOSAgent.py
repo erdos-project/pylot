@@ -1,3 +1,5 @@
+import time
+
 from absl import flags
 
 import erdos
@@ -88,6 +90,7 @@ class ERDOSAgent(ERDOSBaseAgent):
         erdos.reset()
 
     def run_step(self, input_data, timestamp):
+        start_time = time.time()
         game_time = int(timestamp * 1000)
         erdos_timestamp = erdos.Timestamp(coordinates=[game_time])
 
@@ -153,10 +156,19 @@ class ERDOSAgent(ERDOSBaseAgent):
             self._open_drive_stream.send(
                 erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
+        sensor_send_runtime = (time.time() - start_time) * 1000
+        self.csv_logger.info('{},{},sensor_send_runtime,{:.4f}'.format(
+            pylot.utils.time_epoch_ms(), game_time, sensor_send_runtime))
+
         process_visualization_events(self._control_display_stream)
 
         # Return the control command received on the control stream.
-        return read_control_command(self._control_stream)
+        command = read_control_command(self._control_stream)
+        e2e_runtime = (time.time() - start_time) * 1000
+        self.csv_logger.info('{},{},e2e_runtime,{:.4f}'.format(
+            pylot.utils.time_epoch_ms(), game_time, e2e_runtime))
+        # return command, int(e2e_runtime)
+        return command
 
     def send_localization(self, timestamp, imu_data, gnss_data, speed_data):
         if FLAGS.localization:
