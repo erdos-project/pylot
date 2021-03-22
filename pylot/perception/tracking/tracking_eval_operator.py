@@ -76,8 +76,8 @@ class TrackingScoringModule(ScoringModule):
         tracked_bboxes = np.array([
             ob.bounding_box.as_width_height_bbox() for ob in tracked_obstacles
         ])
-        cost_matrix = mm.distances.iou_matrix(ground_bboxes,
-                                              tracked_bboxes,
-                                              max_iou=1 -
-                                              self._flags.min_matching_iou)
+        cost_matrix = mm.distances.iou_matrix(
+            ground_bboxes,
+            tracked_bboxes,
+            max_iou=1 - self._flags.eval_min_matching_iou)
         self.accumulator.update(ground_ids, track_ids, cost_matrix)

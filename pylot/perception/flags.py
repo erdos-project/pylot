@@ -53,6 +53,9 @@ flags.DEFINE_integer(
 flags.DEFINE_float(
     'min_matching_iou', 0.5,
     'IoU required between detection and track for matching to be considered')
+flags.DEFINE_float(
+    'eval_min_matching_iou', 0.5,
+    'IoU required for tracking evaluation')
 flags.DEFINE_integer('obstacle_track_max_age', 3,
                      'Number of frames to track without a detection update')
 flags.DEFINE_integer(
