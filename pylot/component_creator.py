@@ -95,7 +95,17 @@ def add_obstacle_detection(center_camera_stream,
             ground_speed_limit_signs_stream, ground_stop_signs_stream)
         if FLAGS.evaluate_obstacle_detection:
             pylot.operator_creator.add_detection_evaluation(
-                obstacles_stream_wo_depth, perfect_obstacles_stream)
+                obstacles_stream_wo_depth,
+                perfect_obstacles_stream,
+                evaluate_timely=False,
+                matching_policy='ceil',
+                name='sync_detection_eval_operator')
+            pylot.operator_creator.add_detection_evaluation(
+                obstacles_stream_wo_depth,
+                perfect_obstacles_stream,
+                evaluate_timely=True,
+                matching_policy='ceil',
+                name='timely_detection_eval_operator')
         if FLAGS.perfect_obstacle_detection:
             obstacles_stream = perfect_obstacles_stream
 
