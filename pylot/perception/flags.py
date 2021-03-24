@@ -101,8 +101,10 @@ flags.DEFINE_enum('segmentation_metric', 'mIoU', ['mIoU', 'timely-mIoU'],
                   'Segmentation evaluation metric')
 
 # Detection eval flags.
-flags.DEFINE_enum('detection_metric', 'mAP', ['mAP', 'timely-mAP'],
-                  'Detection evaluation metric')
+flags.DEFINE_integer('detection_eval_lookback', None,
+                     'Number of images from the past to aggregate')
+flags.DEFINE_integer('detection_eval_freq', None,
+                     'Give rolling detection eval every this many images')
 
 # Tracking eval flags.
 flags.DEFINE_list('tracking_metrics', [
