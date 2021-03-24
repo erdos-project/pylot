@@ -151,6 +151,9 @@ def add_detection_decay(ground_obstacles_stream):
 
 def add_detection_evaluation(obstacles_stream,
                              ground_obstacles_stream,
+                             evaluate_timely=False,
+                             matching_policy='ceil',
+                             frame_gap=None,
                              name='detection_eval_operator'):
     from pylot.perception.detection.detection_eval_operator import \
         DetectionEvalOperator
@@ -158,8 +161,10 @@ def add_detection_evaluation(obstacles_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(DetectionEvalOperator, op_config,
-                  [obstacles_stream, ground_obstacles_stream], FLAGS)
+    [finished_indicator_stream
+     ] = erdos.connect(DetectionEvalOperator, op_config,
+                       [obstacles_stream, ground_obstacles_stream],
+                       evaluate_timely, matching_policy, frame_gap, FLAGS)
 
 
 def add_control_evaluation(pose_stream,

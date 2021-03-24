@@ -77,7 +77,6 @@ Important flags
   is obtained directly from the simulator.
 - ``--evaluate_obstacle_detection``: Compute and log accuracy metrics of the
   obstacle detection component.
-- ``--detection_metric``: Sets the accuracy metric to compute and log.
 - ``--visualize_detected_obstacles``: Enables visualization of detected
   obstacles.
 - ``--traffic_light_detection``: Enables the traffic light detection component

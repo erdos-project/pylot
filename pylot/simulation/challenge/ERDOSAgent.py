@@ -249,14 +249,18 @@ def create_data_flow():
             add_efficientdet_obstacle_detection(
                 camera_streams[CENTER_CAMERA_NAME],
                 time_to_decision_loop_stream)[0]
-        streams_to_send_top_on.append(perfect_obstacles_stream)
+        if not (FLAGS.evaluate_obstacle_detection
+                or FLAGS.evaluate_obstacle_tracking):
+            streams_to_send_top_on.append(perfect_obstacles_stream)
     else:
         # Add an operator that uses one of the Tensorflow model zoo
         # detection models. By default, we use FasterRCNN.
         obstacles_stream = pylot.operator_creator.add_obstacle_detection(
             camera_streams[CENTER_CAMERA_NAME],
             time_to_decision_loop_stream)[0]
-        streams_to_send_top_on.append(perfect_obstacles_stream)
+        if not (FLAGS.evaluate_obstacle_detection
+                or FLAGS.evaluate_obstacle_tracking):
+            streams_to_send_top_on.append(perfect_obstacles_stream)
 
     # Stream on which the traffic lights are sent when the agent is
     # using perfect traffic light detection.
@@ -321,8 +325,8 @@ def create_data_flow():
 
     # The agent uses a linear predictor to compute future trajectories
     # of the other agents.
-    prediction_stream = pylot.operator_creator.add_linear_prediction(
-        obstacles_tracking_stream)
+    prediction_stream, _, _ = pylot.component_creator.add_prediction(
+        obstacles_tracking_stream, vehicle_id_stream, None, None, pose_stream)
 
     # Adds a planner to the agent. The planner receives the pose of
     # the ego-vehicle, detected traffic lights, predictions for other
@@ -354,14 +358,17 @@ def create_data_flow():
     else:
         control_display_stream = None
 
-    # Adds a PID controller which tries to follow the waypoints computed
+    # Adds a controller which tries to follow the waypoints computed
     # by the planner.
-    control_stream = pylot.operator_creator.add_pid_control(
+    control_stream = pylot.component_creator.add_control(
         pose_stream, waypoints_stream)
-    # The PID planner returns a stream of commands (i.e., throttle, steer)
+    # The controller returns a stream of commands (i.e., throttle, steer)
     # from which the agent can read the command it must return to the
     # challenge.
     extract_control_stream = erdos.ExtractStream(control_stream)
+
+    pylot.component_creator.add_evaluation(vehicle_id_stream, pose_stream,
+                                           imu_stream)
 
     # Operator that computes how much time each component gets to execute.
     # This is needed in Pylot, but can be ignored when running in challenge
