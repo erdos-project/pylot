@@ -212,6 +212,11 @@ class BasePerceptionEvalOperator(erdos.Operator):
         self._ground_truths.append((game_time, msg.obstacles))
 
     def __compute_closest_frame_time(self, time):
+        if self._frame_gap is None:
+            self._logger.info(
+                'Skipping frame {} because frame gap is not set yet'.format(
+                    time))
+            return
         if self._matching_policy == 'ceil':
             base = math.ceil(time / self._frame_gap) * self._frame_gap
         elif self._matching_policy == 'round':

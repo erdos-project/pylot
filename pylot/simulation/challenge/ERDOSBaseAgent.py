@@ -182,7 +182,9 @@ class ERDOSBaseAgent(AutonomousAgent):
         actor_list = self._world.get_actors()
         (vehicles, people, traffic_lights, _,
          _) = extract_data_in_pylot_format(actor_list)
-        if FLAGS.simulator_obstacle_detection:
+        if (FLAGS.simulator_obstacle_detection
+                or FLAGS.evaluate_obstacle_detection
+                or FLAGS.evaluate_obstacle_tracking):
             perfect_obstacles_stream.send(
                 ObstaclesMessage(timestamp, vehicles + people))
             perfect_obstacles_stream.send(erdos.WatermarkMessage(timestamp))

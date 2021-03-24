@@ -286,13 +286,10 @@ def create_data_flow():
             pylot.operator_creator.add_obstacle_location_finder(
                 traffic_lights_stream, point_cloud_stream, pose_stream,
                 camera_setups[TL_CAMERA_NAME])
-
-        if not (FLAGS.evaluate_obstacle_detection
-                or FLAGS.evaluate_obstacle_tracking):
-            # We do not send perfectly located traffic lights in this
-            # configuration. Therefore, ensure that the stream is "closed"
-            # (i.e., send a top watermark)
-            streams_to_send_top_on.append(perfect_traffic_lights_stream)
+        # We do not send perfectly located traffic lights in this
+        # configuration. Therefore, ensure that the stream is "closed"
+        # (i.e., send a top watermark)
+        streams_to_send_top_on.append(perfect_traffic_lights_stream)
 
     vehicle_id_stream = erdos.IngestStream()
     if not (FLAGS.perfect_obstacle_tracking or FLAGS.perfect_localization):

@@ -71,10 +71,12 @@ class TrackingScoringModule(ScoringModule):
         ground_ids = [ob.id for ob in ground_obstacles]
         track_ids = [ob.id for ob in tracked_obstacles]
         ground_bboxes = np.array([
-            ob.bounding_box.as_width_height_bbox() for ob in ground_obstacles
+            ob.bounding_box_2D.as_width_height_bbox()
+            for ob in ground_obstacles
         ])
         tracked_bboxes = np.array([
-            ob.bounding_box.as_width_height_bbox() for ob in tracked_obstacles
+            ob.bounding_box_2d.as_width_height_bbox()
+            for ob in tracked_obstacles
         ])
         cost_matrix = mm.distances.iou_matrix(
             ground_bboxes,

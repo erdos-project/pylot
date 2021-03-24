@@ -1070,3 +1070,8 @@ def run_visualizer_control_loop(control_display_stream):
                 if (event.key == pygame.K_c
                         and pygame.key.get_mods() & pygame.KMOD_CTRL):
                     raise KeyboardInterrupt
+
+
+def verify_keys_in_dict(required_keys, arg_dict):
+    assert set(required_keys).issubset(set(arg_dict.keys())), \
+            "one or more of {} not found in {}".format(required_keys, arg_dict)
