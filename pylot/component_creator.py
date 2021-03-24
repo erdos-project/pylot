@@ -333,7 +333,17 @@ def add_obstacle_tracking(center_camera_stream,
 
     if FLAGS.evaluate_obstacle_tracking:
         pylot.operator_creator.add_tracking_evaluation(
-            obstacles_wo_history_tracking_stream, obstacles_stream)
+            obstacles_wo_history_tracking_stream,
+            obstacles_stream,
+            evaluate_timely=False,
+            matching_policy='ceil',
+            name='sync_tracking_eval_operator')
+        pylot.operator_creator.add_tracking_evaluation(
+            obstacles_wo_history_tracking_stream,
+            obstacles_stream,
+            evaluate_timely=True,
+            matching_policy='ceil',
+            name='timely_tracking_eval_operator')
 
     return obstacles_tracking_stream
 
@@ -511,3 +521,34 @@ def add_control(pose_stream,
         pylot.operator_creator.add_control_evaluation(pose_stream,
                                                       waypoints_stream)
     return control_stream
+
+
+def add_evaluation(vehicle_id_stream,
+                   pose_stream,
+                   imu_stream,
+                   pose_stream_for_control=None,
+                   waypoints_stream_for_control=None):
+    if FLAGS.evaluation:
+        # Add the collision sensor.
+        collision_stream = pylot.operator_creator.add_collision_sensor(
+            vehicle_id_stream)
+
+        # Add the lane invasion sensor.
+        lane_invasion_stream = pylot.operator_creator.add_lane_invasion_sensor(
+            vehicle_id_stream)
+
+        # Add the traffic light invasion sensor.
+        traffic_light_invasion_stream = \
+            pylot.operator_creator.add_traffic_light_invasion_sensor(
+                vehicle_id_stream, pose_stream)
+
+        # Add the evaluation logger.
+        pylot.operator_creator.add_eval_metric_logging(
+            collision_stream, lane_invasion_stream,
+            traffic_light_invasion_stream, imu_stream, pose_stream)
+
+        # Add control evaluation logging operator.
+        if (FLAGS.evaluate_control and pose_stream_for_control
+                and waypoints_stream_for_control):
+            pylot.operator_creator.add_control_evaluation(
+                pose_stream_for_control, waypoints_stream_for_control)

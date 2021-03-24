@@ -17,6 +17,7 @@ setup(
         "gdown",
         "lapsolver",
         "matplotlib==2.2.4",
+        "motmetrics",
         "networkx==2.2",
         "numpy<1.17",  # Update to newer numpy version once we switch to tf2
         "open3d-python==0.5.0.0",

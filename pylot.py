@@ -20,33 +20,6 @@ flags.DEFINE_list('goal_location', '234, 59, 39', 'Ego-vehicle goal location')
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.3, 0.0, 1.8)
 
 
-def add_evaluation_operators(vehicle_id_stream, pose_stream, imu_stream,
-                             pose_stream_for_control,
-                             waypoints_stream_for_control):
-    if FLAGS.evaluation:
-        # Add the collision sensor.
-        collision_stream = pylot.operator_creator.add_collision_sensor(
-            vehicle_id_stream)
-
-        # Add the lane invasion sensor.
-        lane_invasion_stream = pylot.operator_creator.add_lane_invasion_sensor(
-            vehicle_id_stream)
-
-        # Add the traffic light invasion sensor.
-        traffic_light_invasion_stream = \
-            pylot.operator_creator.add_traffic_light_invasion_sensor(
-                vehicle_id_stream, pose_stream)
-
-        # Add the evaluation logger.
-        pylot.operator_creator.add_eval_metric_logging(
-            collision_stream, lane_invasion_stream,
-            traffic_light_invasion_stream, imu_stream, pose_stream)
-
-        # Add control evaluation logging operator.
-        pylot.operator_creator.add_control_evaluation(
-            pose_stream_for_control, waypoints_stream_for_control)
-
-
 def driver():
     transform = pylot.utils.Transform(CENTER_CAMERA_LOCATION,
                                       pylot.utils.Rotation(pitch=-15))
@@ -223,9 +196,9 @@ def driver():
         vehicle_id_stream, perfect_obstacles_stream)
     control_loop_stream.set(control_stream)
 
-    add_evaluation_operators(vehicle_id_stream, pose_stream, imu_stream,
-                             pose_stream_for_control,
-                             waypoints_stream_for_control)
+    pylot.component_creator.add_evaluation(vehicle_id_stream, pose_stream,
+                                           imu_stream, pose_stream_for_control,
+                                           waypoints_stream_for_control)
 
     time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
         pose_stream, obstacles_stream)

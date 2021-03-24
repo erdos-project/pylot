@@ -174,7 +174,9 @@ class ERDOSBaseAgent(AutonomousAgent):
         component.
         """
         if not (FLAGS.simulator_obstacle_detection
-                or FLAGS.simulator_traffic_light_detection):
+                or FLAGS.simulator_traffic_light_detection
+                or FLAGS.evaluate_obstacle_detection
+                or FLAGS.evaluate_obstacle_tracking):
             return
         from pylot.simulation.utils import extract_data_in_pylot_format
         actor_list = self._world.get_actors()

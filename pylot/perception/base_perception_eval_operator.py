@@ -82,6 +82,7 @@ class BasePerceptionEvalOperator(erdos.Operator):
             return
         assert len(timestamp.coordinates) == 1
         game_time = timestamp.coordinates[0]
+        self.__compute_frame_gap(game_time)
         on_new_prediction = False
         if self._start_time_frontier < len(self._prediction_start_end_times):
             (st,
