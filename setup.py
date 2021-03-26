@@ -33,14 +33,11 @@ setup(
         "tensorflow-gpu==1.15.4",
         "torch==1.4.0",
         "torchvision==0.5.0",
-        ##### Sort tracking dependencies ####
+        ##### Tracking dependencies #####
         "filterpy==1.4.1",
-        "numba==0.50.0",
         "scikit-learn==0.22.2",
-        ##### DeepSORT tracking dependencies #####
         "imgaug==0.2.8",
         "nonechucks==0.3.1",
-        ##### CenterTrack dependencies #####
         "Cython",
         "progress",
         "pyquaternion",
