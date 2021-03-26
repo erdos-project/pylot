@@ -876,25 +876,6 @@ def add_visualizer(pose_stream=None,
     return control_display_stream, streams_to_send_top_on
 
 
-def add_lidar_visualizer(point_cloud_stream, name='lidar_visualizer_operator'):
-    from pylot.debug.lidar_visualizer_operator import LidarVisualizerOperator
-    op_config = erdos.OperatorConfig(name=name,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(LidarVisualizerOperator, op_config, [point_cloud_stream],
-                  FLAGS)
-
-
-def add_camera_visualizer(camera_stream, name):
-    from pylot.debug.camera_visualizer_operator import CameraVisualizerOperator
-    op_config = erdos.OperatorConfig(name=name,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(CameraVisualizerOperator, op_config, [camera_stream])
-
-
 def add_perfect_detector(depth_camera_stream, center_camera_stream,
                          segmented_camera_stream, pose_stream,
                          ground_obstacles_stream,
