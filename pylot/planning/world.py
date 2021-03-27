@@ -404,9 +404,9 @@ class World(object):
                         self.ego_transform.location, max_distance_to_check=20)
                     if (dist_to_intersection is not None
                             and dist_to_intersection < 12):
-                        if (tl.bounding_box is None
-                                or tl.bounding_box.get_width() *
-                                tl.bounding_box.get_height() > 400):
+                        if (tl.bounding_box_2D is None
+                                or tl.bounding_box_2D.get_width() *
+                                tl.bounding_box_2D.get_height() > 400):
                             speed_factor_tl = 0
                     if (dist_to_intersection is not None and tl_dist < 27
                             and 12 <= dist_to_intersection <= 20):

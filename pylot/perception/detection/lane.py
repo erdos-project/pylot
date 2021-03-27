@@ -1,7 +1,11 @@
 from collections import deque
-import numpy as np
-from pylot.utils import Location, Rotation, Transform, Vector3D
+
 import cv2
+
+import numpy as np
+
+from pylot.utils import Location, Rotation, Transform, Vector3D
+
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 

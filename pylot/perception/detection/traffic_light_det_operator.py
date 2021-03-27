@@ -29,7 +29,8 @@ class TrafficLightDetOperator(erdos.Operator):
             messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, camera_stream, traffic_lights_stream, flags):
+    def __init__(self, camera_stream: erdos.ReadStream,
+                 traffic_lights_stream: erdos.WriteStream, flags):
         # Register a callback on the camera input stream.
         camera_stream.add_callback(self.on_frame, [traffic_lights_stream])
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -77,7 +78,7 @@ class TrafficLightDetOperator(erdos.Operator):
         self.__run_model(np.zeros((108, 192, 3)))
 
     @staticmethod
-    def connect(camera_stream):
+    def connect(camera_stream: erdos.ReadStream):
         """Connects the operator to other streams.
 
         Args:
@@ -98,7 +99,8 @@ class TrafficLightDetOperator(erdos.Operator):
             erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
     @erdos.profile_method()
-    def on_frame(self, msg, traffic_lights_stream):
+    def on_frame(self, msg: erdos.Message,
+                 traffic_lights_stream: erdos.WriteStream):
         """Invoked whenever a frame message is received on the stream.
 
         Args:

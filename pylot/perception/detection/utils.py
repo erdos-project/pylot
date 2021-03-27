@@ -64,10 +64,10 @@ class BoundingBox2D(object):
         self.y_min = y_min
         self.y_max = y_max
 
-    def get_min_point(self):
+    def get_min_point(self) -> pylot.utils.Vector2D:
         return pylot.utils.Vector2D(self.x_min, self.y_min)
 
-    def get_max_point(self):
+    def get_max_point(self) -> pylot.utils.Vector2D:
         return pylot.utils.Vector2D(self.x_max, self.y_max)
 
     def get_height(self):
@@ -76,19 +76,19 @@ class BoundingBox2D(object):
     def get_width(self):
         return self.x_max - self.x_min
 
-    def get_center_point(self):
+    def get_center_point(self) -> pylot.utils.Vector2D:
         return pylot.utils.Vector2D((self.x_min + self.x_max) // 2,
                                     (self.y_min + self.y_max) // 2)
 
     def as_width_height_bbox(self):
         return [self.x_min, self.y_min, self.get_width(), self.get_height()]
 
-    def is_within(self, point):
+    def is_within(self, point) -> bool:
         """Checks if a point is within the bounding box."""
         return (point.x >= self.x_min and point.x <= self.x_max
                 and point.y >= self.y_min and point.y <= self.y_max)
 
-    def calculate_iou(self, other_bbox):
+    def calculate_iou(self, other_bbox) -> float:
         """Calculate the IoU of a single bounding box.
 
         Args:
@@ -145,7 +145,10 @@ class BoundingBox3D(object):
         extent (:py:class:`~pylot.utils.Vector3D`): The extent of the bounding
             box.
     """
-    def __init__(self, transform=None, extent=None, corners=None):
+    def __init__(self,
+                 transform: pylot.utils.Transform = None,
+                 extent: pylot.utils.Vector3D = None,
+                 corners=None):
         self.transform = transform
         self.extent = extent
         self.corners = corners
@@ -222,8 +225,8 @@ class BoundingBox3D(object):
                              actor_transform.rotation.as_simulator_rotation(),
                              life_time=time_between_frames / 1000.0)
 
-    def to_camera_view(self, obstacle_transform, extrinsic_matrix,
-                       intrinsic_matrix):
+    def to_camera_view(self, obstacle_transform: pylot.utils.Transform,
+                       extrinsic_matrix, intrinsic_matrix):
         """Converts the coordinates of the bounding box for the given obstacle
         to the coordinates in the view of the camera.
 

@@ -33,7 +33,8 @@ class CarlaIMUDriverOperator(erdos.Operator):
             Setup of the IMU sensor.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, ego_vehicle_id_stream, imu_stream, imu_setup, flags):
+    def __init__(self, ego_vehicle_id_stream: erdos.ReadStream,
+                 imu_stream: erdos.WriteStream, imu_setup, flags):
         self._vehicle_id_stream = ego_vehicle_id_stream
         self._imu_stream = imu_stream
         # The operator does not pass watermarks by defaults.
@@ -49,7 +50,7 @@ class CarlaIMUDriverOperator(erdos.Operator):
         self._lock = threading.Lock()
 
     @staticmethod
-    def connect(ego_vehicle_id_stream):
+    def connect(ego_vehicle_id_stream: erdos.ReadStream):
         imu_stream = erdos.WriteStream()
         return [imu_stream]
 

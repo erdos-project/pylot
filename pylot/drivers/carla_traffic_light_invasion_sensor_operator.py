@@ -20,8 +20,9 @@ from shapely.geometry import LineString
 
 
 class CarlaTrafficLightInvasionSensorOperator(erdos.Operator):
-    def __init__(self, ground_vehicle_id_stream, pose_stream,
-                 traffic_light_invasion_stream, flags):
+    def __init__(self, ground_vehicle_id_stream: erdos.ReadStream,
+                 pose_stream: erdos.ReadStream,
+                 traffic_light_invasion_stream: erdos.WriteStream, flags):
         # Save the streams.
         self._vehicle_id_stream = ground_vehicle_id_stream
         self._pose_stream = pose_stream
@@ -49,7 +50,8 @@ class CarlaTrafficLightInvasionSensorOperator(erdos.Operator):
         self.DISTANCE_LIGHT = 10
 
     @staticmethod
-    def connect(ground_vehicle_id_stream, pose_stream):
+    def connect(ground_vehicle_id_stream: erdos.ReadStream,
+                pose_stream: erdos.ReadStream):
         traffic_light_invasion_stream = erdos.WriteStream()
         return [traffic_light_invasion_stream]
 

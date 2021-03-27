@@ -27,7 +27,8 @@ class CarlaCollisionSensorDriverOperator(erdos.Operator):
             operator sends the collision events.
         flags (absl.flags): Object to be used to access the absl flags.
     """
-    def __init__(self, ground_vehicle_id_stream, collision_stream, flags):
+    def __init__(self, ground_vehicle_id_stream: erdos.ReadStream,
+                 collision_stream: erdos.WriteStream, flags):
         self._vehicle_id_stream = ground_vehicle_id_stream
         self._collision_stream = collision_stream
         self._flags = flags
@@ -38,7 +39,7 @@ class CarlaCollisionSensorDriverOperator(erdos.Operator):
         self._collision_sensor = None
 
     @staticmethod
-    def connect(ground_vehicle_id_stream):
+    def connect(ground_vehicle_id_stream: erdos.ReadStream):
         collision_stream = erdos.WriteStream()
         return [collision_stream]
 

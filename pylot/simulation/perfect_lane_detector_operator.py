@@ -1,9 +1,12 @@
-from collections import deque
-import numpy as np
-import erdos
-import PIL.Image as Image
 import os
+from collections import deque
+
+import PIL.Image as Image
+
+import erdos
 from erdos import Message, ReadStream, Timestamp, WriteStream
+
+import numpy as np
 
 from pylot.perception.messages import LanesMessage
 

@@ -122,7 +122,7 @@ class FusionOperator(erdos.Operator):
             self._logger.info("%s received: %s ", self.config.name, obstacle)
             # TODO(ionel): Deal with different types of labels.
             if obstacle.label in {"truck", "car"}:
-                vehicle_bounds.append(obstacle.bounding_box)
+                vehicle_bounds.append(obstacle.bounding_box_2D)
         self._obstacles.append((msg.timestamp, vehicle_bounds))
 
     def update_distances(self, msg):

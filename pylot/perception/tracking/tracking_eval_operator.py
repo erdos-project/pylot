@@ -1,4 +1,6 @@
 """Implements an operator that eveluates tracking output."""
+import erdos
+
 import motmetrics as mm
 
 import numpy as np
@@ -8,9 +10,11 @@ from pylot.perception.base_perception_eval_operator import (
 
 
 class TrackingEvalOperator(BasePerceptionEvalOperator):
-    def __init__(self, prediction_stream, ground_truth_stream,
-                 finished_indicator_stream, evaluate_timely, matching_policy,
-                 frame_gap, flags):
+    def __init__(self, prediction_stream: erdos.ReadStream,
+                 ground_truth_stream: erdos.ReadStream,
+                 finished_indicator_stream: erdos.WriteStream,
+                 evaluate_timely: bool, matching_policy: str, frame_gap: int,
+                 flags):
         super().__init__(prediction_stream, ground_truth_stream,
                          finished_indicator_stream, evaluate_timely,
                          matching_policy, frame_gap, TrackingScoringModule,
@@ -75,7 +79,7 @@ class TrackingScoringModule(ScoringModule):
             for ob in ground_obstacles
         ])
         tracked_bboxes = np.array([
-            ob.bounding_box_2d.as_width_height_bbox()
+            ob.bounding_box_2D.as_width_height_bbox()
             for ob in tracked_obstacles
         ])
         cost_matrix = mm.distances.iou_matrix(

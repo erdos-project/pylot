@@ -29,8 +29,10 @@ class EfficientDetOperator(erdos.Operator):
         model_path(:obj:`str`): Path to the model pb file.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, camera_stream, time_to_decision_stream,
-                 obstacles_stream, model_names, model_paths, flags):
+    def __init__(self, camera_stream: erdos.ReadStream,
+                 time_to_decision_stream: erdos.ReadStream,
+                 obstacles_stream: erdos.WriteStream, model_names, model_paths,
+                 flags):
         camera_stream.add_callback(self.on_msg_camera_stream)
         time_to_decision_stream.add_callback(self.on_time_to_decision_update)
         erdos.add_watermark_callback([camera_stream], [obstacles_stream],
@@ -89,7 +91,8 @@ class EfficientDetOperator(erdos.Operator):
             config=tf.ConfigProto(gpu_options=gpu_options))
 
     @staticmethod
-    def connect(camera_stream, time_to_decision_stream):
+    def connect(camera_stream: erdos.ReadStream,
+                time_to_decision_stream: erdos.ReadStream):
         """Connects the operator to other streams.
 
         Args:
@@ -108,7 +111,7 @@ class EfficientDetOperator(erdos.Operator):
     def destroy(self):
         self._logger.warn('destroying {}'.format(self.config.name))
 
-    def _pick_model(self, ttd):
+    def _pick_model(self, ttd: float):
         """Decides which model to use based on time to decision."""
         runtimes = [('efficientdet-d6', 190), ('efficientdet-d5', 141),
                     ('efficientdet-d4', 74), ('efficientdet-d3', 42),
@@ -129,7 +132,7 @@ class EfficientDetOperator(erdos.Operator):
             format(fastest_loaded_model_name))
         return self._models[fastest_loaded_model_name]
 
-    def update_model_choice(self, detection_deadline):
+    def update_model_choice(self, detection_deadline: float):
         if self._flags.deadline_enforcement == 'dynamic':
             self._model_name, self._tf_session = self._pick_model(
                 detection_deadline)
@@ -137,19 +140,21 @@ class EfficientDetOperator(erdos.Operator):
             self._model_name, self._tf_session = self._pick_model(
                 self._flags.detection_deadline)
 
-    def on_time_to_decision_update(self, msg):
+    @erdos.profile_method()
+    def on_time_to_decision_update(self, msg: erdos.Message):
         self._logger.debug('@{}: {} received ttd update {}'.format(
             msg.timestamp, self.config.name, msg))
         self._ttd_msgs.append(msg)
 
     @erdos.profile_method()
-    def on_msg_camera_stream(self, msg):
+    def on_msg_camera_stream(self, msg: erdos.Message):
         self._logger.debug('@{}: {} received message'.format(
             msg.timestamp, self.config.name))
         self._frame_msgs.append(msg)
 
     @erdos.profile_method()
-    def on_watermark(self, timestamp, obstacles_stream):
+    def on_watermark(self, timestamp: erdos.Timestamp,
+                     obstacles_stream: erdos.WriteStream):
         """Invoked whenever a frame message is received on the stream.
 
         Args:

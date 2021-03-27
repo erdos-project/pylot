@@ -1,6 +1,7 @@
 import math
 
-from pylot.utils import Vector2D
+from pylot.perception.detection.obstacle import Obstacle
+from pylot.utils import Transform, Vector2D
 
 
 class ObstacleTrajectory(object):
@@ -12,15 +13,18 @@ class ObstacleTrajectory(object):
         trajectory (list(:py:class:`~pylot.utils.Transform`)): List of past
             transforms.
     """
-    def __init__(self, obstacle, trajectory):
+    def __init__(self, obstacle: Obstacle, trajectory):
         self.obstacle = obstacle
         self.trajectory = trajectory
 
-    def draw_on_frame(self, frame, bbox_color_map, ego_transform=None):
+    def draw_on_frame(self,
+                      frame,
+                      bbox_color_map,
+                      ego_transform: Transform = None):
         """Draws the tracked obstacle as a 2D bounding box."""
         self.obstacle.draw_on_frame(frame, bbox_color_map, ego_transform)
 
-    def draw_trajectory_on_frame(self, frame, draw_label=False):
+    def draw_trajectory_on_frame(self, frame, draw_label: bool = False):
         """Draws the trajectory on a bird's eye view frame."""
         if self.obstacle.is_person():
             color = [255, 0, 0]
@@ -53,7 +57,7 @@ class ObstacleTrajectory(object):
                 other_idx -= 1
         return math.degrees(yaw)
 
-    def get_last_n_transforms(self, n):
+    def get_last_n_transforms(self, n: int):
         """Returns the last n steps of the trajectory. If we have not seen
         enough past locations of the obstacle, pad the trajectory with the
         appropriate number of copies of the earliest location."""
@@ -65,7 +69,7 @@ class ObstacleTrajectory(object):
             last_n_steps = self.trajectory[-n:]
         return last_n_steps
 
-    def to_world_coordinates(self, ego_transform):
+    def to_world_coordinates(self, ego_transform: Transform):
         """Transforms the trajectory into world coordinates."""
         cur_trajectory = []
         for past_transform in self.trajectory:

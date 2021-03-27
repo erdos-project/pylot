@@ -33,12 +33,12 @@ class Obstacle(object):
     """
     def __init__(self,
                  bounding_box,
-                 confidence,
-                 label,
-                 id=-1,
-                 transform=None,
-                 detailed_label='',
-                 bounding_box_2D=None):
+                 confidence: float,
+                 label: str,
+                 id: int = -1,
+                 transform: pylot.utils.Transform = None,
+                 detailed_label: str = '',
+                 bounding_box_2D: BoundingBox2D = None):
         self.bounding_box = bounding_box
         if isinstance(bounding_box, BoundingBox2D):
             self.bounding_box_2D = bounding_box
@@ -102,7 +102,7 @@ class Obstacle(object):
             self.bounding_box_2D.get_height(), 1.0, -1, -1, -1)
         return log_line
 
-    def _distance(self, other_transform):
+    def _distance(self, other_transform: pylot.utils.Transform):
         """Computes the distance from the obstacle to the other transform.
 
         The distance provides an estimate of the depth returned by the depth
@@ -135,8 +135,8 @@ class Obstacle(object):
     def draw_on_frame(self,
                       frame,
                       bbox_color_map,
-                      ego_transform=None,
-                      text=None):
+                      ego_transform: pylot.utils.Transform = None,
+                      text: str = None):
         """Annotate the image with the bounding box of the obstacle."""
         if text is None:
             text = '{}, {:.1f}'.format(self.label, self.confidence)
@@ -171,7 +171,7 @@ class Obstacle(object):
                                  trajectory,
                                  frame,
                                  point_color,
-                                 draw_label=False):
+                                 draw_label: bool = False):
         # Intrinsic and extrinsic matrix of the top down camera.
         extrinsic_matrix = frame.camera_setup.get_extrinsic_matrix()
         intrinsic_matrix = frame.camera_setup.get_intrinsic_matrix()

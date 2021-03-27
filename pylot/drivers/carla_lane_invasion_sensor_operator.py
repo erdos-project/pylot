@@ -29,7 +29,8 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
             the operator sends the lane-invasion events.
         flags (absl.flags): Object to be used to access the absl flags.
     """
-    def __init__(self, ground_vehicle_id_stream, lane_invasion_stream, flags):
+    def __init__(self, ground_vehicle_id_stream: erdos.ReadStream,
+                 lane_invasion_stream: erdos.WriteStream, flags):
         self._vehicle_id_stream = ground_vehicle_id_stream
         self._lane_invasion_stream = lane_invasion_stream
         self._flags = flags
@@ -41,7 +42,7 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
         self._map = None
 
     @staticmethod
-    def connect(ground_vehicle_id_stream):
+    def connect(ground_vehicle_id_stream: erdos.ReadStream):
         lane_invasion_stream = erdos.WriteStream()
         return [lane_invasion_stream]
 

@@ -2,16 +2,18 @@ import logging
 import math
 
 import cv2
-import numpy as np
-import tensorflow as tf
 
 import erdos
 
 from lanenet.lanenet_model import lanenet  # noqa: I100 E402
 from lanenet.lanenet_model import lanenet_postprocess  # noqa: I100 E402
 
+import numpy as np
+
 import pylot.utils
 from pylot.perception.detection.lane import Lane
+
+import tensorflow as tf
 
 
 class LanenetDetectionOperator(erdos.Operator):
@@ -27,7 +29,8 @@ class LanenetDetectionOperator(erdos.Operator):
             :py:class:`~pylot.perception.messages.LanesMessage` messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, camera_stream, detected_lanes_stream, flags):
+    def __init__(self, camera_stream: erdos.ReadStream,
+                 detected_lanes_stream: erdos.WriteStream, flags):
         camera_stream.add_callback(self.on_camera_frame,
                                    [detected_lanes_stream])
         self._flags = flags
@@ -59,7 +62,7 @@ class LanenetDetectionOperator(erdos.Operator):
                           save_path=flags.lanenet_detection_model_path)
 
     @staticmethod
-    def connect(camera_stream):
+    def connect(camera_stream: erdos.ReadStream):
         """Connects the operator to other streams.
 
         Args:
@@ -77,7 +80,8 @@ class LanenetDetectionOperator(erdos.Operator):
         self._logger.warn('destroying {}'.format(self.config.name))
 
     @erdos.profile_method()
-    def on_camera_frame(self, msg, detected_lanes_stream):
+    def on_camera_frame(self, msg: erdos.Message,
+                        detected_lanes_stream: erdos.WriteStream):
         """Invoked whenever a frame message is received on the stream.
 
         Args:

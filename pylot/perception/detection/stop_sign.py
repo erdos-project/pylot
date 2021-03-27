@@ -1,6 +1,6 @@
 import pylot.utils
 from pylot.perception.detection.obstacle import Obstacle
-from pylot.perception.detection.utils import BoundingBox3D
+from pylot.perception.detection.utils import BoundingBox2D, BoundingBox3D
 
 
 class StopSign(Obstacle):
@@ -27,11 +27,11 @@ class StopSign(Obstacle):
             box of the stop sign.
     """
     def __init__(self,
-                 confidence,
-                 bounding_box=None,
-                 id=-1,
-                 transform=None,
-                 bounding_box_3d=None):
+                 confidence: float,
+                 bounding_box: BoundingBox2D = None,
+                 id: int = -1,
+                 transform: pylot.utils.Transform = None,
+                 bounding_box_3d: BoundingBox3D = None):
         super(StopSign, self).__init__(bounding_box, confidence,
                                        'stop marking', id, transform)
         self.bounding_box_3d = bounding_box_3d

@@ -30,6 +30,9 @@ class ControlMessage(erdos.Message):
         self.reverse = reverse
         self.creation_time = time.time()
 
+    def __repr__(self):
+        return self.__str__()
+
     def __str__(self):
         return ('ControlMessage(timestamp: {}, steer: {}, throttle: {}, '
                 'brake: {}, hand_brake: {}, reverse: {})'.format(

@@ -35,8 +35,10 @@ class ObstacleLocationFinderOperator(erdos.Operator):
             detected obstacles from camera coordinates to real-world
             coordinates.
     """
-    def __init__(self, obstacles_stream, depth_stream, pose_stream,
-                 obstacles_output_stream, flags, camera_setup):
+    def __init__(self, obstacles_stream: erdos.ReadStream,
+                 depth_stream: erdos.ReadStream, pose_stream: erdos.ReadStream,
+                 obstacles_output_stream: erdos.WriteStream, flags,
+                 camera_setup):
         obstacles_stream.add_callback(self.on_obstacles_update)
         depth_stream.add_callback(self.on_depth_update)
         pose_stream.add_callback(self.on_pose_update)
@@ -53,7 +55,8 @@ class ObstacleLocationFinderOperator(erdos.Operator):
         self._pose_msgs = deque()
 
     @staticmethod
-    def connect(obstacles_stream, depth_stream, pose_stream):
+    def connect(obstacles_stream: erdos.ReadStream,
+                depth_stream: erdos.ReadStream, pose_stream: erdos.ReadStream):
         obstacles_output_stream = erdos.WriteStream()
         return [obstacles_output_stream]
 
@@ -61,7 +64,8 @@ class ObstacleLocationFinderOperator(erdos.Operator):
         self._logger.warn('destroying {}'.format(self.config.name))
 
     @erdos.profile_method()
-    def on_watermark(self, timestamp, obstacles_output_stream):
+    def on_watermark(self, timestamp: erdos.Timestamp,
+                     obstacles_output_stream: erdos.WriteStream):
         """Invoked when all input streams have received a watermark.
 
         Args:
@@ -82,14 +86,14 @@ class ObstacleLocationFinderOperator(erdos.Operator):
         obstacles_output_stream.send(
             ObstaclesMessage(timestamp, obstacles_with_location))
 
-    def on_obstacles_update(self, msg):
+    def on_obstacles_update(self, msg: erdos.Message):
         self._logger.debug('@{}: obstacles update'.format(msg.timestamp))
         self._obstacles_msgs.append(msg)
 
-    def on_depth_update(self, msg):
+    def on_depth_update(self, msg: erdos.Message):
         self._logger.debug('@{}: depth update'.format(msg.timestamp))
         self._depth_msgs.append(msg)
 
-    def on_pose_update(self, msg):
+    def on_pose_update(self, msg: erdos.Message):
         self._logger.debug('@{}: pose update'.format(msg.timestamp))
         self._pose_msgs.append(msg)

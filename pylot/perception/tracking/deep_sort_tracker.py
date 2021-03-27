@@ -37,7 +37,7 @@ class MultiObjectDeepSORTTracker(MultiObjectTracker):
         if obstacles:
             bboxes, labels, confidence_scores, ids = [], [], [], []
             for obstacle in obstacles:
-                bboxes.append(obstacle.bounding_box.as_width_height_bbox())
+                bboxes.append(obstacle.bounding_box_2D.as_width_height_bbox())
                 labels.append(obstacle.label)
                 confidence_scores.append(obstacle.confidence)
                 ids.append(obstacle.id)

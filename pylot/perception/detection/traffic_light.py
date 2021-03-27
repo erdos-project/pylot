@@ -4,7 +4,8 @@ import numpy as np
 
 import pylot.utils
 from pylot.perception.detection.obstacle import Obstacle
-from pylot.perception.detection.utils import get_bounding_box_in_camera_view
+from pylot.perception.detection.utils import BoundingBox2D, \
+    get_bounding_box_in_camera_view
 
 
 class TrafficLightColor(Enum):
@@ -66,12 +67,12 @@ class TrafficLight(Obstacle):
             of the traffic light in camera view.
     """
     def __init__(self,
-                 confidence,
-                 state,
-                 id=-1,
-                 transform=None,
-                 trigger_volume_extent=None,
-                 bounding_box=None):
+                 confidence: float,
+                 state: TrafficLightColor,
+                 id: int = -1,
+                 transform: pylot.utils.Transform = None,
+                 trigger_volume_extent: pylot.utils.Vector3D = None,
+                 bounding_box: BoundingBox2D = None):
         super(TrafficLight, self).__init__(bounding_box, confidence,
                                            state.get_label(), id, transform)
         self.state = state
@@ -119,9 +120,9 @@ class TrafficLight(Obstacle):
         frame.draw_text(point, self.state.get_label(), self.state.get_color())
 
     def is_traffic_light_visible(self,
-                                 camera_transform,
-                                 town_name=None,
-                                 distance_threshold=70):
+                                 camera_transform: pylot.utils.Transform,
+                                 town_name: str = None,
+                                 distance_threshold: int = 70):
         """Checks if the traffic light is visible from the camera transform.
 
         Args:
@@ -157,7 +158,7 @@ class TrafficLight(Obstacle):
                 return prod > 0.3
         return prod > -0.80
 
-    def get_all_detected_traffic_light_boxes(self, town_name, depth_frame,
+    def get_all_detected_traffic_light_boxes(self, town_name: str, depth_frame,
                                              segmented_image):
         """ Returns traffic lights for all boxes of a simulator traffic light.
 
@@ -256,7 +257,7 @@ class TrafficLight(Obstacle):
         ]
         return base_relative_points
 
-    def _get_bboxes(self, town_name):
+    def _get_bboxes(self, town_name: str):
         if town_name == 'Town01' or town_name == 'Town02':
             return self._get_bboxes_for_town1_or_2()
         elif town_name == 'Town03':

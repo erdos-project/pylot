@@ -57,8 +57,8 @@ class MultiObjectSORTTracker(MultiObjectTracker):
         ids = []
         for obstacle in obstacles:
             bbox = [
-                obstacle.bounding_box.x_min, obstacle.bounding_box.y_min,
-                obstacle.bounding_box.x_max, obstacle.bounding_box.y_max,
+                obstacle.bounding_box_2D.x_min, obstacle.bounding_box_2D.y_min,
+                obstacle.bounding_box_2D.x_max, obstacle.bounding_box_2D.y_max,
                 obstacle.confidence
             ]
             converted_detections.append(bbox)

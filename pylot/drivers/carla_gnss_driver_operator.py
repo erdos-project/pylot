@@ -33,8 +33,8 @@ class CarlaGNSSDriverOperator(erdos.Operator):
             Setup of the GNSS sensor.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, ground_vehicle_id_stream, gnss_stream, gnss_setup,
-                 flags):
+    def __init__(self, ground_vehicle_id_stream: erdos.ReadStream,
+                 gnss_stream: erdos.WriteStream, gnss_setup, flags):
         # Save the streams.
         self._vehicle_id_stream = ground_vehicle_id_stream
         self._gnss_stream = gnss_stream

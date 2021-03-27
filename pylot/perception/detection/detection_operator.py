@@ -30,8 +30,9 @@ class DetectionOperator(erdos.Operator):
         model_path(:obj:`str`): Path to the model pb file.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, camera_stream, time_to_decision_stream,
-                 obstacles_stream, model_path, flags):
+    def __init__(self, camera_stream: erdos.ReadStream,
+                 time_to_decision_stream: erdos.ReadStream,
+                 obstacles_stream: erdos.WriteStream, model_path: str, flags):
         camera_stream.add_callback(self.on_msg_camera_stream,
                                    [obstacles_stream])
         time_to_decision_stream.add_callback(self.on_time_to_decision_update)
@@ -77,7 +78,8 @@ class DetectionOperator(erdos.Operator):
         self.__run_model(np.zeros((108, 192, 3)))
 
     @staticmethod
-    def connect(camera_stream, time_to_decision_stream):
+    def connect(camera_stream: erdos.ReadStream,
+                time_to_decision_stream: erdos.ReadStream):
         """Connects the operator to other streams.
 
         Args:
@@ -103,7 +105,8 @@ class DetectionOperator(erdos.Operator):
             msg.timestamp, self.config.name, msg))
 
     @erdos.profile_method()
-    def on_msg_camera_stream(self, msg, obstacles_stream):
+    def on_msg_camera_stream(self, msg: erdos.Message,
+                             obstacles_stream: erdos.WriteStream):
         """Invoked whenever a frame message is received on the stream.
 
         Args:

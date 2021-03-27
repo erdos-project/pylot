@@ -1,5 +1,6 @@
-import pylot.utils
 from pylot.perception.detection.obstacle import Obstacle
+from pylot.perception.detection.utils import BoundingBox2D
+from pylot.utils import Transform
 
 
 class SpeedLimitSign(Obstacle):
@@ -24,11 +25,11 @@ class SpeedLimitSign(Obstacle):
             in the world.
     """
     def __init__(self,
-                 speed_limit,
-                 confidence,
-                 bounding_box=None,
-                 id=-1,
-                 transform=None):
+                 speed_limit: float,
+                 confidence: float,
+                 bounding_box: BoundingBox2D = None,
+                 id: int = -1,
+                 transform: Transform = None):
         super(SpeedLimitSign, self).__init__(bounding_box, confidence,
                                              'speed limit', id, transform)
         self.speed_limit = speed_limit
@@ -46,8 +47,7 @@ class SpeedLimitSign(Obstacle):
         from carla import TrafficSign
         if not isinstance(actor, TrafficSign):
             raise ValueError('actor should be of type TrafficSign')
-        transform = pylot.utils.Transform.from_simulator_transform(
-            actor.get_transform())
+        transform = Transform.from_simulator_transform(actor.get_transform())
         speed_limit = int(actor.type_id.split('.')[-1])
         return cls(speed_limit, 1.0, id=actor.id, transform=transform)
 
@@ -58,6 +58,8 @@ class SpeedLimitSign(Obstacle):
                 ((min_point.x, min_point.y), (max_point.x, max_point.y)))
 
     def draw_on_frame(self, frame, bbox_color_map, ego_transform=None):
+        assert self.bounding_box_2D, \
+            'Speed limit sign does not have a 2D bounding box'
         text = '{} {} {:.1f}'.format(self.speed_limit, self.label,
                                      self.confidence)
         super(SpeedLimitSign, self).draw_on_frame(frame, bbox_color_map,

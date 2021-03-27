@@ -23,11 +23,11 @@ class SingleObjectDaSiamRPNTracker(object):
         """
         self.obstacle = obstacle
         self.missed_det_updates = 0
-        center_point = obstacle.bounding_box.get_center_point()
+        center_point = obstacle.bounding_box_2D.get_center_point()
         target_pos = np.array([center_point.x, center_point.y])
         target_size = np.array([
-            obstacle.bounding_box.get_width(),
-            obstacle.bounding_box.get_height()
+            obstacle.bounding_box_2D.get_width(),
+            obstacle.bounding_box_2D.get_height()
         ])
         self._tracker = SiamRPN_init(frame.frame, target_pos, target_size,
                                      siam_net)
@@ -42,15 +42,16 @@ class SingleObjectDaSiamRPNTracker(object):
         self._tracker = SiamRPN_track(self._tracker, frame.frame)
         target_pos = self._tracker['target_pos']
         target_sz = self._tracker['target_sz']
-        self.obstacle.bounding_box = BoundingBox2D(
+        self.obstacle.bounding_box_2D = BoundingBox2D(
             int(target_pos[0] - target_sz[0] / 2.0),
             int(target_pos[0] + target_sz[0] / 2.0),
             int(target_pos[1] - target_sz[1] / 2.0),
             int(target_pos[1] + target_sz[1] / 2.0))
-        return Obstacle(self.obstacle.bounding_box, self.obstacle.confidence,
-                        self.obstacle.label, self.obstacle.id)
+        return Obstacle(self.obstacle.bounding_box_2D,
+                        self.obstacle.confidence, self.obstacle.label,
+                        self.obstacle.id)
 
-    def reset_bbox(self, bbox):
+    def reset_bbox(self, bbox: BoundingBox2D):
         """Resets tracker's bounding box with a new bounding box."""
         center = bbox.get_center_point()
         self._tracker['target_pos'] = np.array([center.x, center.y])
@@ -126,7 +127,7 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
             # this, the tracker's bounding box degrades across the frames until
             # it doesn't overlap with the bounding box the detector outputs.
             tracker.reset_bbox(
-                obstacles[matched_map[tracker.obstacle.id]].bounding_box)
+                obstacles[matched_map[tracker.obstacle.id]].bounding_box_2D)
             updated_trackers.append(tracker)
         # Add 1 to age of any unmatched trackers, filter old ones.
         for tracker in unmatched_trackers:
@@ -152,7 +153,7 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
 
         self._trackers = list(unique_updated_trackers.values())
 
-    def track(self, frame, missed_detection=True):
+    def track(self, frame, missed_detection: bool = True):
         """ Tracks obstacles in a frame.
 
         Args:
@@ -175,8 +176,8 @@ class MultiObjectDaSiamRPNTracker(MultiObjectTracker):
                        for __ in range(len(obstacles))]
         for i, obstacle in enumerate(obstacles):
             for j, tracker in enumerate(self._trackers):
-                obstacle_bbox = obstacle.bounding_box
-                tracker_bbox = tracker.obstacle.bounding_box
+                obstacle_bbox = obstacle.bounding_box_2D
+                tracker_bbox = tracker.obstacle.bounding_box_2D
                 iou = obstacle_bbox.calculate_iou(tracker_bbox)
                 # If track too far from det, mark pair impossible with np.nan
                 if iou >= self._min_matching_iou:

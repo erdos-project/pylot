@@ -27,9 +27,11 @@ class DetectionEvalOperator(BasePerceptionEvalOperator):
         frame_gap (:obj:`int`): Time in ms between frames.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, prediction_stream, ground_truth_stream,
-                 finished_indicator_stream, evaluate_timely, matching_policy,
-                 frame_gap, flags):
+    def __init__(self, prediction_stream: erdos.ReadStream,
+                 ground_truth_stream: erdos.ReadStream,
+                 finished_indicator_stream: erdos.WriteStream,
+                 evaluate_timely: bool, matching_policy: str, frame_gap: int,
+                 flags):
         super().__init__(prediction_stream, ground_truth_stream,
                          finished_indicator_stream, evaluate_timely,
                          matching_policy, frame_gap,
@@ -218,7 +220,7 @@ class OnlineCOCOEval(object):
         self.annotations.extend(lables_dict_list)
         self.preds.extend(pred_dict_list)
 
-    def evaluate_last_n(self, n=None, verbose=False):
+    def evaluate_last_n(self, n: int = None, verbose=False):
         """
         if n = `None` evaluate over all images added so far
         """

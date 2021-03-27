@@ -12,10 +12,10 @@ from pylot.perception.detection.traffic_light import TrafficLight
 from pylot.perception.detection.utils import BoundingBox2D
 
 
-def check_simulator_version(simulator_version,
-                            required_major=0,
-                            required_minor=9,
-                            required_patch=1):
+def check_simulator_version(simulator_version: str,
+                            required_major: int = 0,
+                            required_minor: int = 9,
+                            required_patch: int = 1):
     """Checks if the simulator meets the minimum version requirements."""
     ver_strs = simulator_version.split('.')
     if len(ver_strs) < 2 or len(ver_strs) > 3:
@@ -83,6 +83,7 @@ def get_map(host: str = "localhost", port: int = 2000, timeout: int = 10):
 
 
 def map_from_opendrive(opendrive: str, log_file_name: str = None):
+    """Creates a HD map from an opendrive string."""
     try:
         from carla import Map
     except ImportError:
@@ -185,9 +186,11 @@ def spawn_actors(client, world, simulator_version: str,
     return ego_vehicle, vehicle_ids, people
 
 
-def spawn_ego_vehicle(world, spawn_point_index: int, auto_pilot: bool):
-    v_blueprint = world.get_blueprint_library().filter(
-        'vehicle.lincoln.mkz2017')[0]
+def spawn_ego_vehicle(world,
+                      spawn_point_index: int,
+                      auto_pilot: bool,
+                      blueprint: str = 'vehicle.lincoln.mkz2017'):
+    v_blueprint = world.get_blueprint_library().filter(blueprint)[0]
     ego_vehicle = None
     while not ego_vehicle:
         if spawn_point_index == -1:

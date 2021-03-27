@@ -3,97 +3,12 @@ import numpy as np
 from pylot.utils import Location, Rotation, Transform
 
 
-def create_rgb_camera_setup(camera_name,
-                            camera_location,
-                            width,
-                            height,
-                            fov=90):
-    """Creates an RGBCameraSetup instance with the given values.
-
-    The Rotation is set to (pitch=0, yaw=0, roll=0).
-
-    Args:
-        camera_name (str): The name of the camera instance.
-        camera_location (:py:class:`~pylot.utils.Location`): The location of
-            the camera with respect to the center of the vehicle.
-        width (int): The width of the image returned by the camera.
-        height (int): The height of the image returned by the camera.
-        fov (float): The field of view of the image returned by the camera.
-
-    Returns:
-        :py:class:`~pylot.drivers.sensor_setup.RGBCameraSetup`: A camera
-        setup with the given parameters.
-    """
-    transform = Transform(camera_location, Rotation())
-    return RGBCameraSetup(camera_name, width, height, transform, fov)
-
-
-def create_depth_camera_setup(camera_name_prefix,
-                              camera_location,
-                              width,
-                              height,
-                              fov=90):
-    """Creates a DepthCameraSetup instance with the given values.
-
-    The Rotation is set to (pitch=0, yaw=0, roll=0).
-
-    Args:
-        camera_name_prefix (str): The name of the camera instance. A suffix
-            of "_depth" is appended to the name.
-        camera_location (:py:class:`~pylot.utils.Location`): The location of
-            the camera with respect to the center of the vehicle.
-        width (int): The width of the image returned by the camera.
-        height (int): The height of the image returned by the camera.
-        fov (float): The field of view of the image returned by the camera.
-
-    Returns:
-        :py:class:`~pylot.drivers.sensor_setup.DepthCameraSetup`: A camera
-        setup with the given parameters.
-    """
-    transform = Transform(camera_location, Rotation())
-    return DepthCameraSetup(camera_name_prefix + '_depth',
-                            width,
-                            height,
-                            transform,
-                            fov=fov)
-
-
-def create_segmented_camera_setup(camera_name_prefix,
-                                  camera_location,
-                                  width,
-                                  height,
-                                  fov=90):
-    """Creates a SegmentedCameraSetup instance with the given values.
-
-    The Rotation is set to (pitch=0, yaw=0, roll=0).
-
-    Args:
-        camera_name_prefix (str): The name of the camera instance. A suffix
-            of "_segmented" is appended to the name.
-        camera_location (:py:class:`~pylot.utils.Location`): The location of
-            the camera with respect to the center of the vehicle.
-        width (int): The width of the image returned by the camera.
-        height (int): The height of the image returned by the camera.
-        fov (float): The field of view of the image returned by the camera.
-
-    Returns:
-        :py:class:`~pylot.drivers.sensor_setup.SegmentedCameraSetup`: A
-        camera setup with the given parameters.
-    """
-    transform = Transform(camera_location, Rotation())
-    return SegmentedCameraSetup(camera_name_prefix + '_segmented',
-                                width,
-                                height,
-                                transform,
-                                fov=fov)
-
-
-def create_left_right_camera_setups(camera_name_prefix,
-                                    location,
-                                    width,
-                                    height,
+def create_left_right_camera_setups(camera_name_prefix: str,
+                                    location: Location,
+                                    width: int,
+                                    height: int,
                                     camera_offset,
-                                    fov=90):
+                                    fov: float = 90):
     """Creates a dual-RGB-camera setup with the center at the given location,
     and the two cameras on either side of the center at a distance specified
     by the camera_offset.
@@ -133,7 +48,9 @@ def create_left_right_camera_setups(camera_name_prefix,
     return (left_camera_setup, right_camera_setup)
 
 
-def create_center_lidar_setup(location, rotation_frequency=20, legacy=True):
+def create_center_lidar_setup(location: Location,
+                              rotation_frequency: int = 20,
+                              legacy: bool = True):
     """Creates a LidarSetup instance with the given location.
 
     The Rotation is set to (pitch=0, roll=0, yaw=0).
@@ -189,8 +106,13 @@ class CameraSetup(object):
             respect to the vehicle.
         fov (float): The field-of-view of the camera.
     """
-    def __init__(self, name, camera_type, width, height, transform, fov=90):
-        # Ensure that the name is a string.
+    def __init__(self,
+                 name: str,
+                 camera_type: str,
+                 width: int,
+                 height: int,
+                 transform: Transform,
+                 fov: float = 90):
         assert isinstance(name, str), "The name should be of type 'str'"
         self.name = name
 
@@ -225,7 +147,7 @@ class CameraSetup(object):
             self.transform)
 
     @staticmethod
-    def __create_intrinsic_matrix(width, height, fov):
+    def __create_intrinsic_matrix(width: int, height: int, fov: float):
         """Creates the intrinsic matrix for a camera with the given
         parameters.
 
@@ -294,7 +216,7 @@ class CameraSetup(object):
         """
         return self._unreal_transform.matrix
 
-    def get_name(self):
+    def get_name(self) -> str:
         """ Get the name of the camera instance.
 
         Returns:
@@ -302,7 +224,7 @@ class CameraSetup(object):
         """
         return self.name
 
-    def get_unreal_transform(self):
+    def get_unreal_transform(self) -> Transform:
         """Get the transform of the camera with respect to the vehicle in
         the Unreal Engine coordinate space.
 
@@ -312,7 +234,7 @@ class CameraSetup(object):
         """
         return self._unreal_transform
 
-    def get_transform(self):
+    def get_transform(self) -> Transform:
         """Get the transform of the camera with respect to the vehicle to
         which it is attached.
 
@@ -322,7 +244,7 @@ class CameraSetup(object):
         """
         return self.transform
 
-    def set_transform(self, transform):
+    def set_transform(self, transform: Transform):
         """Set the transform of the camera with respect to the vehicle to
         which it is attached.
 
@@ -337,13 +259,13 @@ class CameraSetup(object):
         self._unreal_transform = CameraSetup.__create_unreal_transform(
             self.transform)
 
-    def set_resolution(self, width, height):
+    def set_resolution(self, width: int, height: int):
         self.width = width
         self.height = height
         self._intrinsic_mat = CameraSetup.__create_intrinsic_matrix(
             self.width, self.height, self.fov)
 
-    def get_fov(self):
+    def get_fov(self) -> float:
         """Get the field of view of the camera.
 
         Returns:
@@ -384,7 +306,12 @@ class RGBCameraSetup(CameraSetup):
             respect to the vehicle.
         fov (float): The field-of-view of the camera.
     """
-    def __init__(self, name, width, height, transform, fov=90):
+    def __init__(self,
+                 name: str,
+                 width: int,
+                 height: int,
+                 transform: Transform,
+                 fov: float = 90):
         super(RGBCameraSetup, self).__init__(name, 'sensor.camera.rgb', width,
                                              height, transform, fov)
 
@@ -412,7 +339,12 @@ class DepthCameraSetup(CameraSetup):
             respect to the vehicle.
         fov (float): The field-of-view of the camera.
     """
-    def __init__(self, name, width, height, transform, fov=90):
+    def __init__(self,
+                 name: str,
+                 width: int,
+                 height: int,
+                 transform: Transform,
+                 fov: float = 90):
         super(DepthCameraSetup, self).__init__(name, 'sensor.camera.depth',
                                                width, height, transform, fov)
 
@@ -440,7 +372,12 @@ class SegmentedCameraSetup(CameraSetup):
             respect to the vehicle.
         fov (float): The field-of-view of the camera.
     """
-    def __init__(self, name, width, height, transform, fov=90):
+    def __init__(self,
+                 name: str,
+                 width: int,
+                 height: int,
+                 transform: Transform,
+                 fov: float = 90):
         super(SegmentedCameraSetup,
               self).__init__(name, 'sensor.camera.semantic_segmentation',
                              width, height, transform, fov)
@@ -482,16 +419,16 @@ class LidarSetup(object):
             per second.
     """
     def __init__(self,
-                 name,
-                 lidar_type,
-                 transform,
-                 range=5000,
-                 rotation_frequency=20,
-                 channels=32,
-                 upper_fov=15,
-                 lower_fov=-30,
-                 points_per_second=500000,
-                 legacy=True):
+                 name: str,
+                 lidar_type: str,
+                 transform: Transform,
+                 range: float = 5000,
+                 rotation_frequency: float = 20,
+                 channels: int = 32,
+                 upper_fov: float = 15,
+                 lower_fov: float = -30,
+                 points_per_second: int = 500000,
+                 legacy: bool = True):
         # Ensure that the name is a string.
         assert isinstance(name, str), "The name should be of type 'str'"
         self.name = name
@@ -545,7 +482,8 @@ class LidarSetup(object):
             self.transform, self.legacy)
 
     @staticmethod
-    def __create_unreal_transform(transform, legacy):
+    def __create_unreal_transform(transform: Transform,
+                                  legacy: bool) -> Transform:
         """Converts a Transform from the LIDAR coordinate space to the
         Unreal Engine coordinate space.
 
@@ -570,7 +508,7 @@ class LidarSetup(object):
         else:
             return transform
 
-    def get_name(self):
+    def get_name(self) -> str:
         """Get the name of the LIDAR instance.
 
         Returns:
@@ -578,7 +516,7 @@ class LidarSetup(object):
         """
         return self.name
 
-    def get_transform(self):
+    def get_transform(self) -> Transform:
         """Get the transform of the LIDAR with respect to the vehicle to
         which it is attached.
 
@@ -588,7 +526,7 @@ class LidarSetup(object):
         """
         return self.transform
 
-    def set_transform(self, transform):
+    def set_transform(self, transform: Transform):
         """Set the transform of the LIDAR with respect to the vehicle to which
         it is attached.
 
@@ -597,18 +535,16 @@ class LidarSetup(object):
                 of the LIDAR with respect to the vehicle to which it is
                 attached.
         """
-        assert isinstance(transform, Transform), "The given transform is not "
-        "of the type pylot.utils.Transform"
         self.transform = transform
         self._unreal_transform = LidarSetup.__create_unreal_transform(
             self.transform, self.legacy)
 
-    def set_legacy(self, legacy):
+    def set_legacy(self, legacy: bool):
         self.legacy = legacy
         self._unreal_transform = LidarSetup.__create_unreal_transform(
             self.transform, self.legacy)
 
-    def get_unreal_transform(self):
+    def get_unreal_transform(self) -> Transform:
         """Get the transform of the LIDAR with respect to the vehicle in the
         Unreal Engine coordinate space.
 
@@ -618,7 +554,7 @@ class LidarSetup(object):
         """
         return self._unreal_transform
 
-    def get_range_in_meters(self):
+    def get_range_in_meters(self) -> float:
         """Get the range of the LIDAR in metres.
 
         Returns:
@@ -654,7 +590,7 @@ class IMUSetup(object):
             containing the location and rotation of the IMU instance with
             respect to the vehicle.
     """
-    def __init__(self, name, transform):
+    def __init__(self, name: str, transform: Transform):
         # Ensure that the name is of the correct type.
         assert isinstance(name, str), "The name should be of type 'str'"
         self.name = name
@@ -664,7 +600,7 @@ class IMUSetup(object):
         "type 'pylot.utils.Transform'"
         self.transform = transform
 
-    def get_name(self):
+    def get_name(self) -> str:
         """Get the name of the IMU instance.
 
         Returns:
@@ -672,7 +608,7 @@ class IMUSetup(object):
         """
         return self.name
 
-    def get_transform(self):
+    def get_transform(self) -> Transform:
         """Get the transform of the IMU sensor with respect to the vehicle
         to which it is attached.
 
@@ -706,9 +642,9 @@ class GNSSSetup(object):
             the location and rotation of the GNSS instance with respect to the
             vehicle
     """
-    def __init__(self, name, transform):
+    def __init__(self, name: str, transform: Transform):
         # Ensure that the name is of the correct type.
-        assert isinstance(name, str), "The name should be of type `str`"
+        assert isinstance(name, str), "The name should be of type 'str'"
         self.name = name
 
         # Ensure that the transform is of the correct type.
@@ -716,7 +652,7 @@ class GNSSSetup(object):
         "type 'pylot.utils.Transform'"
         self.transform = transform
 
-    def get_name(self):
+    def get_name(self) -> str:
         """Get the name of the GNSS instance.
 
         Returns:
@@ -724,7 +660,7 @@ class GNSSSetup(object):
         """
         return self.name
 
-    def get_transform(self):
+    def get_transform(self) -> Transform:
         """Get the transform of the GNSS sensor with respect to the vehicle
         to which it is attached.
 

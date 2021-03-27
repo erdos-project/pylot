@@ -512,7 +512,8 @@ def add_camera_driver(camera_setup, vehicle_id_stream, release_sensor_stream):
 def add_lidar(transform,
               vehicle_id_stream,
               release_sensor_stream,
-              name='center_lidar'):
+              name='center_lidar',
+              legacy=False):
     # Ensure that each lidar reading offers a 360 degree view.
     rotation_frequency = FLAGS.simulator_lidar_frequency
     if rotation_frequency == -1:
@@ -520,7 +521,7 @@ def add_lidar(transform,
         # rotation frequency to the tick frequency.
         rotation_frequency = FLAGS.simulator_fps
     lidar_setup = pylot.drivers.sensor_setup.create_center_lidar_setup(
-        transform.location, rotation_frequency, legacy=True)
+        transform.location, rotation_frequency, legacy=legacy)
     point_cloud_stream, notify_reading_stream = _add_lidar_driver(
         vehicle_id_stream, release_sensor_stream, lidar_setup)
     return (point_cloud_stream, notify_reading_stream, lidar_setup)

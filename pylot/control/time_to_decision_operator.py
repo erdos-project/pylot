@@ -2,8 +2,9 @@ import erdos
 
 
 class TimeToDecisionOperator(erdos.Operator):
-    def __init__(self, pose_stream, obstacles_stream, time_to_decision_stream,
-                 flags):
+    def __init__(self, pose_stream: erdos.ReadStream,
+                 obstacles_stream: erdos.ReadStream,
+                 time_to_decision_stream: erdos.WriteStream, flags):
         pose_stream.add_callback(self.on_pose_update,
                                  [time_to_decision_stream])
         obstacles_stream.add_callback(self.on_obstacles_update)
@@ -12,13 +13,15 @@ class TimeToDecisionOperator(erdos.Operator):
         self._last_obstacles_msg = None
 
     @staticmethod
-    def connect(pose_stream, obstacles_stream):
+    def connect(pose_stream: erdos.ReadStream,
+                obstacles_stream: erdos.ReadStream):
         return [erdos.WriteStream()]
 
     def destroy(self):
         self._logger.warn('destroying {}'.format(self.config.name))
 
-    def on_pose_update(self, msg, time_to_decision_stream):
+    def on_pose_update(self, msg: erdos.Message,
+                       time_to_decision_stream: erdos.WriteStream):
         self._logger.debug('@{}: {} received pose message'.format(
             msg.timestamp, self.config.name))
         ttd = TimeToDecisionOperator.time_to_decision(msg.data.transform,
@@ -26,7 +29,7 @@ class TimeToDecisionOperator(erdos.Operator):
                                                       None)
         time_to_decision_stream.send(erdos.Message(msg.timestamp, ttd))
 
-    def on_obstacles_update(self, msg):
+    def on_obstacles_update(self, msg: erdos.Message):
         self._last_obstacles_msg = msg
 
     @staticmethod
