@@ -3,7 +3,7 @@
 from collections import deque
 
 import erdos
-from erdos import Message, ReadStream, Timestamp
+from erdos import Message, ReadStream, Timestamp, WriteStream
 
 from pylot.utils import Vector2D, time_epoch_ms
 
@@ -24,7 +24,8 @@ class PredictionEvalOperator(erdos.Operator):
         flags (absl.flags): Object to be used to access absl flags.
     """
     def __init__(self, pose_stream: ReadStream, tracking_stream: ReadStream,
-                 prediction_stream: ReadStream, flags):
+                 prediction_stream: ReadStream,
+                 finished_indicator_stream: WriteStream, flags):
         pose_stream.add_callback(self._on_pose_update)
         tracking_stream.add_callback(self._on_tracking_update)
         prediction_stream.add_callback(self._on_prediction_update)
@@ -47,7 +48,8 @@ class PredictionEvalOperator(erdos.Operator):
     @staticmethod
     def connect(pose_stream: ReadStream, tracking_stream: ReadStream,
                 prediction_stream: ReadStream):
-        return []
+        finished_indicator_stream = erdos.WriteStream()
+        return [finished_indicator_stream]
 
     def destroy(self):
         self._logger.warn('destroying {}'.format(self.config.name))

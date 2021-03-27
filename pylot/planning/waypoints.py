@@ -36,7 +36,7 @@ class Waypoints(object):
         target_speeds = deque([target_speed for _ in range(len(waypoints))])
         return cls(deque(waypoints), target_speeds)
 
-    def apply_speed_factor(self, speed_factor):
+    def apply_speed_factor(self, speed_factor: float):
         if self.target_speeds:
             self.target_speeds = [
                 speed_factor * ts for ts in self.target_speeds
@@ -51,7 +51,7 @@ class Waypoints(object):
             wy.append(wp.location.y)
         return np.array([wx, wy])
 
-    def closest_waypoint(self, location):
+    def closest_waypoint(self, location: pylot.utils.Location):
         """Finds the closest waypoint to the location."""
         min_dist = np.infty
         min_index = 0
@@ -62,21 +62,27 @@ class Waypoints(object):
                 min_index = index
         return min_index
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         return len(self.waypoints) == 0
 
-    def remove_waypoint_if_close(self, location, distance=5):
+    def remove_waypoint_if_close(self,
+                                 location: pylot.utils.Location,
+                                 distance: float = 5) -> bool:
         """Removes the first waypoint if it is less than distance m away."""
         if self.waypoints is None or len(self.waypoints) == 0:
-            return
+            return False
         if location.distance(self.waypoints[0].location) < distance:
             self.waypoints.popleft()
             if self.target_speeds:
                 self.target_speeds.popleft()
             if self.road_options:
                 self.road_options.popleft()
+            return True
+        return False
 
-    def remove_completed(self, location, ego_transform=None):
+    def remove_completed(self,
+                         location: pylot.utils.Location,
+                         ego_transform: pylot.utils.Transform = None):
         """Removes waypoints that the ego vehicle has already completed.
 
         The method first finds the closest waypoint to the location,
@@ -109,7 +115,8 @@ class Waypoints(object):
         self.waypoints = hd_map.compute_waypoints(ego_location, goal_location)
         self.target_speeds = deque([0 for _ in range(len(self.waypoints))])
 
-    def _get_index(self, transform, min_distance):
+    def _get_index(self, transform: pylot.utils.Transform,
+                   min_distance: float) -> int:
         min_index = -1
         for index, wp in enumerate(self.waypoints):
             distance = wp.location.distance(transform.location)
@@ -122,7 +129,8 @@ class Waypoints(object):
             raise ValueError('No more waypoints')
         return min_index
 
-    def get_angle(self, transform, min_distance):
+    def get_angle(self, transform: pylot.utils.Transform,
+                  min_distance: float) -> float:
         """Returns the angle between the transform and the first waypoint that
         is at least min_distance away."""
         wp_index = self._get_index(transform, min_distance)
@@ -130,20 +138,25 @@ class Waypoints(object):
             self.waypoints[wp_index].location)
         return angle
 
-    def get_vector(self, transform, min_distance):
+    def get_vector(self, transform: pylot.utils.Transform,
+                   min_distance: float):
         """Returns the vector between the transform and the first waypoint that
         is at least min_distance away."""
         wp_index = self._get_index(transform, min_distance)
         return self.waypoints[wp_index].location.as_vector_2D() - \
             transform.location.as_vector_2D()
 
-    def get_target_speed(self, transform, min_distance):
+    def get_target_speed(self, transform: pylot.utils.Transform,
+                         min_distance: float) -> float:
         """Gets the target speed at the first waypoint that is at least
         min_distance away."""
         wp_index = self._get_index(transform, min_distance)
         return self.target_speeds[wp_index]
 
-    def slice_waypoints(self, start_index, end_index, target_speed=None):
+    def slice_waypoints(self,
+                        start_index: int,
+                        end_index: int,
+                        target_speed: float = None):
         head_wps = deque(
             itertools.islice(self.waypoints, start_index, end_index))
         if target_speed is not None:

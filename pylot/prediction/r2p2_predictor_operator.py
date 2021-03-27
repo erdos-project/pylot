@@ -35,8 +35,9 @@ class R2P2PredictorOperator(erdos.Operator):
             of the lidar. This setup is used to get the maximum range of the
             lidar.
     """
-    def __init__(self, point_cloud_stream, tracking_stream, prediction_stream,
-                 flags, lidar_setup):
+    def __init__(self, point_cloud_stream: erdos.ReadStream,
+                 tracking_stream: erdos.ReadStream,
+                 prediction_stream: erdos.WriteStream, flags, lidar_setup):
         print("WARNING: R2P2 predicts only vehicle trajectories")
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -60,14 +61,17 @@ class R2P2PredictorOperator(erdos.Operator):
         self._tracking_msgs = deque()
 
     @staticmethod
-    def connect(point_cloud_stream, tracking_stream):
+    def connect(point_cloud_stream: erdos.ReadStream,
+                tracking_stream: erdos.ReadStream):
         prediction_stream = erdos.WriteStream()
         return [prediction_stream]
 
     def destroy(self):
         self._logger.warn('destroying {}'.format(self.config.name))
 
-    def on_watermark(self, timestamp, prediction_stream):
+    @erdos.profile_method()
+    def on_watermark(self, timestamp: erdos.Timestamp,
+                     prediction_stream: erdos.WriteStream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         if timestamp.is_top:
             return
@@ -196,12 +200,12 @@ class R2P2PredictorOperator(erdos.Operator):
                                    obstacle_transform, 1.0, predictions))
         return obstacle_predictions_list
 
-    def on_point_cloud_update(self, msg):
+    def on_point_cloud_update(self, msg: erdos.Message):
         self._logger.debug('@{}: received point cloud message'.format(
             msg.timestamp))
         self._point_cloud_msgs.append(msg)
 
-    def on_trajectory_update(self, msg):
+    def on_trajectory_update(self, msg: erdos.Message):
         self._logger.debug('@{}: received trajectories message'.format(
             msg.timestamp))
         self._tracking_msgs.append(msg)

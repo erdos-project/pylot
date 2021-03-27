@@ -116,11 +116,11 @@ class DepthFrame(object):
             for loc in pixel_locations
         ]
 
-    def pixel_has_same_depth(self, x, y, z, threshold):
+    def pixel_has_same_depth(self, x, y, z: float, threshold: float) -> bool:
         """Checks if the depth of pixel (y,x) is within threshold of z."""
         return abs(self.frame[int(y)][int(x)] * 1000 - z) < threshold
 
-    def resize(self, width, height):
+    def resize(self, width: int, height: int):
         """Resizes the frame."""
         import cv2
         self.camera_setup.set_resolution(width, height)
@@ -138,7 +138,7 @@ class DepthFrame(object):
             pygame.surfarray.blit_array(pygame_display, image_np)
             pygame.display.flip()
 
-    def save(self, timestamp, data_path, file_base):
+    def save(self, timestamp: int, data_path: str, file_base: str):
         """Saves the depth frame to a file.
 
         Args:

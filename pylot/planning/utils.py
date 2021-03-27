@@ -15,7 +15,7 @@ class BehaviorPlannerState(enum.Enum):
 
 
 def compute_person_speed_factor(ego_location_2d, person_location_2d, wp_vector,
-                                flags, logger):
+                                flags, logger) -> float:
     speed_factor_p = 1
     p_vector = person_location_2d - ego_location_2d
     p_dist = person_location_2d.l2_distance(ego_location_2d)
@@ -39,7 +39,7 @@ def compute_person_speed_factor(ego_location_2d, person_location_2d, wp_vector,
 
 
 def compute_vehicle_speed_factor(ego_location_2d, vehicle_location_2d,
-                                 wp_vector, flags, logger):
+                                 wp_vector, flags, logger) -> float:
     speed_factor_v = 1
     v_vector = vehicle_location_2d - ego_location_2d
     v_dist = vehicle_location_2d.l2_distance(ego_location_2d)

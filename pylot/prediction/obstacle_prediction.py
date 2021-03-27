@@ -1,5 +1,3 @@
-from typing import List
-
 from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 from pylot.utils import Transform
 
@@ -18,7 +16,7 @@ class ObstaclePrediction(object):
     """
     def __init__(self, obstacle_trajectory: ObstacleTrajectory,
                  transform: Transform, probability: float,
-                 predicted_trajectory: List[Transform]):
+                 predicted_trajectory):
         # Trajectory in ego frame of coordinates.
         self.obstacle_trajectory = obstacle_trajectory
         # The transform is in world coordinates.

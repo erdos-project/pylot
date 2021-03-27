@@ -125,7 +125,7 @@ class CameraFrame(object):
                     thickness=1,
                     lineType=cv2.LINE_AA)
 
-    def in_frame(self, point: Vector2D):
+    def in_frame(self, point: Vector2D) -> bool:
         """Checks if a point is within the frame."""
         return (0 <= point.x <= self.camera_setup.width
                 and 0 <= point.y <= self.camera_setup.height)

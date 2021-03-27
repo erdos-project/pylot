@@ -40,7 +40,7 @@ class HDMap(object):
             ))
         self._grp.setup()
 
-    def get_closest_lane_waypoint(self, location: Location):
+    def get_closest_lane_waypoint(self, location: Location) -> Transform:
         """Returns the road closest waypoint to location.
 
         Args:
@@ -57,7 +57,7 @@ class HDMap(object):
         else:
             return None
 
-    def is_intersection(self, location: Location):
+    def is_intersection(self, location: Location) -> bool:
         """Checks if a location is in an intersection.
 
         Args:
@@ -75,14 +75,14 @@ class HDMap(object):
         else:
             return self.__is_intersection(waypoint)
 
-    def __is_intersection(self, waypoint):
+    def __is_intersection(self, waypoint) -> bool:
         if waypoint.is_junction:
             return True
         if hasattr(waypoint, 'is_intersection'):
             return waypoint.is_intersection
         return False
 
-    def is_on_lane(self, location: Location):
+    def is_on_lane(self, location: Location) -> bool:
         """Checks if a location is on a lane.
 
         Args:
@@ -100,7 +100,8 @@ class HDMap(object):
         else:
             return True
 
-    def are_on_same_lane(self, location1: Location, location2: Location):
+    def are_on_same_lane(self, location1: Location,
+                         location2: Location) -> bool:
         """Checks if two locations are on the same lane.
 
         Args:
@@ -209,7 +210,7 @@ class HDMap(object):
             waypoint = waypoints[0]
         return None
 
-    def is_on_bidirectional_lane(self, location: Location):
+    def is_on_bidirectional_lane(self, location: Location) -> bool:
         """Checks if a location is a bidirectional lane.
 
         Args:
@@ -224,7 +225,7 @@ class HDMap(object):
         return not waypoint
 
     def must_obey_traffic_light(self, ego_location: Location,
-                                tl_location: Location):
+                                tl_location: Location) -> bool:
         """Checks if an ego vehicle must obey a traffic light.
 
         Args:
@@ -247,7 +248,7 @@ class HDMap(object):
 
     def _must_obey_european_traffic_light(self, ego_transform: Transform,
                                           tl_locations,
-                                          tl_max_dist_thresh: float):
+                                          tl_max_dist_thresh: float) -> bool:
         ego_waypoint = self._get_waypoint(ego_transform.location)
         # We're not on a road, or we're already in the intersection. Carry on.
         if ego_waypoint is None or self.__is_intersection(ego_waypoint):
@@ -265,7 +266,7 @@ class HDMap(object):
 
     def _must_obey_american_traffic_light(self, ego_transform: Transform,
                                           tl_locations,
-                                          tl_max_dist_thresh: float):
+                                          tl_max_dist_thresh: float) -> bool:
         ego_waypoint = self._get_waypoint(ego_transform.location)
         # We're not on a road, or we're already in the intersection. Carry on.
         if ego_waypoint is None or self.__is_intersection(ego_waypoint):
@@ -288,7 +289,7 @@ class HDMap(object):
     def get_lane(self,
                  location: Location,
                  waypoint_precision: float = 0.05,
-                 lane_id: int = 0):
+                 lane_id: int = 0) -> Lane:
         lane_waypoints = []
         # Consider waypoints in opposite direction of camera so we can get
         # lane data for adjacent lanes in opposing directions.
@@ -403,7 +404,7 @@ class HDMap(object):
             for waypoint in route
         ])
 
-    def _lateral_shift(self, transform, shift):
+    def _lateral_shift(self, transform, shift) -> Location:
         transform.rotation.yaw += 90
         shifted = transform.location + shift * transform.get_forward_vector()
         return Location.from_simulator_location(shifted)
