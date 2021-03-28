@@ -16,9 +16,7 @@ setup(
         "erdos>=0.3.1",
         "gdown",
         "lapsolver",
-        "matplotlib==2.2.4",
         "motmetrics",
-        "networkx==2.2",
         "numpy<1.17",  # Update to newer numpy version once we switch to tf2
         "open3d-python==0.5.0.0",
         "opencv-python>=4.1.0.25",
@@ -34,13 +32,16 @@ setup(
         "torch==1.4.0",
         "torchvision==0.5.0",
         ##### Tracking dependencies #####
-        "filterpy==1.4.1",
-        "scikit-learn==0.22.2",
-        "imgaug==0.2.8",
-        "nonechucks==0.3.1",
         "Cython",
+        "filterpy==1.4.1",
+        "imgaug==0.2.8",
+        "matplotlib==2.2.4",
+        "nonechucks==0.3.1",
+        "nuscenes-devkit"
         "progress",
         "pyquaternion",
-        "nuscenes-devkit"
+        "scikit-learn==0.22.2",
+        ##### CARLA dependencies #####
+        "networkx==2.2",
     ],
 )

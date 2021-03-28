@@ -264,6 +264,13 @@ flags.register_multi_flags_validator(
     message='prediction requires --obstacle_tracking or'
     ' --perfect_obstacle_tracking')
 
+flags.register_multi_flags_validator(
+    ['visualize_prediction', 'execution_mode'],
+    lambda flags_dict: ((not flags_dict['visualize_prediction']) or flags_dict[
+        'execution_mode'] == 'simulator'),
+    message='--visualize_prediction can only be enabled when running atop the'
+    ' simulator')
+
 
 def prediction_ego_agent_validator(flags_dict):
     if flags_dict['prediction_ego_agent']:
@@ -275,6 +282,19 @@ flags.register_multi_flags_validator(
     ['prediction_ego_agent', 'perfect_obstacle_tracking'],
     prediction_ego_agent_validator,
     message='ego-agent prediction requires --perfect_obstacle_tracking')
+
+
+def prediction_eval_validator(flags_dict):
+    if flags_dict['evaluate_prediction']:
+        return flags_dict['prediction']
+    return True
+
+
+flags.register_multi_flags_validator(
+    ['prediction', 'evaluate_prediction'],
+    prediction_eval_validator,
+    message='--prediction must be enabled when --evaluate_prediction is '
+    'enabled')
 
 flags.register_multi_flags_validator(
     [
@@ -340,6 +360,7 @@ def obstacle_detection_validator(flags_dict):
     if flags_dict['simulator_obstacle_detection']:
         return not (flags_dict['obstacle_detection']
                     or flags_dict['perfect_obstacle_detection'])
+    # return False if neither flag is set.
     return False
 
 
@@ -377,6 +398,8 @@ def traffic_light_detection_validator(flags_dict):
     if flags_dict['simulator_traffic_light_detection']:
         return not (flags_dict['traffic_light_detection']
                     or flags_dict['perfect_traffic_light_detection'])
+    # return False if neither flag is set.
+    return False
 
 
 flags.register_multi_flags_validator(
@@ -394,19 +417,21 @@ def obstacle_tracking_validator(flags_dict):
     if flags_dict['obstacle_tracking']:
         return (flags_dict['obstacle_detection']
                 or flags_dict['perfect_obstacle_detection']
-                or flags_dict['simulator_obstacle_detection'])
+                ) and not (flags_dict['perfect_obstacle_tracking'])
+    if flags_dict['perfect_obstacle_tracking']:
+        return not flags_dict['obstacle_tracking']
     return True
 
 
 flags.register_multi_flags_validator(
     [
         'obstacle_detection', 'perfect_obstacle_detection',
-        'simulator_obstacle_detection', 'obstacle_tracking'
+        'obstacle_tracking', 'perfect_obstacle_tracking'
     ],
     obstacle_tracking_validator,
-    message='--obstacle_detection, --perfect_obstacle_detection, or '
-    '--simulator_obstacle_detection must be set when --obstacle_tracking is'
-    ' enabled')
+    message='--obstacle_detection or --perfect_obstacle_detection must be set '
+    'when --obstacle_tracking is enabled. Only one of --obstacle_tracking, or '
+    '--perfect_obstacle_tracking can be enabled')
 
 
 def obstacle_tracking_evaluation_validator(flags_dict):
@@ -438,3 +463,59 @@ flags.register_multi_flags_validator(
     ['fusion', 'evaluate_fusion'],
     fusion_evaluation_validator,
     message='--fusion must be set when --evaluate_fusion is enabled')
+
+
+def segmentation_validator(flags_dict):
+    if flags_dict['segmentation']:
+        return not flags_dict['perfect_segmentation']
+    if flags_dict['perfect_segmentation']:
+        return not flags_dict['segmentation']
+    return True
+
+
+flags.register_multi_flags_validator(
+    ['perfect_segmentation', 'segmentation'],
+    segmentation_validator,
+    message='--segmentation and --perfect_segmentation cannot be both set')
+
+
+def segmentation_evaluation_validator(flags_dict):
+    if flags_dict['evaluate_segmentation']:
+        return flags_dict['segmentation']
+    return True
+
+
+flags.register_multi_flags_validator(
+    ['evaluate_segmentation', 'segmentation'],
+    segmentation_evaluation_validator,
+    message='--segmentation must be set when --evaluate_segmentation is '
+    'enabled')
+
+
+def depth_validator(flags_dict):
+    if flags_dict['depth_estimation']:
+        return not flags_dict['perfect_depth_estimation']
+    if flags_dict['perfect_depth_estimation']:
+        return not flags_dict['depth_estimation']
+    return True
+
+
+flags.register_multi_flags_validator(
+    ['depth_estimation', 'perfect_depth_estimation'],
+    depth_validator,
+    message='--depth_estimation and --perfect_depth_estimation cannot be'
+    ' both set')
+
+
+def lane_detection_validator(flags_dict):
+    if flags_dict['lane_detection']:
+        return not flags_dict['perfect_lane_detection']
+    if flags_dict['perfect_lane_detection']:
+        return not flags_dict['lane_detection']
+    return True
+
+
+flags.register_multi_flags_validator(
+    ['lane_detection', 'perfect_lane_detection'],
+    lane_detection_validator,
+    message='--lane_detection and --perfect_lane_detection cannot be both set')
