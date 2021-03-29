@@ -92,7 +92,7 @@ class World(object):
         self._goal_location = goal_location
         self.waypoints = waypoints
 
-    def follow_waypoints(self, target_speed):
+    def follow_waypoints(self, target_speed: float):
         self.waypoints.remove_completed(self.ego_transform.location,
                                         self.ego_transform)
         return self.waypoints.slice_waypoints(0,
@@ -148,7 +148,7 @@ class World(object):
             for lane in self._lanes:
                 lane.draw_on_frame(frame)
 
-    def stop_person(self, obstacle, wp_vector):
+    def stop_person(self, obstacle, wp_vector) -> float:
         """Computes a stopping factor for ego vehicle given a person obstacle.
 
         Args:
@@ -191,7 +191,7 @@ class World(object):
             min_speed_factor_p = min(min_speed_factor_p, speed_factor_p)
         return min_speed_factor_p
 
-    def stop_vehicle(self, obstacle, wp_vector):
+    def stop_vehicle(self, obstacle, wp_vector) -> float:
         """Computes a stopping factor for ego vehicle given a vehicle pos.
 
         Args:
@@ -241,7 +241,7 @@ class World(object):
             min_speed_factor_v = min(min_speed_factor_v, speed_factor_v)
         return min_speed_factor_v
 
-    def stop_for_agents(self, timestamp):
+    def stop_for_agents(self, timestamp) -> float:
         """Calculates the speed factor in [0, 1] (0 is full stop).
 
         Reduces the speed factor whenever the ego vehicle's path is blocked
@@ -320,7 +320,7 @@ class World(object):
         return (speed_factor, speed_factor_p, speed_factor_v, speed_factor_tl,
                 speed_factor_stop)
 
-    def stop_traffic_light(self, tl, wp_vector, wp_angle):
+    def stop_traffic_light(self, tl, wp_vector, wp_angle) -> float:
         """Computes a stopping factor for ego vehicle given a traffic light.
 
         Args:

@@ -39,9 +39,14 @@ class PlanningOperator(erdos.Operator):
             operator sends waypoints the ego vehicle must follow.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, pose_stream, prediction_stream, static_obstacles_stream,
-                 lanes_stream, route_stream, open_drive_stream,
-                 time_to_decision_stream, waypoints_stream, flags):
+    def __init__(self, pose_stream: erdos.ReadStream,
+                 prediction_stream: erdos.ReadStream,
+                 static_obstacles_stream: erdos.ReadStream,
+                 lanes_stream: erdos.ReadStream,
+                 route_stream: erdos.ReadStream,
+                 open_drive_stream: erdos.ReadStream,
+                 time_to_decision_stream: erdos.ReadStream,
+                 waypoints_stream: erdos.WriteStream, flags):
         pose_stream.add_callback(self.on_pose_update)
         prediction_stream.add_callback(self.on_prediction_update)
         static_obstacles_stream.add_callback(self.on_static_obstacles_update)
@@ -89,9 +94,12 @@ class PlanningOperator(erdos.Operator):
         self._ttd_msgs = deque()
 
     @staticmethod
-    def connect(pose_stream, prediction_stream, static_obstacles_stream,
-                lanes_steam, route_stream, open_drive_stream,
-                time_to_decision_stream):
+    def connect(pose_stream: erdos.ReadStream,
+                prediction_stream: erdos.ReadStream,
+                static_obstacles_stream: erdos.ReadStream,
+                lanes_steam: erdos.ReadStream, route_stream: erdos.ReadStream,
+                open_drive_stream: erdos.ReadStream,
+                time_to_decision_stream: erdos.ReadStream):
         waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
 
@@ -110,7 +118,7 @@ class PlanningOperator(erdos.Operator):
                 self.config.log_file_name)
             self._logger.info('Planner running in stand-alone mode')
 
-    def on_pose_update(self, msg):
+    def on_pose_update(self, msg: erdos.Message):
         """Invoked whenever a message is received on the pose stream.
 
         Args:
@@ -122,21 +130,21 @@ class PlanningOperator(erdos.Operator):
         self._ego_transform = msg.data.transform
 
     @erdos.profile_method()
-    def on_prediction_update(self, msg):
+    def on_prediction_update(self, msg: erdos.Message):
         self._logger.debug('@{}: received prediction message'.format(
             msg.timestamp))
         self._prediction_msgs.append(msg)
 
-    def on_static_obstacles_update(self, msg):
+    def on_static_obstacles_update(self, msg: erdos.Message):
         self._logger.debug('@{}: received static obstacles update'.format(
             msg.timestamp))
         self._static_obstacles_msgs.append(msg)
 
-    def on_lanes_update(self, msg):
+    def on_lanes_update(self, msg: erdos.Message):
         self._logger.debug('@{}: received lanes update'.format(msg.timestamp))
         self._lanes_msgs.append(msg)
 
-    def on_route(self, msg):
+    def on_route(self, msg: erdos.Message):
         """Invoked whenever a message is received on the trajectory stream.
 
         Args:
@@ -154,7 +162,7 @@ class PlanningOperator(erdos.Operator):
             self._world.update_waypoints(msg.waypoints.waypoints[-1].location,
                                          msg.waypoints)
 
-    def on_opendrive_map(self, msg):
+    def on_opendrive_map(self, msg: erdos.Message):
         """Invoked whenever a message is received on the open drive stream.
 
         Args:
@@ -167,13 +175,14 @@ class PlanningOperator(erdos.Operator):
         self._map = map_from_opendrive(msg.data)
 
     @erdos.profile_method()
-    def on_time_to_decision(self, msg):
+    def on_time_to_decision(self, msg: erdos.Message):
         self._logger.debug('@{}: {} received ttd update {}'.format(
             msg.timestamp, self.config.name, msg))
         self._ttd_msgs.append(msg)
 
     @erdos.profile_method()
-    def on_watermark(self, timestamp, waypoints_stream):
+    def on_watermark(self, timestamp: erdos.Timestamp,
+                     waypoints_stream: erdos.WriteStream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         if timestamp.is_top:
             return
@@ -221,7 +230,7 @@ class PlanningOperator(erdos.Operator):
                 type(prediction_msg)))
         return predictions
 
-    def update_world(self, timestamp):
+    def update_world(self, timestamp: erdos.Timestamp):
         pose_msg = self._pose_msgs.popleft()
         ego_transform = pose_msg.data.transform
         prediction_msg = self._prediction_msgs.popleft()

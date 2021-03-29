@@ -1,8 +1,4 @@
-from typing import List
-
 import erdos
-
-from pylot.prediction.obstacle_prediction import ObstaclePrediction
 
 
 class PredictionMessage(erdos.Message):
@@ -18,10 +14,12 @@ class PredictionMessage(erdos.Message):
         predictions (list(:py:class:`~pylot.prediction.obstacle_prediction.ObstaclePrediction`)):
             Obstacle predictions.
     """
-    def __init__(self, timestamp: erdos.Timestamp,
-                 predictions: List[ObstaclePrediction]):
+    def __init__(self, timestamp: erdos.Timestamp, predictions):
         super(PredictionMessage, self).__init__(timestamp, None)
         self.predictions = predictions
+
+    def __repr__(self):
+        return self.__str__()
 
     def __str__(self):
         return 'PredictionMessage(timestamp: {}, predictions: {})'.format(

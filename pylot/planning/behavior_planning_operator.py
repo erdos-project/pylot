@@ -29,12 +29,12 @@ class BehaviorPlanningOperator(erdos.Operator):
             the ego vehicle.
     """
     def __init__(self,
-                 pose_stream,
-                 open_drive_stream,
-                 route_stream,
-                 trajectory_stream,
+                 pose_stream: erdos.ReadStream,
+                 open_drive_stream: erdos.ReadStream,
+                 route_stream: erdos.ReadStream,
+                 trajectory_stream: erdos.WriteStream,
                  flags,
-                 goal_location=None):
+                 goal_location: pylot.utils.Location = None):
         pose_stream.add_callback(self.on_pose_update)
         open_drive_stream.add_callback(self.on_opendrive_map)
         route_stream.add_callback(self.on_route_msg)
@@ -63,14 +63,16 @@ class BehaviorPlanningOperator(erdos.Operator):
         self._map = None
 
     @staticmethod
-    def connect(pose_stream, open_drive_stream, route_stream):
+    def connect(pose_stream: erdos.ReadStream,
+                open_drive_stream: erdos.ReadStream,
+                route_stream: erdos.ReadStream):
         trajectory_stream = erdos.WriteStream()
         return [trajectory_stream]
 
     def destroy(self):
         self._logger.warn('destroying {}'.format(self.config.name))
 
-    def on_opendrive_map(self, msg):
+    def on_opendrive_map(self, msg: erdos.Message):
         """Invoked whenever a message is received on the open drive stream.
 
         Args:
@@ -82,7 +84,7 @@ class BehaviorPlanningOperator(erdos.Operator):
         from pylot.simulation.utils import map_from_opendrive
         self._map = map_from_opendrive(msg.data, self.config.log_file_name)
 
-    def on_route_msg(self, msg):
+    def on_route_msg(self, msg: erdos.Message):
         """Invoked whenever a message is received on the trajectory stream.
 
         Args:
@@ -93,7 +95,7 @@ class BehaviorPlanningOperator(erdos.Operator):
             msg.timestamp, len(msg.waypoints.waypoints)))
         self._route = msg.waypoints
 
-    def on_pose_update(self, msg):
+    def on_pose_update(self, msg: erdos.Message):
         """Invoked whenever a message is received on the pose stream.
 
         Args:
@@ -103,7 +105,9 @@ class BehaviorPlanningOperator(erdos.Operator):
         self._logger.debug('@{}: received pose message'.format(msg.timestamp))
         self._pose_msgs.append(msg)
 
-    def on_watermark(self, timestamp, trajectory_stream):
+    @erdos.profile_method()
+    def on_watermark(self, timestamp: erdos.Timestamp,
+                     trajectory_stream: erdos.WriteStream):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         if timestamp.is_top:
             return
@@ -234,7 +238,7 @@ class BehaviorPlanningOperator(erdos.Operator):
                 min_state_cost = state_cost
         return best_next_state
 
-    def __get_goal_location(self, ego_transform):
+    def __get_goal_location(self, ego_transform: pylot.utils.Transform):
         if len(self._route.waypoints) > 1:
             dist = ego_transform.location.distance(
                 self._route.waypoints[0].location)

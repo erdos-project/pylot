@@ -16,9 +16,11 @@ class BasePerceptionEvalOperator(erdos.Operator):
             received from the simulator.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, prediction_stream, ground_truth_stream,
-                 finished_indicator_stream, evaluate_timely, matching_policy,
-                 frame_gap, scoring_module, flags):
+    def __init__(self, prediction_stream: erdos.ReadStream,
+                 ground_truth_stream: erdos.ReadStream,
+                 finished_indicator_stream: erdos.WriteStream,
+                 evaluate_timely: bool, matching_policy: str, frame_gap: int,
+                 scoring_module, flags):
         prediction_stream.add_callback(self.on_prediction)
         ground_truth_stream.add_callback(self.on_ground_truth)
         erdos.add_watermark_callback([prediction_stream, ground_truth_stream],
@@ -58,7 +60,8 @@ class BasePerceptionEvalOperator(erdos.Operator):
             self.config.name + '-csv', self.config.csv_log_file_name)
 
     @staticmethod
-    def connect(prediction_stream, ground_truth_stream):
+    def connect(prediction_stream: erdos.ReadStream,
+                ground_truth_stream: erdos.ReadStream):
         """Connects the operator to other streams.
 
         Args:
@@ -71,7 +74,9 @@ class BasePerceptionEvalOperator(erdos.Operator):
         finished_indicator_stream = erdos.WriteStream()
         return [finished_indicator_stream]
 
-    def on_watermark(self, timestamp, finished_indicator_stream):
+    @erdos.profile_method()
+    def on_watermark(self, timestamp: erdos.Timestamp,
+                     finished_indicator_stream: erdos.WriteStream):
         """Invoked when all input streams have received a watermark.
 
         Args:
@@ -116,7 +121,7 @@ class BasePerceptionEvalOperator(erdos.Operator):
         if on_new_prediction:
             self._start_time_frontier += 1
 
-    def __drain_accuracy_compute_buffer(self, up_to_time):
+    def __drain_accuracy_compute_buffer(self, up_to_time: int):
         for (st, et, end_anchored) in self._accuracy_compute_buffer:
             if et <= up_to_time:
                 self.compute_accuracy(st, et, end_anchored)
@@ -133,7 +138,8 @@ class BasePerceptionEvalOperator(erdos.Operator):
         if gc_threshold is not None:
             self.__gc_data_earlier_than(gc_threshold)
 
-    def compute_accuracy(self, frame_time, ground_time, end_anchored):
+    def compute_accuracy(self, frame_time: int, ground_time: int,
+                         end_anchored: bool):
         anchor_type = "end" if end_anchored else "start"
         anchor_time = ground_time if end_anchored else frame_time
         predictions = self.get_prediction_at(frame_time)
@@ -146,7 +152,7 @@ class BasePerceptionEvalOperator(erdos.Operator):
                 time_epoch_ms(), anchor_time, self.config.name, anchor_type,
                 self._matching_policy, k, v))
 
-    def __compute_frame_gap(self, game_time):
+    def __compute_frame_gap(self, game_time: int):
         """Infer frame gap if not explicitly provided in constructor."""
         if not self._frame_gap:
             if not self._last_notification:
@@ -156,7 +162,7 @@ class BasePerceptionEvalOperator(erdos.Operator):
                 self._frame_gap = (game_time - self._last_notification)
                 self._last_notification = game_time
 
-    def get_ground_truth_at(self, timestamp):
+    def get_ground_truth_at(self, timestamp: int):
         for (ground_time, obstacles) in self._ground_truths:
             if ground_time == timestamp:
                 return obstacles
@@ -165,7 +171,7 @@ class BasePerceptionEvalOperator(erdos.Operator):
         self._logger.fatal(
             'Could not find ground obstacles for {}'.format(timestamp))
 
-    def get_prediction_at(self, timestamp):
+    def get_prediction_at(self, timestamp: int):
         for (start_time, obstacles) in self._predictions:
             if start_time == timestamp:
                 return obstacles
@@ -174,7 +180,7 @@ class BasePerceptionEvalOperator(erdos.Operator):
         self._logger.fatal(
             'Could not find tracked obstacles for {}'.format(timestamp))
 
-    def __gc_data_earlier_than(self, game_time):
+    def __gc_data_earlier_than(self, game_time: int):
         index = 0
         while (index < len(self._predictions)
                and self._predictions[index][0] < game_time):
@@ -188,7 +194,7 @@ class BasePerceptionEvalOperator(erdos.Operator):
         if index > 0:
             self._ground_truths = self._ground_truths[index:]
 
-    def on_prediction(self, msg):
+    def on_prediction(self, msg: erdos.Message):
         game_time = msg.timestamp.coordinates[0]
         self._predictions.append((game_time, msg.obstacles))
         if len(self._predictions) > 1:
@@ -207,11 +213,11 @@ class BasePerceptionEvalOperator(erdos.Operator):
             self._prediction_start_end_times.append(
                 (game_time, ground_truth_time))
 
-    def on_ground_truth(self, msg):
+    def on_ground_truth(self, msg: erdos.Message):
         game_time = msg.timestamp.coordinates[0]
         self._ground_truths.append((game_time, msg.obstacles))
 
-    def __compute_closest_frame_time(self, time):
+    def __compute_closest_frame_time(self, time: float) -> int:
         if self._frame_gap is None:
             self._logger.info(
                 'Skipping frame {} because frame gap is not set yet'.format(

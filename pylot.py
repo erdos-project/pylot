@@ -197,8 +197,7 @@ def driver():
     control_loop_stream.set(control_stream)
 
     pylot.component_creator.add_evaluation(vehicle_id_stream, pose_stream,
-                                           imu_stream, pose_stream_for_control,
-                                           waypoints_stream_for_control)
+                                           imu_stream)
 
     time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
         pose_stream, obstacles_stream)

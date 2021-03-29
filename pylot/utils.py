@@ -23,7 +23,7 @@ class Rotation(object):
         yaw:   Rotation about Z-axis.
         roll:  Rotation about X-axis.
     """
-    def __init__(self, pitch=0, yaw=0, roll=0):
+    def __init__(self, pitch: float = 0, yaw: float = 0, roll: float = 0):
         self.pitch = pitch
         self.yaw = yaw
         self.roll = roll
@@ -82,7 +82,7 @@ class Quaternion(object):
         matrix: A 3x3 numpy array that can be used to rotate 3D vectors from
             body frame to world frame.
     """
-    def __init__(self, w, x, y, z):
+    def __init__(self, w: float, x: float, y: float, z: float):
         norm = np.linalg.norm([w, x, y, z])
         if norm < 1e-50:
             self.w, self.x, self.y, self.z = 0, 0, 0, 0
@@ -120,7 +120,7 @@ class Quaternion(object):
         return m
 
     @classmethod
-    def from_rotation(cls, rotation):
+    def from_rotation(cls, rotation: Rotation):
         """Creates a Quaternion from a rotation including pitch, roll, yaw.
 
         Args:
@@ -147,7 +147,7 @@ class Quaternion(object):
         return cls(w, x, y, z)
 
     @classmethod
-    def from_angular_velocity(cls, angular_velocity, dt):
+    def from_angular_velocity(cls, angular_velocity, dt: float):
         """Creates a Quaternion from an angular velocity vector and the time
         delta to apply it for.
 
@@ -174,7 +174,7 @@ class Quaternion(object):
             x, y, z = imaginary
         return cls(w, x, y, z)
 
-    def as_rotation(self):
+    def as_rotation(self) -> Rotation:
         """Retrieve the Quaternion as a Rotation in degrees.
 
         Returns:
@@ -243,7 +243,7 @@ class Vector3D(object):
         y: The value of the second axis.
         z: The value of the third axis.
     """
-    def __init__(self, x=0, y=0, z=0):
+    def __init__(self, x: float = 0, y: float = 0, z: float = 0):
         self.x, self.y, self.z = float(x), float(y), float(z)
 
     @classmethod
@@ -291,7 +291,7 @@ class Vector3D(object):
         return abs(self.x - other.x) + abs(self.y - other.y) + abs(self.z -
                                                                    other.z)
 
-    def l2_distance(self, other):
+    def l2_distance(self, other) -> float:
         """Calculates the L2 distance between the point and another point.
 
         Args:
@@ -335,7 +335,7 @@ class Vector3D(object):
                                  float(position_2D[2]))
         return location_2D
 
-    def rotate(self, angle):
+    def rotate(self, angle: float):
         """Rotate the vector by a given angle.
 
         Args:
@@ -372,7 +372,7 @@ class Vector3D(object):
 
 class Vector2D(object):
     """Represents a 2D vector and provides helper functions."""
-    def __init__(self, x, y):
+    def __init__(self, x: float, y: float):
         self.x = x
         self.y = y
 
@@ -380,7 +380,7 @@ class Vector2D(object):
         """Retrieves the 2D vector as a numpy array."""
         return np.array([self.x, self.y])
 
-    def get_angle(self, other):
+    def get_angle(self, other) -> float:
         """Computes the angle between the vector and another vector
            in radians."""
         angle = math.atan2(self.y, self.x) - math.atan2(other.y, other.x)
@@ -390,7 +390,7 @@ class Vector2D(object):
             angle += 2 * math.pi
         return angle
 
-    def l1_distance(self, other):
+    def l1_distance(self, other) -> float:
         """Calculates the L1 distance between the point and another point.
 
         Args:
@@ -402,7 +402,7 @@ class Vector2D(object):
         """
         return abs(self.x - other.x) + abs(self.y - other.y)
 
-    def l2_distance(self, other):
+    def l2_distance(self, other) -> float:
         """Calculates the L2 distance between the point and another point.
 
         Args:
@@ -447,7 +447,7 @@ class Location(Vector3D):
         y: The value of the y-axis.
         z: The value of the z-axis.
     """
-    def __init__(self, x=0, y=0, z=0):
+    def __init__(self, x: float = 0, y: float = 0, z: float = 0):
         super(Location, self).__init__(x, y, z)
 
     @classmethod
@@ -467,7 +467,7 @@ class Location(Vector3D):
         return cls(location.x, location.y, location.z)
 
     @classmethod
-    def from_gps(cls, latitude, longitude, altitude):
+    def from_gps(cls, latitude: float, longitude: float, altitude: float):
         """Creates Location from GPS (latitude, longitude, altitude).
 
         This is the inverse of the _location_to_gps method found in
@@ -496,7 +496,7 @@ class Location(Vector3D):
 
         return cls(x, y, altitude)
 
-    def distance(self, other):
+    def distance(self, other) -> float:
         """Calculates the Euclidean distance between the given point and the
         other point.
 
@@ -509,7 +509,7 @@ class Location(Vector3D):
         """
         return (self - other).magnitude()
 
-    def as_vector_2D(self):
+    def as_vector_2D(self) -> Vector2D:
         """Transforms the Location into a Vector2D.
 
         Note:
@@ -565,7 +565,10 @@ class Transform(object):
             coordinate space with respect to the location and rotation of the
             given object.
     """
-    def __init__(self, location=None, rotation=None, matrix=None):
+    def __init__(self,
+                 location: Location = None,
+                 rotation: Rotation = None,
+                 matrix=None):
         if matrix is not None:
             self.matrix = matrix
             self.location = Location(matrix[0, 3], matrix[1, 3], matrix[2, 3])
@@ -784,7 +787,8 @@ class Transform(object):
             angle = 0
         return angle, magnitude
 
-    def is_within_distance_ahead(self, dst_loc, max_distance):
+    def is_within_distance_ahead(self, dst_loc: Location,
+                                 max_distance: float) -> bool:
         """Checks if a location is within a distance.
 
         Args:
@@ -841,10 +845,10 @@ class Pose(object):
             in world frame
     """
     def __init__(self,
-                 transform,
-                 forward_speed,
-                 velocity_vector=None,
-                 localization_time=None):
+                 transform: Transform,
+                 forward_speed: float,
+                 velocity_vector: Vector3D = None,
+                 localization_time: float = None):
         if not isinstance(transform, Transform):
             raise ValueError(
                 'transform should be of type pylot.utils.Transform')
@@ -1025,7 +1029,7 @@ def get_top_down_transform(transform, top_down_camera_altitude):
     return Transform(top_down_location, Rotation(-90, 0, 0))
 
 
-def time_epoch_ms():
+def time_epoch_ms() -> int:
     """Get current time in milliseconds."""
     return int(time.time() * 1000)
 

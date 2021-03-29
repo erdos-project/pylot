@@ -1,28 +1,33 @@
 #!/bin/bash
 # $1 path where to save the data.
 
+if [ -z "$PYLOT_HOME" ]; then
+    echo "Please set \$PYLOT_HOME before sourcing this script"
+    exit 1
+fi
+
 if [ -z "$CARLA_HOME" ]; then
     echo "Please set \$CARLA_HOME before running this script"
     exit 1
 fi
 
-# Change the Carla kill command if you want to collect data with 0.8.4 or 0.9.5.
-cd ../
-
 start_player_nums=(1 10 20 30 40)
 towns=(1 2 3 4 5)
 
+cd $PYLOT_HOME
 for pn in ${start_player_nums[@]}; do
     for town in ${towns[@]}; do
-        ${CARLA_HOME}/CarlaUE4.sh /Game/Carla/Maps/Town0${town} -windowed -ResX=1920 -ResY=1080 -carla-server -benchmark -fps=10 &
+        echo "[x] Driving in town $town from start position $pn"
+        echo "[x] Starting the CARLA simulator"
+        SDL_VIDEODRIVER=offscreen ${CARLA_HOME}/CarlaUE4.sh -opengl /Game/Carla/Maps/Town0${town} -windowed -ResX=1920 -ResY=1080 -carla-server -benchmark -fps=10 &
+        sleep 10
         mkdir $1/town0${town}_start${pn}/
-        sleep 10
-        python data_gatherer.py --flagfile=configs/data_gatherer.conf --carla_spawn_point_index=${pn} --data_path=$1/town0${town}_start${pn}/ --carla_town=${town} & sleep 4800; kill -9 $!
+        python3 data_gatherer.py --flagfile=configs/data_gatherer.conf --carla_spawn_point_index=${pn} --data_path=$1/town0${town}_start${pn}/ --simulator_town=${town} &
         # Collect data for an hour.
+        sleep 4800
         # Kill data gathering script and Carla.
-        killall python data_gatherer.py
-        sleep 10
-        killall -s 9 ${CARLA_HOME}/CarlaUE4/Binaries/Linux/CarlaUE4-Linux-Shipping
-        sleep 10
+        pkill -9 -f -u $USER data_gatherer
+        pkill -9 -f -u $USER CarlaUE4
+        sleep 5
     done
 done

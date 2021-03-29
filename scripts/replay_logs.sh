@@ -1,6 +1,11 @@
 #!/bin/bash
 # $1 Directory where the log files are
 
+if [ -z "$PYLOT_HOME" ]; then
+    echo "Please set \$PYLOT_HOME before sourcing this script"
+    exit 1
+fi
+
 cd ${CARLA_HOME}/PythonAPI/examples
 
 function replay_log {

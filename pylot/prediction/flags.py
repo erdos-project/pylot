@@ -8,7 +8,7 @@ flags.DEFINE_integer(
     'Number of future steps outputted by the prediction module.')
 flags.DEFINE_integer(
     'prediction_radius', 50,
-    'Make predictions for all vehicles within this radius of the ego-vehicle.')
+    'Make predictions for agents within radius (in m) of the ego-vehicle.')
 flags.DEFINE_boolean('prediction_ego_agent', False,
                      'Whether we make predictions for the ego agent')
 
