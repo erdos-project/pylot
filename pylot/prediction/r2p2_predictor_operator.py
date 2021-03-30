@@ -37,7 +37,7 @@ class R2P2PredictorOperator(erdos.Operator):
     """
     def __init__(self, point_cloud_stream: erdos.ReadStream,
                  tracking_stream: erdos.ReadStream,
-                 time_to_decision_stream: erdos.ReadStream,
+                 time_to_decision: erdos.ReadStream,
                  prediction_stream: erdos.WriteStream, flags, lidar_setup):
         print("WARNING: R2P2 predicts only vehicle trajectories")
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -65,7 +65,7 @@ class R2P2PredictorOperator(erdos.Operator):
     @staticmethod
     def connect(point_cloud_stream: erdos.ReadStream,
                 tracking_stream: erdos.ReadStream,
-                time_to_decision_stream: erdos.ReadStream):
+                time_to_decision: erdos.ReadStream):
         prediction_stream = erdos.WriteStream()
         return [prediction_stream]
 
