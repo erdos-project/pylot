@@ -15,14 +15,14 @@ Next, start the simulator:
 
 .. code-block:: bash
                 
-    export CARLA_HOME=$PYLOT_HOME/dependencies/CARLA_0.9.8/
+    export CARLA_HOME=$PYLOT_HOME/dependencies/CARLA_0.9.10.1/
     ./scripts/run_simulator.sh
 
 In a different terminal, setup the paths:
 
 .. code-block:: bash
 
-    export CARLA_HOME=$PYLOT_HOME/dependencies/CARLA_0.9.8/
+    export CARLA_HOME=$PYLOT_HOME/dependencies/CARLA_0.9.10.1/
     cd $PYLOT_HOME/scripts/
     source ./set_pythonpath.sh
 

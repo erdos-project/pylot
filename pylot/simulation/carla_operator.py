@@ -302,17 +302,11 @@ class CarlaOperator(erdos.Operator):
         # they register a listener. Thus, we sleep here a bit to
         # give them sufficient time to register a callback.
         time.sleep(4)
-        registered_callback = False
-        if pylot.simulation.utils.check_simulator_version(
-                self._simulator_version, required_minor=9, required_patch=11):
-            self._world.on_tick(self.send_actor_data)
-            registered_callback = True
         self._tick_simulator()
         time.sleep(4)
-        if not registered_callback:
-            # The older CARLA versions require an additional tick to sync
-            # sensors.
-            self._world.on_tick(self.send_actor_data)
+        # The older CARLA versions require an additional tick to sync
+        # sensors.
+        self._world.on_tick(self.send_actor_data)
         self._tick_simulator()
 
     def _initialize_world(self):

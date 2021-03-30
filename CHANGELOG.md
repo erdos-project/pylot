@@ -1,5 +1,17 @@
 ## Latest
 
+## Pylot 0.3.2
+  * Fixed bug in parsing CARLA version strings.
+  * Fixed EfficientDet detection operator so that it correctly extracts bounding boxes.
+  * Added indicator stream to logging operators so that they can be used for synchronizing.
+  * Added CenterTrack obstacle tracker.
+  * Fixed LaneNet imports.
+  * Lock pygame to a working version.
+  * Added code to handle top watermarks in watermark callbacks.
+  * Added new tracker evaluation operator, and base eval class.
+  * Added support for CARLA 0.9.11.
+  * Added option to enable evaluation operators to the challenge agent.
+
 ## Pylot 0.3.1
   * Improved perfect lane detector to collect all lanes.
   * Added support for latest CARLA lidar type (CARLA >= 0.9.9.4).

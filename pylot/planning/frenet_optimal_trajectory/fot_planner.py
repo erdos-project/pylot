@@ -20,6 +20,7 @@ class FOTPlanner(Planner):
         super().__init__(world, flags, logger)
         self.s0 = 0.0
         self._hyperparameters = {
+            "num_threads": 1,
             "max_speed": flags.max_speed,
             "max_accel": flags.max_accel,
             "max_curvature": flags.max_curvature,

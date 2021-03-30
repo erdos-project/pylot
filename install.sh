@@ -9,10 +9,10 @@ fi
 
 sudo apt-get -y update
 sudo apt-get install -y git wget cmake python3-pip unzip clang libpng-dev libgeos-dev
-pip3 install gdown --user
 # Install opencv separately because pip3 install doesn't install all libraries
 # opencv requires.
 sudo apt-get install -y python3-opencv
+python3 -m pip install --user gdown
 
 ###############################################################################
 # Get models & code bases we depend on
@@ -159,12 +159,12 @@ git clone https://github.com/mileyan/AnyNet.git
 cd AnyNet/models/spn_t1/ ; python3 setup.py clean ; python3 setup.py build
 
 ###### Download the Carla simulator ######
-echo "[x] Downloading the CARLA 0.9.11 simulator..."
+echo "[x] Downloading the CARLA 0.9.10.1 simulator..."
 cd $PYLOT_HOME/dependencies/
-if [ "$1" != 'challenge' ] && [ ! -d "CARLA_0.9.11" ]; then
-    mkdir CARLA_0.9.11
-    cd CARLA_0.9.11
-    wget https://carla-releases.s3.eu-west-3.amazonaws.com/Linux/CARLA_0.9.11.tar.gz
-    tar -xvf CARLA_0.9.11.tar.gz
-    rm CARLA_0.9.11.tar.gz
+if [ "$1" != 'challenge' ] && [ ! -d "CARLA_0.9.10.1" ]; then
+    mkdir CARLA_0.9.10.1
+    cd CARLA_0.9.10.1
+    wget https://carla-releases.s3.eu-west-3.amazonaws.com/Linux/CARLA_0.9.10.1.tar.gz
+    tar -xvf CARLA_0.9.10.1.tar.gz
+    rm CARLA_0.9.10.1.tar.gz
 fi

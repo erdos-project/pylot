@@ -1,10 +1,9 @@
 absl-py
 cvxpy
 erdos>=0.3.1
-gdown
 lapsolver
 motmetrics
-numpy<1.17
+numpy<1.20
 open3d-python==0.5.0.0
 opencv-python>=4.1.0.25
 opencv-contrib-python>=4.1.0.25

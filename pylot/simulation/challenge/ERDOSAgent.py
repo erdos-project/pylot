@@ -167,8 +167,13 @@ class ERDOSAgent(ERDOSBaseAgent):
         e2e_runtime = (time.time() - start_time) * 1000
         self.csv_logger.info('{},{},e2e_runtime,{:.4f}'.format(
             pylot.utils.time_epoch_ms(), game_time, e2e_runtime))
-        # return command, int(e2e_runtime)
-        return command
+        if FLAGS.simulator_mode == 'synchronous':
+            return command
+        elif FLAGS.simulator_mode == 'pseudo-asynchronous':
+            return command, int(e2e_runtime)
+        else:
+            raise ValueError('Unexpected simulator_mode {}'.format(
+                FLAGS.simulator_mode))
 
     def send_localization(self, timestamp, imu_data, gnss_data, speed_data):
         if FLAGS.localization:

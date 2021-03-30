@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="erdos-pylot",
-    version="0.3.1",
+    version="0.3.2",
     author="Pylot Team",
     description=("A platform for developing autonomous vehicles."),
     long_description=open("README.md").read(),
@@ -14,10 +14,9 @@ setup(
         "absl-py",
         "cvxpy",
         "erdos>=0.3.1",
-        "gdown",
         "lapsolver",
         "motmetrics",
-        "numpy<1.17",  # Update to newer numpy version once we switch to tf2
+        "numpy<1.20",  # Update to newer numpy version once we switch to tf2
         "open3d-python==0.5.0.0",
         "opencv-python>=4.1.0.25",
         "opencv-contrib-python>=4.1.0.25",
@@ -37,7 +36,7 @@ setup(
         "imgaug==0.2.8",
         "matplotlib==2.2.4",
         "nonechucks==0.3.1",
-        "nuscenes-devkit"
+        "nuscenes-devkit",
         "progress",
         "pyquaternion",
         "scikit-learn==0.22.2",
