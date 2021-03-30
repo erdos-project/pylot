@@ -26,18 +26,15 @@ class LinearPredictorOperator(erdos.Operator):
         flags (absl.flags): Object to be used to access absl flags.
     """
     def __init__(self, tracking_stream: ReadStream,
-                 time_to_decision_stream: ReadStream,
                  linear_prediction_stream: WriteStream, flags):
         tracking_stream.add_callback(self.generate_predicted_trajectories,
                                      [linear_prediction_stream])
-        time_to_decision_stream.add_callback(self.on_time_to_decision_update)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
 
     @staticmethod
-    def connect(tracking_stream: ReadStream,
-                time_to_decision_stream: ReadStream):
+    def connect(tracking_stream: ReadStream):
         """Connects the operator to other streams.
 
         Args:

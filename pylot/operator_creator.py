@@ -38,7 +38,7 @@ def add_efficientdet_obstacle_detection(camera_stream,
                                      csv_log_file_name=csv_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
     obstacles_streams = erdos.connect(EfficientDetOperator, op_config,
-                                      [camera_stream, time_to_decision_stream],
+                                      [camera_stream],
                                       FLAGS.obstacle_detection_model_names,
                                       FLAGS.obstacle_detection_model_paths,
                                       FLAGS)
@@ -60,8 +60,7 @@ def add_obstacle_detection(camera_stream,
             csv_log_file_name=csv_file_name,
             profile_file_name=FLAGS.profile_file_name)
         obstacles_streams += erdos.connect(
-            DetectionOperator, op_config,
-            [camera_stream, time_to_decision_stream],
+            DetectionOperator, op_config, [camera_stream],
             FLAGS.obstacle_detection_model_paths[i], FLAGS)
     return obstacles_streams
 
@@ -188,10 +187,9 @@ def add_traffic_light_detector(traffic_light_camera_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [traffic_lights_stream
-     ] = erdos.connect(TrafficLightDetOperator, op_config,
-                       [traffic_light_camera_stream, time_to_decision_stream],
-                       FLAGS)
+    [traffic_lights_stream] = erdos.connect(TrafficLightDetOperator, op_config,
+                                            [traffic_light_camera_stream],
+                                            FLAGS)
     return traffic_lights_stream
 
 
@@ -247,10 +245,10 @@ def add_obstacle_tracking(obstacles_stream,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
 
-    [obstacle_tracking_stream] = erdos.connect(
-        ObjectTrackerOperator, op_config,
-        [obstacles_stream, bgr_camera_stream, time_to_decision_stream],
-        FLAGS.tracker_type, FLAGS)
+    [obstacle_tracking_stream
+     ] = erdos.connect(ObjectTrackerOperator, op_config,
+                       [obstacles_stream, bgr_camera_stream],
+                       FLAGS.tracker_type, FLAGS)
     return obstacle_tracking_stream
 
 
@@ -354,9 +352,8 @@ def add_linear_prediction(tracking_stream, time_to_decision_stream):
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [prediction_stream
-     ] = erdos.connect(LinearPredictorOperator, op_config,
-                       [tracking_stream, time_to_decision_stream], FLAGS)
+    [prediction_stream] = erdos.connect(LinearPredictorOperator, op_config,
+                                        [tracking_stream], FLAGS)
     return prediction_stream
 
 
@@ -368,9 +365,10 @@ def add_r2p2_prediction(point_cloud_stream, obstacles_tracking_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [prediction_stream] = erdos.connect(R2P2PredictorOperator, op_config, [
-        point_cloud_stream, obstacles_tracking_stream, time_to_decision_stream
-    ], FLAGS, lidar_setup)
+    [prediction_stream
+     ] = erdos.connect(R2P2PredictorOperator, op_config,
+                       [point_cloud_stream, obstacles_tracking_stream], FLAGS,
+                       lidar_setup)
     return prediction_stream
 
 
@@ -421,7 +419,7 @@ def add_planning(pose_stream,
                                      profile_file_name=FLAGS.profile_file_name)
     [waypoints_stream] = erdos.connect(PlanningOperator, op_config, [
         pose_stream, prediction_stream, traffic_lights_stream, lanes_stream,
-        global_trajectory_stream, open_drive_stream, time_to_decision_stream
+        global_trajectory_stream, open_drive_stream
     ], FLAGS)
     return waypoints_stream
 

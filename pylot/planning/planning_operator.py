@@ -45,7 +45,6 @@ class PlanningOperator(erdos.Operator):
                  lanes_stream: erdos.ReadStream,
                  route_stream: erdos.ReadStream,
                  open_drive_stream: erdos.ReadStream,
-                 time_to_decision_stream: erdos.ReadStream,
                  waypoints_stream: erdos.WriteStream, flags):
         pose_stream.add_callback(self.on_pose_update)
         prediction_stream.add_callback(self.on_prediction_update)
@@ -53,10 +52,9 @@ class PlanningOperator(erdos.Operator):
         lanes_stream.add_callback(self.on_lanes_update)
         route_stream.add_callback(self.on_route)
         open_drive_stream.add_callback(self.on_opendrive_map)
-        time_to_decision_stream.add_callback(self.on_time_to_decision)
         erdos.add_watermark_callback([
             pose_stream, prediction_stream, static_obstacles_stream,
-            lanes_stream, time_to_decision_stream, route_stream
+            lanes_stream, route_stream
         ], [waypoints_stream], self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -92,14 +90,14 @@ class PlanningOperator(erdos.Operator):
         self._static_obstacles_msgs = deque()
         self._lanes_msgs = deque()
         self._ttd_msgs = deque()
+        self._last_ttd = 400
 
     @staticmethod
     def connect(pose_stream: erdos.ReadStream,
                 prediction_stream: erdos.ReadStream,
                 static_obstacles_stream: erdos.ReadStream,
                 lanes_steam: erdos.ReadStream, route_stream: erdos.ReadStream,
-                open_drive_stream: erdos.ReadStream,
-                time_to_decision_stream: erdos.ReadStream):
+                open_drive_stream: erdos.ReadStream):
         waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
 
@@ -187,14 +185,17 @@ class PlanningOperator(erdos.Operator):
         if timestamp.is_top:
             return
         self.update_world(timestamp)
-        ttd_msg = self._ttd_msgs.popleft()
-        # Total ttd - time spent up to now
-        ttd = ttd_msg.data - (time.time() - self._world.pose.localization_time)
-        self._logger.debug('@{}: adjusting ttd from {} to {}'.format(
-            timestamp, ttd_msg.data, ttd))
+        if len(self._ttd_msgs) > 0:
+            ttd_msg = self._ttd_msgs.popleft()
+            # Total ttd - time spent up to now
+            ttd = ttd_msg.data - (time.time() -
+                                  self._world.pose.localization_time)
+            self._last_ttd = ttd
+            self._logger.debug('@{}: adjusting ttd from {} to {}'.format(
+                timestamp, ttd_msg.data, ttd))
         # if self._state == BehaviorPlannerState.OVERTAKE:
         #     # Ignore traffic lights and obstacle.
-        #     output_wps = self._planner.run(timestamp, ttd)
+        #     output_wps = self._planner.run(timestamp, self._last_ttd)
         # else:
         (speed_factor, _, _, speed_factor_tl,
          speed_factor_stop) = self._world.stop_for_agents(timestamp)
@@ -205,7 +206,7 @@ class PlanningOperator(erdos.Operator):
                     timestamp, speed_factor, target_speed))
             output_wps = self._world.follow_waypoints(target_speed)
         else:
-            output_wps = self._planner.run(timestamp, ttd)
+            output_wps = self._planner.run(timestamp, self._last_ttd)
             speed_factor = min(speed_factor_stop, speed_factor_tl)
             self._logger.debug('@{}: speed factor: {}'.format(
                 timestamp, speed_factor))

@@ -8,11 +8,9 @@ from pylot.perception.messages import ObstaclesMessage
 
 class ObjectTrackerOperator(erdos.Operator):
     def __init__(self, obstacles_stream, camera_stream,
-                 time_to_decision_stream, obstacle_tracking_stream,
-                 tracker_type, flags):
+                 obstacle_tracking_stream, tracker_type, flags):
         obstacles_stream.add_callback(self.on_obstacles_msg)
         camera_stream.add_callback(self.on_frame_msg)
-        time_to_decision_stream.add_callback(self.on_time_to_decision_update)
         erdos.add_watermark_callback([obstacles_stream, camera_stream],
                                      [obstacle_tracking_stream],
                                      self.on_watermark)
@@ -52,7 +50,7 @@ class ObjectTrackerOperator(erdos.Operator):
         self._detection_update_count = -1
 
     @staticmethod
-    def connect(obstacles_stream, camera_stream, time_to_decision_stream):
+    def connect(obstacles_stream, camera_stream):
         obstacle_tracking_stream = erdos.WriteStream()
         return [obstacle_tracking_stream]
 

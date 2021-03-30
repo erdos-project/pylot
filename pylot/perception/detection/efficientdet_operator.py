@@ -30,11 +30,9 @@ class EfficientDetOperator(erdos.Operator):
         flags (absl.flags): Object to be used to access absl flags.
     """
     def __init__(self, camera_stream: erdos.ReadStream,
-                 time_to_decision_stream: erdos.ReadStream,
                  obstacles_stream: erdos.WriteStream, model_names, model_paths,
                  flags):
         camera_stream.add_callback(self.on_msg_camera_stream)
-        time_to_decision_stream.add_callback(self.on_time_to_decision_update)
         erdos.add_watermark_callback([camera_stream], [obstacles_stream],
                                      self.on_watermark)
         self._flags = flags
@@ -91,8 +89,7 @@ class EfficientDetOperator(erdos.Operator):
             config=tf.ConfigProto(gpu_options=gpu_options))
 
     @staticmethod
-    def connect(camera_stream: erdos.ReadStream,
-                time_to_decision_stream: erdos.ReadStream):
+    def connect(camera_stream: erdos.ReadStream):
         """Connects the operator to other streams.
 
         Args:

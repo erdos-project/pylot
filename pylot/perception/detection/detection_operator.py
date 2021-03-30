@@ -31,11 +31,9 @@ class DetectionOperator(erdos.Operator):
         flags (absl.flags): Object to be used to access absl flags.
     """
     def __init__(self, camera_stream: erdos.ReadStream,
-                 time_to_decision_stream: erdos.ReadStream,
                  obstacles_stream: erdos.WriteStream, model_path: str, flags):
         camera_stream.add_callback(self.on_msg_camera_stream,
                                    [obstacles_stream])
-        time_to_decision_stream.add_callback(self.on_time_to_decision_update)
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -78,8 +76,7 @@ class DetectionOperator(erdos.Operator):
         self.__run_model(np.zeros((108, 192, 3)))
 
     @staticmethod
-    def connect(camera_stream: erdos.ReadStream,
-                time_to_decision_stream: erdos.ReadStream):
+    def connect(camera_stream: erdos.ReadStream):
         """Connects the operator to other streams.
 
         Args:
