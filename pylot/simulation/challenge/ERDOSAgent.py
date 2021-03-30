@@ -277,7 +277,7 @@ def create_data_flow():
         # the small fov.
         traffic_lights_stream = \
             pylot.operator_creator.add_traffic_light_detector(
-                camera_streams[TL_CAMERA_NAME])
+                camera_streams[TL_CAMERA_NAME], time_to_decision_loop_stream)
         # Adds an operator that finds the world location of the traffic lights.
         # The operator synchronizes LiDAR point cloud readings with camera
         # frames, and uses them to compute the depth to traffic light bounding
@@ -326,7 +326,10 @@ def create_data_flow():
     # The agent uses a linear predictor to compute future trajectories
     # of the other agents.
     prediction_stream, _, _ = pylot.component_creator.add_prediction(
-        obstacles_tracking_stream, vehicle_id_stream, None, None, pose_stream)
+        obstacles_tracking_stream,
+        vehicle_id_stream,
+        time_to_decision_loop_stream,
+        pose_stream=pose_stream)
 
     # Adds a planner to the agent. The planner receives the pose of
     # the ego-vehicle, detected traffic lights, predictions for other

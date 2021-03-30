@@ -131,7 +131,8 @@ def driver():
     traffic_lights_stream, tl_camera_stream = \
         pylot.component_creator.add_traffic_light_detection(
             tl_transform, vehicle_id_stream, release_sensor_stream,
-            pose_stream, depth_stream, ground_traffic_lights_stream)
+            pose_stream, depth_stream, ground_traffic_lights_stream,
+            time_to_decision_loop_stream)
 
     lane_detection_stream = pylot.component_creator.add_lane_detection(
         center_camera_stream, pose_stream, open_drive_stream)
@@ -159,9 +160,9 @@ def driver():
 
     prediction_stream, prediction_camera_stream, notify_prediction_stream = \
         pylot.component_creator.add_prediction(
-            obstacles_tracking_stream, vehicle_id_stream, transform,
-            release_sensor_stream, pose_stream, point_cloud_stream,
-            lidar_setup)
+            obstacles_tracking_stream, vehicle_id_stream,
+            time_to_decision_loop_stream, transform, release_sensor_stream,
+            pose_stream, point_cloud_stream, lidar_setup)
     if prediction_stream is None:
         prediction_stream = obstacles_stream
     if notify_prediction_stream:

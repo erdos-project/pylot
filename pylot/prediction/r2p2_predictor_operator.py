@@ -37,6 +37,7 @@ class R2P2PredictorOperator(erdos.Operator):
     """
     def __init__(self, point_cloud_stream: erdos.ReadStream,
                  tracking_stream: erdos.ReadStream,
+                 time_to_decision: erdos.ReadStream,
                  prediction_stream: erdos.WriteStream, flags, lidar_setup):
         print("WARNING: R2P2 predicts only vehicle trajectories")
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -52,6 +53,7 @@ class R2P2PredictorOperator(erdos.Operator):
 
         point_cloud_stream.add_callback(self.on_point_cloud_update)
         tracking_stream.add_callback(self.on_trajectory_update)
+        time_to_decision_stream.add_callback(self.on_time_to_decision_update)
         erdos.add_watermark_callback([point_cloud_stream, tracking_stream],
                                      [prediction_stream], self.on_watermark)
 
@@ -62,7 +64,8 @@ class R2P2PredictorOperator(erdos.Operator):
 
     @staticmethod
     def connect(point_cloud_stream: erdos.ReadStream,
-                tracking_stream: erdos.ReadStream):
+                tracking_stream: erdos.ReadStream,
+                time_to_decision: erdos.ReadStream):
         prediction_stream = erdos.WriteStream()
         return [prediction_stream]
 
@@ -209,3 +212,7 @@ class R2P2PredictorOperator(erdos.Operator):
         self._logger.debug('@{}: received trajectories message'.format(
             msg.timestamp))
         self._tracking_msgs.append(msg)
+
+    def on_time_to_decision_update(self, msg: erdos.Message):
+        self._logger.debug('@{}: {} received ttd update {}'.format(
+            msg.timestamp, self.config.name, msg))

@@ -100,7 +100,7 @@ class DetectionOperator(erdos.Operator):
         self._obstacles_stream.send(
             erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
-    def on_time_to_decision_update(self, msg):
+    def on_time_to_decision_update(self, msg: erdos.Message):
         self._logger.debug('@{}: {} received ttd update {}'.format(
             msg.timestamp, self.config.name, msg))
 

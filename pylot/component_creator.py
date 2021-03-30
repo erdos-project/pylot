@@ -131,7 +131,8 @@ def add_traffic_light_detection(tl_transform,
                                 release_sensor_stream,
                                 pose_stream=None,
                                 depth_stream=None,
-                                ground_traffic_lights_stream=None):
+                                ground_traffic_lights_stream=None,
+                                time_to_decision_stream=None):
     """Adds traffic light detection operators.
 
     The traffic light detectors use a camera with a narrow field of view.
@@ -174,7 +175,7 @@ def add_traffic_light_detection(tl_transform,
         logger.debug('Using traffic light detection...')
         traffic_lights_stream = \
             pylot.operator_creator.add_traffic_light_detector(
-                tl_camera_stream)
+                tl_camera_stream, time_to_decision_stream)
         # Adds operator that finds the world locations of the traffic lights.
         traffic_lights_stream = \
             pylot.operator_creator.add_obstacle_location_finder(
@@ -432,8 +433,9 @@ def add_segmentation(center_camera_stream, ground_segmented_stream=None):
 
 def add_prediction(obstacles_tracking_stream,
                    vehicle_id_stream,
-                   camera_transform,
-                   release_sensor_stream,
+                   time_to_decision_stream,
+                   camera_transform=None,
+                   release_sensor_stream=None,
                    pose_stream=None,
                    point_cloud_stream=None,
                    lidar_setup=None):
@@ -465,13 +467,14 @@ def add_prediction(obstacles_tracking_stream,
         if FLAGS.prediction_type == 'linear':
             logger.debug('Using linear prediction...')
             prediction_stream = pylot.operator_creator.add_linear_prediction(
-                obstacles_tracking_stream)
+                obstacles_tracking_stream, time_to_decision_stream)
         elif FLAGS.prediction_type == 'r2p2':
             logger.debug('Using R2P2 prediction...')
             assert point_cloud_stream is not None
             assert lidar_setup is not None
             prediction_stream = pylot.operator_creator.add_r2p2_prediction(
-                point_cloud_stream, obstacles_tracking_stream, lidar_setup)
+                point_cloud_stream, obstacles_tracking_stream,
+                time_to_decision_stream, lidar_setup)
         else:
             raise ValueError('Unexpected prediction_type {}'.format(
                 FLAGS.prediction_type))

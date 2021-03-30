@@ -179,7 +179,8 @@ def add_control_evaluation(pose_stream,
                   [pose_stream, waypoints_stream], FLAGS)
 
 
-def add_traffic_light_detector(traffic_light_camera_stream):
+def add_traffic_light_detector(traffic_light_camera_stream,
+                               time_to_decision_stream):
     from pylot.perception.detection.traffic_light_det_operator import \
         TrafficLightDetOperator
     op_config = erdos.OperatorConfig(name='traffic_light_detector_operator',
@@ -187,9 +188,10 @@ def add_traffic_light_detector(traffic_light_camera_stream):
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [traffic_lights_stream] = erdos.connect(TrafficLightDetOperator, op_config,
-                                            [traffic_light_camera_stream],
-                                            FLAGS)
+    [traffic_lights_stream
+     ] = erdos.connect(TrafficLightDetOperator, op_config,
+                       [traffic_light_camera_stream, time_to_decision_stream],
+                       FLAGS)
     return traffic_lights_stream
 
 
@@ -345,30 +347,30 @@ def add_segmentation_decay(ground_segmented_stream,
     return iou_stream
 
 
-def add_linear_prediction(tracking_stream):
+def add_linear_prediction(tracking_stream, time_to_decision_stream):
     from pylot.prediction.linear_predictor_operator import \
         LinearPredictorOperator
     op_config = erdos.OperatorConfig(name='linear_prediction_operator',
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [prediction_stream] = erdos.connect(LinearPredictorOperator, op_config,
-                                        [tracking_stream], FLAGS)
+    [prediction_stream
+     ] = erdos.connect(LinearPredictorOperator, op_config,
+                       [tracking_stream, time_to_decision_stream], FLAGS)
     return prediction_stream
 
 
 def add_r2p2_prediction(point_cloud_stream, obstacles_tracking_stream,
-                        lidar_setup):
+                        time_to_decision_stream, lidar_setup):
     from pylot.prediction.r2p2_predictor_operator import \
         R2P2PredictorOperator
     op_config = erdos.OperatorConfig(name='r2p2_prediction_operator',
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [prediction_stream
-     ] = erdos.connect(R2P2PredictorOperator, op_config,
-                       [point_cloud_stream, obstacles_tracking_stream], FLAGS,
-                       lidar_setup)
+    [prediction_stream] = erdos.connect(R2P2PredictorOperator, op_config, [
+        point_cloud_stream, obstacles_tracking_stream, time_to_decision_stream
+    ], FLAGS, lidar_setup)
     return prediction_stream
 
 

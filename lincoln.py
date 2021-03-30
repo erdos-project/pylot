@@ -129,7 +129,7 @@ def create_data_flow():
         # The right camera is more likely to contain the traffic lights.
         traffic_lights_stream = \
             pylot.operator_creator.add_traffic_light_detector(
-                right_camera_stream)
+                right_camera_stream, time_to_decision_loop_stream)
         # Adds operator that finds the world locations of the traffic lights.
         traffic_lights_stream = \
             pylot.operator_creator.add_obstacle_location_finder(
@@ -160,7 +160,7 @@ def create_data_flow():
 
     if FLAGS.prediction:
         prediction_stream = pylot.operator_creator.add_linear_prediction(
-            obstacles_tracking_stream)
+            obstacles_tracking_stream, time_to_decision_loop_stream)
     else:
         prediction_stream = obstacles_stream
 
