@@ -113,9 +113,15 @@ class EfficientDetOperator(erdos.Operator):
 
     def _pick_model(self, ttd: float):
         """Decides which model to use based on time to decision."""
-        runtimes = [('efficientdet-d6', 190), ('efficientdet-d5', 141),
-                    ('efficientdet-d4', 74), ('efficientdet-d3', 42),
-                    ('efficientdet-d2', 24)]
+        # 99th percetile runtime on RTX 2080.
+        runtimes = [('efficientdet-d7', 269), ('efficientdet-d6', 200),
+                    ('efficientdet-d5', 158), ('efficientdet-d4', 105),
+                    ('efficientdet-d3', 77), ('efficientdet-d2', 59),
+                    ('efficientdet-d1', 55)]
+        # Runtimes from EfficientDet paper.
+        # runtimes = [('efficientdet-d6', 190), ('efficientdet-d5', 141),
+        #             ('efficientdet-d4', 74), ('efficientdet-d3', 42),
+        #             ('efficientdet-d2', 24)]
         fastest_loaded_model_name = None
         for index, (model_name, runtime) in enumerate(runtimes):
             # Pick the model if it is preloaded and if we have enough time to
