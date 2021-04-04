@@ -24,6 +24,11 @@ SHELL ["/bin/bash", "--login", "-c"]
 RUN mkdir -p /home/erdos/workspace
 RUN cd /home/erdos/workspace
 
+RUN sudo apt-get -y update && sudo apt-get -y install --reinstall locales && sudo locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US
+ENV LC_ALL en_US.UTF-8
+
 # Install tzdata without prompt.
 RUN sudo apt-get -y --fix-missing update
 ENV DEBIAN_FRONTEND=noninteractive
