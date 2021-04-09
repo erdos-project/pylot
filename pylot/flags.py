@@ -103,13 +103,19 @@ flags.DEFINE_enum(
     'deadline_enforcement', 'none', ['none', 'static', 'dynamic'],
     'Controls how end-to-end deadlines are enforced. None means no enforcement'
 )
-flags.DEFINE_float(
+flags.DEFINE_integer(
     'detection_deadline', None,
     'Detection deadline (in ms) when using static deadline enforcement')
-flags.DEFINE_float(
+flags.DEFINE_integer(
     'tracking_deadline', None,
     'Tracking deadline (in ms) when using static deadline enforcement')
-flags.DEFINE_float(
+flags.DEFINE_integer(
+    'location_finder_deadline', None,
+    'Location finder deadline (in ms) when using static deadline enforcement')
+flags.DEFINE_integer(
+    'prediction_deadline', None,
+    'Prediction deadline (in ms) when using static deadline enforcement')
+flags.DEFINE_integer(
     'planning_deadline', None,
     'Planning deadline (on ms) when using static deadline enforcement')
 

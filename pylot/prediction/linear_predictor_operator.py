@@ -1,4 +1,5 @@
 """Implements an operator that fits a linear model to predict trajectories."""
+from collections import deque
 
 import erdos
 from erdos import Message, ReadStream, WriteStream
@@ -28,12 +29,19 @@ class LinearPredictorOperator(erdos.Operator):
     def __init__(self, tracking_stream: ReadStream,
                  time_to_decision_stream: ReadStream,
                  linear_prediction_stream: WriteStream, flags):
-        tracking_stream.add_callback(self.generate_predicted_trajectories,
-                                     [linear_prediction_stream])
+        tracking_stream.add_callback(self.on_tracked_obstacles_update)
         time_to_decision_stream.add_callback(self.on_time_to_decision_update)
+        erdos.add_watermark_callback([tracking_stream],
+                                     [linear_prediction_stream],
+                                     self.on_watermark)
+        self.config.add_timestamp_deadline(tracking_stream,
+                                           linear_prediction_stream,
+                                           flags.prediction_deadline)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
+        self._tracked_obstacles_msgs = deque()
+        self._last_output = None
 
     @staticmethod
     def connect(tracking_stream: ReadStream,
@@ -59,13 +67,31 @@ class LinearPredictorOperator(erdos.Operator):
         self._logger.debug('@{}: {} received ttd update {}'.format(
             msg.timestamp, self.config.name, msg))
 
-    @erdos.profile_method()
-    def generate_predicted_trajectories(self, msg: Message,
-                                        linear_prediction_stream: WriteStream):
-        self._logger.debug('@{}: received trajectories message'.format(
+    def on_tracked_obstacles_update(self, msg):
+        self._logger.debug('@{}: tracked obstacles update'.format(
             msg.timestamp))
-        obstacle_predictions_list = []
+        self._tracked_obstacles_msgs.append(msg)
 
+    @erdos.profile_method()
+    def on_watermark(self, timestamp, linear_prediction_stream: WriteStream):
+        self._logger.debug('@{}: received watermark'.format(timestamp))
+        if timestamp.is_top:
+            return
+        if (len(self._tracked_obstacles_msgs) == 0
+                or self._tracked_obstacles_msgs[0].timestamp != timestamp):
+            # The upstream operator missed its deadline.
+            # TODO(ionel): We could adjust the predictions with delta t.
+            if self._last_output:
+                (completed_timestamp, output) = self._last_output
+                self._logger.debug(
+                    '@{}: deadline miss; using data from {}'.format(
+                        timestamp, completed_timestamp))
+                linear_prediction_stream.send(
+                    PredictionMessage(timestamp, output))
+            return
+
+        msg = self._tracked_obstacles_msgs.popleft()
+        obstacle_predictions_list = []
         nearby_obstacle_trajectories, nearby_obstacles_ego_transforms = \
             msg.get_nearby_obstacles_info(self._flags.prediction_radius)
         num_predictions = len(nearby_obstacle_trajectories)
@@ -111,5 +137,6 @@ class LinearPredictorOperator(erdos.Operator):
                 ObstaclePrediction(obstacle_trajectory,
                                    obstacle_trajectory.obstacle.transform, 1.0,
                                    predictions))
+        self._last_output = (timestamp, obstacle_predictions_list)
         linear_prediction_stream.send(
-            PredictionMessage(msg.timestamp, obstacle_predictions_list))
+            PredictionMessage(timestamp, obstacle_predictions_list))

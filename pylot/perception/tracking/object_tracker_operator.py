@@ -16,6 +16,9 @@ class ObjectTrackerOperator(erdos.Operator):
         erdos.add_watermark_callback([obstacles_stream, camera_stream],
                                      [obstacle_tracking_stream],
                                      self.on_watermark)
+        self.config.add_timestamp_deadline(obstacles_stream,
+                                           obstacle_tracking_stream,
+                                           flags.tracking_deadline)
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -50,6 +53,7 @@ class ObjectTrackerOperator(erdos.Operator):
         self._obstacles_msgs = deque()
         self._frame_msgs = deque()
         self._detection_update_count = -1
+        self._last_obstacles_timestamp = 0
 
     @staticmethod
     def connect(obstacles_stream, camera_stream, time_to_decision_stream):
@@ -102,6 +106,7 @@ class ObjectTrackerOperator(erdos.Operator):
         if (len(self._obstacles_msgs) > 0
                 and self._obstacles_msgs[0].timestamp == timestamp):
             obstacles_msg = self._obstacles_msgs.popleft()
+            self._last_obstacles_timestamp = timestamp
             self._detection_update_count += 1
             if (self._detection_update_count %
                     self._flags.track_every_nth_detection == 0):
@@ -115,6 +120,10 @@ class ObjectTrackerOperator(erdos.Operator):
                 reinit_runtime, _ = self._reinit_tracker(
                     camera_frame, detected_obstacles)
                 detector_runtime = obstacles_msg.runtime
+        else:
+            self._logger.debug('@{}: deadline miss; using data from {}'.format(
+                timestamp, self._last_obstacles_timestamp))
+
         tracker_runtime, (ok, tracked_obstacles) = \
             self._run_tracker(camera_frame)
         assert ok, 'Tracker failed at timestamp {}'.format(timestamp)

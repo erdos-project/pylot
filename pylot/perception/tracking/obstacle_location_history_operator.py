@@ -17,6 +17,9 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
         erdos.add_watermark_callback(
             [obstacles_stream, depth_stream, pose_stream],
             [tracked_obstacles_stream], self.on_watermark)
+        self.config.add_timestamp_deadline(obstacles_stream,
+                                           tracked_obstacles_stream,
+                                           flags.location_finder_deadline)
         self._flags = flags
         self._camera_setup = camera_setup
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -33,6 +36,7 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
         # Stores the id of obstacles that have values for a given timestamp.
         # This is used to GC the state from timestamp_history.
         self._timestamp_to_id = defaultdict(list)
+        self._last_output = None
 
     @staticmethod
     def connect(obstacles_stream, depth_stream, pose_stream):
@@ -54,9 +58,23 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
         if timestamp.is_top:
             tracked_obstacles_stream.send(erdos.WatermarkMessage(timestamp))
             return
-        obstacles_msg = self._obstacles_msgs.popleft()
         depth_msg = self._depth_msgs.popleft()
         vehicle_transform = self._pose_msgs.popleft().data.transform
+        if (len(self._obstacles_msgs) == 0
+                or self._obstacles_msgs[0].timestamp != timestamp):
+            # The upstream operator missed its deadline.
+            # TODO(ionel): We could offset the locations with the delta
+            # between the poses.
+            if self._last_output:
+                (completed_timestamp, output) = self._last_output
+                self._logger.debug(
+                    '@{}: deadline miss; using data from {}'.format(
+                        timestamp, completed_timestamp))
+                tracked_obstacles_stream.send(
+                    ObstacleTrajectoriesMessage(timestamp, output))
+            tracked_obstacles_stream.send(erdos.WatermarkMessage(timestamp))
+            return
+        obstacles_msg = self._obstacles_msgs.popleft()
 
         obstacles_with_location = get_obstacle_locations(
             obstacles_msg.obstacles, depth_msg, vehicle_transform,
@@ -86,6 +104,7 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
             obstacle_trajectories.append(
                 ObstacleTrajectory(obstacle, cur_obstacle_trajectory))
 
+        self._last_output = (timestamp, obstacle_trajectories)
         tracked_obstacles_stream.send(
             ObstacleTrajectoriesMessage(timestamp, obstacle_trajectories))
         tracked_obstacles_stream.send(erdos.WatermarkMessage(timestamp))

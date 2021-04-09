@@ -117,6 +117,9 @@ class ControlEvalOperator(erdos.Operator):
 
         # Add the first waypoint from the last waypoints received
         # by the operator.
+        if (len(self._waypoints_msgs) == 0
+            or self._waypoints_msgs[0].timestamp != timestamp):
+            return
         waypoints = self._waypoints_msgs.popleft().waypoints.waypoints
         if len(waypoints) > 0:
             next_waypoint = waypoints.popleft()

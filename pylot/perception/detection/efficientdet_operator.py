@@ -37,6 +37,8 @@ class EfficientDetOperator(erdos.Operator):
         time_to_decision_stream.add_callback(self.on_time_to_decision_update)
         erdos.add_watermark_callback([camera_stream], [obstacles_stream],
                                      self.on_watermark)
+        self.config.add_timestamp_deadline(camera_stream, obstacles_stream,
+                                           flags.detection_deadline)
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)

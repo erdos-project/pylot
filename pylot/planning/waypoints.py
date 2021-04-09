@@ -13,7 +13,7 @@ class Waypoints(object):
     """Stores waypoints and provides methods to wrangle them."""
     def __init__(self, waypoints, target_speeds=None, road_options=None):
         self.waypoints = waypoints
-        if target_speeds is None:
+        if target_speeds is None and waypoints is not None:
             # Set target speed to 0 if it is not specified.
             self.target_speeds = deque([0 for _ in range(len(waypoints))])
         else:

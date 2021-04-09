@@ -7,6 +7,7 @@ import pylot.control.utils
 import pylot.planning.utils
 from pylot.control.messages import ControlMessage
 from pylot.control.pid import PIDLongitudinalController
+from pylot.planning.waypoints import Waypoints
 
 
 class PIDControlOperator(erdos.Operator):
@@ -51,6 +52,7 @@ class PIDControlOperator(erdos.Operator):
         # Queues in which received messages are stored.
         self._waypoint_msgs = deque()
         self._pose_msgs = deque()
+        self._last_waypoints = None
 
     @staticmethod
     def connect(pose_stream: ReadStream, waypoints_stream: ReadStream):
@@ -77,7 +79,22 @@ class PIDControlOperator(erdos.Operator):
         ego_transform = pose_msg.data.transform
         # Vehicle speed in m/s.
         current_speed = pose_msg.data.forward_speed
-        waypoints = self._waypoint_msgs.popleft().waypoints
+        if (len(self._waypoint_msgs) == 0
+                or self._waypoint_msgs[0].timestamp != timestamp):
+            # The planner missed its deadline.
+            if self._last_waypoints:
+                (completed_timestamp, waypoints) = self._last_waypoints
+                self._logger.debug(
+                    '@{}: deadline miss; using data from {}'.format(
+                        timestamp, completed_timestamp))
+            else:
+                self._logger.debug(
+                    '@{}: deadline miss; using data from 0'.format(timestamp))
+                waypoints = Waypoints(None)
+            waypoints.remove_completed(ego_transform.location, ego_transform)
+        else:
+            waypoints = self._waypoint_msgs.popleft().waypoints
+            self._last_waypoints = (timestamp, waypoints)
         try:
             angle_steer = waypoints.get_angle(
                 ego_transform, self._flags.min_pid_steer_waypoint_distance)

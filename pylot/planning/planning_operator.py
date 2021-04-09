@@ -58,6 +58,8 @@ class PlanningOperator(erdos.Operator):
             pose_stream, prediction_stream, static_obstacles_stream,
             lanes_stream, time_to_decision_stream, route_stream
         ], [waypoints_stream], self.on_watermark)
+        self.config.add_timestamp_deadline(prediction_stream, waypoints_stream,
+                                           flags.planning_deadline)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
@@ -92,6 +94,7 @@ class PlanningOperator(erdos.Operator):
         self._static_obstacles_msgs = deque()
         self._lanes_msgs = deque()
         self._ttd_msgs = deque()
+        self._last_predictions = None
 
     @staticmethod
     def connect(pose_stream: erdos.ReadStream,
@@ -233,13 +236,29 @@ class PlanningOperator(erdos.Operator):
     def update_world(self, timestamp: erdos.Timestamp):
         pose_msg = self._pose_msgs.popleft()
         ego_transform = pose_msg.data.transform
-        prediction_msg = self._prediction_msgs.popleft()
-        predictions = self.get_predictions(prediction_msg, ego_transform)
         static_obstacles_msg = self._static_obstacles_msgs.popleft()
         if len(self._lanes_msgs) > 0:
             lanes = self._lanes_msgs.popleft().data
         else:
             lanes = None
+
+        if (len(self._prediction_msgs) == 0
+                or self._prediction_msgs[0].timestamp != timestamp):
+            # The trajectory predictor missed its deadline.
+            # TODO(ionel): We could adjust the predictions with delta t.
+            if self._last_predictions:
+                (completed_timestamp, predictions) = self._last_predictions
+                self._logger.debug(
+                    '@{}: deadline miss; using data from {}'.format(
+                        timestamp, completed_timestamp))
+            else:
+                self._logger.debug(
+                    '@{}: deadline miss; using data from 0'.format(timestamp))
+                predictions = []
+        else:
+            prediction_msg = self._prediction_msgs.popleft()
+            predictions = self.get_predictions(prediction_msg, ego_transform)
+            self._last_predictions = (timestamp, predictions)
 
         # Update the representation of the world.
         self._world.update(timestamp,
