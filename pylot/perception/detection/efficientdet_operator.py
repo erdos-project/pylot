@@ -118,6 +118,11 @@ class EfficientDetOperator(erdos.Operator):
                     ('efficientdet-d5', 158), ('efficientdet-d4', 105),
                     ('efficientdet-d3', 77), ('efficientdet-d2', 59),
                     ('efficientdet-d1', 55)]
+        # # 99th percentile runitme on V100
+        # runtimes = [('efficientdet-d7', 238), ('efficientdet-d6', None),
+        #             ('efficientdet-d5', None), ('efficientdet-d4', 98),
+        #             ('efficientdet-d3', None), ('efficientdet-d2', None),
+        #             ('efficientdet-d1', 56)]
         # Runtimes from EfficientDet paper.
         # runtimes = [('efficientdet-d6', 190), ('efficientdet-d5', 141),
         #             ('efficientdet-d4', 74), ('efficientdet-d3', 42),

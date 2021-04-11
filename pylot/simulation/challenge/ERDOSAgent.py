@@ -170,7 +170,7 @@ class ERDOSAgent(ERDOSBaseAgent):
         if FLAGS.simulator_mode == 'synchronous':
             return command
         elif FLAGS.simulator_mode == 'pseudo-asynchronous':
-            return command, int(e2e_runtime)
+            return command, int(e2e_runtime - sensor_send_runtime)
         else:
             raise ValueError('Unexpected simulator_mode {}'.format(
                 FLAGS.simulator_mode))
