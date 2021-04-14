@@ -4,6 +4,8 @@ from collections import deque
 import PIL.Image as Image
 
 import erdos
+import PIL.Image as Image
+import os
 from erdos import Message, ReadStream, Timestamp, WriteStream
 
 import numpy as np
