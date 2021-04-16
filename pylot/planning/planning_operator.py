@@ -56,7 +56,7 @@ class PlanningOperator(erdos.Operator):
         time_to_decision_stream.add_callback(self.on_time_to_decision)
         erdos.add_watermark_callback([
             pose_stream, prediction_stream, static_obstacles_stream,
-            lanes_stream, time_to_decision_stream, route_stream
+            lanes_stream, route_stream
         ], [waypoints_stream], self.on_watermark)
         self.config.add_timestamp_deadline(prediction_stream, waypoints_stream,
                                            flags.planning_deadline)
@@ -95,6 +95,7 @@ class PlanningOperator(erdos.Operator):
         self._lanes_msgs = deque()
         self._ttd_msgs = deque()
         self._last_predictions = None
+        self._last_ttd = 400
 
     @staticmethod
     def connect(pose_stream: erdos.ReadStream,
@@ -190,11 +191,13 @@ class PlanningOperator(erdos.Operator):
         if timestamp.is_top:
             return
         self.update_world(timestamp)
-        ttd_msg = self._ttd_msgs.popleft()
+        if len(self._ttd_msgs) > 0:
+            ttd_msg = self._ttd_msgs.popleft()
+            self._last_ttd = ttd_msg.data
         # Total ttd - time spent up to now
-        ttd = ttd_msg.data - (time.time() - self._world.pose.localization_time)
+        ttd = self._last_ttd - (time.time() - self._world.pose.localization_time)
         self._logger.debug('@{}: adjusting ttd from {} to {}'.format(
-            timestamp, ttd_msg.data, ttd))
+            timestamp, self._last_ttd, ttd))
         # if self._state == BehaviorPlannerState.OVERTAKE:
         #     # Ignore traffic lights and obstacle.
         #     output_wps = self._planner.run(timestamp, ttd)

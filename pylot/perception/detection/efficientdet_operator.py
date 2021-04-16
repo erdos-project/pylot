@@ -37,8 +37,8 @@ class EfficientDetOperator(erdos.Operator):
         time_to_decision_stream.add_callback(self.on_time_to_decision_update)
         erdos.add_watermark_callback([camera_stream], [obstacles_stream],
                                      self.on_watermark)
-        self.config.add_timestamp_deadline(camera_stream, obstacles_stream,
-                                           flags.detection_deadline)
+        # self.config.add_timestamp_deadline(camera_stream, obstacles_stream,
+        #                                    flags.detection_deadline)
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -115,11 +115,11 @@ class EfficientDetOperator(erdos.Operator):
 
     def _pick_model(self, ttd: float):
         """Decides which model to use based on time to decision."""
-        # 99th percetile runtime on RTX 2080.
-        runtimes = [('efficientdet-d7', 269), ('efficientdet-d6', 200),
-                    ('efficientdet-d5', 158), ('efficientdet-d4', 105),
+        # 99.9th percetile runtime on RTX 2080.
+        runtimes = [('efficientdet-d7', 274), ('efficientdet-d6', 200),
+                    ('efficientdet-d5', 158), ('efficientdet-d4', 110),
                     ('efficientdet-d3', 77), ('efficientdet-d2', 59),
-                    ('efficientdet-d1', 55)]
+                    ('efficientdet-d1', 60)]
         # # 99th percentile runitme on V100
         # runtimes = [('efficientdet-d7', 238), ('efficientdet-d6', None),
         #             ('efficientdet-d5', None), ('efficientdet-d4', 98),
