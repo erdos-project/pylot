@@ -1,6 +1,10 @@
 import time
 
+from collections import deque
+
 from absl import flags
+
+from carla import VehicleControl
 
 import erdos
 
@@ -8,11 +12,14 @@ from leaderboard.autoagents.autonomous_agent import Track
 
 import pylot.flags
 import pylot.component_creator  # noqa: I100
+import pylot.control.utils
 import pylot.operator_creator
 import pylot.perception.messages
 import pylot.utils
+from pylot.control.pid import PIDLongitudinalController
 from pylot.drivers.sensor_setup import LidarSetup, RGBCameraSetup
 from pylot.perception.camera_frame import CameraFrame
+from pylot.planning.waypoints import Waypoints
 from pylot.simulation.challenge.ERDOSBaseAgent import ERDOSBaseAgent, \
     process_visualization_events, read_control_command
 
@@ -67,6 +74,11 @@ class ERDOSAgent(ERDOSBaseAgent):
 
         self._sent_open_drive = False
 
+        dt = 1.0 / 20
+        self._pid = PIDLongitudinalController(FLAGS.pid_p, FLAGS.pid_d,
+                                              FLAGS.pid_i, dt, False)
+        self._wp_deque = deque()
+
         # Create the dataflow of AV components. Change the method
         # to add your operators.
         (self._camera_streams, self._pose_stream, self._route_stream,
@@ -74,7 +86,8 @@ class ERDOSAgent(ERDOSBaseAgent):
          self._point_cloud_stream, self._imu_stream, self._gnss_stream,
          self._control_stream, self._control_display_stream,
          self._perfect_obstacles_stream, self._perfect_traffic_lights_stream,
-         self._vehicle_id_stream, streams_to_send_top_on) = create_data_flow()
+         self._vehicle_id_stream, self._waypoints_stream,
+         streams_to_send_top_on) = create_data_flow()
         # Execute the dataflow.
         self._node_handle = erdos.run_async()
         # Close the streams that are not used (i.e., send top watermark).
@@ -146,8 +159,8 @@ class ERDOSAgent(ERDOSBaseAgent):
                                      erdos_timestamp, CENTER_CAMERA_LOCATION)
 
         # Send localization data.
-        self.send_localization(erdos_timestamp, imu_data, gnss_data,
-                               speed_data)
+        pose = self.send_localization(erdos_timestamp, imu_data, gnss_data,
+                                      speed_data)
 
         # Ensure that the open drive stream is closed when the agent
         # is not running on the MAP track.
@@ -170,10 +183,71 @@ class ERDOSAgent(ERDOSBaseAgent):
         if FLAGS.simulator_mode == 'synchronous':
             return command
         elif FLAGS.simulator_mode == 'pseudo-asynchronous':
-            return command, int(e2e_runtime - sensor_send_runtime)
+            command = self.compute_pseudo_async_control(
+                game_time, self._waypoints_stream, pose,
+                int(e2e_runtime - sensor_send_runtime))
+            # return command, int(e2e_runtime - sensor_send_runtime)
+            return command, 0
         else:
             raise ValueError('Unexpected simulator_mode {}'.format(
                 FLAGS.simulator_mode))
+
+    def compute_pseudo_async_control(self, game_time, waypoints_stream, pose,
+                                     e2e_runtime):
+        msg = waypoints_stream.read()
+        if isinstance(msg, erdos.WatermarkMessage):
+            # The planner missed its deadline.
+            w_msg = msg
+        else:
+            start_time = msg.timestamp.coordinates[0]
+            assert start_time == game_time
+            self._wp_deque.append(
+                (start_time, start_time + e2e_runtime, msg.waypoints))
+            w_msg = waypoints_stream.read()
+        assert w_msg.timestamp.coordinates[0] == game_time
+
+        # We have received a new pose message.
+        ego_transform = pose.transform
+        # Vehicle speed in m/s.
+        current_speed = pose.forward_speed
+        max_start_time = -1
+        max_index = -1
+        for i, (start_time, end_time, _) in enumerate(self._wp_deque):
+            if end_time < game_time and start_time > max_start_time:
+                max_start_time = start_time
+                max_index = i
+        for i in range(0, max_index):
+            self._wp_deque.popleft()
+        if max_index == -1 or len(self._wp_deque) <= max_index:
+            waypoints = Waypoints(deque([ego_transform]))
+        else:
+            waypoints = self._wp_deque[0][2]
+        waypoints.remove_completed(ego_transform.location, ego_transform)
+        try:
+            angle_steer = waypoints.get_angle(
+                ego_transform, FLAGS.min_pid_steer_waypoint_distance)
+            target_speed = waypoints.get_target_speed(
+                ego_transform, FLAGS.min_pid_speed_waypoint_distance)
+            throttle, brake = pylot.control.utils.compute_throttle_and_brake(
+                self._pid, current_speed, target_speed, FLAGS, self.logger)
+            steer = pylot.control.utils.radians_to_steer(
+                angle_steer, FLAGS.steer_gain)
+        except ValueError:
+            self.logger.warning('Braking! No more waypoints to follow.')
+            throttle, brake = 0.0, 0.5
+            steer = 0.0
+        self.logger.debug(
+            '@[{}]: speed {:.2f}, location {}, steer {:.2f}, throttle {:.2f}, '
+            'brake {:.2f}'.format(game_time, current_speed, ego_transform,
+                                  steer, throttle, brake))
+        output_control = VehicleControl()
+        output_control.throttle = throttle
+        output_control.brake = brake
+        output_control.steer = steer
+        output_control.reverse = False
+        output_control.hand_brake = False
+        output_control.manual_gear_shift = False
+        return output_control
 
     def send_localization(self, timestamp, imu_data, gnss_data, speed_data):
         if FLAGS.localization:
@@ -189,8 +263,9 @@ class ERDOSAgent(ERDOSBaseAgent):
                                      timestamp)
             self._route_stream.send(erdos.Message(timestamp, pose))
             self._route_stream.send(erdos.WatermarkMessage(timestamp))
+            return pose
         elif FLAGS.perfect_localization:
-            self.send_perfect_pose_msg(self._pose_stream, timestamp)
+            return self.send_perfect_pose_msg(self._pose_stream, timestamp)
         else:
             # In this configuration, the agent is not using a localization
             # operator. It is driving using the noisy localization it receives
@@ -199,6 +274,7 @@ class ERDOSAgent(ERDOSBaseAgent):
                                      timestamp)
             self._pose_stream.send(erdos.Message(timestamp, pose))
             self._pose_stream.send(erdos.WatermarkMessage(timestamp))
+            return pose
 
 
 def create_data_flow():
@@ -374,6 +450,7 @@ def create_data_flow():
     # from which the agent can read the command it must return to the
     # challenge.
     extract_control_stream = erdos.ExtractStream(control_stream)
+    extract_waypoints_stream = erdos.ExtractStream(waypoints_stream)
 
     pylot.component_creator.add_evaluation(vehicle_id_stream, pose_stream,
                                            imu_stream)
@@ -382,7 +459,7 @@ def create_data_flow():
     # This is needed in Pylot, but can be ignored when running in challenge
     # mode.
     time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
-        pose_stream, obstacles_stream)
+        pose_stream, prediction_stream)
     time_to_decision_loop_stream.set(time_to_decision_stream)
 
     return (camera_streams, pose_stream, route_stream,
@@ -390,7 +467,7 @@ def create_data_flow():
             imu_stream, gnss_stream, extract_control_stream,
             control_display_stream, perfect_obstacles_stream,
             perfect_traffic_lights_stream, vehicle_id_stream,
-            streams_to_send_top_on)
+            extract_waypoints_stream, streams_to_send_top_on)
 
 
 def create_camera_setups():

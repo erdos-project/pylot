@@ -304,6 +304,7 @@ class ERDOSBaseAgent(AutonomousAgent):
                                 timestamp.coordinates[0])
         pose_stream.send(erdos.Message(timestamp, pose))
         pose_stream.send(erdos.WatermarkMessage(timestamp))
+        return pose
 
     def send_vehicle_id_msg(self, vehicle_id_stream):
         """Sends the simulator actor id of the ego-vehicle.
