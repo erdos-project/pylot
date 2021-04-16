@@ -141,6 +141,15 @@ sudo apt-get install llvm-9
 export LLVM_CONFIG=/usr/bin/llvm-config-9
 python3 setup.py build develop --user
 
+###### Install CenterTrack ######
+cd $PYLOT_HOME/dependencies/
+git clone https://github.com/SysCV/qdtrack #FIX to use fork?
+git clone https://github.com/open-mmlab/mmdetection.git
+cd mmdetection
+python3 setup.py develop
+cd $PYLOT_HOME/dependencies/qdtrack
+python3 setup.py develop
+
 ##### Download the Lanenet code #####
 echo "[x] Cloning the lanenet lane detection code..."
 cd $PYLOT_HOME/dependencies/

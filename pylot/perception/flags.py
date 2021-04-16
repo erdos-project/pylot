@@ -84,6 +84,12 @@ flags.DEFINE_enum('center_track_model', 'kitti_tracking',
                   ['kitti_tracking', 'coco', 'mot', 'nuscenes'],
                   'CenterTrack available models')
 
+# QDTrack tracking flags.
+flags.DEFINE_string(
+    'qd_track_model_path',
+    'dependencies/models/tracking/CenterTrack/kitti_fulltrain.pth', #FIX
+    'Path to the model')
+
 # Lane detection flags.
 flags.DEFINE_float('lane_detection_gpu_memory_fraction', 0.3,
                    'GPU memory fraction allocated to Lanenet')

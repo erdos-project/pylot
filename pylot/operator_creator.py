@@ -269,6 +269,21 @@ def add_center_track_tracking(bgr_camera_stream,
     return obstacle_tracking_stream
 
 
+def add_qd_track_tracking(bgr_camera_stream,
+                              camera_setup,
+                              name='qd_track'):
+    from pylot.perception.tracking.qd_track_operator import \
+        QdTrackOperator
+    op_config = erdos.OperatorConfig(name='qd_track_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [obstacle_tracking_stream] = erdos.connect(QdTrackOperator, op_config,
+                                               [bgr_camera_stream], FLAGS,
+                                               camera_setup)
+    return obstacle_tracking_stream
+
+
 def add_tracking_evaluation(obstacle_tracking_stream,
                             ground_obstacles_stream,
                             evaluate_timely=False,
