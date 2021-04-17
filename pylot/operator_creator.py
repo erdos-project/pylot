@@ -243,6 +243,7 @@ def add_obstacle_tracking(obstacles_stream,
     from pylot.perception.tracking.object_tracker_operator import \
         ObjectTrackerOperator
     op_config = erdos.OperatorConfig(name=name_prefix + FLAGS.tracker_type,
+                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -351,6 +352,7 @@ def add_linear_prediction(tracking_stream, time_to_decision_stream):
     from pylot.prediction.linear_predictor_operator import \
         LinearPredictorOperator
     op_config = erdos.OperatorConfig(name='linear_prediction_operator',
+                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
@@ -416,6 +418,7 @@ def add_planning(pose_stream,
                  name='planning_operator'):
     from pylot.planning.planning_operator import PlanningOperator
     op_config = erdos.OperatorConfig(name=name,
+                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)

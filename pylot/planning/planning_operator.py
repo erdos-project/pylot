@@ -214,6 +214,7 @@ class PlanningOperator(erdos.Operator):
                 timestamp, speed_factor))
             output_wps.apply_speed_factor(speed_factor)
         waypoints_stream.send(WaypointsMessage(timestamp, output_wps))
+        waypoints_stream.send(erdos.WatermarkMessage(timestamp))
 
     def get_predictions(self, prediction_msg, ego_transform):
         predictions = []

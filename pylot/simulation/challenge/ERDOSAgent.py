@@ -187,7 +187,7 @@ class ERDOSAgent(ERDOSBaseAgent):
                 game_time, self._waypoints_stream, pose,
                 int(e2e_runtime - sensor_send_runtime))
             # return command, int(e2e_runtime - sensor_send_runtime)
-            return command, 0
+            return command
         else:
             raise ValueError('Unexpected simulator_mode {}'.format(
                 FLAGS.simulator_mode))

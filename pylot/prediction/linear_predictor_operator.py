@@ -88,6 +88,7 @@ class LinearPredictorOperator(erdos.Operator):
                         timestamp, completed_timestamp))
                 linear_prediction_stream.send(
                     PredictionMessage(timestamp, output))
+                linear_prediction_stream.send(erdos.WatermarkMessage(timestamp))
             return
 
         msg = self._tracked_obstacles_msgs.popleft()
@@ -140,3 +141,4 @@ class LinearPredictorOperator(erdos.Operator):
         self._last_output = (timestamp, obstacle_predictions_list)
         linear_prediction_stream.send(
             PredictionMessage(timestamp, obstacle_predictions_list))
+        linear_prediction_stream.send(erdos.WatermarkMessage(timestamp))

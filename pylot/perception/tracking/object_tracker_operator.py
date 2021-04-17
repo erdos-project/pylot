@@ -133,6 +133,7 @@ class ObjectTrackerOperator(erdos.Operator):
                                                      tracker_runtime)
         obstacle_tracking_stream.send(
             ObstaclesMessage(timestamp, tracked_obstacles, tracker_delay))
+        obstacle_tracking_stream.send(erdos.WatermarkMessage(timestamp))
 
     def __compute_tracker_delay(self, world_time, detector_runtime,
                                 tracker_runtime):
