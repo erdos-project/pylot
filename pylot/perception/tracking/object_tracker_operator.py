@@ -1,21 +1,24 @@
+import heapq
 import time
 from collections import deque
 
 import erdos
 
 from pylot.perception.messages import ObstaclesMessage
+from pylot.utils import get_latest_value_priority_queue, gc_priority_queue
 
 
 class ObjectTrackerOperator(erdos.Operator):
     def __init__(self, obstacles_stream, camera_stream,
-                 time_to_decision_stream, obstacle_tracking_stream,
-                 tracker_type, flags):
+                 time_to_decision_stream, sensor_send_time_stream,
+                 obstacle_tracking_stream, tracker_type, flags):
         obstacles_stream.add_callback(self.on_obstacles_msg)
         camera_stream.add_callback(self.on_frame_msg)
         time_to_decision_stream.add_callback(self.on_time_to_decision_update)
-        erdos.add_watermark_callback([obstacles_stream, camera_stream],
-                                     [obstacle_tracking_stream],
-                                     self.on_watermark)
+        sensor_send_time_stream.add_callback(self.on_sensor_send_update)
+        erdos.add_watermark_callback(
+            [obstacles_stream, camera_stream, sensor_send_time_stream],
+            [obstacle_tracking_stream], self.on_watermark)
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -47,17 +50,27 @@ class ObjectTrackerOperator(erdos.Operator):
             self._logger.fatal('Error importing {}'.format(tracker_type))
             raise error
 
+        self._sensor_send_time_msgs = deque()
         self._obstacles_msgs = deque()
         self._frame_msgs = deque()
+        self._frame_pq = []
+        self._obstacles_pq = []
+        self._results_pq = []
+        heapq.heappush(self._results_pq, (0, []))
+        self._next_execution_time = 50
         self._detection_update_count = -1
 
     @staticmethod
-    def connect(obstacles_stream, camera_stream, time_to_decision_stream):
+    def connect(obstacles_stream, camera_stream, time_to_decision_stream,
+                sensor_send_time_stream):
         obstacle_tracking_stream = erdos.WriteStream()
         return [obstacle_tracking_stream]
 
     def destroy(self):
         self._logger.warn('destroying {}'.format(self.config.name))
+
+    def on_sensor_send_update(self, msg):
+        self._sensor_send_time_msgs.append(msg)
 
     def on_frame_msg(self, msg):
         """Invoked when a FrameMessage is received on the camera stream."""
@@ -86,22 +99,13 @@ class ObjectTrackerOperator(erdos.Operator):
         result = self._tracker.track(camera_frame)
         return (time.time() - start) * 1000, result
 
-    @erdos.profile_method()
-    def on_watermark(self, timestamp, obstacle_tracking_stream):
-        self._logger.debug('@{}: received watermark'.format(timestamp))
-        if timestamp.is_top:
-            return
-        frame_msg = self._frame_msgs.popleft()
-        camera_frame = frame_msg.frame
-        tracked_obstacles = []
-        detector_runtime = 0
-        reinit_runtime = 0
+    def track_obstacles(self, timestamp, camera_frame, obstacles_msg):
         # Check if the most recent obstacle message has this timestamp.
         # If it doesn't, then the detector might have skipped sending
         # an obstacle message.
-        if (len(self._obstacles_msgs) > 0
-                and self._obstacles_msgs[0].timestamp == timestamp):
-            obstacles_msg = self._obstacles_msgs.popleft()
+        detector_runtime = 0
+        reinit_runtime = 0
+        if obstacles_msg:
             self._detection_update_count += 1
             if (self._detection_update_count %
                     self._flags.track_every_nth_detection == 0):
@@ -122,8 +126,63 @@ class ObjectTrackerOperator(erdos.Operator):
         tracker_delay = self.__compute_tracker_delay(timestamp.coordinates[0],
                                                      detector_runtime,
                                                      tracker_runtime)
+        return tracker_runtime, tracked_obstacles, tracker_delay
+
+    @erdos.profile_method()
+    def on_watermark(self, timestamp, obstacle_tracking_stream):
+        self._logger.debug('@{}: received watermark'.format(timestamp))
+        if timestamp.is_top:
+            return
+        game_time = timestamp.coordinates[0]
+        sensor_send_time = self._sensor_send_time_msgs.popleft().data
+        frame_msg = self._frame_msgs.popleft()
+        camera_frame = frame_msg.frame
+        if (len(self._obstacles_msgs) > 0
+                and self._obstacles_msgs[0].timestamp == timestamp):
+            obstacles_msg = self._obstacles_msgs.popleft()
+        else:
+            obstacles_msg = None
+        # Add the data to the input data ready priority queues.
+        input_ready_at = game_time + (time.time() - sensor_send_time) * 1000
+        heapq.heappush(self._frame_pq, (input_ready_at, camera_frame))
+        heapq.heappush(self._obstacles_pq, (input_ready_at, obstacles_msg))
+
+        if self._next_execution_time > game_time:
+            # A previous invocation hasn't finished, we need to send
+            # old results.
+            latest_time, latest_result = get_latest_value_priority_queue(
+                self._results_pq, game_time)
+            
+            self._logger.debug('@{}: skipping; next execution at {}'.format(
+                timestamp, self._next_execution_time))
+            obstacle_tracking_stream.send(
+                ObstaclesMessage(timestamp, latest_result, 0))
+            obstacle_tracking_stream.send(erdos.WatermarkMessage(timestamp))
+            return
+
+        # Get the latest camera and obstacle available at the start of the
+        # execution.
+        camera_time, camera_frame = get_latest_value_priority_queue(
+            self._frame_pq, self._next_execution_time)
+        obstacles_time, obstacles_msg = get_latest_value_priority_queue(
+            self._obstacles_pq, self._next_execution_time)
+        gc_priority_queue(self._frame_pq, camera_time)
+        gc_priority_queue(self._obstacles_pq, obstacles_time)
+
+        tracker_runtime, tracked_obstacles, delay = self.track_obstacles(
+            timestamp, camera_frame, obstacles_msg)
         obstacle_tracking_stream.send(
-            ObstaclesMessage(timestamp, tracked_obstacles, tracker_delay))
+            ObstaclesMessage(timestamp, tracked_obstacles, delay))
+        obstacle_tracking_stream.send(erdos.WatermarkMessage(timestamp))
+
+        heapq.heappush(
+            self._results_pq,
+            (self._next_execution_time + tracker_runtime, tracked_obstacles))
+        if self._next_execution_time + tracker_runtime <= game_time + 50:
+            # The tracker fits in the frame gap. Execute at the next game time.
+            self._next_execution_time = game_time + 50
+        else:
+            self._next_execution_time += tracker_runtime
 
     def __compute_tracker_delay(self, world_time, detector_runtime,
                                 tracker_runtime):

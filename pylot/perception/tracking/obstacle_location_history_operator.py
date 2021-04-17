@@ -57,7 +57,11 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
         obstacles_msg = self._obstacles_msgs.popleft()
         depth_msg = self._depth_msgs.popleft()
         vehicle_transform = self._pose_msgs.popleft().data.transform
+        self.compute_locations(timestamp, tracked_obstacles_stream,
+                               vehicle_transform, obstacles_msg, depth_msg)
 
+    def compute_locations(self, timestamp, tracked_obstacles_stream,
+                          vehicle_transform, obstacles_msg, depth_msg):
         obstacles_with_location = get_obstacle_locations(
             obstacles_msg.obstacles, depth_msg, vehicle_transform,
             self._camera_setup, self._logger)

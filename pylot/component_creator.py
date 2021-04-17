@@ -311,7 +311,8 @@ def add_obstacle_tracking(center_camera_stream,
                           vehicle_id_stream=None,
                           pose_stream=None,
                           ground_obstacles_stream=None,
-                          time_to_decision_stream=None):
+                          time_to_decision_stream=None,
+                          sensor_time_stream=None):
     """Adds operators for obstacle tracking.
 
     If the `--perfect_obstacle_tracking` flag is setup, the method adds an
@@ -357,7 +358,8 @@ def add_obstacle_tracking(center_camera_stream,
                 pylot.operator_creator.add_obstacle_tracking(
                     obstacles_stream,
                     center_camera_stream,
-                    time_to_decision_stream)
+                    time_to_decision_stream,
+                    sensor_time_stream)
         logger.debug('Adding operator to compute obstacle location history...')
         obstacles_tracking_stream = \
             pylot.operator_creator.add_obstacle_location_history(
@@ -503,7 +505,8 @@ def add_prediction(obstacles_tracking_stream,
 
 def add_planning(goal_location, pose_stream, prediction_stream,
                  traffic_lights_stream, lanes_stream, open_drive_stream,
-                 global_trajectory_stream, time_to_decision_stream):
+                 global_trajectory_stream, time_to_decision_stream,
+                 sensor_time_stream):
     """Adds planning operators.
 
     Args:
@@ -533,7 +536,8 @@ def add_planning(goal_location, pose_stream, prediction_stream,
     logger.debug('Using planning...')
     waypoints_stream = pylot.operator_creator.add_planning(
         pose_stream, prediction_stream, traffic_lights_stream, lanes_stream,
-        trajectory_stream, open_drive_stream, time_to_decision_stream)
+        trajectory_stream, open_drive_stream, time_to_decision_stream,
+        sensor_time_stream)
     return waypoints_stream
 
 

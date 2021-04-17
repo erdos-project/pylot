@@ -2,6 +2,7 @@
 Author: Edward Fang
 Email: edward.fang@berkeley.edu
 """
+import heapq
 import time
 from collections import deque
 
@@ -11,9 +12,11 @@ from pylot.perception.messages import ObstaclesMessage
 from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 from pylot.planning.messages import WaypointsMessage
 from pylot.planning.utils import BehaviorPlannerState
+from pylot.planning.waypoints import Waypoints
 from pylot.planning.world import World
 from pylot.prediction.messages import PredictionMessage
 from pylot.prediction.obstacle_prediction import ObstaclePrediction
+from pylot.utils import get_latest_value_priority_queue, gc_priority_queue
 
 
 class PlanningOperator(erdos.Operator):
@@ -46,7 +49,8 @@ class PlanningOperator(erdos.Operator):
                  route_stream: erdos.ReadStream,
                  open_drive_stream: erdos.ReadStream,
                  time_to_decision_stream: erdos.ReadStream,
-                 waypoints_stream: erdos.WriteStream, flags):
+                 sensor_send_time_stream, waypoints_stream: erdos.WriteStream,
+                 flags):
         pose_stream.add_callback(self.on_pose_update)
         prediction_stream.add_callback(self.on_prediction_update)
         static_obstacles_stream.add_callback(self.on_static_obstacles_update)
@@ -54,9 +58,11 @@ class PlanningOperator(erdos.Operator):
         route_stream.add_callback(self.on_route)
         open_drive_stream.add_callback(self.on_opendrive_map)
         time_to_decision_stream.add_callback(self.on_time_to_decision)
+        sensor_send_time_stream.add_callback(self.on_sensor_send_update)
         erdos.add_watermark_callback([
             pose_stream, prediction_stream, static_obstacles_stream,
-            lanes_stream, time_to_decision_stream, route_stream
+            lanes_stream, time_to_decision_stream, route_stream,
+            sensor_send_time_stream
         ], [waypoints_stream], self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -87,11 +93,18 @@ class PlanningOperator(erdos.Operator):
             raise ValueError('Unexpected planning type: {}'.format(
                 self._flags.planning_type))
         self._state = BehaviorPlannerState.FOLLOW_WAYPOINTS
+        self._sensor_send_time_msgs = deque()
         self._pose_msgs = deque()
         self._prediction_msgs = deque()
         self._static_obstacles_msgs = deque()
         self._lanes_msgs = deque()
         self._ttd_msgs = deque()
+        self._pose_pq = []
+        self._prediction_pq = []
+        self._static_obstacles_pq = []
+        self._results_pq = []
+        heapq.heappush(self._results_pq, (0, []))
+        self._next_execution_time = 50
 
     @staticmethod
     def connect(pose_stream: erdos.ReadStream,
@@ -99,7 +112,8 @@ class PlanningOperator(erdos.Operator):
                 static_obstacles_stream: erdos.ReadStream,
                 lanes_steam: erdos.ReadStream, route_stream: erdos.ReadStream,
                 open_drive_stream: erdos.ReadStream,
-                time_to_decision_stream: erdos.ReadStream):
+                time_to_decision_stream: erdos.ReadStream,
+                sensor_send_time_stream):
         waypoints_stream = erdos.WriteStream()
         return [waypoints_stream]
 
@@ -117,6 +131,33 @@ class PlanningOperator(erdos.Operator):
                         self._flags.simulator_timeout),
                 self.config.log_file_name)
             self._logger.info('Planner running in stand-alone mode')
+
+    def compute_waypoints(self, timestamp, pose, predictions, static_obstacles,
+                          lanes, ttd):
+        self._world.update(timestamp,
+                           pose,
+                           predictions,
+                           static_obstacles,
+                           hd_map=self._map,
+                           lanes=lanes)
+        (speed_factor, _, _, speed_factor_tl,
+         speed_factor_stop) = self._world.stop_for_agents(timestamp)
+        if self._flags.planning_type == 'waypoint':
+            target_speed = speed_factor * self._flags.target_speed
+            self._logger.debug(
+                '@{}: speed factor: {}, target speed: {}'.format(
+                    timestamp, speed_factor, target_speed))
+            output_wps = self._world.follow_waypoints(target_speed)
+        else:
+            output_wps = self._planner.run(timestamp, ttd)
+            speed_factor = min(speed_factor_stop, speed_factor_tl)
+            self._logger.debug('@{}: speed factor: {}'.format(
+                timestamp, speed_factor))
+            output_wps.apply_speed_factor(speed_factor)
+        return output_wps
+
+    def on_sensor_send_update(self, msg):
+        self._sensor_send_time_msgs.append(msg)
 
     def on_pose_update(self, msg: erdos.Message):
         """Invoked whenever a message is received on the pose stream.
@@ -186,31 +227,77 @@ class PlanningOperator(erdos.Operator):
         self._logger.debug('@{}: received watermark'.format(timestamp))
         if timestamp.is_top:
             return
-        self.update_world(timestamp)
-        ttd_msg = self._ttd_msgs.popleft()
-        # Total ttd - time spent up to now
-        ttd = ttd_msg.data - (time.time() - self._world.pose.localization_time)
-        self._logger.debug('@{}: adjusting ttd from {} to {}'.format(
-            timestamp, ttd_msg.data, ttd))
-        # if self._state == BehaviorPlannerState.OVERTAKE:
-        #     # Ignore traffic lights and obstacle.
-        #     output_wps = self._planner.run(timestamp, ttd)
-        # else:
-        (speed_factor, _, _, speed_factor_tl,
-         speed_factor_stop) = self._world.stop_for_agents(timestamp)
-        if self._flags.planning_type == 'waypoint':
-            target_speed = speed_factor * self._flags.target_speed
-            self._logger.debug(
-                '@{}: speed factor: {}, target speed: {}'.format(
-                    timestamp, speed_factor, target_speed))
-            output_wps = self._world.follow_waypoints(target_speed)
+        game_time = timestamp.coordinates[0]
+        sensor_send_time = self._sensor_send_time_msgs.popleft().data
+
+        pose_msg = self._pose_msgs.popleft()
+        ego_transform = pose_msg.data.transform
+        prediction_msg = self._prediction_msgs.popleft()
+        predictions = self.get_predictions(prediction_msg, ego_transform)
+        static_obstacles_msg = self._static_obstacles_msgs.popleft()
+        if len(self._lanes_msgs) > 0:
+            lanes = self._lanes_msgs.popleft().data
         else:
-            output_wps = self._planner.run(timestamp, ttd)
-            speed_factor = min(speed_factor_stop, speed_factor_tl)
-            self._logger.debug('@{}: speed factor: {}'.format(
-                timestamp, speed_factor))
-            output_wps.apply_speed_factor(speed_factor)
+            lanes = None
+        if len(self._ttd_msgs) > 0:
+            ttd_msg = self._ttd_msgs.popleft()
+
+        # Add the date to the input ready priority queues.
+        input_ready_at = game_time + (time.time() - sensor_send_time) * 1000
+        heapq.heappush(self._pose_pq, (input_ready_at, pose_msg.data))
+        heapq.heappush(self._prediction_pq, (input_ready_at, predictions))
+        heapq.heappush(self._static_obstacles_pq,
+                       (input_ready_at, static_obstacles_msg.obstacles))
+
+        if self._next_execution_time > game_time:
+            # A previous invocation hasn't finished, we need to send
+            # old results.
+            latest_time, latest_result = get_latest_value_priority_queue(
+                self._results_pq, game_time)
+            self._logger.debug('@{}: skipping; next execution at {}'.format(
+                timestamp, self._next_execution_time))
+            if latest_result == []:
+                latest_result = Waypoints([])
+            waypoints_stream.send(WaypointsMessage(timestamp, latest_result))
+            waypoints_stream.send(erdos.WatermarkMessage(timestamp))
+            return
+
+        # Get the latest available sensor inputs.
+        pose_time, pose = get_latest_value_priority_queue(
+            self._pose_pq, self._next_execution_time)
+        if pose is None:
+            pose = pose_msg.data
+        prediction_time, predictions = get_latest_value_priority_queue(
+            self._prediction_pq, self._next_execution_time)
+        if predictions is None:
+            predictions = []
+        static_obstacles_time, static_obstacles = \
+            get_latest_value_priority_queue(
+                self._static_obstacles_pq, self._next_execution_time)
+        if static_obstacles is None:
+            static_obstacles = []
+
+        gc_priority_queue(self._pose_pq, pose_time)
+        gc_priority_queue(self._prediction_pq, prediction_time)
+        gc_priority_queue(self._static_obstacles_pq, static_obstacles_time)
+
+        start_time = time.time()
+        output_wps = self.compute_waypoints(timestamp, pose, predictions,
+                                            static_obstacles, lanes, 400)
+        planning_runtime = (time.time() - start_time) * 1000
+
         waypoints_stream.send(WaypointsMessage(timestamp, output_wps))
+        waypoints_stream.send(erdos.WatermarkMessage(timestamp))
+
+        heapq.heappush(
+            self._results_pq,
+            (self._next_execution_time + planning_runtime, output_wps))
+
+        if self._next_execution_time + planning_runtime <= game_time + 50:
+            # The planning fits in the frame gap. Execute at the next game time.
+            self._next_execution_time = game_time + 50
+        else:
+            self._next_execution_time += planning_runtime
 
     def get_predictions(self, prediction_msg, ego_transform):
         predictions = []
@@ -229,22 +316,3 @@ class PlanningOperator(erdos.Operator):
             raise ValueError('Unexpected obstacles msg type {}'.format(
                 type(prediction_msg)))
         return predictions
-
-    def update_world(self, timestamp: erdos.Timestamp):
-        pose_msg = self._pose_msgs.popleft()
-        ego_transform = pose_msg.data.transform
-        prediction_msg = self._prediction_msgs.popleft()
-        predictions = self.get_predictions(prediction_msg, ego_transform)
-        static_obstacles_msg = self._static_obstacles_msgs.popleft()
-        if len(self._lanes_msgs) > 0:
-            lanes = self._lanes_msgs.popleft().data
-        else:
-            lanes = None
-
-        # Update the representation of the world.
-        self._world.update(timestamp,
-                           pose_msg.data,
-                           predictions,
-                           static_obstacles_msg.obstacles,
-                           hd_map=self._map,
-                           lanes=lanes)

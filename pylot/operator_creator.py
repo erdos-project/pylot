@@ -239,18 +239,21 @@ def add_lanenet_detection(bgr_camera_stream, name='lanenet_lane_detection'):
 def add_obstacle_tracking(obstacles_stream,
                           bgr_camera_stream,
                           time_to_decision_stream,
+                          sensor_time_stream,
                           name_prefix='tracker_'):
     from pylot.perception.tracking.object_tracker_operator import \
         ObjectTrackerOperator
     op_config = erdos.OperatorConfig(name=name_prefix + FLAGS.tracker_type,
+                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
 
-    [obstacle_tracking_stream] = erdos.connect(
-        ObjectTrackerOperator, op_config,
-        [obstacles_stream, bgr_camera_stream, time_to_decision_stream],
-        FLAGS.tracker_type, FLAGS)
+    [obstacle_tracking_stream
+     ] = erdos.connect(ObjectTrackerOperator, op_config, [
+         obstacles_stream, bgr_camera_stream, time_to_decision_stream,
+         sensor_time_stream
+     ], FLAGS.tracker_type, FLAGS)
     return obstacle_tracking_stream
 
 
@@ -413,15 +416,18 @@ def add_planning(pose_stream,
                  global_trajectory_stream,
                  open_drive_stream,
                  time_to_decision_stream,
+                 sensor_time_stream,
                  name='planning_operator'):
     from pylot.planning.planning_operator import PlanningOperator
     op_config = erdos.OperatorConfig(name=name,
+                                     flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
     [waypoints_stream] = erdos.connect(PlanningOperator, op_config, [
         pose_stream, prediction_stream, traffic_lights_stream, lanes_stream,
-        global_trajectory_stream, open_drive_stream, time_to_decision_stream
+        global_trajectory_stream, open_drive_stream, time_to_decision_stream,
+        sensor_time_stream
     ], FLAGS)
     return waypoints_stream
 

@@ -74,7 +74,8 @@ class ERDOSAgent(ERDOSBaseAgent):
          self._point_cloud_stream, self._imu_stream, self._gnss_stream,
          self._control_stream, self._control_display_stream,
          self._perfect_obstacles_stream, self._perfect_traffic_lights_stream,
-         self._vehicle_id_stream, streams_to_send_top_on) = create_data_flow()
+         self._vehicle_id_stream, self._sensor_time_stream,
+         streams_to_send_top_on) = create_data_flow()
         # Execute the dataflow.
         self._node_handle = erdos.run_async()
         # Close the streams that are not used (i.e., send top watermark).
@@ -156,9 +157,13 @@ class ERDOSAgent(ERDOSBaseAgent):
             self._open_drive_stream.send(
                 erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
-        sensor_send_runtime = (time.time() - start_time) * 1000
+        sensor_send_time = time.time()
+        sensor_send_runtime = (sensor_send_time - start_time) * 1000
         self.csv_logger.info('{},{},sensor_send_runtime,{:.4f}'.format(
             pylot.utils.time_epoch_ms(), game_time, sensor_send_runtime))
+        self._sensor_time_stream.send(
+            erdos.Message(erdos_timestamp, sensor_send_time))
+        self._sensor_time_stream.send(erdos.WatermarkMessage(erdos_timestamp))
 
         process_visualization_events(self._control_display_stream)
 
@@ -226,6 +231,7 @@ def create_data_flow():
     gnss_stream = erdos.IngestStream()
     route_stream = erdos.IngestStream()
     time_to_decision_loop_stream = erdos.LoopStream()
+    sensor_time_stream = erdos.IngestStream()
 
     if FLAGS.localization:
         # Pylot localization is enabled. Add the localization operator to
@@ -313,7 +319,8 @@ def create_data_flow():
         vehicle_id_stream=vehicle_id_stream,
         pose_stream=pose_stream,
         ground_obstacles_stream=perfect_obstacles_stream,
-        time_to_decision_stream=time_to_decision_loop_stream)
+        time_to_decision_stream=time_to_decision_loop_stream,
+        sensor_time_stream=sensor_time_stream)
 
     if FLAGS.execution_mode == 'challenge-sensors':
         # The agent is running is sensors-only track. Therefore, we need
@@ -344,7 +351,7 @@ def create_data_flow():
     waypoints_stream = pylot.component_creator.add_planning(
         None, pose_stream, prediction_stream, traffic_lights_stream,
         lanes_stream, open_drive_stream, global_trajectory_stream,
-        time_to_decision_loop_stream)
+        time_to_decision_loop_stream, sensor_time_stream)
 
     if pylot.flags.must_visualize():
         # Adds a visualization dataflow operator if any of the
@@ -390,7 +397,7 @@ def create_data_flow():
             imu_stream, gnss_stream, extract_control_stream,
             control_display_stream, perfect_obstacles_stream,
             perfect_traffic_lights_stream, vehicle_id_stream,
-            streams_to_send_top_on)
+            sensor_time_stream, streams_to_send_top_on)
 
 
 def create_camera_setups():

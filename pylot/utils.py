@@ -1079,3 +1079,25 @@ def run_visualizer_control_loop(control_display_stream):
 def verify_keys_in_dict(required_keys, arg_dict):
     assert set(required_keys).issubset(set(arg_dict.keys())), \
             "one or more of {} not found in {}".format(required_keys, arg_dict)
+
+
+def get_latest_value_priority_queue(pq, logical_time):
+    import heapq
+    ordered = heapq.nsmallest(100, pq)
+    latest_value = None
+    latest_time = None
+    for (ready_at, value) in ordered:
+        if ready_at > logical_time:
+            break
+        else:
+            latest_value = value
+            latest_time = ready_at
+    return latest_time, latest_value
+
+
+def gc_priority_queue(pq, logical_time):
+    import heapq
+    if logical_time is None:
+        return
+    while len(pq) > 0 and pq[0][0] < logical_time:
+        heapq.heappop(pq)
