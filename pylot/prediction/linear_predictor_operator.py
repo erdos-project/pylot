@@ -34,9 +34,9 @@ class LinearPredictorOperator(erdos.Operator):
         erdos.add_watermark_callback([tracking_stream],
                                      [linear_prediction_stream],
                                      self.on_watermark)
-        self.config.add_timestamp_deadline(tracking_stream,
-                                           linear_prediction_stream,
-                                           flags.prediction_deadline)
+        # self.config.add_timestamp_deadline(tracking_stream,
+        #                                    linear_prediction_stream,
+        #                                    flags.prediction_deadline)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
@@ -88,7 +88,8 @@ class LinearPredictorOperator(erdos.Operator):
                         timestamp, completed_timestamp))
                 linear_prediction_stream.send(
                     PredictionMessage(timestamp, output))
-                linear_prediction_stream.send(erdos.WatermarkMessage(timestamp))
+                linear_prediction_stream.send(
+                    erdos.WatermarkMessage(timestamp))
             return
 
         msg = self._tracked_obstacles_msgs.popleft()

@@ -16,9 +16,9 @@ class ObjectTrackerOperator(erdos.Operator):
         erdos.add_watermark_callback([obstacles_stream, camera_stream],
                                      [obstacle_tracking_stream],
                                      self.on_watermark)
-        self.config.add_timestamp_deadline(obstacles_stream,
-                                           obstacle_tracking_stream,
-                                           flags.tracking_deadline)
+        # self.config.add_timestamp_deadline(obstacles_stream,
+        #                                    obstacle_tracking_stream,
+        #                                    flags.tracking_deadline)
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)

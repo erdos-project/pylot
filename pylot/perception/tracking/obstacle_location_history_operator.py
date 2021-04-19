@@ -17,9 +17,9 @@ class ObstacleLocationHistoryOperator(erdos.Operator):
         erdos.add_watermark_callback(
             [obstacles_stream, depth_stream, pose_stream],
             [tracked_obstacles_stream], self.on_watermark)
-        self.config.add_timestamp_deadline(obstacles_stream,
-                                           tracked_obstacles_stream,
-                                           flags.location_finder_deadline)
+        # self.config.add_timestamp_deadline(obstacles_stream,
+        #                                    tracked_obstacles_stream,
+        #                                    flags.location_finder_deadline)
         self._flags = flags
         self._camera_setup = camera_setup
         self._logger = erdos.utils.setup_logging(self.config.name,
