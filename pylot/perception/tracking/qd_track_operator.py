@@ -8,14 +8,14 @@ from pylot.perception.detection.obstacle import Obstacle
 from pylot.perception.detection.utils import BoundingBox2D, \
     BoundingBox3D, OBSTACLE_LABELS
 from pylot.perception.messages import ObstaclesMessage
-from qdtrack.apis.inference import init_model, inference_model
 
 import torch
-
 
 class QdTrackOperator(erdos.Operator):
     def __init__(self, camera_stream, obstacle_tracking_stream, flags,
                  camera_setup):
+        from qdtrack.apis import init_model
+
         camera_stream.add_callback(self.on_frame_msg,
                                    [obstacle_tracking_stream])
         self._flags = flags
@@ -24,9 +24,7 @@ class QdTrackOperator(erdos.Operator):
         self._csv_logger = erdos.utils.setup_csv_logging(
             self.config.name + '-csv', self.config.csv_log_file_name)
         self._camera_setup = camera_setup
-
-        self.model = init_model() #FIX
-
+        self.model = init_model(self._flags.qd_track_config_path, checkpoint=self._flags.qd_track_model_path, device='cuda:0', cfg_options=None)
 
     @staticmethod
     def connect(camera_stream):
@@ -39,12 +37,25 @@ class QdTrackOperator(erdos.Operator):
     @erdos.profile_method()
     def on_frame_msg(self, msg, obstacle_tracking_stream):
         """Invoked when a FrameMessage is received on the camera stream."""
+        from qdtrack.apis import inference_model
+
         self._logger.debug('@{}: {} received frame'.format(
             msg.timestamp, self.config.name))
         assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
+
         image_np = msg.frame.as_bgr_numpy_array()
-        results = self.inference_model(self.model, image_np) #FIX
+        results = inference_model(self.model, image_np)
+        bbox_result, track_result = results.values()
+        bboxes = np.vstack(bbox_result)
+        labels = [
+            np.full(bbox.shape[0], i, dtype=np.int32)
+            for i, bbox in enumerate(bbox_result)
+        ]
+        labels = np.concatenate(labels)
         obstacles = []
+        # for i in range(len(labels)):
+        #     bbox = bboxes[i]
+
         for res in results:
             track_id = res['tracking_id']
             bbox = res['bbox']

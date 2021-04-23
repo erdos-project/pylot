@@ -79,6 +79,11 @@ mkdir -p tracking/center_track ; cd tracking/center_track
 # COCO model
 ~/.local/bin/gdown https://drive.google.com/uc?id=1tJCEJmdtYIh8VuN8CClGNws3YO7QGd40
 
+###### Download QDTrack models ######
+cd $PYLOT_HOME/dependencies/models
+mkdir -p tracking/qd_track ; cd tracking/qd_track
+~/.local/bin/gdown https://drive.google.com/uc?id=1YNAQgd8rMqqEG-fRj3VWlO4G5kdwJbxz
+
 ##### Download AnyNet depth estimation models #####
 echo "[x] Downloading the depth estimation models..."
 cd $PYLOT_HOME/dependencies/models
@@ -141,12 +146,12 @@ sudo apt-get install llvm-9
 export LLVM_CONFIG=/usr/bin/llvm-config-9
 python3 setup.py build develop --user
 
-###### Install CenterTrack ######
+###### Install QDTrack ######
 cd $PYLOT_HOME/dependencies/
-git clone https://github.com/SysCV/qdtrack #FIX to use fork?
+git clone https://github.com/mageofboy/qdtrack.git
 git clone https://github.com/open-mmlab/mmdetection.git
 cd mmdetection
-python3 setup.py develop
+python3 setup.py develop #need to add mmcv
 cd $PYLOT_HOME/dependencies/qdtrack
 python3 setup.py develop
 
