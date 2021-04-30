@@ -25,6 +25,8 @@ class QdTrackOperator(erdos.Operator):
             self.config.name + '-csv', self.config.csv_log_file_name)
         self._camera_setup = camera_setup
         self.model = init_model(self._flags.qd_track_config_path, checkpoint=self._flags.qd_track_model_path, device='cuda:0', cfg_options=None)
+        self.classes = ('pedestrian', 'rider', 'car', 'bus', 'truck', 'bicycle', 'motorcycle', 'train')
+        self.frame_id = 0
 
     @staticmethod
     def connect(camera_stream):
@@ -44,41 +46,34 @@ class QdTrackOperator(erdos.Operator):
         assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
 
         image_np = msg.frame.as_bgr_numpy_array()
-        results = inference_model(self.model, image_np)
+        results = inference_model(self.model, image_np, self.frame_id)
         bbox_result, track_result = results.values()
-        bboxes = np.vstack(bbox_result)
-        labels = [
-            np.full(bbox.shape[0], i, dtype=np.int32)
-            for i, bbox in enumerate(bbox_result)
-        ]
-        labels = np.concatenate(labels)
+        track_bboxes = np.zeros((0, 5))
+        track_ids = np.zeros((0))
+        track_labels = np.zeros((0))
+        obstacle_count = 0
+        for k, v in track_result.items():
+            track_bboxes = np.concatenate((track_bboxes, v['bbox'][None, :]), axis=0)
+            track_ids = np.concatenate((track_ids, np.array([k])), axis=0)
+            track_labels = np.concatenate((track_labels, np.array([v['label']])))
+            obstacle_count += 1
         obstacles = []
-        # for i in range(len(labels)):
-        #     bbox = bboxes[i]
+        for i in range(obstacle_count):
+            track_id = track_ids[i]
+            bbox = track_bboxes[i, :]
+            score = bbox[4]
+            label_id = track_labels[i]
+            label = self.classes[int(label_id)]
 
-        for res in results:
-            track_id = res['tracking_id']
-            bbox = res['bbox']
-            score = res['score']
-            (label_id, ) = res['class'] - 1,
-            if label_id > 80:
-                continue
-            label = self.trained_dataset.class_name[label_id]
-            if label in ['Pedestrian', 'pedestrian']:
+            if label in ['pedestrian', 'rider']:
                 label = 'person'
-            elif label == 'Car':
-                label = 'car'
-            elif label == 'Cyclist':
-                label == 'bicycle'
+    
             if label in OBSTACLE_LABELS:
                 bounding_box_2D = BoundingBox2D(bbox[0], bbox[2], bbox[1],
                                                 bbox[3])
                 bounding_box_3D = None
-                if 'dim' in res and 'loc' in res and 'rot_y' in res:
-                    bounding_box_3D = BoundingBox3D.from_dimensions(
-                        res['dim'], res['loc'], res['rot_y'])
                 obstacles.append(
-                    Obstacle(bounding_box_3D,
+                    Obstacle(bounding_box_2D,
                              score,
                              label,
                              track_id,
