@@ -1,4 +1,5 @@
 import cv2
+import time
 
 import erdos
 
@@ -44,13 +45,15 @@ class QdTrackOperator(erdos.Operator):
         self._logger.debug('@{}: {} received frame'.format(
             msg.timestamp, self.config.name))
         assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
-
+        start_time = time.time()
         image_np = msg.frame.as_bgr_numpy_array()
         results = inference_model(self.model, image_np, self.frame_id)
+        self.frame_id += 1
+
         bbox_result, track_result = results.values()
         track_bboxes = np.zeros((0, 5))
-        track_ids = np.zeros((0))
-        track_labels = np.zeros((0))
+        track_ids = np.zeros((0), dtype=int)
+        track_labels = np.zeros((0), dtype=int)
         obstacle_count = 0
         for k, v in track_result.items():
             track_bboxes = np.concatenate((track_bboxes, v['bbox'][None, :]), axis=0)
@@ -63,7 +66,7 @@ class QdTrackOperator(erdos.Operator):
             bbox = track_bboxes[i, :]
             score = bbox[4]
             label_id = track_labels[i]
-            label = self.classes[int(label_id)]
+            label = self.classes[label_id]
 
             if label in ['pedestrian', 'rider']:
                 label = 'person'
@@ -78,5 +81,6 @@ class QdTrackOperator(erdos.Operator):
                              label,
                              track_id,
                              bounding_box_2D=bounding_box_2D))
+        runtime = (time.time() - start_time) * 1000
         obstacle_tracking_stream.send(
-            ObstaclesMessage(msg.timestamp, obstacles, 0))
+            ObstaclesMessage(msg.timestamp, obstacles, runtime))
