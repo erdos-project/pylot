@@ -58,8 +58,8 @@ class PlanningOperator(erdos.Operator):
             pose_stream, prediction_stream, static_obstacles_stream,
             lanes_stream, time_to_decision_stream, route_stream
         ], [waypoints_stream], self.on_watermark)
-        self.config.add_timestamp_deadline(prediction_stream, waypoints_stream,
-                                           flags.planning_deadline)
+        # self.config.add_timestamp_deadline(prediction_stream, waypoints_stream,
+        #                                    flags.planning_deadline)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags

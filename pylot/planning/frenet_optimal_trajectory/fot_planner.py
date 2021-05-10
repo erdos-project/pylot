@@ -1,7 +1,8 @@
+import random
 import time
 
 from frenet_optimal_trajectory_planner.FrenetOptimalTrajectory.fot_wrapper \
-    import run_fot
+    import run_anytime_fot, run_fot
 
 from pylot.planning.planner import Planner
 
@@ -42,6 +43,9 @@ class FOTPlanner(Planner):
             "klat": flags.klat,
             "klon": flags.klon
         }
+        random.seed(1337)
+        self._num_runs = 0
+        self._runtime_ms = random.randint(40, 200)
 
     def fot_parameters_using_99_percentile(self, ttd):
         maxt = self._flags.maxt
@@ -84,18 +88,27 @@ class FOTPlanner(Planner):
             :py:class:`~pylot.planning.waypoints.Waypoints`: Waypoints of the
             planned trajectory.
         """
-        self.update_hyper_parameters(timestamp, ttd)
+        # self.update_hyper_parameters(timestamp, ttd)
+        if self._num_runs % 200 == 0:
+            self._runtime_ms = random.randint(40, 200)
+        self._num_runs += 1
+        self._logger.debug("@{}: Planner allocated runtime: {}".format(
+            timestamp, self._runtime_ms))
         self._logger.debug("@{}: Hyperparameters: {}".format(
             timestamp, self._hyperparameters))
         initial_conditions = self._compute_initial_conditions()
         self._logger.debug("@{}: Initial conditions: {}".format(
             timestamp, initial_conditions))
         start = time.time()
+        # (path_x, path_y, speeds, ix, iy, iyaw, d, s, speeds_x, speeds_y, misc,
+        #  costs, success) = run_fot(initial_conditions, self._hyperparameters)
         (path_x, path_y, speeds, ix, iy, iyaw, d, s, speeds_x, speeds_y, misc,
-         costs, success) = run_fot(initial_conditions, self._hyperparameters)
+         costs, success, _), stop_ms = run_anytime_fot(initial_conditions,
+                                                       self._hyperparameters,
+                                                       self._runtime_ms - 5)
         fot_runtime = (time.time() - start) * 1000
         self._logger.debug('@{}: Frenet runtime {}'.format(
-            timestamp, fot_runtime))
+            timestamp, fot_runtime - stop_ms))
         if success:
             self._logger.debug("@{}: Frenet succeeded.".format(timestamp))
             self._log_output(timestamp, path_x, path_y, speeds, ix, iy, iyaw,

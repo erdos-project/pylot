@@ -1,3 +1,4 @@
+import random
 import time
 from collections import deque
 
@@ -37,8 +38,8 @@ class EfficientDetOperator(erdos.Operator):
         time_to_decision_stream.add_callback(self.on_time_to_decision_update)
         erdos.add_watermark_callback([camera_stream], [obstacles_stream],
                                      self.on_watermark)
-        self.config.add_timestamp_deadline(camera_stream, obstacles_stream,
-                                           flags.detection_deadline)
+        # self.config.add_timestamp_deadline(camera_stream, obstacles_stream,
+        #                                    flags.detection_deadline)
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -66,15 +67,19 @@ class EfficientDetOperator(erdos.Operator):
             if index == 0:
                 # Use the first model by default.
                 self._model_name, self._tf_session = self._models[model_name]
-                # Serve some junk image to load up the model.
-                inputs = np.zeros((108, 192, 3))
-                self._tf_session.run(
-                    self._signitures['prediction'],
-                    feed_dict={self._signitures['image_arrays']: [inputs]})[0]
+            _, tf_session = self._models[model_name]
+            # Serve some junk image to load up the model.
+            inputs = np.zeros((108, 192, 3))
+            tf_session.run(
+                self._signitures['prediction'],
+                feed_dict={self._signitures['image_arrays']: [inputs]})[0]
         self._unique_id = 0
         self._frame_msgs = deque()
         self._ttd_msgs = deque()
         self._last_ttd = 400
+        random.seed(1337)
+        self._num_runs = 0
+        self._runtime_ms = random.randint(40, 200)
 
     def load_serving_model(self, model_name, model_path, gpu_memory_fraction):
         detection_graph = tf.Graph()
@@ -185,7 +190,12 @@ class EfficientDetOperator(erdos.Operator):
             ttd_msg = self._ttd_msgs.popleft()
             self._last_ttd = ttd_msg.data
         frame_msg = self._frame_msgs.popleft()
-        self.update_model_choice(self._last_ttd)
+        if self._num_runs % 200 == 0:
+            self._runtime_ms = random.randint(40, 200)
+        self._num_runs += 1
+        self._logger.debug("@{}: Detection allocated runtime: {}".format(
+            timestamp, self._runtime_ms))
+        self.update_model_choice(self._runtime_ms)
         frame = frame_msg.frame
         inputs = frame.as_rgb_numpy_array()
         detector_start_time = time.time()
