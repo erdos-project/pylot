@@ -285,7 +285,7 @@ class ERDOSBaseAgent(AutonomousAgent):
                 timestamp, point_cloud))
         point_cloud_stream.send(erdos.WatermarkMessage(timestamp))
         # global_pc = ego_transform.inverse_transform_points(simulator_pc)
-        self._last_point_cloud = PointCloud(simulator_pc, lidar_setup)
+        # self._last_point_cloud = PointCloud(simulator_pc, lidar_setup)
 
     def send_perfect_pose_msg(self, pose_stream, timestamp):
         """Sends the perfectly accurate location of the ego-vehicle.
