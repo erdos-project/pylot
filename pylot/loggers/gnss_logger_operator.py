@@ -21,6 +21,7 @@ class GNSSLoggerOperator(erdos.Operator):
         _logger (:obj:`logging.Logger`): Instance to be used to log messages.
         _flags (absl.flags): Object to be used to access absl flags.
         _msg_cnt (:obj:`int`): Number of messages received.
+        _data_path (:obj:`str`): Directory to which to log files.
     """
     def __init__(self, gnss_stream: erdos.ReadStream,
                  finished_indicator_stream: erdos.WriteStream, flags):
@@ -29,6 +30,8 @@ class GNSSLoggerOperator(erdos.Operator):
                                                  self.config.log_file_name)
         self._flags = flags
         self._msg_cnt = 0
+        self._data_path = os.path.join(self._flags.data_path, 'gnss')
+        os.makedirs(self._data_path, exist_ok=True)
 
     @staticmethod
     def connect(gnss_stream: erdos.ReadStream):
@@ -49,7 +52,7 @@ class GNSSLoggerOperator(erdos.Operator):
             return
         assert len(msg.timestamp.coordinates) == 1
         timestamp = msg.timestamp.coordinates[0]
-        file_name = os.path.join(self._flags.data_path,
+        file_name = os.path.join(self._data_path,
                                  'gnss-{}.json'.format(timestamp))
         measurements = {
             "latitude": str(msg.latitude),
