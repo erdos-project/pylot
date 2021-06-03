@@ -219,7 +219,7 @@ def add_traffic_light_detection(tl_transform,
 
 
 def add_depth(transform, vehicle_id_stream, center_camera_setup,
-              depth_camera_stream):
+              depth_camera_stream, release_sensor_stream):
     """Adds operators for depth estimation.
 
     The operator returns depth frames from the simulator if the
@@ -245,15 +245,18 @@ def add_depth(transform, vehicle_id_stream, center_camera_setup,
     if FLAGS.depth_estimation:
         logger.debug('Adding left and right cameras for depth estimation...')
         (left_camera_stream,
-         right_camera_stream) = pylot.operator_creator.add_left_right_cameras(
-             transform, vehicle_id_stream)
+         right_camera_stream,
+         notify_left_camera_stream,
+         notify_right_camera_stream) = \
+            pylot.operator_creator.add_left_right_cameras(
+                transform, vehicle_id_stream, release_sensor_stream)
         logger.debug('Using camera depth estimation...')
         depth_stream = pylot.operator_creator.add_depth_estimation(
             left_camera_stream, right_camera_stream, center_camera_setup)
     if FLAGS.perfect_depth_estimation:
         logger.debug('Using perfect depth estimation...')
         depth_stream = depth_camera_stream
-    return depth_stream
+    return depth_stream, notify_left_camera_stream, notify_right_camera_stream
 
 
 def add_lane_detection(center_camera_stream,

@@ -97,6 +97,13 @@ def driver():
     elif FLAGS.obstacle_location_finder_sensor == 'depth_camera':
         depth_stream = depth_camera_stream
         notify_streams.append(notify_depth_stream)
+    elif FLAGS.obstacle_location_finder_sensor == 'depth_stereo':
+        (depth_stream, notify_left_camera_stream,
+         notify_right_camera_stream) = pylot.component_creator.add_depth(
+             transform, vehicle_id_stream, center_camera_setup,
+             depth_camera_stream, release_sensor_stream)
+        notify_streams.append(notify_left_camera_stream)
+        notify_streams.append(notify_right_camera_stream)
     else:
         raise ValueError(
             'Unknown --obstacle_location_finder_sensor value {}'.format(
@@ -147,11 +154,6 @@ def driver():
 
     segmented_stream = pylot.component_creator.add_segmentation(
         center_camera_stream, ground_segmented_stream)
-
-    depth_stream = pylot.component_creator.add_depth(transform,
-                                                     vehicle_id_stream,
-                                                     center_camera_setup,
-                                                     depth_camera_stream)
 
     if FLAGS.fusion:
         pylot.operator_creator.add_fusion(pose_stream, obstacles_stream,

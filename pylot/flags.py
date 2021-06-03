@@ -60,7 +60,7 @@ flags.DEFINE_bool('segmentation', False,
 flags.DEFINE_bool('perfect_segmentation', False,
                   'True to enable perfect segmentation')
 flags.DEFINE_enum('obstacle_location_finder_sensor', 'lidar',
-                  ['lidar', 'depth_camera'],
+                  ['lidar', 'depth_camera', 'depth_stereo'],
                   'Sets which sensor to use to compute obstacle locations')
 flags.DEFINE_bool('depth_estimation', False,
                   'True to estimate depth using cameras')
