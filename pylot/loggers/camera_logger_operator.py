@@ -1,4 +1,5 @@
 """This module implements an operator that logs camera frames."""
+import os
 
 import erdos
 
@@ -19,6 +20,7 @@ class CameraLoggerOperator(erdos.Operator):
         _frame_cnt (:obj:`int`): Number of messages received.
         _filename_prefix (:obj:`str`): Used to construct the names of the files
             it logs to.
+        _data_path (:obj:`str`): Directory to which to log files.
     """
     def __init__(self, camera_stream: erdos.ReadStream,
                  finished_indicator_stream: erdos.WriteStream, flags,
@@ -29,6 +31,8 @@ class CameraLoggerOperator(erdos.Operator):
         self._flags = flags
         self._frame_cnt = 0
         self._filename_prefix = filename_prefix
+        self._data_path = os.path.join(self._flags.data_path, filename_prefix)
+        os.makedirs(self._data_path, exist_ok=True)
 
     @staticmethod
     def connect(camera_stream: erdos.ReadStream):
@@ -46,5 +50,5 @@ class CameraLoggerOperator(erdos.Operator):
         self._frame_cnt += 1
         if self._frame_cnt % self._flags.log_every_nth_message != 0:
             return
-        msg.frame.save(msg.timestamp.coordinates[0], self._flags.data_path,
+        msg.frame.save(msg.timestamp.coordinates[0], self._data_path,
                        self._filename_prefix)

@@ -18,6 +18,7 @@ class BoundingBoxLoggerOperator(erdos.Operator):
         _logger (:obj:`logging.Logger`): Instance to be used to log messages.
         _flags (absl.flags): Object to be used to access absl flags.
         _msg_cnt (:obj:`int`): Number of messages received.
+        _data_path (:obj:`str`): Directory to which to log files.
     """
     def __init__(self, obstacles_stream: erdos.ReadStream,
                  finished_indicator_stream: erdos.WriteStream, flags):
@@ -26,6 +27,8 @@ class BoundingBoxLoggerOperator(erdos.Operator):
                                                  self.config.log_file_name)
         self._flags = flags
         self._msg_cnt = 0
+        self._data_path = os.path.join(self._flags.data_path, 'bboxes')
+        os.makedirs(self._data_path, exist_ok=True)
 
     @staticmethod
     def connect(obstacles_stream: erdos.ReadStream):
@@ -54,7 +57,7 @@ class BoundingBoxLoggerOperator(erdos.Operator):
         assert len(msg.timestamp.coordinates) == 1
         timestamp = msg.timestamp.coordinates[0]
         # Write the bounding boxes.
-        file_name = os.path.join(self._flags.data_path,
+        file_name = os.path.join(self._data_path,
                                  'bboxes-{}.json'.format(timestamp))
         with open(file_name, 'w') as outfile:
             json.dump(bboxes, outfile)
