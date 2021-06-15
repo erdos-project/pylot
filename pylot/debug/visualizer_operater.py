@@ -19,6 +19,8 @@ from pylot.planning.world import World
 
 DEFAULT_VIS_TIME = 30000.0
 
+import rospy
+from .ROSCameraPublisher import ROSCameraPublisher
 
 class VisualizerOperator(erdos.Operator):
     """ The `VisualizerOperator` allows developers to see the current state
@@ -141,6 +143,10 @@ class VisualizerOperator(erdos.Operator):
         mono = pygame.font.match_font(mono)
         self.font = pygame.font.Font(mono, 14)
 
+        # PYLOT-ROS Integration
+        rospy.init_node("visualizer", anonymous=True, disable_signals=True)
+        self.pub = {} # dict of publishers
+
         # Array of keys to figure out which message to display.
         self.current_display = 0
         self.display_array = []
@@ -148,27 +154,35 @@ class VisualizerOperator(erdos.Operator):
         if flags.visualize_rgb_camera:
             self.display_array.append("RGB")
             self.window_titles.append("RGB Camera")
+            self.pub["RBG"] = ROSCameraPublisher("/camera/rgb")
         if flags.visualize_detected_obstacles:
             self.display_array.append("Obstacle")
             self.window_titles.append("Detected obstacles")
+            self.pub["Obstacle"] = ROSCameraPublisher("/camera/obstacle")
         if flags.visualize_tracked_obstacles:
             self.display_array.append("TrackedObstacle")
             self.window_titles.append("Obstacle tracking")
+            self.pub["TrackedObstacle"] = ROSCameraPublisher("/camera/tracked_obstacle")
         if flags.visualize_detected_traffic_lights:
             self.display_array.append("TLCamera")
             self.window_titles.append("Detected traffic lights")
+            self.pub["TLCamera"] = ROSCameraPublisher("/camera/tl_camera")
         if flags.visualize_waypoints:
             self.display_array.append("Waypoint")
             self.window_titles.append("Planning")
+            self.pub["Waypoint"] = ROSCameraPublisher("/camera/waypoint")
         if flags.visualize_prediction:
             self.display_array.append("PredictionCamera")
             self.window_titles.append("Prediction")
+            # self.pub["PredictionCamera"] = ROSCameraPublisher("/camera/prediction_camera")
         if flags.visualize_lidar:
             self.display_array.append("PointCloud")
             self.window_titles.append("LiDAR")
+            # self.pub["Lanes"] = ROSPointCloudPublisher("/lidar/point_cloud")
         if flags.visualize_detected_lanes:
             self.display_array.append("Lanes")
             self.window_titles.append("Detected lanes")
+            self.pub["Lanes"] = ROSCameraPublisher("/camera/lanes")
         if flags.visualize_depth_camera:
             self.display_array.append("Depth")
             self.window_titles.append("Depth Camera")
@@ -318,22 +332,25 @@ class VisualizerOperator(erdos.Operator):
         sensor_to_display = self.display_array[self.current_display]
         if sensor_to_display == "RGB" and bgr_msg:
             bgr_msg.frame.visualize(self.display, timestamp=timestamp)
+            self._publish_camera_frame(sensor_to_display, bgr_msg.frame)
         elif sensor_to_display == "Obstacle" and bgr_msg and obstacle_msg:
             bgr_msg.frame.annotate_with_bounding_boxes(timestamp,
                                                        obstacle_msg.obstacles,
                                                        ego_transform)
             bgr_msg.frame.visualize(self.display, timestamp=timestamp)
+            self._publish_camera_frame(sensor_to_display, bgr_msg.frame)
         elif (sensor_to_display == "TLCamera" and tl_camera_msg
               and traffic_light_msg):
             tl_camera_msg.frame.annotate_with_bounding_boxes(
                 timestamp, traffic_light_msg.obstacles)
             tl_camera_msg.frame.visualize(self.display, timestamp=timestamp)
+            self._publish_camera_frame(sensor_to_display, tl_camera_msg.frame)
         elif (sensor_to_display == "TrackedObstacle" and bgr_msg
               and tracked_obstacle_msg):
             bgr_msg.frame.annotate_with_bounding_boxes(
                 timestamp, tracked_obstacle_msg.obstacle_trajectories,
                 ego_transform)
-            bgr_msg.frame.visualize(self.display, timestamp=timestamp)
+            self._publish_camera_frame(sensor_to_display, bgr_msg.frame)
         elif sensor_to_display == "Waypoint" and (bgr_msg and pose_msg
                                                   and waypoint_msg):
             bgr_frame = bgr_msg.frame
@@ -344,6 +361,7 @@ class VisualizerOperator(erdos.Operator):
             if self._flags.draw_waypoints_on_world:
                 waypoint_msg.waypoints.draw_on_world(self._world)
             bgr_frame.visualize(self.display, timestamp=timestamp)
+            self._publish_camera_frame(sensor_to_display, bgr_frame)
         elif (sensor_to_display == "PredictionCamera" and prediction_camera_msg
               and prediction_msg):
             frame = prediction_camera_msg.frame
@@ -357,7 +375,7 @@ class VisualizerOperator(erdos.Operator):
         elif (sensor_to_display == "Lanes" and bgr_msg and lane_detection_msg):
             for lane in lane_detection_msg.data:
                 lane.draw_on_frame(bgr_msg.frame)
-            bgr_msg.frame.visualize(self.display, timestamp=timestamp)
+            self._publish_camera_frame(sensor_to_display, bgr_msg.frame)
         elif sensor_to_display == "Depth" and depth_msg:
             depth_msg.frame.visualize(self.display, timestamp=timestamp)
         elif sensor_to_display == "Segmentation" and segmentation_msg:
@@ -430,3 +448,8 @@ class VisualizerOperator(erdos.Operator):
                                      end_acc.as_simulator_location(),
                                      arrow_size=0.1,
                                      life_time=0.1)
+
+    def _publish_camera_frame(self, sensor_to_display, frame):
+        image_np = frame.as_rgb_numpy_array()
+        self.pub[sensor_to_display].publish(image_np)
+
