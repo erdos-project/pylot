@@ -19,8 +19,10 @@ from pylot.planning.world import World
 
 DEFAULT_VIS_TIME = 30000.0
 
+# PYLOT-ROS Integration
 import rospy
 from .ROSCameraPublisher import ROSCameraPublisher
+from .ROSLIDARPublisher import ROSLIDARPublisher
 
 class VisualizerOperator(erdos.Operator):
     """ The `VisualizerOperator` allows developers to see the current state
@@ -178,7 +180,7 @@ class VisualizerOperator(erdos.Operator):
         if flags.visualize_lidar:
             self.display_array.append("PointCloud")
             self.window_titles.append("LiDAR")
-            # self.pub["Lanes"] = ROSPointCloudPublisher("/lidar/point_cloud")
+            self.pub["PointCloud"] = ROSLIDARPublisher("/lidar/point_cloud")
         if flags.visualize_detected_lanes:
             self.display_array.append("Lanes")
             self.window_titles.append("Detected lanes")
@@ -374,6 +376,7 @@ class VisualizerOperator(erdos.Operator):
             point_cloud_msg.point_cloud.visualize(
                 self.display, self._flags.camera_image_width,
                 self._flags.camera_image_height)
+            self.pub["PointCloud"].publish(point_cloud_msg.point_cloud.points)
         elif (sensor_to_display == "Lanes" and bgr_msg and lane_detection_msg):
             for lane in lane_detection_msg.data:
                 lane.draw_on_frame(bgr_msg.frame)
