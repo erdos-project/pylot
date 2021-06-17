@@ -13,8 +13,7 @@ class ROSCameraPublisher:
         # converts the 3d np arrary img_arr to a sensor_msgs/Image datatype
         img_msg = Image(encoding='rgb8')
         img_msg.height, img_msg.width, channels = img_arr.shape
-        contig_arr = np.ascontiguousarray(img_arr)
-        img_msg.data = contig_arr.tobytes()
+        img_msg.data = img_arr.tobytes()
         img_msg.step = img_msg.width * img_msg.height 
         img_msg.is_bigendian = (
             img_arr.dtype.byteorder == '>' or 
