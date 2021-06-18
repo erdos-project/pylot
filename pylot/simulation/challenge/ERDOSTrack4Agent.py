@@ -51,6 +51,7 @@ class ERDOSTrack4Agent(AutonomousAgent):
         self._global_trajectory_stream = global_trajectory_stream
         self._ground_obstacles_stream = ground_obstacles_stream
         self._traffic_lights_stream = traffic_lights_stream
+        self._lanes_stream = lanes_stream
         self._open_drive_stream = open_drive_stream
         self._sent_open_drive = False
         self._control_stream = control_stream
@@ -119,6 +120,10 @@ class ERDOSTrack4Agent(AutonomousAgent):
                 self.send_gnss_data(val[1], erdos_timestamp)
             else:
                 self._logger.warning("Sensor {} not used".format(key))
+
+        # The agent doesn't send any lanes, but send watermarks to ensure
+        # computation progress.
+        self._lanes_stream.send(erdos.WatermarkMessage(erdos_timestamp))
 
         # Wait until the control is set.
         while True:
