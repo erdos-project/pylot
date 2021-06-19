@@ -213,9 +213,17 @@ class PlanningOperator(erdos.Operator):
         waypoints_stream.send(WaypointsMessage(timestamp, output_wps))
 
     def get_predictions(self, prediction_msg, ego_transform):
+        """Extracts obstacle predictions out of the message.
+
+        This method is useful to build obstacle predictions when
+        the operator directly receives detections instead of predictions.
+        The method assumes that the obstacles are static.
+        """
         predictions = []
         if isinstance(prediction_msg, ObstaclesMessage):
             # Transform the obstacle into a prediction.
+            self._logger.debug(
+                'Planner received obstacles instead of predictions.')
             predictions = []
             for obstacle in prediction_msg.obstacles:
                 obstacle_trajectory = ObstacleTrajectory(obstacle, [])
