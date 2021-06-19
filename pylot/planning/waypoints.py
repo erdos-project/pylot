@@ -21,7 +21,7 @@ class Waypoints(object):
         self.road_options = road_options
 
     @classmethod
-    def read_from_csv_file(cls, csv_file_name, target_speed):
+    def read_from_csv_file(cls, csv_file_name: str, target_speed):
         """Reads waypoints from a csv file."""
         csv_file = open(csv_file_name)
         csv_reader = csv.reader(csv_file)
