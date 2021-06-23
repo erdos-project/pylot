@@ -19,7 +19,6 @@ from pylot.planning.world import World
 
 DEFAULT_VIS_TIME = 30000.0
 
-# PYLOT-ROS Integration
 import rospy
 from .ROSCameraPublisher import ROSCameraPublisher
 from .ROSLIDARPublisher import ROSLIDARPublisher
@@ -156,7 +155,7 @@ class VisualizerOperator(erdos.Operator):
         if flags.visualize_rgb_camera:
             self.display_array.append("RGB")
             self.window_titles.append("RGB Camera")
-            self.pub["RBG"] = ROSCameraPublisher("/camera/rgb")
+            self.pub["RGB"] = ROSCameraPublisher("/camera/rgb")
         if flags.visualize_detected_obstacles:
             self.display_array.append("Obstacle")
             self.window_titles.append("Detected obstacles")
@@ -188,9 +187,13 @@ class VisualizerOperator(erdos.Operator):
         if flags.visualize_depth_camera:
             self.display_array.append("Depth")
             self.window_titles.append("Depth Camera")
+            #self.pub["Depth"] = ROSLIDARPublisher("/lidar/depth") # need to create a flag called --visualize_depth_point_cloud
+            self.pub["Depth"] = ROSCameraPublisher("/camera/depth")
+            self.pub["DepthPointCloud"] = ROSLIDARPublisher("/lidar/depth")
         if flags.visualize_segmentation:
             self.display_array.append("Segmentation")
             self.window_titles.append("Segmentation")
+            self.pub["Segmentation"] = ROSCameraPublisher("/camera/segmentation")
         if flags.visualize_world:
             self._planning_world = World(flags, self._logger)
             top_down_transform = pylot.utils.get_top_down_transform(
@@ -334,25 +337,29 @@ class VisualizerOperator(erdos.Operator):
         sensor_to_display = self.display_array[self.current_display]
         if sensor_to_display == "RGB" and bgr_msg:
             bgr_msg.frame.visualize(self.display, timestamp=timestamp)
-            self._publish_camera_frame(sensor_to_display, bgr_msg.frame)
+            image_np = bgr_msg.frame.as_rgb_numpy_array()
+            self.pub["RGB"].publish(image_np)
         elif sensor_to_display == "Obstacle" and bgr_msg and obstacle_msg:
             bgr_msg.frame.annotate_with_bounding_boxes(timestamp,
                                                        obstacle_msg.obstacles,
                                                        ego_transform)
             bgr_msg.frame.visualize(self.display, timestamp=timestamp)
-            self._publish_camera_frame(sensor_to_display, bgr_msg.frame)
+            image_np = bgr_msg.frame.as_rgb_numpy_array()
+            self.pub["Obstacle"].publish(image_np)
         elif (sensor_to_display == "TLCamera" and tl_camera_msg
               and traffic_light_msg):
             tl_camera_msg.frame.annotate_with_bounding_boxes(
                 timestamp, traffic_light_msg.obstacles)
             tl_camera_msg.frame.visualize(self.display, timestamp=timestamp)
-            self._publish_camera_frame(sensor_to_display, tl_camera_msg.frame)
+            image_np = tl_camera_msg.frame.as_rgb_numpy_array()
+            self.pub["TLCamera"].publish(image_np)
         elif (sensor_to_display == "TrackedObstacle" and bgr_msg
               and tracked_obstacle_msg):
             bgr_msg.frame.annotate_with_bounding_boxes(
                 timestamp, tracked_obstacle_msg.obstacle_trajectories,
                 ego_transform)
-            self._publish_camera_frame(sensor_to_display, bgr_msg.frame)
+            image_np = bgr_msg.frame.as_rgb_numpy_array()
+            self.pub["TrackedObstacle"].publish(image_np)
         elif sensor_to_display == "Waypoint" and (bgr_msg and pose_msg
                                                   and waypoint_msg):
             bgr_frame = bgr_msg.frame
@@ -363,7 +370,8 @@ class VisualizerOperator(erdos.Operator):
             if self._flags.draw_waypoints_on_world:
                 waypoint_msg.waypoints.draw_on_world(self._world)
             bgr_frame.visualize(self.display, timestamp=timestamp)
-            self._publish_camera_frame(sensor_to_display, bgr_frame)
+            image_np = bgr_frame.as_rgb_numpy_array()
+            self.pub["Waypoint"].publish(image_np)
         elif (sensor_to_display == "PredictionCamera" and prediction_camera_msg
               and prediction_msg):
             frame = prediction_camera_msg.frame
@@ -372,15 +380,29 @@ class VisualizerOperator(erdos.Operator):
                 obstacle_prediction.draw_trajectory_on_frame(frame)
             frame.visualize(self.display, timestamp=timestamp)
         elif sensor_to_display == "PointCloud" and point_cloud_msg:
-            self.pub["PointCloud"].publish(point_cloud_msg.point_cloud.points)
+            points = point_cloud_msg.point_cloud.points
+            points[:,[0,2]] = points[:,[2,0]]
+            points[:,[1,2]] = points[:,[2,1]]
+            points[:,0] = -points[:,0]
+            points[:,2] = -points[:,2]
+            self.pub["PointCloud"].publish(points)
         elif (sensor_to_display == "Lanes" and bgr_msg and lane_detection_msg):
             for lane in lane_detection_msg.data:
                 lane.draw_on_frame(bgr_msg.frame)
-            self._publish_camera_frame(sensor_to_display, bgr_msg.frame)
+            image_np = bgr_msg.frame.as_rgb_numpy_array()
+            self.pub["Lanes"].publish(image_np)
         elif sensor_to_display == "Depth" and depth_msg:
             depth_msg.frame.visualize(self.display, timestamp=timestamp)
+            image_np = depth_msg.frame.original_frame
+            image_np = image_np[:, :, ::-1]
+            self.pub["Depth"].publish(image_np)
+            depth_msg.frame.resize(854, 480)
+            points = depth_msg.frame.as_point_cloud()
+            points[:,0] = -points[:,0]
+            self.pub["DepthPointCloud"].publish(points)
         elif sensor_to_display == "Segmentation" and segmentation_msg:
             segmentation_msg.frame.visualize(self.display, timestamp=timestamp)
+            self.pub["Segmentation"].publish(segmentation_msg.frame.as_cityscapes_palette())
         elif sensor_to_display == "PlanningWorld":
             if prediction_camera_msg is None:
                 # Top-down prediction is not available. Show planning
@@ -449,8 +471,3 @@ class VisualizerOperator(erdos.Operator):
                                      end_acc.as_simulator_location(),
                                      arrow_size=0.1,
                                      life_time=0.1)
-
-    def _publish_camera_frame(self, sensor_to_display, frame):
-        image_np = frame.as_rgb_numpy_array()
-        self.pub[sensor_to_display].publish(image_np)
-
