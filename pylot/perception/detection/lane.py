@@ -48,6 +48,8 @@ class Lane(object):
                 marking = inverse_transform.transform_points(
                     np.array([marking.as_numpy_array()]))
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
+            else:
+                marking = marking.location
             pixel_location = marking.to_camera_view(extrinsic_matrix,
                                                     intrinsic_matrix)
             if (pixel_location.z >= 0):
@@ -64,6 +66,8 @@ class Lane(object):
                 marking = inverse_transform.transform_points(
                     np.array([marking.as_numpy_array()]))
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
+            else:
+                marking = marking.location
             pixel_location = marking.to_camera_view(extrinsic_matrix,
                                                     intrinsic_matrix)
             if (pixel_location.z >= 0):
@@ -103,6 +107,8 @@ class Lane(object):
                 marking = inverse_transform.transform_points(
                     np.array([marking.as_numpy_array()]))
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
+            else:
+                marking = marking.location
             pixel_location = marking.to_camera_view(extrinsic_matrix,
                                                     intrinsic_matrix)
             if (pixel_location.z >= 0):
@@ -121,6 +127,8 @@ class Lane(object):
                 marking = inverse_transform.transform_points(
                     np.array([marking.as_numpy_array()]))
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
+            else:
+                marking = marking.location
             pixel_location = marking.to_camera_view(extrinsic_matrix,
                                                     intrinsic_matrix)
             if (pixel_location.z >= 0):
