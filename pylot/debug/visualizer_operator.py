@@ -333,7 +333,7 @@ class VisualizerOperator(erdos.Operator):
             bgr_msg.frame.annotate_with_bounding_boxes(
                 timestamp, tracked_obstacle_msg.obstacle_trajectories,
                 ego_transform)
-            bgr_msg.frame.visualize(self.display)
+            bgr_msg.frame.visualize(self.display, timestamp=timestamp)
         elif sensor_to_display == "Waypoint" and (bgr_msg and pose_msg
                                                   and waypoint_msg):
             bgr_frame = bgr_msg.frame
@@ -352,13 +352,12 @@ class VisualizerOperator(erdos.Operator):
                 obstacle_prediction.draw_trajectory_on_frame(frame)
             frame.visualize(self.display, timestamp=timestamp)
         elif sensor_to_display == "PointCloud" and point_cloud_msg:
-            point_cloud_msg.point_cloud.visualize(
-                self.display, self._flags.camera_image_width,
-                self._flags.camera_image_height)
+            point_cloud_msg.point_cloud.visualize(self.display,
+                                                  timestamp=timestamp)
         elif (sensor_to_display == "Lanes" and bgr_msg and lane_detection_msg):
             for lane in lane_detection_msg.data:
                 lane.draw_on_frame(bgr_msg.frame)
-            bgr_msg.frame.visualize(self.display, timestamp)
+            bgr_msg.frame.visualize(self.display, timestamp=timestamp)
         elif sensor_to_display == "Depth" and depth_msg:
             depth_msg.frame.visualize(self.display, timestamp=timestamp)
         elif sensor_to_display == "Segmentation" and segmentation_msg:
