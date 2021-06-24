@@ -205,6 +205,7 @@ class VisualizerOperator(erdos.Operator):
                 flags.camera_image_height, top_down_transform, 90)
             self.display_array.append("PlanningWorld")
             self.window_titles.append("Planning world")
+            self.pub["PlanningWorld"] = ROSCameraPublisher("/camera/planning_world")
         else:
             self._planning_world = None
         assert len(self.display_array) == len(self.window_titles), \
@@ -433,6 +434,8 @@ class VisualizerOperator(erdos.Operator):
             self._planning_world.update_waypoints(None, waypoint_msg.waypoints)
             self._planning_world.draw_on_frame(frame)
             frame.visualize(self.display, timestamp=timestamp)
+            image_np = frame.as_rgb_numpy_array()
+            self.pub["PlanningWorld"].publish(image_np)
 
         self.render_text(pose_msg.data, control_msg, timestamp)
 
