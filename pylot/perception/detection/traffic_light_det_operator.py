@@ -76,6 +76,8 @@ class TrafficLightDetOperator(erdos.Operator):
             3: TrafficLightColor.RED,
             4: TrafficLightColor.OFF
         }
+        # Unique bounding box id. Incremented for each bounding box.
+        self._unique_id = 0
         # Serve some junk image to load up the model.
         self.__run_model(np.zeros((108, 192, 3)))
 
@@ -171,5 +173,7 @@ class TrafficLightDetOperator(erdos.Operator):
                 traffic_lights.append(
                     TrafficLight(scores[index],
                                  labels[index],
+                                 id=self._unique_id,
                                  bounding_box=bbox))
+                self._unique_id += 1
         return traffic_lights
