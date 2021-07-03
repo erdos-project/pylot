@@ -336,33 +336,30 @@ class VisualizerOperator(erdos.Operator):
             self._visualize_imu(imu_msg)
 
         sensor_to_display = self.display_array[self.current_display]
-        if sensor_to_display == "RGB" and bgr_msg:
+        if self._flags.visualize_rgb_camera and bgr_msg:
             bgr_msg.frame.visualize(self.display, timestamp=timestamp)
             image_np = bgr_msg.frame.as_rgb_numpy_array()
             self.pub["RGB"].publish(image_np)
-        elif sensor_to_display == "Obstacle" and bgr_msg and obstacle_msg:
+        if self._flags.visualize_detected_obstacles and bgr_msg and obstacle_msg:
             bgr_msg.frame.annotate_with_bounding_boxes(timestamp,
                                                        obstacle_msg.obstacles,
                                                        ego_transform)
             bgr_msg.frame.visualize(self.display, timestamp=timestamp)
             image_np = bgr_msg.frame.as_rgb_numpy_array()
             self.pub["Obstacle"].publish(image_np)
-        elif (sensor_to_display == "TLCamera" and tl_camera_msg
-              and traffic_light_msg):
+        if self._flags.visualize_detected_traffic_lights and tl_camera_msg and traffic_light_msg:
             tl_camera_msg.frame.annotate_with_bounding_boxes(
                 timestamp, traffic_light_msg.obstacles)
             tl_camera_msg.frame.visualize(self.display, timestamp=timestamp)
             image_np = tl_camera_msg.frame.as_rgb_numpy_array()
             self.pub["TLCamera"].publish(image_np)
-        elif (sensor_to_display == "TrackedObstacle" and bgr_msg
-              and tracked_obstacle_msg):
+        if self._flags.visualize_tracked_obstacles and bgr_msg and tracked_obstacle_msg:
             bgr_msg.frame.annotate_with_bounding_boxes(
                 timestamp, tracked_obstacle_msg.obstacle_trajectories,
                 ego_transform)
             image_np = bgr_msg.frame.as_rgb_numpy_array()
             self.pub["TrackedObstacle"].publish(image_np)
-        elif sensor_to_display == "Waypoint" and (bgr_msg and pose_msg
-                                                  and waypoint_msg):
+        if self._flags.visualize_waypoints and bgr_msg and pose_msg and waypoint_msg:
             bgr_frame = bgr_msg.frame
             if self._flags.draw_waypoints_on_camera_frames:
                 bgr_frame.camera_setup.set_transform(
@@ -373,26 +370,25 @@ class VisualizerOperator(erdos.Operator):
             bgr_frame.visualize(self.display, timestamp=timestamp)
             image_np = bgr_frame.as_rgb_numpy_array()
             self.pub["Waypoint"].publish(image_np)
-        elif (sensor_to_display == "PredictionCamera" and prediction_camera_msg
-              and prediction_msg):
+        if prediction_camera_msg and prediction_msg:
             frame = prediction_camera_msg.frame
             frame.transform_to_cityscapes()
             for obstacle_prediction in prediction_msg.predictions:
                 obstacle_prediction.draw_trajectory_on_frame(frame)
             frame.visualize(self.display, timestamp=timestamp)
-        elif sensor_to_display == "PointCloud" and point_cloud_msg:
+        if self._flags.visualize_lidar and point_cloud_msg:
             points = point_cloud_msg.point_cloud.points
             points[:,[0,2]] = points[:,[2,0]]
             points[:,[1,2]] = points[:,[2,1]]
             points[:,0] = -points[:,0]
             points[:,2] = -points[:,2]
             self.pub["PointCloud"].publish(points)
-        elif (sensor_to_display == "Lanes" and bgr_msg and lane_detection_msg):
+        if self._flags.visualize_detected_lanes and bgr_msg and lane_detection_msg:
             for lane in lane_detection_msg.data:
                 lane.draw_on_frame(bgr_msg.frame)
             image_np = bgr_msg.frame.as_rgb_numpy_array()
             self.pub["Lanes"].publish(image_np)
-        elif sensor_to_display == "Depth" and depth_msg:
+        if self._flags.visualize_depth_camera and depth_msg:
             depth_msg.frame.visualize(self.display, timestamp=timestamp)
             image_np = depth_msg.frame.original_frame
             image_np = image_np[:, :, ::-1]
@@ -401,16 +397,16 @@ class VisualizerOperator(erdos.Operator):
             points = depth_msg.frame.as_point_cloud()
             points[:,0] = -points[:,0]
             self.pub["DepthPointCloud"].publish(points)
-        elif sensor_to_display == "Segmentation" and segmentation_msg:
+        if self._flags.visualize_segmentation and segmentation_msg:
             segmentation_msg.frame.visualize(self.display, timestamp=timestamp)
             self.pub["Segmentation"].publish(segmentation_msg.frame.as_cityscapes_palette())
-        elif sensor_to_display == "PlanningWorld":
+        if self._flags.visualize_world:
             if prediction_camera_msg is None:
                 # Top-down prediction is not available. Show planning
                 # world on a black image.
                 black_img = np.zeros((self._bird_eye_camera_setup.height,
-                                      self._bird_eye_camera_setup.width, 3),
-                                     dtype=np.dtype("uint8"))
+                                    self._bird_eye_camera_setup.width, 3),
+                                        dtype=np.dtype("uint8"))
                 frame = CameraFrame(black_img, 'RGB',
                                     self._bird_eye_camera_setup)
             else:
