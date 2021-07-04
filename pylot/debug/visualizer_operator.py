@@ -9,9 +9,6 @@ import erdos
 
 import numpy as np
 
-import pygame
-from pygame.locals import K_n
-
 import pylot.utils
 from pylot.drivers.sensor_setup import RGBCameraSetup
 from pylot.perception.camera_frame import CameraFrame
@@ -25,10 +22,10 @@ from .ROSLIDARPublisher import ROSLIDARPublisher
 
 class VisualizerOperator(erdos.Operator):
     """ The `VisualizerOperator` allows developers to see the current state
-    of the entire pipeline by visualizing it on a pygame instance.
+    of the entire pipeline by visualizing it in Foxglove Studio. 
 
     This receives input data from almost the entire pipeline and renders the
-    results of the operator currently chosen by the developer on the screen.
+    results of the operator(s) in Foxglove Studio.
     """
     def __init__(self, pose_stream, rgb_camera_stream, tl_camera_stream,
                  prediction_camera_stream, depth_camera_stream,
@@ -36,7 +33,7 @@ class VisualizerOperator(erdos.Operator):
                  obstacles_stream, traffic_lights_stream,
                  tracked_obstacles_stream, lane_detection_stream,
                  prediction_stream, waypoints_stream, control_stream,
-                 display_control_stream, pygame_display, flags):
+                 control_display_stream, flags):
         visualize_streams = []
         self._pose_msgs = deque()
         pose_stream.add_callback(
@@ -132,67 +129,32 @@ class VisualizerOperator(erdos.Operator):
         erdos.add_watermark_callback(visualize_streams, [], self.on_watermark)
 
         # Add a callback on a control stream to figure out what to display.
-        display_control_stream.add_callback(self.change_display)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
-        self.display = pygame_display
-
-        # Set the font.
-        fonts = [x for x in pygame.font.get_fonts() if 'mono' in x]
-        default_font = 'ubuntumono'
-        mono = default_font if default_font in fonts else fonts[0]
-        mono = pygame.font.match_font(mono)
-        self.font = pygame.font.Font(mono, 14)
 
         # PYLOT-ROS Integration
         rospy.init_node("visualizer", anonymous=True, disable_signals=True)
         self.pub = {} # dict of publishers
 
-        # Array of keys to figure out which message to display.
-        self.current_display = 0
-        self.display_array = []
-        self.window_titles = []
+        # Creating ROS publishers for streams to be visualized
         if flags.visualize_rgb_camera:
-            self.display_array.append("RGB")
-            self.window_titles.append("RGB Camera")
             self.pub["RGB"] = ROSCameraPublisher("/camera/rgb")
         if flags.visualize_detected_obstacles:
-            self.display_array.append("Obstacle")
-            self.window_titles.append("Detected obstacles")
             self.pub["Obstacle"] = ROSCameraPublisher("/camera/obstacle")
         if flags.visualize_tracked_obstacles:
-            self.display_array.append("TrackedObstacle")
-            self.window_titles.append("Obstacle tracking")
             self.pub["TrackedObstacle"] = ROSCameraPublisher("/camera/tracked_obstacle")
         if flags.visualize_detected_traffic_lights:
-            self.display_array.append("TLCamera")
-            self.window_titles.append("Detected traffic lights")
             self.pub["TLCamera"] = ROSCameraPublisher("/camera/tl_camera")
         if flags.visualize_waypoints:
-            self.display_array.append("Waypoint")
-            self.window_titles.append("Planning")
             self.pub["Waypoint"] = ROSCameraPublisher("/camera/waypoint")
-        if flags.visualize_prediction:
-            self.display_array.append("PredictionCamera")
-            self.window_titles.append("Prediction")
-            # self.pub["PredictionCamera"] = ROSCameraPublisher("/camera/prediction_camera")
         if flags.visualize_lidar:
-            self.display_array.append("PointCloud")
-            self.window_titles.append("LiDAR")
             self.pub["PointCloud"] = ROSLIDARPublisher("/lidar/point_cloud")
         if flags.visualize_detected_lanes:
-            self.display_array.append("Lanes")
-            self.window_titles.append("Detected lanes")
             self.pub["Lanes"] = ROSCameraPublisher("/camera/lanes")
         if flags.visualize_depth_camera:
-            self.display_array.append("Depth")
-            self.window_titles.append("Depth Camera")
-            #self.pub["Depth"] = ROSLIDARPublisher("/lidar/depth") # need to create a flag called --visualize_depth_point_cloud
             self.pub["Depth"] = ROSCameraPublisher("/camera/depth")
             self.pub["DepthPointCloud"] = ROSLIDARPublisher("/lidar/depth")
         if flags.visualize_segmentation:
-            self.display_array.append("Segmentation")
-            self.window_titles.append("Segmentation")
             self.pub["Segmentation"] = ROSCameraPublisher("/camera/segmentation")
         if flags.visualize_world:
             self._planning_world = World(flags, self._logger)
@@ -203,13 +165,9 @@ class VisualizerOperator(erdos.Operator):
             self._bird_eye_camera_setup = RGBCameraSetup(
                 'bird_eye_camera', flags.camera_image_width,
                 flags.camera_image_height, top_down_transform, 90)
-            self.display_array.append("PlanningWorld")
-            self.window_titles.append("Planning world")
             self.pub["PlanningWorld"] = ROSCameraPublisher("/camera/planning_world")
         else:
             self._planning_world = None
-        assert len(self.display_array) == len(self.window_titles), \
-            "The display and titles differ."
 
         # Save the flags.
         self._flags = flags
@@ -230,13 +188,6 @@ class VisualizerOperator(erdos.Operator):
         self._logger.debug("@{}: Received {} message.".format(
             msg.timestamp, msg_type))
         queue.append(msg)
-
-    def change_display(self, display_message):
-        if display_message.data == K_n:
-            self.current_display = (self.current_display + 1) % len(
-                self.display_array)
-            self._logger.debug("@{}: Visualizer changed to {}".format(
-                display_message.timestamp, self.current_display))
 
     def get_message(self, queue, timestamp, name):
         msg = None
@@ -278,21 +229,7 @@ class VisualizerOperator(erdos.Operator):
                 "Reverse  : {:.2f}".format(control.reverse),
             ]
 
-        # Display the information box.
-        info_surface = pygame.Surface(
-            (220, self._flags.camera_image_height // 3))
-        info_surface.set_alpha(100)
-        self.display.blit(info_surface, (0, 0))
-
-        # Render the text.
-        v_offset = 10
-        for line in info_text:
-            if v_offset + 18 > self._flags.camera_image_height:
-                break
-            surface = self.font.render(line, True, (255, 255, 255))
-            self.display.blit(surface, (8, v_offset))
-            v_offset += 18
-        pygame.display.flip()
+        # TODO: Render text (using ROS publisher)
 
     def on_watermark(self, timestamp):
         self._logger.debug("@{}: received watermark.".format(timestamp))
@@ -335,22 +272,18 @@ class VisualizerOperator(erdos.Operator):
         if self._flags.visualize_imu:
             self._visualize_imu(imu_msg)
 
-        sensor_to_display = self.display_array[self.current_display]
         if self._flags.visualize_rgb_camera and bgr_msg:
-            bgr_msg.frame.visualize(self.display, timestamp=timestamp)
             image_np = bgr_msg.frame.as_rgb_numpy_array()
             self.pub["RGB"].publish(image_np)
         if self._flags.visualize_detected_obstacles and bgr_msg and obstacle_msg:
             bgr_msg.frame.annotate_with_bounding_boxes(timestamp,
                                                        obstacle_msg.obstacles,
                                                        ego_transform)
-            bgr_msg.frame.visualize(self.display, timestamp=timestamp)
             image_np = bgr_msg.frame.as_rgb_numpy_array()
             self.pub["Obstacle"].publish(image_np)
         if self._flags.visualize_detected_traffic_lights and tl_camera_msg and traffic_light_msg:
             tl_camera_msg.frame.annotate_with_bounding_boxes(
                 timestamp, traffic_light_msg.obstacles)
-            tl_camera_msg.frame.visualize(self.display, timestamp=timestamp)
             image_np = tl_camera_msg.frame.as_rgb_numpy_array()
             self.pub["TLCamera"].publish(image_np)
         if self._flags.visualize_tracked_obstacles and bgr_msg and tracked_obstacle_msg:
@@ -367,7 +300,6 @@ class VisualizerOperator(erdos.Operator):
                 waypoint_msg.waypoints.draw_on_frame(bgr_frame)
             if self._flags.draw_waypoints_on_world:
                 waypoint_msg.waypoints.draw_on_world(self._world)
-            bgr_frame.visualize(self.display, timestamp=timestamp)
             image_np = bgr_frame.as_rgb_numpy_array()
             self.pub["Waypoint"].publish(image_np)
         if prediction_camera_msg and prediction_msg:
@@ -375,7 +307,6 @@ class VisualizerOperator(erdos.Operator):
             frame.transform_to_cityscapes()
             for obstacle_prediction in prediction_msg.predictions:
                 obstacle_prediction.draw_trajectory_on_frame(frame)
-            frame.visualize(self.display, timestamp=timestamp)
         if self._flags.visualize_lidar and point_cloud_msg:
             points = point_cloud_msg.point_cloud.points
             points[:,[0,2]] = points[:,[2,0]]
@@ -389,7 +320,6 @@ class VisualizerOperator(erdos.Operator):
             image_np = bgr_msg.frame.as_rgb_numpy_array()
             self.pub["Lanes"].publish(image_np)
         if self._flags.visualize_depth_camera and depth_msg:
-            depth_msg.frame.visualize(self.display, timestamp=timestamp)
             image_np = depth_msg.frame.original_frame
             image_np = image_np[:, :, ::-1]
             self.pub["Depth"].publish(image_np)
@@ -398,7 +328,6 @@ class VisualizerOperator(erdos.Operator):
             points[:,0] = -points[:,0]
             self.pub["DepthPointCloud"].publish(points)
         if self._flags.visualize_segmentation and segmentation_msg:
-            segmentation_msg.frame.visualize(self.display, timestamp=timestamp)
             self.pub["Segmentation"].publish(segmentation_msg.frame.as_cityscapes_palette())
         if self._flags.visualize_world:
             if prediction_camera_msg is None:
@@ -424,11 +353,11 @@ class VisualizerOperator(erdos.Operator):
                                         lanes=lanes)
             self._planning_world.update_waypoints(None, waypoint_msg.waypoints)
             self._planning_world.draw_on_frame(frame)
-            frame.visualize(self.display, timestamp=timestamp)
             image_np = frame.as_rgb_numpy_array()
             self.pub["PlanningWorld"].publish(image_np)
 
-        self.render_text(pose_msg.data, control_msg, timestamp)
+        # todo: render text in foxglove
+        #self.render_text(pose_msg.data, control_msg, timestamp)
 
     def run(self):
         # Run method is invoked after all operators finished initializing.
