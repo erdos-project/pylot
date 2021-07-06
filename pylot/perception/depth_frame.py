@@ -128,16 +128,6 @@ class DepthFrame(object):
                                 dsize=(width, height),
                                 interpolation=cv2.INTER_NEAREST)
 
-    def visualize(self, pygame_display, timestamp=None):
-        """Visualizes the frame on a pygame display."""
-        if self.original_frame is not None:
-            import pygame
-            image_np = self.original_frame
-            image_np = image_np[:, :, ::-1]
-            image_np = np.transpose(image_np, (1, 0, 2))
-            pygame.surfarray.blit_array(pygame_display, image_np)
-            pygame.display.flip()
-
     def save(self, timestamp: int, data_path: str, file_base: str):
         """Saves the depth frame to a file.
 

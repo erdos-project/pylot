@@ -184,24 +184,6 @@ class PointCloud(object):
         pcd.points = o3d.Vector3dVector(self.points)
         o3d.write_point_cloud(file_name, pcd)
 
-    def visualize(self, pygame_display, timestamp=None):
-        """Visualizes the point cloud on a pygame display."""
-        import pygame
-        (width, height) = pygame_display.get_size()
-        # Transform point cloud to top down view.
-        lidar_data = np.array(self.global_points[:, :2])
-        lidar_data *= (min(width, height) /
-                       (2.0 * self._lidar_setup.get_range_in_meters()))
-        lidar_data += (0.5 * width, 0.5 * height)
-        lidar_data = np.fabs(lidar_data)
-        lidar_data = lidar_data.astype(np.int32)
-        lidar_data = np.reshape(lidar_data, (-1, 2))
-        lidar_img_size = (width, height, 3)
-        lidar_img = np.zeros((lidar_img_size), dtype=np.uint8)
-        lidar_img[tuple(lidar_data.T)] = (255, 255, 255)
-        pygame.surfarray.blit_array(pygame_display, lidar_img)
-        pygame.display.flip()
-
     def __repr__(self):
         return 'PointCloud(lidar setup: {}, points: {})'.format(
             self._lidar_setup, self.points)
