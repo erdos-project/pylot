@@ -284,8 +284,6 @@ def main(argv):
         stream.send(erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
     try:
-        if pylot.flags.must_visualize():
-            pylot.utils.run_visualizer_control_loop(control_display_stream)
         node_handle.wait()
     except KeyboardInterrupt:
         node_handle.shutdown()
