@@ -182,10 +182,8 @@ class LocalizationOperator(erdos.Operator):
             if pose_msg:
                 self._last_pose_estimate = pose_msg.data
                 self._last_timestamp = timestamp.coordinates[0]
-                if (self._flags.execution_mode == 'challenge-map'
-                        or self._flags.execution_mode == 'challenge-sensors'):
-                    self._pose_stream.send(pose_msg)
-                    self._pose_stream.send(erdos.WatermarkMessage(timestamp))
+                self._pose_stream.send(pose_msg)
+                self._pose_stream.send(erdos.WatermarkMessage(timestamp))
             else:
                 raise NotImplementedError(
                     "Need pose message to initialize the estimates.")

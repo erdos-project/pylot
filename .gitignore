@@ -4,6 +4,7 @@
 *.log
 *.csv
 *.ipynb
+*.dot
 dependencies/
 pylot/prediction/prediction/
 

@@ -218,7 +218,7 @@ def driver():
                 prediction_stream, waypoints_stream, control_stream)
         streams_to_send_top_on += ingest_streams
 
-    node_handle = erdos.run_async()
+    node_handle = erdos.run_async('pylot.dot')
 
     for stream in streams_to_send_top_on:
         stream.send(erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
