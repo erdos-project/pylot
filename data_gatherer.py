@@ -162,7 +162,8 @@ def main(argv):
                 traffic_light_depth_camera_stream,
                 traffic_light_segmented_camera_stream,
                 pose_stream)
-        pylot.operator_creator.add_bounding_box_logging(traffic_lights_stream)
+        pylot.operator_creator.add_bounding_box_logging(
+            traffic_lights_stream, 'tl-bboxes')
 
     if FLAGS.log_left_right_cameras:
         (left_camera_stream, right_camera_stream, _,
@@ -186,7 +187,8 @@ def main(argv):
             depth_camera_stream, center_camera_stream, segmented_stream,
             pose_stream, ground_obstacles_stream,
             ground_speed_limit_signs_stream, ground_stop_signs_stream)
-        pylot.operator_creator.add_bounding_box_logging(obstacles_stream)
+        pylot.operator_creator.add_bounding_box_logging(
+            obstacles_stream, 'bboxes')
 
     if FLAGS.log_multiple_object_tracker:
         pylot.operator_creator.add_multiple_object_tracker_logging(

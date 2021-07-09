@@ -21,13 +21,15 @@ class BoundingBoxLoggerOperator(erdos.Operator):
         _data_path (:obj:`str`): Directory to which to log files.
     """
     def __init__(self, obstacles_stream: erdos.ReadStream,
-                 finished_indicator_stream: erdos.WriteStream, flags):
+                 finished_indicator_stream: erdos.WriteStream, flags,
+                 file_base_name):
         obstacles_stream.add_callback(self.on_obstacles_msg)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
+        self._file_base_name = file_base_name
         self._msg_cnt = 0
-        self._data_path = os.path.join(self._flags.data_path, 'bboxes')
+        self._data_path = os.path.join(self._flags.data_path, file_base_name)
         os.makedirs(self._data_path, exist_ok=True)
 
     @staticmethod
@@ -57,7 +59,8 @@ class BoundingBoxLoggerOperator(erdos.Operator):
         assert len(msg.timestamp.coordinates) == 1
         timestamp = msg.timestamp.coordinates[0]
         # Write the bounding boxes.
-        file_name = os.path.join(self._data_path,
-                                 'bboxes-{}.json'.format(timestamp))
+        file_name = os.path.join(
+            self._data_path, '{}-{}.json'.format(self._file_base_name,
+                                                 timestamp))
         with open(file_name, 'w') as outfile:
             json.dump(bboxes, outfile)
