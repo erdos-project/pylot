@@ -662,6 +662,7 @@ def add_planning_pose_synchronizer(waypoint_stream, pose_stream,
 
 
 def add_bounding_box_logging(obstacles_stream,
+                             file_base_name,
                              name='bounding_box_logger_operator'):
     from pylot.loggers.bounding_box_logger_operator import \
         BoundingBoxLoggerOperator
@@ -671,7 +672,7 @@ def add_bounding_box_logging(obstacles_stream,
                                      profile_file_name=FLAGS.profile_file_name)
     [finished_indicator_stream] = erdos.connect(BoundingBoxLoggerOperator,
                                                 op_config, [obstacles_stream],
-                                                FLAGS)
+                                                FLAGS, file_base_name)
     return finished_indicator_stream
 
 

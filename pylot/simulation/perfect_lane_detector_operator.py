@@ -36,8 +36,6 @@ class PerfectLaneDetectionOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
-        self._logger_lane = erdos.utils.setup_logging(
-            self.config.name + "_lane", self.config.log_file_name + "_lane")
         self._bgr_msgs = deque()
         self._pose_msgs = deque()
         self._frame_cnt = 0
@@ -132,7 +130,7 @@ class PerfectLaneDetectionOperator(erdos.Operator):
                     binary_img = Image.fromarray(binary_frame)
                     instance_img.save(instance_file_name)
                     binary_img.save(binary_file_name)
-                    self._logger_lane.debug(
+                    self._logger.debug(
                         '@{}: Created binary lane and lane images in {}'.
                         format(pose_msg.timestamp, self._flags.data_path))
             else:
