@@ -837,12 +837,6 @@ def add_visualizer(pose_stream=None,
                    control_stream=None,
                    name='visualizer_operator'):
     from pylot.debug.visualizer_operator import VisualizerOperator
-    import pygame
-    pygame.init()
-    pygame_display = pygame.display.set_mode(
-        (FLAGS.camera_image_width, FLAGS.camera_image_height),
-        pygame.HWSURFACE | pygame.DOUBLEBUF)
-    pygame.display.set_caption("Pylot")
     streams_to_send_top_on = []
     if pose_stream is None:
         pose_stream = erdos.IngestStream()
@@ -911,7 +905,7 @@ def add_visualizer(pose_stream=None,
         obstacles_stream, traffic_lights_stream, tracked_obstacles_stream,
         lane_detection_stream, prediction_stream, waypoints_stream,
         control_stream, control_display_stream
-    ], pygame_display, FLAGS)
+    ], FLAGS)
     return control_display_stream, streams_to_send_top_on
 
 
