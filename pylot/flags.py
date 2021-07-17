@@ -39,9 +39,10 @@ flags.DEFINE_bool('obstacle_tracking', False,
                   'True to enable obstacle tracking operator')
 flags.DEFINE_bool('perfect_obstacle_tracking', False,
                   'True to enable perfect obstacle tracking')
-flags.DEFINE_enum('tracker_type', 'sort',
-                  ['da_siam_rpn', 'deep_sort', 'sort', 'center_track', 'qd_track'],
-                  'Sets which obstacle tracker to use')
+flags.DEFINE_enum(
+    'tracker_type', 'sort',
+    ['da_siam_rpn', 'deep_sort', 'sort', 'center_track', 'qd_track'],
+    'Sets which obstacle tracker to use')
 flags.DEFINE_bool('lane_detection', False, 'True to enable lane detection')
 flags.DEFINE_bool('perfect_lane_detection', False,
                   'True to enable perfect lane detection')

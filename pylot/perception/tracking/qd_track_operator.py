@@ -12,6 +12,7 @@ from pylot.perception.messages import ObstaclesMessage
 
 import torch
 
+
 class QdTrackOperator(erdos.Operator):
     def __init__(self, camera_stream, obstacle_tracking_stream, flags,
                  camera_setup):
@@ -25,8 +26,12 @@ class QdTrackOperator(erdos.Operator):
         self._csv_logger = erdos.utils.setup_csv_logging(
             self.config.name + '-csv', self.config.csv_log_file_name)
         self._camera_setup = camera_setup
-        self.model = init_model(self._flags.qd_track_config_path, checkpoint=self._flags.qd_track_model_path, device='cuda:0', cfg_options=None)
-        self.classes = ('pedestrian', 'rider', 'car', 'bus', 'truck', 'bicycle', 'motorcycle', 'train')
+        self.model = init_model(self._flags.qd_track_config_path,
+                                checkpoint=self._flags.qd_track_model_path,
+                                device='cuda:0',
+                                cfg_options=None)
+        self.classes = ('pedestrian', 'rider', 'car', 'bus', 'truck',
+                        'bicycle', 'motorcycle', 'train')
         self.frame_id = 0
 
     @staticmethod
@@ -60,7 +65,6 @@ class QdTrackOperator(erdos.Operator):
             label = self.classes[label_id]
             if label in ['pedestrian', 'rider']:
                 label = 'person'
-    
             if label in OBSTACLE_LABELS:
                 bounding_box_2D = BoundingBox2D(bbox[0], bbox[2], bbox[1],
                                                 bbox[3])
