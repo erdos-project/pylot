@@ -1,16 +1,11 @@
-import cv2
 import time
 
 import erdos
 
-import numpy as np
-
 from pylot.perception.detection.obstacle import Obstacle
 from pylot.perception.detection.utils import BoundingBox2D, \
-    BoundingBox3D, OBSTACLE_LABELS
+    OBSTACLE_LABELS
 from pylot.perception.messages import ObstaclesMessage
-
-import torch
 
 
 class QdTrackOperator(erdos.Operator):
@@ -68,7 +63,6 @@ class QdTrackOperator(erdos.Operator):
             if label in OBSTACLE_LABELS:
                 bounding_box_2D = BoundingBox2D(bbox[0], bbox[2], bbox[1],
                                                 bbox[3])
-                bounding_box_3D = None
                 obstacles.append(
                     Obstacle(bounding_box_2D,
                              score,
