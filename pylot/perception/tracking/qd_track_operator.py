@@ -51,23 +51,13 @@ class QdTrackOperator(erdos.Operator):
         self.frame_id += 1
 
         bbox_result, track_result = results.values()
-        track_bboxes = np.zeros((0, 5))
-        track_ids = np.zeros((0), dtype=int)
-        track_labels = np.zeros((0), dtype=int)
-        obstacle_count = 0
-        for k, v in track_result.items():
-            track_bboxes = np.concatenate((track_bboxes, v['bbox'][None, :]), axis=0)
-            track_ids = np.concatenate((track_ids, np.array([k])), axis=0)
-            track_labels = np.concatenate((track_labels, np.array([v['label']])))
-            obstacle_count += 1
         obstacles = []
-        for i in range(obstacle_count):
-            track_id = track_ids[i]
-            bbox = track_bboxes[i, :]
+        for k, v in track_result.items():
+            track_id = k
+            bbox = v['bbox'][None, :]
             score = bbox[4]
-            label_id = track_labels[i]
+            label_id = v['label']
             label = self.classes[label_id]
-
             if label in ['pedestrian', 'rider']:
                 label = 'person'
     
