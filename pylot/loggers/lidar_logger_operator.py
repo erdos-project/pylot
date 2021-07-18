@@ -1,4 +1,6 @@
 """This module implements an operator that logs lidar point clouds."""
+import os
+
 import erdos
 
 
@@ -19,6 +21,7 @@ class LidarLoggerOperator(erdos.Operator):
         _pc_msg_cnt (:obj:`int`): Number of messages received.
         _filename_prefix (:obj:`str`): Used to construct the names of the files
              it logs to.
+        _data_path (:obj:`str`): Directory to which to log files.
     """
     def __init__(self, lidar_stream: erdos.ReadStream,
                  finished_indicator_stream: erdos.WriteStream, flags,
@@ -29,6 +32,8 @@ class LidarLoggerOperator(erdos.Operator):
         self._flags = flags
         self._pc_msg_cnt = 0
         self._filename_prefix = filename_prefix
+        self._data_path = os.path.join(self._flags.data_path, filename_prefix)
+        os.makedirs(self._data_path, exist_ok=True)
 
     @staticmethod
     def connect(lidar_stream: erdos.ReadStream):
@@ -49,5 +54,5 @@ class LidarLoggerOperator(erdos.Operator):
             return
         assert len(msg.timestamp.coordinates) == 1
         # Write the lidar information.
-        msg.point_cloud.save(msg.timestamp.coordinates[0],
-                             self._flags.data_path, self._filename_prefix)
+        msg.point_cloud.save(msg.timestamp.coordinates[0], self._data_path,
+                             self._filename_prefix)

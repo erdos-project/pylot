@@ -19,8 +19,9 @@ def check_simulator_version(simulator_version: str,
     """Checks if the simulator meets the minimum version requirements."""
     ver_strs = simulator_version.split('.')
     if len(ver_strs) < 2 or len(ver_strs) > 3:
-        print('ERROR: CARLA version {} is not supported; assuming this is '
-              'version 0.9.10'.format(simulator_version))
+        print('WARNING: CARLA version {} is not supported; assuming that the '
+              'API of this version is compatible with 0.9.10'.format(
+                  simulator_version))
         ver_strs = '0.9.10'.split('.')
     major = int(ver_strs[0])
     minor = int(ver_strs[1])
@@ -165,11 +166,13 @@ def reset_world(world):
             actor.destroy()
 
 
-def spawn_actors(client, world, simulator_version: str,
-                 ego_spawn_point_index: int, auto_pilot: bool, num_people: int,
-                 num_vehicles: int, logger):
-    vehicle_ids = spawn_vehicles(client, world, num_vehicles, logger)
-    ego_vehicle = spawn_ego_vehicle(world, ego_spawn_point_index, auto_pilot)
+def spawn_actors(client, world, traffic_manager_port: int,
+                 simulator_version: str, ego_spawn_point_index: int,
+                 auto_pilot: bool, num_people: int, num_vehicles: int, logger):
+    vehicle_ids = spawn_vehicles(client, world, traffic_manager_port,
+                                 num_vehicles, logger)
+    ego_vehicle = spawn_ego_vehicle(world, traffic_manager_port,
+                                    ego_spawn_point_index, auto_pilot)
     people = []
 
     if check_simulator_version(simulator_version,
@@ -188,6 +191,7 @@ def spawn_actors(client, world, simulator_version: str,
 
 
 def spawn_ego_vehicle(world,
+                      traffic_manager_port: int,
                       spawn_point_index: int,
                       auto_pilot: bool,
                       blueprint: str = 'vehicle.lincoln.mkz2017'):
@@ -206,7 +210,7 @@ def spawn_ego_vehicle(world,
 
         ego_vehicle = world.try_spawn_actor(v_blueprint, start_pose)
     if auto_pilot:
-        ego_vehicle.set_autopilot(True)
+        ego_vehicle.set_autopilot(True, traffic_manager_port)
     return ego_vehicle
 
 
@@ -270,7 +274,8 @@ def spawn_people(client, world, num_people: int, logger):
     return (ped_ids, ped_control_ids)
 
 
-def spawn_vehicles(client, world, num_vehicles: int, logger):
+def spawn_vehicles(client, world, traffic_manager_port: int, num_vehicles: int,
+                   logger):
     """ Spawns vehicles at random locations inside the world.
 
     Args:
@@ -308,7 +313,8 @@ def spawn_vehicles(client, world, num_vehicles: int, logger):
 
         batch.append(
             command.SpawnActor(blueprint, transform).then(
-                command.SetAutopilot(command.FutureActor, True)))
+                command.SetAutopilot(command.FutureActor, True,
+                                     traffic_manager_port)))
 
     # Apply the batch and retrieve the identifiers.
     vehicle_ids = []

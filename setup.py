@@ -17,7 +17,7 @@ setup(
         "lapsolver",
         "motmetrics",
         "numpy<1.20",  # Update to newer numpy version once we switch to tf2
-        "open3d-python==0.5.0.0",
+        "open3d-python==0.7.0.0",
         "opencv-python>=4.1.0.25",
         "opencv-contrib-python>=4.1.0.25",
         "pillow>=6.2.2",

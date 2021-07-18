@@ -23,28 +23,27 @@ mkdir -p dependencies/models
 ###### Download CARLA-trained object detection models ######
 echo "[x] Downloading the obstacle detection models..."
 cd $PYLOT_HOME/dependencies/models
-mkdir obstacle_detection ; cd obstacle_detection
-wget --max-redirect=20 -O download.zip https://www.dropbox.com/sh/v1mex7ykdrak3av/AADFsd8mwFcQnzJsIAQR6oEja
-unzip download.zip ; rm download.zip
+~/.local/bin/gdown https://drive.google.com/uc?id=1KL4jD1TNlWLz4199wzAAw-olquBCOGXe
+unzip obstacle_detection.zip ; rm obstacle_detection.zip
 
 ###### Download the traffic light model ######
 echo "[x] Downloading the traffic light detection models..."
 cd $PYLOT_HOME/dependencies/models
 mkdir -p traffic_light_detection/faster-rcnn ; cd traffic_light_detection/faster-rcnn
-wget https://www.dropbox.com/s/nfq93v3th0fnedu/frozen_inference_graph.pb
+~/.local/bin/gdown https://drive.google.com/uc?id=1LVLb_0R7LwM_pSY4dw7e2_06LO0tGtl-
 
 ###### Download the Lanenet lane detection model ######
 echo "[x] Downloading the lane detection models..."
 cd $PYLOT_HOME/dependencies/models
-mkdir -p lane_detection/lanenet ; cd lane_detection/lanenet
-wget --max-redirect=20 -O download.zip https://www.dropbox.com/sh/hdqpoxr0yo7mk05/AABx5b7QdEmkxWX2VDa19xKCa
-unzip download.zip ; rm download.zip
+mkdir -p lane_detection ; cd lane_detection/
+~/.local/bin/gdown https://drive.google.com/uc?id=1yILceTgUr1MTZ7Q2wanvQ0r8RbBf5ILD
+unzip lanenet.zip ; rm lanenet.zip
 
 ###### Download the DRN segmentation cityscapes models ######
 echo "[x] Downloading the segmentation models..."
 cd $PYLOT_HOME/dependencies/models
 mkdir -p segmentation/drn ; cd segmentation/drn
-wget https://www.dropbox.com/s/i6v54gng0rao6ff/drn_d_22_cityscapes.pth
+~/.local/bin/gdown https://drive.google.com/uc?id=1ST0WYo-uDS91jKDTaK21RvShWpayiyXN
 
 ###### Download the DASiamRPN object tracker models ######
 echo "[x] Downloading the object tracking models..."
@@ -65,7 +64,7 @@ mkdir -p tracking/deep-sort ; cd tracking/deep-sort
 cd ../
 # Download the CARLA model.
 mkdir deep-sort-carla ; cd deep-sort-carla
-wget https://www.dropbox.com/s/j007vs40f9tlcui/feature_extractor
+~/.local/bin/gdown https://drive.google.com/uc?id=14JLC_eo_Xpf2KbWffC96qtSAl2sXLyIl
 
 ###### Download CenterTrack models ######
 cd $PYLOT_HOME/dependencies/models
@@ -90,7 +89,7 @@ unzip checkpoint.zip ; rm checkpoint.zip
 echo "[x] Downloading the prediction models..."
 cd $PYLOT_HOME/dependencies/models
 mkdir -p prediction/r2p2 ; cd prediction/r2p2
-wget https://www.dropbox.com/s/vyrh8tysre1bmwi/r2p2-model.pt
+~/.local/bin/gdown https://drive.google.com/uc?id=1Ky_6daMnovoYxlQ8iTTGwJj_4bKd8EKn
 
 #################### Download the code bases ####################
 echo "[x] Compiling the planners..."

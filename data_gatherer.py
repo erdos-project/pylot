@@ -22,6 +22,8 @@ flags.DEFINE_bool('log_left_right_cameras', False,
                   'Control whether we log left and right cameras.')
 flags.DEFINE_bool('log_depth_camera', False,
                   'True to enable depth camera logging')
+flags.DEFINE_bool('log_gnss', False, 'Enable logging of GNSS measurements.')
+flags.DEFINE_bool('log_pose', False, 'Enable logging of pose measurements.')
 flags.DEFINE_bool('log_imu', False, 'Enable logging of IMU measurements.')
 flags.DEFINE_bool('log_lidar', False, 'True to enable lidar logging')
 flags.DEFINE_bool('log_obstacles', False,
@@ -104,9 +106,22 @@ def main(argv):
 
     imu_stream = None
     if FLAGS.log_imu:
-        (imu_stream,
-         _) = pylot.operator_creator.add_imu(transform, vehicle_id_stream)
+        (imu_stream, _) = pylot.operator_creator.add_imu(
+            pylot.utils.Transform(location=pylot.utils.Location(),
+                                  rotation=pylot.utils.Rotation()),
+            vehicle_id_stream)
         pylot.operator_creator.add_imu_logging(imu_stream)
+
+    gnss_stream = None
+    if FLAGS.log_gnss:
+        (gnss_stream, _) = pylot.operator_creator.add_gnss(
+            pylot.utils.Transform(location=pylot.utils.Location(),
+                                  rotation=pylot.utils.Rotation()),
+            vehicle_id_stream)
+        pylot.operator_creator.add_gnss_logging(gnss_stream)
+
+    if FLAGS.log_pose:
+        pylot.operator_creator.add_pose_logging(pose_stream)
 
     traffic_lights_stream = None
     traffic_light_camera_stream = None
@@ -147,7 +162,8 @@ def main(argv):
                 traffic_light_depth_camera_stream,
                 traffic_light_segmented_camera_stream,
                 pose_stream)
-        pylot.operator_creator.add_bounding_box_logging(traffic_lights_stream)
+        pylot.operator_creator.add_bounding_box_logging(
+            traffic_lights_stream, 'tl-bboxes')
 
     if FLAGS.log_left_right_cameras:
         (left_camera_stream, right_camera_stream, _,
@@ -171,7 +187,8 @@ def main(argv):
             depth_camera_stream, center_camera_stream, segmented_stream,
             pose_stream, ground_obstacles_stream,
             ground_speed_limit_signs_stream, ground_stop_signs_stream)
-        pylot.operator_creator.add_bounding_box_logging(obstacles_stream)
+        pylot.operator_creator.add_bounding_box_logging(
+            obstacles_stream, 'bboxes')
 
     if FLAGS.log_multiple_object_tracker:
         pylot.operator_creator.add_multiple_object_tracker_logging(
@@ -222,6 +239,7 @@ def main(argv):
                 top_down_camera_stream, top_down_segmented_stream,
                 top_down_camera_setup)
 
+    perfect_lane_stream = None
     if FLAGS.log_lane_detection_camera:
         perfect_lane_stream = pylot.operator_creator.add_perfect_lane_detector(
             pose_stream, open_drive_stream, center_camera_stream)

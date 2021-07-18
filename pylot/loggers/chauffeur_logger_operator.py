@@ -56,6 +56,8 @@ class ChauffeurLoggerOperator(erdos.Operator):
         self._current_transform = None
         self._previous_transform = None
         self._top_down_camera_setup = top_down_camera_setup
+        self._data_path = os.path.join(self._flags.data_path, 'chauffeur')
+        os.makedirs(self._data_path, exist_ok=True)
 
     @staticmethod
     def connect(vehicle_id_stream: erdos.ReadStream,
@@ -137,7 +139,7 @@ class ChauffeurLoggerOperator(erdos.Operator):
         future_poses_img = Image.fromarray(future_poses)
         future_poses_img = future_poses_img.convert('RGB')
         file_name = os.path.join(
-            self._flags.data_path,
+            self.self._data_path,
             'future_poses-{}.png'.format(msg.timestamp.coordinates[0] -
                                          len(self._waypoints) * 100))
         future_poses_img.save(file_name)
@@ -145,7 +147,7 @@ class ChauffeurLoggerOperator(erdos.Operator):
         # Log future poses
         waypoints = [str(wp) for wp in self._waypoints]
         file_name = os.path.join(
-            self._flags.data_path,
+            self.self._data_path,
             'waypoints-{}.json'.format(msg.timestamp.coordinates[0] -
                                        len(self._waypoints) * 100))
         with open(file_name, 'w') as outfile:
@@ -155,15 +157,15 @@ class ChauffeurLoggerOperator(erdos.Operator):
         past_poses_img = Image.fromarray(past_poses)
         past_poses_img = past_poses_img.convert('RGB')
         file_name = os.path.join(
-            self._flags.data_path,
+            self.self._data_path,
             'past_poses-{}.png'.format(msg.timestamp.coordinates[0]))
         past_poses_img.save(file_name)
 
     def on_top_down_segmentation_update(self, msg: erdos.Message):
         assert len(msg.timestamp.coordinates) == 1
         # Save the segmented channels
-        msg.frame.save_per_class_masks(self._flags.data_path, msg.timestamp)
-        msg.frame.save(msg.timestamp.coordinates[0], self._flags.data_path,
+        msg.frame.save_per_class_masks(self.self._data_path, msg.timestamp)
+        msg.frame.save(msg.timestamp.coordinates[0], self.self._data_path,
                        'top_down_segmentation')
 
     def on_ground_vehicle_id_update(self, msg: erdos.Message):
@@ -180,14 +182,14 @@ class ChauffeurLoggerOperator(erdos.Operator):
 
         # Log heading
         file_name = os.path.join(
-            self._flags.data_path,
+            self.self._data_path,
             'heading-{}.json'.format(msg.timestamp.coordinates[0]))
         with open(file_name, 'w') as outfile:
             json.dump(str(self._current_transform.rotation.yaw), outfile)
 
         # Log speed
         file_name = os.path.join(
-            self._flags.data_path,
+            self.self._data_path,
             'speed-{}.json'.format(msg.timestamp.coordinates[0]))
         with open(file_name, 'w') as outfile:
             json.dump(str(msg.data.forward_speed), outfile)
@@ -208,7 +210,7 @@ class ChauffeurLoggerOperator(erdos.Operator):
         tl_img = Image.fromarray(tl_mask)
         tl_img = tl_img.convert('RGB')
         file_name = os.path.join(
-            self._flags.data_path,
+            self.self._data_path,
             'traffic_lights-{}.png'.format(msg.timestamp.coordinates[0]))
         tl_img.save(file_name)
 

@@ -662,6 +662,7 @@ def add_planning_pose_synchronizer(waypoint_stream, pose_stream,
 
 
 def add_bounding_box_logging(obstacles_stream,
+                             file_base_name,
                              name='bounding_box_logger_operator'):
     from pylot.loggers.bounding_box_logger_operator import \
         BoundingBoxLoggerOperator
@@ -671,7 +672,7 @@ def add_bounding_box_logging(obstacles_stream,
                                      profile_file_name=FLAGS.profile_file_name)
     [finished_indicator_stream] = erdos.connect(BoundingBoxLoggerOperator,
                                                 op_config, [obstacles_stream],
-                                                FLAGS)
+                                                FLAGS, file_base_name)
     return finished_indicator_stream
 
 
@@ -728,6 +729,28 @@ def add_eval_metric_logging(collision_stream, lane_invasion_stream,
          collision_stream, lane_invasion_stream, traffic_light_invasion_stream,
          imu_stream, pose_stream
      ], FLAGS)
+    return finished_indicator_stream
+
+
+def add_gnss_logging(gnss_stream, name='gnss_logger_operator'):
+    from pylot.loggers.gnss_logger_operator import GNSSLoggerOperator
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [finished_indicator_stream] = erdos.connect(GNSSLoggerOperator, op_config,
+                                                [gnss_stream], FLAGS)
+    return finished_indicator_stream
+
+
+def add_pose_logging(pose_stream, name='pose_logger_operator'):
+    from pylot.loggers.pose_logger_operator import PoseLoggerOperator
+    op_config = erdos.OperatorConfig(name=name,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [finished_indicator_stream] = erdos.connect(PoseLoggerOperator, op_config,
+                                                [pose_stream], FLAGS)
     return finished_indicator_stream
 
 

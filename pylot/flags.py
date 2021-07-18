@@ -1,4 +1,5 @@
 from absl import flags
+import datetime
 
 import pylot.control.flags
 import pylot.debug.flags
@@ -60,7 +61,7 @@ flags.DEFINE_bool('segmentation', False,
 flags.DEFINE_bool('perfect_segmentation', False,
                   'True to enable perfect segmentation')
 flags.DEFINE_enum('obstacle_location_finder_sensor', 'lidar',
-                  ['lidar', 'depth_camera'],
+                  ['lidar', 'depth_camera', 'depth_stereo'],
                   'Sets which sensor to use to compute obstacle locations')
 flags.DEFINE_bool('depth_estimation', False,
                   'True to estimate depth using cameras')
@@ -146,12 +147,21 @@ flags.DEFINE_bool(
 flags.DEFINE_integer('top_down_camera_altitude', 40,
                      'Altitude of the top-down world camera (in meters).')
 
+
 ########################################
 # Recording operators.
 ########################################
+def get_default_data_path():
+    """Returns the default data path as data/<current_timestamp>."""
+    now = datetime.datetime.now()
+    now_str = now.isoformat(timespec='seconds')
+    return '{}/{}/'.format('data', now_str)
+
+
 flags.DEFINE_string('simulation_recording_file', None,
                     'Path to where the simulation is recorded')
-flags.DEFINE_string('data_path', 'data/', 'Path where to logged data')
+flags.DEFINE_string('data_path', get_default_data_path(),
+                    'Path where to logged data')
 flags.DEFINE_bool('log_detector_output', False,
                   'Enable recording of bbox annotated detector images')
 flags.DEFINE_bool('log_traffic_light_detector_output', False,

@@ -110,7 +110,9 @@ class CarlaOperator(erdos.Operator):
             # Spawn ego vehicle, people and vehicles.
             (self._ego_vehicle, self._vehicle_ids,
              self._people) = pylot.simulation.utils.spawn_actors(
-                 self._client, self._world, self._simulator_version,
+                 self._client, self._world,
+                 self._flags.carla_traffic_manager_port,
+                 self._simulator_version,
                  self._flags.simulator_spawn_point_index,
                  self._flags.control == 'simulator_auto_pilot',
                  self._flags.simulator_num_people,

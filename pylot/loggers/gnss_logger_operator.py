@@ -1,4 +1,4 @@
-"""This module implements an operator that logs IMU sensor readings."""
+"""This module implements an operator that logs GNSS sensor readings."""
 
 import json
 import os
@@ -6,15 +6,15 @@ import os
 import erdos
 
 
-class IMULoggerOperator(erdos.Operator):
-    """Subscribes to IMU streams and logs IMU measurements.
+class GNSSLoggerOperator(erdos.Operator):
+    """Subscribes to GNSS streams and logs GNSS measurements.
 
     This will log every frame to preserve linearization when approximating jerk
     in smoothness evaluation metrics.
 
     Args:
-        imu_stream: (:py:class:`erdos.ReadStream`): The stream on which
-            :py:class:`~pylot.localization.messages.IMUMessage` are received.
+        gnss_stream: (:py:class:`erdos.ReadStream`): The stream on which
+            :py:class:`~pylot.localization.messages.GNSSMessage` are received.
         flags (absl.flags): Object to be used to access absl flags.
 
     Attributes:
@@ -23,26 +23,26 @@ class IMULoggerOperator(erdos.Operator):
         _msg_cnt (:obj:`int`): Number of messages received.
         _data_path (:obj:`str`): Directory to which to log files.
     """
-    def __init__(self, imu_stream: erdos.ReadStream,
+    def __init__(self, gnss_stream: erdos.ReadStream,
                  finished_indicator_stream: erdos.WriteStream, flags):
-        imu_stream.add_callback(self.on_imu_update)
+        gnss_stream.add_callback(self.on_gnss_update)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
         self._msg_cnt = 0
-        self._data_path = os.path.join(self._flags.data_path, 'imu')
+        self._data_path = os.path.join(self._flags.data_path, 'gnss')
         os.makedirs(self._data_path, exist_ok=True)
 
     @staticmethod
-    def connect(imu_stream: erdos.ReadStream):
+    def connect(gnss_stream: erdos.ReadStream):
         finished_indicator_stream = erdos.WriteStream()
         return [finished_indicator_stream]
 
-    def on_imu_update(self, msg):
-        """Invoked upon receipt of an IMU message.
+    def on_gnss_update(self, msg):
+        """Invoked upon receipt of an GNSS message.
 
         Args:
-            msg (:py:class:`pylot.localization.messages.IMUMessage`): Message
+            msg (:py:class:`pylot.localization.messages.GNSSMessage`): Message
                 to be logged.
         """
         self._logger.debug('@{}: {} received message'.format(
@@ -53,12 +53,11 @@ class IMULoggerOperator(erdos.Operator):
         assert len(msg.timestamp.coordinates) == 1
         timestamp = msg.timestamp.coordinates[0]
         file_name = os.path.join(self._data_path,
-                                 'imu-{}.json'.format(timestamp))
+                                 'gnss-{}.json'.format(timestamp))
         measurements = {
-            "transform": str(msg.transform),
-            "acceleration": str(msg.acceleration),
-            "gyro": str(msg.gyro),
-            "compass": str(msg.compass),
+            "latitude": str(msg.latitude),
+            "longitude": str(msg.longitude),
+            "altitude": str(msg.altitude),
             "timestamp": str(timestamp)
         }
         with open(file_name, 'w') as outfile:

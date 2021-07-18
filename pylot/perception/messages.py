@@ -210,10 +210,17 @@ class ObstacleTrajectoriesMessage(erdos.Message):
                 'trajectories: {})'.format(self.timestamp, trajectories_str))
 
     def get_nearby_obstacles_info(self, radius, filter_fn=None):
-        """Using the list of obstacle trajectories in the message (which are
-           in the ego-vehicle's frame of reference), return a list of obstacles
-           that are within a specified radius of the ego-vehicle, as well as
-           a list of their transforms, sorted by increasing distance."""
+        """Gets a lost of obstacle that are within the radius.
+
+        Using the list of obstacle trajectories in the message (which are
+        in the ego-vehicle's frame of reference), return a list of obstacles
+        that are within a specified radius of the ego-vehicle, as well as
+        a list of their transforms, sorted by increasing distance.
+
+        Args:
+            radius: Filter obstacle trajectories outside the radius.
+            filter_fn: Function to filter obstacle trajectories.
+        """
         if filter_fn:
             filtered_trajectories = list(
                 filter(filter_fn, self.obstacle_trajectories))

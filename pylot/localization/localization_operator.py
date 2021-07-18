@@ -13,25 +13,38 @@ from pylot.utils import Location, Pose, Quaternion, Rotation, Transform, \
 
 
 class LocalizationOperator(erdos.Operator):
+    """Localizes vehicle using GPS and IMU.
+
+    The operator implements localization using a Kalman filter.
+
+    Args:
+        imu_stream (:py:class:`erdos.ReadStream`): Stream on which IMU
+            sensors readings are received.
+        gnss_stream (:py:class:`erdos.ReadStream`): Stream on which
+            GNSS readings are received.
+        ground_pose_stream (:py:class:`erdos.ReadStream`): Stream on which
+            the operator receives noisy poses. It refines these poses using
+            GPS and IMU.
+        pose_stream (:py:class:`erdos.ReadStream`): Stream on which the
+            operator outputs pose messages.
+        flags (absl.flags): Object to be used to access absl flags.
+    """
     def __init__(self, imu_stream: ReadStream, gnss_stream: ReadStream,
                  ground_pose_stream: ReadStream, pose_stream: WriteStream,
                  flags):
-        # Queue of saved messages.
+        # Register callbacks on read streams.
         self._imu_updates = deque()
-        self._gnss_updates = deque()
-        self._ground_pose_updates = None
-
-        # Register callbacks on both the IMU and GNSS streams.
         imu_stream.add_callback(
-            partial(self.save, msg_type="IMU", queue=self._imu_updates))
+            partial(self.buffer_msg, msg_type="IMU", queue=self._imu_updates))
 
+        self._gnss_updates = deque()
         gnss_stream.add_callback(
-            partial(self.save, msg_type="GNSS", queue=self._gnss_updates))
+            partial(self.buffer_msg, msg_type="GNSS",
+                    queue=self._gnss_updates))
 
-        # Register the ground pose stream.
         self._ground_pose_updates = deque()
         ground_pose_stream.add_callback(
-            partial(self.save,
+            partial(self.buffer_msg,
                     msg_type="pose",
                     queue=self._ground_pose_updates))
         erdos.add_watermark_callback(
@@ -83,7 +96,8 @@ class LocalizationOperator(erdos.Operator):
     def destroy(self):
         self._logger.warn('destroying {}'.format(self.config.name))
 
-    def save(self, msg: Message, msg_type: str, queue: deque):
+    def buffer_msg(self, msg: Message, msg_type: str, queue: deque):
+        """Callback which buffers the received message."""
         self._logger.debug("@{}: received {} message.".format(
             msg.timestamp, msg_type))
         queue.append(msg)
@@ -168,10 +182,8 @@ class LocalizationOperator(erdos.Operator):
             if pose_msg:
                 self._last_pose_estimate = pose_msg.data
                 self._last_timestamp = timestamp.coordinates[0]
-                if (self._flags.execution_mode == 'challenge-map'
-                        or self._flags.execution_mode == 'challenge-sensors'):
-                    self._pose_stream.send(pose_msg)
-                    self._pose_stream.send(erdos.WatermarkMessage(timestamp))
+                self._pose_stream.send(pose_msg)
+                self._pose_stream.send(erdos.WatermarkMessage(timestamp))
             else:
                 raise NotImplementedError(
                     "Need pose message to initialize the estimates.")

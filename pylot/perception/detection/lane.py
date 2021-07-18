@@ -19,7 +19,7 @@ class Lane(object):
         left_markings: List of transforms.
         right_markings: List of transforms.
     """
-    def __init__(self, id, left_markings, right_markings):
+    def __init__(self, id: int, left_markings, right_markings):
         self.id = id
         self.left_markings = left_markings
         self.right_markings = right_markings
@@ -48,6 +48,8 @@ class Lane(object):
                 marking = inverse_transform.transform_points(
                     np.array([marking.as_numpy_array()]))
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
+            else:
+                marking = marking.location
             pixel_location = marking.to_camera_view(extrinsic_matrix,
                                                     intrinsic_matrix)
             if (pixel_location.z >= 0):
@@ -64,6 +66,8 @@ class Lane(object):
                 marking = inverse_transform.transform_points(
                     np.array([marking.as_numpy_array()]))
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
+            else:
+                marking = marking.location
             pixel_location = marking.to_camera_view(extrinsic_matrix,
                                                     intrinsic_matrix)
             if (pixel_location.z >= 0):
@@ -103,6 +107,8 @@ class Lane(object):
                 marking = inverse_transform.transform_points(
                     np.array([marking.as_numpy_array()]))
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
+            else:
+                marking = marking.location
             pixel_location = marking.to_camera_view(extrinsic_matrix,
                                                     intrinsic_matrix)
             if (pixel_location.z >= 0):
@@ -121,6 +127,8 @@ class Lane(object):
                 marking = inverse_transform.transform_points(
                     np.array([marking.as_numpy_array()]))
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
+            else:
+                marking = marking.location
             pixel_location = marking.to_camera_view(extrinsic_matrix,
                                                     intrinsic_matrix)
             if (pixel_location.z >= 0):

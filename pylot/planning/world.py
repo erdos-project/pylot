@@ -45,13 +45,15 @@ class World(object):
         self.timestamp = timestamp
         self.pose = pose
         self.ego_transform = pose.transform
+        self.ego_velocity_vector = pose.velocity_vector
         self.ego_trajectory.append(self.ego_transform)
         self.obstacle_predictions = obstacle_predictions
         self._ego_obstacle_predictions = copy.deepcopy(obstacle_predictions)
         # Tranform predictions to world frame of reference.
         for obstacle_prediction in self.obstacle_predictions:
             obstacle_prediction.to_world_coordinates(self.ego_transform)
-        # Road signs are in world coordinates.
+        # Road signs are in world coordinates. Only maintain the road signs
+        # that are within the threshold.
         self.static_obstacles = []
         for obstacle in static_obstacles:
             if (obstacle.transform.location.distance(
@@ -59,9 +61,13 @@ class World(object):
                     self._flags.static_obstacle_distance_threshold):
                 self.static_obstacles.append(obstacle)
 
+        if hd_map is None and lanes is None:
+            self._logger.error(
+                '@{}: planning world does not have lanes or HD map'.format(
+                    timestamp))
         self._map = hd_map
         self._lanes = lanes
-        self.ego_velocity_vector = pose.velocity_vector
+
         # The waypoints are not received on the global trajectory stream.
         # We need to compute them using the map.
         if not self.waypoints:

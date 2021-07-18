@@ -97,6 +97,13 @@ def driver():
     elif FLAGS.obstacle_location_finder_sensor == 'depth_camera':
         depth_stream = depth_camera_stream
         notify_streams.append(notify_depth_stream)
+    elif FLAGS.obstacle_location_finder_sensor == 'depth_stereo':
+        (depth_stream, notify_left_camera_stream,
+         notify_right_camera_stream) = pylot.component_creator.add_depth(
+             transform, vehicle_id_stream, center_camera_setup,
+             depth_camera_stream, release_sensor_stream)
+        notify_streams.append(notify_left_camera_stream)
+        notify_streams.append(notify_right_camera_stream)
     else:
         raise ValueError(
             'Unknown --obstacle_location_finder_sensor value {}'.format(
@@ -147,11 +154,6 @@ def driver():
 
     segmented_stream = pylot.component_creator.add_segmentation(
         center_camera_stream, ground_segmented_stream)
-
-    depth_stream = pylot.component_creator.add_depth(transform,
-                                                     vehicle_id_stream,
-                                                     center_camera_setup,
-                                                     depth_camera_stream)
 
     if FLAGS.fusion:
         pylot.operator_creator.add_fusion(pose_stream, obstacles_stream,
@@ -216,7 +218,7 @@ def driver():
                 prediction_stream, waypoints_stream, control_stream)
         streams_to_send_top_on += ingest_streams
 
-    node_handle = erdos.run_async()
+    node_handle = erdos.run_async('pylot.dot')
 
     for stream in streams_to_send_top_on:
         stream.send(erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
@@ -235,7 +237,7 @@ def shutdown_pylot(node_handle, client, world):
     if node_handle:
         node_handle.shutdown()
     else:
-        print('The Pylot dataflow failed to initialize.')
+        print('WARNING: The Pylot dataflow failed to initialize.')
     if FLAGS.simulation_recording_file is not None:
         client.stop_recorder()
     set_asynchronous_mode(world)
