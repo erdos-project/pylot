@@ -8,6 +8,7 @@ from functools import partial
 import erdos
 
 import numpy as np
+import rospy
 
 import pylot.utils
 from pylot.drivers.sensor_setup import RGBCameraSetup
@@ -16,7 +17,6 @@ from pylot.planning.world import World
 
 DEFAULT_VIS_TIME = 30000.0
 
-import rospy
 from .ros_camera_publisher import ROSCameraPublisher
 from .ros_lidar_publisher import ROSLIDARPublisher
 
@@ -309,6 +309,8 @@ class VisualizerOperator(erdos.Operator):
                 obstacle_prediction.draw_trajectory_on_frame(frame)
         if self._flags.visualize_lidar and point_cloud_msg:
             points = point_cloud_msg.point_cloud.points
+            # need to switch and reverse axes (from Velodyne coordinate space)
+            # for correct visualization in foxglove
             points[:,[0,2]] = points[:,[2,0]]
             points[:,[1,2]] = points[:,[2,1]]
             points[:,0] = -points[:,0]
