@@ -356,8 +356,8 @@ class VisualizerOperator(erdos.Operator):
             image_np = frame.as_rgb_numpy_array()
             self.pub["PlanningWorld"].publish(image_np)
 
-        # todo: render text in foxglove
-        #self.render_text(pose_msg.data, control_msg, timestamp)
+        # TODO: render text in foxglove
+        # self.render_text(pose_msg.data, control_msg, timestamp)
 
     def run(self):
         # Run method is invoked after all operators finished initializing.
