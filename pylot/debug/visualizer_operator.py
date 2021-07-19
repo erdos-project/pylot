@@ -132,7 +132,7 @@ class VisualizerOperator(erdos.Operator):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
 
-        # PYLOT-ROS Integration
+        # Pylot-ROS Integration for Foxglove visualization
         rospy.init_node("visualizer", anonymous=True, disable_signals=True)
         self.pub = {} # dict of publishers
 
