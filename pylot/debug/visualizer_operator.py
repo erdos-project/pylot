@@ -17,8 +17,9 @@ from pylot.planning.world import World
 
 DEFAULT_VIS_TIME = 30000.0
 
-from .ros_camera_publisher import ROSCameraPublisher
-from .ros_lidar_publisher import ROSLIDARPublisher
+import rospy
+from pylot.debug.ros_camera_publisher import ROSCameraPublisher
+from pylot.debug.ros_lidar_publisher import ROSLIDARPublisher
 
 class VisualizerOperator(erdos.Operator):
     """ The `VisualizerOperator` allows developers to see the current state
