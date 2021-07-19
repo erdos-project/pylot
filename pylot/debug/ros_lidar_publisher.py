@@ -23,7 +23,6 @@ class ROSLIDARPublisher:
             points: A numpy array storing a point cloud (see pylot.pylot.perception.point_cloud)
         """
 
-        # converts point cloud points array to a sensor_msgs/PointCloud2 datatype
         points = points.astype(np.float32)
         points_byte_array = points.tobytes()
         row_step = len(points_byte_array)
