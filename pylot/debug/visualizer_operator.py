@@ -14,11 +14,11 @@ import pylot.utils
 from pylot.drivers.sensor_setup import RGBCameraSetup
 from pylot.perception.camera_frame import CameraFrame
 from pylot.planning.world import World
+from pylot.debug.ros_camera_publisher import ROSCameraPublisher
+from pylot.debug.ros_lidar_publisher import ROSLIDARPublisher
 
 DEFAULT_VIS_TIME = 30000.0
 
-from .ros_camera_publisher import ROSCameraPublisher
-from .ros_lidar_publisher import ROSLIDARPublisher
 
 class VisualizerOperator(erdos.Operator):
     """ The `VisualizerOperator` allows developers to see the current state
@@ -132,7 +132,7 @@ class VisualizerOperator(erdos.Operator):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
 
-        # PYLOT-ROS Integration
+        # Pylot-ROS Integration for Foxglove visualization
         rospy.init_node("visualizer", anonymous=True, disable_signals=True)
         self.pub = {} # dict of publishers
 
@@ -358,8 +358,8 @@ class VisualizerOperator(erdos.Operator):
             image_np = frame.as_rgb_numpy_array()
             self.pub["PlanningWorld"].publish(image_np)
 
-        # todo: render text in foxglove
-        #self.render_text(pose_msg.data, control_msg, timestamp)
+        # TODO: render text in foxglove
+        # self.render_text(pose_msg.data, control_msg, timestamp)
 
     def run(self):
         # Run method is invoked after all operators finished initializing.
