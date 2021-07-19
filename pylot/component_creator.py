@@ -354,6 +354,11 @@ def add_obstacle_tracking(center_camera_stream,
             obstacles_wo_history_tracking_stream = \
                 pylot.operator_creator.add_center_track_tracking(
                     center_camera_stream, center_camera_setup)
+        elif FLAGS.tracker_type == 'qd_track':
+            logger.debug('Using QDTrack obstacle tracker...')
+            obstacles_wo_history_tracking_stream = \
+                pylot.operator_creator.add_qd_track_tracking(
+                    center_camera_stream, center_camera_setup)
         else:
             logger.debug('Using obstacle tracker...')
             obstacles_wo_history_tracking_stream = \
