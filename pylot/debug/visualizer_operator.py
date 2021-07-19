@@ -134,7 +134,7 @@ class VisualizerOperator(erdos.Operator):
 
         # Pylot-ROS Integration for Foxglove visualization
         rospy.init_node("visualizer", anonymous=True, disable_signals=True)
-        self.pub = {} # dict of publishers
+        self.pub = {}  # dict of publishers
 
         # Creating ROS publishers for streams to be visualized
         if flags.visualize_rgb_camera:
@@ -142,7 +142,8 @@ class VisualizerOperator(erdos.Operator):
         if flags.visualize_detected_obstacles:
             self.pub["Obstacle"] = ROSCameraPublisher("/camera/obstacle")
         if flags.visualize_tracked_obstacles:
-            self.pub["TrackedObstacle"] = ROSCameraPublisher("/camera/tracked_obstacle")
+            self.pub["TrackedObstacle"] = ROSCameraPublisher(
+                "/camera/tracked_obstacle")
         if flags.visualize_detected_traffic_lights:
             self.pub["TLCamera"] = ROSCameraPublisher("/camera/tl_camera")
         if flags.visualize_waypoints:
@@ -155,7 +156,8 @@ class VisualizerOperator(erdos.Operator):
             self.pub["Depth"] = ROSCameraPublisher("/camera/depth")
             self.pub["DepthPointCloud"] = ROSLIDARPublisher("/lidar/depth")
         if flags.visualize_segmentation:
-            self.pub["Segmentation"] = ROSCameraPublisher("/camera/segmentation")
+            self.pub["Segmentation"] = ROSCameraPublisher(
+                "/camera/segmentation")
         if flags.visualize_world:
             self._planning_world = World(flags, self._logger)
             top_down_transform = pylot.utils.get_top_down_transform(
@@ -165,7 +167,8 @@ class VisualizerOperator(erdos.Operator):
             self._bird_eye_camera_setup = RGBCameraSetup(
                 'bird_eye_camera', flags.camera_image_width,
                 flags.camera_image_height, top_down_transform, 90)
-            self.pub["PlanningWorld"] = ROSCameraPublisher("/camera/planning_world")
+            self.pub["PlanningWorld"] = ROSCameraPublisher(
+                "/camera/planning_world")
         else:
             self._planning_world = None
 
@@ -311,10 +314,10 @@ class VisualizerOperator(erdos.Operator):
             points = point_cloud_msg.point_cloud.points
             # need to switch and reverse axes (from Velodyne coordinate space)
             # for correct visualization in foxglove
-            points[:,[0,2]] = points[:,[2,0]]
-            points[:,[1,2]] = points[:,[2,1]]
-            points[:,0] = -points[:,0]
-            points[:,2] = -points[:,2]
+            points[:, [0, 2]] = points[:, [2, 0]]
+            points[:, [1, 2]] = points[:, [2, 1]]
+            points[:, 0] = -points[:, 0]
+            points[:, 2] = -points[:, 2]
             self.pub["PointCloud"].publish(points)
         if self._flags.visualize_detected_lanes and bgr_msg and lane_detection_msg:
             for lane in lane_detection_msg.data:
@@ -327,17 +330,18 @@ class VisualizerOperator(erdos.Operator):
             self.pub["Depth"].publish(image_np)
             depth_msg.frame.resize(854, 480)
             points = depth_msg.frame.as_point_cloud()
-            points[:,0] = -points[:,0]
+            points[:, 0] = -points[:, 0]
             self.pub["DepthPointCloud"].publish(points)
         if self._flags.visualize_segmentation and segmentation_msg:
-            self.pub["Segmentation"].publish(segmentation_msg.frame.as_cityscapes_palette())
+            self.pub["Segmentation"].publish(
+                segmentation_msg.frame.as_cityscapes_palette())
         if self._flags.visualize_world:
             if prediction_camera_msg is None:
                 # Top-down prediction is not available. Show planning
                 # world on a black image.
                 black_img = np.zeros((self._bird_eye_camera_setup.height,
-                                    self._bird_eye_camera_setup.width, 3),
-                                        dtype=np.dtype("uint8"))
+                                      self._bird_eye_camera_setup.width, 3),
+                                     dtype=np.dtype("uint8"))
                 frame = CameraFrame(black_img, 'RGB',
                                     self._bird_eye_camera_setup)
             else:
