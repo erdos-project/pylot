@@ -14,6 +14,8 @@ import pylot.utils
 from pylot.drivers.sensor_setup import RGBCameraSetup
 from pylot.perception.camera_frame import CameraFrame
 from pylot.planning.world import World
+from pylot.debug.ros_camera_publisher import ROSCameraPublisher
+from pylot.debug.ros_lidar_publisher import ROSLIDARPublisher
 
 DEFAULT_VIS_TIME = 30000.0
 
