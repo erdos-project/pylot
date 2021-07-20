@@ -19,10 +19,6 @@ from pylot.debug.ros_lidar_publisher import ROSLIDARPublisher
 
 DEFAULT_VIS_TIME = 30000.0
 
-import rospy
-from pylot.debug.ros_camera_publisher import ROSCameraPublisher
-from pylot.debug.ros_lidar_publisher import ROSLIDARPublisher
-
 class VisualizerOperator(erdos.Operator):
     """ The `VisualizerOperator` allows developers to see the current state
     of the entire pipeline by visualizing it in Foxglove Studio. 
