@@ -9,6 +9,7 @@ import erdos
 
 import numpy as np
 import rospy
+import subprocess
 
 import pylot.utils
 from pylot.drivers.sensor_setup import RGBCameraSetup
@@ -132,6 +133,9 @@ class VisualizerOperator(erdos.Operator):
                                                  self.config.log_file_name)
 
         # Pylot-ROS Integration for Foxglove visualization
+        self.roscore = subprocess.Popen('roscore')
+        import time
+        time.sleep(1)
         rospy.init_node("visualizer", anonymous=True, disable_signals=True)
         self.pub = {}  # dict of publishers
 
@@ -185,6 +189,7 @@ class VisualizerOperator(erdos.Operator):
 
     def destroy(self):
         self._logger.warn('destroying {}'.format(self.config.name))
+        self.roscore.terminate()
 
     def save(self, msg, msg_type, queue):
         self._logger.debug("@{}: Received {} message.".format(
