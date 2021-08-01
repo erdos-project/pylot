@@ -27,5 +27,7 @@ nuscenes-devkit
 progress
 pyquaternion
 scikit-learn==0.22.2
+mmcv>=0.3.0
+mmdet
 ##### CARLA dependencies #####
 networkx==2.2
