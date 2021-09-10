@@ -93,7 +93,7 @@ class DetectionModel():
         image_np_expanded = np.expand_dims(image_np, axis=0)
 
         infer = self._model.signatures['serving_default']
-        result = infer(tf.convert_to_tensor(image_np_expanded))
+        result = infer(tf.convert_to_tensor(value=image_np_expanded))
 
         boxes = result['boxes']
         scores = result['scores']
