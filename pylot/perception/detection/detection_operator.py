@@ -46,15 +46,7 @@ class DetectionOperator(erdos.Operator):
         for device in physical_devices:
             tf.config.experimental.set_memory_growth(device, True)
 
-        # Load the model from the model file.
-        # pylot.utils.set_tf_loglevel(logging.ERROR)
-        # with self._detection_graph.as_default():
-        #     od_graph_def = tf.compat.v1.GraphDef()
-        #     with tf.io.gfile.GFile(model_path, 'rb') as fid:
-        #         serialized_graph = fid.read()
-        #         od_graph_def.ParseFromString(serialized_graph)
-        #         tf.import_graph_def(od_graph_def, name='')
-
+        # Load the model from the saved_model format file.
         self._model = tf.saved_model.load('pylot/perception/detection/converted_model/')
 
         self._coco_labels = load_coco_labels(self._flags.path_coco_labels)
@@ -62,8 +54,6 @@ class DetectionOperator(erdos.Operator):
         # Unique bounding box id. Incremented for each bounding box.
         self._unique_id = 0
 
-        # # Serve some junk image to load up the model.
-        # self.__run_model(np.zeros((108, 192, 3)))
 
     @staticmethod
     def connect(camera_stream: erdos.ReadStream,
