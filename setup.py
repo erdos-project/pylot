@@ -27,7 +27,8 @@ setup(
         "scikit-image<0.15",
         "scipy==1.2.2",
         "shapely==1.6.4",
-        "tensorflow-gpu==1.15.4",
+        "tensorflow==2.0.0",
+        "tensorflow-gpu==2.0.0",
         "torch==1.4.0",
         "torchvision==0.5.0",
         ##### Tracking dependencies #####

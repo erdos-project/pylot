@@ -14,6 +14,7 @@ from pylot.perception.messages import ObstaclesMessage
 import tensorflow as tf
 
 
+# TODO: Remove once transition to TF2 is complete
 class EfficientDetOperator(erdos.Operator):
     """ Detects obstacles using the EfficientDet set of models.
 

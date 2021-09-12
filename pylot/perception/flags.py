@@ -3,7 +3,7 @@ from absl import flags
 # Detection flags.
 flags.DEFINE_list(
     'obstacle_detection_model_paths',
-    'dependencies/models/obstacle_detection/faster-rcnn/frozen_inference_graph.pb',  # noqa: E501
+    'dependencies/models/obstacle_detection_tf2/faster-rcnn/',  # noqa: E501
     'Comma-separated list of model paths')
 flags.DEFINE_list('obstacle_detection_model_names', 'faster-rcnn',
                   'Comma-separated list of model names')

@@ -41,19 +41,21 @@ class DetectionOperator(erdos.Operator):
                                                  self.config.log_file_name)
         self._obstacles_stream = obstacles_stream
 
+        # Only sets memory growth for flagged GPU
         physical_devices = tf.config.experimental.list_physical_devices('GPU') 
-        # Equivalent to allow_growth=True
-        for device in physical_devices:
-            tf.config.experimental.set_memory_growth(device, True)
+        tf.config.experimental.set_visible_devices([physical_devices[self._flags.obstacle_detection_gpu_index]], 'GPU')
+        tf.config.experimental.set_memory_growth(physical_devices[self._flags.obstacle_detection_gpu_index], True)
 
         # Load the model from the saved_model format file.
-        self._model = tf.saved_model.load('pylot/perception/detection/converted_model/')
+        self._model = tf.saved_model.load(model_path)
 
         self._coco_labels = load_coco_labels(self._flags.path_coco_labels)
         self._bbox_colors = load_coco_bbox_colors(self._coco_labels)
         # Unique bounding box id. Incremented for each bounding box.
         self._unique_id = 0
 
+        # Serve some junk image to load up the model.
+        self.__run_model(np.zeros((108, 192, 3), dtype='uint8'))
 
     @staticmethod
     def connect(camera_stream: erdos.ReadStream,

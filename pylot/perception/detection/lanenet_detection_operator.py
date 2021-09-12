@@ -38,8 +38,8 @@ class LanenetDetectionOperator(erdos.Operator):
                                                  self.config.log_file_name)
         pylot.utils.set_tf_loglevel(logging.ERROR)
         self._input_tensor = tf.compat.v1.placeholder(dtype=tf.float32,
-                                            shape=[1, 256, 512, 3],
-                                            name='input_tensor')
+                                                      shape=[1, 256, 512, 3],
+                                                      name='input_tensor')
         net = lanenet.LaneNet(phase='test')
         self._binary_seg_ret, self._instance_seg_ret = net.inference(
             input_tensor=self._input_tensor, name='LaneNet')
@@ -49,8 +49,9 @@ class LanenetDetectionOperator(erdos.Operator):
             per_process_gpu_memory_fraction=flags.
             lane_detection_gpu_memory_fraction,
             allocator_type='BFC')
-        self._tf_session = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(
-            gpu_options=self._gpu_options, allow_soft_placement=True))
+        self._tf_session = tf.compat.v1.Session(
+            config=tf.compat.v1.ConfigProto(gpu_options=self._gpu_options, 
+                                            allow_soft_placement=True))
         with tf.compat.v1.variable_scope(name_or_scope='moving_avg'):
             variable_averages = tf.train.ExponentialMovingAverage(0.9995)
             variables_to_restore = variable_averages.variables_to_restore()
