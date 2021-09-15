@@ -50,7 +50,7 @@ class LanenetDetectionOperator(erdos.Operator):
             lane_detection_gpu_memory_fraction,
             allocator_type='BFC')
         self._tf_session = tf.compat.v1.Session(
-            config=tf.compat.v1.ConfigProto(gpu_options=self._gpu_options, 
+            config=tf.compat.v1.ConfigProto(gpu_options=self._gpu_options,
                                             allow_soft_placement=True))
         with tf.compat.v1.variable_scope(name_or_scope='moving_avg'):
             variable_averages = tf.train.ExponentialMovingAverage(0.9995)

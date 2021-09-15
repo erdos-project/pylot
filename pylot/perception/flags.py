@@ -25,7 +25,7 @@ flags.DEFINE_float(
 # Traffic light detector flags.
 flags.DEFINE_string(
     'traffic_light_det_model_path',
-    'dependencies/models/traffic_light_detection/faster-rcnn/frozen_inference_graph.pb',  # noqa: E501
+    'dependencies/models/traffic_light_detection_tf2/faster-rcnn/',  # noqa: E501
     'Path to the traffic light model protobuf')
 flags.DEFINE_float('traffic_light_det_min_score_threshold', 0.3,
                    'Min score threshold for bounding box')
