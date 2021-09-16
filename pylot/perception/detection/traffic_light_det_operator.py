@@ -43,15 +43,15 @@ class TrafficLightDetOperator(erdos.Operator):
         pylot.utils.set_tf_loglevel(logging.ERROR)
 
         # Only sets memory growth for flagged GPU
-        physical_devices = tf.config.experimental.list_physical_devices('GPU') 
+        physical_devices = tf.config.experimental.list_physical_devices('GPU')
         tf.config.experimental.set_visible_devices(
-            [physical_devices[self._flags.traffic_light_det_gpu_index]], 
-            'GPU')
+            [physical_devices[self._flags.traffic_light_det_gpu_index]], 'GPU')
         tf.config.experimental.set_memory_growth(
             physical_devices[self._flags.traffic_light_det_gpu_index], True)
 
         # Load the model from the saved_model format file.
-        self._model = tf.saved_model.load(self._flags.traffic_light_det_model_path)
+        self._model = tf.saved_model.load(
+            self._flags.traffic_light_det_model_path)
 
         self._labels = {
             1: TrafficLightColor.GREEN,
@@ -129,7 +129,7 @@ class TrafficLightDetOperator(erdos.Operator):
         # Expand dimensions since the model expects images to have
         # shape: [1, None, None, 3]
         image_np_expanded = np.expand_dims(image_np, axis=0)
-        
+
         infer = self._model.signatures['serving_default']
         result = infer(tf.convert_to_tensor(value=image_np_expanded))
 
@@ -139,7 +139,9 @@ class TrafficLightDetOperator(erdos.Operator):
         num_detections = result['detections']
 
         num_detections = int(num_detections[0])
-        res_labels = [self._labels[int(label)] for label in classes[0][:num_detections]]
+        res_labels = [
+            self._labels[int(label)] for label in classes[0][:num_detections]
+        ]
         res_boxes = boxes[0][:num_detections]
         res_scores = scores[0][:num_detections]
         return res_boxes, res_scores, res_labels

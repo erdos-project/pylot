@@ -42,9 +42,9 @@ class DetectionOperator(erdos.Operator):
         self._obstacles_stream = obstacles_stream
 
         # Only sets memory growth for flagged GPU
-        physical_devices = tf.config.experimental.list_physical_devices('GPU') 
+        physical_devices = tf.config.experimental.list_physical_devices('GPU')
         tf.config.experimental.set_visible_devices(
-            [physical_devices[self._flags.obstacle_detection_gpu_index]], 
+            [physical_devices[self._flags.obstacle_detection_gpu_index]],
             'GPU')
         tf.config.experimental.set_memory_growth(
             physical_devices[self._flags.obstacle_detection_gpu_index], True)
