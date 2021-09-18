@@ -41,6 +41,8 @@ class DetectionOperator(erdos.Operator):
                                                  self.config.log_file_name)
         self._obstacles_stream = obstacles_stream
 
+        pylot.utils.set_tf_loglevel(logging.ERROR)
+
         # Only sets memory growth for flagged GPU
         physical_devices = tf.config.experimental.list_physical_devices('GPU')
         tf.config.experimental.set_visible_devices(
