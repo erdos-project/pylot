@@ -15,6 +15,7 @@ from pylot.perception.detection.lane import Lane
 
 import tensorflow as tf
 
+tf.compat.v1.disable_eager_execution()
 
 class LanenetDetectionOperator(erdos.Operator):
     """Detecs driving lanes using a camera.
