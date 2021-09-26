@@ -15,7 +15,6 @@ from pylot.perception.detection.lane import Lane
 
 import tensorflow as tf
 
-tf.compat.v1.disable_eager_execution()
 
 class LanenetDetectionOperator(erdos.Operator):
     """Detecs driving lanes using a camera.
@@ -37,6 +36,7 @@ class LanenetDetectionOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
+        tf.compat.v1.disable_eager_execution()
         pylot.utils.set_tf_loglevel(logging.ERROR)
         self._input_tensor = tf.compat.v1.placeholder(dtype=tf.float32,
                                                       shape=[1, 256, 512, 3],
