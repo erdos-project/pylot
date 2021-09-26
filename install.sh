@@ -23,14 +23,14 @@ mkdir -p dependencies/models
 ###### Download CARLA-trained object detection models ######
 echo "[x] Downloading the obstacle detection models..."
 cd $PYLOT_HOME/dependencies/models
-~/.local/bin/gdown https://drive.google.com/uc?id=1KL4jD1TNlWLz4199wzAAw-olquBCOGXe
+~/.local/bin/gdown https://drive.google.com/uc?id=1aT0q-HCz3KutvNGcc0Tleh88nK05unSe
 unzip obstacle_detection.zip ; rm obstacle_detection.zip
 
 ###### Download the traffic light model ######
 echo "[x] Downloading the traffic light detection models..."
 cd $PYLOT_HOME/dependencies/models
 mkdir -p traffic_light_detection/faster-rcnn ; cd traffic_light_detection/faster-rcnn
-~/.local/bin/gdown https://drive.google.com/uc?id=1LVLb_0R7LwM_pSY4dw7e2_06LO0tGtl-
+~/.local/bin/gdown https://drive.google.com/uc?id=1MbTIkh4KJubJN66-SurH1x725D9S-w50
 
 ###### Download the Lanenet lane detection model ######
 echo "[x] Downloading the lane detection models..."
