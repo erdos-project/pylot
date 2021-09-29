@@ -48,15 +48,16 @@ RUN mkdir -p /home/erdos/workspace
 RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/erdos.git && cd erdos && python3 python/setup.py install --user
 
 # Set up Pylot.
-RUN sudo apt-get install -y libcudnn8 cuda-toolkit-11-4 ssh libqt5core5a libeigen3-dev cmake qtbase5-dev libpng16-16 libtiff5 python3-tk
+RUN sudo apt-get install -y libcudnn8 cuda-toolkit-11-4 ssh libqt5core5a libeigen3-dev cmake qtbase5-dev libpng16-16 libtiff5 python3-tk python3-pygame
 # Get the Pylot directory.
 RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/pylot.git
 WORKDIR /home/erdos/workspace/pylot/
 ENV PYLOT_HOME /home/erdos/workspace/pylot/
+# Install all the Python dependencies.
+RUN cd /home/erdos/workspace/pylot/ && python3 -m pip install -e ./
 # Get the Pylot models and code dependencies.
 RUN cd /home/erdos/workspace/pylot/ && ./install.sh
 ENV CARLA_HOME /home/erdos/workspace/pylot/dependencies/CARLA_0.9.10.1
-RUN cd /home/erdos/workspace/pylot/ && python3 -m pip install -e ./
 # Clone scenario_runner.
 RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/scenario_runner.git
 # Install scenario_runner's dependencies.
