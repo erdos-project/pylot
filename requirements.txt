@@ -21,7 +21,7 @@ torchvision==0.5.0
 Cython
 filterpy==1.4.1
 imgaug==0.2.8
-matplotlib==2.2.4
+matplotlib==3.4.3
 nonechucks==0.3.1
 nuscenes-devkit
 progress

@@ -13,6 +13,11 @@ sudo apt-get install -y git wget cmake python3-pip unzip clang libpng-dev libgeo
 # opencv requires.
 sudo apt-get install -y python3-opencv
 python3 -m pip install --user gdown
+# Install Pygame if available.
+PYGAME_PKG=`apt-cache search python3-pygame`
+if [ -n $PYGAME_PKG ] ; then
+    sudo apt-get install python3-pygame
+fi
 
 ###############################################################################
 # Get models & code bases we depend on
