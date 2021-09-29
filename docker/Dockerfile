@@ -1,4 +1,4 @@
-FROM nvidia/cudagl:10.2-devel-ubuntu18.04
+FROM nvidia/cudagl:11.4-devel-ubuntu20.04
 MAINTAINER Sukrit Kalra (sukrit.kalra@berkeley.edu)
 
 # Set up a erdos user first.
@@ -34,19 +34,21 @@ RUN sudo apt-get -y --fix-missing update
 ENV DEBIAN_FRONTEND=noninteractive
 RUN sudo DEBIAN_FRONTEND=noninteractive sudo DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata
 
-# Get the erdos directory.
-RUN sudo apt-get -y update
-RUN sudo apt-get -y install git curl clang python3 python3-pip
+# Get the ERDOS package dependencies.
+RUN sudo apt-get -y install apt-utils git curl clang python-is-python3 python3-pip
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install setuptools setuptools-rust numpy==1.19.5
+
+# Setup Rust and install ERDOS.
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/home/erdos/.cargo/bin:${PATH}"
+RUN echo "export PATH=/home/erdos/.cargo/bin/:${PATH}" >> ~/.bashrc
 RUN rustup default nightly
 RUN mkdir -p /home/erdos/workspace
 RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/erdos.git && cd erdos && python3 python/setup.py install --user
 
 # Set up Pylot.
-RUN sudo apt-get install -y libcudnn7 cuda-toolkit-10-0 ssh libqt5core5a libeigen3-dev cmake qtbase5-dev libpng16-16 libtiff5 python3-tk
+RUN sudo apt-get install -y libcudnn8 cuda-toolkit-11-4 ssh libqt5core5a libeigen3-dev cmake qtbase5-dev libpng16-16 libtiff5 python3-tk
 # Get the Pylot directory.
 RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/pylot.git
 WORKDIR /home/erdos/workspace/pylot/
