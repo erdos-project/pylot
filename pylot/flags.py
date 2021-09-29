@@ -278,7 +278,7 @@ flags.register_multi_flags_validator(
 flags.register_multi_flags_validator(
     ['visualize_prediction', 'execution_mode'],
     lambda flags_dict: ((not flags_dict['visualize_prediction']) or flags_dict[
-        'execution_mode'] == 'simulator'),
+        'execution_mode'] == 'simulation'),
     message='--visualize_prediction can only be enabled when running atop the'
     ' simulator')
 

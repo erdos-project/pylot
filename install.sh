@@ -13,88 +13,22 @@ sudo apt-get install -y git wget cmake python3-pip unzip clang libpng-dev libgeo
 # opencv requires.
 sudo apt-get install -y python3-opencv
 python3 -m pip install --user gdown
+# Install Pygame if available.
+PYGAME_PKG=`apt-cache search python3-pygame`
+if [ -n "$PYGAME_PKG" ] ; then
+    sudo apt-get install python3-pygame
+fi
 
 ###############################################################################
 # Get models & code bases we depend on
 ###############################################################################
 cd $PYLOT_HOME/dependencies/
-mkdir -p dependencies/models
 
-###### Download CARLA-trained object detection models ######
-echo "[x] Downloading the obstacle detection models..."
-cd $PYLOT_HOME/dependencies/models
-~/.local/bin/gdown https://drive.google.com/uc?id=1aT0q-HCz3KutvNGcc0Tleh88nK05unSe
-unzip obstacle_detection.zip ; rm obstacle_detection.zip
-
-###### Download the traffic light model ######
-echo "[x] Downloading the traffic light detection models..."
-cd $PYLOT_HOME/dependencies/models
-mkdir -p traffic_light_detection/faster-rcnn ; cd traffic_light_detection/faster-rcnn
-~/.local/bin/gdown https://drive.google.com/uc?id=1MbTIkh4KJubJN66-SurH1x725D9S-w50
-
-###### Download the Lanenet lane detection model ######
-echo "[x] Downloading the lane detection models..."
-cd $PYLOT_HOME/dependencies/models
-mkdir -p lane_detection ; cd lane_detection/
-~/.local/bin/gdown https://drive.google.com/uc?id=1yILceTgUr1MTZ7Q2wanvQ0r8RbBf5ILD
-unzip lanenet.zip ; rm lanenet.zip
-
-###### Download the DRN segmentation cityscapes models ######
-echo "[x] Downloading the segmentation models..."
-cd $PYLOT_HOME/dependencies/models
-mkdir -p segmentation/drn ; cd segmentation/drn
-~/.local/bin/gdown https://drive.google.com/uc?id=1ST0WYo-uDS91jKDTaK21RvShWpayiyXN
-
-###### Download the DASiamRPN object tracker models ######
-echo "[x] Downloading the object tracking models..."
-cd $PYLOT_HOME/dependencies/models
-mkdir -p tracking/DASiamRPN ; cd tracking/DASiamRPN
-# SiamRPNVOT.model
-~/.local/bin/gdown https://drive.google.com/uc?id=1G9GtKpF36-AwjyRXVLH_gHvrfVSCZMa7
-# SiamRPNBIG.model
-~/.local/bin/gdown https://drive.google.com/uc?id=1_bIGtHYdAoTMS-hqOPE1j3KU-ON15cVV
-# SiamRPNOTB.model
-~/.local/bin/gdown https://drive.google.com/uc?id=18-LyMHVLhcx6qBWpUJEcPFoay1tSqURI
-
-###### Download DeepSort models ######
-# Download the real-world model.
-cd $PYLOT_HOME/dependencies/models
-mkdir -p tracking/deep-sort ; cd tracking/deep-sort
-~/.local/bin/gdown https://drive.google.com/uc?id=1bB66hP9voDXuoBoaCcKYY7a8IYzMMs4P
-cd ../
-# Download the CARLA model.
-mkdir deep-sort-carla ; cd deep-sort-carla
-~/.local/bin/gdown https://drive.google.com/uc?id=14JLC_eo_Xpf2KbWffC96qtSAl2sXLyIl
-
-###### Download CenterTrack models ######
-cd $PYLOT_HOME/dependencies/models
-mkdir -p tracking/center_track ; cd tracking/center_track
-# MOT model
-~/.local/bin/gdown https://drive.google.com/uc?id=1h_8Ts11rf0GQ4_n6FgmCeBuFcWrRjJfa
-# KITTI model
-~/.local/bin/gdown https://drive.google.com/uc?id=1kBX4AgQj7R7HvgMdbgBcwvIac-IFp95h
-# nuScenes
-~/.local/bin/gdown https://drive.google.com/uc?id=1e8zR1m1QMJne-Tjp-2iY_o81hn2CiQRt
-# COCO model
-~/.local/bin/gdown https://drive.google.com/uc?id=1tJCEJmdtYIh8VuN8CClGNws3YO7QGd40
-
-###### Download QDTrack models ######
-cd $PYLOT_HOME/dependencies/models
-mkdir -p tracking/qd_track ; cd tracking/qd_track
-~/.local/bin/gdown https://drive.google.com/uc?id=1YNAQgd8rMqqEG-fRj3VWlO4G5kdwJbxz
-
-##### Download AnyNet depth estimation models #####
-echo "[x] Downloading the depth estimation models..."
-cd $PYLOT_HOME/dependencies/models
-mkdir -p depth_estimation/AnyNet ; cd depth_estimation/AnyNet
-~/.local/bin/gdown https://drive.google.com/uc?id=18Vi68rQO-vcBn3882vkumIWtGggZQDoU
-unzip checkpoint.zip ; rm checkpoint.zip
-
-###### Download the R2P2 prediction model ######
-echo "[x] Downloading the prediction models..."
-cd $PYLOT_HOME/dependencies/models
-mkdir -p prediction/r2p2 ; cd prediction/r2p2
-~/.local/bin/gdown https://drive.google.com/uc?id=1Ky_6daMnovoYxlQ8iTTGwJj_4bKd8EKn
+###### Download the model weights ######
+echo "[x] Downloading all model weights..."
+cd $PYLOT_HOME/dependencies/
+~/.local/bin/gdown https://drive.google.com/uc?id=1rQKFDxGDFi3rBLsMrJzb7oGZvvtwgyiL
+unzip models.zip ; rm models.zip
 
 #################### Download the code bases ####################
 echo "[x] Compiling the planners..."
@@ -130,12 +64,12 @@ cd $PYLOT_HOME/dependencies/
 git clone https://github.com/ICGog/nanonets_object_tracking.git
 sudo apt-get install python3-tk
 git clone https://github.com/ICGog/sort.git
-
 ###### Download the DaSiamRPN code ######
 cd $PYLOT_HOME/dependencies/
 git clone https://github.com/ICGog/DaSiamRPN.git
 
 ###### Install CenterTrack ######
+echo "[x] Installing the CenterTrack object tracking code..."
 cd $PYLOT_HOME/dependencies/
 git clone https://github.com/ICGog/CenterTrack
 cd CenterTrack/src/lib/model/networks/
@@ -148,11 +82,9 @@ python3 setup.py build develop --user
 ###### Install QDTrack ######
 cd $PYLOT_HOME/dependencies/
 git clone https://github.com/mageofboy/qdtrack.git
-git clone https://github.com/open-mmlab/mmdetection.git
-cd mmdetection
-python3 setup.py develop #need to add mmcv
 cd $PYLOT_HOME/dependencies/qdtrack
-python3 setup.py develop
+python3 -m pip install mmcv==1.3.10 mmdet==2.14.0
+python3 -m pip install -e ./
 
 ##### Download the Lanenet code #####
 echo "[x] Cloning the lanenet lane detection code..."

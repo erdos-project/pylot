@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="erdos-pylot",
-    version="0.3.2",
+    version="0.3.3",
     author="Pylot Team",
     description=("A platform for developing autonomous vehicles."),
     long_description=open("README.md").read(),
@@ -16,7 +16,7 @@ setup(
         "erdos>=0.3.1",
         "lapsolver",
         "motmetrics",
-        "numpy<1.20",  # Update to newer numpy version once we switch to tf2
+        "numpy<1.20",  # Update once TF supports a newer version.
         "open3d==0.13.0",
         "opencv-python>=4.1.0.25",
         "opencv-contrib-python>=4.1.0.25",
@@ -24,22 +24,22 @@ setup(
         "pycocotools",
         "pygame==1.9.6",
         "pytest",
-        "scikit-image<0.15",
-        "scipy==1.2.2",
+        "scikit-image==0.18.3",
+        "scipy==1.7.1",
         "shapely==1.6.4",
-        "tensorflow-gpu==2.0.0",
+        "tensorflow-gpu==2.5.1",
         "torch==1.4.0",
         "torchvision==0.5.0",
         ##### Tracking dependencies #####
         "Cython",
         "filterpy==1.4.1",
         "imgaug==0.2.8",
-        "matplotlib==2.2.4",
+        "matplotlib==3.4.3",
         "nonechucks==0.3.1",
         "nuscenes-devkit",
         "progress",
         "pyquaternion",
-        "scikit-learn==0.22.2",
+        "scikit-learn==1.0",
         ##### CARLA dependencies #####
         "networkx==2.2",
     ],
