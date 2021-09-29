@@ -42,7 +42,7 @@ RUN python3 -m pip install setuptools setuptools-rust numpy==1.19.5
 # Setup Rust and install ERDOS.
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/home/erdos/.cargo/bin:${PATH}"
-RUN echo "export PATH=/home/erdos/.cargo/bin/:${PATH}" >> ~/.bashrc
+RUN echo "export PATH=/home/erdos/.cargo/bin:${PATH}" >> ~/.bashrc
 RUN rustup default nightly
 RUN mkdir -p /home/erdos/workspace
 RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/erdos.git && cd erdos && python3 python/setup.py install --user
