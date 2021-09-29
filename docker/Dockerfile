@@ -1,4 +1,4 @@
-FROM nvidia/cudagl:11.4-devel-ubuntu20.04
+FROM nvidia/cudagl:11.4.2-devel-ubuntu20.04
 MAINTAINER Sukrit Kalra (sukrit.kalra@berkeley.edu)
 
 # Set up a erdos user first.
@@ -53,11 +53,10 @@ RUN sudo apt-get install -y libcudnn8 cuda-toolkit-11-4 ssh libqt5core5a libeige
 RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/pylot.git
 WORKDIR /home/erdos/workspace/pylot/
 ENV PYLOT_HOME /home/erdos/workspace/pylot/
-# Install all the Python dependencies.
-RUN cd /home/erdos/workspace/pylot/ && python3 -m pip install -e ./
 # Get the Pylot models and code dependencies.
 RUN cd /home/erdos/workspace/pylot/ && ./install.sh
 ENV CARLA_HOME /home/erdos/workspace/pylot/dependencies/CARLA_0.9.10.1
+RUN cd /home/erdos/workspace/pylot/ && python3 -m pip install -e ./
 # Clone scenario_runner.
 RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/scenario_runner.git
 # Install scenario_runner's dependencies.
