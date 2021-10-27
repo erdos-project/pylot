@@ -180,9 +180,9 @@ class PointCloud(object):
         import open3d as o3d
         file_name = os.path.join(data_path,
                                  '{}-{}.ply'.format(file_base, timestamp))
-        pcd = o3d.PointCloud()
-        pcd.points = o3d.Vector3dVector(self.points)
-        o3d.write_point_cloud(file_name, pcd)
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(self.points)
+        o3d.io.write_point_cloud(file_name, pcd)
 
     def visualize(self, pygame_display, timestamp=None):
         """Visualizes the point cloud on a pygame display."""

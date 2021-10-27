@@ -36,27 +36,29 @@ class LanenetDetectionOperator(erdos.Operator):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
+        tf.compat.v1.disable_eager_execution()
         pylot.utils.set_tf_loglevel(logging.ERROR)
-        self._input_tensor = tf.placeholder(dtype=tf.float32,
-                                            shape=[1, 256, 512, 3],
-                                            name='input_tensor')
+        self._input_tensor = tf.compat.v1.placeholder(dtype=tf.float32,
+                                                      shape=[1, 256, 512, 3],
+                                                      name='input_tensor')
         net = lanenet.LaneNet(phase='test')
         self._binary_seg_ret, self._instance_seg_ret = net.inference(
             input_tensor=self._input_tensor, name='LaneNet')
-        self._gpu_options = tf.GPUOptions(
+        self._gpu_options = tf.compat.v1.GPUOptions(
             allow_growth=True,
             visible_device_list=str(self._flags.lane_detection_gpu_index),
             per_process_gpu_memory_fraction=flags.
             lane_detection_gpu_memory_fraction,
             allocator_type='BFC')
-        self._tf_session = tf.Session(config=tf.ConfigProto(
-            gpu_options=self._gpu_options, allow_soft_placement=True))
-        with tf.variable_scope(name_or_scope='moving_avg'):
+        self._tf_session = tf.compat.v1.Session(
+            config=tf.compat.v1.ConfigProto(gpu_options=self._gpu_options,
+                                            allow_soft_placement=True))
+        with tf.compat.v1.variable_scope(name_or_scope='moving_avg'):
             variable_averages = tf.train.ExponentialMovingAverage(0.9995)
             variables_to_restore = variable_averages.variables_to_restore()
 
         self._postprocessor = lanenet_postprocess.LaneNetPostProcessor()
-        saver = tf.train.Saver(variables_to_restore)
+        saver = tf.compat.v1.train.Saver(variables_to_restore)
         with self._tf_session.as_default():
             saver.restore(sess=self._tf_session,
                           save_path=flags.lanenet_detection_model_path)

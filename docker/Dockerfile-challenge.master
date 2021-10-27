@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
+FROM nvidia/cudagl:11.4.2-devel-ubuntu20.04
 
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
@@ -13,7 +13,7 @@ ENV LC_ALL en_US.UTF-8
 RUN apt-get -y update
 ENV DEBIAN_FRONTEND=noninteractive
 RUN DEBIAN_FRONTEND=noninteractive ; apt-get install -y tzdata
-
+ 
 RUN apt-get update && apt-get install -y --no-install-recommends \
          build-essential \
          cmake \
@@ -22,8 +22,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
          vim \
          ca-certificates \
          libjpeg-dev \
-	     libpng16-16 \
-	     libtiff5 \
+         libpng16-16 \
+         libtiff5 \
          libpng-dev \
          python-dev \
          python3 \
@@ -76,14 +76,14 @@ RUN chmod +x /workspace/leaderboard/scripts/run_evaluation.sh
 ########################################################################################################################
 ########################################################################################################################
 
-RUN apt-get update && apt-get install -y clang libgeos-dev python-opencv libqt5core5a libeigen3-dev cmake qtbase5-dev python3-tk
+RUN apt-get update && apt-get install -y clang libgeos-dev python-opencv libqt5core5a libeigen3-dev cmake qtbase5-dev python3-tk libcudnn8 cuda-toolkit-11-4 ssh python3-pygame 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin/:${PATH}"
 RUN rustup default nightly
 RUN packages='wheel setuptools setuptools-rust fire' && pip install ${packages}
 RUN git clone https://github.com/erdos-project/erdos.git && cd erdos && python3 python/setup.py install --user
 
-RUN packages='absl-py cvxpy gdown lapsolver matplotlib==2.2.4 motmetrics numpy<1.17 open3d-python==0.5.0.0 opencv-python>=4.1.0.25 opencv-contrib-python>=4.1.0.25 pillow>=6.2.2 pytest scikit-image<0.15 scipy==1.2.2 shapely==1.6.4 tensorflow-gpu==1.15.4 torch==1.4.0 torchvision==0.5.0 filterpy==1.4.1 scikit-learn==0.22.2 imgaug==0.2.8 nonechucks==0.3.1 Cython progress pyquaternion nuscenes-devkit' \
+RUN packages='absl-py cvxpy gdown lapsolver matplotlib==3.4.3 motmetrics numpy==1.19.5 open3d==0.13.0 opencv-python>=4.1.0.25 opencv-contrib-python>=4.1.0.25 pillow>=6.2.2 pytest scikit-image==0.18.3 scipy==1.7.1 shapely==1.6.4 tensorflow-gpu==2.5.1 torch==1.4.0 torchvision==0.5.0 filterpy==1.4.1 scikit-learn==1.0 imgaug==0.2.8 nonechucks==0.3.1 Cython progress pyquaternion nuscenes-devkit' \
 	&& pip install ${packages}
 ENV PYTHONPATH ${TEAM_CODE_ROOT}/:${TEAM_CODE_ROOT}/dependencies/:${PYTHONPATH}
 ENV TEAM_AGENT ${TEAM_CODE_ROOT}/pylot/simulation/challenge/ERDOSAgent.py

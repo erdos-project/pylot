@@ -39,7 +39,7 @@ Finally, start Pylot in the container:
 
 ```console
 nvidia-docker exec -i -t pylot /bin/bash
-cd workspace/pylot/
+cd ~/workspace/pylot/
 python3 pylot.py --flagfile=configs/detection.conf
 ```
 
