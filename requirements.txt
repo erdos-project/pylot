@@ -14,7 +14,7 @@ pytest
 scikit-image==0.18.3
 scipy==1.7.1
 shapely==1.6.4
-tensorflow-gpu==2.5.1
+tensorflow-gpu==2.5.2
 torch==1.4.0
 torchvision==0.5.0
 ##### Tracking dependencies #####
