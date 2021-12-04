@@ -5,13 +5,6 @@ import cv2
 import numpy as np
 
 from pylot.utils import Location, Rotation, Transform, Vector3D
-<<<<<<< HEAD
-<<<<<<< HEAD
-import cv2
-=======
->>>>>>> fdba02482f7be134a106479c96ad43273f4235d3
-=======
->>>>>>> 0b06fea54d5bebebf873df16f5e2c175248511ce
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 
