@@ -192,10 +192,10 @@ def add_traffic_light_detection(tl_transform,
                                                  FLAGS.camera_image_width,
                                                  FLAGS.camera_image_height,
                                                  tl_transform, 45)
-        (tl_depth_camera_stream, _,
-         _) = pylot.operator_creator.add_camera_driver(tl_depth_camera_setup,
-                                                       vehicle_id_stream,
-                                                       release_sensor_stream)
+        (tl_depth_camera_stream, _) = \
+            pylot.operator_creator.add_camera_driver(tl_depth_camera_setup,
+                                                     vehicle_id_stream,
+                                                     release_sensor_stream)
 
         segmented_tl_camera_setup = SegmentedCameraSetup(
             'traffic_light_segmented_camera', FLAGS.camera_image_width,
