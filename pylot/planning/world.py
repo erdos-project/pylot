@@ -152,7 +152,7 @@ class World(object):
         #     lane.draw_on_frame(frame, self.ego_transform.inverse_transform())
         if self._lanes:
             for lane in self._lanes:
-                lane.draw_on_frame(frame)
+                lane.draw_on_frame(frame, self.ego_transform.inverse_transform())
 
     def stop_person(self, obstacle, wp_vector) -> float:
         """Computes a stopping factor for ego vehicle given a person obstacle.
