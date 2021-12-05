@@ -16,6 +16,7 @@ NUM_FUTURE_TRANSFORMS = 10
 
 class World(object):
     """A representation of the world that is used by the planners."""
+
     def __init__(self, flags, logger):
         self._flags = flags
         self._logger = logger
@@ -152,7 +153,8 @@ class World(object):
         #     lane.draw_on_frame(frame, self.ego_transform.inverse_transform())
         if self._lanes:
             for lane in self._lanes:
-                lane.draw_on_frame(frame, self.ego_transform.inverse_transform())
+                lane.draw_on_frame(
+                    frame, self.ego_transform.inverse_transform())
 
     def stop_person(self, obstacle, wp_vector) -> float:
         """Computes a stopping factor for ego vehicle given a person obstacle.
