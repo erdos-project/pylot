@@ -57,14 +57,14 @@ class FrameMessage(erdos.Message):
         if not isinstance(frame, pylot.perception.camera_frame.CameraFrame):
             raise ValueError(
                 'frame should be of type perception.camera_frame.CameraFrame')
-        self.frame = frame
+        self.data = frame
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
         return 'FrameMessage(timestamp: {}, frame: {})'.format(
-            self.timestamp, self.frame)
+            self.timestamp, self.data)
 
 
 class DepthFrameMessage(erdos.Message):
@@ -379,3 +379,4 @@ class SpeedSignsMessage(erdos.Message):
     def __str__(self):
         return 'SpeedSignsMessage(timestamp: {}, speed signs: {})'.format(
             self.timestamp, self.speed_signs)
+

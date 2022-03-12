@@ -39,10 +39,10 @@ class DetectionOperator(TwoInOneOut):
         # Only sets memory growth for flagged GPU
         physical_devices = tf.config.experimental.list_physical_devices('GPU')
         tf.config.experimental.set_visible_devices(
-            [physical_devices[self._flags.obstacle_detection_gpu_index]],
+            [physical_devices[0]],
             'GPU')
         tf.config.experimental.set_memory_growth(
-            physical_devices[self._flags.obstacle_detection_gpu_index], True)
+            physical_devices[0], True)
 
         # Load the model from the saved_model format file.
         self._model = tf.saved_model.load(model_path)
@@ -67,8 +67,7 @@ class DetectionOperator(TwoInOneOut):
         obstacles = []
         for i in range(0, num_detections):
             if res_classes[i] in self._coco_labels:
-                if (res_scores[i] >=
-                        self._flags.obstacle_detection_min_score_threshold):
+                if (res_scores[i] >= self._flags.obstacle_detection_min_score_threshold):
                     if (self._coco_labels[res_classes[i]] in OBSTACLE_LABELS):
                         obstacles.append(
                             Obstacle(BoundingBox2D(
