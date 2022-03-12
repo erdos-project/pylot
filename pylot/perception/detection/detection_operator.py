@@ -59,31 +59,13 @@ class DetectionOperator(TwoInOneOut):
         self.__run_model(np.zeros((108, 192, 3), dtype='uint8'))
 
     def on_left_data(self, context: TwoInOneOutContext, data: Any):
-        self.on_msg_camera_stream(data, context.write_stream, context.timestamp)
-
-    def on_right_data(self, context: TwoInOneOutContext, data: Any):
-        self.on_time_to_decision_update(data)
-
-    def on_msg_camera_stream(self, msg: erdos.Message,
-                             obstacles_stream: erdos.WriteStream,
-                             timestamp: erdos.Timestamp):
-        """Invoked whenever a frame message is received on the stream.
-
-        Args:
-            msg (:py:class:`~pylot.perception.messages.FrameMessage`): Message
-                received.
-            obstacles_stream (:py:class:`erdos.WriteStream`): Stream on which
-                the operator sends
-                :py:class:`~pylot.perception.messages.ObstaclesMessage`
-                messages.
-            timestamp (:py:class:`erdos.Timestamp`): Timestamp associated with message recieved
-        """
+        """Invoked whenever a camera message is received on the stream."""
         self._logger.debug('@{} received message'.format(self.config.name))
         start_time = time.time()
 
         # The models expect BGR images.
-        assert msg.encoding == 'BGR', 'Expects BGR frames'
-        num_detections, res_boxes, res_scores, res_classes = self.__run_model(msg.frame)
+        assert data.encoding == 'BGR', 'Expects BGR frames'
+        num_detections, res_boxes, res_scores, res_classes = self.__run_model(data.frame)
         obstacles = []
         for i in range(0, num_detections):
             if res_classes[i] in self._coco_labels:
@@ -92,36 +74,38 @@ class DetectionOperator(TwoInOneOut):
                         obstacles.append(
                             Obstacle(BoundingBox2D(
                                 int(res_boxes[i][1] *
-                                    msg.camera_setup.width),
+                                    data.camera_setup.width),
                                 int(res_boxes[i][3] *
-                                    msg.camera_setup.width),
+                                    data.camera_setup.width),
                                 int(res_boxes[i][0] *
-                                    msg.camera_setup.height),
+                                    data.camera_setup.height),
                                 int(res_boxes[i][2] *
-                                    msg.camera_setup.height)),
+                                    data.camera_setup.height)),
                                      res_scores[i],
                                      self._coco_labels[res_classes[i]],
                                      id=self._unique_id))
                         self._unique_id += 1
                     else:
-                        self._logger.warning('@{} Ignoring non essential detection {}'.format(timestamp, self._coco_labels[res_classes[i]]))
+                        self._logger.warning('@{} Ignoring non essential detection {}'.format(context.timestamp, self._coco_labels[res_classes[i]]))
             else:
-                self._logger.warning('@{} Filtering unknown class: {}'.format(timestamp, res_classes[i]))
+                self._logger.warning('@{} Filtering unknown class: {}'.format(context.timestamp, res_classes[i]))
 
-        print('@{}: {}'.format(timestamp, obstacles))
+        # print('@{}: {}'.format(context.timestamp, obstacles))
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         # Send out obstacles.
-        obstacles_stream.send(ObstaclesMessage(timestamp, obstacles, runtime))   # AttributeError: 'CameraFrame' object has no attribute 'timestamp'
-        obstacles_stream.send(erdos.WatermarkMessage(timestamp))
+        context.write_stream.send(ObstaclesMessage(context.timestamp, obstacles, runtime))   # AttributeError: 'CameraFrame' object has no attribute 'timestamp'
+        context.write_stream.send(erdos.WatermarkMessage(context.timestamp))
 
         if self._flags.log_detector_output:
-            msg.annotate_with_bounding_boxes(timestamp, obstacles,
+            data.annotate_with_bounding_boxes(context.timestamp, obstacles,
                                                     None, self._bbox_colors)
-            msg.save(timestamp.coordinates[0], self._flags.data_path,
+            data.save(context.timestamp.coordinates[0], self._flags.data_path,
                     'detector-{}'.format(self.config.name))
-        # msg.save(timestamp=timestamp, data_path='./', file_base='detection')
+
+    def on_right_data(self, context: TwoInOneOutContext, data: Any):
+        self.on_time_to_decision_update(data)
 
     def __run_model(self, image_np):
         # Expand dimensions since the model expects images to have

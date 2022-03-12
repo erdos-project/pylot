@@ -107,12 +107,11 @@ def main(args):
             with _lock:
                 msg = None
                 if rgb_camera_setup.camera_type == 'sensor.camera.rgb':
-                    msg = FrameMessage(
-                        timestamp,
-                        CameraFrame.from_simulator_frame(
-                            simulator_image, rgb_camera_setup))
+                    msg = erdos.Message(timestamp=timestamp,
+                                        data=CameraFrame.from_simulator_frame(
+                                        simulator_image, rgb_camera_setup))
                     camera_ingest_stream.send(msg)
-                    # ttd_ingest_stream.send(erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))  Panics
+                    # ttd_ingest_stream.send(erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))  Panics on internal msg call
 
         # Register camera frame callback
         camera.listen(process_images)
