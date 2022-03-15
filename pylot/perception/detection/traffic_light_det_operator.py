@@ -26,6 +26,7 @@ class TrafficLightDetOperator(TwoInOneOut):
     Args:
         flags (absl.flags): Object to be used to access absl flags.
     """
+
     def __init__(self, flags):
         # Register a callback on the camera input stream.
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -62,8 +63,7 @@ class TrafficLightDetOperator(TwoInOneOut):
         self._logger.debug('@{}: {} received message'.format(
             context.timestamp, self.config.name))
         assert data.encoding == 'BGR', 'Expects BGR frames'
-        boxes, scores, labels = self.__run_model(
-            data.as_rgb_numpy_array())
+        boxes, scores, labels = self.__run_model(data.as_rgb_numpy_array())
 
         traffic_lights = self.__convert_to_detected_tl(
             boxes, scores, labels, data.camera_setup.height,
@@ -78,10 +78,10 @@ class TrafficLightDetOperator(TwoInOneOut):
 
         if self._flags.log_traffic_light_detector_output:
             data.annotate_with_bounding_boxes(context.timestamp,
-                                                   traffic_lights)
+                                              traffic_lights)
             data.save(context.timestamp.coordinates[0], self._flags.data_path,
-                           'tl-detector-{}'.format(self.config.name))
-    
+                      'tl-detector-{}'.format(self.config.name))
+
     def on_right_data(self, context: TwoInOneOutContext, data: Any):
         self._logger.debug('@{}: {} received ttd update {}'.format(
             context.timestamp, self.config.name, data))
