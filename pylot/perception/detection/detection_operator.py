@@ -17,6 +17,7 @@ from pylot.perception.messages import ObstaclesMessage
 
 import tensorflow as tf
 
+
 class DetectionOperator(TwoInOneOut):
     """Detects obstacles using a TensorFlow model.
 
@@ -24,14 +25,10 @@ class DetectionOperator(TwoInOneOut):
     frame.
 
     Args:
-        camera_stream (:py:class:`erdos.ReadStream`): The stream on which
-            camera frames are received.
-        obstacles_stream (:py:class:`erdos.WriteStream`): Stream on which the
-            operator sends
-            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages.
         model_path(:obj:`str`): Path to the model pb file.
         flags (absl.flags): Object to be used to access absl flags.
     """
+
     def __init__(self, model_path: str, flags):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -41,11 +38,9 @@ class DetectionOperator(TwoInOneOut):
 
         # Only sets memory growth for flagged GPU
         physical_devices = tf.config.experimental.list_physical_devices('GPU')
-        tf.config.experimental.set_visible_devices(
-            [physical_devices[0]],
-            'GPU')
-        tf.config.experimental.set_memory_growth(
-            physical_devices[0], True)
+        tf.config.experimental.set_visible_devices([physical_devices[0]],
+                                                   'GPU')
+        tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
         # Load the model from the saved_model format file.
         self._model = tf.saved_model.load(model_path)
@@ -65,18 +60,18 @@ class DetectionOperator(TwoInOneOut):
 
         # The models expect BGR images.
         assert data.encoding == 'BGR', 'Expects BGR frames'
-        num_detections, res_boxes, res_scores, res_classes = self.__run_model(data.frame)
+        num_detections, res_boxes, res_scores, res_classes = self.__run_model(
+            data.frame)
         obstacles = []
         for i in range(0, num_detections):
             if res_classes[i] in self._coco_labels:
-                if (res_scores[i] >= self._flags.obstacle_detection_min_score_threshold):
+                if (res_scores[i] >=
+                        self._flags.obstacle_detection_min_score_threshold):
                     if (self._coco_labels[res_classes[i]] in OBSTACLE_LABELS):
                         obstacles.append(
                             Obstacle(BoundingBox2D(
-                                int(res_boxes[i][1] *
-                                    data.camera_setup.width),
-                                int(res_boxes[i][3] *
-                                    data.camera_setup.width),
+                                int(res_boxes[i][1] * data.camera_setup.width),
+                                int(res_boxes[i][3] * data.camera_setup.width),
                                 int(res_boxes[i][0] *
                                     data.camera_setup.height),
                                 int(res_boxes[i][2] *
@@ -86,26 +81,30 @@ class DetectionOperator(TwoInOneOut):
                                      id=self._unique_id))
                         self._unique_id += 1
                     else:
-                        self._logger.warning('@{} Ignoring non essential detection {}'.format(context.timestamp, self._coco_labels[res_classes[i]]))
+                        self._logger.warning(
+                            '@{} Ignoring non essential detection {}'.format(
+                                context.timestamp,
+                                self._coco_labels[res_classes[i]]))
             else:
-                self._logger.warning('@{} Filtering unknown class: {}'.format(context.timestamp, res_classes[i]))
-
-        # print('@{}: {}'.format(context.timestamp, obstacles))
+                self._logger.warning('@{} Filtering unknown class: {}'.format(
+                    context.timestamp, res_classes[i]))
 
         # Get runtime in ms.
         runtime = (time.time() - start_time) * 1000
         # Send out obstacles.
-        context.write_stream.send(ObstaclesMessage(context.timestamp, obstacles, runtime))   # AttributeError: 'CameraFrame' object has no attribute 'timestamp'
+        context.write_stream.send(
+            ObstaclesMessage(context.timestamp, obstacles, runtime))
         context.write_stream.send(erdos.WatermarkMessage(context.timestamp))
 
         if self._flags.log_detector_output:
             data.annotate_with_bounding_boxes(context.timestamp, obstacles,
-                                                    None, self._bbox_colors)
+                                              None, self._bbox_colors)
             data.save(context.timestamp.coordinates[0], self._flags.data_path,
-                    'detector-{}'.format(self.config.name))
+                      'detector-{}'.format(self.config.name))
 
     def on_right_data(self, context: TwoInOneOutContext, data: Any):
-        self.on_time_to_decision_update(data)
+        self._logger.debug('@{}: {} received ttd update {}'.format(
+            context.timestamp, self.config.name, data))
 
     def __run_model(self, image_np):
         # Expand dimensions since the model expects images to have
@@ -126,14 +125,9 @@ class DetectionOperator(TwoInOneOut):
         res_scores = scores[0][:num_detections]
         return num_detections, res_boxes, res_scores, res_classes
 
-    def on_time_to_decision_update(self, msg: erdos.Message):
-        self._logger.debug('@{}: {} received ttd update {}'.format(
-            msg.timestamp, self.config.name, msg))
-
     def destroy(self):
         self._logger.warn('destroying {}'.format(self.config.name))
         # Sending top watermark because the operator is not flowing
         # watermarks.
         # self._obstacles_stream.send(
         #     erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
-
