@@ -81,8 +81,8 @@ class CarlaCameraDriverOperator(erdos.Operator):
             self._logger.debug("@{}: {} releasing sensor data".format(
                 timestamp, self.config.name))
             watermark_msg = erdos.WatermarkMessage(timestamp)
-            self._camera_stream.send_pickled(timestamp,
-                                             self._pickled_messages[timestamp])
+            msg = pickle.loads(self._pickled_messages[timestamp])
+            self._camera_stream.send(msg)
             # Note: The operator is set not to automatically propagate
             # watermark messages received on input streams. Thus, we can
             # issue watermarks only after the simulator callback is invoked.
