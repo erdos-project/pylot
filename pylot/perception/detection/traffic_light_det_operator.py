@@ -7,6 +7,7 @@ from erdos.operator import TwoInOneOut
 from erdos.context import TwoInOneOutContext
 
 import numpy as np
+from pylot.perception.camera_frame import CameraFrame
 
 import pylot.utils
 from pylot.perception.detection.traffic_light import TrafficLight, \
@@ -58,7 +59,7 @@ class TrafficLightDetOperator(TwoInOneOut):
         # Serve some junk image to load up the model.
         self.__run_model(np.zeros((108, 192, 3), dtype='uint8'))
 
-    def on_left_data(self, context: TwoInOneOutContext, data: Any):
+    def on_left_data(self, context: TwoInOneOutContext, data: CameraFrame):
         """Invoked whenever a frame message is received on the stream."""
         self._logger.debug('@{}: {} received message'.format(
             context.timestamp, self.config.name))
@@ -129,5 +130,3 @@ class TrafficLightDetOperator(TwoInOneOut):
 
     def destroy(self):
         self._logger.warn('destroying {}'.format(self.config.name))
-        # self._traffic_lights_stream.send(
-        #     erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
