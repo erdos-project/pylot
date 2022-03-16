@@ -14,6 +14,7 @@ from pylot.perception.detection.obstacle import Obstacle
 from pylot.perception.detection.utils import BoundingBox2D, \
     OBSTACLE_LABELS, load_coco_bbox_colors, load_coco_labels
 from pylot.perception.messages import ObstaclesMessage
+from pylot.perception.camera_frame import CameraFrame
 
 import tensorflow as tf
 
@@ -53,7 +54,7 @@ class DetectionOperator(TwoInOneOut):
         # Serve some junk image to load up the model.
         self.__run_model(np.zeros((108, 192, 3), dtype='uint8'))
 
-    def on_left_data(self, context: TwoInOneOutContext, data: Any):
+    def on_left_data(self, context: TwoInOneOutContext, data: CameraFrame):
         """Invoked whenever a camera message is received on the stream."""
         self._logger.debug('@{} received message'.format(self.config.name))
         start_time = time.time()
@@ -127,7 +128,3 @@ class DetectionOperator(TwoInOneOut):
 
     def destroy(self):
         self._logger.warn('destroying {}'.format(self.config.name))
-        # Sending top watermark because the operator is not flowing
-        # watermarks.
-        # self._obstacles_stream.send(
-        #     erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
