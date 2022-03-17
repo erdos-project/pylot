@@ -25,7 +25,6 @@ import pylot.utils
 import pylot.simulation.utils
 from pylot.perception.camera_frame import CameraFrame
 from pylot.drivers.sensor_setup import RGBCameraSetup
-from pylot.perception.messages import FrameMessage
 
 _lock = threading.Lock()
 
@@ -107,6 +106,7 @@ def main(args):
             with _lock:
                 msg = None
                 if rgb_camera_setup.camera_type == 'sensor.camera.rgb':
+                    # TODO: Remove FrameMessage when redesign port complete
                     msg = erdos.Message(timestamp=timestamp,
                                         data=CameraFrame.from_simulator_frame(
                                         simulator_image, rgb_camera_setup))
