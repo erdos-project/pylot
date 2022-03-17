@@ -29,7 +29,6 @@ class DetectionOperator(TwoInOneOut):
         model_path(:obj:`str`): Path to the model pb file.
         flags (absl.flags): Object to be used to access absl flags.
     """
-
     def __init__(self, model_path: str, flags):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
