@@ -86,8 +86,8 @@ class CarlaCameraDriverOperator(erdos.Operator):
             # watermark messages received on input streams. Thus, we can
             # issue watermarks only after the simulator callback is invoked.
             self._camera_stream.send(watermark_msg)
-            with self._pickle_lock:
-                del self._pickled_messages[timestamp]
+            with self._message_lock:
+                del self._messages[timestamp]
 
     def run(self):
         # Read the vehicle id from the vehicle id stream
