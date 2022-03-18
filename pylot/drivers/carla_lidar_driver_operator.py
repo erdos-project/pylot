@@ -71,7 +71,7 @@ class CarlaLidarDriverOperator(erdos.Operator):
             self._release_data = True
         else:
             watermark_msg = erdos.WatermarkMessage(timestamp)
-            self._camera_stream.send(self._messages[timestamp])
+            self._lidar_stream.send(self._messages[timestamp])
             # Note: The operator is set not to automatically propagate
             # watermark messages received on input streams. Thus, we can
             # issue watermarks only after the simulator callback is invoked.
