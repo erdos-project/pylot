@@ -1,31 +1,21 @@
 import math
 
 import erdos
+from erdos.operator import TwoInOneOut
+from erdos.context import TwoInOneOutContext
 
 from pylot.utils import time_epoch_ms
+from pylot.perception.messages import ObstaclesMessage
 
 
-class BasePerceptionEvalOperator(erdos.Operator):
+class BasePerceptionEvalOperator(TwoInOneOut):
     """Operator that computes accuracy metrics using tracked obstacles.
 
     Args:
-        prediction_stream (:py:class:`erdos.ReadStream`): The stream on
-            which tracked obstacles are received.
-        ground_truth_stream: The stream on which
-            :py:class:`~pylot.perception.messages.ObstaclesMessage` are
-            received from the simulator.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, prediction_stream: erdos.ReadStream,
-                 ground_truth_stream: erdos.ReadStream,
-                 finished_indicator_stream: erdos.WriteStream,
-                 evaluate_timely: bool, matching_policy: str, frame_gap: int,
+    def __init__(self, evaluate_timely: bool, matching_policy: str, frame_gap: int,
                  scoring_module, flags):
-        prediction_stream.add_callback(self.on_prediction)
-        ground_truth_stream.add_callback(self.on_ground_truth)
-        erdos.add_watermark_callback([prediction_stream, ground_truth_stream],
-                                     [finished_indicator_stream],
-                                     self.on_watermark)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._last_notification = None
@@ -59,34 +49,34 @@ class BasePerceptionEvalOperator(erdos.Operator):
         self._csv_logger = erdos.utils.setup_csv_logging(
             self.config.name + '-csv', self.config.csv_log_file_name)
 
-    @staticmethod
-    def connect(prediction_stream: erdos.ReadStream,
-                ground_truth_stream: erdos.ReadStream):
-        """Connects the operator to other streams.
+    def on_left_data(self, context: TwoInOneOutContext, data: erdos.Message):
+        game_time = context.timestamp.coordinates[0]
+        self._predictions.append((game_time, data))
+        if len(self._predictions) > 1:
+            assert game_time >= self._predictions[-2][0], \
+                'Obstacle messages did not arrive in order'
+        # Two metrics: 1) mAP, and 2) timely-mAP
+        if not self._evaluate_timely:
+            # We will compare the obstacles with the ground truth at the same
+            # game time.
+            self._prediction_start_end_times.append((game_time, game_time))
+        else:
+            # Ground obstacles time should be as close as possible to the time
+            # of the obstacles + detector + tracker runtime.
+            ground_truth_time = self.__compute_closest_frame_time(game_time + 0)  # TODO: Fix runtime
+            self._prediction_start_end_times.append(
+                (game_time, ground_truth_time))
 
-        Args:
-            prediction_stream (:py:class:`erdos.ReadStream`): The stream
-                on which obstacle tracks are received from object trackers.
-            ground_truth_stream: The stream on which
-                :py:class:`~pylot.perception.messages.ObstaclesMessage` are
-                received from the simulator.
-        """
-        finished_indicator_stream = erdos.WriteStream()
-        return [finished_indicator_stream]
+    def on_right_data(self, context: TwoInOneOutContext, data: erdos.Message):
+        game_time = context.timestamp.coordinates[0]
+        self._ground_truths.append((game_time, data))
 
-    @erdos.profile_method()
-    def on_watermark(self, timestamp: erdos.Timestamp,
-                     finished_indicator_stream: erdos.WriteStream):
-        """Invoked when all input streams have received a watermark.
-
-        Args:
-            timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
-                the watermark.
-        """
-        if timestamp.is_top:
+    def on_watermark(self, context: TwoInOneOutContext):
+        """Invoked when all input streams have received a watermark."""
+        if context.timestamp.is_top:
             return
-        assert len(timestamp.coordinates) == 1
-        game_time = timestamp.coordinates[0]
+        assert len(context.timestamp.coordinates) == 1
+        game_time = context.timestamp.coordinates[0]
         self.__compute_frame_gap(game_time)
         on_new_prediction = False
         if self._start_time_frontier < len(self._prediction_start_end_times):
@@ -193,30 +183,7 @@ class BasePerceptionEvalOperator(erdos.Operator):
             index += 1
         if index > 0:
             self._ground_truths = self._ground_truths[index:]
-
-    def on_prediction(self, msg: erdos.Message):
-        game_time = msg.timestamp.coordinates[0]
-        self._predictions.append((game_time, msg.obstacles))
-        if len(self._predictions) > 1:
-            assert game_time >= self._predictions[-2][0], \
-                'Obstacle messages did not arrive in order'
-        # Two metrics: 1) mAP, and 2) timely-mAP
-        if not self._evaluate_timely:
-            # We will compare the obstacles with the ground truth at the same
-            # game time.
-            self._prediction_start_end_times.append((game_time, game_time))
-        else:
-            # Ground obstacles time should be as close as possible to the time
-            # of the obstacles + detector + tracker runtime.
-            ground_truth_time = self.__compute_closest_frame_time(game_time +
-                                                                  msg.runtime)
-            self._prediction_start_end_times.append(
-                (game_time, ground_truth_time))
-
-    def on_ground_truth(self, msg: erdos.Message):
-        game_time = msg.timestamp.coordinates[0]
-        self._ground_truths.append((game_time, msg.obstacles))
-
+                
     def __compute_closest_frame_time(self, time: float) -> int:
         if self._frame_gap is None:
             self._logger.info(
