@@ -379,4 +379,3 @@ class SpeedSignsMessage(erdos.Message):
     def __str__(self):
         return 'SpeedSignsMessage(timestamp: {}, speed signs: {})'.format(
             self.timestamp, self.speed_signs)
-
