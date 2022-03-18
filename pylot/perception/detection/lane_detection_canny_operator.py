@@ -66,9 +66,6 @@ class CannyEdgeLaneDetectionOperator(OneInOneOut):
         # Hough lines.
         image = self._draw_lines(image)
 
-        cv2.imshow('image', image)
-        cv2.waitKey(0)
-
         context.write_stream.send(erdos.Message(context.timestamp, image))
 
     def _region_of_interest(self, image, points):
