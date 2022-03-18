@@ -13,8 +13,6 @@ import numpy as np
 
 Line = namedtuple("Line", "x1, y1, x2, y2, slope")
 
-from pylot.perception.camera_frame import CameraFrame
-
 
 class CannyEdgeLaneDetectionOperator(OneInOneOut):
     """Detects driving lanes using a camera.
