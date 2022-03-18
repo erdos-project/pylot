@@ -26,7 +26,6 @@ class TrafficLightDetOperator(TwoInOneOut):
     Args:
         flags (absl.flags): Object to be used to access absl flags.
     """
-
     def __init__(self, flags):
         # Register a callback on the camera input stream.
         self._logger = erdos.utils.setup_logging(self.config.name,
