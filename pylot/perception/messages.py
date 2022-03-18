@@ -11,6 +11,7 @@ from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.utils import Location, Rotation, Transform
 
 
+# TODO: Remove FrameMessage when redesign port complete
 class FrameMessage(erdos.Message):
     """Message class to be used to send camera frames.
 

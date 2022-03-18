@@ -25,7 +25,6 @@ import pylot.utils
 import pylot.simulation.utils
 from pylot.perception.camera_frame import CameraFrame
 from pylot.drivers.sensor_setup import RGBCameraSetup
-from pylot.perception.messages import FrameMessage
 
 _lock = threading.Lock()
 
