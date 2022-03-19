@@ -84,7 +84,7 @@ def main(args):
         camera_ingest_stream = erdos.streams.IngestStream(name='camera')
         ttd_ingest_stream = erdos.streams.IngestStream(name='ttd')
 
-        DETECTOR = 'traffic_light'
+        DETECTOR = 'lanenet'
 
         if DETECTOR == 'detection_operator':
             from pylot.perception.detection.detection_operator import DetectionOperator
@@ -107,6 +107,16 @@ def main(args):
                 camera_ingest_stream,
                 ttd_ingest_stream,
                 flags=FLAGS)
+        if DETECTOR == 'lanenet':
+            from pylot.perception.detection.lanenet_detection_operator import LanenetDetectionOperator
+            lanenet_lane_detection_op_cfg = erdos.operator.OperatorConfig(
+                name='lanenet_lane_detection')
+            detected_lanes_stream = erdos.connect_one_in_one_out(
+                LanenetDetectionOperator,
+                lanenet_lane_detection_op_cfg,
+                camera_ingest_stream,
+                flags=FLAGS)
+        
 
         erdos.run_async()
 

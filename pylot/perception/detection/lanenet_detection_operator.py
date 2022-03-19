@@ -4,6 +4,10 @@ import math
 import cv2
 
 import erdos
+from erdos.context import OneInOneOutContext
+from erdos.operator import OneInOneOut
+
+from pylot.perception.camera_frame import CameraFrame
 
 from lanenet.lanenet_model import lanenet  # noqa: I100 E402
 from lanenet.lanenet_model import lanenet_postprocess  # noqa: I100 E402
@@ -16,23 +20,15 @@ from pylot.perception.detection.lane import Lane
 import tensorflow as tf
 
 
-class LanenetDetectionOperator(erdos.Operator):
-    """Detecs driving lanes using a camera.
+class LanenetDetectionOperator(OneInOneOut):
+    """Detects driving lanes using a camera.
 
     The operator uses the Lanenet model.
 
     Args:
-        camera_stream (:py:class:`erdos.ReadStream`): The stream on which
-            camera frames are received.
-        detected_lanes_stream (:py:class:`erdos.WriteStream`): Stream on which
-            the operator sends
-            :py:class:`~pylot.perception.messages.LanesMessage` messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, camera_stream: erdos.ReadStream,
-                 detected_lanes_stream: erdos.WriteStream, flags):
-        camera_stream.add_callback(self.on_camera_frame,
-                                   [detected_lanes_stream])
+    def __init__(self, flags):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -63,39 +59,11 @@ class LanenetDetectionOperator(erdos.Operator):
             saver.restore(sess=self._tf_session,
                           save_path=flags.lanenet_detection_model_path)
 
-    @staticmethod
-    def connect(camera_stream: erdos.ReadStream):
-        """Connects the operator to other streams.
-
-        Args:
-            camera_stream (:py:class:`erdos.ReadStream`): The stream on which
-                camera frames are received.
-
-        Returns:
-            :py:class:`erdos.WriteStream`: Stream on which the operator sends
-            :py:class:`~pylot.perception.messages.LanesMessage` messages.
-        """
-        detected_lanes_stream = erdos.WriteStream()
-        return [detected_lanes_stream]
-
-    def destroy(self):
-        self._logger.warn('destroying {}'.format(self.config.name))
-
-    @erdos.profile_method()
-    def on_camera_frame(self, msg: erdos.Message,
-                        detected_lanes_stream: erdos.WriteStream):
-        """Invoked whenever a frame message is received on the stream.
-
-        Args:
-            msg: A :py:class:`~pylot.perception.messages.FrameMessage`.
-            detected_lanes_stream (:py:class:`erdos.WriteStream`): Stream on
-                which the operator sends
-                :py:class:`~pylot.perception.messages.LanesMessage` messages.
-        """
+    def on_data(self, context: OneInOneOutContext, data: CameraFrame):
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.config.name))
-        assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
-        image = cv2.resize(msg.frame.as_rgb_numpy_array(), (512, 256),
+            context.timestamp, self.config.name))
+        assert data.encoding == 'BGR', 'Expects BGR frames'
+        image = cv2.resize(data.as_rgb_numpy_array(), (512, 256),
                            interpolation=cv2.INTER_LINEAR)
         image = image / 127.5 - 1.0
         binary_seg_image, instance_seg_image = self._tf_session.run(
@@ -105,7 +73,7 @@ class LanenetDetectionOperator(erdos.Operator):
         postprocess_result = self._postprocessor.postprocess(
             binary_seg_result=binary_seg_image[0],
             instance_seg_result=instance_seg_image[0],
-            source_image=msg.frame.frame)
+            source_image=data.frame)
         # mask_image = postprocess_result['mask_image']
         # for i in range(4):
         #     instance_seg_image[0][:, :, i] = \
@@ -116,7 +84,7 @@ class LanenetDetectionOperator(erdos.Operator):
         ego_lane_markings = []
         for lane in lanes:
             ego_markings = self.lane_to_ego_coordinates(
-                lane, msg.frame.camera_setup)
+                lane, data.camera_setup)
             ego_markings.reverse()
             ego_lane_markings.append([
                 pylot.utils.Transform(loc, pylot.utils.Rotation())
@@ -154,9 +122,9 @@ class LanenetDetectionOperator(erdos.Operator):
                             ego_lane_markings[index - 1], lane)
                 detected_lanes.append(lane)
         self._logger.debug('@{}: Detected {} lanes'.format(
-            msg.timestamp, len(detected_lanes)))
-        detected_lanes_stream.send(erdos.Message(msg.timestamp,
-                                                 detected_lanes))
+            context.timestamp, len(detected_lanes)))
+        context.write_stream.send(
+            erdos.Message(context.timestamp, detected_lanes))
 
         # plt.figure('binary_image')
         # plt.imshow(binary_seg_image[0] * 255, cmap='gray')
@@ -194,6 +162,9 @@ class LanenetDetectionOperator(erdos.Operator):
         for loc in ego_lane:
             loc.z = 0
         return ego_lane
+
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
 
 
 def minmax_scale(input_arr):
