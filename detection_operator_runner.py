@@ -107,7 +107,15 @@ def main(args):
                 camera_ingest_stream,
                 ttd_ingest_stream,
                 flags=FLAGS)
-
+        if DETECTOR == 'efficient_det':
+            from pylot.percetpion.detection.efficentdet_operator import EfficientDetOperator
+            efficient_det_op_cfg = erdos.operator.OperatorConfig(
+                name='efficientdet_operator')
+            efficient_det_stream = erdos.connect_two_in_one_out(
+                EfficientDetOperator,
+                efficient_det_op_cfg,
+                camera_ingest_stream,
+            )
         erdos.run_async()
 
         def process_images(simulator_image):
