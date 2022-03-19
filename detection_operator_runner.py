@@ -84,15 +84,29 @@ def main(args):
         camera_ingest_stream = erdos.streams.IngestStream(name='camera')
         ttd_ingest_stream = erdos.streams.IngestStream(name='ttd')
 
-        from pylot.perception.detection.detection_operator import DetectionOperator
-        detection_op_cfg = erdos.operator.OperatorConfig(name='detection_op')
-        obstacles_stream = erdos.connect_two_in_one_out(
-            DetectionOperator,
-            detection_op_cfg,
-            camera_ingest_stream,
-            ttd_ingest_stream,
-            model_path=FLAGS.obstacle_detection_model_paths[0],
-            flags=FLAGS)
+        DETECTOR = 'traffic_light'
+
+        if DETECTOR == 'detection_operator':
+            from pylot.perception.detection.detection_operator import DetectionOperator
+            detection_op_cfg = erdos.operator.OperatorConfig(
+                name='detection_op')
+            obstacles_stream = erdos.connect_two_in_one_out(
+                DetectionOperator,
+                detection_op_cfg,
+                camera_ingest_stream,
+                ttd_ingest_stream,
+                model_path=FLAGS.obstacle_detection_model_paths[0],
+                flags=FLAGS)
+        if DETECTOR == 'traffic_light':
+            from pylot.perception.detection.traffic_light_det_operator import TrafficLightDetOperator
+            traffic_light_op_cfg = erdos.operator.OperatorConfig(
+                name='traffic_light_op')
+            traffic_light_stream = erdos.connect_two_in_one_out(
+                TrafficLightDetOperator,
+                traffic_light_op_cfg,
+                camera_ingest_stream,
+                ttd_ingest_stream,
+                flags=FLAGS)
 
         erdos.run_async()
 
@@ -108,7 +122,7 @@ def main(args):
                 if rgb_camera_setup.camera_type == 'sensor.camera.rgb':
                     msg = erdos.Message(timestamp=timestamp,
                                         data=CameraFrame.from_simulator_frame(
-                                        simulator_image, rgb_camera_setup))
+                                            simulator_image, rgb_camera_setup))
                     camera_ingest_stream.send(msg)
                     # ttd_ingest_stream.send(erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))  Panics on internal msg call
 
