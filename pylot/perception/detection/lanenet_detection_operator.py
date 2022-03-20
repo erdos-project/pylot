@@ -18,7 +18,6 @@ import pylot.utils
 from pylot.perception.detection.lane import Lane
 
 import tensorflow as tf
-import matplotlib.pyplot as plt
 
 
 class LanenetDetectionOperator(OneInOneOut):
