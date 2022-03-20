@@ -18,7 +18,7 @@ import pylot.utils
 from pylot.perception.detection.lane import Lane
 
 import tensorflow as tf
-
+import matplotlib.pyplot as plt
 
 class LanenetDetectionOperator(OneInOneOut):
     """Detects driving lanes using a camera.
@@ -131,7 +131,7 @@ class LanenetDetectionOperator(OneInOneOut):
         # plt.figure('instance_image')
         # plt.imshow(embedding_image[:, :, (2, 1, 0)])
         # plt.figure('mask_image')
-        # plt.imshow(msg.frame.frame[:, :, (2, 1, 0)])
+        # plt.imshow(data.frame[:, :, (2, 1, 0)])
         # plt.show()
 
     def lane_to_ego_coordinates(self, lane, camera_setup):
