@@ -20,6 +20,7 @@ from pylot.perception.detection.lane import Lane
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
+
 class LanenetDetectionOperator(OneInOneOut):
     """Detects driving lanes using a camera.
 
