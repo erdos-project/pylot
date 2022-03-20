@@ -64,8 +64,8 @@ class EfficientDetOperator(TwoInOneOut):
                     self._signatures['prediction'],
                     feed_dict={self._signatures['image_arrays']: [inputs]})[0]
         self._unique_id = 0
-        self._frame_msgs = deque()
-        self._ttd_msgs = deque()
+        self._frames = deque()
+        self._ttd_data = deque()
         self._last_ttd = 400
 
     def load_serving_model(self, model_name: str, model_path: str,
@@ -129,17 +129,15 @@ class EfficientDetOperator(TwoInOneOut):
         """Invoked whenever a camera message is received on the stream."""
         self._logger.debug('@{}: {} received message'.format(
             context.timestamp, self.config.name))
-        self._frame_msgs.append(data)
-
+        self._frames.append(data)
         if context.timestamp.is_top:
             return
         start_time = time.time()
-        if len(self._ttd_msgs) > 0:
-            ttd_msg = self._ttd_msgs.popleft()
-            self._last_ttd = ttd_msg.data
-        frame_msg = self._frame_msgs.popleft()
+        if len(self._ttd_data) > 0:
+            ttd = self._ttd_data.popleft()
+            self._last_ttd = ttd
+        frame = self._frames.popleft()
         self.update_model_choice(self._last_ttd)
-        frame = frame_msg.frame
         inputs = frame.as_rgb_numpy_array()
         detector_start_time = time.time()
         outputs_np = self._tf_session.run(
@@ -189,7 +187,7 @@ class EfficientDetOperator(TwoInOneOut):
     def on_right_data(self, context: TwoInOneOutContext, data: Any):
         self._logger.debug('@{}: {} received ttd update {}'.format(
             context.timestamp, self.config.name, data))
-        self._ttd_msgs.append(data)
+        self._ttd_data.append(data)
 
     def destroy(self):
         self._logger.warn('destroying {}'.format(self.config.name))

@@ -84,7 +84,7 @@ def main(args):
         camera_ingest_stream = erdos.streams.IngestStream(name='camera')
         ttd_ingest_stream = erdos.streams.IngestStream(name='ttd')
 
-        DETECTOR = 'traffic_light'
+        DETECTOR = 'efficient_det'
 
         if DETECTOR == 'detection_operator':
             from pylot.perception.detection.detection_operator import DetectionOperator
@@ -108,13 +108,19 @@ def main(args):
                 ttd_ingest_stream,
                 flags=FLAGS)
         if DETECTOR == 'efficient_det':
-            from pylot.percetpion.detection.efficentdet_operator import EfficientDetOperator
+            from pylot.perception.detection.efficientdet_operator import EfficientDetOperator
+            model_names = ['efficientdet-d4']
+            model_paths = ['dependencies/models/obstacle_detection/efficientdet/efficientdet-d4/efficientdet-d4_frozen.pb']
             efficient_det_op_cfg = erdos.operator.OperatorConfig(
                 name='efficientdet_operator')
             efficient_det_stream = erdos.connect_two_in_one_out(
                 EfficientDetOperator,
                 efficient_det_op_cfg,
                 camera_ingest_stream,
+                ttd_ingest_stream,
+                model_names=model_names,
+                model_paths=model_paths,
+                flags=FLAGS
             )
         erdos.run_async()
 
