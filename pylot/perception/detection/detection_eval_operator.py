@@ -75,12 +75,8 @@ class CocoDetectionScoringModule(ScoringModule):
             r["score"] = obstacle.confidence
             return r
 
-        lables_dict_list = \
-            [obstacle_to_dict(go)
-             for go in ground_obstacles if go.label in self.from_dataset]
-        pred_dict_list = \
-            [obstacle_to_dict(o)
-             for o in obstacles if o.label in self.from_model]
+        lables_dict_list = [obstacle_to_dict(go) for go in ground_obstacles if go.bounding_box_2D is not None]
+        pred_dict_list = [obstacle_to_dict(o) for o in obstacles if o.bounding_box_2D is not None]
         self.coco_eval.add_image_label_prediction(
             image_dict={
                 "width": self._flags.camera_image_width,

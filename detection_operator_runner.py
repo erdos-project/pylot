@@ -342,6 +342,7 @@ def main(args):
         if result_stream is not None:
             while True:
                 msg = result_stream.read()
+                print('**********************************')
                 print(msg)
 
     finally:
