@@ -95,7 +95,10 @@ class DetectionOperator(TwoInOneOut):
         runtime = (time.time() - start_time) * 1000
         # Send out obstacles.
         context.write_stream.send(
-            ObstaclesMessage(context.timestamp, obstacles, runtime))
+            erdos.Message(context.timestamp, {
+                'obstacles': obstacles,
+                'runtime': runtime
+            }))
         context.write_stream.send(erdos.WatermarkMessage(context.timestamp))
 
         if self._flags.log_detector_output:
