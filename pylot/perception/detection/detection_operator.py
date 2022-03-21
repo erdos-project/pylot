@@ -13,7 +13,6 @@ import pylot.utils
 from pylot.perception.detection.obstacle import Obstacle
 from pylot.perception.detection.utils import BoundingBox2D, \
     OBSTACLE_LABELS, load_coco_bbox_colors, load_coco_labels
-from pylot.perception.messages import ObstaclesMessage
 from pylot.perception.camera_frame import CameraFrame
 
 import tensorflow as tf
