@@ -5,66 +5,36 @@ from collections import namedtuple
 import cv2
 
 import erdos
+from erdos.operator import OneInOneOut
+from erdos.context import OneInOneOutContext
+from pylot.perception.camera_frame import CameraFrame
 
 import numpy as np
 
 Line = namedtuple("Line", "x1, y1, x2, y2, slope")
 
 
-class CannyEdgeLaneDetectionOperator(erdos.Operator):
+class CannyEdgeLaneDetectionOperator(OneInOneOut):
     """Detects driving lanes using a camera.
 
     The operator uses standard vision techniques (Canny edge).
 
     Args:
-        camera_stream (:py:class:`erdos.ReadStream`): The stream on which
-            camera frames are received.
-        detected_lanes_stream (:py:class:`erdos.WriteStream`): Stream on which
-            the operator sends
-            :py:class:`~pylot.perception.messages.LanesMessage` messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, camera_stream, detected_lanes_stream, flags):
-        camera_stream.add_callback(self.on_msg_camera_stream,
-                                   [detected_lanes_stream])
+    def __init__(self, flags):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._kernel_size = 7
 
-    @staticmethod
-    def connect(camera_stream):
-        """Connects the operator to other streams.
-
-        Args:
-            camera_stream (:py:class:`erdos.ReadStream`): The stream on which
-                camera frames are received.
-
-        Returns:
-            :py:class:`erdos.WriteStream`: Stream on which the operator sends
-            :py:class:`~pylot.perception.messages.LanesMessage` messages.
-        """
-        detected_lanes_stream = erdos.WriteStream()
-        return [detected_lanes_stream]
-
-    def destroy(self):
-        self._logger.warn('destroying {}'.format(self.config.name))
-
-    @erdos.profile_method()
-    def on_msg_camera_stream(self, msg, detected_lanes_stream):
-        """Invoked whenever a frame message is received on the stream.
-
-        Args:
-            msg: A :py:class:`~pylot.perception.messages.FrameMessage`.
-            detected_lanes_stream (:py:class:`erdos.WriteStream`): Stream on
-                which the operator sends
-                :py:class:`~pylot.perception.messages.LanesMessage` messages.
-        """
+    def on_data(self, context: OneInOneOutContext, data: CameraFrame):
+        """Invoked whenever a frame message is received on the stream."""
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.config.name))
-        assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
+            context.timestamp, self.config.name))
+        assert data.encoding == 'BGR', 'Expects BGR frames'
         # Make a copy of the image coming into the operator.
-        image = np.copy(msg.frame.as_numpy_array())
+        image = np.copy(data.as_numpy_array())
 
         # Get the dimensions of the image.
         x_lim, y_lim = image.shape[1], image.shape[0]
@@ -95,7 +65,7 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
         # Hough lines.
         image = self._draw_lines(image)
 
-        detected_lanes_stream.send(erdos.Message(msg.timestamp, image))
+        context.write_stream.send(erdos.Message(context.timestamp, image))
 
     def _region_of_interest(self, image, points):
         mask = np.zeros_like(image)
@@ -208,3 +178,6 @@ class CannyEdgeLaneDetectionOperator(erdos.Operator):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 2,
                         cv2.LINE_AA)
         return line_img
+
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
