@@ -184,7 +184,7 @@ class EfficientDetOperator(TwoInOneOut):
         self._logger.debug("@{}: total time spent: {}".format(
             context.timestamp, (operator_time_total_end - start_time) * 1000))
 
-    def on_right_data(self, context: TwoInOneOutContext, data: Any):
+    def on_right_data(self, context: TwoInOneOutContext, data: float):
         self._logger.debug('@{}: {} received ttd update {}'.format(
             context.timestamp, self.config.name, data))
         self._ttd_data.append(data)
