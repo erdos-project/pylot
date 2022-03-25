@@ -1,43 +1,35 @@
 import time
 from collections import deque
+from typing import List
 
 import erdos
+from erdos.context import TwoInOneOutContext
+from erdos.operator import TwoInOneOut
 
 import numpy as np
 
 import pylot.utils
+from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.detection.obstacle import Obstacle
 from pylot.perception.detection.utils import BoundingBox2D, \
     OBSTACLE_LABELS, load_coco_bbox_colors, load_coco_labels
-from pylot.perception.messages import ObstaclesMessage
 
 import tensorflow as tf
 
 
 # TODO: Remove once transition to TF2 is complete
-class EfficientDetOperator(erdos.Operator):
+class EfficientDetOperator(TwoInOneOut):
     """ Detects obstacles using the EfficientDet set of models.
 
     The operator receives frames on camera stream, and runs a model for each
     frame.
 
     Args:
-        camera_stream (:py:class:`erdos.ReadStream`): The stream on which
-            camera frames are received.
-        obstacles_stream (:py:class:`erdos.WriteStream`): Stream on which the
-            operator sends
-            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages.
-        model_path(:obj:`str`): Path to the model pb file.
+        model_names (list): List of model names
+        model_path (list): List of paths to the model pb file.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, camera_stream: erdos.ReadStream,
-                 time_to_decision_stream: erdos.ReadStream,
-                 obstacles_stream: erdos.WriteStream, model_names, model_paths,
-                 flags):
-        camera_stream.add_callback(self.on_msg_camera_stream)
-        time_to_decision_stream.add_callback(self.on_time_to_decision_update)
-        erdos.add_watermark_callback([camera_stream], [obstacles_stream],
-                                     self.on_watermark)
+    def __init__(self, model_names: List[str], model_paths: List[str], flags):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -52,7 +44,7 @@ class EfficientDetOperator(erdos.Operator):
             model_paths), 'Model names and paths do not have same length'
         self._models = {}
         self._tf_session = None
-        self._signitures = {
+        self._signatures = {
             'image_files': 'image_files:0',
             'image_arrays': 'image_arrays:0',
             'prediction': 'detections:0',
@@ -68,14 +60,15 @@ class EfficientDetOperator(erdos.Operator):
                 # Serve some junk image to load up the model.
                 inputs = np.zeros((108, 192, 3))
                 self._tf_session.run(
-                    self._signitures['prediction'],
-                    feed_dict={self._signitures['image_arrays']: [inputs]})[0]
+                    self._signatures['prediction'],
+                    feed_dict={self._signatures['image_arrays']: [inputs]})[0]
         self._unique_id = 0
-        self._frame_msgs = deque()
-        self._ttd_msgs = deque()
+        self._frames = deque()
+        self._ttd_data = deque()
         self._last_ttd = 400
 
-    def load_serving_model(self, model_name, model_path, gpu_memory_fraction):
+    def load_serving_model(self, model_name: str, model_path: str,
+                           gpu_memory_fraction: float):
         detection_graph = tf.Graph()
         with detection_graph.as_default():
             # Load a frozen graph.
@@ -90,27 +83,6 @@ class EfficientDetOperator(erdos.Operator):
         return model_name, tf.compat.v1.Session(
             graph=detection_graph,
             config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
-
-    @staticmethod
-    def connect(camera_stream: erdos.ReadStream,
-                time_to_decision_stream: erdos.ReadStream):
-        """Connects the operator to other streams.
-
-        Args:
-            camera_stream (:py:class:`erdos.ReadStream`): The stream on which
-                camera frames are received.
-
-        Returns:
-            [:py:class:`erdos.WriteStream`, :py:class:`erdos.WriteStream`]:
-            Streams on which the operator sends
-            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
-            for detection and :py:class:`erdos.Message` for runtimes.
-        """
-        obstacles_stream = erdos.WriteStream()
-        return [obstacles_stream]
-
-    def destroy(self):
-        self._logger.warn('destroying {}'.format(self.config.name))
 
     def _pick_model(self, ttd: float):
         """Decides which model to use based on time to decision."""
@@ -152,49 +124,28 @@ class EfficientDetOperator(erdos.Operator):
             self._model_name, self._tf_session = self._pick_model(
                 self._flags.detection_deadline)
 
-    @erdos.profile_method()
-    def on_time_to_decision_update(self, msg: erdos.Message):
-        self._logger.debug('@{}: {} received ttd update {}'.format(
-            msg.timestamp, self.config.name, msg))
-        self._ttd_msgs.append(msg)
-
-    @erdos.profile_method()
-    def on_msg_camera_stream(self, msg: erdos.Message):
+    def on_left_data(self, context: TwoInOneOutContext, data: CameraFrame):
+        """Invoked whenever a camera message is received on the stream."""
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.config.name))
-        self._frame_msgs.append(msg)
-
-    @erdos.profile_method()
-    def on_watermark(self, timestamp: erdos.Timestamp,
-                     obstacles_stream: erdos.WriteStream):
-        """Invoked whenever a frame message is received on the stream.
-
-        Args:
-            msg (:py:class:`~pylot.perception.messages.FrameMessage`): Message
-                received.
-            obstacles_stream (:py:class:`erdos.WriteStream`): Stream on which
-                the operator sends
-                :py:class:`~pylot.perception.messages.ObstaclesMessage`
-                messages.
-        """
-        if timestamp.is_top:
+            context.timestamp, self.config.name))
+        self._frames.append(data)
+        if context.timestamp.is_top:
             return
         start_time = time.time()
-        if len(self._ttd_msgs) > 0:
-            ttd_msg = self._ttd_msgs.popleft()
-            self._last_ttd = ttd_msg.data
-        frame_msg = self._frame_msgs.popleft()
+        if len(self._ttd_data) > 0:
+            ttd = self._ttd_data.popleft()
+            self._last_ttd = ttd
+        frame = self._frames.popleft()
         self.update_model_choice(self._last_ttd)
-        frame = frame_msg.frame
         inputs = frame.as_rgb_numpy_array()
         detector_start_time = time.time()
         outputs_np = self._tf_session.run(
-            self._signitures['prediction'],
-            feed_dict={self._signitures['image_arrays']: [inputs]})[0]
+            self._signatures['prediction'],
+            feed_dict={self._signatures['image_arrays']: [inputs]})[0]
         detector_end_time = time.time()
         runtime = (detector_end_time - detector_start_time) * 1000
         self._logger.debug("@{}: detector runtime {}".format(
-            timestamp, runtime))
+            context.timestamp, runtime))
         obstacles = []
         camera_setup = frame.camera_setup
         for _, ymin, xmin, ymax, xmax, score, _class in outputs_np:
@@ -214,21 +165,28 @@ class EfficientDetOperator(erdos.Operator):
                         self._csv_logger.info(
                             "{},{},detection,{},{:4f}".format(
                                 pylot.utils.time_epoch_ms(),
-                                timestamp.coordinates[0],
+                                context.timestamp.coordinates[0],
                                 self._coco_labels[_class], score))
             else:
                 self._logger.debug(
                     'Filtering unknown class: {}'.format(_class))
 
         if self._flags.log_detector_output:
-            frame.annotate_with_bounding_boxes(timestamp, obstacles, None,
-                                               self._bbox_colors)
-            frame.save(timestamp.coordinates[0], self._flags.data_path,
+            frame.annotate_with_bounding_boxes(context.timestamp, obstacles,
+                                               None, self._bbox_colors)
+            frame.save(context.timestamp.coordinates[0], self._flags.data_path,
                        'detector-{}'.format(self.config.name))
-        # end_time = time.time()
-        obstacles_stream.send(ObstaclesMessage(timestamp, obstacles, runtime))
-        obstacles_stream.send(erdos.WatermarkMessage(timestamp))
+        context.write_stream.send(erdos.Message(context.timestamp, obstacles))
+        context.write_stream.send(erdos.WatermarkMessage(context.timestamp))
 
         operator_time_total_end = time.time()
         self._logger.debug("@{}: total time spent: {}".format(
-            timestamp, (operator_time_total_end - start_time) * 1000))
+            context.timestamp, (operator_time_total_end - start_time) * 1000))
+
+    def on_right_data(self, context: TwoInOneOutContext, data: float):
+        self._logger.debug('@{}: {} received ttd update {}'.format(
+            context.timestamp, self.config.name, data))
+        self._ttd_data.append(data)
+
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
