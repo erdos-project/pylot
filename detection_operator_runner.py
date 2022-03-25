@@ -84,7 +84,7 @@ def main(args):
         camera_ingest_stream = erdos.streams.IngestStream(name='camera')
         ttd_ingest_stream = erdos.streams.IngestStream(name='ttd')
 
-        DETECTOR = 'lanenet'
+        DETECTOR = 'canny_lane'
 
         if DETECTOR == 'detection_operator':
             from pylot.perception.detection.detection_operator import DetectionOperator
@@ -117,6 +117,15 @@ def main(args):
                 camera_ingest_stream,
                 flags=FLAGS)
         
+        if DETECTOR == 'canny_lane':
+            from pylot.perception.detection.lane_detection_canny_operator import CannyEdgeLaneDetectionOperator
+            lane_detection_canny_op_cfg = erdos.operator.OperatorConfig(
+                name='lane_detection_canny_op')
+            detected_lanes_stream = erdos.connect_one_in_one_out(
+                CannyEdgeLaneDetectionOperator,
+                lane_detection_canny_op_cfg,
+                camera_ingest_stream,
+                flags=FLAGS)
 
         erdos.run_async()
 
