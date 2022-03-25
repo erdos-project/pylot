@@ -1,6 +1,5 @@
 import time
 from collections import deque
-from typing import Any
 from typing import List
 
 import erdos
