@@ -23,7 +23,7 @@ class DetectionDecayOperator(OneInOneOut):
         self._ground_bboxes = deque()
         self._iou_thresholds = [0.1 * i for i in range(1, 10)]
 
-    def on_data(self, context: OneInOneOutContext, data: erdos.Message):
+    def on_data(self, context: OneInOneOutContext, data: dict):
         # Ignore the first several seconds of the simulation because the car is
         # not moving at the beginning.
         assert len(context.timestamp.coordinates) == 1
