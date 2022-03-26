@@ -174,12 +174,12 @@ def main(args):
         right_camera_ingest_stream = erdos.streams.IngestStream(
             name='right_camera')
         ttd_ingest_stream = erdos.streams.IngestStream(name='ttd')
-        ground_obstacles_stream = erdos.streams.IngestStream(name='ground_obstacles_stream')
-        result_stream = None
+        ground_obstacles_stream = erdos.streams.IngestStream(
+            name='ground_obstacles_stream')
 
         DETECTOR = FLAGS.test_operator
 
-        if DETECTOR == 'detection_operator':
+        if DETECTOR == 'detection_eval':
             from pylot.perception.detection.detection_operator import DetectionOperator
             from pylot.perception.detection.detection_eval_operator import DetectionEvalOperator
             detection_op_cfg = erdos.operator.OperatorConfig(
@@ -338,12 +338,6 @@ def main(args):
                                             logging.Logger(name="test2"))
 
         time.sleep(5)
-
-        if result_stream is not None:
-            while True:
-                msg = result_stream.read()
-                print('**********************************')
-                print(msg)
 
     finally:
         print('destroying actors')

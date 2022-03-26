@@ -14,8 +14,8 @@ class BasePerceptionEvalOperator(TwoInOneOut):
     Args:
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, evaluate_timely: bool, matching_policy: str, frame_gap: int,
-                 scoring_module, flags):
+    def __init__(self, evaluate_timely: bool, matching_policy: str,
+                 frame_gap: int, scoring_module, flags):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._last_notification = None
@@ -63,7 +63,8 @@ class BasePerceptionEvalOperator(TwoInOneOut):
         else:
             # Ground obstacles time should be as close as possible to the time
             # of the obstacles + detector + tracker runtime.
-            ground_truth_time = self.__compute_closest_frame_time(game_time + 0)  # TODO: Fix runtime
+            ground_truth_time = self.__compute_closest_frame_time(
+                game_time + 0)  # TODO: Fix runtime
             self._prediction_start_end_times.append(
                 (game_time, ground_truth_time))
 
@@ -183,7 +184,7 @@ class BasePerceptionEvalOperator(TwoInOneOut):
             index += 1
         if index > 0:
             self._ground_truths = self._ground_truths[index:]
-                
+
     def __compute_closest_frame_time(self, time: float) -> int:
         if self._frame_gap is None:
             self._logger.info(
