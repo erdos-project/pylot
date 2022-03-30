@@ -132,7 +132,6 @@ class CameraFrame(object):
             points: List of points of where to draw lines between.
             color: RGB tuple for the color of he line.
         """
-        assert len(points) >= 2, "Need atleast two points to draw a line"
         draw_points = np.array([[point.x, point.y] for point in points])
         cv2.polylines(self.frame,
                       np.array([draw_points], dtype=np.int32),
