@@ -134,8 +134,11 @@ class CameraFrame(object):
         """
         assert len(points) >= 2, "Need atleast two points to draw a line"
         draw_points = np.array([[point.x, point.y] for point in points])
-        cv2.polylines(self.frame, np.array([draw_points], dtype=np.int32),
-                      False, color, thickness=thickness)
+        cv2.polylines(self.frame,
+                      np.array([draw_points], dtype=np.int32),
+                      False,
+                      color,
+                      thickness=thickness)
 
     def in_frame(self, point: Vector2D) -> bool:
         """Checks if a point is within the frame."""
