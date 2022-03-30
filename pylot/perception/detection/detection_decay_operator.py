@@ -5,6 +5,7 @@ from erdos.operator import OneInOneOut
 from erdos.context import OneInOneOutContext
 
 from pylot.perception.detection.utils import get_precision_recall_at_iou
+from pylot.perception.messages import ObstaclesMessageTuple
 from pylot.utils import time_epoch_ms
 
 
@@ -23,14 +24,15 @@ class DetectionDecayOperator(OneInOneOut):
         self._ground_bboxes = deque()
         self._iou_thresholds = [0.1 * i for i in range(1, 10)]
 
-    def on_data(self, context: OneInOneOutContext, data: dict):
+    def on_data(self, context: OneInOneOutContext,
+                data: ObstaclesMessageTuple):
         # Ignore the first several seconds of the simulation because the car is
         # not moving at the beginning.
         assert len(context.timestamp.coordinates) == 1
         game_time = context.timestamp.coordinates[0]
         bboxes = []
         # Select the person bounding boxes.
-        for obstacle in data['obstacles']:
+        for obstacle in data.obstacles:
             if obstacle.is_person():
                 bboxes.append(obstacle.bounding_box)
 

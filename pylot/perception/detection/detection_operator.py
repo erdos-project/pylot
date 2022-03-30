@@ -10,10 +10,11 @@ from erdos.context import TwoInOneOutContext
 import numpy as np
 
 import pylot.utils
+from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.detection.obstacle import Obstacle
 from pylot.perception.detection.utils import BoundingBox2D, \
     OBSTACLE_LABELS, load_coco_bbox_colors, load_coco_labels
-from pylot.perception.camera_frame import CameraFrame
+from pylot.perception.messages import ObstaclesMessageTuple
 
 import tensorflow as tf
 
@@ -94,10 +95,8 @@ class DetectionOperator(TwoInOneOut):
         runtime = (time.time() - start_time) * 1000
         # Send out obstacles.
         context.write_stream.send(
-            erdos.Message(context.timestamp, {
-                'obstacles': obstacles,
-                'runtime': runtime
-            }))
+            erdos.Message(context.timestamp,
+                          ObstaclesMessageTuple(obstacles, runtime)))
         context.write_stream.send(erdos.WatermarkMessage(context.timestamp))
 
         if self._flags.log_detector_output:

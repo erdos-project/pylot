@@ -133,7 +133,9 @@ def main(args):
         if DETECTOR == 'efficient_det':
             from pylot.perception.detection.efficientdet_operator import EfficientDetOperator
             model_names = ['efficientdet-d4']
-            model_paths = ['dependencies/models/obstacle_detection/efficientdet/efficientdet-d4/efficientdet-d4_frozen.pb']
+            model_paths = [
+                'dependencies/models/obstacle_detection/efficientdet/efficientdet-d4/efficientdet-d4_frozen.pb'
+            ]
             efficient_det_op_cfg = erdos.operator.OperatorConfig(
                 name='efficientdet_operator')
             efficient_det_stream = erdos.connect_two_in_one_out(
