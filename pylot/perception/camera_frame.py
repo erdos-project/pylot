@@ -126,7 +126,12 @@ class CameraFrame(object):
                     lineType=cv2.LINE_AA)
 
     def draw_line(self, points: List[Vector2D], color, thickness: float = 3):
-        # no negatives
+        """Draws lines between given points on the frame.
+        
+        Args:
+            points: List of points of where to draw lines between.
+            color: RGB tuple for the color of he line.
+        """
         assert len(points) >= 2, "Need atleast two points to draw a line"
         draw_points = np.array([[point.x, point.y] for point in points])
         cv2.polylines(self.frame, np.array([draw_points], dtype=np.int32),
