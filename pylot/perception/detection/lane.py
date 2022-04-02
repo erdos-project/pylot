@@ -45,7 +45,7 @@ class Lane(object):
             if inverse_transform:
                 # marking = inverse_transform * marking
                 marking = inverse_transform.transform_points(
-                    np.array([marking.as_numpy_array()]))
+                    np.array([marking.location.as_numpy_array()]))
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
             else:
                 marking = marking.location
@@ -63,7 +63,7 @@ class Lane(object):
             if inverse_transform:
                 # marking = inverse_transform * marking
                 marking = inverse_transform.transform_points(
-                    np.array([marking.as_numpy_array()]))
+                    np.array([marking.location.as_numpy_array()]))
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
             else:
                 marking = marking.location
