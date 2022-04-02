@@ -15,7 +15,7 @@ from carla import LaneType
 import erdos
 
 from pylot.perception.detection.lane import Lane
-from pylot.utils import Location, Transform
+from pylot.utils import Location, Rotation, Transform
 
 
 class HDMap(object):
@@ -307,12 +307,12 @@ class HDMap(object):
 
         # Get the left and right markings of the lane and send it as a message.
         left_markings = [
-            self._lateral_shift(w.transform, -w.lane_width * 0.5)
-            for w in lane_waypoints
+            Transform(self._lateral_shift(w.transform, -w.lane_width * 0.5),
+                      Rotation()) for w in lane_waypoints
         ]
         right_markings = [
-            self._lateral_shift(w.transform, w.lane_width * 0.5)
-            for w in lane_waypoints
+            Transform(self._lateral_shift(w.transform, w.lane_width * 0.5),
+                      Rotation()) for w in lane_waypoints
         ]
         return Lane(lane_id, left_markings, right_markings)
 
