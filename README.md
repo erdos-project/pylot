@@ -306,6 +306,22 @@ planning and control with perfect perception). This can be done by changing the
 flags in the [challenge configuration](https://github.com/erdos-project/pylot/blob/master/pylot/simulation/challenge/challenge.conf)
 according to the specification from the Pylot documentation.
 
+# More Information
+
+To read more about the ideas behind Pylot, refer to our paper,
+*Pylot: A Modular Platform for Exploring Latency-Accuracy Tradeoffs in Autonomous Vehicles* ([IEEE](https://ieeexplore.ieee.org/document/9561747/)) ([arXiv](https://arxiv.org/abs/2104.07830)).
+If you find Pylot useful to your work, please cite our paper as follows:
+```bibtex
+@inproceedings{gog2021pylot,
+  title={Pylot: A modular platform for exploring latency-accuracy tradeoffs in autonomous vehicles},
+  author={Gog, Ionel and Kalra, Sukrit and Schafhalter, Peter and Wright, Matthew A and Gonzalez, Joseph E and Stoica, Ion},
+  booktitle={2021 IEEE International Conference on Robotics and Automation (ICRA)},
+  pages={8806--8813},
+  year={2021},
+  organization={IEEE}
+}
+```
+
 # Getting Involved
 * [Community on Slack](https://forms.gle/KXwSrjM6ZqRi2MT18): Join our community
 on Slack for discussions about development, questions about usage, and feature
