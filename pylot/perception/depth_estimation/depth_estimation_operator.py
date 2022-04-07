@@ -11,6 +11,7 @@ import cv2
 import erdos
 from erdos.context import TwoInOneOutContext
 from erdos.operator import TwoInOneOut
+from pylot.perception.camera_frame import CameraFrame
 
 import torch
 import torch.backends.cudnn as cudnn
@@ -67,7 +68,7 @@ class DepthEstimationOperator(TwoInOneOut):
 
         self._model = model
 
-    def on_left_data(self, context: TwoInOneOutContext, data: erdos.Message):
+    def on_left_data(self, context: TwoInOneOutContext, data: CameraFrame):
         self._logger.debug('@{}: {} received left camera message'.format(
             context.timestamp, self.config.name))
         img = Image.fromarray(data.as_rgb_numpy_array().astype('uint8'), 'RGB')
@@ -78,7 +79,7 @@ class DepthEstimationOperator(TwoInOneOut):
         img = processed(img)
         self._left_imgs[context.timestamp] = img
 
-    def on_right_data(self, context: TwoInOneOutContext, data: erdos.Message):
+    def on_right_data(self, context: TwoInOneOutContext, data: CameraFrame):
         self._logger.debug('@{}: {} received right camera message'.format(
             context.timestamp, self.config.name))
         img = Image.fromarray(data.as_rgb_numpy_array().astype('uint8'), 'RGB')
