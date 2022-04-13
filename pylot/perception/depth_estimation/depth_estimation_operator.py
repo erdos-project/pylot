@@ -9,6 +9,9 @@ from PIL import Image
 import cv2
 
 import erdos
+from erdos.context import TwoInOneOutContext
+from erdos.operator import TwoInOneOut
+from pylot.perception.camera_frame import CameraFrame
 
 import torch
 import torch.backends.cudnn as cudnn
@@ -29,28 +32,16 @@ class AnyNetArgs(object):
         self.with_spn = False
 
 
-class DepthEstimationOperator(erdos.Operator):
+class DepthEstimationOperator(TwoInOneOut):
     """Estimates depth using two cameras, and AnyNet neural network.
 
     Args:
-        left_camera_stream (:py:class:`erdos.ReadStream`): The stream on which
-            left camera frames are received.
-        right_camera_stream (:py:class:`erdos.ReadStream`): The stream on which
-            right camera frames are received.
-        depth_camera_stream (:py:class:`erdos.WriteStream`): Stream on which
-            the operator sends computed depth frames.
         transform (:py:class:`~pylot.utils.Transform`): Transform of the center
             camera relative to the ego-vehicle.
         fov(:obj:`int`): Field of view of the center camera.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, left_camera_stream, right_camera_stream,
-                 depth_estimation_stream, transform, fov, flags):
-        left_camera_stream.add_callback(self.on_left_camera_msg)
-        right_camera_stream.add_callback(self.on_right_camera_msg)
-        erdos.add_watermark_callback([left_camera_stream, right_camera_stream],
-                                     [depth_estimation_stream],
-                                     self.compute_depth)
+    def __init__(self, transform, fov, flags):
         self._flags = flags
         self._left_imgs = {}
         self._right_imgs = {}
@@ -77,58 +68,35 @@ class DepthEstimationOperator(erdos.Operator):
 
         self._model = model
 
-    @staticmethod
-    def connect(left_camera_stream, right_camera_stream):
-        """Connects the operator to other streams.
-
-        Args:
-            left_camera_stream (:py:class:`erdos.ReadStream`): The stream on
-                which left camera frames are received.
-            right_camera_stream (:py:class:`erdos.ReadStream`): The stream on
-                which right camera frames are received.
-
-        Returns:
-            :py:class:`erdos.WriteStream`: Stream on which depth frames are
-            sent.
-        """
-        depth_estimation_stream = erdos.WriteStream()
-        return [depth_estimation_stream]
-
-    def destroy(self):
-        self._logger.warn('destroying {}'.format(self.config.name))
-
-    def on_left_camera_msg(self, msg):
+    def on_left_data(self, context: TwoInOneOutContext, data: CameraFrame):
         self._logger.debug('@{}: {} received left camera message'.format(
-            msg.timestamp, self.config.name))
-        img = Image.fromarray(msg.frame.as_rgb_numpy_array().astype('uint8'),
-                              'RGB')
+            context.timestamp, self.config.name))
+        img = Image.fromarray(data.as_rgb_numpy_array().astype('uint8'), 'RGB')
         w, h = img.size
         img = img.crop((w - 960, h - 544, w, h))
         #        img = preprocess.scale_crop(img)
         processed = preprocess.get_transform(augment=False)
         img = processed(img)
-        self._left_imgs[msg.timestamp] = img
+        self._left_imgs[context.timestamp] = img
 
-    def on_right_camera_msg(self, msg):
+    def on_right_data(self, context: TwoInOneOutContext, data: CameraFrame):
         self._logger.debug('@{}: {} received right camera message'.format(
-            msg.timestamp, self.config.name))
-        img = Image.fromarray(msg.frame.as_rgb_numpy_array().astype('uint8'),
-                              'RGB')
+            context.timestamp, self.config.name))
+        img = Image.fromarray(data.as_rgb_numpy_array().astype('uint8'), 'RGB')
         #        img = preprocess.scale_crop(img)
         w, h = img.size
         img = img.crop((w - 960, h - 544, w, h))
         processed = preprocess.get_transform(augment=False)
         img = processed(img)
-        self._right_imgs[msg.timestamp] = img
+        self._right_imgs[context.timestamp] = img
 
-    @erdos.profile_method()
-    def compute_depth(self, timestamp, depth_estimation_stream):
+    def on_watermark(self, context: TwoInOneOutContext):
         self._logger.debug('@{}: {} received watermark'.format(
-            timestamp, self.config.name))
-        if timestamp.is_top:
+            context.timestamp, self.config.name))
+        if context.timestamp.is_top:
             return
-        imgL = self._left_imgs.pop(timestamp)
-        imgR = self._right_imgs.pop(timestamp)
+        imgL = self._left_imgs.pop(context.timestamp)
+        imgR = self._right_imgs.pop(context.timestamp)
         cudnn.benchmark = False
         self._model.eval()
         imgL = imgL.float().cuda().unsqueeze(0)
@@ -149,5 +117,8 @@ class DepthEstimationOperator(erdos.Operator):
         #                            depth.shape[0],
         #                            self._transform,
         #                            fov=self._fov)
-        # depth_estimation_stream.send(
+        # context.write_stream.send(
         #     DepthFrameMessage(timestamp, DepthFrame(depth, camera_setup)))
+
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
