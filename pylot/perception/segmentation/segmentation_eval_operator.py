@@ -3,30 +3,21 @@
 import heapq
 
 import erdos
+from erdos.operator import TwoInOneOut
+from erdos.context import TwoInOneOutContext
 
+from pylot.perception.messages import SegmentedMessageTuple
+from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.utils import time_epoch_ms
 
 
-class SegmentationEvalOperator(erdos.Operator):
+class SegmentationEvalOperator(TwoInOneOut):
     """Operator that computes accuracy metrics using segmented frames.
 
     Args:
-        ground_segmented_stream (:py:class:`erdos.ReadStream`): Stream on
-            which perfectly segmented
-            :py:class:`~pylot.perception.messages.SegmentedFrameMessage` are
-            received.
-        segmented_stream (:py:class:`erdos.ReadStream`): Stream on which
-            segmented
-            :py:class:`~pylot.perception.messages.SegmentedFrameMessage` are
-            received.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, ground_segmented_stream, segmented_stream, flags):
-        ground_segmented_stream.add_callback(self.on_ground_segmented_frame)
-        segmented_stream.add_callback(self.on_segmented_frame)
-        # Register a watermark callback.
-        erdos.add_watermark_callback(
-            [ground_segmented_stream, segmented_stream], [], self.on_watermark)
+    def __init__(self, flags):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -41,44 +32,20 @@ class SegmentationEvalOperator(erdos.Operator):
         self._sim_interval = None
         self._last_notification = None
 
-    @staticmethod
-    def connect(ground_segmented_stream, segmented_stream):
-        """Connects the operator to other streams.
-
-        Args:
-            ground_segmented_stream (:py:class:`erdos.ReadStream`): Stream on
-                 which perfectly segmented
-                 :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
-                 are received.
-            segmented_stream (:py:class:`erdos.ReadStream`): Stream on which
-                segmented
-                :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
-                are received.
-        """
-        return []
-
-    def destroy(self):
-        self._logger.warn('destroying {}'.format(self.config.name))
-
-    def on_watermark(self, timestamp):
-        """Invoked when all input streams have received a watermark.
-
-        Args:
-            timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
-                the watermark.
-        """
-        if timestamp.is_top:
+    def on_watermark(self, context: TwoInOneOutContext):
+        """Invoked when all input streams have received a watermark."""
+        if context.timestamp.is_top:
             return
-        assert len(timestamp.coordinates) == 1
+        assert len(context.timestamp.coordinates) == 1
         if not self._last_notification:
-            self._last_notification = timestamp.coordinates[0]
+            self._last_notification = context.timestamp.coordinates[0]
             return
         else:
-            self._sim_interval = timestamp.coordinates[
+            self._sim_interval = context.timestamp.coordinates[
                 0] - self._last_notification
-            self._last_notification = timestamp.coordinates[0]
+            self._last_notification = context.timestamp.coordinates[0]
 
-        game_time = timestamp.coordinates[0]
+        game_time = context.timestamp.coordinates[0]
         while len(self._segmented_start_end_times) > 0:
             (end_time, start_time) = self._segmented_start_end_times[0]
             # We can compute mIoU if the end time is not greater than the
@@ -90,21 +57,25 @@ class SegmentationEvalOperator(erdos.Operator):
                 self._logger.debug('Computing for times {} {}'.format(
                     start_time, end_time))
                 start_frame = self.__get_segmented_at(start_time)
-                self.__compute_mean_iou(timestamp, end_frame, start_frame)
+                self.__compute_mean_iou(context.timestamp, end_frame,
+                                        start_frame)
             else:
                 # The remaining entries are newer ground segmentated frames.
                 break
 
         self.__garbage_collect_segmentation()
 
-    def on_ground_segmented_frame(self, msg):
+    def on_left_data(self, context: TwoInOneOutContext, data: SegmentedFrame):
+        """Invoked on each ground truth frame."""
         # Buffer the ground truth frames.
-        game_time = msg.timestamp.coordinates[0]
-        self._ground_frames.append((game_time, msg.frame))
+        game_time = context.timestamp.coordinates[0]
+        self._ground_frames.append((game_time, data))
 
-    def on_segmented_frame(self, msg):
-        game_time = msg.timestamp.coordinates[0]
-        self._segmented_frames.append((game_time, msg.frame))
+    def on_right_data(self, context: TwoInOneOutContext,
+                      data: SegmentedMessageTuple):
+        """Invoked on each segmented frame."""
+        game_time = context.timestamp.coordinates[0]
+        self._segmented_frames.append((game_time, data.frame))
         # Two metrics: 1) mIoU, and 2) timely-mIoU
         if self._flags.segmentation_metric == 'mIoU':
             # We will compare with segmented ground frame with the same game
@@ -115,13 +86,16 @@ class SegmentationEvalOperator(erdos.Operator):
             # Ground segmented frame time should be as close as possible to
             # the time game time + segmentation runtime.
             segmented_time = self.__compute_closest_frame_time(game_time +
-                                                               msg.runtime)
+                                                               data.runtime)
             # Round time to nearest frame.
             heapq.heappush(self._segmented_start_end_times,
                            (segmented_time, game_time))
         else:
             self._logger.fatal('Unexpected segmentation metric {}'.format(
                 self._flags.segmentation_metric))
+
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
 
     def __compute_closest_frame_time(self, time):
         base = int(time) / self._sim_interval * self._sim_interval
