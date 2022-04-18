@@ -186,6 +186,29 @@ def main(args):
                 ttd_ingest_stream,
                 model_path=FLAGS.obstacle_detection_model_paths[0],
                 flags=FLAGS)
+        if DETECTOR == 'detection_decay':
+            from pylot.perception.detection.detection_operator import DetectionOperator
+            detection_op_cfg = erdos.operator.OperatorConfig(
+                name='detection_op')
+            obstacles_stream = erdos.connect_two_in_one_out(
+                DetectionOperator,
+                detection_op_cfg,
+                camera_ingest_stream,
+                ttd_ingest_stream,
+                model_path=FLAGS.obstacle_detection_model_paths[0],
+                flags=FLAGS)
+
+            flags.DEFINE_integer(
+                'decay_max_latency', 400,
+                'Max latency to evaluate in ground truth experiments')
+
+            from pylot.perception.detection.detection_decay_operator import DetectionDecayOperator
+            detection_decay_op_cfg = erdos.operator.OperatorConfig(
+                name='detection_decay_op')
+            map_results = erdos.connect_one_in_one_out(DetectionDecayOperator,
+                                                       detection_decay_op_cfg,
+                                                       obstacles_stream,
+                                                       flags=FLAGS)
         if DETECTOR == 'traffic_light':
             from pylot.perception.detection.traffic_light_det_operator import TrafficLightDetOperator
             traffic_light_op_cfg = erdos.operator.OperatorConfig(
@@ -260,6 +283,10 @@ def main(args):
         # Spawn 20 test vehicles
         pylot.simulation.utils.spawn_vehicles(client, world, 8000, 20,
                                               logging.Logger(name="test"))
+
+        # Spawn 100 people
+        pylot.simulation.utils.spawn_people(client, world, 100,
+                                            logging.Logger(name="test2"))
 
         time.sleep(5)
 

@@ -1,5 +1,6 @@
 """This module implements perception related Message classes."""
 
+from typing import NamedTuple
 import erdos
 
 import numpy as np
@@ -9,6 +10,20 @@ import pylot.perception.depth_frame
 import pylot.perception.point_cloud
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.utils import Location, Rotation, Transform
+
+
+class ObstaclesMessageTuple(NamedTuple):
+    """
+    Used to send detected obstacles.
+
+    Attributes:
+        obstacles (list(:py:class:`~.detection.obstacle.Obstacle`)):
+            Detected obstacles.
+        runtime (:obj:`float`, optional): The runtime of the operator that
+            produced the obstacles (in ms).
+    """
+    obstacles: list
+    runtime: float
 
 
 # TODO: Remove FrameMessage when redesign port complete

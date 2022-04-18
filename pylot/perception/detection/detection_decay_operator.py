@@ -1,23 +1,21 @@
 from collections import deque
 
 import erdos
+from erdos.operator import OneInOneOut
+from erdos.context import OneInOneOutContext
 
 from pylot.perception.detection.utils import get_precision_recall_at_iou
+from pylot.perception.messages import ObstaclesMessageTuple
 from pylot.utils import time_epoch_ms
 
 
-class DetectionDecayOperator(erdos.Operator):
+class DetectionDecayOperator(OneInOneOut):
     """Operator that computes timely accuracy metrics.
 
     Args:
-        obstacles_stream (:py:class:`erdos.ReadStream`): The stream on which
-            detected obstacles are received.
-        map_stream (:py:class:`erdos.WriteStream`): Stream on which the
-            operator publishes mAP accuracy results.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, obstacles_stream, map_stream, flags):
-        obstacles_stream.add_callback(self.on_ground_obstacles, [map_stream])
+    def __init__(self, flags):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._csv_logger = erdos.utils.setup_csv_logging(
@@ -26,29 +24,15 @@ class DetectionDecayOperator(erdos.Operator):
         self._ground_bboxes = deque()
         self._iou_thresholds = [0.1 * i for i in range(1, 10)]
 
-    @staticmethod
-    def connect(obstacles_stream):
-        """Connects the operator to other streams.
-
-        Args:
-            obstacles_stream (:py:class:`erdos.ReadStream`): The stream on
-                which detected obstacles are received.
-
-        Returns:
-            :py:class:`erdos.WriteStream`: Stream on which the operator
-            publishes mAP accuracy results.
-        """
-        map_stream = erdos.WriteStream()
-        return [map_stream]
-
-    def on_ground_obstacles(self, msg, map_stream):
+    def on_data(self, context: OneInOneOutContext,
+                data: ObstaclesMessageTuple):
         # Ignore the first several seconds of the simulation because the car is
         # not moving at the beginning.
-        assert len(msg.timestamp.coordinates) == 1
-        game_time = msg.timestamp.coordinates[0]
+        assert len(context.timestamp.coordinates) == 1
+        game_time = context.timestamp.coordinates[0]
         bboxes = []
         # Select the person bounding boxes.
-        for obstacle in msg.obstacles:
+        for obstacle in data.obstacles:
             if obstacle.is_person():
                 bboxes.append(obstacle.bounding_box)
 
@@ -58,7 +42,7 @@ class DetectionDecayOperator(erdos.Operator):
                self._flags.decay_max_latency):
             self._ground_bboxes.popleft()
 
-        sim_time = msg.timestamp.coordinates[0]
+        sim_time = context.timestamp.coordinates[0]
         for (old_game_time, old_bboxes) in self._ground_bboxes:
             # Ideally, we would like to take multiple precision values at
             # different recalls and average them, but we can't vary model
@@ -78,8 +62,8 @@ class DetectionDecayOperator(erdos.Operator):
                 self._csv_logger.info('{},{},{},{},{:.4f}'.format(
                     time_epoch_ms(), sim_time, self.config.name, latency,
                     avg_precision))
-                map_stream.send(
-                    erdos.Message(msg.timestamp, (latency, avg_precision)))
+                context.write_stream.send(
+                    erdos.Message(context.timestamp, (latency, avg_precision)))
 
         # Buffer the new bounding boxes.
         self._ground_bboxes.append((game_time, bboxes))
