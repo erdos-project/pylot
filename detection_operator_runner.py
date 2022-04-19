@@ -37,8 +37,9 @@ FLAGS = flags.FLAGS
 flags.DEFINE_enum(
     'test_operator',
     'detection_operator', [
-        'detection_operator', 'traffic_light', 'efficient_det', 'lanenet',
-        'canny_lane', 'depth_estimation', 'qd_track', 'segmentation_decay',
+        'detection_operator', 'detection_eval', 'detection_decay',
+        'traffic_light', 'efficient_det', 'lanenet', 'canny_lane',
+        'depth_estimation', 'qd_track', 'segmentation_decay',
         'segmentation_drn', 'segmentation_eval'
     ],
     help='Operator of choice to test')
@@ -178,10 +179,8 @@ def main(args):
             name='ground_obstacles_stream')
 
         DETECTOR = FLAGS.test_operator
-
-        if DETECTOR == 'detection_eval':
+        if DETECTOR == 'detection_operator':
             from pylot.perception.detection.detection_operator import DetectionOperator
-            from pylot.perception.detection.detection_eval_operator import DetectionEvalOperator
             detection_op_cfg = erdos.operator.OperatorConfig(
                 name='detection_op')
             obstacles_stream = erdos.connect_two_in_one_out(
@@ -190,6 +189,30 @@ def main(args):
                 rgb_camera_ingest_stream,
                 ttd_ingest_stream,
                 model_path=FLAGS.obstacle_detection_model_paths[0],
+                flags=FLAGS)
+        if DETECTOR == 'detection_eval':
+            from pylot.perception.detection.detection_operator import DetectionOperator
+            detection_op_cfg = erdos.operator.OperatorConfig(
+                name='detection_op')
+            obstacles_stream = erdos.connect_two_in_one_out(
+                DetectionOperator,
+                detection_op_cfg,
+                rgb_camera_ingest_stream,
+                ttd_ingest_stream,
+                model_path=FLAGS.obstacle_detection_model_paths[0],
+                flags=FLAGS)
+
+            from pylot.perception.detection.detection_eval_operator import DetectionEvalOperator
+            detection_eval_cfg = erdos.operator.OperatorConfig(
+                name='detection_eval_op')
+            metrics_stream = erdos.connect_two_in_one_out(
+                DetectionEvalOperator,
+                detection_eval_cfg,
+                obstacles_stream,
+                ground_obstacles_stream,
+                evaluate_timely=False,
+                matching_policy='ceil',
+                frame_gap=None,
                 flags=FLAGS)
         if DETECTOR == 'detection_decay':
             from pylot.perception.detection.detection_operator import DetectionOperator
