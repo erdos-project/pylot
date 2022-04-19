@@ -25,6 +25,19 @@ class ObstaclesMessageTuple(NamedTuple):
     runtime: float
 
 
+class SegmentedMessageTuple(NamedTuple):
+    """
+    Used to send .
+    Attributes:
+        frame (list(:py:class:`~.perception.segmentation.SegmentedFrame`)):
+            Segmented frame object.
+        runtime (:obj:`float`, optional): The runtime of the operator that
+            produced the obstacles (in ms).
+    """
+    frame: SegmentedFrame
+    runtime: float
+
+
 # TODO: Remove FrameMessage when redesign port complete
 class FrameMessage(erdos.Message):
     """Message class to be used to send camera frames.

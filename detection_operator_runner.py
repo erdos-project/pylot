@@ -34,12 +34,14 @@ from pylot.drivers.sensor_setup import RGBCameraSetup, DepthCameraSetup, Segment
 _lock = threading.Lock()
 
 FLAGS = flags.FLAGS
-flags.DEFINE_enum('test_operator',
-                  'detection_operator', [
-                      'detection_operator', 'traffic_light', 'efficient_det',
-                      'lanenet', 'canny_lane', 'depth_estimation', 'qd_track'
-                  ],
-                  help='Operator of choice to test')
+flags.DEFINE_enum(
+    'test_operator',
+    'detection_operator', [
+        'detection_operator', 'traffic_light', 'efficient_det', 'lanenet',
+        'canny_lane', 'depth_estimation', 'qd_track', 'segmentation_decay',
+        'segmentation_drn', 'segmentation_eval'
+    ],
+    help='Operator of choice to test')
 
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.0, 0.0, 1.8)
 
@@ -193,7 +195,7 @@ def main(args):
             obstacles_stream = erdos.connect_two_in_one_out(
                 DetectionOperator,
                 detection_op_cfg,
-                camera_ingest_stream,
+                rgb_camera_ingest_stream,
                 ttd_ingest_stream,
                 model_path=FLAGS.obstacle_detection_model_paths[0],
                 flags=FLAGS)
@@ -269,11 +271,46 @@ def main(args):
             from pylot.perception.tracking.qd_track_operator import QdTrackOperator
             qd_track_op_cfg = erdos.operator.OperatorConfig(name='qd_track_op')
             obstacles_stream = erdos.connect_one_in_one_out(
-                QdTrackOperator,
-                qd_track_op_cfg,
+                QdTrackOperator, qd_track_op_cfg, rgb_camera_ingest_stream,
+                FLAGS, rgb_camera_setup)
+        if DETECTOR == 'segmentation_decay':
+            from pylot.perception.segmentation.segmentation_decay_operator import SegmentationDecayOperator
+            flags.DEFINE_integer(
+                'decay_max_latency', 400,
+                'Max latency to evaluate in ground truth experiments')
+            segmentation_decay_op_cfg = erdos.operator.OperatorConfig(
+                name='segmentation_decay_op')
+            iou_stream = erdos.connect_one_in_one_out(
+                SegmentationDecayOperator,
+                segmentation_decay_op_cfg,
+                seg_camera_ingest_stream,
+                flags=FLAGS)
+        if DETECTOR == 'segmentation_drn':
+            from pylot.perception.segmentation.segmentation_drn_operator import SegmentationDRNOperator
+            segmentation_drn_op_cfg = erdos.operator.OperatorConfig(
+                name='segmentation_drn_op')
+            segmented_stream = erdos.connect_one_in_one_out(
+                SegmentationDRNOperator,
+                segmentation_drn_op_cfg,
                 rgb_camera_ingest_stream,
-                FLAGS,
-                rgb_camera_setup)
+                flags=FLAGS)
+        if DETECTOR == 'segmentation_eval':
+            from pylot.perception.segmentation.segmentation_drn_operator import SegmentationDRNOperator
+            segmentation_drn_op_cfg = erdos.operator.OperatorConfig(
+                name='segmentation_drn_op')
+            segmented_stream = erdos.connect_one_in_one_out(
+                SegmentationDRNOperator,
+                segmentation_drn_op_cfg,
+                rgb_camera_ingest_stream,
+                flags=FLAGS)
+            from pylot.perception.segmentation.segmentation_eval_operator import SegmentationEvalOperator
+            segmentation_eval_op_cfg = erdos.operator.OperatorConfig(
+                name='segmentation_eval')
+            _ = erdos.connect_two_in_one_out(SegmentationEvalOperator,
+                                             segmentation_eval_op_cfg,
+                                             seg_camera_ingest_stream,
+                                             segmented_stream,
+                                             flags=FLAGS)
 
         erdos.run_async()
 
