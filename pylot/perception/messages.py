@@ -15,7 +15,6 @@ from pylot.utils import Location, Rotation, Transform
 class ObstaclesMessageTuple(NamedTuple):
     """
     Used to send detected obstacles.
-
     Attributes:
         obstacles (list(:py:class:`~.detection.obstacle.Obstacle`)):
             Detected obstacles.

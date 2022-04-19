@@ -37,7 +37,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_enum('test_operator',
                   'detection_operator', [
                       'detection_operator', 'traffic_light', 'efficient_det',
-                      'lanenet', 'canny_lane', 'depth_estimation'
+                      'lanenet', 'canny_lane', 'depth_estimation', 'qd_track'
                   ],
                   help='Operator of choice to test')
 
@@ -265,6 +265,15 @@ def main(args):
                 transform=depth_camera_setup.get_transform(),
                 fov=FLAGS.camera_fov,
                 flags=FLAGS)
+        if DETECTOR == 'qd_track':
+            from pylot.perception.tracking.qd_track_operator import QdTrackOperator
+            qd_track_op_cfg = erdos.operator.OperatorConfig(name='qd_track_op')
+            obstacles_stream = erdos.connect_one_in_one_out(
+                QdTrackOperator,
+                qd_track_op_cfg,
+                rgb_camera_ingest_stream,
+                FLAGS,
+                rgb_camera_setup)
 
         erdos.run_async()
 
