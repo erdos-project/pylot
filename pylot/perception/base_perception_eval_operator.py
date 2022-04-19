@@ -5,7 +5,7 @@ from erdos.operator import TwoInOneOut
 from erdos.context import TwoInOneOutContext
 
 from pylot.utils import time_epoch_ms
-from pylot.perception.messages import ObstaclesMessage
+from pylot.perception.messages import ObstaclesMessageTuple
 
 
 class BasePerceptionEvalOperator(TwoInOneOut):
@@ -49,9 +49,10 @@ class BasePerceptionEvalOperator(TwoInOneOut):
         self._csv_logger = erdos.utils.setup_csv_logging(
             self.config.name + '-csv', self.config.csv_log_file_name)
 
-    def on_left_data(self, context: TwoInOneOutContext, data: erdos.Message):
+    def on_left_data(self, context: TwoInOneOutContext,
+                     data: ObstaclesMessageTuple):
         game_time = context.timestamp.coordinates[0]
-        self._predictions.append((game_time, data))
+        self._predictions.append((game_time, data.obstacles))
         if len(self._predictions) > 1:
             assert game_time >= self._predictions[-2][0], \
                 'Obstacle messages did not arrive in order'
@@ -68,9 +69,10 @@ class BasePerceptionEvalOperator(TwoInOneOut):
             self._prediction_start_end_times.append(
                 (game_time, ground_truth_time))
 
-    def on_right_data(self, context: TwoInOneOutContext, data: erdos.Message):
+    def on_right_data(self, context: TwoInOneOutContext,
+                      data: ObstaclesMessageTuple):
         game_time = context.timestamp.coordinates[0]
-        self._ground_truths.append((game_time, data))
+        self._ground_truths.append((game_time, data.obstacles))
 
     def on_watermark(self, context: TwoInOneOutContext):
         """Invoked when all input streams have received a watermark."""

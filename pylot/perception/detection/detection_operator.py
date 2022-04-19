@@ -67,7 +67,8 @@ class DetectionOperator(TwoInOneOut):
         obstacles = []
         for i in range(0, num_detections):
             if res_classes[i] in self._coco_labels:
-                if (res_scores[i] >= self._flags.obstacle_detection_min_score_threshold):
+                if (res_scores[i] >=
+                        self._flags.obstacle_detection_min_score_threshold):
                     if (self._coco_labels[res_classes[i]] in OBSTACLE_LABELS):
                         obstacles.append(
                             Obstacle(BoundingBox2D(
