@@ -16,25 +16,13 @@ class DetectionEvalOperator(BasePerceptionEvalOperator):
     """Operator that computes accuracy metrics using detected obstacles.
 
     Args:
-        obstacles_stream (:py:class:`erdos.ReadStream`): The stream on which
-            detected obstacles are received.
-        ground_obstacles_stream: The stream on which
-            :py:class:`~pylot.perception.messages.ObstaclesMessage` are
-            received from the simulator.
-        finished_indicator_stream: Stream on which the operator notifies
-            when it finished execution.
         evaluate_timely (:obj:`bool`): Compute timely or non-timely accuracy.
         frame_gap (:obj:`int`): Time in ms between frames.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, prediction_stream: erdos.ReadStream,
-                 ground_truth_stream: erdos.ReadStream,
-                 finished_indicator_stream: erdos.WriteStream,
-                 evaluate_timely: bool, matching_policy: str, frame_gap: int,
-                 flags):
-        super().__init__(prediction_stream, ground_truth_stream,
-                         finished_indicator_stream, evaluate_timely,
-                         matching_policy, frame_gap,
+    def __init__(self, evaluate_timely: bool, matching_policy: str,
+                 frame_gap: int, flags):
+        super().__init__(evaluate_timely, matching_policy, frame_gap,
                          CocoDetectionScoringModule, flags)
 
 
@@ -86,12 +74,8 @@ class CocoDetectionScoringModule(ScoringModule):
             r["score"] = obstacle.confidence
             return r
 
-        lables_dict_list = \
-            [obstacle_to_dict(go)
-             for go in ground_obstacles if go.label in self.from_dataset]
-        pred_dict_list = \
-            [obstacle_to_dict(o)
-             for o in obstacles if o.label in self.from_model]
+        lables_dict_list = [obstacle_to_dict(go) for go in ground_obstacles]
+        pred_dict_list = [obstacle_to_dict(o) for o in obstacles]
         self.coco_eval.add_image_label_prediction(
             image_dict={
                 "width": self._flags.camera_image_width,
