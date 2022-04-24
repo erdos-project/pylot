@@ -1,16 +1,20 @@
 """Implements an operator that fits a linear model to predict trajectories."""
 
+from typing import Any
+
 import erdos
-from erdos import Message, ReadStream, WriteStream
+from erdos.operator import TwoInOneOut
+from erdos.context import TwoInOneOutContext
 
 import numpy as np
 
-from pylot.prediction.messages import PredictionMessage
+from pylot.perception.messages import ObstacleTrajectoriesMessageTuple
+from pylot.prediction.messages import PredictionMessageTuple
 from pylot.prediction.obstacle_prediction import ObstaclePrediction
 from pylot.utils import Location, Transform
 
 
-class LinearPredictorOperator(erdos.Operator):
+class LinearPredictorOperator(TwoInOneOut):
     """Operator that implements a linear predictor.
 
     It takes (x,y) locations of agents in past, and fits a linear model to
@@ -25,54 +29,24 @@ class LinearPredictorOperator(erdos.Operator):
             :py:class:`~pylot.prediction.messages.PredictionMessage` messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, tracking_stream: ReadStream,
-                 time_to_decision_stream: ReadStream,
-                 linear_prediction_stream: WriteStream, flags):
-        tracking_stream.add_callback(self.generate_predicted_trajectories,
-                                     [linear_prediction_stream])
-        time_to_decision_stream.add_callback(self.on_time_to_decision_update)
+    def __init__(self, flags):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
 
-    @staticmethod
-    def connect(tracking_stream: ReadStream,
-                time_to_decision_stream: ReadStream):
-        """Connects the operator to other streams.
-
-        Args:
-            tracking_stream (:py:class:`erdos.ReadStream`): The stream on which
-                :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
-                are received.
-
-        Returns:
-            :py:class:`erdos.WriteStream`: Stream on which the operator sends
-            :py:class:`~pylot.prediction.messages.PredictionMessage` messages.
-        """
-        linear_prediction_stream = erdos.WriteStream()
-        return [linear_prediction_stream]
-
-    def destroy(self):
-        self._logger.warn('destroying {}'.format(self.config.name))
-
-    def on_time_to_decision_update(self, msg):
-        self._logger.debug('@{}: {} received ttd update {}'.format(
-            msg.timestamp, self.config.name, msg))
-
-    @erdos.profile_method()
-    def generate_predicted_trajectories(self, msg: Message,
-                                        linear_prediction_stream: WriteStream):
+    def on_left_data(self, context: TwoInOneOutContext,
+                     data: ObstacleTrajectoriesMessageTuple):
         self._logger.debug('@{}: received trajectories message'.format(
-            msg.timestamp))
+            context.timestamp))
         obstacle_predictions_list = []
 
         nearby_obstacle_trajectories, nearby_obstacles_ego_transforms = \
-            msg.get_nearby_obstacles_info(self._flags.prediction_radius)
+            data.get_nearby_obstacles_info(self._flags.prediction_radius)
         num_predictions = len(nearby_obstacle_trajectories)
 
         self._logger.info(
             '@{}: Getting linear predictions for {} obstacles'.format(
-                msg.timestamp, num_predictions))
+                context.timestamp, num_predictions))
 
         for idx in range(len(nearby_obstacle_trajectories)):
             obstacle_trajectory = nearby_obstacle_trajectories[idx]
@@ -111,5 +85,13 @@ class LinearPredictorOperator(erdos.Operator):
                 ObstaclePrediction(obstacle_trajectory,
                                    obstacle_trajectory.obstacle.transform, 1.0,
                                    predictions))
-        linear_prediction_stream.send(
-            PredictionMessage(msg.timestamp, obstacle_predictions_list))
+        context.write_stream.send(
+            PredictionMessageTuple(context.timestamp,
+                                   obstacle_predictions_list))
+
+    def on_right_data(self, context: TwoInOneOutContext, data: Any):
+        self._logger.debug('@{}: {} received ttd update {}'.format(
+            context.timestamp, self.config.name, data))
+
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))

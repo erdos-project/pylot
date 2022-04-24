@@ -1,4 +1,19 @@
+from typing import NamedTuple
 import erdos
+
+
+class PredictionMessageTuple(NamedTuple):
+    """
+    Message class to be used to send obstacle predictions.
+
+    Attributes:
+        timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
+            the message.
+        predictions (list(:py:class:`~pylot.prediction.obstacle_prediction.ObstaclePrediction`)):  # noqa: E501
+            Obstacle predictions.
+    """
+    timestamp: erdos.Timestamp
+    predictions: list
 
 
 class PredictionMessage(erdos.Message):

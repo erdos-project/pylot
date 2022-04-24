@@ -396,6 +396,18 @@ def main(args):
                 collision_op_cfg,
                 vehicle_id_stream,
                 flags=FLAGS)
+        if DETECTOR == 'linear_predictor':
+            from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
+            linear_predictor_op_cfg = erdos.operator.OperatorConfig(
+                name='linear_predictor_op')
+
+            time_to_decision_stream = erdos.IngestStream()
+            linear_prediction_stream = erdos.connect_two_in_one_out(
+                LinearPredictorOperator,
+                linear_predictor_op_cfg,
+                _,
+                time_to_decision_stream,
+                flags=FLAGS)
 
         erdos.run_async()
 
