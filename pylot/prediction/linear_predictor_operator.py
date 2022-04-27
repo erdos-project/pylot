@@ -9,7 +9,6 @@ from erdos.context import TwoInOneOutContext
 import numpy as np
 
 from pylot.perception.messages import ObstacleTrajectoriesMessageTuple
-from pylot.prediction.messages import PredictionMessageTuple
 from pylot.prediction.obstacle_prediction import ObstaclePrediction
 from pylot.utils import Location, Transform
 
@@ -86,8 +85,7 @@ class LinearPredictorOperator(TwoInOneOut):
                                    obstacle_trajectory.obstacle.transform, 1.0,
                                    predictions))
         context.write_stream.send(
-            PredictionMessageTuple(context.timestamp,
-                                   obstacle_predictions_list))
+            erdos.Message(context.timestamp, obstacle_predictions_list))
 
     def on_right_data(self, context: TwoInOneOutContext, data: Any):
         self._logger.debug('@{}: {} received ttd update {}'.format(
