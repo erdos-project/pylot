@@ -40,7 +40,8 @@ flags.DEFINE_enum(
         'detection_operator', 'detection_eval', 'detection_decay',
         'traffic_light', 'efficient_det', 'lanenet', 'canny_lane',
         'depth_estimation', 'qd_track', 'segmentation_decay',
-        'segmentation_drn', 'segmentation_eval'
+        'segmentation_drn', 'segmentation_eval', 'bounding_box_logger',
+        'camera_logger', 'multiple_object_logger'
     ],
     help='Operator of choice to test')
 
@@ -337,6 +338,49 @@ def main(args):
                                              seg_camera_ingest_stream,
                                              segmented_stream,
                                              flags=FLAGS)
+        if DETECTOR == 'bounding_box_logger':
+            from pylot.perception.detection.detection_operator import DetectionOperator
+            detection_op_cfg = erdos.operator.OperatorConfig(
+                name='detection_op')
+            obstacles_stream = erdos.connect_two_in_one_out(
+                DetectionOperator,
+                detection_op_cfg,
+                rgb_camera_ingest_stream,
+                ttd_ingest_stream,
+                model_path=FLAGS.obstacle_detection_model_paths[0],
+                flags=FLAGS)
+
+            from pylot.loggers.bounding_box_logger_operator import BoundingBoxLoggerOperator
+            detection_logger_cfg = erdos.operator.OperatorConfig(
+                name='detection_logger_op')
+            finished_indicator_stream = erdos.connect_one_in_one_out(
+                BoundingBoxLoggerOperator, detection_logger_cfg,
+                obstacles_stream, FLAGS, './')
+        if DETECTOR == 'camera_logger':
+            from pylot.loggers.camera_logger_operator import CameraLoggerOperator
+            camera_logger_op_cfg = erdos.operator.OperatorConfig(
+                name='camera_logger_op')
+            finished_indicator_stream = erdos.connect_one_in_one_out(
+                CameraLoggerOperator, camera_logger_op_cfg,
+                rgb_camera_ingest_stream, FLAGS, 'testing')
+        if DETECTOR == 'multiple_object_logger':
+            from pylot.perception.detection.detection_operator import DetectionOperator
+            detection_op_cfg = erdos.operator.OperatorConfig(
+                name='detection_op')
+            obstacles_stream = erdos.connect_two_in_one_out(
+                DetectionOperator,
+                detection_op_cfg,
+                rgb_camera_ingest_stream,
+                ttd_ingest_stream,
+                model_path=FLAGS.obstacle_detection_model_paths[0],
+                flags=FLAGS)
+
+            from pylot.loggers.multiple_object_tracker_logger_operator import MultipleObjectTrackerLoggerOperator
+            multiple_object_logger_cfg = erdos.operator.OperatorConfig(
+                name='multiple_object_logger_op')
+            finished_indicator_stream = erdos.connect_one_in_one_out(
+                MultipleObjectTrackerLoggerOperator,
+                multiple_object_logger_cfg, obstacles_stream, FLAGS)
 
         erdos.run_async()
 

@@ -2,9 +2,13 @@
 import os
 
 import erdos
+from erdos.context import OneInOneOutContext
+from erdos.operator import OneInOneOut
+
+from pylot.perception.camera_frame import CameraFrame
 
 
-class CameraLoggerOperator(erdos.Operator):
+class CameraLoggerOperator(OneInOneOut):
     """Logs camera frames to files.
 
     Args:
@@ -22,10 +26,7 @@ class CameraLoggerOperator(erdos.Operator):
             it logs to.
         _data_path (:obj:`str`): Directory to which to log files.
     """
-    def __init__(self, camera_stream: erdos.ReadStream,
-                 finished_indicator_stream: erdos.WriteStream, flags,
-                 filename_prefix: str):
-        camera_stream.add_callback(self.on_frame)
+    def __init__(self, flags, filename_prefix: str):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
@@ -34,21 +35,12 @@ class CameraLoggerOperator(erdos.Operator):
         self._data_path = os.path.join(self._flags.data_path, filename_prefix)
         os.makedirs(self._data_path, exist_ok=True)
 
-    @staticmethod
-    def connect(camera_stream: erdos.ReadStream):
-        """Connects the operator to other streams.
-
-        The operator receives a camera stream.
-        """
-        finished_indicator_stream = erdos.WriteStream()
-        return [finished_indicator_stream]
-
-    def on_frame(self, msg: erdos.Message):
+    def on_data(self, context: OneInOneOutContext, data: CameraFrame):
         """Invoked whenever a frame message is received on the stream."""
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.config.name))
+            context.timestamp, self.config.name))
         self._frame_cnt += 1
         if self._frame_cnt % self._flags.log_every_nth_message != 0:
             return
-        msg.frame.save(msg.timestamp.coordinates[0], self._data_path,
-                       self._filename_prefix)
+        data.save(context.timestamp.coordinates[0], self._data_path,
+                  self._filename_prefix)
