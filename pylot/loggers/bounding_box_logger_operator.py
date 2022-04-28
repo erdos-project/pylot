@@ -37,7 +37,8 @@ class BoundingBoxLoggerOperator(OneInOneOut):
         Invoked upon the receipt of a msg on the obstacles stream.
 
         Args:
-            data (:py:class:`~pylot.perception.messages.ObstaclesMessageTuple`):
+            data (:py:class:`~pylot.perception.messages.
+                   ObstaclesMessageTuple`):
                 Received message.
         """
         self._logger.debug('@{}: {} received message'.format(
