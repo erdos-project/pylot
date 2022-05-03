@@ -40,7 +40,7 @@ flags.DEFINE_enum(
         'detection_operator', 'detection_eval', 'detection_decay',
         'traffic_light', 'efficient_det', 'lanenet', 'canny_lane',
         'depth_estimation', 'qd_track', 'segmentation_decay',
-        'segmentation_drn', 'segmentation_eval'
+        'segmentation_drn', 'segmentation_eval', 'collision_sensor'
     ],
     help='Operator of choice to test')
 
@@ -177,6 +177,7 @@ def main(args):
         ttd_ingest_stream = erdos.streams.IngestStream(name='ttd')
         ground_obstacles_stream = erdos.streams.IngestStream(
             name='ground_obstacles_stream')
+        vehicle_id_stream = erdos.streams.IngestStream(name='vehicle_id')
 
         DETECTOR = FLAGS.test_operator
         if DETECTOR == 'detection_operator':
@@ -337,8 +338,21 @@ def main(args):
                                              seg_camera_ingest_stream,
                                              segmented_stream,
                                              flags=FLAGS)
+        if DETECTOR == 'collision_sensor':
+            from pylot.drivers.carla_collision_sensor_operator import CarlaCollisionSensorDriverOperator
+            collision_op_cfg = erdos.operator.OperatorConfig(name='collision')
+            collision_stream = erdos.connect_one_in_one_out(
+                CarlaCollisionSensorDriverOperator,
+                collision_op_cfg,
+                vehicle_id_stream,
+                flags=FLAGS)
 
         erdos.run_async()
+
+        vehicle_id_stream.send(
+            erdos.Message(erdos.Timestamp(coordinates=[0]), vehicle.id))
+        vehicle_id_stream.send(
+            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
         # Register camera frame callbacks
         add_carla_callback(rgb_camera, rgb_camera_setup,
