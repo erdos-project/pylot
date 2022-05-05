@@ -21,7 +21,7 @@ class CollisionMessageTuple(NamedTuple):
     """
     collided_actor: str
     impulse: Vector3D
-    timestamp: Timestamp
+    intensity: float
 
 
 class CollisionMessage(erdos.Message):

@@ -349,11 +349,6 @@ def main(args):
 
         erdos.run_async()
 
-        vehicle_id_stream.send(
-            erdos.Message(erdos.Timestamp(coordinates=[0]), vehicle.id))
-        vehicle_id_stream.send(
-            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
-
         # Register camera frame callbacks
         add_carla_callback(rgb_camera, rgb_camera_setup,
                            rgb_camera_ingest_stream)
@@ -373,6 +368,11 @@ def main(args):
         # Spawn 100 people
         pylot.simulation.utils.spawn_people(client, world, 100,
                                             logging.Logger(name="test2"))
+
+        vehicle_id_stream.send(
+            erdos.Message(erdos.Timestamp(coordinates=[0]), vehicle.id))
+        vehicle_id_stream.send(
+            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
         time.sleep(5)
 

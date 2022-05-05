@@ -75,13 +75,13 @@ class CarlaCollisionSensorDriverOperator(OneInOneOut):
 
         # Create a CollisionMessage.
         timestamp = erdos.Timestamp(coordinates=[game_time])
-        msg = CollisionMessageTuple(
-            collision_event.other_actor,
-            Vector3D.from_simulator_vector(collision_event.normal_impulse),
-            timestamp)
+        impulse = Vector3D.from_simulator_vector(
+            collision_event.normal_impulse)
+        msg = CollisionMessageTuple(collision_event.other_actor.type_id,
+                                    impulse, impulse.magnitude())
 
         # Send the CollisionMessage.
-        write_stream.send(msg)
+        write_stream.send(erdos.Message(timestamp, msg))
         # TODO(ionel): This code will fail if process_collision is called twice
         # for the same timestamp (i.e., if the vehicle collides with two other
         # actors)
