@@ -4,7 +4,6 @@ between the ego vehicle and other simulation agents.
 
 import erdos
 from erdos.operator import OneInOneOut
-from erdos.context import OneInOneOutContext
 
 from pylot.simulation.messages import CollisionMessageTuple
 from pylot.simulation.utils import get_vehicle_handle, get_world
