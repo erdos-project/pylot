@@ -1,4 +1,5 @@
 from collections import deque
+from typing import List
 
 import cv2
 
@@ -15,10 +16,11 @@ class Lane(object):
     Args:
         id (:obj:`int`): The id of the lane (0 for ego lane, negative for
             left lanes, and positive for right lanes).
-        left_markings: List of transforms.
-        right_markings: List of transforms.
+        left_markings: List of lane mark locations.
+        right_markings: List of lane mark locations.
     """
-    def __init__(self, id: int, left_markings, right_markings):
+    def __init__(self, id: int, left_markings: List[Location],
+                 right_markings: List[Location]):
         self.id = id
         self.left_markings = left_markings
         self.right_markings = right_markings
@@ -31,9 +33,10 @@ class Lane(object):
         """Draw lane markings on a frame.
 
         Args:
-            bgr_frame: Frame on which to draw the waypoints.
+            frame: Frame on which to draw the waypoints.
             inverse_transform (optional): To be used to transform the waypoints
                 to relative to the ego vehicle.
+            binary_frame (optional): Whether to draw using binary colors
         """
         extrinsic_matrix = frame.camera_setup.get_extrinsic_matrix()
         intrinsic_matrix = frame.camera_setup.get_intrinsic_matrix()
@@ -47,8 +50,6 @@ class Lane(object):
                 marking = inverse_transform.transform_points(
                     np.array([marking.as_numpy_array()]))
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
-            else:
-                marking = marking.location
             pixel_location = marking.to_camera_view(extrinsic_matrix,
                                                     intrinsic_matrix)
             if (pixel_location.z >= 0):
@@ -65,8 +66,6 @@ class Lane(object):
                 marking = inverse_transform.transform_points(
                     np.array([marking.as_numpy_array()]))
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
-            else:
-                marking = marking.location
             pixel_location = marking.to_camera_view(extrinsic_matrix,
                                                     intrinsic_matrix)
             if (pixel_location.z >= 0):
@@ -106,8 +105,6 @@ class Lane(object):
                 marking = inverse_transform.transform_points(
                     np.array([marking.as_numpy_array()]))
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
-            else:
-                marking = marking.location
             pixel_location = marking.to_camera_view(extrinsic_matrix,
                                                     intrinsic_matrix)
             if (pixel_location.z >= 0):
@@ -126,8 +123,6 @@ class Lane(object):
                 marking = inverse_transform.transform_points(
                     np.array([marking.as_numpy_array()]))
                 marking = Vector3D(marking[0, 0], marking[0, 1], marking[0, 2])
-            else:
-                marking = marking.location
             pixel_location = marking.to_camera_view(extrinsic_matrix,
                                                     intrinsic_matrix)
             if (pixel_location.z >= 0):
@@ -155,19 +150,19 @@ class Lane(object):
     def get_closest_lane_waypoint(self, location):
         if self.is_on_lane(location):
             return Transform(location, Rotation())
-        closest_transform = None
+        closest_location = None
         min_dist = np.infty
-        for transform in self.left_markings:
-            dist = transform.location.distance(location)
+        for loc in self.left_markings:
+            dist = loc.distance(location)
             if dist < min_dist:
                 min_dist = dist
-                closest_transform = transform
-        for transform in self.right_markings:
-            dist = transform.location.distance(location)
+                closest_location = loc
+        for loc in self.right_markings:
+            dist = loc.distance(location)
             if dist < min_dist:
                 min_dist = dist
-                closest_transform = transform
-        return closest_transform
+                closest_location = loc
+        return Transform(closest_location, Rotation())
 
     def get_lane_center_transforms(self):
         if len(self.left_markings) < len(self.right_markings):
@@ -178,21 +173,17 @@ class Lane(object):
             other_markings = self.left_markings
         index_other = 0
         center_markings = deque([])
-        for transform in anchor_markings:
-            dist = transform.location.distance(
-                other_markings[index_other].location)
+        for loc in anchor_markings:
+            dist = loc.distance(other_markings[index_other])
             while (index_other + 1 < len(other_markings)
-                   and dist > transform.location.distance(
-                       other_markings[index_other + 1].location)):
+                   and dist > loc.distance(other_markings[index_other + 1])):
                 index_other += 1
-                dist = transform.location.distance(
-                    other_markings[index_other].location)
+                dist = loc.distance(other_markings[index_other])
             if index_other < len(other_markings):
-                other_loc = other_markings[index_other].location
-                center_location = Location(
-                    (transform.location.x + other_loc.x) / 2.0,
-                    (transform.location.y + other_loc.y) / 2.0,
-                    (transform.location.z + other_loc.z) / 2.0)
+                other_loc = other_markings[index_other]
+                center_location = Location((loc.x + other_loc.x) / 2.0,
+                                           (loc.y + other_loc.y) / 2.0,
+                                           (loc.z + other_loc.z) / 2.0)
                 center_markings.append(Transform(center_location, Rotation()))
         return center_markings
 
@@ -204,10 +195,10 @@ class Lane(object):
 
     def _create_lane_polygon(self):
         points = [(0, self.left_markings[0].y)]
-        for transform in self.left_markings:
-            points.append((transform.location.x, transform.location.y))
-        for transform in reversed(self.right_markings):
-            points.append((transform.location.x, transform.location.y))
+        for loc in self.left_markings:
+            points.append((loc.x, loc.y))
+        for loc in reversed(self.right_markings):
+            points.append((loc.x, loc.y))
         points.append((0, self.right_markings[0].y))
         self._lane_polygon = Polygon(points)
 
