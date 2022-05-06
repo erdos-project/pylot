@@ -127,8 +127,8 @@ class LanenetDetectionOperator(erdos.Operator):
         all_lanes_to_the_left = True
         all_lanes_to_the_right = True
         for index, lane in enumerate(ego_lane_markings):
-            if index > 0 and ego_lane_markings[
-                    index - 1][0].y < 0 and lane[0].y > 0:
+            if index > 0 and ego_lane_markings[index -
+                                               1][0].y < 0 and lane[0].y > 0:
                 ego_lane_index = index
             if ego_lane_markings[index][0].y < 0:
                 all_lanes_to_the_right = False
