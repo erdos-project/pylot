@@ -118,24 +118,21 @@ class LanenetDetectionOperator(erdos.Operator):
             ego_markings = self.lane_to_ego_coordinates(
                 lane, msg.frame.camera_setup)
             ego_markings.reverse()
-            ego_lane_markings.append([
-                pylot.utils.Transform(loc, pylot.utils.Rotation())
-                for loc in ego_markings
-            ])
+            ego_lane_markings.append(ego_markings)
         # Sort the lane markings from left to right.
         ego_lane_markings = sorted(ego_lane_markings,
-                                   key=lambda lane: lane[0].location.y)
+                                   key=lambda lane: lane[0].y)
         # Get the index of the ego lane.
         ego_lane_index = None
         all_lanes_to_the_left = True
         all_lanes_to_the_right = True
         for index, lane in enumerate(ego_lane_markings):
-            if index > 0 and ego_lane_markings[
-                    index - 1][0].location.y < 0 and lane[0].location.y > 0:
+            if index > 0 and ego_lane_markings[index -
+                                               1][0].y < 0 and lane[0].y > 0:
                 ego_lane_index = index
-            if ego_lane_markings[index][0].location.y < 0:
+            if ego_lane_markings[index][0].y < 0:
                 all_lanes_to_the_right = False
-            elif ego_lane_markings[index][0].location.y > 0:
+            elif ego_lane_markings[index][0].y > 0:
                 all_lanes_to_the_left = False
 
         if ego_lane_index is None:
