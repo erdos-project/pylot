@@ -1,10 +1,27 @@
 """This module implements Messages sent out by the simulator-based drivers."""
 
+from typing import NamedTuple
+
 import erdos
 from erdos import Timestamp
 
 from pylot.simulation.utils import TrafficInfractionType
 from pylot.utils import LaneMarking, LaneType, Location, Vector3D
+
+
+class CollisionMessageTuple(NamedTuple):
+    """ Message class to be used to send collision events.
+
+    Attributes:
+        collided_actor (:py:class:`str`): The type of the actor with which the
+            ego-vehicle collided.
+        impulse (:py:class:`pyot.utils.Vector3D`): The impulse as a result of
+            the collision.
+        intensity (:py:class:`float`): The intensity of the collision.
+    """
+    collided_actor: str
+    impulse: Vector3D
+    intensity: float
 
 
 class CollisionMessage(erdos.Message):
