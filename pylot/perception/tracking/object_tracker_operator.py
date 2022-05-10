@@ -1,21 +1,17 @@
 import time
 from collections import deque
+from typing import Union
 
 import erdos
+from erdos.operator import OneInOneOut
+from erdos.context import OneInOneOutContext
+from pylot.perception.camera_frame import CameraFrame
 
-from pylot.perception.messages import ObstaclesMessage
+from pylot.perception.messages import ObstaclesMessageTuple
 
 
-class ObjectTrackerOperator(erdos.Operator):
-    def __init__(self, obstacles_stream, camera_stream,
-                 time_to_decision_stream, obstacle_tracking_stream,
-                 tracker_type, flags):
-        obstacles_stream.add_callback(self.on_obstacles_msg)
-        camera_stream.add_callback(self.on_frame_msg)
-        time_to_decision_stream.add_callback(self.on_time_to_decision_update)
-        erdos.add_watermark_callback([obstacles_stream, camera_stream],
-                                     [obstacle_tracking_stream],
-                                     self.on_watermark)
+class ObjectTrackerOperator(OneInOneOut):
+    def __init__(self, tracker_type: str, flags):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -47,34 +43,30 @@ class ObjectTrackerOperator(erdos.Operator):
             self._logger.fatal('Error importing {}'.format(tracker_type))
             raise error
 
-        self._obstacles_msgs = deque()
-        self._frame_msgs = deque()
+        self._obstacles = deque()
+        self.frames = deque()
         self._detection_update_count = -1
-
-    @staticmethod
-    def connect(obstacles_stream, camera_stream, time_to_decision_stream):
-        obstacle_tracking_stream = erdos.WriteStream()
-        return [obstacle_tracking_stream]
 
     def destroy(self):
         self._logger.warn('destroying {}'.format(self.config.name))
 
-    def on_frame_msg(self, msg):
-        """Invoked when a FrameMessage is received on the camera stream."""
+    def on_frame(self, ctx: OneInOneOutContext, frame: CameraFrame):
+        """Invoked when a CameraFrame is received."""
         self._logger.debug('@{}: {} received frame'.format(
-            msg.timestamp, self.config.name))
-        assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
-        self._frame_msgs.append(msg)
+            ctx.timestamp, self.config.name))
+        assert frame.encoding == 'BGR', 'Expects BGR frames'
+        self.frames.append(frame)
 
-    def on_obstacles_msg(self, msg):
+    def on_obstacles(self, ctx: OneInOneOutContext,
+                     obstacles: ObstaclesMessageTuple):
         """Invoked when obstacles are received on the stream."""
         self._logger.debug('@{}: {} received {} obstacles'.format(
-            msg.timestamp, self.config.name, len(msg.obstacles)))
-        self._obstacles_msgs.append(msg)
+            ctx.timestamp, self.config.name, len(obstacles.obstacles)))
+        self._obstacles.append((ctx.timestamp, obstacles))
 
-    def on_time_to_decision_update(self, msg):
+    def on_time_to_decision_update(self, ctx: OneInOneOutContext, ttd: float):
         self._logger.debug('@{}: {} received ttd update {}'.format(
-            msg.timestamp, self.config.name, msg))
+            ctx.timestamp, self.config.name, ttd))
 
     def _reinit_tracker(self, camera_frame, detected_obstacles):
         start = time.time()
@@ -86,44 +78,53 @@ class ObjectTrackerOperator(erdos.Operator):
         result = self._tracker.track(camera_frame)
         return (time.time() - start) * 1000, result
 
+    def on_data(self, ctx: OneInOneOutContext,
+                data: Union[CameraFrame, ObstaclesMessageTuple, float]):
+        if isinstance(data, CameraFrame):
+            self.on_frame(ctx, data)
+        elif isinstance(data, ObstaclesMessageTuple):
+            self.on_obstacles(ctx, data)
+        elif isinstance(data, float):
+            self.on_time_to_decision_update(ctx, data)
+
     @erdos.profile_method()
-    def on_watermark(self, timestamp, obstacle_tracking_stream):
-        self._logger.debug('@{}: received watermark'.format(timestamp))
-        if timestamp.is_top:
+    def on_watermark(self, ctx: OneInOneOutContext):
+        self._logger.debug('@{}: received watermark'.format(ctx.timestamp))
+        if ctx.timestamp.is_top:
             return
-        frame_msg = self._frame_msgs.popleft()
-        camera_frame = frame_msg.frame
+        camera_frame = self.frames.popleft()
         tracked_obstacles = []
         detector_runtime = 0
         reinit_runtime = 0
         # Check if the most recent obstacle message has this timestamp.
         # If it doesn't, then the detector might have skipped sending
         # an obstacle message.
-        if (len(self._obstacles_msgs) > 0
-                and self._obstacles_msgs[0].timestamp == timestamp):
-            obstacles_msg = self._obstacles_msgs.popleft()
+        if (len(self._obstacles) > 0
+                and self._obstacles[0][0] == ctx.timestamp):
+            _, obstacles = self._obstacles.popleft()
             self._detection_update_count += 1
             if (self._detection_update_count %
                     self._flags.track_every_nth_detection == 0):
                 # Reinitialize the tracker with new detections.
-                self._logger.debug(
-                    'Restarting trackers at frame {}'.format(timestamp))
+                self._logger.debug('Restarting trackers at frame {}'.format(
+                    ctx.timestamp))
                 detected_obstacles = []
-                for obstacle in obstacles_msg.obstacles:
+                for obstacle in obstacles.obstacles:
                     if obstacle.is_vehicle() or obstacle.is_person():
                         detected_obstacles.append(obstacle)
                 reinit_runtime, _ = self._reinit_tracker(
                     camera_frame, detected_obstacles)
-                detector_runtime = obstacles_msg.runtime
+                detector_runtime = obstacles.runtime
         tracker_runtime, (ok, tracked_obstacles) = \
             self._run_tracker(camera_frame)
-        assert ok, 'Tracker failed at timestamp {}'.format(timestamp)
+        assert ok, 'Tracker failed at timestamp {}'.format(ctx.timestamp)
         tracker_runtime = tracker_runtime + reinit_runtime
-        tracker_delay = self.__compute_tracker_delay(timestamp.coordinates[0],
-                                                     detector_runtime,
-                                                     tracker_runtime)
-        obstacle_tracking_stream.send(
-            ObstaclesMessage(timestamp, tracked_obstacles, tracker_delay))
+        tracker_delay = self.__compute_tracker_delay(
+            ctx.timestamp.coordinates[0], detector_runtime, tracker_runtime)
+        ctx.write_stream.send(
+            erdos.Message(
+                ctx.timestamp,
+                ObstaclesMessageTuple(tracked_obstacles, tracker_delay)))
 
     def __compute_tracker_delay(self, world_time, detector_runtime,
                                 tracker_runtime):

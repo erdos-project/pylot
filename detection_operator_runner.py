@@ -26,6 +26,7 @@ from absl import flags, app
 import pylot.flags
 import pylot.utils
 import pylot.simulation.utils
+import pylot.operator_creator
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
@@ -41,7 +42,8 @@ flags.DEFINE_enum(
         'traffic_light', 'efficient_det', 'lanenet', 'canny_lane',
         'depth_estimation', 'qd_track', 'segmentation_decay',
         'segmentation_drn', 'segmentation_eval', 'bounding_box_logger',
-        'camera_logger', 'multiple_object_logger', 'collision_sensor'
+        'camera_logger', 'multiple_object_logger', 'collision_sensor',
+        'object_tracker'
     ],
     help='Operator of choice to test')
 
@@ -75,7 +77,7 @@ def add_carla_callback(carla_sensor, setup, stream):
                                     data=CameraFrame.from_simulator_frame(
                                         simulator_data, setup))
                 stream.send(msg)
-                # ttd_ingest_stream.send(erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))  Panics on internal msg call
+                stream.send(watermark_msg)
         elif getattr(setup, 'camera_type') == 'sensor.camera.depth':
             """Invoked when a depth image is received from the simulator."""
             game_time = int(simulator_data.timestamp * 1000)
@@ -90,6 +92,7 @@ def add_carla_callback(carla_sensor, setup, stream):
                         setup,
                         save_original_frame=FLAGS.visualize_depth_camera))
                 stream.send(msg)
+                stream.send(watermark_msg)
         elif getattr(setup,
                      'camera_type') == 'sensor.camera.semantic_segmentation':
             """Invoked when a segmented image is received from the simulator."""
@@ -102,6 +105,7 @@ def add_carla_callback(carla_sensor, setup, stream):
                                     data=SegmentedFrame.from_simulator_image(
                                         simulator_data, setup))
                 stream.send(msg)
+                stream.send(watermark_msg)
         else:
             assert False, 'camera_type {} not supported'.format(
                 getattr(setup, 'camera_type'))
@@ -180,8 +184,7 @@ def main(args):
             name='ground_obstacles_stream')
         vehicle_id_stream = erdos.streams.IngestStream(name='vehicle_id')
 
-        DETECTOR = FLAGS.test_operator
-        if DETECTOR == 'detection_operator':
+        if FLAGS.test_operator == 'detection_operator' or FLAGS.test_operator == 'object_tracker':
             from pylot.perception.detection.detection_operator import DetectionOperator
             detection_op_cfg = erdos.operator.OperatorConfig(
                 name='detection_op')
@@ -192,7 +195,7 @@ def main(args):
                 ttd_ingest_stream,
                 model_path=FLAGS.obstacle_detection_model_paths[0],
                 flags=FLAGS)
-        if DETECTOR == 'detection_eval':
+        if FLAGS.test_operator == 'detection_eval':
             from pylot.perception.detection.detection_operator import DetectionOperator
             detection_op_cfg = erdos.operator.OperatorConfig(
                 name='detection_op')
@@ -216,7 +219,7 @@ def main(args):
                 matching_policy='ceil',
                 frame_gap=None,
                 flags=FLAGS)
-        if DETECTOR == 'detection_decay':
+        if FLAGS.test_operator == 'detection_decay':
             from pylot.perception.detection.detection_operator import DetectionOperator
             detection_op_cfg = erdos.operator.OperatorConfig(
                 name='detection_op')
@@ -239,7 +242,7 @@ def main(args):
                                                        detection_decay_op_cfg,
                                                        obstacles_stream,
                                                        flags=FLAGS)
-        if DETECTOR == 'traffic_light':
+        if FLAGS.test_operator == 'traffic_light':
             from pylot.perception.detection.traffic_light_det_operator import TrafficLightDetOperator
             traffic_light_op_cfg = erdos.operator.OperatorConfig(
                 name='traffic_light_op')
@@ -249,7 +252,7 @@ def main(args):
                 rgb_camera_ingest_stream,
                 ttd_ingest_stream,
                 flags=FLAGS)
-        if DETECTOR == 'efficient_det':
+        if FLAGS.test_operator == 'efficient_det':
             from pylot.perception.detection.efficientdet_operator import EfficientDetOperator
             model_names = ['efficientdet-d4']
             model_paths = [
@@ -265,7 +268,7 @@ def main(args):
                 model_names=model_names,
                 model_paths=model_paths,
                 flags=FLAGS)
-        if DETECTOR == 'lanenet':
+        if FLAGS.test_operator == 'lanenet':
             from pylot.perception.detection.lanenet_detection_operator import LanenetDetectionOperator
             lanenet_lane_detection_op_cfg = erdos.operator.OperatorConfig(
                 name='lanenet_lane_detection')
@@ -274,7 +277,7 @@ def main(args):
                 lanenet_lane_detection_op_cfg,
                 rgb_camera_ingest_stream,
                 flags=FLAGS)
-        if DETECTOR == 'canny_lane':
+        if FLAGS.test_operator == 'canny_lane':
             from pylot.perception.detection.lane_detection_canny_operator import CannyEdgeLaneDetectionOperator
             lane_detection_canny_op_cfg = erdos.operator.OperatorConfig(
                 name='lane_detection_canny_op')
@@ -283,7 +286,7 @@ def main(args):
                 lane_detection_canny_op_cfg,
                 rgb_camera_ingest_stream,
                 flags=FLAGS)
-        if DETECTOR == 'depth_estimation':
+        if FLAGS.test_operator == 'depth_estimation':
             from pylot.perception.depth_estimation.depth_estimation_operator import DepthEstimationOperator
             depth_estimation_op_cfg = erdos.operator.OperatorConfig(
                 name='depth_estimation_op')
@@ -295,13 +298,16 @@ def main(args):
                 transform=depth_camera_setup.get_transform(),
                 fov=FLAGS.camera_fov,
                 flags=FLAGS)
-        if DETECTOR == 'qd_track':
+        if FLAGS.test_operator == 'qd_track':
             from pylot.perception.tracking.qd_track_operator import QdTrackOperator
             qd_track_op_cfg = erdos.operator.OperatorConfig(name='qd_track_op')
             obstacles_stream = erdos.connect_one_in_one_out(
                 QdTrackOperator, qd_track_op_cfg, rgb_camera_ingest_stream,
                 FLAGS, rgb_camera_setup)
-        if DETECTOR == 'segmentation_decay':
+        if FLAGS.test_operator == 'object_tracker':
+            pylot.operator_creator.add_obstacle_tracking(
+                obstacles_stream, rgb_camera_ingest_stream, ttd_ingest_stream)
+        if FLAGS.test_operator == 'segmentation_decay':
             from pylot.perception.segmentation.segmentation_decay_operator import SegmentationDecayOperator
             flags.DEFINE_integer(
                 'decay_max_latency', 400,
@@ -313,7 +319,7 @@ def main(args):
                 segmentation_decay_op_cfg,
                 seg_camera_ingest_stream,
                 flags=FLAGS)
-        if DETECTOR == 'segmentation_drn':
+        if FLAGS.test_operator == 'segmentation_drn':
             from pylot.perception.segmentation.segmentation_drn_operator import SegmentationDRNOperator
             segmentation_drn_op_cfg = erdos.operator.OperatorConfig(
                 name='segmentation_drn_op')
@@ -322,7 +328,7 @@ def main(args):
                 segmentation_drn_op_cfg,
                 rgb_camera_ingest_stream,
                 flags=FLAGS)
-        if DETECTOR == 'segmentation_eval':
+        if FLAGS.test_operator == 'segmentation_eval':
             from pylot.perception.segmentation.segmentation_drn_operator import SegmentationDRNOperator
             segmentation_drn_op_cfg = erdos.operator.OperatorConfig(
                 name='segmentation_drn_op')
@@ -339,7 +345,7 @@ def main(args):
                                              seg_camera_ingest_stream,
                                              segmented_stream,
                                              flags=FLAGS)
-        if DETECTOR == 'bounding_box_logger':
+        if FLAGS.test_operator == 'bounding_box_logger':
             from pylot.perception.detection.detection_operator import DetectionOperator
             detection_op_cfg = erdos.operator.OperatorConfig(
                 name='detection_op')
@@ -357,14 +363,14 @@ def main(args):
             finished_indicator_stream = erdos.connect_one_in_one_out(
                 BoundingBoxLoggerOperator, detection_logger_cfg,
                 obstacles_stream, FLAGS, './')
-        if DETECTOR == 'camera_logger':
+        if FLAGS.test_operator == 'camera_logger':
             from pylot.loggers.camera_logger_operator import CameraLoggerOperator
             camera_logger_op_cfg = erdos.operator.OperatorConfig(
                 name='camera_logger_op')
             finished_indicator_stream = erdos.connect_one_in_one_out(
                 CameraLoggerOperator, camera_logger_op_cfg,
                 rgb_camera_ingest_stream, FLAGS, 'testing')
-        if DETECTOR == 'multiple_object_logger':
+        if FLAGS.test_operator == 'multiple_object_logger':
             from pylot.perception.detection.detection_operator import DetectionOperator
             detection_op_cfg = erdos.operator.OperatorConfig(
                 name='detection_op')
@@ -382,7 +388,7 @@ def main(args):
             finished_indicator_stream = erdos.connect_one_in_one_out(
                 MultipleObjectTrackerLoggerOperator,
                 multiple_object_logger_cfg, obstacles_stream, FLAGS)
-        if DETECTOR == 'collision_sensor':
+        if FLAGS.test_operator == 'collision_sensor':
             from pylot.drivers.carla_collision_sensor_operator import CarlaCollisionSensorDriverOperator
             collision_op_cfg = erdos.operator.OperatorConfig(name='collision')
             collision_stream = erdos.connect_one_in_one_out(
@@ -392,6 +398,9 @@ def main(args):
                 flags=FLAGS)
 
         erdos.run_async()
+
+        ttd_ingest_stream.send(
+            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
         # Register camera frame callbacks
         add_carla_callback(rgb_camera, rgb_camera_setup,

@@ -1,6 +1,7 @@
 from absl import flags
 
 import erdos
+from erdos import OperatorStream, Stream
 
 import pylot.utils
 
@@ -236,21 +237,24 @@ def add_lanenet_detection(bgr_camera_stream, name='lanenet_lane_detection'):
     return lane_detection_stream
 
 
-def add_obstacle_tracking(obstacles_stream,
-                          bgr_camera_stream,
-                          time_to_decision_stream,
-                          name_prefix='tracker_'):
+def add_obstacle_tracking(obstacles_stream: Stream,
+                          bgr_camera_stream: Stream,
+                          time_to_decision_stream: Stream,
+                          name_prefix: str = 'tracker_') -> OperatorStream:
     from pylot.perception.tracking.object_tracker_operator import \
         ObjectTrackerOperator
-    op_config = erdos.OperatorConfig(name=name_prefix + FLAGS.tracker_type,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
+    op_config = erdos.operator.OperatorConfig(
+        name=name_prefix + FLAGS.tracker_type,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
 
-    [obstacle_tracking_stream] = erdos.connect(
-        ObjectTrackerOperator, op_config,
-        [obstacles_stream, bgr_camera_stream, time_to_decision_stream],
+    concatenated_streams = obstacles_stream.concat(bgr_camera_stream,
+                                                   time_to_decision_stream)
+    obstacle_tracking_stream = erdos.connect_one_in_one_out(
+        ObjectTrackerOperator, op_config, concatenated_streams,
         FLAGS.tracker_type, FLAGS)
+
     return obstacle_tracking_stream
 
 
