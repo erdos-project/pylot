@@ -21,7 +21,7 @@ class BoundingBoxLoggerOperator(OneInOneOut):
         _msg_cnt (:obj:`int`): Number of messages received.
         _data_path (:obj:`str`): Directory to which to log files.
     """
-    def __init__(self, flags, file_base_name):
+    def __init__(self, flags, file_base_name: str):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
@@ -37,9 +37,7 @@ class BoundingBoxLoggerOperator(OneInOneOut):
         Invoked upon the receipt of a msg on the obstacles stream.
 
         Args:
-            data (:py:class:`~pylot.perception.messages.
-                   ObstaclesMessageTuple`):
-                Received message.
+            data: The obstacle to log.
         """
         self._logger.debug('@{}: {} received message'.format(
             context.timestamp, self.config.name))

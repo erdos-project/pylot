@@ -36,7 +36,7 @@ class CameraLoggerOperator(OneInOneOut):
         os.makedirs(self._data_path, exist_ok=True)
 
     def on_data(self, context: OneInOneOutContext, data: CameraFrame):
-        """Invoked whenever a frame message is received on the stream."""
+        """Invoked whenever a camera frame is received."""
         self._logger.debug('@{}: {} received message'.format(
             context.timestamp, self.config.name))
         self._frame_cnt += 1

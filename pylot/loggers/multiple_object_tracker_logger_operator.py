@@ -41,9 +41,7 @@ class MultipleObjectTrackerLoggerOperator(OneInOneOut):
         Invoked upon the receipt of a msg on the obstacles stream.
 
         Args:
-            data (:py:class:`~pylot.perception.messages.
-                   ObstaclesMessageTuple`):
-                Received message.
+            data: Received obstacles.
         """
         self._logger.debug('@{}: {} received message'.format(
             context.timestamp, self.config.name))
