@@ -41,7 +41,7 @@ flags.DEFINE_enum(
         'traffic_light', 'efficient_det', 'lanenet', 'canny_lane',
         'depth_estimation', 'qd_track', 'segmentation_decay',
         'segmentation_drn', 'segmentation_eval', 'bounding_box_logger',
-        'camera_logger', 'multiple_object_logger'
+        'camera_logger', 'multiple_object_logger', 'collision_sensor'
     ],
     help='Operator of choice to test')
 
@@ -178,6 +178,7 @@ def main(args):
         ttd_ingest_stream = erdos.streams.IngestStream(name='ttd')
         ground_obstacles_stream = erdos.streams.IngestStream(
             name='ground_obstacles_stream')
+        vehicle_id_stream = erdos.streams.IngestStream(name='vehicle_id')
 
         DETECTOR = FLAGS.test_operator
         if DETECTOR == 'detection_operator':
@@ -381,6 +382,14 @@ def main(args):
             finished_indicator_stream = erdos.connect_one_in_one_out(
                 MultipleObjectTrackerLoggerOperator,
                 multiple_object_logger_cfg, obstacles_stream, FLAGS)
+        if DETECTOR == 'collision_sensor':
+            from pylot.drivers.carla_collision_sensor_operator import CarlaCollisionSensorDriverOperator
+            collision_op_cfg = erdos.operator.OperatorConfig(name='collision')
+            collision_stream = erdos.connect_one_in_one_out(
+                CarlaCollisionSensorDriverOperator,
+                collision_op_cfg,
+                vehicle_id_stream,
+                flags=FLAGS)
 
         erdos.run_async()
 
@@ -403,6 +412,11 @@ def main(args):
         # Spawn 100 people
         pylot.simulation.utils.spawn_people(client, world, 100,
                                             logging.Logger(name="test2"))
+
+        vehicle_id_stream.send(
+            erdos.Message(erdos.Timestamp(coordinates=[0]), vehicle.id))
+        vehicle_id_stream.send(
+            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
         time.sleep(5)
 
