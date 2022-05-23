@@ -1,5 +1,5 @@
 import os
-from typing import Tuple, Union
+from typing import List, Tuple, Union
 
 import PIL.Image as Image
 
@@ -124,6 +124,20 @@ class CameraFrame(object):
                     color,
                     thickness=1,
                     lineType=cv2.LINE_AA)
+
+    def draw_line(self, points: List[Vector2D], color, thickness: float = 3):
+        """Draws lines between given points on the frame.
+
+        Args:
+            points: List of points of where to draw lines between.
+            color: RGB tuple for the color of he line.
+        """
+        draw_points = np.array([[point.x, point.y] for point in points])
+        cv2.polylines(self.frame,
+                      np.array([draw_points], dtype=np.int32),
+                      False,
+                      color,
+                      thickness=thickness)
 
     def in_frame(self, point: Vector2D) -> bool:
         """Checks if a point is within the frame."""
