@@ -127,7 +127,7 @@ class CameraFrame(object):
 
     def draw_line(self, points: List[Vector2D], color, thickness: float = 3):
         """Draws lines between given points on the frame.
-        
+
         Args:
             points: List of points of where to draw lines between.
             color: RGB tuple for the color of he line.
