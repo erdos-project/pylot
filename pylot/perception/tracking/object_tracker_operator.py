@@ -44,29 +44,30 @@ class ObjectTrackerOperator(OneInOneOut):
             raise error
 
         self._obstacles = deque()
-        self.frames = deque()
+        self._frames = deque()
         self._detection_update_count = -1
 
     def destroy(self):
         self._logger.warn('destroying {}'.format(self.config.name))
 
-    def on_frame(self, ctx: OneInOneOutContext, frame: CameraFrame):
+    def on_frame(self, context: OneInOneOutContext, frame: CameraFrame):
         """Invoked when a CameraFrame is received."""
         self._logger.debug('@{}: {} received frame'.format(
-            ctx.timestamp, self.config.name))
+            context.timestamp, self.config.name))
         assert frame.encoding == 'BGR', 'Expects BGR frames'
-        self.frames.append(frame)
+        self._frames.append(frame)
 
-    def on_obstacles(self, ctx: OneInOneOutContext,
+    def on_obstacles(self, context: OneInOneOutContext,
                      obstacles: ObstaclesMessageTuple):
         """Invoked when obstacles are received on the stream."""
         self._logger.debug('@{}: {} received {} obstacles'.format(
-            ctx.timestamp, self.config.name, len(obstacles.obstacles)))
-        self._obstacles.append((ctx.timestamp, obstacles))
+            context.timestamp, self.config.name, len(obstacles.obstacles)))
+        self._obstacles.append((context.timestamp, obstacles))
 
-    def on_time_to_decision_update(self, ctx: OneInOneOutContext, ttd: float):
+    def on_time_to_decision_update(self, context: OneInOneOutContext,
+                                   ttd: float):
         self._logger.debug('@{}: {} received ttd update {}'.format(
-            ctx.timestamp, self.config.name, ttd))
+            context.timestamp, self.config.name, ttd))
 
     def _reinit_tracker(self, camera_frame, detected_obstacles):
         start = time.time()
@@ -78,21 +79,21 @@ class ObjectTrackerOperator(OneInOneOut):
         result = self._tracker.track(camera_frame)
         return (time.time() - start) * 1000, result
 
-    def on_data(self, ctx: OneInOneOutContext,
+    def on_data(self, context: OneInOneOutContext,
                 data: Union[CameraFrame, ObstaclesMessageTuple, float]):
         if isinstance(data, CameraFrame):
-            self.on_frame(ctx, data)
+            self.on_frame(context, data)
         elif isinstance(data, ObstaclesMessageTuple):
-            self.on_obstacles(ctx, data)
+            self.on_obstacles(context, data)
         elif isinstance(data, float):
-            self.on_time_to_decision_update(ctx, data)
+            self.on_time_to_decision_update(context, data)
 
     @erdos.profile_method()
-    def on_watermark(self, ctx: OneInOneOutContext):
-        self._logger.debug('@{}: received watermark'.format(ctx.timestamp))
-        if ctx.timestamp.is_top:
+    def on_watermark(self, context: OneInOneOutContext):
+        self._logger.debug('@{}: received watermark'.format(context.timestamp))
+        if context.timestamp.is_top:
             return
-        camera_frame = self.frames.popleft()
+        camera_frame = self._frames.popleft()
         tracked_obstacles = []
         detector_runtime = 0
         reinit_runtime = 0
@@ -100,14 +101,14 @@ class ObjectTrackerOperator(OneInOneOut):
         # If it doesn't, then the detector might have skipped sending
         # an obstacle message.
         if (len(self._obstacles) > 0
-                and self._obstacles[0][0] == ctx.timestamp):
+                and self._obstacles[0][0] == context.timestamp):
             _, obstacles = self._obstacles.popleft()
             self._detection_update_count += 1
             if (self._detection_update_count %
                     self._flags.track_every_nth_detection == 0):
                 # Reinitialize the tracker with new detections.
                 self._logger.debug('Restarting trackers at frame {}'.format(
-                    ctx.timestamp))
+                    context.timestamp))
                 detected_obstacles = []
                 for obstacle in obstacles.obstacles:
                     if obstacle.is_vehicle() or obstacle.is_person():
@@ -117,13 +118,14 @@ class ObjectTrackerOperator(OneInOneOut):
                 detector_runtime = obstacles.runtime
         tracker_runtime, (ok, tracked_obstacles) = \
             self._run_tracker(camera_frame)
-        assert ok, 'Tracker failed at timestamp {}'.format(ctx.timestamp)
+        assert ok, 'Tracker failed at timestamp {}'.format(context.timestamp)
         tracker_runtime = tracker_runtime + reinit_runtime
         tracker_delay = self.__compute_tracker_delay(
-            ctx.timestamp.coordinates[0], detector_runtime, tracker_runtime)
-        ctx.write_stream.send(
+            context.timestamp.coordinates[0], detector_runtime,
+            tracker_runtime)
+        context.write_stream.send(
             erdos.Message(
-                ctx.timestamp,
+                context.timestamp,
                 ObstaclesMessageTuple(tracked_obstacles, tracker_delay)))
 
     def __compute_tracker_delay(self, world_time, detector_runtime,
