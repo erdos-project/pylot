@@ -3,9 +3,13 @@
 import os
 
 import erdos
+from erdos.context import OneInOneOutContext
+from erdos.operator import OneInOneOut
+
+from pylot.perception.messages import ObstaclesMessageTuple
 
 
-class MultipleObjectTrackerLoggerOperator(erdos.Operator):
+class MultipleObjectTrackerLoggerOperator(OneInOneOut):
     """Operator that logs tracked obstacles in the MOT16 file format.
 
     Args:
@@ -20,10 +24,8 @@ class MultipleObjectTrackerLoggerOperator(erdos.Operator):
         _msg_cnt (:obj:`int`): Number of messages received.
         _data_path (:obj:`str`): Directory to which to log files.
     """
-    def __init__(self, obstacles_stream: erdos.ReadStream,
-                 finished_indicator_stream: erdos.WriteStream, flags):
+    def __init__(self, flags):
         # Register a callback on obstacles data stream.
-        obstacles_stream.add_callback(self.on_obstacles_msg)
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
@@ -32,29 +34,24 @@ class MultipleObjectTrackerLoggerOperator(erdos.Operator):
                                        'multiple_object_tracker')
         os.makedirs(self._data_path, exist_ok=True)
 
-    @staticmethod
-    def connect(obstacles_stream: erdos.ReadStream):
-        finished_indicator_stream = erdos.WriteStream()
-        return [finished_indicator_stream]
-
-    def on_obstacles_msg(self, msg):
+    def on_data(self, context: OneInOneOutContext,
+                data: ObstaclesMessageTuple):
         """Logs obstacles to files.
 
         Invoked upon the receipt of a msg on the obstacles stream.
 
         Args:
-            msg (:py:class:`~pylot.perception.messages.ObstaclesMessage`):
-                Received message.
+            data: Received obstacles.
         """
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.config.name))
+            context.timestamp, self.config.name))
         self._msg_cnt += 1
         if self._msg_cnt % self._flags.log_every_nth_message != 0:
             return
-        assert len(msg.timestamp.coordinates) == 1
-        timestamp = msg.timestamp.coordinates[0]
+        assert len(context.timestamp.coordinates) == 1
+        timestamp = context.timestamp.coordinates[0]
         lines = []
-        for obstacle in msg.obstacles:
+        for obstacle in data.obstacles:
             if obstacle.is_person() or obstacle.is_vehicle():
                 lines.append(obstacle.as_mot16_str(timestamp))
 
