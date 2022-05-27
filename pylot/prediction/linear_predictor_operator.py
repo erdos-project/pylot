@@ -20,12 +20,6 @@ class LinearPredictorOperator(TwoInOneOut):
     these locations.
 
     Args:
-        tracking_stream (:py:class:`erdos.ReadStream`): The stream on which
-            :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
-            are received.
-        linear_prediction_stream (:py:class:`erdos.WriteStream`): Stream on
-            which the operator sends
-            :py:class:`~pylot.prediction.messages.PredictionMessage` messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
     def __init__(self, flags):

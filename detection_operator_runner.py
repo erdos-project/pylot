@@ -396,7 +396,21 @@ def main(args):
                 collision_op_cfg,
                 vehicle_id_stream,
                 flags=FLAGS)
-        if DETECTOR == 'linear_predictor':
+        if FLAGS.test_operator == 'linear_predictor':
+            from pylot.perception.detection.detection_operator import DetectionOperator
+            detection_op_cfg = erdos.operator.OperatorConfig(
+                name='detection_op')
+            obstacles_stream = erdos.connect_two_in_one_out(
+                DetectionOperator,
+                detection_op_cfg,
+                rgb_camera_ingest_stream,
+                ttd_ingest_stream,
+                model_path=FLAGS.obstacle_detection_model_paths[0],
+                flags=FLAGS)
+
+            obstacle_tracking_stream = pylot.operator_creator.add_obstacle_tracking(
+                obstacles_stream, rgb_camera_ingest_stream, ttd_ingest_stream)
+
             from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
             linear_predictor_op_cfg = erdos.operator.OperatorConfig(
                 name='linear_predictor_op')
@@ -405,7 +419,7 @@ def main(args):
             linear_prediction_stream = erdos.connect_two_in_one_out(
                 LinearPredictorOperator,
                 linear_predictor_op_cfg,
-                _,
+                obstacle_tracking_stream,
                 time_to_decision_stream,
                 flags=FLAGS)
 
