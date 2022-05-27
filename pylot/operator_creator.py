@@ -125,16 +125,18 @@ def add_obstacle_location_history(obstacles_stream, depth_stream, pose_stream,
     """
     from pylot.perception.tracking.obstacle_location_history_operator import \
         ObstacleLocationHistoryOperator
-    op_config = erdos.OperatorConfig(name=camera_setup.get_name() +
-                                     '_location_finder_history_operator',
-                                     flow_watermarks=False,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [tracked_obstacles
-     ] = erdos.connect(ObstacleLocationHistoryOperator, op_config,
-                       [obstacles_stream, depth_stream, pose_stream], FLAGS,
-                       camera_setup)
+    op_config = erdos.operator.OperatorConfig(
+        name=camera_setup.get_name() + '_location_finder_history_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+
+    concatenated_streams = obstacles_stream.concat(depth_stream, pose_stream)
+
+    tracked_obstacles = erdos.connect_one_in_one_out(
+        ObstacleLocationHistoryOperator, op_config, concatenated_streams,
+        FLAGS, camera_setup)
     return tracked_obstacles
 
 

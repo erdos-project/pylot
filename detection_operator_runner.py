@@ -408,8 +408,9 @@ def main(args):
                 model_path=FLAGS.obstacle_detection_model_paths[0],
                 flags=FLAGS)
 
-            obstacle_tracking_stream = pylot.operator_creator.add_obstacle_tracking(
-                obstacles_stream, rgb_camera_ingest_stream, ttd_ingest_stream)
+            tracked_obstacles = pylot.operator_creator.add_obstacle_location_history(
+                obstacles_stream, depth_camera_ingest_stream, None,
+                depth_camera_setup)
 
             from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
             linear_predictor_op_cfg = erdos.operator.OperatorConfig(
@@ -419,14 +420,14 @@ def main(args):
             linear_prediction_stream = erdos.connect_two_in_one_out(
                 LinearPredictorOperator,
                 linear_predictor_op_cfg,
-                obstacle_tracking_stream,
+                tracked_obstacles,
                 time_to_decision_stream,
                 flags=FLAGS)
 
         erdos.run_async()
 
-        ttd_ingest_stream.send(
-            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
+        # ttd_ingest_stream.send(
+        #     erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
         # Register camera frame callbacks
         add_carla_callback(rgb_camera, rgb_camera_setup,
