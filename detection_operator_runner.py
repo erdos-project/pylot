@@ -113,6 +113,19 @@ def add_carla_callback(carla_sensor, setup, stream):
     carla_sensor.listen(callback)
 
 
+def send_pose_message(stream: erdos.WriteStream, timestamp: erdos.Timestamp,
+                      vehicle):
+    vec_transform = pylot.utils.Transform.from_simulator_transform(
+        vehicle.get_transform())
+    velocity_vector = pylot.utils.Vector3D.from_simulator_vector(
+        vehicle.get_velocity())
+    forward_speed = velocity_vector.magnitude()
+    pose = pylot.utils.Pose(vec_transform, forward_speed, velocity_vector,
+                            timestamp.coordinates[0])
+    stream.send(erdos.Message(timestamp, pose))
+    stream.send(erdos.WatermarkMessage(timestamp))
+
+
 def main(args):
     actor_list = []
 
@@ -183,6 +196,7 @@ def main(args):
         ground_obstacles_stream = erdos.streams.IngestStream(
             name='ground_obstacles_stream')
         vehicle_id_stream = erdos.streams.IngestStream(name='vehicle_id')
+        pose_stream = erdos.streams.IngestStream(name='pose_stream')
 
         if FLAGS.test_operator == 'detection_operator' or FLAGS.test_operator == 'object_tracker':
             from pylot.perception.detection.detection_operator import DetectionOperator
@@ -409,7 +423,7 @@ def main(args):
                 flags=FLAGS)
 
             tracked_obstacles = pylot.operator_creator.add_obstacle_location_history(
-                obstacles_stream, depth_camera_ingest_stream, None,
+                obstacles_stream, depth_camera_ingest_stream, pose_stream,
                 depth_camera_setup)
 
             from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
@@ -453,6 +467,14 @@ def main(args):
             erdos.Message(erdos.Timestamp(coordinates=[0]), vehicle.id))
         vehicle_id_stream.send(
             erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
+
+        def _send_pose_message(simulator_data):
+            game_time = int(simulator_data.elapsed_seconds * 1000)
+            timestamp = erdos.Timestamp(coordinates=[game_time])
+
+            send_pose_message(pose_stream, timestamp, vehicle)
+
+        world.on_tick(_send_pose_message)
 
         time.sleep(5)
 

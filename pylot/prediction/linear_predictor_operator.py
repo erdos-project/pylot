@@ -34,7 +34,7 @@ class LinearPredictorOperator(TwoInOneOut):
         obstacle_predictions_list = []
 
         nearby_obstacle_trajectories, nearby_obstacles_ego_transforms = \
-            data.get_nearby_obstacles_info(self._flags.prediction_radius)
+            data.obstacle_trajectories.get_nearby_obstacles_info(self._flags.prediction_radius)
         num_predictions = len(nearby_obstacle_trajectories)
 
         self._logger.info(

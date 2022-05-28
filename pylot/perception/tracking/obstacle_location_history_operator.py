@@ -66,7 +66,7 @@ class ObstacleLocationHistoryOperator(OneInOneOut):
             return
         obstacles_msg = self._obstacles_msgs.popleft()
         depth_msg = self._depth_msgs.popleft()
-        vehicle_transform = self._pose_msgs.popleft().data.transform
+        vehicle_transform = self._pose_msgs.popleft().transform
 
         obstacles_with_location = get_obstacle_locations(
             obstacles_msg.obstacles, depth_msg, vehicle_transform,
