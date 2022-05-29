@@ -43,12 +43,9 @@ class ObstacleTrajectoriesMessageTuple(NamedTuple):
     Message to be used to send obstacle trajectory info.
 
     Args:
-        timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of the
-            message.
         obstacle_trajectories (list(:py:class:`~pylot.perception.tracking.obstacle_trajectory.ObstacleTrajectory`)):  # noqa: E501
             Obstacle trajectories.
     """
-    timestamp: erdos.Timestamp
     obstacle_trajectories: list
 
     def get_nearby_obstacles_info(self, radius, filter_fn=None):

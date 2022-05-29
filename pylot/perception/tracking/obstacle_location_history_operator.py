@@ -8,7 +8,7 @@ from pylot.perception.depth_frame import DepthFrame
 
 import pylot.utils
 from pylot.perception.detection.utils import get_obstacle_locations
-from pylot.perception.messages import ObstacleTrajectoriesMessage, ObstaclesMessageTuple
+from pylot.perception.messages import ObstacleTrajectoriesMessageTuple, ObstaclesMessageTuple
 from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 
 
@@ -97,8 +97,9 @@ class ObstacleLocationHistoryOperator(OneInOneOut):
                 ObstacleTrajectory(obstacle, cur_obstacle_trajectory))
 
         context.write_stream.send(
-            ObstacleTrajectoriesMessage(context.timestamp,
-                                        obstacle_trajectories))
+            erdos.Message(
+                context.timestamp,
+                ObstacleTrajectoriesMessageTuple(obstacle_trajectories)))
         context.write_stream.send(erdos.WatermarkMessage(context.timestamp))
 
         self._log_obstacles(context.timestamp, obstacles_with_location)

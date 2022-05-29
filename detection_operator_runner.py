@@ -2,7 +2,6 @@ import glob
 import os
 import sys
 import threading
-from pylot.perception import depth_estimation
 
 from setuptools import setup
 
@@ -411,6 +410,8 @@ def main(args):
                 vehicle_id_stream,
                 flags=FLAGS)
         if FLAGS.test_operator == 'linear_predictor':
+            time_to_decision_loop_stream = erdos.streams.LoopStream()
+
             from pylot.perception.detection.detection_operator import DetectionOperator
             detection_op_cfg = erdos.operator.OperatorConfig(
                 name='detection_op')
@@ -418,30 +419,36 @@ def main(args):
                 DetectionOperator,
                 detection_op_cfg,
                 rgb_camera_ingest_stream,
-                ttd_ingest_stream,
+                time_to_decision_loop_stream,
                 model_path=FLAGS.obstacle_detection_model_paths[0],
                 flags=FLAGS)
 
-            tracked_obstacles = pylot.operator_creator.add_obstacle_location_history(
-                obstacles_stream, depth_camera_ingest_stream, pose_stream,
-                depth_camera_setup)
+            # tracked_obstacles = pylot.operator_creator.add_obstacle_location_history(
+            #     obstacles_stream, depth_camera_ingest_stream, pose_stream,
+            #     depth_camera_setup)
 
-            from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
-            linear_predictor_op_cfg = erdos.operator.OperatorConfig(
-                name='linear_predictor_op')
+            time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
+                pose_stream, obstacles_stream)
+            time_to_decision_loop_stream.connect_loop(time_to_decision_stream)
 
-            time_to_decision_stream = erdos.IngestStream()
-            linear_prediction_stream = erdos.connect_two_in_one_out(
-                LinearPredictorOperator,
-                linear_predictor_op_cfg,
-                tracked_obstacles,
-                time_to_decision_stream,
-                flags=FLAGS)
+            # from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
+            # linear_predictor_op_cfg = erdos.operator.OperatorConfig(
+            #     name='linear_predictor_op')
+
+            # linear_prediction_stream = erdos.connect_two_in_one_out(
+            #     LinearPredictorOperator,
+            #     linear_predictor_op_cfg,
+            #     tracked_obstacles,
+            #     time_to_decision_loop_stream,
+            #     flags=FLAGS)
 
         erdos.run_async()
 
-        # ttd_ingest_stream.send(
-        #     erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
+        for i in range(4):
+            world.tick()
+
+        ttd_ingest_stream.send(
+            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
         # Register camera frame callbacks
         add_carla_callback(rgb_camera, rgb_camera_setup,
@@ -469,10 +476,11 @@ def main(args):
             erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
         def _send_pose_message(simulator_data):
-            game_time = int(simulator_data.elapsed_seconds * 1000)
-            timestamp = erdos.Timestamp(coordinates=[game_time])
+            with _lock:
+                game_time = int(simulator_data.elapsed_seconds * 1000)
+                timestamp = erdos.Timestamp(coordinates=[game_time])
 
-            send_pose_message(pose_stream, timestamp, vehicle)
+                send_pose_message(pose_stream, timestamp, vehicle)
 
         world.on_tick(_send_pose_message)
 
@@ -483,6 +491,8 @@ def main(args):
         rgb_camera.destroy()
         depth_camera.destroy()
         seg_camera.destroy()
+        left_camera.destroy()
+        right_camera.destroy()
         client.apply_batch([carla.command.DestroyActor(x) for x in actor_list])
         print('done.')
 

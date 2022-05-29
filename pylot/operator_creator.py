@@ -990,10 +990,12 @@ def add_perfect_tracking(vehicle_id_stream, ground_obstacles_stream,
 
 def add_time_to_decision(pose_stream, obstacles_stream):
     from pylot.control.time_to_decision_operator import TimeToDecisionOperator
-    op_config = erdos.OperatorConfig(name='time_to_decision_operator',
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [time_to_decision] = erdos.connect(TimeToDecisionOperator, op_config,
-                                       [pose_stream, obstacles_stream], FLAGS)
+    op_config = erdos.operator.OperatorConfig(
+        name='time_to_decision_operator',
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    time_to_decision = erdos.connect_two_in_one_out(TimeToDecisionOperator,
+                                                    op_config, pose_stream,
+                                                    obstacles_stream, FLAGS)
     return time_to_decision
