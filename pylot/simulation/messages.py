@@ -70,6 +70,18 @@ class CollisionMessage(erdos.Message):
                                                  self.intensity)
 
 
+class LaneInvasionMessageTuple(NamedTuple):
+    """ Message class to be used to send lane-invasion events.
+    Attributes:
+        lane_markings (list(:py:class:`pylot.utils.LaneMarking`)): The lane
+            markings that were invaded.
+        lane_type (:py:class:`pylot.utils.LaneType`): The type of the lane
+            that was invaded.
+    """
+    lane_markings: LaneMarking
+    lane_type: LaneType
+
+
 class LaneInvasionMessage(erdos.Message):
     """ Message class to be used to send lane-invasion events.
 

@@ -8,14 +8,15 @@ The operator attaches a GNSS sensor to the ego vehicle, receives GNSS
 import threading
 
 import erdos
+from erdos.operator import OneInOneOut
 
-from pylot.localization.messages import GNSSMessage
+from pylot.localization.messages import GNSSMessageTuple
 from pylot.simulation.utils import get_vehicle_handle, get_world, \
     set_simulation_mode
 from pylot.utils import Transform
 
 
-class CarlaGNSSDriverOperator(erdos.Operator):
+class CarlaGNSSDriverOperator(OneInOneOut):
     """Publishes GNSSMessages (transform, altitude, latitude, longitude) from
     the GNSS sensor.
 
@@ -24,21 +25,11 @@ class CarlaGNSSDriverOperator(erdos.Operator):
     measurements and publishes it to downstream operators.
 
     Args:
-        ground_vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on
-            which the operator receives the id of the ego vehicle. It uses this
-            id to get a simulator handle to the vehicle.
-        gnss_stream (:py:class:`erdos.WriteStream`): Stream on which the
-            operator sends GNSS info.
         gnss_setup (:py:class:`pylot.drivers.sensor_setup.GNSSSetup`):
             Setup of the GNSS sensor.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, ground_vehicle_id_stream: erdos.ReadStream,
-                 gnss_stream: erdos.WriteStream, gnss_setup, flags):
-        # Save the streams.
-        self._vehicle_id_stream = ground_vehicle_id_stream
-        self._gnss_stream = gnss_stream
-
+    def __init__(self, gnss_setup, flags):
         # Save the flags and initialize logging.
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -50,12 +41,7 @@ class CarlaGNSSDriverOperator(erdos.Operator):
         self._gnss = None
         self._lock = threading.Lock()
 
-    @staticmethod
-    def connect(ground_vehicle_id_stream):
-        gnss_stream = erdos.WriteStream()
-        return [gnss_stream]
-
-    def process_gnss(self, gnss_msg):
+    def process_gnss(self, gnss_msg, write_stream):
         """Invoked when a GNSS measurement is received from the simulator.
 
         Sends GNSS measurements to downstream operators.
@@ -67,16 +53,17 @@ class CarlaGNSSDriverOperator(erdos.Operator):
                            self,
                            event_data={'timestamp': str(timestamp)}):
             with self._lock:
-                msg = GNSSMessage(
-                    timestamp,
+                msg = GNSSMessageTuple(
                     Transform.from_simulator_transform(gnss_msg.transform),
                     gnss_msg.altitude, gnss_msg.latitude, gnss_msg.longitude)
-                self._gnss_stream.send(msg)
-                self._gnss_stream.send(watermark_msg)
+                write_stream.send(erdos.Message(timestamp, msg))
+                write_stream.send(watermark_msg)
 
-    def run(self):
+    def run(self, read_stream: erdos.ReadStream,
+            write_stream: erdos.WriteStream):
         # Read the vehicle ID from the vehicle ID stream.
-        vehicle_id = self._vehicle_id_stream.read().data
+        vehicle_id = read_stream.read()
+
         self._logger.debug(
             "The GNSSDriverOperator received the vehicle id: {}".format(
                 vehicle_id))
@@ -119,4 +106,7 @@ class CarlaGNSSDriverOperator(erdos.Operator):
                                        attach_to=self._vehicle)
 
         # Register the callback on the GNSS sensor.
-        self._gnss.listen(self.process_gnss)
+        def _process_gnss(gnss_msg):
+            self.process_gnss(gnss_msg, write_stream)
+
+        self._gnss.listen(_process_gnss)

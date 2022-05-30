@@ -5,13 +5,14 @@ the ego vehicle invades a lane on the opposite side of the road.
 from carla import LaneType, Transform
 
 import erdos
+from erdos.operator import OneInOneOut
 
 import pylot.utils
-from pylot.simulation.messages import LaneInvasionMessage
+from pylot.simulation.messages import LaneInvasionMessageTuple
 from pylot.simulation.utils import get_vehicle_handle, get_world
 
 
-class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
+class CarlaLaneInvasionSensorDriverOperator(OneInOneOut):
     """Publishes lane invasion events of the ego-vehicle on a stream.
 
     This operator attaches to the LaneInvasionSensor to the ego-vehicle,
@@ -23,16 +24,9 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
     this operator.
 
     Args:
-        ground_vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on
-            which the operator receives the ID of the ego-vehicle.
-        lane_invasion_stream (:py:class:`erdos.WriteStream`): Stream on which
-            the operator sends the lane-invasion events.
         flags (absl.flags): Object to be used to access the absl flags.
     """
-    def __init__(self, ground_vehicle_id_stream: erdos.ReadStream,
-                 lane_invasion_stream: erdos.WriteStream, flags):
-        self._vehicle_id_stream = ground_vehicle_id_stream
-        self._lane_invasion_stream = lane_invasion_stream
+    def __init__(self, flags):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -41,17 +35,13 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
         self._lane_invasion_sensor = None
         self._map = None
 
-    @staticmethod
-    def connect(ground_vehicle_id_stream: erdos.ReadStream):
-        lane_invasion_stream = erdos.WriteStream()
-        return [lane_invasion_stream]
-
-    def run(self):
+    def run(self, read_stream, write_stream):
         # Read the vehicle ID from the vehicle ID stream.
-        vehicle_id_msg = self._vehicle_id_stream.read()
-        vehicle_id = vehicle_id_msg.data
-        self._logger.debug("@{}: Received Vehicle ID: {}".format(
-            vehicle_id_msg.timestamp, vehicle_id))
+        vehicle_id = read_stream.read()
+
+        self._logger.debug(
+            "The LaneInvasionSensorOperator received the vehicle id: {}".
+            format(vehicle_id))
 
         # Connect to the world.
         _, world = get_world(self._flags.simulator_host,
@@ -71,9 +61,13 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
                                                        attach_to=self._vehicle)
 
         # Register the callback on the lane-invasion sensor.
+        def _process_lane_invasion(lane_invasion_event):
+            return self.process_lane_invasion(lane_invasion_event,
+                                              write_stream)
+
         self._lane_invasion_sensor.listen(self.process_lane_invasion)
 
-    def process_lane_invasion(self, lane_invasion_event):
+    def process_lane_invasion(self, lane_invasion_event, write_stream):
         """Invoked when a lane invasion event is received from the simulation.
 
         The lane-invasion event contains the lane marking which was invaded by
@@ -102,10 +96,10 @@ class CarlaLaneInvasionSensorDriverOperator(erdos.Operator):
 
         # Create a LaneInvasionMessage.
         timestamp = erdos.Timestamp(coordinates=[game_time])
-        msg = LaneInvasionMessage(lane_markings, lane_type, timestamp)
+        msg = LaneInvasionMessageTuple(lane_markings, lane_type)
 
         # Send the LaneInvasionMessage
-        self._lane_invasion_stream.send(msg)
+        write_stream.send(erdos.Message(timestamp, msg))
         # TODO(ionel): This code will fail if process_lane_invasion is
         # called twice for the same timestamp.
-        self._lane_invasion_stream.send(erdos.WatermarkMessage(timestamp))
+        write_stream.send(erdos.WatermarkMessage(timestamp))

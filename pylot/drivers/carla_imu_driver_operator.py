@@ -8,14 +8,15 @@ IMU measurements from the simulator, and sends them on its output stream.
 import threading
 
 import erdos
+from erdos.operator import OneInOneOut
 
-from pylot.localization.messages import IMUMessage
+from pylot.localization.messages import IMUMessageTuple
 from pylot.simulation.utils import get_vehicle_handle, get_world, \
     set_simulation_mode
 from pylot.utils import Transform, Vector3D
 
 
-class CarlaIMUDriverOperator(erdos.Operator):
+class CarlaIMUDriverOperator(OneInOneOut):
     """Publishes IMU mesurements (transform, acceleration, gyro and
     compass) from IMU (inertial measurement unit) sensor.
 
@@ -24,19 +25,11 @@ class CarlaIMUDriverOperator(erdos.Operator):
     measurements and publishes it to downstream operators.
 
     Args:
-        ego_vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on
-            which the operator receives the id of the ego vehicle. It uses this
-            id to get a simulator handle to the vehicle.
-        imu_stream (:py:class:`erdos.WriteStream`): Stream on which the
-            operator sends IMU info.
         imu_setup (:py:class:`pylot.drivers.sensor_setup.IMUSetup`):
             Setup of the IMU sensor.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, ego_vehicle_id_stream: erdos.ReadStream,
-                 imu_stream: erdos.WriteStream, imu_setup, flags):
-        self._vehicle_id_stream = ego_vehicle_id_stream
-        self._imu_stream = imu_stream
+    def __init__(self, imu_setup, flags):
         # The operator does not pass watermarks by defaults.
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -49,12 +42,7 @@ class CarlaIMUDriverOperator(erdos.Operator):
         # Lock to ensure that the callbacks do not execute simultaneously.
         self._lock = threading.Lock()
 
-    @staticmethod
-    def connect(ego_vehicle_id_stream: erdos.ReadStream):
-        imu_stream = erdos.WriteStream()
-        return [imu_stream]
-
-    def process_imu(self, imu_msg):
+    def process_imu(self, imu_msg, write_stream):
         """Invoked when an IMU measurement is received from the simulator.
 
         Sends IMU measurements to downstream operators.
@@ -66,22 +54,22 @@ class CarlaIMUDriverOperator(erdos.Operator):
                            self,
                            event_data={'timestamp': str(timestamp)}):
             with self._lock:
-                msg = IMUMessage(
-                    timestamp,
+                msg = IMUMessageTuple(
                     Transform.from_simulator_transform(imu_msg.transform),
                     Vector3D.from_simulator_vector(imu_msg.accelerometer),
                     Vector3D.from_simulator_vector(imu_msg.gyroscope),
                     imu_msg.compass)
-                self._imu_stream.send(msg)
+                write_stream.send(erdos.Message(timestamp, msg))
                 # Note: The operator is set not to automatically propagate
                 # watermarks received on input streams. Thus, we can issue
                 # watermarks only after the simulator callback is invoked.
-                self._imu_stream.send(watermark_msg)
+                write_stream.send(watermark_msg)
 
-    def run(self):
+    def run(self, read_stream: erdos.ReadStream,
+            write_stream: erdos.WriteStream):
         # Read the vehicle id from the vehicle id stream
-        vehicle_id_msg = self._vehicle_id_stream.read()
-        vehicle_id = vehicle_id_msg.data
+        vehicle_id = read_stream.read()
+        
         self._logger.debug(
             "The IMUDriverOperator received the vehicle id: {}".format(
                 vehicle_id))
@@ -127,4 +115,7 @@ class CarlaIMUDriverOperator(erdos.Operator):
                                       attach_to=self._vehicle)
 
         # Register the callback on the IMU.
-        self._imu.listen(self.process_imu)
+        def _process_imu(imu_msg):
+            return self.process_imu(imu_msg, write_stream)
+
+        self._imu.listen(_process_imu)
