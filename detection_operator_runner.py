@@ -423,24 +423,23 @@ def main(args):
                 model_path=FLAGS.obstacle_detection_model_paths[0],
                 flags=FLAGS)
 
-            # tracked_obstacles = pylot.operator_creator.add_obstacle_location_history(
-            #     obstacles_stream, depth_camera_ingest_stream, pose_stream,
-            #     depth_camera_setup)
+            tracked_obstacles = pylot.operator_creator.add_obstacle_location_history(
+                obstacles_stream, depth_camera_ingest_stream, pose_stream,
+                depth_camera_setup)
 
             time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
                 pose_stream, obstacles_stream)
             time_to_decision_loop_stream.connect_loop(time_to_decision_stream)
 
-            # from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
-            # linear_predictor_op_cfg = erdos.operator.OperatorConfig(
-            #     name='linear_predictor_op')
-
-            # linear_prediction_stream = erdos.connect_two_in_one_out(
-            #     LinearPredictorOperator,
-            #     linear_predictor_op_cfg,
-            #     tracked_obstacles,
-            #     time_to_decision_loop_stream,
-            #     flags=FLAGS)
+            from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
+            linear_predictor_op_cfg = erdos.operator.OperatorConfig(
+                name='linear_predictor_op')
+            linear_prediction_stream = erdos.connect_two_in_one_out(
+                LinearPredictorOperator,
+                linear_predictor_op_cfg,
+                tracked_obstacles,
+                time_to_decision_loop_stream,
+                flags=FLAGS)
 
         erdos.run_async()
 
