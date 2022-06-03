@@ -69,7 +69,6 @@ class CarlaIMUDriverOperator(OneInOneOut):
             write_stream: erdos.WriteStream):
         # Read the vehicle id from the vehicle id stream
         vehicle_id = read_stream.read()
-        
         self._logger.debug(
             "The IMUDriverOperator received the vehicle id: {}".format(
                 vehicle_id))
