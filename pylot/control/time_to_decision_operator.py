@@ -1,36 +1,32 @@
 import erdos
+from erdos.operator import TwoInOneOut
+from erdos.context import TwoInOneOutContext
+
+import pylot.utils
+
+from pylot.perception.messages import ObstaclesMessageTuple
 
 
-class TimeToDecisionOperator(erdos.Operator):
-    def __init__(self, pose_stream: erdos.ReadStream,
-                 obstacles_stream: erdos.ReadStream,
-                 time_to_decision_stream: erdos.WriteStream, flags):
-        pose_stream.add_callback(self.on_pose_update,
-                                 [time_to_decision_stream])
-        obstacles_stream.add_callback(self.on_obstacles_update)
+class TimeToDecisionOperator(TwoInOneOut):
+    def __init__(self, flags):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._last_obstacles_msg = None
 
-    @staticmethod
-    def connect(pose_stream: erdos.ReadStream,
-                obstacles_stream: erdos.ReadStream):
-        return [erdos.WriteStream()]
+    def on_left_data(self, context: TwoInOneOutContext,
+                     data: pylot.utils.Pose):
+        self._logger.debug('@{}: {} received pose message'.format(
+            context.timestamp, self.config.name))
+        ttd = TimeToDecisionOperator.time_to_decision(data.transform,
+                                                      data.forward_speed, None)
+        context.write_stream.send(erdos.Message(context.timestamp, ttd))
+
+    def on_right_data(self, context: TwoInOneOutContext,
+                      data: ObstaclesMessageTuple):
+        self._last_obstacles_msg = data
 
     def destroy(self):
         self._logger.warn('destroying {}'.format(self.config.name))
-
-    def on_pose_update(self, msg: erdos.Message,
-                       time_to_decision_stream: erdos.WriteStream):
-        self._logger.debug('@{}: {} received pose message'.format(
-            msg.timestamp, self.config.name))
-        ttd = TimeToDecisionOperator.time_to_decision(msg.data.transform,
-                                                      msg.data.forward_speed,
-                                                      None)
-        time_to_decision_stream.send(erdos.Message(msg.timestamp, ttd))
-
-    def on_obstacles_update(self, msg: erdos.Message):
-        self._last_obstacles_msg = msg
 
     @staticmethod
     def time_to_decision(pose, forward_speed, obstacles):

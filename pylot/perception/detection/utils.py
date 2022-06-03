@@ -533,7 +533,8 @@ def get_mAP(ground_obstacles, obstacles):
 
 def get_obstacle_locations(obstacles, depth_msg, ego_transform, camera_setup,
                            logger):
-    from pylot.perception.messages import DepthFrameMessage, PointCloudMessage
+    from pylot.perception.messages import PointCloudMessage
+    from pylot.perception.depth_frame import DepthFrame
     if isinstance(depth_msg, PointCloudMessage):
         point_cloud = depth_msg.point_cloud
         # Get the position of the camera in world frame of reference.
@@ -555,8 +556,8 @@ def get_obstacle_locations(obstacles, depth_msg, ego_transform, camera_setup,
                     'Could not find world location for obstacle {}'.format(
                         obstacle))
         return obstacles_with_location
-    elif isinstance(depth_msg, DepthFrameMessage):
-        depth_frame = depth_msg.frame
+    elif isinstance(depth_msg, DepthFrame):
+        depth_frame = depth_msg
         depth_frame.camera_setup.set_transform(
             ego_transform * depth_frame.camera_setup.transform)
 
