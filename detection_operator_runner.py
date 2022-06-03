@@ -436,9 +436,6 @@ def main(args):
 
         erdos.run_async()
 
-        for i in range(4):
-            world.tick()
-
         ttd_ingest_stream.send(
             erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 

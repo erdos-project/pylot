@@ -40,6 +40,8 @@ class ObstacleLocationHistoryOperator(OneInOneOut):
             self.on_depth_update(context, data)
         elif isinstance(data, pylot.utils.Pose):
             self.on_pose_update(context, data)
+        else:
+            raise ValueError('Unexpected data type')
 
     def on_obstacles_update(self, context, data):
         self._logger.debug('@{}: obstacles update'.format(context.timestamp))

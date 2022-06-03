@@ -87,6 +87,8 @@ class ObjectTrackerOperator(OneInOneOut):
             self.on_obstacles(context, data)
         elif isinstance(data, float):
             self.on_time_to_decision_update(context, data)
+        else:
+            raise ValueError('Unexpected data type')
 
     @erdos.profile_method()
     def on_watermark(self, context: OneInOneOutContext):

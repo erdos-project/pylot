@@ -1,6 +1,6 @@
 """This module implements perception related Message classes."""
 
-from typing import NamedTuple
+from typing import List, NamedTuple
 import erdos
 
 import numpy as np
@@ -9,6 +9,7 @@ import pylot.perception.camera_frame
 import pylot.perception.depth_frame
 import pylot.perception.point_cloud
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
+from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 from pylot.utils import Location, Rotation, Transform
 
 
@@ -40,13 +41,13 @@ class SegmentedMessageTuple(NamedTuple):
 
 class ObstacleTrajectoriesMessageTuple(NamedTuple):
     """
-    Message to be used to send obstacle trajectory info.
+    Stores obstacle trajectory info.
 
     Args:
         obstacle_trajectories (list(:py:class:`~pylot.perception.tracking.obstacle_trajectory.ObstacleTrajectory`)):  # noqa: E501
             Obstacle trajectories.
     """
-    obstacle_trajectories: list
+    obstacle_trajectories: List[ObstacleTrajectory]
 
     def get_nearby_obstacles_info(self, radius, filter_fn=None):
         """Gets a lost of obstacle that are within the radius.
