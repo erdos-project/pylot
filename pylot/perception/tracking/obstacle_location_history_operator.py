@@ -8,7 +8,8 @@ from pylot.perception.depth_frame import DepthFrame
 
 import pylot.utils
 from pylot.perception.detection.utils import get_obstacle_locations
-from pylot.perception.messages import ObstacleTrajectoriesMessageTuple, ObstaclesMessageTuple
+from pylot.perception.messages import ObstacleTrajectoriesMessageTuple, \
+    ObstaclesMessageTuple
 from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 
 
