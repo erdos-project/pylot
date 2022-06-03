@@ -431,15 +431,8 @@ def main(args):
                 pose_stream, obstacles_stream)
             time_to_decision_loop_stream.connect_loop(time_to_decision_stream)
 
-            from pylot.prediction.linear_predictor_operator import LinearPredictorOperator
-            linear_predictor_op_cfg = erdos.operator.OperatorConfig(
-                name='linear_predictor_op')
-            linear_prediction_stream = erdos.connect_two_in_one_out(
-                LinearPredictorOperator,
-                linear_predictor_op_cfg,
-                tracked_obstacles,
-                time_to_decision_loop_stream,
-                flags=FLAGS)
+            linear_prediction_stream = pylot.operator_creator.add_linear_prediction(
+                tracked_obstacles, time_to_decision_loop_stream)
 
         erdos.run_async()
 

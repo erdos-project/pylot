@@ -369,13 +369,16 @@ def add_segmentation_decay(ground_segmented_stream,
 def add_linear_prediction(tracking_stream, time_to_decision_stream):
     from pylot.prediction.linear_predictor_operator import \
         LinearPredictorOperator
-    op_config = erdos.OperatorConfig(name='linear_prediction_operator',
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [prediction_stream
-     ] = erdos.connect(LinearPredictorOperator, op_config,
-                       [tracking_stream, time_to_decision_stream], FLAGS)
+    op_config = erdos.operator.OperatorConfig(
+        name='linear_prediction_operator',
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    prediction_stream = erdos.connect_two_in_one_out(LinearPredictorOperator,
+                                                     op_config,
+                                                     tracking_stream,
+                                                     time_to_decision_stream,
+                                                     FLAGS)
     return prediction_stream
 
 
