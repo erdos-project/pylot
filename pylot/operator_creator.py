@@ -625,8 +625,7 @@ def add_fusion(pose_stream, obstacles_stream, depth_stream,
                                                        FLAGS)
 
     if FLAGS.evaluate_fusion:
-        from pylot.perception.fusion.fusion_verification_operator import \
-        FusionVerificationOperator
+        from pylot.perception.fusion.fusion_verification_operator import FusionVerificationOperator
         eval_op_config = erdos.OperatorConfig(
             name='fusion_verification_operator',
             log_file_name=FLAGS.log_file_name,
