@@ -268,13 +268,13 @@ def add_center_track_tracking(bgr_camera_stream,
                               name='center_track'):
     from pylot.perception.tracking.center_track_operator import \
         CenterTrackOperator
-    op_config = erdos.operator.OperatorConfig(
-        name='center_track_operator',
-        log_file_name=FLAGS.log_file_name,
-        csv_log_file_name=FLAGS.csv_log_file_name,
-        profile_file_name=FLAGS.profile_file_name)
-    obstacle_tracking_stream = erdos.connect_one_in_one_out(
-        CenterTrackOperator, op_config, bgr_camera_stream, FLAGS, camera_setup)
+    op_config = erdos.OperatorConfig(name='center_track_operator',
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    [obstacle_tracking_stream] = erdos.connect(CenterTrackOperator, op_config,
+                                               [bgr_camera_stream], FLAGS,
+                                               camera_setup)
     return obstacle_tracking_stream
 
 

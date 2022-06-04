@@ -1,27 +1,27 @@
 import cv2
 
 import erdos
-from erdos.operator import OneInOneOut
-from erdos.context import OneInOneOutContext
 
 import numpy as np
-from pylot.perception.camera_frame import CameraFrame
 
 from pylot.perception.detection.obstacle import Obstacle
 from pylot.perception.detection.utils import BoundingBox2D, \
     BoundingBox3D, OBSTACLE_LABELS
-from pylot.perception.messages import ObstaclesMessageTuple
+from pylot.perception.messages import ObstaclesMessage
 
 import torch
 
 
-class CenterTrackOperator(OneInOneOut):
-    def __init__(self, flags, camera_setup):
+class CenterTrackOperator(erdos.Operator):
+    def __init__(self, camera_stream, obstacle_tracking_stream, flags,
+                 camera_setup):
         from dataset.dataset_factory import get_dataset
         from model.model import create_model, load_model
         from opts import opts
         from utils.tracker import Tracker
 
+        camera_stream.add_callback(self.on_frame_msg,
+                                   [obstacle_tracking_stream])
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -81,13 +81,21 @@ class CenterTrackOperator(OneInOneOut):
         self.pre_image_ori = None
         self.tracker = Tracker(opt)
 
+    @staticmethod
+    def connect(camera_stream):
+        obstacle_tracking_stream = erdos.WriteStream()
+        return [obstacle_tracking_stream]
+
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
+
     @erdos.profile_method()
-    def on_data(self, context: OneInOneOutContext, data: CameraFrame):
+    def on_frame_msg(self, msg, obstacle_tracking_stream):
         """Invoked when a FrameMessage is received on the camera stream."""
         self._logger.debug('@{}: {} received frame'.format(
-            context.timestamp, self.config.name))
-        assert data.encoding == 'BGR', 'Expects BGR frames'
-        image_np = data.as_bgr_numpy_array()
+            msg.timestamp, self.config.name))
+        assert msg.frame.encoding == 'BGR', 'Expects BGR frames'
+        image_np = msg.frame.as_bgr_numpy_array()
         results = self.run_model(image_np)
         obstacles = []
         for res in results:
@@ -117,12 +125,8 @@ class CenterTrackOperator(OneInOneOut):
                              label,
                              track_id,
                              bounding_box_2D=bounding_box_2D))
-        context.write_stream.send(
-            erdos.Message(context.timestamp,
-                          ObstaclesMessageTuple(obstacles, 0)))
-
-    def destroy(self):
-        self._logger.warn('destroying {}'.format(self.config.name))
+        obstacle_tracking_stream.send(
+            ObstaclesMessage(msg.timestamp, obstacles, 0))
 
     def run_model(self, image_np, meta={}):
         images, meta = self.pre_process(image_np, meta)

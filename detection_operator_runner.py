@@ -461,9 +461,6 @@ def main(args):
             obstacle_pos_stream = pylot.operator_creator.add_fusion(
                 pose_stream, obstacles_stream, depth_camera_ingest_stream,
                 None)
-        if FLAGS.test_operator == 'center_track':
-            obstacle_tracking_stream = pylot.operator_creator.add_center_track_tracking(
-                rgb_camera_ingest_stream, rgb_camera_setup)
 
         erdos.run_async()
 
