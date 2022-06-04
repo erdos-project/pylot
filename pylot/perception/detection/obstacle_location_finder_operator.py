@@ -1,12 +1,17 @@
 from collections import deque
+from typing import Union
 
 import erdos
+from erdos.operator import OneInOneOut
+from erdos.context import OneInOneOutContext
 
+import pylot.utils
 from pylot.perception.detection.utils import get_obstacle_locations
-from pylot.perception.messages import ObstaclesMessage
+from pylot.perception.depth_frame import DepthFrame
+from pylot.perception.messages import ObstaclesMessageTuple
 
 
-class ObstacleLocationFinderOperator(erdos.Operator):
+class ObstacleLocationFinderOperator(OneInOneOut):
     """Computes the world location of the obstacle.
 
     The operator uses a point cloud, which may come from a depth frame to
@@ -17,17 +22,6 @@ class ObstacleLocationFinderOperator(erdos.Operator):
         An obstacle will be ignored if the operator cannot find its location.
 
     Args:
-        obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
-            detected obstacles are received.
-        depth_stream (:py:class:`erdos.ReadStream`): Stream on which
-            either point cloud messages or depth frames are received. The
-            message type differs dependening on how data-flow operators are
-            connected.
-        pose_stream (:py:class:`erdos.ReadStream`): Stream on which pose
-            info is received.
-        obstacles_output_stream (:py:class:`erdos.WriteStream`): Stream on
-            which the operator sends detected obstacles with their world
-            location set.
         flags (absl.flags): Object to be used to access absl flags.
         camera_setup (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
             The setup of the center camera. This setup is used to calculate the
@@ -35,16 +29,7 @@ class ObstacleLocationFinderOperator(erdos.Operator):
             detected obstacles from camera coordinates to real-world
             coordinates.
     """
-    def __init__(self, obstacles_stream: erdos.ReadStream,
-                 depth_stream: erdos.ReadStream, pose_stream: erdos.ReadStream,
-                 obstacles_output_stream: erdos.WriteStream, flags,
-                 camera_setup):
-        obstacles_stream.add_callback(self.on_obstacles_update)
-        depth_stream.add_callback(self.on_depth_update)
-        pose_stream.add_callback(self.on_pose_update)
-        erdos.add_watermark_callback(
-            [obstacles_stream, depth_stream, pose_stream],
-            [obstacles_output_stream], self.on_watermark)
+    def __init__(self, flags, camera_setup):
         self._flags = flags
         self._camera_setup = camera_setup
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -54,46 +39,51 @@ class ObstacleLocationFinderOperator(erdos.Operator):
         self._depth_msgs = deque()
         self._pose_msgs = deque()
 
-    @staticmethod
-    def connect(obstacles_stream: erdos.ReadStream,
-                depth_stream: erdos.ReadStream, pose_stream: erdos.ReadStream):
-        obstacles_output_stream = erdos.WriteStream()
-        return [obstacles_output_stream]
+    def on_data(self, context: OneInOneOutContext,
+                data: Union[ObstaclesMessageTuple, DepthFrame,
+                            pylot.utils.Pose]):
+        if isinstance(data, ObstaclesMessageTuple):
+            self.on_obstacles_update(context, data)
+        elif isinstance(data, DepthFrame):
+            self.on_depth_update(context, data)
+        elif isinstance(data, pylot.utils.Pose):
+            self.on_pose_update(context, data)
+        else:
+            raise ValueError('Unexpected data type')
 
-    def destroy(self):
-        self._logger.warn('destroying {}'.format(self.config.name))
+    def on_obstacles_update(self, context, data):
+        self._logger.debug('@{}: obstacles update'.format(context.timestamp))
+        self._obstacles_msgs.append(data)
+
+    def on_depth_update(self, context, data):
+        self._logger.debug('@{}: depth update'.format(context.timestamp))
+        self._depth_msgs.append(data)
+
+    def on_pose_update(self, context, data):
+        self._logger.debug('@{}: pose update'.format(context.timestamp))
+        self._pose_msgs.append(data)
 
     @erdos.profile_method()
-    def on_watermark(self, timestamp: erdos.Timestamp,
-                     obstacles_output_stream: erdos.WriteStream):
+    def on_watermark(self, context: OneInOneOutContext):
         """Invoked when all input streams have received a watermark.
 
         Args:
             timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
                 the watermark.
         """
-        self._logger.debug('@{}: received watermark'.format(timestamp))
-        if timestamp.is_top:
+        self._logger.debug('@{}: received watermark'.format(context.timestamp))
+        if context.timestamp.is_top:
             return
         obstacles_msg = self._obstacles_msgs.popleft()
         depth_msg = self._depth_msgs.popleft()
-        vehicle_transform = self._pose_msgs.popleft().data.transform
+        vehicle_transform = self._pose_msgs.popleft().transform
         obstacles_with_location = get_obstacle_locations(
             obstacles_msg.obstacles, depth_msg, vehicle_transform,
             self._camera_setup, self._logger)
-        self._logger.debug('@{}: {}'.format(timestamp,
+        self._logger.debug('@{}: {}'.format(context.timestamp,
                                             obstacles_with_location))
-        obstacles_output_stream.send(
-            ObstaclesMessage(timestamp, obstacles_with_location))
+        context.write_stream.send(
+            erdos.Message(context.timestamp, obstacles_with_location))
 
-    def on_obstacles_update(self, msg: erdos.Message):
-        self._logger.debug('@{}: obstacles update'.format(msg.timestamp))
-        self._obstacles_msgs.append(msg)
-
-    def on_depth_update(self, msg: erdos.Message):
-        self._logger.debug('@{}: depth update'.format(msg.timestamp))
-        self._depth_msgs.append(msg)
-
-    def on_pose_update(self, msg: erdos.Message):
-        self._logger.debug('@{}: pose update'.format(msg.timestamp))
-        self._pose_msgs.append(msg)
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))

@@ -70,10 +70,10 @@ def add_obstacle_detection(center_camera_stream,
         if any('efficientdet' in model
                for model in FLAGS.obstacle_detection_model_names):
             logger.debug('Using EfficientDet obstacle detector...')
-            obstacles_streams = pylot.operator_creator.\
+            obstacles_stream = pylot.operator_creator.\
                 add_efficientdet_obstacle_detection(
                     center_camera_stream, time_to_decision_stream)
-            obstacles_stream_wo_depth = obstacles_streams[0]
+            obstacles_stream_wo_depth = obstacles_stream
         else:
             logger.debug('Using obstacle detector...')
             # TODO: Only returns the first obstacles stream.

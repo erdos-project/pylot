@@ -42,7 +42,8 @@ flags.DEFINE_enum(
         'depth_estimation', 'qd_track', 'segmentation_decay',
         'segmentation_drn', 'segmentation_eval', 'bounding_box_logger',
         'camera_logger', 'multiple_object_logger', 'collision_sensor',
-        'object_tracker', 'linear_predictor'
+        'object_tracker', 'linear_predictor', 'obstacle_finder', 'fusion',
+        'center_track'
     ],
     help='Operator of choice to test')
 
@@ -433,6 +434,36 @@ def main(args):
 
             linear_prediction_stream = pylot.operator_creator.add_linear_prediction(
                 tracked_obstacles, time_to_decision_loop_stream)
+        if FLAGS.test_operator == 'obstacle_finder':
+            time_to_decision_loop_stream = erdos.streams.LoopStream()
+
+            obstacles_stream = pylot.operator_creator.add_obstacle_detection(
+                rgb_camera_ingest_stream, time_to_decision_loop_stream)[0]
+
+            time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
+                pose_stream, obstacles_stream)
+            time_to_decision_loop_stream.connect_loop(time_to_decision_stream)
+
+            obstacles_with_loc_stream = pylot.operator_creator.add_obstacle_location_finder(
+                obstacles_stream, depth_camera_ingest_stream, pose_stream,
+                depth_camera_setup)
+        if FLAGS.test_operator == 'fusion':
+            time_to_decision_loop_stream = erdos.streams.LoopStream()
+
+            obstacles_stream = pylot.operator_creator.add_obstacle_detection(
+                rgb_camera_ingest_stream, time_to_decision_loop_stream)[0]
+
+            time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
+                pose_stream, obstacles_stream)
+            time_to_decision_loop_stream.connect_loop(time_to_decision_stream)
+
+            # TODO: Add ground_obstacles_stream once CarlaOperator is implemented
+            obstacle_pos_stream = pylot.operator_creator.add_fusion(
+                pose_stream, obstacles_stream, depth_camera_ingest_stream,
+                None)
+        if FLAGS.test_operator == 'center_track':
+            obstacle_tracking_stream = pylot.operator_creator.add_center_track_tracking(
+                rgb_camera_ingest_stream, rgb_camera_setup)
 
         erdos.run_async()
 
