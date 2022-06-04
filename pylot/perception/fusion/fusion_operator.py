@@ -2,7 +2,6 @@ from collections import deque
 from typing import Union
 
 import erdos
-from erdos import ReadStream, WriteStream
 from erdos.operator import OneInOneOut
 from erdos.context import OneInOneOutContext
 
@@ -98,7 +97,6 @@ class FusionOperator(OneInOneOut):
             self._obstacles[0][1], self._distances[0][1],
             self._car_positions[0][1][0],
             np.arccos(self._car_positions[0][1][1][0]))
-        timestamp = self._obstacles[0][0]
 
         context.write_stream.send(
             erdos.Message(context.timestamp, obstacle_positions))
