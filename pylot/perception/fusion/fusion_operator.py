@@ -99,8 +99,9 @@ class FusionOperator(OneInOneOut):
             self._car_positions[0][1][0],
             np.arccos(self._car_positions[0][1][1][0]))
         timestamp = self._obstacles[0][0]
-        
-        context.write_stream.send(erdos.Message(context.timestamp, obstacle_positions))
+
+        context.write_stream.send(
+            erdos.Message(context.timestamp, obstacle_positions))
 
     def update_pos(self, context, msg):
         vehicle_pos = ((msg.transform.location.x, msg.transform.location.y,
@@ -123,4 +124,3 @@ class FusionOperator(OneInOneOut):
 
     def update_distances(self, context, msg):
         self._distances.append((context.timestamp, msg.as_numpy_array()))
-        

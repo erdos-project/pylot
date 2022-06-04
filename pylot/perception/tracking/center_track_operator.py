@@ -274,4 +274,3 @@ class CenterTrackOperator(erdos.Operator):
                                     meta['height'], meta['width'])
         self.this_calib = meta['calib']
         return dets[0]
-        
