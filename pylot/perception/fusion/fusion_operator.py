@@ -123,3 +123,4 @@ class FusionOperator(OneInOneOut):
 
     def update_distances(self, context, msg):
         self._distances.append((context.timestamp, msg.as_numpy_array()))
+        
