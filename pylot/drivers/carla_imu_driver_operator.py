@@ -10,6 +10,7 @@ import threading
 import erdos
 from erdos.operator import OneInOneOut
 
+from pylot.drivers.sensor_setup import IMUSetup
 from pylot.localization.messages import IMUMessageTuple
 from pylot.simulation.utils import get_vehicle_handle, get_world, \
     set_simulation_mode
@@ -29,7 +30,7 @@ class CarlaIMUDriverOperator(OneInOneOut):
             Setup of the IMU sensor.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, imu_setup, flags):
+    def __init__(self, imu_setup: IMUSetup, flags):
         # The operator does not pass watermarks by defaults.
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -68,7 +69,8 @@ class CarlaIMUDriverOperator(OneInOneOut):
     def run(self, read_stream: erdos.ReadStream,
             write_stream: erdos.WriteStream):
         # Read the vehicle id from the vehicle id stream
-        vehicle_id = read_stream.read()
+        vehicle_id_msg = read_stream.read()
+        vehicle_id = vehicle_id_msg.data
         self._logger.debug(
             "The IMUDriverOperator received the vehicle id: {}".format(
                 vehicle_id))

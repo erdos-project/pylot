@@ -37,8 +37,8 @@ class CarlaLaneInvasionSensorDriverOperator(OneInOneOut):
 
     def run(self, read_stream, write_stream):
         # Read the vehicle ID from the vehicle ID stream.
-        vehicle_id = read_stream.read()
-
+        vehicle_id_msg = read_stream.read()
+        vehicle_id = vehicle_id_msg.data
         self._logger.debug(
             "The LaneInvasionSensorOperator received the vehicle id: {}".
             format(vehicle_id))
@@ -74,10 +74,8 @@ class CarlaLaneInvasionSensorDriverOperator(OneInOneOut):
         the ego-vehicle.
         """
         game_time = int(lane_invasion_event.timestamp * 1000)
-        self._logger.debug(
-            "@[{}]: Received a lane-invasion event from the simulator".format(
-                game_time))
-
+        self._logger.debug("@{}: Received Vehicle ID: {}".format(
+            vehicle_id_msg.timestamp, vehicle_id))
         # Create the lane markings that were invaded.
         lane_markings = []
         for lane_marking in lane_invasion_event.crossed_lane_markings:

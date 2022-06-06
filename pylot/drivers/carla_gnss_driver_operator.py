@@ -10,6 +10,7 @@ import threading
 import erdos
 from erdos.operator import OneInOneOut
 
+from pylot.drivers.sensor_setup import GNSSSetup
 from pylot.localization.messages import GNSSMessageTuple
 from pylot.simulation.utils import get_vehicle_handle, get_world, \
     set_simulation_mode
@@ -29,7 +30,7 @@ class CarlaGNSSDriverOperator(OneInOneOut):
             Setup of the GNSS sensor.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, gnss_setup, flags):
+    def __init__(self, gnss_setup: GNSSSetup, flags):
         # Save the flags and initialize logging.
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -62,8 +63,8 @@ class CarlaGNSSDriverOperator(OneInOneOut):
     def run(self, read_stream: erdos.ReadStream,
             write_stream: erdos.WriteStream):
         # Read the vehicle ID from the vehicle ID stream.
-        vehicle_id = read_stream.read()
-
+        vehicle_id_msg = read_stream.read()
+        vehicle_id = vehicle_id_msg.data
         self._logger.debug(
             "The GNSSDriverOperator received the vehicle id: {}".format(
                 vehicle_id))
