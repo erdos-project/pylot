@@ -42,11 +42,8 @@ flags.DEFINE_enum(
         'depth_estimation', 'qd_track', 'segmentation_decay',
         'segmentation_drn', 'segmentation_eval', 'bounding_box_logger',
         'camera_logger', 'multiple_object_logger', 'collision_sensor',
-<<<<<<< HEAD
-        'object_tracker', 'gnss_sensor', 'imu_sensor', 'lane_invasion_sensor'
-=======
-        'object_tracker', 'linear_predictor'
->>>>>>> 70b1a6704194e466564b62f3ba966b85a82b7973
+        'object_tracker', 'gnss_sensor', 'imu_sensor', 'lane_invasion_sensor',
+        'linear_predictor'
     ],
     help='Operator of choice to test')
 
