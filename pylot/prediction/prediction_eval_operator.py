@@ -1,14 +1,20 @@
 """Implements an operator that eveluates prediction output."""
 
 from collections import deque
+from typing import List, Union
 
 import erdos
-from erdos import Message, ReadStream, Timestamp, WriteStream
+from erdos.operator import OneInOneOut
+from erdos.context import OneInOneOutContext
+from erdos import Timestamp
 
+import pylot.utils
 from pylot.utils import Vector2D, time_epoch_ms
+from pylot.perception.messages import ObstacleTrajectoriesMessageTuple
+from pylot.prediction.obstacle_prediction import ObstaclePrediction
 
 
-class PredictionEvalOperator(erdos.Operator):
+class PredictionEvalOperator(OneInOneOut):
     """Operator that calculates accuracy metrics for predicted trajectories.
 
     Args:
@@ -23,15 +29,7 @@ class PredictionEvalOperator(erdos.Operator):
             received from the prediction operator.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, pose_stream: ReadStream, tracking_stream: ReadStream,
-                 prediction_stream: ReadStream,
-                 finished_indicator_stream: WriteStream, flags):
-        pose_stream.add_callback(self._on_pose_update)
-        tracking_stream.add_callback(self._on_tracking_update)
-        prediction_stream.add_callback(self._on_prediction_update)
-        erdos.add_watermark_callback(
-            [pose_stream, tracking_stream, prediction_stream], [],
-            self.on_watermark)
+    def __init__(self, flags):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -45,36 +43,35 @@ class PredictionEvalOperator(erdos.Operator):
         self._predictions = deque(
             maxlen=self._flags.prediction_num_future_steps)
 
-    @staticmethod
-    def connect(pose_stream: ReadStream, tracking_stream: ReadStream,
-                prediction_stream: ReadStream):
-        finished_indicator_stream = erdos.WriteStream()
-        return [finished_indicator_stream]
+    def on_data(self, context: OneInOneOutContext,
+                data: Union[pylot.utils.Pose, ObstacleTrajectoriesMessageTuple,
+                            List[ObstaclePrediction]]):
+        if isinstance(data, pylot.utils.Pose):
+            self._on_pose_update(data)
+        elif isinstance(data, ObstacleTrajectoriesMessageTuple):
+            self._on_tracking_update(data)
+        elif isinstance(data, List):
+            self._on_prediction_update(data)
+        else:
+            raise ValueError('Unexpected data type')
 
-    def destroy(self):
-        self._logger.warn('destroying {}'.format(self.config.name))
+    def _on_prediction_update(self, data: List[ObstaclePrediction]):
+        self._prediction_msgs.append(data)
 
-    def _on_prediction_update(self, msg: Message):
-        self._prediction_msgs.append(msg)
+    def _on_tracking_update(self, data: ObstacleTrajectoriesMessageTuple):
+        self._tracking_msgs.append(data)
 
-    def _on_tracking_update(self, msg: Message):
-        self._tracking_msgs.append(msg)
+    def _on_pose_update(self, data: pylot.utils.Pose):
+        self._pose_msgs.append(data)
 
-    def _on_pose_update(self, msg: Message):
-        self._pose_msgs.append(msg)
-
-    def on_watermark(self, timestamp: Timestamp):
+    def on_watermark(self, context: OneInOneOutContext):
         """Invoked when all input streams have received a watermark.
-
-        Args:
-            timestamp (:py:class:`erdos.timestamp.Timestamp`): The timestamp of
-                the watermark.
         """
-        if timestamp.is_top:
+        if context.timestamp.is_top:
             return
         tracking_msg = self._tracking_msgs.popleft()
         prediction_msg = self._prediction_msgs.popleft()
-        vehicle_transform = self._pose_msgs.popleft().data.transform
+        vehicle_transform = self._pose_msgs.popleft().transform
 
         # TODO: The evaluator assumes that the obstacle tracker assigns the
         # same ids to the obstacles as they have in the simulation.
@@ -90,12 +87,13 @@ class PredictionEvalOperator(erdos.Operator):
                     obstacle_trajectory
             # Evaluate the prediction corresponding to the current set of
             # ground truth past trajectories.
-            self._calculate_metrics(timestamp, ground_trajectories_dict,
-                                    self._predictions[0].predictions)
+            self._calculate_metrics(context.timestamp,
+                                    ground_trajectories_dict,
+                                    self._predictions[0])
 
         # Convert the prediction to world coordinates and append it to the
         # queue.
-        for obstacle_prediction in prediction_msg.predictions:
+        for obstacle_prediction in prediction_msg:
             obstacle_prediction.to_world_coordinates(vehicle_transform)
         self._predictions.append(prediction_msg)
 
@@ -202,3 +200,6 @@ class PredictionEvalOperator(erdos.Operator):
                 time_epoch_ms(), sim_time, vehicle_ade))
             self._csv_logger.info('{},{},prediction,vehicle-FDE,{:.4f}'.format(
                 time_epoch_ms(), sim_time, vehicle_fde))
+
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))

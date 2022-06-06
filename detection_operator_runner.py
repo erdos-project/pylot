@@ -42,7 +42,7 @@ flags.DEFINE_enum(
         'depth_estimation', 'qd_track', 'segmentation_decay',
         'segmentation_drn', 'segmentation_eval', 'bounding_box_logger',
         'camera_logger', 'multiple_object_logger', 'collision_sensor',
-        'object_tracker', 'linear_predictor'
+        'object_tracker', 'linear_predictor', 'prediction_eval'
     ],
     help='Operator of choice to test')
 
@@ -433,6 +433,33 @@ def main(args):
 
             linear_prediction_stream = pylot.operator_creator.add_linear_prediction(
                 tracked_obstacles, time_to_decision_loop_stream)
+        if FLAGS.test_operator == 'prediction_eval':
+            time_to_decision_loop_stream = erdos.streams.LoopStream()
+
+            from pylot.perception.detection.detection_operator import DetectionOperator
+            detection_op_cfg = erdos.operator.OperatorConfig(
+                name='detection_op')
+            obstacles_stream = erdos.connect_two_in_one_out(
+                DetectionOperator,
+                detection_op_cfg,
+                rgb_camera_ingest_stream,
+                time_to_decision_loop_stream,
+                model_path=FLAGS.obstacle_detection_model_paths[0],
+                flags=FLAGS)
+
+            tracked_obstacles = pylot.operator_creator.add_obstacle_location_history(
+                obstacles_stream, depth_camera_ingest_stream, pose_stream,
+                depth_camera_setup)
+
+            time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
+                pose_stream, obstacles_stream)
+            time_to_decision_loop_stream.connect_loop(time_to_decision_stream)
+
+            linear_prediction_stream = pylot.operator_creator.add_linear_prediction(
+                tracked_obstacles, time_to_decision_loop_stream)
+
+            pylot.operator_creator.add_prediction_evaluation(
+                pose_stream, tracked_obstacles, linear_prediction_stream)
 
         erdos.run_async()
 
