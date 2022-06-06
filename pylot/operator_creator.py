@@ -554,14 +554,16 @@ def add_lidar(transform,
 def _add_lidar_driver(vehicle_id_stream, release_sensor_stream, lidar_setup):
     from pylot.drivers.carla_lidar_driver_operator import \
         CarlaLidarDriverOperator
-    op_config = erdos.OperatorConfig(name=lidar_setup.get_name() + '_operator',
-                                     flow_watermarks=False,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    return erdos.connect(CarlaLidarDriverOperator, op_config,
-                         [vehicle_id_stream, release_sensor_stream],
-                         lidar_setup, FLAGS)
+    op_config = erdos.operator.OperatorConfig(
+        name=lidar_setup.get_name() + '_operator',
+        flow_watermarks=True,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    concatenated_streams = vehicle_id_stream.concat(release_sensor_stream)
+    return erdos.connect_one_in_two_out(CarlaLidarDriverOperator, op_config,
+                                        concatenated_streams, lidar_setup,
+                                        FLAGS)
 
 
 def add_imu(transform, vehicle_id_stream, name='imu'):

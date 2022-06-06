@@ -42,7 +42,7 @@ flags.DEFINE_enum(
         'depth_estimation', 'qd_track', 'segmentation_decay',
         'segmentation_drn', 'segmentation_eval', 'bounding_box_logger',
         'camera_logger', 'multiple_object_logger', 'collision_sensor',
-        'object_tracker', 'linear_predictor'
+        'object_tracker', 'linear_predictor', 'lidar_driver'
     ],
     help='Operator of choice to test')
 
@@ -196,6 +196,8 @@ def main(args):
             name='ground_obstacles_stream')
         vehicle_id_stream = erdos.streams.IngestStream(name='vehicle_id')
         pose_stream = erdos.streams.IngestStream(name='pose_stream')
+        release_sensor_stream = erdos.streams.IngestStream(
+            name='release_sensor')
 
         if FLAGS.test_operator == 'detection_operator' or FLAGS.test_operator == 'object_tracker':
             from pylot.perception.detection.detection_operator import DetectionOperator
@@ -433,11 +435,13 @@ def main(args):
 
             linear_prediction_stream = pylot.operator_creator.add_linear_prediction(
                 tracked_obstacles, time_to_decision_loop_stream)
+        if FLAGS.test_operator == 'lidar_driver':
+            pass
+            (point_cloud_stream, notify_lidar_stream,
+             lidar_setup) = pylot.operator_creator.add_lidar(
+                 transform, vehicle_id_stream, release_sensor_stream)
 
         erdos.run_async()
-
-        ttd_ingest_stream.send(
-            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
         # Register camera frame callbacks
         add_carla_callback(rgb_camera, rgb_camera_setup,
@@ -459,9 +463,18 @@ def main(args):
         pylot.simulation.utils.spawn_people(client, world, 100,
                                             logging.Logger(name="test2"))
 
+        # Send vehicle information first
         vehicle_id_stream.send(
             erdos.Message(erdos.Timestamp(coordinates=[0]), vehicle.id))
+
+        # Manually tick world to ensure that vehicle information is propagated
+        world.tick()
+
+        ttd_ingest_stream.send(
+            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
         vehicle_id_stream.send(
+            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
+        release_sensor_stream.send(
             erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
         def _send_pose_message(simulator_data):
@@ -473,7 +486,7 @@ def main(args):
 
         world.on_tick(_send_pose_message)
 
-        time.sleep(5)
+        time.sleep(10)
 
     finally:
         print('destroying actors')
