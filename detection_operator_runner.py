@@ -2,7 +2,6 @@ import glob
 import os
 import sys
 import threading
-from pylot.perception import depth_estimation
 
 from setuptools import setup
 
@@ -43,7 +42,11 @@ flags.DEFINE_enum(
         'depth_estimation', 'qd_track', 'segmentation_decay',
         'segmentation_drn', 'segmentation_eval', 'bounding_box_logger',
         'camera_logger', 'multiple_object_logger', 'collision_sensor',
+<<<<<<< HEAD
         'object_tracker', 'gnss_sensor', 'imu_sensor', 'lane_invasion_sensor'
+=======
+        'object_tracker', 'linear_predictor'
+>>>>>>> 70b1a6704194e466564b62f3ba966b85a82b7973
     ],
     help='Operator of choice to test')
 
@@ -111,6 +114,19 @@ def add_carla_callback(carla_sensor, setup, stream):
                 getattr(setup, 'camera_type'))
 
     carla_sensor.listen(callback)
+
+
+def send_pose_message(stream: erdos.WriteStream, timestamp: erdos.Timestamp,
+                      vehicle):
+    vec_transform = pylot.utils.Transform.from_simulator_transform(
+        vehicle.get_transform())
+    velocity_vector = pylot.utils.Vector3D.from_simulator_vector(
+        vehicle.get_velocity())
+    forward_speed = velocity_vector.magnitude()
+    pose = pylot.utils.Pose(vec_transform, forward_speed, velocity_vector,
+                            timestamp.coordinates[0])
+    stream.send(erdos.Message(timestamp, pose))
+    stream.send(erdos.WatermarkMessage(timestamp))
 
 
 def main(args):
@@ -183,6 +199,7 @@ def main(args):
         ground_obstacles_stream = erdos.streams.IngestStream(
             name='ground_obstacles_stream')
         vehicle_id_stream = erdos.streams.IngestStream(name='vehicle_id')
+        pose_stream = erdos.streams.IngestStream(name='pose_stream')
 
         if FLAGS.test_operator == 'detection_operator' or FLAGS.test_operator == 'object_tracker':
             from pylot.perception.detection.detection_operator import DetectionOperator
@@ -424,6 +441,31 @@ def main(args):
                 lane_invasion_op_cfg,
                 vehicle_id_stream,
                 flags=FLAGS)
+        if FLAGS.test_operator == 'linear_predictor':
+            time_to_decision_loop_stream = erdos.streams.LoopStream()
+
+            from pylot.perception.detection.detection_operator import DetectionOperator
+            detection_op_cfg = erdos.operator.OperatorConfig(
+                name='detection_op')
+            obstacles_stream = erdos.connect_two_in_one_out(
+                DetectionOperator,
+                detection_op_cfg,
+                rgb_camera_ingest_stream,
+                time_to_decision_loop_stream,
+                model_path=FLAGS.obstacle_detection_model_paths[0],
+                flags=FLAGS)
+
+            tracked_obstacles = pylot.operator_creator.add_obstacle_location_history(
+                obstacles_stream, depth_camera_ingest_stream, pose_stream,
+                depth_camera_setup)
+
+            time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
+                pose_stream, obstacles_stream)
+            time_to_decision_loop_stream.connect_loop(time_to_decision_stream)
+
+            linear_prediction_stream = pylot.operator_creator.add_linear_prediction(
+                tracked_obstacles, time_to_decision_loop_stream)
+
         erdos.run_async()
 
         ttd_ingest_stream.send(
@@ -454,6 +496,15 @@ def main(args):
         vehicle_id_stream.send(
             erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
+        def _send_pose_message(simulator_data):
+            with _lock:
+                game_time = int(simulator_data.elapsed_seconds * 1000)
+                timestamp = erdos.Timestamp(coordinates=[game_time])
+
+                send_pose_message(pose_stream, timestamp, vehicle)
+
+        world.on_tick(_send_pose_message)
+
         time.sleep(5)
 
     finally:
@@ -461,6 +512,8 @@ def main(args):
         rgb_camera.destroy()
         depth_camera.destroy()
         seg_camera.destroy()
+        left_camera.destroy()
+        right_camera.destroy()
         client.apply_batch([carla.command.DestroyActor(x) for x in actor_list])
         print('done.')
 

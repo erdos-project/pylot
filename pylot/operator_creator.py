@@ -125,16 +125,18 @@ def add_obstacle_location_history(obstacles_stream, depth_stream, pose_stream,
     """
     from pylot.perception.tracking.obstacle_location_history_operator import \
         ObstacleLocationHistoryOperator
-    op_config = erdos.OperatorConfig(name=camera_setup.get_name() +
-                                     '_location_finder_history_operator',
-                                     flow_watermarks=False,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [tracked_obstacles
-     ] = erdos.connect(ObstacleLocationHistoryOperator, op_config,
-                       [obstacles_stream, depth_stream, pose_stream], FLAGS,
-                       camera_setup)
+    op_config = erdos.operator.OperatorConfig(
+        name=camera_setup.get_name() + '_location_finder_history_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+
+    concatenated_streams = obstacles_stream.concat(depth_stream, pose_stream)
+
+    tracked_obstacles = erdos.connect_one_in_one_out(
+        ObstacleLocationHistoryOperator, op_config, concatenated_streams,
+        FLAGS, camera_setup)
     return tracked_obstacles
 
 
@@ -367,13 +369,16 @@ def add_segmentation_decay(ground_segmented_stream,
 def add_linear_prediction(tracking_stream, time_to_decision_stream):
     from pylot.prediction.linear_predictor_operator import \
         LinearPredictorOperator
-    op_config = erdos.OperatorConfig(name='linear_prediction_operator',
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [prediction_stream
-     ] = erdos.connect(LinearPredictorOperator, op_config,
-                       [tracking_stream, time_to_decision_stream], FLAGS)
+    op_config = erdos.operator.OperatorConfig(
+        name='linear_prediction_operator',
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    prediction_stream = erdos.connect_two_in_one_out(LinearPredictorOperator,
+                                                     op_config,
+                                                     tracking_stream,
+                                                     time_to_decision_stream,
+                                                     FLAGS)
     return prediction_stream
 
 
@@ -998,10 +1003,12 @@ def add_perfect_tracking(vehicle_id_stream, ground_obstacles_stream,
 
 def add_time_to_decision(pose_stream, obstacles_stream):
     from pylot.control.time_to_decision_operator import TimeToDecisionOperator
-    op_config = erdos.OperatorConfig(name='time_to_decision_operator',
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [time_to_decision] = erdos.connect(TimeToDecisionOperator, op_config,
-                                       [pose_stream, obstacles_stream], FLAGS)
+    op_config = erdos.operator.OperatorConfig(
+        name='time_to_decision_operator',
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    time_to_decision = erdos.connect_two_in_one_out(TimeToDecisionOperator,
+                                                    op_config, pose_stream,
+                                                    obstacles_stream, FLAGS)
     return time_to_decision
