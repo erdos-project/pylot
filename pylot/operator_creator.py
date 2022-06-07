@@ -1,7 +1,8 @@
+from typing import List
 from absl import flags
 
 import erdos
-from erdos import OperatorStream, Stream
+from erdos import Stream
 
 import pylot.utils
 from pylot.drivers.sensor_setup import CameraSetup
@@ -28,7 +29,7 @@ def add_simulator_bridge(control_stream, sensor_ready_stream,
 
 def add_efficientdet_obstacle_detection(camera_stream: Stream,
                                         time_to_decision_stream: Stream,
-                                        csv_file_name: str = None):
+                                        csv_file_name: str = None) -> Stream:
     """Adds an operator that uses EfficientDet for obstacle detection."""
     from pylot.perception.detection.efficientdet_operator import \
         EfficientDetOperator
@@ -49,7 +50,7 @@ def add_efficientdet_obstacle_detection(camera_stream: Stream,
 
 def add_obstacle_detection(camera_stream: Stream,
                            time_to_decision_stream: Stream,
-                           csv_file_name: str = None):
+                           csv_file_name: str = None) -> List:
     from pylot.perception.detection.detection_operator import DetectionOperator
     obstacles_streams = []
     if csv_file_name is None:
@@ -71,7 +72,7 @@ def add_obstacle_detection(camera_stream: Stream,
 
 def add_obstacle_location_finder(obstacles_stream: Stream,
                                  depth_stream: Stream, pose_stream: Stream,
-                                 camera_setup: CameraSetup):
+                                 camera_setup: CameraSetup) -> Stream:
     """Adds an operator that finds the world locations of the obstacles.
 
     Args:
@@ -107,8 +108,9 @@ def add_obstacle_location_finder(obstacles_stream: Stream,
     return obstacles_with_loc_stream
 
 
-def add_obstacle_location_history(obstacles_stream, depth_stream, pose_stream,
-                                  camera_setup):
+def add_obstacle_location_history(obstacles_stream: Stream,
+                                  depth_stream: Stream, pose_stream: Stream,
+                                  camera_setup: CameraSetup) -> Stream:
     """Adds an operator that finds obstacle trajectories in world coordinates.
 
     Args:
@@ -247,7 +249,7 @@ def add_lanenet_detection(bgr_camera_stream, name='lanenet_lane_detection'):
 def add_obstacle_tracking(obstacles_stream: Stream,
                           bgr_camera_stream: Stream,
                           time_to_decision_stream: Stream,
-                          name_prefix: str = 'tracker_') -> OperatorStream:
+                          name_prefix: str = 'tracker_') -> Stream:
     from pylot.perception.tracking.object_tracker_operator import \
         ObjectTrackerOperator
     op_config = erdos.operator.OperatorConfig(
@@ -371,7 +373,8 @@ def add_segmentation_decay(ground_segmented_stream,
     return iou_stream
 
 
-def add_linear_prediction(tracking_stream, time_to_decision_stream):
+def add_linear_prediction(tracking_stream: Stream,
+                          time_to_decision_stream: Stream) -> Stream:
     from pylot.prediction.linear_predictor_operator import \
         LinearPredictorOperator
     op_config = erdos.operator.OperatorConfig(
@@ -613,7 +616,8 @@ def add_localization(imu_stream,
 
 
 def add_fusion(pose_stream: Stream, obstacles_stream: Stream,
-               depth_stream: Stream, ground_obstacles_stream: Stream):
+               depth_stream: Stream,
+               ground_obstacles_stream: Stream) -> Stream:
     from pylot.perception.fusion.fusion_operator import FusionOperator
     op_config = erdos.operator.OperatorConfig(
         name='fusion_operator',
