@@ -4,6 +4,7 @@ import erdos
 from erdos import OperatorStream, Stream
 
 import pylot.utils
+from pylot.drivers.sensor_setup import GNSSSetup, IMUSetup
 
 # TODO: Hack to avoid a tensorflow import error.
 import tensorflow as tf  # noqa: F401
@@ -567,9 +568,9 @@ def _add_lidar_driver(vehicle_id_stream, release_sensor_stream, lidar_setup):
 def add_imu(
         transform: pylot.utils.Transform,
         vehicle_id_stream: Stream,
-        name: str = 'imu') -> (Stream, pylot.drivers.sensor_setup.IMUSetup):
+        name: str = 'imu') -> (Stream, IMUSetup):
     from pylot.drivers.carla_imu_driver_operator import CarlaIMUDriverOperator
-    imu_setup = pylot.drivers.sensor_setup.IMUSetup(name, transform)
+    imu_setup = IMUSetup(name, transform)
     op_config = erdos.operator.OperatorConfig(
         name=imu_setup.get_name() + '_operator',
         flow_watermarks=False,
@@ -587,10 +588,10 @@ def add_imu(
 def add_gnss(
         transform: pylot.utils.Transform,
         vehicle_id_stream: Stream,
-        name: str = 'gnss') -> (Stream, pylot.drivers.sensor_setup.GNSSSetup):
+        name: str = 'gnss') -> (Stream, GNSSSetup):
     from pylot.drivers.carla_gnss_driver_operator import \
         CarlaGNSSDriverOperator
-    gnss_setup = pylot.drivers.sensor_setup.GNSSSetup(name, transform)
+    gnss_setup = GNSSSetup(name, transform)
     op_config = erdos.operator.OperatorConfig(
         name=gnss_setup.get_name() + '_operator',
         flow_watermarks=False,
