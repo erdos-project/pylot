@@ -4,6 +4,7 @@ import erdos
 from erdos import OperatorStream, Stream
 
 import pylot.utils
+from pylot.drivers.sensor_setup import CameraSetup
 
 # TODO: Hack to avoid a tensorflow import error.
 import tensorflow as tf  # noqa: F401
@@ -25,9 +26,9 @@ def add_simulator_bridge(control_stream, sensor_ready_stream,
         FLAGS)
 
 
-def add_efficientdet_obstacle_detection(camera_stream,
-                                        time_to_decision_stream,
-                                        csv_file_name=None):
+def add_efficientdet_obstacle_detection(camera_stream: Stream,
+                                        time_to_decision_stream: Stream,
+                                        csv_file_name: str = None):
     """Adds an operator that uses EfficientDet for obstacle detection."""
     from pylot.perception.detection.efficientdet_operator import \
         EfficientDetOperator
@@ -46,9 +47,9 @@ def add_efficientdet_obstacle_detection(camera_stream,
     return obstacles_stream
 
 
-def add_obstacle_detection(camera_stream,
-                           time_to_decision_stream,
-                           csv_file_name=None):
+def add_obstacle_detection(camera_stream: Stream,
+                           time_to_decision_stream: Stream,
+                           csv_file_name: str = None):
     from pylot.perception.detection.detection_operator import DetectionOperator
     obstacles_streams = []
     if csv_file_name is None:
@@ -68,8 +69,9 @@ def add_obstacle_detection(camera_stream,
     return obstacles_streams
 
 
-def add_obstacle_location_finder(obstacles_stream, depth_stream, pose_stream,
-                                 camera_setup):
+def add_obstacle_location_finder(obstacles_stream: Stream,
+                                 depth_stream: Stream, pose_stream: Stream,
+                                 camera_setup: CameraSetup):
     """Adds an operator that finds the world locations of the obstacles.
 
     Args:
@@ -610,8 +612,8 @@ def add_localization(imu_stream,
     return pose_stream
 
 
-def add_fusion(pose_stream, obstacles_stream, depth_stream,
-               ground_obstacles_stream):
+def add_fusion(pose_stream: Stream, obstacles_stream: Stream,
+               depth_stream: Stream, ground_obstacles_stream: Stream):
     from pylot.perception.fusion.fusion_operator import FusionOperator
     op_config = erdos.operator.OperatorConfig(
         name='fusion_operator',

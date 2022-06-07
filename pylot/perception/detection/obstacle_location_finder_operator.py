@@ -9,6 +9,7 @@ import pylot.utils
 from pylot.perception.detection.utils import get_obstacle_locations
 from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.messages import ObstaclesMessageTuple
+from pylot.drivers.sensor_setup import CameraSetup
 
 
 class ObstacleLocationFinderOperator(OneInOneOut):
@@ -29,7 +30,7 @@ class ObstacleLocationFinderOperator(OneInOneOut):
             detected obstacles from camera coordinates to real-world
             coordinates.
     """
-    def __init__(self, flags, camera_setup):
+    def __init__(self, flags, camera_setup: CameraSetup):
         self._flags = flags
         self._camera_setup = camera_setup
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -51,15 +52,17 @@ class ObstacleLocationFinderOperator(OneInOneOut):
         else:
             raise ValueError('Unexpected data type')
 
-    def on_obstacles_update(self, context, data):
+    def on_obstacles_update(self, context: OneInOneOutContext,
+                            data: ObstaclesMessageTuple):
         self._logger.debug('@{}: obstacles update'.format(context.timestamp))
         self._obstacles_msgs.append(data)
 
-    def on_depth_update(self, context, data):
+    def on_depth_update(self, context: OneInOneOutContext, data: DepthFrame):
         self._logger.debug('@{}: depth update'.format(context.timestamp))
         self._depth_msgs.append(data)
 
-    def on_pose_update(self, context, data):
+    def on_pose_update(self, context: OneInOneOutContext,
+                       data: pylot.utils.Pose):
         self._logger.debug('@{}: pose update'.format(context.timestamp))
         self._pose_msgs.append(data)
 

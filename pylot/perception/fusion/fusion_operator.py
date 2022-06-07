@@ -22,7 +22,10 @@ class FusionOperator(OneInOneOut):
             boxes respectively. Note that camera position, orientation, and
             FOV must be identical for both.
     """
-    def __init__(self, flags, camera_fov=np.pi / 4, rgbd_max_range=1000):
+    def __init__(self,
+                 flags,
+                 camera_fov: float = np.pi / 4,
+                 rgbd_max_range: float = 1000):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
@@ -43,6 +46,8 @@ class FusionOperator(OneInOneOut):
             self.update_obstacles(context, data)
         elif isinstance(data, DepthFrame):
             self.update_distances(context, data)
+        else:
+            raise ValueError('Unexpected data type')
 
         self.fuse(context)
 
@@ -85,7 +90,7 @@ class FusionOperator(OneInOneOut):
                 queue.popleft()
 
     @erdos.profile_method()
-    def fuse(self, context):
+    def fuse(self, context: OneInOneOutContext):
         # Return if we don't have car position, distances or obstacles.
         if min(
                 map(len,
@@ -101,24 +106,27 @@ class FusionOperator(OneInOneOut):
         context.write_stream.send(
             erdos.Message(context.timestamp, obstacle_positions))
 
-    def update_pos(self, context, msg):
-        vehicle_pos = ((msg.transform.location.x, msg.transform.location.y,
-                        msg.transform.location.z),
-                       (msg.transform.forward_vector.x,
-                        msg.transform.forward_vector.y,
-                        msg.transform.forward_vector.z))
+    def update_pos(self, context: OneInOneOutContext, pose: pylot.utils.Pose):
+        vehicle_pos = ((pose.transform.location.x, pose.transform.location.y,
+                        pose.transform.location.z),
+                       (pose.transform.forward_vector.x,
+                        pose.transform.forward_vector.y,
+                        pose.transform.forward_vector.z))
         self._car_positions.append((context.timestamp, vehicle_pos))
 
-    def update_obstacles(self, context, msg):
+    def update_obstacles(self, context: OneInOneOutContext,
+                         obstacles: ObstaclesMessageTuple):
         # Filter obstacles
         self._logger.info("Received update obstacles")
         vehicle_bounds = []
-        for obstacle in msg.obstacles:
+        for obstacle in obstacles.obstacles:
             self._logger.info("%s received: %s ", self.config.name, obstacle)
             # TODO(ionel): Deal with different types of labels.
             if obstacle.label in {"truck", "car"}:
                 vehicle_bounds.append(obstacle.bounding_box_2D)
         self._obstacles.append((context.timestamp, vehicle_bounds))
 
-    def update_distances(self, context, msg):
-        self._distances.append((context.timestamp, msg.as_numpy_array()))
+    def update_distances(self, context: OneInOneOutContext,
+                         depth_frame: DepthFrame):
+        self._distances.append(
+            (context.timestamp, depth_frame.as_numpy_array()))
