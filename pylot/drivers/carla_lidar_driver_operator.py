@@ -16,6 +16,7 @@ from erdos.context import OneInTwoOutContext
 from pylot.perception.point_cloud import PointCloud
 from pylot.simulation.utils import check_simulator_version, \
     get_vehicle_handle, get_world, set_simulation_mode
+from pylot.drivers.sensor_setup import LidarSetup
 
 
 class CarlaLidarDriverOperator(OneInTwoOut):
@@ -28,7 +29,7 @@ class CarlaLidarDriverOperator(OneInTwoOut):
     Args:
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, lidar_setup, flags):
+    def __init__(self, lidar_setup: LidarSetup, flags):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -45,11 +46,11 @@ class CarlaLidarDriverOperator(OneInTwoOut):
         # receives it.
         self._release_data = False
 
-    def process_point_clouds(self, simulator_pc, left_write_stream,
-                             right_write_stream):
+    def process_point_clouds(self, simulator_pc,
+                             left_write_stream: WriteStream,
+                             right_write_stream: WriteStream):
         """ Invoked when a point cloud is received from the simulator.
         """
-        print('callback')
         game_time = int(simulator_pc.timestamp * 1000)
         timestamp = erdos.Timestamp(coordinates=[game_time])
         watermark_msg = erdos.WatermarkMessage(timestamp)
@@ -147,7 +148,6 @@ class CarlaLidarDriverOperator(OneInTwoOut):
         self._lidar.listen(_process_point_clouds)
 
     def on_watermark(self, context: OneInTwoOutContext):
-        print('on watermark lidar')
         if context.timestamp.is_top:
             # The operator can always send data ASAP.
             self._release_data = True
@@ -161,6 +161,3 @@ class CarlaLidarDriverOperator(OneInTwoOut):
             context.left_write_stream.send(watermark_msg)
             with self._pickle_lock:
                 del self._pickled_messages[context.timestamp]
-
-    def destroy(self):
-        print('Destroying lidar driver operator')

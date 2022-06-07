@@ -129,9 +129,9 @@ def main(args):
     actor_list = []
 
     try:
-        client = carla.Client('localhost', 2000)
-        client.set_timeout(10.0)
-        world = client.get_world()
+        client, world = pylot.simulation.utils.get_world(
+            FLAGS.simulator_host, FLAGS.simulator_port,
+            FLAGS.simulator_timeout)
 
         bp = world.get_blueprint_library().filter('vehicle.lincoln.mkz2017')[0]
 
@@ -486,7 +486,10 @@ def main(args):
 
         world.on_tick(_send_pose_message)
 
-        time.sleep(10)
+        for _ in range(10):
+            world.tick()
+
+        time.sleep(5)
 
     finally:
         print('destroying actors')

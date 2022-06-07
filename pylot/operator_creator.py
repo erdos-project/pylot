@@ -1,7 +1,9 @@
+from typing import Tuple
 from absl import flags
 
 import erdos
 from erdos import OperatorStream, Stream
+from pylot.drivers.sensor_setup import LidarSetup
 
 import pylot.utils
 
@@ -533,11 +535,11 @@ def add_camera_driver(camera_setup, vehicle_id_stream, release_sensor_stream):
                          camera_setup, FLAGS)
 
 
-def add_lidar(transform,
-              vehicle_id_stream,
-              release_sensor_stream,
-              name='center_lidar',
-              legacy=False):
+def add_lidar(transform: pylot.utils.Transform,
+              vehicle_id_stream: Stream,
+              release_sensor_stream: Stream,
+              name: str = 'center_lidar',
+              legacy: bool = False) -> Tuple[Stream, Stream, LidarSetup]:
     # Ensure that each lidar reading offers a 360 degree view.
     rotation_frequency = FLAGS.simulator_lidar_frequency
     if rotation_frequency == -1:
@@ -551,12 +553,13 @@ def add_lidar(transform,
     return (point_cloud_stream, notify_reading_stream, lidar_setup)
 
 
-def _add_lidar_driver(vehicle_id_stream, release_sensor_stream, lidar_setup):
+def _add_lidar_driver(vehicle_id_stream: Stream, release_sensor_stream: Stream,
+                      lidar_setup: LidarSetup) -> Tuple[Stream, Stream]:
     from pylot.drivers.carla_lidar_driver_operator import \
         CarlaLidarDriverOperator
     op_config = erdos.operator.OperatorConfig(
         name=lidar_setup.get_name() + '_operator',
-        flow_watermarks=True,
+        flow_watermarks=False,
         log_file_name=FLAGS.log_file_name,
         csv_log_file_name=FLAGS.csv_log_file_name,
         profile_file_name=FLAGS.profile_file_name)
