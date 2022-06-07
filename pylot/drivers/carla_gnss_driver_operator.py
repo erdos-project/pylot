@@ -7,7 +7,10 @@ The operator attaches a GNSS sensor to the ego vehicle, receives GNSS
 
 import threading
 
+from carla import GnssMeasurement
+
 import erdos
+from erdos import ReadStream, WriteStream
 from erdos.operator import OneInOneOut
 
 from pylot.drivers.sensor_setup import GNSSSetup
@@ -42,7 +45,8 @@ class CarlaGNSSDriverOperator(OneInOneOut):
         self._gnss = None
         self._lock = threading.Lock()
 
-    def process_gnss(self, gnss_msg, write_stream):
+    def process_gnss(self, gnss_msg: GnssMeasurement,
+                     write_stream: WriteStream):
         """Invoked when a GNSS measurement is received from the simulator.
 
         Sends GNSS measurements to downstream operators.
@@ -54,14 +58,14 @@ class CarlaGNSSDriverOperator(OneInOneOut):
                            self,
                            event_data={'timestamp': str(timestamp)}):
             with self._lock:
-                msg = GNSSMessageTuple(
+                gnss_data = GNSSMessageTuple(
                     Transform.from_simulator_transform(gnss_msg.transform),
                     gnss_msg.altitude, gnss_msg.latitude, gnss_msg.longitude)
-                write_stream.send(erdos.Message(timestamp, msg))
+                write_stream.send(erdos.Message(timestamp, gnss_data))
                 write_stream.send(watermark_msg)
 
-    def run(self, read_stream: erdos.ReadStream,
-            write_stream: erdos.WriteStream):
+    def run(self, read_stream: ReadStream,
+            write_stream: WriteStream):
         # Read the vehicle ID from the vehicle ID stream.
         vehicle_id_msg = read_stream.read()
         vehicle_id = vehicle_id_msg.data

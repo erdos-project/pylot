@@ -493,7 +493,7 @@ def add_collision_sensor(vehicle_id_stream):
     return collision_stream
 
 
-def add_lane_invasion_sensor(vehicle_id_stream):
+def add_lane_invasion_sensor(vehicle_id_stream: Stream) -> Stream:
     """ Adds a lane invasion sensor to the pipeline.
 
     Args:
@@ -513,12 +513,10 @@ def add_lane_invasion_sensor(vehicle_id_stream):
         log_file_name=FLAGS.log_file_name,
         csv_log_file_name=FLAGS.csv_log_file_name,
         profile_file_name=FLAGS.profile_file_name)
-    lane_invasion_stream = erdos.connect_one_in_one_out(
-        CarlaLaneInvasionSensorDriverOperator,
-        op_config,
-        vehicle_id_stream,
-        flags=FLAGS)
-    return lane_invasion_stream
+    return erdos.connect_one_in_one_out(CarlaLaneInvasionSensorDriverOperator,
+                                        op_config,
+                                        vehicle_id_stream,
+                                        flags=FLAGS)
 
 
 def add_camera_driver(camera_setup, vehicle_id_stream, release_sensor_stream):
@@ -566,7 +564,11 @@ def _add_lidar_driver(vehicle_id_stream, release_sensor_stream, lidar_setup):
                          lidar_setup, FLAGS)
 
 
-def add_imu(transform, vehicle_id_stream, name='imu'):
+def add_imu(
+        transform: pylot.utils.Transform,
+        vehicle_id_stream: Stream,
+        name: str = 'imu'
+) -> (Stream, pylot.drivers.sensor_setup.IMUSetup):
     from pylot.drivers.carla_imu_driver_operator import CarlaIMUDriverOperator
     imu_setup = pylot.drivers.sensor_setup.IMUSetup(name, transform)
     op_config = erdos.operator.OperatorConfig(
@@ -583,7 +585,11 @@ def add_imu(transform, vehicle_id_stream, name='imu'):
     return (imu_stream, imu_setup)
 
 
-def add_gnss(transform, vehicle_id_stream, name='gnss'):
+def add_gnss(
+    transform: pylot.utils.Transform,
+    vehicle_id_stream: Stream,
+    name: str = 'gnss'
+) -> (Stream, pylot.drivers.sensor_setup.GNSSSetup):
     from pylot.drivers.carla_gnss_driver_operator import \
         CarlaGNSSDriverOperator
     gnss_setup = pylot.drivers.sensor_setup.GNSSSetup(name, transform)

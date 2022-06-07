@@ -7,7 +7,10 @@ IMU measurements from the simulator, and sends them on its output stream.
 
 import threading
 
+from carla import IMUMeasurement
+
 import erdos
+from erdos import ReadStream, WriteStream
 from erdos.operator import OneInOneOut
 
 from pylot.drivers.sensor_setup import IMUSetup
@@ -43,7 +46,7 @@ class CarlaIMUDriverOperator(OneInOneOut):
         # Lock to ensure that the callbacks do not execute simultaneously.
         self._lock = threading.Lock()
 
-    def process_imu(self, imu_msg, write_stream):
+    def process_imu(self, imu_msg: IMUMeasurement, write_stream: WriteStream):
         """Invoked when an IMU measurement is received from the simulator.
 
         Sends IMU measurements to downstream operators.
@@ -55,19 +58,19 @@ class CarlaIMUDriverOperator(OneInOneOut):
                            self,
                            event_data={'timestamp': str(timestamp)}):
             with self._lock:
-                msg = IMUMessageTuple(
+                imu_data = IMUMessageTuple(
                     Transform.from_simulator_transform(imu_msg.transform),
                     Vector3D.from_simulator_vector(imu_msg.accelerometer),
                     Vector3D.from_simulator_vector(imu_msg.gyroscope),
                     imu_msg.compass)
-                write_stream.send(erdos.Message(timestamp, msg))
+                write_stream.send(erdos.Message(timestamp, imu_data))
                 # Note: The operator is set not to automatically propagate
                 # watermarks received on input streams. Thus, we can issue
                 # watermarks only after the simulator callback is invoked.
                 write_stream.send(watermark_msg)
 
-    def run(self, read_stream: erdos.ReadStream,
-            write_stream: erdos.WriteStream):
+    def run(self, read_stream: ReadStream,
+            write_stream: WriteStream):
         # Read the vehicle id from the vehicle id stream
         vehicle_id_msg = read_stream.read()
         vehicle_id = vehicle_id_msg.data

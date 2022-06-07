@@ -2,9 +2,10 @@
 the ego vehicle invades a lane on the opposite side of the road.
 """
 
-from carla import LaneType, Transform
+from carla import LaneInvasionEvent, LaneType, Transform
 
 import erdos
+from erdos import ReadStream, WriteStream
 from erdos.operator import OneInOneOut
 
 import pylot.utils
@@ -35,7 +36,7 @@ class CarlaLaneInvasionSensorDriverOperator(OneInOneOut):
         self._lane_invasion_sensor = None
         self._map = None
 
-    def run(self, read_stream, write_stream):
+    def run(self, read_stream: ReadStream, write_stream: WriteStream):
         # Read the vehicle ID from the vehicle ID stream.
         vehicle_id_msg = read_stream.read()
         vehicle_id = vehicle_id_msg.data
@@ -66,7 +67,8 @@ class CarlaLaneInvasionSensorDriverOperator(OneInOneOut):
 
         self._lane_invasion_sensor.listen(self.process_lane_invasion)
 
-    def process_lane_invasion(self, lane_invasion_event, write_stream):
+    def process_lane_invasion(self, lane_invasion_event: LaneInvasionEvent,
+                              write_stream: WriteStream):
         """Invoked when a lane invasion event is received from the simulation.
 
         The lane-invasion event contains the lane marking which was invaded by
