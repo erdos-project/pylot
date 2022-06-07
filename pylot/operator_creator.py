@@ -567,8 +567,7 @@ def _add_lidar_driver(vehicle_id_stream, release_sensor_stream, lidar_setup):
 def add_imu(
         transform: pylot.utils.Transform,
         vehicle_id_stream: Stream,
-        name: str = 'imu'
-) -> (Stream, pylot.drivers.sensor_setup.IMUSetup):
+        name: str = 'imu') -> (Stream, pylot.drivers.sensor_setup.IMUSetup):
     from pylot.drivers.carla_imu_driver_operator import CarlaIMUDriverOperator
     imu_setup = pylot.drivers.sensor_setup.IMUSetup(name, transform)
     op_config = erdos.operator.OperatorConfig(
@@ -586,10 +585,9 @@ def add_imu(
 
 
 def add_gnss(
-    transform: pylot.utils.Transform,
-    vehicle_id_stream: Stream,
-    name: str = 'gnss'
-) -> (Stream, pylot.drivers.sensor_setup.GNSSSetup):
+        transform: pylot.utils.Transform,
+        vehicle_id_stream: Stream,
+        name: str = 'gnss') -> (Stream, pylot.drivers.sensor_setup.GNSSSetup):
     from pylot.drivers.carla_gnss_driver_operator import \
         CarlaGNSSDriverOperator
     gnss_setup = pylot.drivers.sensor_setup.GNSSSetup(name, transform)
