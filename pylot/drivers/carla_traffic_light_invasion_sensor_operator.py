@@ -7,11 +7,14 @@ import time
 from carla import Location, TrafficLightState
 
 import erdos
+from erdos import ReadStream, WriteStream
+from erdos.operator import TwoInOneOut
+from erdos.context import TwoInOneOutContext
 
 import numpy as np
 
 import pylot.utils
-from pylot.simulation.messages import TrafficInfractionMessage
+from pylot.simulation.messages import TrafficInfractionMessageTuple
 from pylot.simulation.utils import TrafficInfractionType, get_vehicle_handle, \
     get_world
 from pylot.utils import Vector3D
@@ -19,19 +22,8 @@ from pylot.utils import Vector3D
 from shapely.geometry import LineString
 
 
-class CarlaTrafficLightInvasionSensorOperator(erdos.Operator):
-    def __init__(self, ground_vehicle_id_stream: erdos.ReadStream,
-                 pose_stream: erdos.ReadStream,
-                 traffic_light_invasion_stream: erdos.WriteStream, flags):
-        # Save the streams.
-        self._vehicle_id_stream = ground_vehicle_id_stream
-        self._pose_stream = pose_stream
-        self._traffic_light_invasion_stream = traffic_light_invasion_stream
-
-        # Register a callback on the pose stream to check if the ego-vehicle
-        # is invading a traffic light.
-        pose_stream.add_callback(self.on_pose_update)
-
+class CarlaTrafficLightInvasionSensorOperator(TwoInOneOut):
+    def __init__(self, flags):
         # The hero vehicle object we obtain from the simulator.
         self._vehicle = None
 
@@ -49,12 +41,6 @@ class CarlaTrafficLightInvasionSensorOperator(erdos.Operator):
         # Distance from the light to trigger the check at.
         self.DISTANCE_LIGHT = 10
 
-    @staticmethod
-    def connect(ground_vehicle_id_stream: erdos.ReadStream,
-                pose_stream: erdos.ReadStream):
-        traffic_light_invasion_stream = erdos.WriteStream()
-        return [traffic_light_invasion_stream]
-
     def is_vehicle_crossing_line(self, seg1, seg2):
         """Checks if vehicle crosses a line segment."""
         line1 = LineString([(seg1[0].x, seg1[0].y), (seg1[1].x, seg1[1].y)])
@@ -63,10 +49,12 @@ class CarlaTrafficLightInvasionSensorOperator(erdos.Operator):
 
         return not inter.is_empty
 
-    def on_pose_update(self, msg):
-        self._logger.debug("@{}: pose update.".format(msg.timestamp))
+    def on_right_data(self, context: TwoInOneOutContext,
+                      data: pylot.utils.Pose):
+        """Invoked whenever a Pose object is received on the stream."""
+        self._logger.debug("@{}: pose update.".format(context.timestamp))
 
-        transform = msg.data.transform
+        transform = data.transform
         location = Location(transform.location.x, transform.location.y,
                             transform.location.z)
 
@@ -124,17 +112,23 @@ class CarlaTrafficLightInvasionSensorOperator(erdos.Operator):
                     seg2 = (lft_lane_wp, rgt_lane_wp)
                     if self.is_vehicle_crossing_line(seg1, seg2):
                         location = traffic_light.get_transform().location
-                        message = TrafficInfractionMessage(
+                        message = TrafficInfractionMessageTuple(
                             TrafficInfractionType.RED_LIGHT_INVASION,
                             pylot.utils.Location.from_simulator_location(
-                                location), msg.timestamp)
-                        self._traffic_light_invasion_stream.send(message)
+                                location))
+                        context.write_stream.send(
+                            erdos.Message(context.timestamp, message))
                         self._last_red_light_id = traffic_light.id
                         break
 
-    def run(self):
+    def run(
+        self,
+        read_stream: ReadStream,
+        left_write_stream: WriteStream,
+        right_write_stream: WriteStream,
+    ):
         # Read the vehicle ID from the vehicle ID stream.
-        vehicle_id_msg = self._vehicle_id_stream.read()
+        vehicle_id_msg = read_stream.read()
         vehicle_id = vehicle_id_msg.data
         self._logger.debug("@{}: Received Vehicle ID: {}".format(
             vehicle_id_msg.timestamp, vehicle_id))

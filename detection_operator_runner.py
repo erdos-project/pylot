@@ -42,7 +42,7 @@ flags.DEFINE_enum(
         'depth_estimation', 'qd_track', 'segmentation_decay',
         'segmentation_drn', 'segmentation_eval', 'bounding_box_logger',
         'camera_logger', 'multiple_object_logger', 'collision_sensor',
-        'object_tracker', 'linear_predictor', 'lidar_driver'
+        'object_tracker', 'linear_predictor', 'lidar', 'traffic_light_invasion'
     ],
     help='Operator of choice to test')
 
@@ -435,11 +435,15 @@ def main(args):
 
             linear_prediction_stream = pylot.operator_creator.add_linear_prediction(
                 tracked_obstacles, time_to_decision_loop_stream)
-        if FLAGS.test_operator == 'lidar_driver':
-            pass
+        if FLAGS.test_operator == 'lidar':
             (point_cloud_stream, notify_lidar_stream,
              lidar_setup) = pylot.operator_creator.add_lidar(
                  transform, vehicle_id_stream, release_sensor_stream)
+            finished_indicator_stream = pylot.operator_creator.add_lidar_logging(
+                point_cloud_stream)
+        if FLAGS.test_operator == 'traffic_light_invasion':
+            traffic_light_invasion_stream = pylot.operator_creator.add_traffic_light_invasion_sensor(
+                vehicle_id_stream, pose_stream)
 
         erdos.run_async()
 

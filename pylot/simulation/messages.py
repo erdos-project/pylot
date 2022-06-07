@@ -24,6 +24,25 @@ class CollisionMessageTuple(NamedTuple):
     intensity: float
 
 
+class TrafficInfractionMessageTuple(NamedTuple):
+    """ Message class to be used to send traffic infraction events.
+
+    Args:
+        infraction_type (:py:class:`.TrafficInfractionType`): The type of the
+            infraction that occurred.
+        location (:py:class:`pylot.utils.Location`): The location where the
+            infraction occurred.
+
+    Attributes:
+        infraction_type (:py:class:`.TrafficInfractionType`): The type of the
+            infraction that occurred.
+        location (:py:class:`pylot.utils.Location`): The location where the
+            infraction occurred.
+    """
+    infraction_type: TrafficInfractionType
+    location: Location
+
+
 class CollisionMessage(erdos.Message):
     """ Message class to be used to send collision events.
 
