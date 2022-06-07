@@ -69,8 +69,7 @@ class CarlaIMUDriverOperator(OneInOneOut):
                 # watermarks only after the simulator callback is invoked.
                 write_stream.send(watermark_msg)
 
-    def run(self, read_stream: ReadStream,
-            write_stream: WriteStream):
+    def run(self, read_stream: ReadStream, write_stream: WriteStream):
         # Read the vehicle id from the vehicle id stream
         vehicle_id_msg = read_stream.read()
         vehicle_id = vehicle_id_msg.data

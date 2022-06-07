@@ -64,8 +64,7 @@ class CarlaGNSSDriverOperator(OneInOneOut):
                 write_stream.send(erdos.Message(timestamp, gnss_data))
                 write_stream.send(watermark_msg)
 
-    def run(self, read_stream: ReadStream,
-            write_stream: WriteStream):
+    def run(self, read_stream: ReadStream, write_stream: WriteStream):
         # Read the vehicle ID from the vehicle ID stream.
         vehicle_id_msg = read_stream.read()
         vehicle_id = vehicle_id_msg.data
