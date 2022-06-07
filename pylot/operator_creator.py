@@ -396,10 +396,10 @@ def add_r2p2_prediction(point_cloud_stream, obstacles_tracking_stream,
     return prediction_stream
 
 
-def add_prediction_evaluation(pose_stream,
-                              tracking_stream,
-                              prediction_stream,
-                              name='prediction_eval_operator'):
+def add_prediction_evaluation(pose_stream: Stream,
+                              tracking_stream: Stream,
+                              prediction_stream: Stream,
+                              name: str = 'prediction_eval_operator'):
     from pylot.prediction.prediction_eval_operator import \
         PredictionEvalOperator
     op_config = erdos.operator.OperatorConfig(
