@@ -5,7 +5,7 @@ import erdos
 from erdos import Stream
 
 import pylot.utils
-from pylot.drivers.sensor_setup import CameraSetup
+from pylot.drivers.sensor_setup import CameraSetup, GNSSSetup, IMUSetup
 
 # TODO: Hack to avoid a tensorflow import error.
 import tensorflow as tf  # noqa: F401
@@ -504,7 +504,7 @@ def add_collision_sensor(vehicle_id_stream):
     return collision_stream
 
 
-def add_lane_invasion_sensor(vehicle_id_stream):
+def add_lane_invasion_sensor(vehicle_id_stream: Stream) -> Stream:
     """ Adds a lane invasion sensor to the pipeline.
 
     Args:
@@ -518,16 +518,16 @@ def add_lane_invasion_sensor(vehicle_id_stream):
     """
     from pylot.drivers.carla_lane_invasion_sensor_operator import \
         CarlaLaneInvasionSensorDriverOperator
-    op_config = erdos.OperatorConfig(
+    op_config = erdos.operator.OperatorConfig(
         name='simulator_lane_invasion_sensor_operator',
         flow_watermarks=False,
         log_file_name=FLAGS.log_file_name,
         csv_log_file_name=FLAGS.csv_log_file_name,
         profile_file_name=FLAGS.profile_file_name)
-    [lane_invasion_stream
-     ] = erdos.connect(CarlaLaneInvasionSensorDriverOperator, op_config,
-                       [vehicle_id_stream], FLAGS)
-    return lane_invasion_stream
+    return erdos.connect_one_in_one_out(CarlaLaneInvasionSensorDriverOperator,
+                                        op_config,
+                                        vehicle_id_stream,
+                                        flags=FLAGS)
 
 
 def add_camera_driver(camera_setup, vehicle_id_stream, release_sensor_stream):
@@ -575,30 +575,42 @@ def _add_lidar_driver(vehicle_id_stream, release_sensor_stream, lidar_setup):
                          lidar_setup, FLAGS)
 
 
-def add_imu(transform, vehicle_id_stream, name='imu'):
+def add_imu(transform: pylot.utils.Transform,
+            vehicle_id_stream: Stream,
+            name: str = 'imu') -> (Stream, IMUSetup):
     from pylot.drivers.carla_imu_driver_operator import CarlaIMUDriverOperator
-    imu_setup = pylot.drivers.sensor_setup.IMUSetup(name, transform)
-    op_config = erdos.OperatorConfig(name=imu_setup.get_name() + '_operator',
-                                     flow_watermarks=False,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [imu_stream] = erdos.connect(CarlaIMUDriverOperator, op_config,
-                                 [vehicle_id_stream], imu_setup, FLAGS)
+    imu_setup = IMUSetup(name, transform)
+    op_config = erdos.operator.OperatorConfig(
+        name=imu_setup.get_name() + '_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    imu_stream = erdos.connect_one_in_one_out(CarlaIMUDriverOperator,
+                                              op_config,
+                                              vehicle_id_stream,
+                                              imu_setup,
+                                              flags=FLAGS)
     return (imu_stream, imu_setup)
 
 
-def add_gnss(transform, vehicle_id_stream, name='gnss'):
+def add_gnss(transform: pylot.utils.Transform,
+             vehicle_id_stream: Stream,
+             name: str = 'gnss') -> (Stream, GNSSSetup):
     from pylot.drivers.carla_gnss_driver_operator import \
         CarlaGNSSDriverOperator
-    gnss_setup = pylot.drivers.sensor_setup.GNSSSetup(name, transform)
-    op_config = erdos.OperatorConfig(name=gnss_setup.get_name() + '_operator',
-                                     flow_watermarks=False,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [gnss_stream] = erdos.connect(CarlaGNSSDriverOperator, op_config,
-                                  [vehicle_id_stream], gnss_setup, FLAGS)
+    gnss_setup = GNSSSetup(name, transform)
+    op_config = erdos.operator.OperatorConfig(
+        name=gnss_setup.get_name() + '_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    gnss_stream = erdos.connect_one_in_one_out(CarlaGNSSDriverOperator,
+                                               op_config,
+                                               vehicle_id_stream,
+                                               gnss_setup,
+                                               flags=FLAGS)
     return (gnss_stream, gnss_setup)
 
 

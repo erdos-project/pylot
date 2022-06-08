@@ -1,5 +1,7 @@
 """This module implements localization related Message classes."""
 
+from typing import NamedTuple
+
 import erdos
 
 from pylot.utils import Transform, Vector3D
@@ -79,3 +81,34 @@ class GNSSMessage(erdos.Message):
                 'latitude: {}, longitude: {})'.format(
                     self.timestamp, self.transform, self.altitude,
                     self.latitude, self.longitude)
+
+
+class GNSSMessageTuple(NamedTuple):
+    """Message class to be used to send GNSS measurements.
+    Attributes:
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the GNSS.
+        altitude (float): Height regarding ground level.
+        latitude (float): North/South value of a point on the map.
+        longitude (float): West/East value of a point on the map.
+    """
+    transform: Transform
+    altitude: float
+    latitude: float
+    longitude: float
+
+
+class IMUMessageTuple(NamedTuple):
+    """Message class to be used to send IMU measurements.
+    Attributes:
+        transform (:py:class:`~pylot.utils.Transform`): Transform of the IMU.
+        acceleration (:py:class:`~pylot.utils.Vector3D`): Linear acceleration
+            measurement in m/s^2.
+        gyro (:py:class:`~pylot.utils.Vector3D`): Angular velocity measurement
+            in rad/sec.
+        compass (:obj:`float`): Orientation measurement w.r.t North direction
+            ((0, -1, 0) in Unreal) in radians.
+    """
+    transform: Transform
+    acceleration: Vector3D
+    gyro: Vector3D
+    compass: float
