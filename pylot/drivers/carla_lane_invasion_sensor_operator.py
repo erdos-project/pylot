@@ -96,10 +96,10 @@ class CarlaLaneInvasionSensorDriverOperator(OneInOneOut):
 
         # Create a LaneInvasionMessage.
         timestamp = erdos.Timestamp(coordinates=[game_time])
-        msg = LaneInvasionMessageTuple(lane_markings, lane_type)
+        lane_invasion_data = LaneInvasionMessageTuple(lane_markings, lane_type)
 
         # Send the LaneInvasionMessage
-        write_stream.send(erdos.Message(timestamp, msg))
+        write_stream.send(erdos.Message(timestamp, lane_invasion_data))
         # TODO(ionel): This code will fail if process_lane_invasion is
         # called twice for the same timestamp.
         write_stream.send(erdos.WatermarkMessage(timestamp))
