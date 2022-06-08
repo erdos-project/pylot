@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 from absl import flags
 
 import erdos
@@ -574,7 +574,7 @@ def _add_lidar_driver(vehicle_id_stream, release_sensor_stream, lidar_setup):
 
 def add_imu(transform: pylot.utils.Transform,
             vehicle_id_stream: Stream,
-            name: str = 'imu') -> (Stream, IMUSetup):
+            name: str = 'imu') -> Tuple[Stream, IMUSetup]:
     from pylot.drivers.carla_imu_driver_operator import CarlaIMUDriverOperator
     imu_setup = IMUSetup(name, transform)
     op_config = erdos.operator.OperatorConfig(
@@ -593,7 +593,7 @@ def add_imu(transform: pylot.utils.Transform,
 
 def add_gnss(transform: pylot.utils.Transform,
              vehicle_id_stream: Stream,
-             name: str = 'gnss') -> (Stream, GNSSSetup):
+             name: str = 'gnss') -> Tuple[Stream, GNSSSetup]:
     from pylot.drivers.carla_gnss_driver_operator import \
         CarlaGNSSDriverOperator
     gnss_setup = GNSSSetup(name, transform)
@@ -780,12 +780,13 @@ def add_eval_metric_logging(collision_stream, lane_invasion_stream,
 
 def add_gnss_logging(gnss_stream, name='gnss_logger_operator'):
     from pylot.loggers.gnss_logger_operator import GNSSLoggerOperator
-    op_config = erdos.OperatorConfig(name=name,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [finished_indicator_stream] = erdos.connect(GNSSLoggerOperator, op_config,
-                                                [gnss_stream], FLAGS)
+    op_config = erdos.operator.OperatorConfig(
+        name=name,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    finished_indicator_stream = erdos.connect_one_in_one_out(
+        GNSSLoggerOperator, op_config, gnss_stream, FLAGS)
     return finished_indicator_stream
 
 
@@ -802,12 +803,13 @@ def add_pose_logging(pose_stream, name='pose_logger_operator'):
 
 def add_imu_logging(imu_stream, name='imu_logger_operator'):
     from pylot.loggers.imu_logger_operator import IMULoggerOperator
-    op_config = erdos.OperatorConfig(name=name,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [finished_indicator_stream] = erdos.connect(IMULoggerOperator, op_config,
-                                                [imu_stream], FLAGS)
+    op_config = erdos.operator.OperatorConfig(
+        name=name,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    finished_indicator_stream = erdos.connect_one_in_one_out(
+        IMULoggerOperator, op_config, imu_stream, FLAGS)
     return finished_indicator_stream
 
 
