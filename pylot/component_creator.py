@@ -1,26 +1,30 @@
 import logging
+from typing import Tuple
 
 from absl import flags
 
+from erdos import Stream
+
 import pylot.operator_creator
 from pylot.drivers.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
-    SegmentedCameraSetup
+    SegmentedCameraSetup, CameraSetup
 
 FLAGS = flags.FLAGS
 
 logger = logging.getLogger(__name__)
 
 
-def add_obstacle_detection(center_camera_stream,
-                           center_camera_setup=None,
-                           pose_stream=None,
-                           depth_stream=None,
-                           depth_camera_stream=None,
-                           segmented_camera_stream=None,
-                           ground_obstacles_stream=None,
-                           ground_speed_limit_signs_stream=None,
-                           ground_stop_signs_stream=None,
-                           time_to_decision_stream=None):
+def add_obstacle_detection(
+        center_camera_stream: Stream,
+        center_camera_setup: CameraSetup = None,
+        pose_stream: Stream = None,
+        depth_stream: Stream = None,
+        depth_camera_stream: Stream = None,
+        segmented_camera_stream: Stream = None,
+        ground_obstacles_stream: Stream = None,
+        ground_speed_limit_signs_stream: Stream = None,
+        ground_stop_signs_stream: Stream = None,
+        time_to_decision_stream: Stream = None) -> Tuple[Stream, Stream]:
     """Adds operators for obstacle detection to the data-flow.
 
     If the `--perfect_obstacle_detection` flag is set, the method adds a
@@ -70,10 +74,10 @@ def add_obstacle_detection(center_camera_stream,
         if any('efficientdet' in model
                for model in FLAGS.obstacle_detection_model_names):
             logger.debug('Using EfficientDet obstacle detector...')
-            obstacles_streams = pylot.operator_creator.\
+            obstacles_stream = pylot.operator_creator.\
                 add_efficientdet_obstacle_detection(
                     center_camera_stream, time_to_decision_stream)
-            obstacles_stream_wo_depth = obstacles_streams[0]
+            obstacles_stream_wo_depth = obstacles_stream
         else:
             logger.debug('Using obstacle detector...')
             # TODO: Only returns the first obstacles stream.

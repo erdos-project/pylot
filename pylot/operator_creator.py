@@ -1,9 +1,11 @@
+from typing import List
 from absl import flags
 
 import erdos
-from erdos import OperatorStream, Stream
+from erdos import Stream
 
 import pylot.utils
+from pylot.drivers.sensor_setup import CameraSetup
 
 # TODO: Hack to avoid a tensorflow import error.
 import tensorflow as tf  # noqa: F401
@@ -25,50 +27,52 @@ def add_simulator_bridge(control_stream, sensor_ready_stream,
         FLAGS)
 
 
-def add_efficientdet_obstacle_detection(camera_stream,
-                                        time_to_decision_stream,
-                                        csv_file_name=None):
+def add_efficientdet_obstacle_detection(camera_stream: Stream,
+                                        time_to_decision_stream: Stream,
+                                        csv_file_name: str = None) -> Stream:
     """Adds an operator that uses EfficientDet for obstacle detection."""
     from pylot.perception.detection.efficientdet_operator import \
         EfficientDetOperator
     if csv_file_name is None:
         csv_file_name = FLAGS.csv_log_file_name
-    op_config = erdos.OperatorConfig(name='efficientdet_operator',
-                                     flow_watermarks=False,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=csv_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    obstacles_streams = erdos.connect(EfficientDetOperator, op_config,
-                                      [camera_stream, time_to_decision_stream],
-                                      FLAGS.obstacle_detection_model_names,
-                                      FLAGS.obstacle_detection_model_paths,
-                                      FLAGS)
-    return obstacles_streams
+    op_config = erdos.operators.OperatorConfig(
+        name='efficientdet_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=csv_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    obstacles_stream = erdos.connect_two_in_one_out(
+        EfficientDetOperator, op_config, camera_stream,
+        time_to_decision_stream, FLAGS.obstacle_detection_model_names,
+        FLAGS.obstacle_detection_model_paths, FLAGS)
+    return obstacles_stream
 
 
-def add_obstacle_detection(camera_stream,
-                           time_to_decision_stream,
-                           csv_file_name=None):
+def add_obstacle_detection(camera_stream: Stream,
+                           time_to_decision_stream: Stream,
+                           csv_file_name: str = None) -> List:
     from pylot.perception.detection.detection_operator import DetectionOperator
     obstacles_streams = []
     if csv_file_name is None:
         csv_file_name = FLAGS.csv_log_file_name
     for i in range(0, len(FLAGS.obstacle_detection_model_paths)):
-        op_config = erdos.OperatorConfig(
+        op_config = erdos.operator.OperatorConfig(
             name=FLAGS.obstacle_detection_model_names[i],
             flow_watermarks=False,
             log_file_name=FLAGS.log_file_name,
             csv_log_file_name=csv_file_name,
             profile_file_name=FLAGS.profile_file_name)
-        obstacles_streams += erdos.connect(
-            DetectionOperator, op_config,
-            [camera_stream, time_to_decision_stream],
-            FLAGS.obstacle_detection_model_paths[i], FLAGS)
+        obstacles_streams.append(
+            erdos.connect_two_in_one_out(
+                DetectionOperator, op_config, camera_stream,
+                time_to_decision_stream,
+                FLAGS.obstacle_detection_model_paths[i], FLAGS))
     return obstacles_streams
 
 
-def add_obstacle_location_finder(obstacles_stream, depth_stream, pose_stream,
-                                 camera_setup):
+def add_obstacle_location_finder(obstacles_stream: Stream,
+                                 depth_stream: Stream, pose_stream: Stream,
+                                 camera_setup: CameraSetup) -> Stream:
     """Adds an operator that finds the world locations of the obstacles.
 
     Args:
@@ -90,20 +94,23 @@ def add_obstacle_location_finder(obstacles_stream, depth_stream, pose_stream,
     """
     from pylot.perception.detection.obstacle_location_finder_operator import \
         ObstacleLocationFinderOperator
-    op_config = erdos.OperatorConfig(name=camera_setup.get_name() +
-                                     '_location_finder_operator',
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [obstacles_with_loc_stream
-     ] = erdos.connect(ObstacleLocationFinderOperator, op_config,
-                       [obstacles_stream, depth_stream, pose_stream], FLAGS,
-                       camera_setup)
+    op_config = erdos.operator.OperatorConfig(
+        name=camera_setup.get_name() + '_location_finder_operator',
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+
+    concatenated_streams = obstacles_stream.concat(depth_stream, pose_stream)
+
+    obstacles_with_loc_stream = erdos.connect_one_in_one_out(
+        ObstacleLocationFinderOperator, op_config, concatenated_streams, FLAGS,
+        camera_setup)
     return obstacles_with_loc_stream
 
 
-def add_obstacle_location_history(obstacles_stream, depth_stream, pose_stream,
-                                  camera_setup):
+def add_obstacle_location_history(obstacles_stream: Stream,
+                                  depth_stream: Stream, pose_stream: Stream,
+                                  camera_setup: CameraSetup) -> Stream:
     """Adds an operator that finds obstacle trajectories in world coordinates.
 
     Args:
@@ -242,7 +249,7 @@ def add_lanenet_detection(bgr_camera_stream, name='lanenet_lane_detection'):
 def add_obstacle_tracking(obstacles_stream: Stream,
                           bgr_camera_stream: Stream,
                           time_to_decision_stream: Stream,
-                          name_prefix: str = 'tracker_') -> OperatorStream:
+                          name_prefix: str = 'tracker_') -> Stream:
     from pylot.perception.tracking.object_tracker_operator import \
         ObjectTrackerOperator
     op_config = erdos.operator.OperatorConfig(
@@ -366,7 +373,8 @@ def add_segmentation_decay(ground_segmented_stream,
     return iou_stream
 
 
-def add_linear_prediction(tracking_stream, time_to_decision_stream):
+def add_linear_prediction(tracking_stream: Stream,
+                          time_to_decision_stream: Stream) -> Stream:
     from pylot.prediction.linear_predictor_operator import \
         LinearPredictorOperator
     op_config = erdos.operator.OperatorConfig(
@@ -610,20 +618,24 @@ def add_localization(imu_stream,
     return pose_stream
 
 
-def add_fusion(pose_stream, obstacles_stream, depth_stream,
-               ground_obstacles_stream):
+def add_fusion(pose_stream: Stream, obstacles_stream: Stream,
+               depth_stream: Stream,
+               ground_obstacles_stream: Stream) -> Stream:
     from pylot.perception.fusion.fusion_operator import FusionOperator
-    from pylot.perception.fusion.fusion_verification_operator import \
-        FusionVerificationOperator
-    op_config = erdos.OperatorConfig(name='fusion_operator',
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [obstacle_pos_stream
-     ] = erdos.connect(FusionOperator, op_config,
-                       [pose_stream, obstacles_stream, depth_stream], FLAGS)
+    op_config = erdos.operator.OperatorConfig(
+        name='fusion_operator',
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    concatenated_streams = pose_stream.concat(obstacles_stream, depth_stream)
+    obstacle_pos_stream = erdos.connect_one_in_one_out(FusionOperator,
+                                                       op_config,
+                                                       concatenated_streams,
+                                                       FLAGS)
 
     if FLAGS.evaluate_fusion:
+        from pylot.perception.fusion.fusion_verification_operator import \
+            FusionVerificationOperator
         eval_op_config = erdos.OperatorConfig(
             name='fusion_verification_operator',
             log_file_name=FLAGS.log_file_name,
