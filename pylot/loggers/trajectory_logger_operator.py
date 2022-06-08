@@ -4,15 +4,16 @@ import json
 import os
 
 import erdos
+from erdos.operator import OneInOneOut
+from erdos.context import OneInOneOutContext
+
+from pylot.perception.messages import ObstacleTrajectoriesMessageTuple
 
 
-class TrajectoryLoggerOperator(erdos.Operator):
+class TrajectoryLoggerOperator(OneInOneOut):
     """Logs tracked obstacles trajectories to files.
 
     Args:
-        obstacles_tracking_stream (:py:class:`erdos.ReadStream`): The stream on
-            which :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`  # noqa: E501
-            are received.
         flags (absl.flags): Object to be used to access absl flags.
 
     Attributes:
@@ -21,9 +22,7 @@ class TrajectoryLoggerOperator(erdos.Operator):
         _msg_cnt (:obj:`int`): Number of messages received.
         _data_path (:obj:`str`): Directory to which to log files.
     """
-    def __init__(self, obstacle_tracking_stream: erdos.ReadStream,
-                 finished_indicator_stream: erdos.WriteStream, flags):
-        obstacle_tracking_stream.add_callback(self.on_trajectories_msg)
+    def __init__(self, flags):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._flags = flags
@@ -31,30 +30,26 @@ class TrajectoryLoggerOperator(erdos.Operator):
         self._data_path = os.path.join(self._flags.data_path, 'trajectories')
         os.makedirs(self._data_path, exist_ok=True)
 
-    @staticmethod
-    def connect(obstacle_tracking_stream: erdos.ReadStream):
-        finished_indicator_stream = erdos.WriteStream()
-        return [finished_indicator_stream]
-
-    def on_trajectories_msg(self, msg):
+    def on_data(self, context: OneInOneOutContext,
+                data: ObstacleTrajectoriesMessageTuple):
         """Logs obstacle trajectories to files.
 
-        Invoked upon the receipt of a msg on the obstacles trajectories stream.
+        Invoked upon the receipt of trajectories on the obstacles trajectories stream.
 
         Args:
-            msg (:py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`):  # noqa: E501
-                Received message.
+            msg (:py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessageTuple`):  # noqa: E501
+                Received trajectories.
         """
         self._logger.debug('@{}: {} received message'.format(
-            msg.timestamp, self.config.name))
+            context.timestamp, self.config.name))
         self._msg_cnt += 1
         if self._msg_cnt % self._flags.log_every_nth_message != 0:
             return
         trajectories = [
-            str(trajectory) for trajectory in msg.obstacle_trajectories
+            str(trajectory) for trajectory in data.obstacle_trajectories
         ]
-        assert len(msg.timestamp.coordinates) == 1
-        timestamp = msg.timestamp.coordinates[0]
+        assert len(context.timestamp.coordinates) == 1
+        timestamp = context.timestamp.coordinates[0]
         # Write the trajectories.
         file_name = os.path.join(self._data_path,
                                  'trajectories-{}.json'.format(timestamp))

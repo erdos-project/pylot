@@ -845,17 +845,17 @@ def add_multiple_object_tracker_logging(
     return finished_indicator_stream
 
 
-def add_trajectory_logging(obstacles_tracking_stream,
-                           name='trajectory_logger_operator'):
+def add_trajectory_logging(obstacles_tracking_stream: Stream,
+                           name='trajectory_logger_operator') -> Stream:
     from pylot.loggers.trajectory_logger_operator import \
         TrajectoryLoggerOperator
-    op_config = erdos.OperatorConfig(name=name,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [finished_indicator_stream
-     ] = erdos.connect(TrajectoryLoggerOperator, op_config,
-                       [obstacles_tracking_stream], FLAGS)
+    op_config = erdos.operator.OperatorConfig(
+        name=name,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    finished_indicator_stream = erdos.connect_one_in_one_out(
+        TrajectoryLoggerOperator, op_config, obstacles_tracking_stream, FLAGS)
     return finished_indicator_stream
 
 

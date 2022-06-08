@@ -44,7 +44,7 @@ flags.DEFINE_enum(
         'camera_logger', 'multiple_object_logger', 'collision_sensor',
         'object_tracker', 'linear_predictor', 'obstacle_finder', 'fusion',
         'gnss_sensor', 'imu_sensor', 'lane_invasion_sensor', 'localization',
-        'pose_logging'
+        'pose_logging', 'trajectory_logging'
     ],
     help='Operator of choice to test')
 
@@ -499,6 +499,30 @@ def main(args):
         if FLAGS.test_operator == 'pose_logging':
             finished_indicator_stream = pylot.operator_creator.add_pose_logging(
                 pose_stream)
+        if FLAGS.test_operator == 'trajectory_logging':
+            time_to_decision_loop_stream = erdos.streams.LoopStream()
+
+            from pylot.perception.detection.detection_operator import DetectionOperator
+            detection_op_cfg = erdos.operator.OperatorConfig(
+                name='detection_op')
+            obstacles_stream = erdos.connect_two_in_one_out(
+                DetectionOperator,
+                detection_op_cfg,
+                rgb_camera_ingest_stream,
+                time_to_decision_loop_stream,
+                model_path=FLAGS.obstacle_detection_model_paths[0],
+                flags=FLAGS)
+
+            tracked_obstacles = pylot.operator_creator.add_obstacle_location_history(
+                obstacles_stream, depth_camera_ingest_stream, pose_stream,
+                depth_camera_setup)
+
+            time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
+                pose_stream, obstacles_stream)
+            time_to_decision_loop_stream.connect_loop(time_to_decision_stream)
+
+            finished_indicator_stream = pylot.operator_creator.add_trajectory_logging(
+                tracked_obstacles)
 
         erdos.run_async()
 
