@@ -34,33 +34,19 @@ from pylot.drivers.sensor_setup import RGBCameraSetup, DepthCameraSetup, Segment
 _lock = threading.Lock()
 
 FLAGS = flags.FLAGS
-flags.DEFINE_enum('test_operator',
-                  'detection_operator', [
-                      'detection_operator',
-                      'detection_eval',
-                      'detection_decay',
-                      'traffic_light',
-                      'efficient_det',
-                      'lanenet',
-                      'canny_lane',
-                      'depth_estimation',
-                      'qd_track',
-                      'segmentation_decay',
-                      'segmentation_drn',
-                      'segmentation_eval',
-                      'bounding_box_logger',
-                      'camera_logger',
-                      'multiple_object_logger',
-                      'collision_sensor',
-                      'object_tracker',
-                      'linear_predictor',
-                      'obstacle_finder',
-                      'fusion',
-                      'gnss_sensor',
-                      'imu_sensor',
-                      'lane_invasion_sensor',
-                  ],
-                  help='Operator of choice to test')
+flags.DEFINE_enum(
+    'test_operator',
+    'detection_operator', [
+        'detection_operator', 'detection_eval', 'detection_decay',
+        'traffic_light', 'efficient_det', 'lanenet', 'canny_lane',
+        'depth_estimation', 'qd_track', 'segmentation_decay',
+        'segmentation_drn', 'segmentation_eval', 'bounding_box_logger',
+        'camera_logger', 'multiple_object_logger', 'collision_sensor',
+        'object_tracker', 'linear_predictor', 'obstacle_finder', 'fusion',
+        'gnss_sensor', 'imu_sensor', 'lane_invasion_sensor', 'localization',
+        'pose_logging'
+    ],
+    help='Operator of choice to test')
 
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.0, 0.0, 1.8)
 
@@ -499,6 +485,20 @@ def main(args):
             obstacle_pos_stream = pylot.operator_creator.add_fusion(
                 pose_stream, obstacles_stream, depth_camera_ingest_stream,
                 None)
+        if FLAGS.test_operator == 'localization':
+            (gnss_stream, _) = pylot.operator_creator.add_gnss(
+                pylot.utils.Transform(location=pylot.utils.Location(),
+                                      rotation=pylot.utils.Rotation()),
+                vehicle_id_stream)
+            (imu_stream, _) = pylot.operator_creator.add_imu(
+                pylot.utils.Transform(location=pylot.utils.Location(),
+                                      rotation=pylot.utils.Rotation()),
+                vehicle_id_stream)
+            refined_pose_stream = pylot.operator_creator.add_localization(
+                imu_stream, gnss_stream, pose_stream)
+        if FLAGS.test_operator == 'pose_logging':
+            finished_indicator_stream = pylot.operator_creator.add_pose_logging(
+                pose_stream)
 
         erdos.run_async()
 

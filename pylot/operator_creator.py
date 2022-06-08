@@ -611,19 +611,20 @@ def add_gnss(transform: pylot.utils.Transform,
     return (gnss_stream, gnss_setup)
 
 
-def add_localization(imu_stream,
-                     gnss_stream,
-                     ground_pose_stream,
-                     name="localization"):
+def add_localization(imu_stream: Stream,
+                     gnss_stream: Stream,
+                     ground_pose_stream: Stream,
+                     name="localization") -> Stream:
     from pylot.localization.localization_operator import LocalizationOperator
-    op_config = erdos.OperatorConfig(name=name + "_operator",
-                                     flow_watermarks=False,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [pose_stream
-     ] = erdos.connect(LocalizationOperator, op_config,
-                       [imu_stream, gnss_stream, ground_pose_stream], FLAGS)
+    op_config = erdos.operator.OperatorConfig(
+        name=name + "_operator",
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    concatenated_streams = imu_stream.concat(gnss_stream, ground_pose_stream)
+    pose_stream = erdos.connect_one_in_one_out(LocalizationOperator, op_config,
+                                               concatenated_streams, FLAGS)
     return pose_stream
 
 
@@ -778,7 +779,8 @@ def add_eval_metric_logging(collision_stream, lane_invasion_stream,
     return finished_indicator_stream
 
 
-def add_gnss_logging(gnss_stream, name='gnss_logger_operator'):
+def add_gnss_logging(gnss_stream: Stream,
+                     name='gnss_logger_operator') -> Stream:
     from pylot.loggers.gnss_logger_operator import GNSSLoggerOperator
     op_config = erdos.operator.OperatorConfig(
         name=name,
@@ -790,18 +792,20 @@ def add_gnss_logging(gnss_stream, name='gnss_logger_operator'):
     return finished_indicator_stream
 
 
-def add_pose_logging(pose_stream, name='pose_logger_operator'):
+def add_pose_logging(pose_stream: Stream,
+                     name='pose_logger_operator') -> Stream:
     from pylot.loggers.pose_logger_operator import PoseLoggerOperator
-    op_config = erdos.OperatorConfig(name=name,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [finished_indicator_stream] = erdos.connect(PoseLoggerOperator, op_config,
-                                                [pose_stream], FLAGS)
+    op_config = erdos.operator.OperatorConfig(
+        name=name,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    finished_indicator_stream = erdos.connect_one_in_one_out(
+        PoseLoggerOperator, op_config, pose_stream, FLAGS)
     return finished_indicator_stream
 
 
-def add_imu_logging(imu_stream, name='imu_logger_operator'):
+def add_imu_logging(imu_stream: Stream, name='imu_logger_operator') -> Stream:
     from pylot.loggers.imu_logger_operator import IMULoggerOperator
     op_config = erdos.operator.OperatorConfig(
         name=name,

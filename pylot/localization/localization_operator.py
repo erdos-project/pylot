@@ -1,58 +1,36 @@
 """This module implements EKF localization using GNSS and IMU."""
 
 from collections import deque
+from typing import Union
 from functools import partial
 
 import erdos
+from erdos.operator import OneInOneOut
+from erdos.context import OneInOneOutContext
 from erdos import Message, ReadStream, Timestamp, WriteStream
 
 import numpy as np
+
+import pylot.utils
+from pylot.localization.messages import GNSSMessageTuple, IMUMessageTuple
 
 from pylot.utils import Location, Pose, Quaternion, Rotation, Transform, \
         Vector3D
 
 
-class LocalizationOperator(erdos.Operator):
+class LocalizationOperator(OneInOneOut):
     """Localizes vehicle using GPS and IMU.
 
     The operator implements localization using a Kalman filter.
 
     Args:
-        imu_stream (:py:class:`erdos.ReadStream`): Stream on which IMU
-            sensors readings are received.
-        gnss_stream (:py:class:`erdos.ReadStream`): Stream on which
-            GNSS readings are received.
-        ground_pose_stream (:py:class:`erdos.ReadStream`): Stream on which
-            the operator receives noisy poses. It refines these poses using
-            GPS and IMU.
-        pose_stream (:py:class:`erdos.ReadStream`): Stream on which the
-            operator outputs pose messages.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, imu_stream: ReadStream, gnss_stream: ReadStream,
-                 ground_pose_stream: ReadStream, pose_stream: WriteStream,
-                 flags):
-        # Register callbacks on read streams.
+    def __init__(self, flags):
+        # Initialize queues to store incoming data.
         self._imu_updates = deque()
-        imu_stream.add_callback(
-            partial(self.buffer_msg, msg_type="IMU", queue=self._imu_updates))
-
         self._gnss_updates = deque()
-        gnss_stream.add_callback(
-            partial(self.buffer_msg, msg_type="GNSS",
-                    queue=self._gnss_updates))
-
         self._ground_pose_updates = deque()
-        ground_pose_stream.add_callback(
-            partial(self.buffer_msg,
-                    msg_type="pose",
-                    queue=self._ground_pose_updates))
-        erdos.add_watermark_callback(
-            [imu_stream, gnss_stream, ground_pose_stream], [],
-            self.on_watermark)
-
-        # Save the output stream.
-        self._pose_stream = pose_stream
 
         # Initialize a logger.
         self._flags = flags
@@ -87,28 +65,29 @@ class LocalizationOperator(erdos.Operator):
 
         self._last_covariance = np.zeros((9, 9))
 
-    @staticmethod
-    def connect(imu_stream: ReadStream, gnss_stream: ReadStream,
-                ground_pose_stream: ReadStream):
-        pose_stream = erdos.WriteStream()
-        return [pose_stream]
-
-    def destroy(self):
-        self._logger.warn('destroying {}'.format(self.config.name))
-
-    def buffer_msg(self, msg: Message, msg_type: str, queue: deque):
-        """Callback which buffers the received message."""
-        self._logger.debug("@{}: received {} message.".format(
-            msg.timestamp, msg_type))
-        queue.append(msg)
+    def on_data(self, context: OneInOneOutContext,
+                data: Union[IMUMessageTuple, GNSSMessageTuple,
+                            pylot.utils.Pose]):
+        if isinstance(data, IMUMessageTuple):
+            self._logger.debug('@{}: IMU update'.format(context.timestamp))
+            self._imu_updates.append((context.timestamp, data))
+        elif isinstance(data, GNSSMessageTuple):
+            self._logger.debug('@{}: GNSS update'.format(context.timestamp))
+            self._gnss_updates.append((context.timestamp, data))
+        elif isinstance(data, pylot.utils.Pose):
+            self._logger.debug('@{}: Pose update'.format(context.timestamp))
+            self._ground_pose_updates.append((context.timestamp, data))
+        else:
+            raise ValueError('Unexpected data type')
 
     def get_message(self, queue: deque, timestamp: Timestamp, name: str):
         msg = None
         if queue:
             while len(queue) > 0:
                 retrieved_msg = queue.popleft()
-                if retrieved_msg.timestamp == timestamp:
-                    msg = retrieved_msg
+                # Messages are stored as tuples: (timestamp, data)
+                if retrieved_msg[0] == timestamp:
+                    msg = retrieved_msg[1]
                     break
             if not msg:
                 raise ValueError(
@@ -160,30 +139,35 @@ class LocalizationOperator(erdos.Operator):
         )
 
     @erdos.profile_method()
-    def on_watermark(self, timestamp: Timestamp):
-        self._logger.debug("@{}: received watermark.".format(timestamp))
-        if timestamp.is_top:
-            self._pose_stream.send(erdos.WatermarkMessage(timestamp))
+    def on_watermark(self, context: OneInOneOutContext):
+        self._logger.debug("@{}: received watermark.".format(
+            context.timestamp))
+        if context.timestamp.is_top:
+            context.write_stream.send(erdos.WatermarkMessage(
+                context.timestamp))
             return
 
         # Retrieve the messages for this timestamp.
-        pose_msg = self.get_message(self._ground_pose_updates, timestamp,
-                                    "pose")
-        gnss_msg = self.get_message(self._gnss_updates, timestamp, "GNSS")
-        imu_msg = self.get_message(self._imu_updates, timestamp, "IMU")
+        pose_msg = self.get_message(self._ground_pose_updates,
+                                    context.timestamp, "Pose")
+        gnss_msg = self.get_message(self._gnss_updates, context.timestamp,
+                                    "GNSS")
+        imu_msg = self.get_message(self._imu_updates, context.timestamp, "IMU")
 
         if self._last_pose_estimate is None or \
            (abs(imu_msg.acceleration.y) > 100 and not self._is_started):
             self._logger.debug(
                 "@{}: The initial pose estimate is not initialized.".format(
-                    timestamp))
+                    context.timestamp))
             # If this is the first update or values have not stabilized,
             # save the estimates.
             if pose_msg:
-                self._last_pose_estimate = pose_msg.data
-                self._last_timestamp = timestamp.coordinates[0]
-                self._pose_stream.send(pose_msg)
-                self._pose_stream.send(erdos.WatermarkMessage(timestamp))
+                self._last_pose_estimate = pose_msg
+                self._last_timestamp = context.timestamp.coordinates[0]
+                context.write_stream.send(
+                    erdos.Message(context.timestamp, pose_msg))
+                context.write_stream.send(
+                    erdos.WatermarkMessage(context.timestamp))
             else:
                 raise NotImplementedError(
                     "Need pose message to initialize the estimates.")
@@ -191,7 +175,7 @@ class LocalizationOperator(erdos.Operator):
             self._is_started = True
 
             # Initialize the delta_t
-            current_ts = timestamp.coordinates[0]
+            current_ts = context.timestamp.coordinates[0]
             delta_t = (current_ts - self._last_timestamp) / 1000.0
 
             # Estimate the rotation.
@@ -249,10 +233,15 @@ class LocalizationOperator(erdos.Operator):
                 localization_time=current_ts,
             )
             self._logger.debug("@{}: Predicted pose: {}".format(
-                timestamp, current_pose))
-            self._pose_stream.send(erdos.Message(timestamp, current_pose))
-            self._pose_stream.send(erdos.WatermarkMessage(timestamp))
+                context.timestamp, current_pose))
+            context.write_stream.send(
+                erdos.Message(context.timestamp, current_pose))
+            context.write_stream.send(erdos.WatermarkMessage(
+                context.timestamp))
 
             # Set the estimates for the next iteration.
             self._last_timestamp = current_ts
             self._last_pose_estimate = current_pose
+
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
