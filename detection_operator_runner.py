@@ -44,7 +44,7 @@ flags.DEFINE_enum(
         'camera_logger', 'multiple_object_logger', 'collision_sensor',
         'object_tracker', 'linear_predictor', 'obstacle_finder', 'fusion',
         'gnss_sensor', 'imu_sensor', 'lane_invasion_sensor', 'lidar',
-        'traffic_light_invasion'
+        'traffic_light_invasion', 'prediction_eval'
     ],
     help='Operator of choice to test')
 
@@ -474,6 +474,23 @@ def main(args):
         if FLAGS.test_operator == 'traffic_light_invasion':
             traffic_light_invasion_stream = pylot.operator_creator.add_traffic_light_invasion_sensor(
                 vehicle_id_stream, pose_stream)
+        if FLAGS.test_operator == 'prediction_eval':
+            time_to_decision_loop_stream = erdos.streams.LoopStream()
+
+            from pylot.perception.detection.detection_operator import DetectionOperator
+            detection_op_cfg = erdos.operator.OperatorConfig(
+                name='detection_op')
+            obstacles_stream = erdos.connect_two_in_one_out(
+                DetectionOperator,
+                detection_op_cfg,
+                rgb_camera_ingest_stream,
+                time_to_decision_loop_stream,
+                model_path=FLAGS.obstacle_detection_model_paths[0],
+                flags=FLAGS)
+
+            tracked_obstacles = pylot.operator_creator.add_obstacle_location_history(
+                obstacles_stream, depth_camera_ingest_stream, pose_stream,
+                depth_camera_setup)
         if FLAGS.test_operator == 'obstacle_finder':
             time_to_decision_loop_stream = erdos.streams.LoopStream()
 
