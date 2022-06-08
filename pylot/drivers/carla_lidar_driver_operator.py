@@ -46,9 +46,8 @@ class CarlaLidarDriverOperator(OneInTwoOut):
         # receives it.
         self._release_data = False
 
-    def process_point_clouds(self, simulator_pc,
-                             left_write_stream: WriteStream,
-                             right_write_stream: WriteStream):
+    def process_point_clouds(self, simulator_pc, lidar_stream: WriteStream,
+                             notify_reading_stream: WriteStream):
         """ Invoked when a point cloud is received from the simulator.
         """
         game_time = int(simulator_pc.timestamp * 1000)
@@ -67,18 +66,18 @@ class CarlaLidarDriverOperator(OneInTwoOut):
                 data = PointCloud.from_simulator_point_cloud(
                     simulator_pc, self._lidar_setup)
                 if self._release_data:
-                    left_write_stream.send(erdos.Message(timestamp, data))
-                    left_write_stream.send(watermark_msg)
+                    lidar_stream.send(erdos.Message(timestamp, data))
+                    lidar_stream.send(watermark_msg)
                 else:
                     # Pickle the data, and release it upon release msg receipt.
                     pickled_msg = pickle.dumps(
                         data, protocol=pickle.HIGHEST_PROTOCOL)
                     with self._pickle_lock:
                         self._pickled_messages[timestamp] = pickled_msg
-                    right_write_stream.send(watermark_msg)
+                    notify_reading_stream.send(watermark_msg)
 
-    def run(self, read_stream: ReadStream, left_write_stream: WriteStream,
-            right_write_stream: WriteStream):
+    def run(self, read_stream: ReadStream, lidar_stream: WriteStream,
+            notify_reading_stream: WriteStream):
         # Read the vehicle id from the vehicle id stream
         vehicle_id_msg = read_stream.read()
         vehicle_id = vehicle_id_msg.data
@@ -142,8 +141,8 @@ class CarlaLidarDriverOperator(OneInTwoOut):
 
         # Register the callback on the Lidar.
         def _process_point_clouds(simulator_pc):
-            self.process_point_clouds(simulator_pc, left_write_stream,
-                                      right_write_stream)
+            self.process_point_clouds(simulator_pc, lidar_stream,
+                                      notify_reading_stream)
 
         self._lidar.listen(_process_point_clouds)
 

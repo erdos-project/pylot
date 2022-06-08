@@ -123,12 +123,12 @@ class CarlaTrafficLightInvasionSensorOperator(TwoInOneOut):
 
     def run(
         self,
-        read_stream: ReadStream,
-        left_write_stream: WriteStream,
-        right_write_stream: WriteStream,
+        vehicle_id_stream: ReadStream,
+        pose_stream: ReadStream,
+        write_stream: WriteStream,
     ):
         # Read the vehicle ID from the vehicle ID stream.
-        vehicle_id_msg = read_stream.read()
+        vehicle_id_msg = vehicle_id_stream.read()
         vehicle_id = vehicle_id_msg.data
         self._logger.debug("@{}: Received Vehicle ID: {}".format(
             vehicle_id_msg.timestamp, vehicle_id))
