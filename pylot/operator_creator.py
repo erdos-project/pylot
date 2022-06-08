@@ -404,18 +404,21 @@ def add_r2p2_prediction(point_cloud_stream, obstacles_tracking_stream,
     return prediction_stream
 
 
-def add_prediction_evaluation(pose_stream,
-                              tracking_stream,
-                              prediction_stream,
-                              name='prediction_eval_operator'):
+def add_prediction_evaluation(pose_stream: Stream,
+                              tracking_stream: Stream,
+                              prediction_stream: Stream,
+                              name: str = 'prediction_eval_operator'):
     from pylot.prediction.prediction_eval_operator import \
         PredictionEvalOperator
-    op_config = erdos.OperatorConfig(name=name,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(PredictionEvalOperator, op_config,
-                  [pose_stream, tracking_stream, prediction_stream], FLAGS)
+    op_config = erdos.operator.OperatorConfig(
+        name=name,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    concatenated_streams = pose_stream.concat(tracking_stream,
+                                              prediction_stream)
+    erdos.connect_one_in_one_out(PredictionEvalOperator, op_config,
+                                 concatenated_streams, FLAGS)
 
 
 def add_behavior_planning(pose_stream,

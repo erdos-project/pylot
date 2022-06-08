@@ -34,18 +34,34 @@ from pylot.drivers.sensor_setup import RGBCameraSetup, DepthCameraSetup, Segment
 _lock = threading.Lock()
 
 FLAGS = flags.FLAGS
-flags.DEFINE_enum(
-    'test_operator',
-    'detection_operator', [
-        'detection_operator', 'detection_eval', 'detection_decay',
-        'traffic_light', 'efficient_det', 'lanenet', 'canny_lane',
-        'depth_estimation', 'qd_track', 'segmentation_decay',
-        'segmentation_drn', 'segmentation_eval', 'bounding_box_logger',
-        'camera_logger', 'multiple_object_logger', 'collision_sensor',
-        'object_tracker', 'linear_predictor', 'obstacle_finder', 'fusion',
-        'gnss_sensor', 'imu_sensor', 'lane_invasion_sensor',
-    ],
-    help='Operator of choice to test')
+flags.DEFINE_enum('test_operator',
+                  'detection_operator', [
+                      'detection_operator',
+                      'detection_eval',
+                      'detection_decay',
+                      'traffic_light',
+                      'efficient_det',
+                      'lanenet',
+                      'canny_lane',
+                      'depth_estimation',
+                      'qd_track',
+                      'segmentation_decay',
+                      'segmentation_drn',
+                      'segmentation_eval',
+                      'bounding_box_logger',
+                      'camera_logger',
+                      'multiple_object_logger',
+                      'collision_sensor',
+                      'object_tracker',
+                      'linear_predictor',
+                      'obstacle_finder',
+                      'fusion',
+                      'prediction_eval',
+                      'gnss_sensor',
+                      'imu_sensor',
+                      'lane_invasion_sensor',
+                  ],
+                  help='Operator of choice to test')
 
 CENTER_CAMERA_LOCATION = pylot.utils.Location(1.0, 0.0, 1.8)
 
@@ -413,26 +429,26 @@ def main(args):
         if FLAGS.test_operator == 'gnss_sensor':
             from pylot.drivers.carla_gnss_driver_operator import CarlaGNSSDriverOperator
             gnss_op_cfg = erdos.operator.OperatorConfig(name='gnss')
-            gnss_setup = pylot.drivers.sensor_setup.GNSSSetup('gnss', transform)
-            gnss_stream = erdos.connect_one_in_one_out(
-                CarlaGNSSDriverOperator,
-                gnss_op_cfg,
-                vehicle_id_stream,
-                gnss_setup,
-                flags=FLAGS)
+            gnss_setup = pylot.drivers.sensor_setup.GNSSSetup(
+                'gnss', transform)
+            gnss_stream = erdos.connect_one_in_one_out(CarlaGNSSDriverOperator,
+                                                       gnss_op_cfg,
+                                                       vehicle_id_stream,
+                                                       gnss_setup,
+                                                       flags=FLAGS)
         if FLAGS.test_operator == 'imu_sensor':
             from pylot.drivers.carla_imu_driver_operator import CarlaIMUDriverOperator
             imu_op_cfg = erdos.operator.OperatorConfig(name='imu')
             imu_setup = pylot.drivers.sensor_setup.IMUSetup('imu', transform)
-            imu_stream = erdos.connect_one_in_one_out(
-                CarlaIMUDriverOperator,
-                imu_op_cfg,
-                vehicle_id_stream,
-                imu_setup,
-                flags=FLAGS)
+            imu_stream = erdos.connect_one_in_one_out(CarlaIMUDriverOperator,
+                                                      imu_op_cfg,
+                                                      vehicle_id_stream,
+                                                      imu_setup,
+                                                      flags=FLAGS)
         if FLAGS.test_operator == 'lane_invasion_sensor':
             from pylot.drivers.carla_lane_invasion_sensor_operator import CarlaLaneInvasionSensorDriverOperator
-            lane_invasion_op_cfg = erdos.operator.OperatorConfig(name='simulator_lane_invasion_sensor_operator')
+            lane_invasion_op_cfg = erdos.operator.OperatorConfig(
+                name='simulator_lane_invasion_sensor_operator')
             lane_invasion_stream = erdos.connect_one_in_one_out(
                 CarlaLaneInvasionSensorDriverOperator,
                 lane_invasion_op_cfg,
@@ -462,6 +478,23 @@ def main(args):
 
             linear_prediction_stream = pylot.operator_creator.add_linear_prediction(
                 tracked_obstacles, time_to_decision_loop_stream)
+        if FLAGS.test_operator == 'prediction_eval':
+            time_to_decision_loop_stream = erdos.streams.LoopStream()
+
+            from pylot.perception.detection.detection_operator import DetectionOperator
+            detection_op_cfg = erdos.operator.OperatorConfig(
+                name='detection_op')
+            obstacles_stream = erdos.connect_two_in_one_out(
+                DetectionOperator,
+                detection_op_cfg,
+                rgb_camera_ingest_stream,
+                time_to_decision_loop_stream,
+                model_path=FLAGS.obstacle_detection_model_paths[0],
+                flags=FLAGS)
+
+            tracked_obstacles = pylot.operator_creator.add_obstacle_location_history(
+                obstacles_stream, depth_camera_ingest_stream, pose_stream,
+                depth_camera_setup)
         if FLAGS.test_operator == 'obstacle_finder':
             time_to_decision_loop_stream = erdos.streams.LoopStream()
 
