@@ -2,12 +2,11 @@
 
 from collections import deque
 from typing import Union
-from functools import partial
 
 import erdos
 from erdos.operator import OneInOneOut
 from erdos.context import OneInOneOutContext
-from erdos import Message, ReadStream, Timestamp, WriteStream
+from erdos import Timestamp
 
 import numpy as np
 

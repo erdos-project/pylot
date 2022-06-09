@@ -36,8 +36,8 @@ class GNSSLoggerOperator(OneInOneOut):
         """Invoked upon receipt of an GNSS message.
 
         Args:
-            data (:py:class:`pylot.localization.messages.GNSSMessageTuple`): Message
-                to be logged.
+            data (:py:class:`pylot.localization.messages.GNSSMessageTuple`): 
+                Message to be logged.
         """
         self._logger.debug('@{}: {} received message'.format(
             context.timestamp, self.config.name))
