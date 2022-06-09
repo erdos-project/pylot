@@ -36,7 +36,7 @@ class IMULoggerOperator(OneInOneOut):
         """Invoked upon receipt of an IMU message.
 
         Args:
-            data (:py:class:`pylot.localization.messages.IMUMessageTuple`): 
+            data (:py:class:`pylot.localization.messages.IMUMessageTuple`):
                 Message to be logged.
         """
         self._logger.debug('@{}: {} received message'.format(
