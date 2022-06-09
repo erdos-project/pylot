@@ -392,17 +392,23 @@ def add_linear_prediction(tracking_stream: Stream,
     return prediction_stream
 
 
-def add_r2p2_prediction(point_cloud_stream, obstacles_tracking_stream,
-                        time_to_decision_stream, lidar_setup):
+def add_r2p2_prediction(point_cloud_stream: Stream,
+                        obstacles_tracking_stream: Stream,
+                        time_to_decision_stream: Stream,
+                        lidar_setup: LidarSetup) -> Stream:
     from pylot.prediction.r2p2_predictor_operator import \
         R2P2PredictorOperator
-    op_config = erdos.OperatorConfig(name='r2p2_prediction_operator',
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [prediction_stream] = erdos.connect(R2P2PredictorOperator, op_config, [
-        point_cloud_stream, obstacles_tracking_stream, time_to_decision_stream
-    ], FLAGS, lidar_setup)
+    op_config = erdos.operator.OperatorConfig(
+        name='r2p2_prediction_operator',
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    concatenated_streams = point_cloud_stream.concat(obstacles_tracking_stream,
+                                                     time_to_decision_stream)
+    prediction_stream = erdos.connect_one_in_one_out(R2P2PredictorOperator,
+                                                     op_config,
+                                                     concatenated_streams,
+                                                     FLAGS, lidar_setup)
     return prediction_stream
 
 

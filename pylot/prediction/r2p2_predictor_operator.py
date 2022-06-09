@@ -1,13 +1,17 @@
+from typing import Union
 import time
 from collections import deque
 
 import erdos
+from erdos.operator import OneInOneOut
+from erdos.context import OneInOneOutContext
 
 import numpy as np
+from pylot.perception.messages import ObstacleTrajectoriesMessageTuple
 
 import pylot.prediction.utils
-from pylot.prediction.messages import PredictionMessage
 from pylot.prediction.obstacle_prediction import ObstaclePrediction
+from pylot.perception.point_cloud import PointCloud
 from pylot.utils import Location, Transform, time_epoch_ms
 
 import torch
@@ -18,7 +22,7 @@ except ImportError:
     raise Exception('Error importing R2P2.')
 
 
-class R2P2PredictorOperator(erdos.Operator):
+class R2P2PredictorOperator(OneInOneOut):
     """Wrapper operator for R2P2 ego-vehicle prediction module.
 
     Args:
@@ -35,10 +39,7 @@ class R2P2PredictorOperator(erdos.Operator):
             of the lidar. This setup is used to get the maximum range of the
             lidar.
     """
-    def __init__(self, point_cloud_stream: erdos.ReadStream,
-                 tracking_stream: erdos.ReadStream,
-                 time_to_decision_stream: erdos.ReadStream,
-                 prediction_stream: erdos.WriteStream, flags, lidar_setup):
+    def __init__(self, flags, lidar_setup):
         print("WARNING: R2P2 predicts only vehicle trajectories")
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -51,32 +52,44 @@ class R2P2PredictorOperator(erdos.Operator):
         state_dict = torch.load(flags.r2p2_model_path)
         self._r2p2_model.load_state_dict(state_dict)
 
-        point_cloud_stream.add_callback(self.on_point_cloud_update)
-        tracking_stream.add_callback(self.on_trajectory_update)
-        time_to_decision_stream.add_callback(self.on_time_to_decision_update)
-        erdos.add_watermark_callback([point_cloud_stream, tracking_stream],
-                                     [prediction_stream], self.on_watermark)
-
         self._lidar_setup = lidar_setup
 
         self._point_cloud_msgs = deque()
         self._tracking_msgs = deque()
 
-    @staticmethod
-    def connect(point_cloud_stream: erdos.ReadStream,
-                tracking_stream: erdos.ReadStream,
-                time_to_decision_stream: erdos.ReadStream):
-        prediction_stream = erdos.WriteStream()
-        return [prediction_stream]
+    def on_data(self, context: OneInOneOutContext,
+                data: Union[PointCloud, ObstacleTrajectoriesMessageTuple,
+                            float]):
+        if isinstance(data, PointCloud):
+            self.on_point_cloud_update(context, data)
+        elif isinstance(data, ObstacleTrajectoriesMessageTuple):
+            self.on_trajectory_update(context, data)
+        elif isinstance(data, float):
+            self.on_time_to_decision_update(context, data)
+        else:
+            raise ValueError('Unexpected data type')
 
-    def destroy(self):
-        self._logger.warn('destroying {}'.format(self.config.name))
+    def on_point_cloud_update(self, context: OneInOneOutContext,
+                              data: PointCloud):
+        self._logger.debug('@{}: received point cloud message'.format(
+            context.timestamp))
+        self._point_cloud_msgs.append(data)
+
+    def on_trajectory_update(self, context: OneInOneOutContext,
+                             data: ObstacleTrajectoriesMessageTuple):
+        self._logger.debug('@{}: received trajectories message'.format(
+            context.timestamp))
+        self._tracking_msgs.append(data)
+
+    def on_time_to_decision_update(self, context: OneInOneOutContext,
+                                   data: float):
+        self._logger.debug('@{}: {} received ttd update {}'.format(
+            context.timestamp, self.config.name, data))
 
     @erdos.profile_method()
-    def on_watermark(self, timestamp: erdos.Timestamp,
-                     prediction_stream: erdos.WriteStream):
-        self._logger.debug('@{}: received watermark'.format(timestamp))
-        if timestamp.is_top:
+    def on_watermark(self, context: OneInOneOutContext):
+        self._logger.debug('@{}: received watermark'.format(context.timestamp))
+        if context.timestamp.is_top:
             return
         point_cloud_msg = self._point_cloud_msgs.popleft()
         tracking_msg = self._tracking_msgs.popleft()
@@ -89,10 +102,10 @@ class R2P2PredictorOperator(erdos.Operator):
         num_predictions = len(nearby_trajectories)
         self._logger.info(
             '@{}: Getting R2P2 predictions for {} vehicles'.format(
-                timestamp, num_predictions))
+                context.timestamp, num_predictions))
 
         if num_predictions == 0:
-            prediction_stream.send(PredictionMessage(timestamp, []))
+            context.write_stream.send(erdos.Message(context.timestamp, []))
             return
 
         # Run the forward pass.
@@ -105,7 +118,7 @@ class R2P2PredictorOperator(erdos.Operator):
             z, nearby_trajectories_tensor, binned_lidars_tensor)
         model_runtime = (time.time() - model_start_time) * 1000
         self._csv_logger.debug("{},{},{},{:.4f}".format(
-            time_epoch_ms(), timestamp.coordinates[0],
+            time_epoch_ms(), context.timestamp.coordinates[0],
             'r2p2-modelonly-runtime', model_runtime))
         prediction_array = prediction_array.cpu().detach().numpy()
 
@@ -114,10 +127,13 @@ class R2P2PredictorOperator(erdos.Operator):
             nearby_vehicle_ego_transforms)
         runtime = (time.time() - start_time) * 1000
         self._csv_logger.debug("{},{},{},{:.4f}".format(
-            time_epoch_ms(), timestamp.coordinates[0], 'r2p2-runtime',
+            time_epoch_ms(), context.timestamp.coordinates[0], 'r2p2-runtime',
             runtime))
-        prediction_stream.send(
-            PredictionMessage(timestamp, obstacle_predictions_list))
+
+        print('***************************')
+        print(obstacle_predictions_list)
+        context.write_stream.send(
+            erdos.Message(context.timestamp, obstacle_predictions_list))
 
     def _preprocess_input(self, tracking_msg, point_cloud_msg):
 
@@ -203,16 +219,5 @@ class R2P2PredictorOperator(erdos.Operator):
                                    obstacle_transform, 1.0, predictions))
         return obstacle_predictions_list
 
-    def on_point_cloud_update(self, msg: erdos.Message):
-        self._logger.debug('@{}: received point cloud message'.format(
-            msg.timestamp))
-        self._point_cloud_msgs.append(msg)
-
-    def on_trajectory_update(self, msg: erdos.Message):
-        self._logger.debug('@{}: received trajectories message'.format(
-            msg.timestamp))
-        self._tracking_msgs.append(msg)
-
-    def on_time_to_decision_update(self, msg: erdos.Message):
-        self._logger.debug('@{}: {} received ttd update {}'.format(
-            msg.timestamp, self.config.name, msg))
+    def destroy(self):
+        self._logger.warn('destroying {}'.format(self.config.name))
