@@ -44,7 +44,7 @@ flags.DEFINE_enum(
         'camera_logger', 'multiple_object_logger', 'collision_sensor',
         'object_tracker', 'linear_predictor', 'obstacle_finder', 'fusion',
         'gnss_sensor', 'imu_sensor', 'lane_invasion_sensor', 'lidar',
-        'traffic_light_invasion', 'prediction_eval'
+        'traffic_light_invasion', 'prediction_eval', 'r2p2'
     ],
     help='Operator of choice to test')
 
@@ -518,6 +518,31 @@ def main(args):
             obstacle_pos_stream = pylot.operator_creator.add_fusion(
                 pose_stream, obstacles_stream, depth_camera_ingest_stream,
                 None)
+        if FLAGS.test_operator == 'r2p2':
+            time_to_decision_loop_stream = erdos.streams.LoopStream()
+
+            obstacles_stream = pylot.operator_creator.add_obstacle_detection(
+                rgb_camera_ingest_stream, time_to_decision_loop_stream)[0]
+
+            time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
+                pose_stream, obstacles_stream)
+            time_to_decision_loop_stream.connect_loop(time_to_decision_stream)
+
+            obstacles_wo_history_tracking_stream = pylot.operator_creator.add_obstacle_tracking(
+                obstacles_stream, rgb_camera_ingest_stream,
+                time_to_decision_stream)
+
+            obstacles_tracking_stream = pylot.operator_creator.add_obstacle_location_history(
+                obstacles_wo_history_tracking_stream,
+                depth_camera_ingest_stream, pose_stream, rgb_camera_setup)
+
+            (point_cloud_stream, notify_lidar_stream,
+             lidar_setup) = pylot.operator_creator.add_lidar(
+                 transform, vehicle_id_stream, release_sensor_stream)
+
+            prediction_stream = pylot.operator_creator.add_r2p2_prediction(
+                point_cloud_stream, obstacles_tracking_stream,
+                time_to_decision_loop_stream, lidar_setup)
 
         erdos.run_async()
 

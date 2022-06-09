@@ -98,7 +98,6 @@ class ObstacleLocationHistoryOperator(OneInOneOut):
             # The trajectory is relative to the current location.
             obstacle_trajectories.append(
                 ObstacleTrajectory(obstacle, cur_obstacle_trajectory))
-
         context.write_stream.send(
             erdos.Message(
                 context.timestamp,
