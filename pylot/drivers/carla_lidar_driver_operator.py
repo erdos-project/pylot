@@ -9,14 +9,17 @@ import pickle
 import threading
 
 import erdos
+from erdos import ReadStream, WriteStream
+from erdos.operator import OneInTwoOut
+from erdos.context import OneInTwoOutContext
 
-from pylot.perception.messages import PointCloudMessage
 from pylot.perception.point_cloud import PointCloud
 from pylot.simulation.utils import check_simulator_version, \
     get_vehicle_handle, get_world, set_simulation_mode
+from pylot.drivers.sensor_setup import LidarSetup
 
 
-class CarlaLidarDriverOperator(erdos.Operator):
+class CarlaLidarDriverOperator(OneInTwoOut):
     """Publishes Lidar point clouds onto a stream.
 
     This operator attaches a vehicle at the required position with respect to
@@ -24,24 +27,9 @@ class CarlaLidarDriverOperator(erdos.Operator):
     publishes it to downstream operators.
 
     Args:
-        ground_vehicle_id_stream (:py:class:`erdos.ReadStream`): Stream on
-            which the operator receives the id of the ego vehicle. It uses this
-            id to get a simulator handle to the vehicle.
-        lidar_stream (:py:class:`erdos.WriteStream`): Stream on which the
-            operator sends point cloud messages.
-        lidar_setup (:py:class:`pylot.drivers.sensor_setup.LidarSetup`):
-            Setup of the lidar sensor.
         flags (absl.flags): Object to be used to access absl flags.
     """
-    def __init__(self, ground_vehicle_id_stream: erdos.ReadStream,
-                 release_sensor_stream: erdos.ReadStream,
-                 lidar_stream: erdos.WriteStream,
-                 notify_reading_stream: erdos.WriteStream, lidar_setup, flags):
-        erdos.add_watermark_callback([release_sensor_stream], [],
-                                     self.release_data)
-        self._vehicle_id_stream = ground_vehicle_id_stream
-        self._lidar_stream = lidar_stream
-        self._notify_reading_stream = notify_reading_stream
+    def __init__(self, lidar_setup: LidarSetup, flags):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
@@ -58,29 +46,8 @@ class CarlaLidarDriverOperator(erdos.Operator):
         # receives it.
         self._release_data = False
 
-    @staticmethod
-    def connect(ground_vehicle_id_stream: erdos.ReadStream,
-                release_sensor_stream: erdos.ReadStream):
-        lidar_stream = erdos.WriteStream()
-        notify_reading_stream = erdos.WriteStream()
-        return [lidar_stream, notify_reading_stream]
-
-    def release_data(self, timestamp):
-        if timestamp.is_top:
-            # The operator can always send data ASAP.
-            self._release_data = True
-        else:
-            watermark_msg = erdos.WatermarkMessage(timestamp)
-            self._lidar_stream.send_pickled(timestamp,
-                                            self._pickled_messages[timestamp])
-            # Note: The operator is set not to automatically propagate
-            # watermark messages received on input streams. Thus, we can
-            # issue watermarks only after the simulator callback is invoked.
-            self._lidar_stream.send(watermark_msg)
-            with self._pickle_lock:
-                del self._pickled_messages[timestamp]
-
-    def process_point_clouds(self, simulator_pc):
+    def process_point_clouds(self, simulator_pc, lidar_stream: WriteStream,
+                             notify_reading_stream: WriteStream):
         """ Invoked when a point cloud is received from the simulator.
         """
         game_time = int(simulator_pc.timestamp * 1000)
@@ -96,25 +63,23 @@ class CarlaLidarDriverOperator(erdos.Operator):
                 # Include the transform relative to the vehicle.
                 # simulator_pc.transform returns the world transform, but
                 # we do not use it directly.
-                msg = PointCloudMessage(
-                    timestamp,
-                    PointCloud.from_simulator_point_cloud(
-                        simulator_pc, self._lidar_setup))
-
+                data = PointCloud.from_simulator_point_cloud(
+                    simulator_pc, self._lidar_setup)
                 if self._release_data:
-                    self._lidar_stream.send(msg)
-                    self._lidar_stream.send(watermark_msg)
+                    lidar_stream.send(erdos.Message(timestamp, data))
+                    lidar_stream.send(watermark_msg)
                 else:
                     # Pickle the data, and release it upon release msg receipt.
                     pickled_msg = pickle.dumps(
-                        msg, protocol=pickle.HIGHEST_PROTOCOL)
+                        data, protocol=pickle.HIGHEST_PROTOCOL)
                     with self._pickle_lock:
-                        self._pickled_messages[msg.timestamp] = pickled_msg
-                    self._notify_reading_stream.send(watermark_msg)
+                        self._pickled_messages[timestamp] = pickled_msg
+                    notify_reading_stream.send(watermark_msg)
 
-    def run(self):
+    def run(self, read_stream: ReadStream, lidar_stream: WriteStream,
+            notify_reading_stream: WriteStream):
         # Read the vehicle id from the vehicle id stream
-        vehicle_id_msg = self._vehicle_id_stream.read()
+        vehicle_id_msg = read_stream.read()
         vehicle_id = vehicle_id_msg.data
         self._logger.debug(
             "The LidarDriverOperator received the vehicle id: {}".format(
@@ -175,4 +140,23 @@ class CarlaLidarDriverOperator(erdos.Operator):
                                         attach_to=self._vehicle)
 
         # Register the callback on the Lidar.
-        self._lidar.listen(self.process_point_clouds)
+        def _process_point_clouds(simulator_pc):
+            self.process_point_clouds(simulator_pc, lidar_stream,
+                                      notify_reading_stream)
+
+        self._lidar.listen(_process_point_clouds)
+
+    def on_watermark(self, context: OneInTwoOutContext):
+        if context.timestamp.is_top:
+            # The operator can always send data ASAP.
+            self._release_data = True
+        else:
+            watermark_msg = erdos.WatermarkMessage(context.timestamp)
+            context.left_write_stream.send_pickled(
+                context.timestamp, self._pickled_messages[context.timestamp])
+            # Note: The operator is set not to automatically propagate
+            # watermark messages received on input streams. Thus, we can
+            # issue watermarks only after the simulator callback is invoked.
+            context.left_write_stream.send(watermark_msg)
+            with self._pickle_lock:
+                del self._pickled_messages[context.timestamp]

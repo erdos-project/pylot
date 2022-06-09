@@ -3,6 +3,7 @@ from absl import flags
 
 import erdos
 from erdos import Stream
+from pylot.drivers.sensor_setup import LidarSetup
 
 import pylot.utils
 from pylot.drivers.sensor_setup import CameraSetup, GNSSSetup, IMUSetup
@@ -205,17 +206,18 @@ def add_traffic_light_detector(traffic_light_camera_stream,
     return traffic_lights_stream
 
 
-def add_traffic_light_invasion_sensor(ground_vehicle_id_stream, pose_stream):
+def add_traffic_light_invasion_sensor(ground_vehicle_id_stream: Stream,
+                                      pose_stream: Stream) -> Stream:
     from pylot.drivers.carla_traffic_light_invasion_sensor_operator import \
         CarlaTrafficLightInvasionSensorOperator
-    op_config = erdos.OperatorConfig(
+    op_config = erdos.operator.OperatorConfig(
         name='traffic_light_invasion_sensor_operator',
         log_file_name=FLAGS.log_file_name,
         csv_log_file_name=FLAGS.csv_log_file_name,
         profile_file_name=FLAGS.profile_file_name)
-    [traffic_light_invasion_stream
-     ] = erdos.connect(CarlaTrafficLightInvasionSensorOperator, op_config,
-                       [ground_vehicle_id_stream, pose_stream], FLAGS)
+    traffic_light_invasion_stream = erdos.connect_two_in_one_out(
+        CarlaTrafficLightInvasionSensorOperator, op_config,
+        ground_vehicle_id_stream, pose_stream, FLAGS)
     return traffic_light_invasion_stream
 
 
@@ -404,18 +406,21 @@ def add_r2p2_prediction(point_cloud_stream, obstacles_tracking_stream,
     return prediction_stream
 
 
-def add_prediction_evaluation(pose_stream,
-                              tracking_stream,
-                              prediction_stream,
-                              name='prediction_eval_operator'):
+def add_prediction_evaluation(pose_stream: Stream,
+                              tracking_stream: Stream,
+                              prediction_stream: Stream,
+                              name: str = 'prediction_eval_operator'):
     from pylot.prediction.prediction_eval_operator import \
         PredictionEvalOperator
-    op_config = erdos.OperatorConfig(name=name,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(PredictionEvalOperator, op_config,
-                  [pose_stream, tracking_stream, prediction_stream], FLAGS)
+    op_config = erdos.operator.OperatorConfig(
+        name=name,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    concatenated_streams = pose_stream.concat(tracking_stream,
+                                              prediction_stream)
+    erdos.connect_one_in_one_out(PredictionEvalOperator, op_config,
+                                 concatenated_streams, FLAGS)
 
 
 def add_behavior_planning(pose_stream,
@@ -541,11 +546,11 @@ def add_camera_driver(camera_setup, vehicle_id_stream, release_sensor_stream):
                          camera_setup, FLAGS)
 
 
-def add_lidar(transform,
-              vehicle_id_stream,
-              release_sensor_stream,
-              name='center_lidar',
-              legacy=False):
+def add_lidar(transform: pylot.utils.Transform,
+              vehicle_id_stream: Stream,
+              release_sensor_stream: Stream,
+              name: str = 'center_lidar',
+              legacy: bool = False) -> Tuple[Stream, Stream, LidarSetup]:
     # Ensure that each lidar reading offers a 360 degree view.
     rotation_frequency = FLAGS.simulator_lidar_frequency
     if rotation_frequency == -1:
@@ -559,17 +564,20 @@ def add_lidar(transform,
     return (point_cloud_stream, notify_reading_stream, lidar_setup)
 
 
-def _add_lidar_driver(vehicle_id_stream, release_sensor_stream, lidar_setup):
+def _add_lidar_driver(vehicle_id_stream: Stream, release_sensor_stream: Stream,
+                      lidar_setup: LidarSetup) -> Tuple[Stream, Stream]:
     from pylot.drivers.carla_lidar_driver_operator import \
         CarlaLidarDriverOperator
-    op_config = erdos.OperatorConfig(name=lidar_setup.get_name() + '_operator',
-                                     flow_watermarks=False,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    return erdos.connect(CarlaLidarDriverOperator, op_config,
-                         [vehicle_id_stream, release_sensor_stream],
-                         lidar_setup, FLAGS)
+    op_config = erdos.operator.OperatorConfig(
+        name=lidar_setup.get_name() + '_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    concatenated_streams = vehicle_id_stream.concat(release_sensor_stream)
+    return erdos.connect_one_in_two_out(CarlaLidarDriverOperator, op_config,
+                                        concatenated_streams, lidar_setup,
+                                        FLAGS)
 
 
 def add_imu(transform: pylot.utils.Transform,
@@ -817,17 +825,18 @@ def add_imu_logging(imu_stream: Stream, name='imu_logger_operator') -> Stream:
     return finished_indicator_stream
 
 
-def add_lidar_logging(point_cloud_stream,
-                      name='lidar_logger_operator',
-                      filename_prefix='lidar'):
+def add_lidar_logging(point_cloud_stream: Stream,
+                      name: str = 'lidar_logger_operator',
+                      filename_prefix: str = 'lidar') -> Stream:
     from pylot.loggers.lidar_logger_operator import LidarLoggerOperator
-    op_config = erdos.OperatorConfig(name=name,
-                                     log_file_name=FLAGS.log_file_name,
-                                     csv_log_file_name=FLAGS.csv_log_file_name,
-                                     profile_file_name=FLAGS.profile_file_name)
-    [finished_indicator_stream] = erdos.connect(LidarLoggerOperator, op_config,
-                                                [point_cloud_stream], FLAGS,
-                                                filename_prefix)
+    op_config = erdos.operator.OperatorConfig(
+        name=name,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    finished_indicator_stream = erdos.connect_one_in_one_out(
+        LidarLoggerOperator, op_config, point_cloud_stream, FLAGS,
+        filename_prefix)
     return finished_indicator_stream
 
 

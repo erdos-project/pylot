@@ -43,8 +43,8 @@ flags.DEFINE_enum(
         'segmentation_drn', 'segmentation_eval', 'bounding_box_logger',
         'camera_logger', 'multiple_object_logger', 'collision_sensor',
         'object_tracker', 'linear_predictor', 'obstacle_finder', 'fusion',
-        'gnss_sensor', 'imu_sensor', 'lane_invasion_sensor', 'localization',
-        'pose_logging', 'trajectory_logging'
+        'gnss_sensor', 'imu_sensor', 'lane_invasion_sensor', 'lidar',
+        'traffic_light_invasion', 'prediction_eval', 'pose_logging', 'trajectory_logging'
     ],
     help='Operator of choice to test')
 
@@ -131,9 +131,9 @@ def main(args):
     actor_list = []
 
     try:
-        client = carla.Client('localhost', 2000)
-        client.set_timeout(10.0)
-        world = client.get_world()
+        client, world = pylot.simulation.utils.get_world(
+            FLAGS.simulator_host, FLAGS.simulator_port,
+            FLAGS.simulator_timeout)
 
         bp = world.get_blueprint_library().filter('vehicle.lincoln.mkz2017')[0]
 
@@ -198,6 +198,8 @@ def main(args):
             name='ground_obstacles_stream')
         vehicle_id_stream = erdos.streams.IngestStream(name='vehicle_id')
         pose_stream = erdos.streams.IngestStream(name='pose_stream')
+        release_sensor_stream = erdos.streams.IngestStream(
+            name='release_sensor')
 
         if FLAGS.test_operator == 'detection_operator' or FLAGS.test_operator == 'object_tracker':
             from pylot.perception.detection.detection_operator import DetectionOperator
@@ -458,6 +460,32 @@ def main(args):
 
             linear_prediction_stream = pylot.operator_creator.add_linear_prediction(
                 tracked_obstacles, time_to_decision_loop_stream)
+        if FLAGS.test_operator == 'lidar':
+            (point_cloud_stream, notify_lidar_stream,
+             lidar_setup) = pylot.operator_creator.add_lidar(
+                 transform, vehicle_id_stream, release_sensor_stream)
+            finished_indicator_stream = pylot.operator_creator.add_lidar_logging(
+                point_cloud_stream)
+        if FLAGS.test_operator == 'traffic_light_invasion':
+            traffic_light_invasion_stream = pylot.operator_creator.add_traffic_light_invasion_sensor(
+                vehicle_id_stream, pose_stream)
+        if FLAGS.test_operator == 'prediction_eval':
+            time_to_decision_loop_stream = erdos.streams.LoopStream()
+
+            from pylot.perception.detection.detection_operator import DetectionOperator
+            detection_op_cfg = erdos.operator.OperatorConfig(
+                name='detection_op')
+            obstacles_stream = erdos.connect_two_in_one_out(
+                DetectionOperator,
+                detection_op_cfg,
+                rgb_camera_ingest_stream,
+                time_to_decision_loop_stream,
+                model_path=FLAGS.obstacle_detection_model_paths[0],
+                flags=FLAGS)
+
+            tracked_obstacles = pylot.operator_creator.add_obstacle_location_history(
+                obstacles_stream, depth_camera_ingest_stream, pose_stream,
+                depth_camera_setup)
         if FLAGS.test_operator == 'obstacle_finder':
             time_to_decision_loop_stream = erdos.streams.LoopStream()
 
@@ -526,9 +554,6 @@ def main(args):
 
         erdos.run_async()
 
-        ttd_ingest_stream.send(
-            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
-
         # Register camera frame callbacks
         add_carla_callback(rgb_camera, rgb_camera_setup,
                            rgb_camera_ingest_stream)
@@ -549,9 +574,18 @@ def main(args):
         pylot.simulation.utils.spawn_people(client, world, 100,
                                             logging.Logger(name="test2"))
 
+        # Send vehicle information first
         vehicle_id_stream.send(
             erdos.Message(erdos.Timestamp(coordinates=[0]), vehicle.id))
+
+        # Manually tick world to ensure that vehicle information is propagated
+        world.tick()
+
+        ttd_ingest_stream.send(
+            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
         vehicle_id_stream.send(
+            erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
+        release_sensor_stream.send(
             erdos.WatermarkMessage(erdos.Timestamp(is_top=True)))
 
         def _send_pose_message(simulator_data):
