@@ -44,7 +44,7 @@ flags.DEFINE_enum(
         'camera_logger', 'multiple_object_logger', 'collision_sensor',
         'object_tracker', 'linear_predictor', 'obstacle_finder', 'fusion',
         'gnss_sensor', 'imu_sensor', 'lane_invasion_sensor', 'lidar',
-        'traffic_light_invasion', 'prediction_eval'
+        'traffic_light_invasion', 'prediction_eval', 'pose_logging', 'trajectory_logging'
     ],
     help='Operator of choice to test')
 
@@ -414,24 +414,19 @@ def main(args):
                 vehicle_id_stream,
                 flags=FLAGS)
         if FLAGS.test_operator == 'gnss_sensor':
-            from pylot.drivers.carla_gnss_driver_operator import CarlaGNSSDriverOperator
-            gnss_op_cfg = erdos.operator.OperatorConfig(name='gnss')
-            gnss_setup = pylot.drivers.sensor_setup.GNSSSetup(
-                'gnss', transform)
-            gnss_stream = erdos.connect_one_in_one_out(CarlaGNSSDriverOperator,
-                                                       gnss_op_cfg,
-                                                       vehicle_id_stream,
-                                                       gnss_setup,
-                                                       flags=FLAGS)
+            (gnss_stream, _) = pylot.operator_creator.add_gnss(
+                pylot.utils.Transform(location=pylot.utils.Location(),
+                                      rotation=pylot.utils.Rotation()),
+                vehicle_id_stream)
+            finished_indicator_stream = pylot.operator_creator.add_gnss_logging(
+                gnss_stream)
         if FLAGS.test_operator == 'imu_sensor':
-            from pylot.drivers.carla_imu_driver_operator import CarlaIMUDriverOperator
-            imu_op_cfg = erdos.operator.OperatorConfig(name='imu')
-            imu_setup = pylot.drivers.sensor_setup.IMUSetup('imu', transform)
-            imu_stream = erdos.connect_one_in_one_out(CarlaIMUDriverOperator,
-                                                      imu_op_cfg,
-                                                      vehicle_id_stream,
-                                                      imu_setup,
-                                                      flags=FLAGS)
+            (imu_stream, _) = pylot.operator_creator.add_imu(
+                pylot.utils.Transform(location=pylot.utils.Location(),
+                                      rotation=pylot.utils.Rotation()),
+                vehicle_id_stream)
+            finished_indicator_stream = pylot.operator_creator.add_imu_logging(
+                imu_stream)
         if FLAGS.test_operator == 'lane_invasion_sensor':
             from pylot.drivers.carla_lane_invasion_sensor_operator import CarlaLaneInvasionSensorDriverOperator
             lane_invasion_op_cfg = erdos.operator.OperatorConfig(
@@ -518,6 +513,44 @@ def main(args):
             obstacle_pos_stream = pylot.operator_creator.add_fusion(
                 pose_stream, obstacles_stream, depth_camera_ingest_stream,
                 None)
+        if FLAGS.test_operator == 'localization':
+            (gnss_stream, _) = pylot.operator_creator.add_gnss(
+                pylot.utils.Transform(location=pylot.utils.Location(),
+                                      rotation=pylot.utils.Rotation()),
+                vehicle_id_stream)
+            (imu_stream, _) = pylot.operator_creator.add_imu(
+                pylot.utils.Transform(location=pylot.utils.Location(),
+                                      rotation=pylot.utils.Rotation()),
+                vehicle_id_stream)
+            refined_pose_stream = pylot.operator_creator.add_localization(
+                imu_stream, gnss_stream, pose_stream)
+        if FLAGS.test_operator == 'pose_logging':
+            finished_indicator_stream = pylot.operator_creator.add_pose_logging(
+                pose_stream)
+        if FLAGS.test_operator == 'trajectory_logging':
+            time_to_decision_loop_stream = erdos.streams.LoopStream()
+
+            from pylot.perception.detection.detection_operator import DetectionOperator
+            detection_op_cfg = erdos.operator.OperatorConfig(
+                name='detection_op')
+            obstacles_stream = erdos.connect_two_in_one_out(
+                DetectionOperator,
+                detection_op_cfg,
+                rgb_camera_ingest_stream,
+                time_to_decision_loop_stream,
+                model_path=FLAGS.obstacle_detection_model_paths[0],
+                flags=FLAGS)
+
+            tracked_obstacles = pylot.operator_creator.add_obstacle_location_history(
+                obstacles_stream, depth_camera_ingest_stream, pose_stream,
+                depth_camera_setup)
+
+            time_to_decision_stream = pylot.operator_creator.add_time_to_decision(
+                pose_stream, obstacles_stream)
+            time_to_decision_loop_stream.connect_loop(time_to_decision_stream)
+
+            finished_indicator_stream = pylot.operator_creator.add_trajectory_logging(
+                tracked_obstacles)
 
         erdos.run_async()
 
