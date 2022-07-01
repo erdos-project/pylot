@@ -45,7 +45,7 @@ ENV PATH="/home/erdos/.cargo/bin:${PATH}"
 RUN echo "export PATH=/home/erdos/.cargo/bin:${PATH}" >> ~/.bashrc
 RUN rustup default nightly
 RUN mkdir -p /home/erdos/workspace
-RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/erdos.git && cd erdos && python3 python/setup.py install --user
+RUN cd /home/erdos/workspace && git clone https://github.com/erdos-project/erdos.git && cd erdos && python3 python/setup.py install
 
 # Set up Pylot.
 RUN sudo apt-get install -y libcudnn8 cuda-toolkit-11-4 ssh libqt5core5a libeigen3-dev cmake qtbase5-dev libpng16-16 libtiff5 python3-tk python3-pygame libgeos-dev
@@ -70,6 +70,9 @@ RUN echo "export PYTHONPATH=/home/erdos/workspace/pylot/dependencies/:/home/erdo
 RUN echo "export PYLOT_HOME=/home/erdos/workspace/pylot/" >> ~/.bashrc
 RUN echo "export CARLA_HOME=/home/erdos/workspace/pylot/dependencies/CARLA_0.9.10.1" >> ~/.bashrc
 RUN echo "if [ -f ~/.bashrc ]; then . ~/.bashrc ; fi" >> ~/.bash_profile
+
+# Add programs installed via PIP to the path.
+RUN echo "export PATH=$HOME/.local/bin:${PATH}" >> ~/.bashrc
 
 # Set up ssh access to the container.
 RUN cd ~/ && ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa <<<y 2>&1 >/dev/null
