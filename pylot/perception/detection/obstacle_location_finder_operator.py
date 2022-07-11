@@ -4,6 +4,7 @@ from typing import List, Union
 import erdos
 from erdos.operator import OneInOneOut
 from erdos.context import OneInOneOutContext
+from pylot.perception.point_cloud import PointCloud
 
 import pylot.utils
 from pylot.perception.detection.utils import get_obstacle_locations
@@ -14,7 +15,7 @@ from pylot.drivers.sensor_setup import CameraSetup
 
 
 class ObstacleLocationFinderOperator(OneInOneOut[Union[ObstaclesMessageTuple,
-                                                       DepthFrame,
+                                                       DepthFrame, PointCloud,
                                                        pylot.utils.Pose],
                                                  List[Obstacle]]):
     """Computes the world location of the obstacle.
@@ -28,11 +29,10 @@ class ObstacleLocationFinderOperator(OneInOneOut[Union[ObstaclesMessageTuple,
 
     Args:
         flags (absl.flags): Object to be used to access absl flags.
-        camera_setup (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
-            The setup of the center camera. This setup is used to calculate the
-            real-world location of the camera, which in turn is used to convert
-            detected obstacles from camera coordinates to real-world
-            coordinates.
+        camera_setup: The setup of the center camera. This setup is used to
+            calculate the real-world location of the camera, which in turn is
+            used to convert detected obstacles from camera coordinates to
+            real-world coordinates.
     """
     def __init__(self, flags, camera_setup: CameraSetup):
         self._flags = flags
@@ -62,7 +62,7 @@ class ObstacleLocationFinderOperator(OneInOneOut[Union[ObstaclesMessageTuple,
         self._obstacles_msgs.append(data)
 
     def on_depth_update(self, context: OneInOneOutContext[List[Obstacle]],
-                        data: DepthFrame):
+                        data: Union[DepthFrame, PointCloud]):
         self._logger.debug('@{}: depth update'.format(context.timestamp))
         self._depth_msgs.append(data)
 
