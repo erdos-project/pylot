@@ -1,15 +1,17 @@
 import time
 from collections import deque
+from typing import Tuple
 
 import erdos
 from erdos.operator import OneInOneOut
 from erdos.context import OneInOneOutContext
-from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 
+from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.utils import time_epoch_ms
 
 
-class SegmentationDecayOperator(OneInOneOut):
+class SegmentationDecayOperator(OneInOneOut[SegmentedFrame, Tuple[int,
+                                                                  float]]):
     """Computes how much segmentation accuracy decreases over time.
 
     The operator subscribes to the perfect segmented frames stream.
@@ -25,7 +27,8 @@ class SegmentationDecayOperator(OneInOneOut):
             self.config.name + '-csv', self.config.csv_log_file_name)
         self._ground_frames = deque()
 
-    def on_data(self, context: OneInOneOutContext, data: SegmentedFrame):
+    def on_data(self, context: OneInOneOutContext[Tuple[int, float]],
+                data: SegmentedFrame):
         assert len(context.timestamp.coordinates) == 1
         start_time = time.time()
         # We don't fully transform it to cityscapes palette to avoid

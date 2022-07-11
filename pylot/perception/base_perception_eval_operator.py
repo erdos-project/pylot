@@ -8,7 +8,8 @@ from pylot.utils import time_epoch_ms
 from pylot.perception.messages import ObstaclesMessageTuple
 
 
-class BasePerceptionEvalOperator(TwoInOneOut):
+class BasePerceptionEvalOperator(TwoInOneOut[ObstaclesMessageTuple,
+                                             ObstaclesMessageTuple, None]):
     """Operator that computes accuracy metrics using tracked obstacles.
 
     Args:
@@ -49,7 +50,7 @@ class BasePerceptionEvalOperator(TwoInOneOut):
         self._csv_logger = erdos.utils.setup_csv_logging(
             self.config.name + '-csv', self.config.csv_log_file_name)
 
-    def on_left_data(self, context: TwoInOneOutContext,
+    def on_left_data(self, context: TwoInOneOutContext[None],
                      data: ObstaclesMessageTuple):
         game_time = context.timestamp.coordinates[0]
         self._predictions.append((game_time, data.obstacles))
@@ -69,12 +70,12 @@ class BasePerceptionEvalOperator(TwoInOneOut):
             self._prediction_start_end_times.append(
                 (game_time, ground_truth_time))
 
-    def on_right_data(self, context: TwoInOneOutContext,
+    def on_right_data(self, context: TwoInOneOutContext[None],
                       data: ObstaclesMessageTuple):
         game_time = context.timestamp.coordinates[0]
         self._ground_truths.append((game_time, data.obstacles))
 
-    def on_watermark(self, context: TwoInOneOutContext):
+    def on_watermark(self, context: TwoInOneOutContext[None]):
         """Invoked when all input streams have received a watermark."""
         if context.timestamp.is_top:
             return

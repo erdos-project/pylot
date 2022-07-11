@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Union
+from typing import List, Tuple, Union
 
 import erdos
 from erdos.operator import OneInOneOut
@@ -12,12 +12,14 @@ import pylot.utils
 from pylot.perception.messages import ObstaclesMessageTuple
 
 
-class FusionOperator(OneInOneOut):
+class FusionOperator(OneInOneOut[Union[pylot.utils.Pose, ObstaclesMessageTuple,
+                                       DepthFrame], List[Tuple[float,
+                                                               float]]]):
     """Fusion Operator
 
     Args:
-        rgbd_max_range (:obj:`float`): Maximum distance of the rgbd frame
-        camera_fov (:obj:`float`): Angular field of view in radians of the RGBD
+        rgbd_max_range: Maximum distance of the rgbd frame
+        camera_fov: Angular field of view in radians of the RGBD
             and RGB cameras used to infer depth info and generate bounding
             boxes respectively. Note that camera position, orientation, and
             FOV must be identical for both.
@@ -75,7 +77,7 @@ class FusionOperator(OneInOneOut):
             position_y = car_position[1] + forward_distance * np.sin(
                 car_orientation) - right_distance * np.cos(car_orientation)
 
-            obstacle_positions.append([position_x, position_y])
+            obstacle_positions.append((position_x, position_y))
 
         return obstacle_positions
 

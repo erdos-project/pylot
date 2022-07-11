@@ -12,7 +12,7 @@ from pylot.perception.detection.utils import BoundingBox2D, \
 from pylot.perception.messages import ObstaclesMessageTuple
 
 
-class QdTrackOperator(OneInOneOut):
+class QdTrackOperator(OneInOneOut[CameraFrame, ObstaclesMessageTuple]):
     def __init__(self, flags, camera_setup):
         from qdtrack.apis import init_model
 
@@ -30,7 +30,8 @@ class QdTrackOperator(OneInOneOut):
                         'bicycle', 'motorcycle', 'train')
         self.frame_id = 0
 
-    def on_data(self, context: OneInOneOutContext, data: CameraFrame):
+    def on_data(self, context: OneInOneOutContext[ObstaclesMessageTuple],
+                data: CameraFrame):
         """Invoked when a FrameMessage is received on the camera stream."""
         from qdtrack.apis import inference_model
 

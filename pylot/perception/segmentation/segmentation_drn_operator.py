@@ -1,6 +1,9 @@
 """Implements an operator that semantically segments frames."""
 import time
 
+import torch
+from torch.autograd import Variable
+
 import drn.segment
 from drn.segment import DRNSeg
 
@@ -8,14 +11,12 @@ import erdos
 from erdos.operator import OneInOneOut
 from erdos.context import OneInOneOutContext
 
+from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.messages import SegmentedMessageTuple
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 
-import torch
-from torch.autograd import Variable
 
-
-class SegmentationDRNOperator(OneInOneOut):
+class SegmentationDRNOperator(OneInOneOut[CameraFrame, SegmentedMessageTuple]):
     """Semantically segments frames using a DRN segmentation model.
 
     The operator receives frames on a camera stream, and runs a model for each
@@ -40,7 +41,8 @@ class SegmentationDRNOperator(OneInOneOut):
         if torch.cuda.is_available():
             self._model = torch.nn.DataParallel(self._model).cuda()
 
-    def on_data(self, context: OneInOneOutContext, data: SegmentedFrame):
+    def on_data(self, context: OneInOneOutContext[SegmentedMessageTuple],
+                data: CameraFrame):
         """Invoked upon the receipt of a message on the camera stream."""
         self._logger.debug('@{}: {} received message'.format(
             context.timestamp, self.config.name))

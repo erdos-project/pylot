@@ -19,6 +19,8 @@ import torch.nn as nn
 import torch.nn.parallel
 import torch.utils.data
 
+from pylot.perception.messages import DepthFrameMessage
+
 
 class AnyNetArgs(object):
     def __init__(self):
@@ -32,7 +34,8 @@ class AnyNetArgs(object):
         self.with_spn = False
 
 
-class DepthEstimationOperator(TwoInOneOut):
+class DepthEstimationOperator(TwoInOneOut[CameraFrame, CameraFrame,
+                                          DepthFrameMessage]):
     """Estimates depth using two cameras, and AnyNet neural network.
 
     Args:
@@ -68,7 +71,8 @@ class DepthEstimationOperator(TwoInOneOut):
 
         self._model = model
 
-    def on_left_data(self, context: TwoInOneOutContext, data: CameraFrame):
+    def on_left_data(self, context: TwoInOneOutContext[DepthFrameMessage],
+                     data: CameraFrame):
         self._logger.debug('@{}: {} received left camera message'.format(
             context.timestamp, self.config.name))
         img = Image.fromarray(data.as_rgb_numpy_array().astype('uint8'), 'RGB')
@@ -79,7 +83,8 @@ class DepthEstimationOperator(TwoInOneOut):
         img = processed(img)
         self._left_imgs[context.timestamp] = img
 
-    def on_right_data(self, context: TwoInOneOutContext, data: CameraFrame):
+    def on_right_data(self, context: TwoInOneOutContext[DepthFrameMessage],
+                      data: CameraFrame):
         self._logger.debug('@{}: {} received right camera message'.format(
             context.timestamp, self.config.name))
         img = Image.fromarray(data.as_rgb_numpy_array().astype('uint8'), 'RGB')
@@ -90,7 +95,7 @@ class DepthEstimationOperator(TwoInOneOut):
         img = processed(img)
         self._right_imgs[context.timestamp] = img
 
-    def on_watermark(self, context: TwoInOneOutContext):
+    def on_watermark(self, context: TwoInOneOutContext[DepthFrameMessage]):
         self._logger.debug('@{}: {} received watermark'.format(
             context.timestamp, self.config.name))
         if context.timestamp.is_top:

@@ -4,7 +4,7 @@ from pylot.perception.detection.obstacle import Obstacle
 from pylot.utils import Transform, Vector2D
 
 
-class ObstacleTrajectory(object):
+class ObstacleTrajectory:
     """Used to store the trajectory of an obstacle.
 
     Args:

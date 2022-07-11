@@ -141,7 +141,7 @@ class CocoDetectionScoringModule(ScoringModule):
 # ]
 
 
-class OnlineCOCOEval(object):
+class OnlineCOCOEval:
     def __init__(self, label_list):
         self.categories = [{
             "id": i,

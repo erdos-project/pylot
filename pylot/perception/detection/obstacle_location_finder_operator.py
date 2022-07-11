@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Union
+from typing import List, Union
 
 import erdos
 from erdos.operator import OneInOneOut
@@ -7,12 +7,16 @@ from erdos.context import OneInOneOutContext
 
 import pylot.utils
 from pylot.perception.detection.utils import get_obstacle_locations
+from pylot.perception.detection.obstacle import Obstacle
 from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.messages import ObstaclesMessageTuple
 from pylot.drivers.sensor_setup import CameraSetup
 
 
-class ObstacleLocationFinderOperator(OneInOneOut):
+class ObstacleLocationFinderOperator(OneInOneOut[Union[ObstaclesMessageTuple,
+                                                       DepthFrame,
+                                                       pylot.utils.Pose],
+                                                 List[Obstacle]]):
     """Computes the world location of the obstacle.
 
     The operator uses a point cloud, which may come from a depth frame to
@@ -52,22 +56,23 @@ class ObstacleLocationFinderOperator(OneInOneOut):
         else:
             raise ValueError('Unexpected data type')
 
-    def on_obstacles_update(self, context: OneInOneOutContext,
+    def on_obstacles_update(self, context: OneInOneOutContext[List[Obstacle]],
                             data: ObstaclesMessageTuple):
         self._logger.debug('@{}: obstacles update'.format(context.timestamp))
         self._obstacles_msgs.append(data)
 
-    def on_depth_update(self, context: OneInOneOutContext, data: DepthFrame):
+    def on_depth_update(self, context: OneInOneOutContext[List[Obstacle]],
+                        data: DepthFrame):
         self._logger.debug('@{}: depth update'.format(context.timestamp))
         self._depth_msgs.append(data)
 
-    def on_pose_update(self, context: OneInOneOutContext,
+    def on_pose_update(self, context: OneInOneOutContext[List[Obstacle]],
                        data: pylot.utils.Pose):
         self._logger.debug('@{}: pose update'.format(context.timestamp))
         self._pose_msgs.append(data)
 
     @erdos.profile_method()
-    def on_watermark(self, context: OneInOneOutContext):
+    def on_watermark(self, context: OneInOneOutContext[List[Obstacle]]):
         """Invoked when all input streams have received a watermark.
 
         Args:

@@ -12,7 +12,7 @@ from pylot.perception.tracking.multi_object_tracker import MultiObjectTracker
 import torch
 
 
-class SingleObjectDaSiamRPNTracker(object):
+class SingleObjectDaSiamRPNTracker:
     def __init__(self, frame, obstacle, siam_net):
         """ Construct a single obstacle tracker.
 

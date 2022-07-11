@@ -14,7 +14,7 @@ import numpy as np
 Line = namedtuple("Line", "x1, y1, x2, y2, slope")
 
 
-class CannyEdgeLaneDetectionOperator(OneInOneOut):
+class CannyEdgeLaneDetectionOperator(OneInOneOut[CameraFrame, np.ndarray]):
     """Detects driving lanes using a camera.
 
     The operator uses standard vision techniques (Canny edge).
@@ -28,7 +28,8 @@ class CannyEdgeLaneDetectionOperator(OneInOneOut):
                                                  self.config.log_file_name)
         self._kernel_size = 7
 
-    def on_data(self, context: OneInOneOutContext, data: CameraFrame):
+    def on_data(self, context: OneInOneOutContext[np.ndarray],
+                data: CameraFrame):
         """Invoked whenever a frame message is received on the stream."""
         self._logger.debug('@{}: {} received message'.format(
             context.timestamp, self.config.name))

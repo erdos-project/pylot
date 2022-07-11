@@ -11,7 +11,8 @@ from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 from pylot.utils import time_epoch_ms
 
 
-class SegmentationEvalOperator(TwoInOneOut):
+class SegmentationEvalOperator(TwoInOneOut[SegmentedFrame,
+                                           SegmentedMessageTuple, None]):
     """Operator that computes accuracy metrics using segmented frames.
 
     Args:
@@ -32,7 +33,7 @@ class SegmentationEvalOperator(TwoInOneOut):
         self._sim_interval = None
         self._last_notification = None
 
-    def on_watermark(self, context: TwoInOneOutContext):
+    def on_watermark(self, context: TwoInOneOutContext[None]):
         """Invoked when all input streams have received a watermark."""
         if context.timestamp.is_top:
             return
@@ -65,13 +66,14 @@ class SegmentationEvalOperator(TwoInOneOut):
 
         self.__garbage_collect_segmentation()
 
-    def on_left_data(self, context: TwoInOneOutContext, data: SegmentedFrame):
+    def on_left_data(self, context: TwoInOneOutContext[None],
+                     data: SegmentedFrame):
         """Invoked on each ground truth frame."""
         # Buffer the ground truth frames.
         game_time = context.timestamp.coordinates[0]
         self._ground_frames.append((game_time, data))
 
-    def on_right_data(self, context: TwoInOneOutContext,
+    def on_right_data(self, context: TwoInOneOutContext[None],
                       data: SegmentedMessageTuple):
         """Invoked on each segmented frame."""
         game_time = context.timestamp.coordinates[0]
