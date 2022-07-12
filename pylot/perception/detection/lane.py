@@ -9,7 +9,7 @@ from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 
 
-class Lane(object):
+class Lane:
     """Stores information about a lane.
 
     Args:

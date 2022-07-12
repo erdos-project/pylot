@@ -1,4 +1,4 @@
-class MultiObjectTracker(object):
+class MultiObjectTracker:
     def __init__(self):
         self._trackers = []
 

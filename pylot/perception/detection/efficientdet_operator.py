@@ -18,7 +18,7 @@ import tensorflow as tf
 
 
 # TODO: Remove once transition to TF2 is complete
-class EfficientDetOperator(TwoInOneOut):
+class EfficientDetOperator(TwoInOneOut[CameraFrame, float, List[Obstacle]]):
     """ Detects obstacles using the EfficientDet set of models.
 
     The operator receives frames on camera stream, and runs a model for each
@@ -124,7 +124,8 @@ class EfficientDetOperator(TwoInOneOut):
             self._model_name, self._tf_session = self._pick_model(
                 self._flags.detection_deadline)
 
-    def on_left_data(self, context: TwoInOneOutContext, data: CameraFrame):
+    def on_left_data(self, context: TwoInOneOutContext[List[Obstacle]],
+                     data: CameraFrame):
         """Invoked whenever a camera message is received on the stream."""
         self._logger.debug('@{}: {} received message'.format(
             context.timestamp, self.config.name))
@@ -183,7 +184,8 @@ class EfficientDetOperator(TwoInOneOut):
         self._logger.debug("@{}: total time spent: {}".format(
             context.timestamp, (operator_time_total_end - start_time) * 1000))
 
-    def on_right_data(self, context: TwoInOneOutContext, data: float):
+    def on_right_data(self, context: TwoInOneOutContext[List[Obstacle]],
+                      data: float):
         self._logger.debug('@{}: {} received ttd update {}'.format(
             context.timestamp, self.config.name, data))
         self._ttd_data.append(data)

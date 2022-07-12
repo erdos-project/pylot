@@ -1,6 +1,6 @@
 """Implements an operator that detects traffic lights."""
 import logging
-from typing import Any
+from typing import List, Tuple
 
 import erdos
 from erdos.operator import TwoInOneOut
@@ -17,7 +17,8 @@ from pylot.perception.detection.utils import BoundingBox2D
 import tensorflow as tf
 
 
-class TrafficLightDetOperator(TwoInOneOut):
+class TrafficLightDetOperator(TwoInOneOut[CameraFrame, float,
+                                          List[TrafficLight]]):
     """Detects traffic lights using a TensorFlow model.
 
     The operator receives frames on a camera stream, and runs a model for each
@@ -57,7 +58,8 @@ class TrafficLightDetOperator(TwoInOneOut):
         # Serve some junk image to load up the model.
         self.__run_model(np.zeros((108, 192, 3), dtype='uint8'))
 
-    def on_left_data(self, context: TwoInOneOutContext, data: CameraFrame):
+    def on_left_data(self, context: TwoInOneOutContext[List[TrafficLight]],
+                     data: CameraFrame):
         """Invoked whenever a frame message is received on the stream."""
         self._logger.debug('@{}: {} received message'.format(
             context.timestamp, self.config.name))
@@ -81,11 +83,14 @@ class TrafficLightDetOperator(TwoInOneOut):
             data.save(context.timestamp.coordinates[0], self._flags.data_path,
                       'tl-detector-{}'.format(self.config.name))
 
-    def on_right_data(self, context: TwoInOneOutContext, data: Any):
+    def on_right_data(self, context: TwoInOneOutContext[List[TrafficLight]],
+                      data: float):
         self._logger.debug('@{}: {} received ttd update {}'.format(
             context.timestamp, self.config.name, data))
 
-    def __run_model(self, image_np):
+    def __run_model(
+            self,
+            image_np: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         # Expand dimensions since the model expects images to have
         # shape: [1, None, None, 3]
         image_np_expanded = np.expand_dims(image_np, axis=0)
@@ -107,7 +112,9 @@ class TrafficLightDetOperator(TwoInOneOut):
         res_scores = scores[0][:num_detections]
         return res_boxes, res_scores, res_labels
 
-    def __convert_to_detected_tl(self, boxes, scores, labels, height, width):
+    def __convert_to_detected_tl(self, boxes: np.ndarray, scores: np.ndarray,
+                                 labels: np.ndarray, height: int,
+                                 width: int) -> List[TrafficLight]:
         traffic_lights = []
         for index in range(len(scores)):
             if scores[

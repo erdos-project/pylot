@@ -1,4 +1,5 @@
 from collections import deque
+from typing import Tuple
 
 import erdos
 from erdos.operator import OneInOneOut
@@ -9,8 +10,15 @@ from pylot.perception.messages import ObstaclesMessageTuple
 from pylot.utils import time_epoch_ms
 
 
-class DetectionDecayOperator(OneInOneOut):
-    """Operator that computes timely accuracy metrics.
+class DetectionDecayOperator(OneInOneOut[ObstaclesMessageTuple, Tuple[int,
+                                                                      float]]):
+    """Computes the timely accuracy metrics of the detected obstacles.
+
+    Send the latency and the average precision on the output stream.
+
+    Computes the average precision by comparing the bounding boxes of detected
+    obstacles at processing time to the bounding boxes computed for the closest
+    matching event time.
 
     Args:
         flags (absl.flags): Object to be used to access absl flags.
@@ -24,7 +32,7 @@ class DetectionDecayOperator(OneInOneOut):
         self._ground_bboxes = deque()
         self._iou_thresholds = [0.1 * i for i in range(1, 10)]
 
-    def on_data(self, context: OneInOneOutContext,
+    def on_data(self, context: OneInOneOutContext[Tuple[int, float]],
                 data: ObstaclesMessageTuple):
         # Ignore the first several seconds of the simulation because the car is
         # not moving at the beginning.

@@ -7,7 +7,7 @@ from pylot.perception.detection.utils import BoundingBox2D, BoundingBox3D, \
 VEHICLE_LABELS = {'car', 'bicycle', 'motorcycle', 'bus', 'truck', 'vehicle'}
 
 
-class Obstacle(object):
+class Obstacle:
     """Class used to store info about obstacles.
 
     This class provides helper functions to detect obstacles and provide

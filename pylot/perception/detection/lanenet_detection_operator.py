@@ -1,26 +1,24 @@
 import logging
 import math
+from typing import List
 
 import cv2
+import numpy as np
+import tensorflow as tf
+
+from lanenet.lanenet_model import lanenet  # noqa: I100 E402
+from lanenet.lanenet_model import lanenet_postprocess  # noqa: I100 E402
 
 import erdos
 from erdos.context import OneInOneOutContext
 from erdos.operator import OneInOneOut
 
-from pylot.perception.camera_frame import CameraFrame
-
-from lanenet.lanenet_model import lanenet  # noqa: I100 E402
-from lanenet.lanenet_model import lanenet_postprocess  # noqa: I100 E402
-
-import numpy as np
-
 import pylot.utils
+from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.detection.lane import Lane
 
-import tensorflow as tf
 
-
-class LanenetDetectionOperator(OneInOneOut):
+class LanenetDetectionOperator(OneInOneOut[CameraFrame, List[Lane]]):
     """Detects driving lanes using a camera.
 
     The operator uses the Lanenet model.
@@ -59,7 +57,8 @@ class LanenetDetectionOperator(OneInOneOut):
             saver.restore(sess=self._tf_session,
                           save_path=flags.lanenet_detection_model_path)
 
-    def on_data(self, context: OneInOneOutContext, data: CameraFrame):
+    def on_data(self, context: OneInOneOutContext[List[Lane]],
+                data: CameraFrame):
         self._logger.debug('@{}: {} received message'.format(
             context.timestamp, self.config.name))
         assert data.encoding == 'BGR', 'Expects BGR frames'

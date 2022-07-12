@@ -1,7 +1,6 @@
 """Implements an operator that detects obstacles."""
 import logging
 import time
-from typing import Any
 
 import erdos
 from erdos.operator import TwoInOneOut
@@ -19,7 +18,8 @@ from pylot.perception.messages import ObstaclesMessageTuple
 import tensorflow as tf
 
 
-class DetectionOperator(TwoInOneOut):
+class DetectionOperator(TwoInOneOut[CameraFrame, float,
+                                    ObstaclesMessageTuple]):
     """Detects obstacles using a TensorFlow model.
 
     The operator receives frames on a camera stream, and runs a model for each
@@ -55,7 +55,8 @@ class DetectionOperator(TwoInOneOut):
         # Serve some junk image to load up the model.
         self.__run_model(np.zeros((108, 192, 3), dtype='uint8'))
 
-    def on_left_data(self, context: TwoInOneOutContext, data: CameraFrame):
+    def on_left_data(self, context: TwoInOneOutContext[ObstaclesMessageTuple],
+                     data: CameraFrame):
         """Invoked whenever a camera message is received on the stream."""
         self._logger.debug('@{} received message'.format(self.config.name))
         start_time = time.time()
@@ -105,7 +106,8 @@ class DetectionOperator(TwoInOneOut):
             data.save(context.timestamp.coordinates[0], self._flags.data_path,
                       'detector-{}'.format(self.config.name))
 
-    def on_right_data(self, context: TwoInOneOutContext, data: Any):
+    def on_right_data(self, context: TwoInOneOutContext[ObstaclesMessageTuple],
+                      data: float):
         self._logger.debug('@{}: {} received ttd update {}'.format(
             context.timestamp, self.config.name, data))
 

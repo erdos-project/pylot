@@ -1,12 +1,27 @@
-from typing import List, Tuple
+from __future__ import annotations  # Nicer syntax for Union types (PEP 604)
+
+from typing import List, Optional, Tuple
+
 from absl import flags
+import numpy as np
 
 import erdos
 from erdos import Stream
-from pylot.drivers.sensor_setup import LidarSetup
 
+from pylot.drivers.sensor_setup import (CameraSetup, GNSSSetup, IMUSetup,
+                                        LidarSetup)
+from pylot.perception.camera_frame import CameraFrame
+from pylot.perception.depth_frame import DepthFrame
+from pylot.perception.detection.lane import Lane
+from pylot.perception.detection.obstacle import Obstacle
+from pylot.perception.detection.traffic_light import TrafficLight
+from pylot.perception.messages import (DepthFrameMessage,
+                                       ObstacleTrajectoriesMessageTuple,
+                                       ObstaclesMessageTuple,
+                                       SegmentedMessageTuple)
+from pylot.perception.point_cloud import PointCloud
+from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 import pylot.utils
-from pylot.drivers.sensor_setup import CameraSetup, GNSSSetup, IMUSetup
 
 # TODO: Hack to avoid a tensorflow import error.
 import tensorflow as tf  # noqa: F401
@@ -28,9 +43,10 @@ def add_simulator_bridge(control_stream, sensor_ready_stream,
         FLAGS)
 
 
-def add_efficientdet_obstacle_detection(camera_stream: Stream,
-                                        time_to_decision_stream: Stream,
-                                        csv_file_name: str = None) -> Stream:
+def add_efficientdet_obstacle_detection(
+        camera_stream: Stream[CameraFrame],
+        time_to_decision_stream: Stream[float],
+        csv_file_name: Optional[str] = None) -> Stream[List[Obstacle]]:
     """Adds an operator that uses EfficientDet for obstacle detection."""
     from pylot.perception.detection.efficientdet_operator import \
         EfficientDetOperator
@@ -49,9 +65,10 @@ def add_efficientdet_obstacle_detection(camera_stream: Stream,
     return obstacles_stream
 
 
-def add_obstacle_detection(camera_stream: Stream,
-                           time_to_decision_stream: Stream,
-                           csv_file_name: str = None) -> List:
+def add_obstacle_detection(
+        camera_stream: Stream[CameraFrame],
+        time_to_decision_stream: Stream[float],
+        csv_file_name: Optional[str] = None) -> Stream[ObstaclesMessageTuple]:
     from pylot.perception.detection.detection_operator import DetectionOperator
     obstacles_streams = []
     if csv_file_name is None:
@@ -71,27 +88,25 @@ def add_obstacle_detection(camera_stream: Stream,
     return obstacles_streams
 
 
-def add_obstacle_location_finder(obstacles_stream: Stream,
-                                 depth_stream: Stream, pose_stream: Stream,
-                                 camera_setup: CameraSetup) -> Stream:
+def add_obstacle_location_finder(
+        obstacles_stream: Stream[ObstaclesMessageTuple],
+        depth_stream: Stream[DepthFrame] | Stream[PointCloud],
+        pose_stream: Stream[pylot.utils.Pose],
+        camera_setup: CameraSetup) -> Stream[List[Obstacle]]:
     """Adds an operator that finds the world locations of the obstacles.
 
     Args:
-        obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
-            detected obstacles are received.
-        depth_stream (:py:class:`erdos.ReadStream`): Stream on which
-            either point cloud messages or depth frames are received. The
-            message type differs dependening on how data-flow operators are
-            connected.
-        pose_stream (:py:class:`erdos.ReadStream`, optional): Stream on
-            which pose info is received.
-        camera_setup (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
-            The setup of the center camera.
+        obstacles_stream: Stream of detected obstacles for which to find
+            locations.
+        depth_stream: Stream on which either point cloud messages or depth
+            frames are received. The message type differs dependening on how
+            data-flow operators are connected.
+        pose_stream: Stream on which pose info is received.
+        camera_setup: The setup of the center camera.
 
     Returns:
-        :py:class:`erdos.ReadStream`: Stream on which
-        :py:class:`~pylot.perception.messages.ObstaclesMessage` messages with
-        world locations are published.
+        Stream containing a list of obstacles with world locations are
+            published.
     """
     from pylot.perception.detection.obstacle_location_finder_operator import \
         ObstacleLocationFinderOperator
@@ -109,27 +124,23 @@ def add_obstacle_location_finder(obstacles_stream: Stream,
     return obstacles_with_loc_stream
 
 
-def add_obstacle_location_history(obstacles_stream: Stream,
-                                  depth_stream: Stream, pose_stream: Stream,
-                                  camera_setup: CameraSetup) -> Stream:
+def add_obstacle_location_history(
+        obstacles_stream: Stream[ObstaclesMessageTuple],
+        depth_stream: Stream[DepthFrame] | Stream[PointCloud],
+        pose_stream: Stream[pylot.utils.Pose],
+        camera_setup: CameraSetup) -> Stream[ObstacleTrajectoriesMessageTuple]:
     """Adds an operator that finds obstacle trajectories in world coordinates.
 
     Args:
-        obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
-            detected obstacles are received.
-        depth_stream (:py:class:`erdos.ReadStream`): Stream on which
-            either point cloud messages or depth frames are received. The
-            message type differs dependening on how data-flow operators are
-            connected.
-        pose_stream (:py:class:`erdos.ReadStream`, optional): Stream on
-            which pose info is received.
-        camera_setup (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
-            The setup of the center camera.
+        obstacles_stream : Stream on which detected obstacles are received.
+        depth_stream: Stream on which either point cloud messages or depth
+            frames are received. The message type differs dependening on how
+            data-flow operators are connected.
+        pose_stream: Stream on which pose info is received.
+        camera_setup: The setup of the center camera.
 
     Returns:
-        :py:class:`erdos.ReadStream`: Stream on which
-        :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
-        messages are published.
+        Stream on which obstacles and their trajectories are published.
     """
     from pylot.perception.tracking.obstacle_location_history_operator import \
         ObstacleLocationHistoryOperator
@@ -148,34 +159,43 @@ def add_obstacle_location_history(obstacles_stream: Stream,
     return tracked_obstacles
 
 
-def add_detection_decay(ground_obstacles_stream):
+def add_detection_decay(
+    ground_obstacles_stream: Stream[ObstaclesMessageTuple]
+) -> Stream[Tuple[int, float]]:
+    """Computes the timely accuracy metric for the detected obstacles.
+
+    Returns:
+        Stream containing the latency and the average precision.
+    """
     from pylot.perception.detection.detection_decay_operator import \
         DetectionDecayOperator
     op_config = erdos.OperatorConfig(name='detection_decay_operator',
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [map_stream] = erdos.connect(DetectionDecayOperator, op_config,
-                                 [ground_obstacles_stream], FLAGS)
-    return map_stream
+    return erdos.connect_one_in_one_out(DetectionDecayOperator, op_config,
+                                        ground_obstacles_stream, FLAGS)
 
 
-def add_detection_evaluation(obstacles_stream,
-                             ground_obstacles_stream,
-                             evaluate_timely=False,
-                             matching_policy='ceil',
-                             frame_gap=None,
-                             name='detection_eval_operator'):
+def add_detection_evaluation(
+        obstacles_stream: Stream[ObstaclesMessageTuple],
+        ground_obstacles_stream: Stream[ObstaclesMessageTuple],
+        evaluate_timely: bool = False,
+        matching_policy='ceil',
+        frame_gap: Optional[int] = None,
+        name='detection_eval_operator') -> Stream[None]:
     from pylot.perception.detection.detection_eval_operator import \
         DetectionEvalOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [finished_indicator_stream
-     ] = erdos.connect(DetectionEvalOperator, op_config,
-                       [obstacles_stream, ground_obstacles_stream],
-                       evaluate_timely, matching_policy, frame_gap, FLAGS)
+
+    return erdos.connect_two_in_one_out(DetectionEvalOperator, op_config,
+                                        obstacles_stream,
+                                        ground_obstacles_stream,
+                                        evaluate_timely, matching_policy,
+                                        frame_gap, FLAGS)
 
 
 def add_control_evaluation(pose_stream,
@@ -190,8 +210,9 @@ def add_control_evaluation(pose_stream,
                   [pose_stream, waypoints_stream], FLAGS)
 
 
-def add_traffic_light_detector(traffic_light_camera_stream,
-                               time_to_decision_stream):
+def add_traffic_light_detector(
+        traffic_light_camera_stream: Stream[CameraFrame],
+        time_to_decision_stream: Stream[float]) -> Stream[List[TrafficLight]]:
     from pylot.perception.detection.traffic_light_det_operator import \
         TrafficLightDetOperator
     op_config = erdos.OperatorConfig(name='traffic_light_detector_operator',
@@ -199,11 +220,9 @@ def add_traffic_light_detector(traffic_light_camera_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [traffic_lights_stream
-     ] = erdos.connect(TrafficLightDetOperator, op_config,
-                       [traffic_light_camera_stream, time_to_decision_stream],
-                       FLAGS)
-    return traffic_lights_stream
+    return erdos.connect_two_in_one_out(TrafficLightDetOperator, op_config,
+                                        traffic_light_camera_stream,
+                                        time_to_decision_stream, FLAGS)
 
 
 def add_traffic_light_invasion_sensor(ground_vehicle_id_stream: Stream,
@@ -221,37 +240,36 @@ def add_traffic_light_invasion_sensor(ground_vehicle_id_stream: Stream,
     return traffic_light_invasion_stream
 
 
-def add_canny_edge_lane_detection(bgr_camera_stream,
-                                  name='canny_edge_lane_detection'):
+def add_canny_edge_lane_detection(
+        bgr_camera_stream: Stream[CameraFrame],
+        name: str = 'canny_edge_lane_detection') -> Stream[np.ndarray]:
     from pylot.perception.detection.lane_detection_canny_operator import \
         CannyEdgeLaneDetectionOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [lane_detection_stream] = erdos.connect(CannyEdgeLaneDetectionOperator,
-                                            op_config, [bgr_camera_stream],
-                                            FLAGS)
-    return lane_detection_stream
+    return erdos.connect_one_in_one_out(CannyEdgeLaneDetectionOperator,
+                                        op_config, bgr_camera_stream, FLAGS)
 
 
-def add_lanenet_detection(bgr_camera_stream, name='lanenet_lane_detection'):
+def add_lanenet_detection(bgr_camera_stream: Stream[CameraFrame],
+                          name='lanenet_lane_detection') -> Stream[List[Lane]]:
     from pylot.perception.detection.lanenet_detection_operator import \
         LanenetDetectionOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [lane_detection_stream] = erdos.connect(LanenetDetectionOperator,
-                                            op_config, [bgr_camera_stream],
-                                            FLAGS)
-    return lane_detection_stream
+    return erdos.connect_one_in_one_out(LanenetDetectionOperator, op_config,
+                                        bgr_camera_stream, FLAGS)
 
 
-def add_obstacle_tracking(obstacles_stream: Stream,
-                          bgr_camera_stream: Stream,
-                          time_to_decision_stream: Stream,
-                          name_prefix: str = 'tracker_') -> Stream:
+def add_obstacle_tracking(
+        obstacles_stream: Stream[ObstaclesMessageTuple],
+        bgr_camera_stream: Stream[CameraFrame],
+        time_to_decision_stream: Stream[float],
+        name_prefix: str = 'tracker_') -> Stream[ObstaclesMessageTuple]:
     from pylot.perception.tracking.object_tracker_operator import \
         ObjectTrackerOperator
     op_config = erdos.operator.OperatorConfig(
@@ -262,11 +280,9 @@ def add_obstacle_tracking(obstacles_stream: Stream,
 
     concatenated_streams = obstacles_stream.concat(bgr_camera_stream,
                                                    time_to_decision_stream)
-    obstacle_tracking_stream = erdos.connect_one_in_one_out(
-        ObjectTrackerOperator, op_config, concatenated_streams,
-        FLAGS.tracker_type, FLAGS)
-
-    return obstacle_tracking_stream
+    return erdos.connect_one_in_one_out(ObjectTrackerOperator, op_config,
+                                        concatenated_streams,
+                                        FLAGS.tracker_type, FLAGS)
 
 
 def add_center_track_tracking(bgr_camera_stream,
@@ -284,42 +300,45 @@ def add_center_track_tracking(bgr_camera_stream,
     return obstacle_tracking_stream
 
 
-def add_qd_track_tracking(bgr_camera_stream, camera_setup, name='qd_track'):
+def add_qd_track_tracking(
+        bgr_camera_stream: Stream[CameraFrame],
+        camera_setup: CameraSetup,
+        name: str = 'qd_track') -> Stream[ObstaclesMessageTuple]:
     from pylot.perception.tracking.qd_track_operator import \
         QdTrackOperator
     op_config = erdos.OperatorConfig(name='qd_track_operator',
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [obstacle_tracking_stream] = erdos.connect(QdTrackOperator, op_config,
-                                               [bgr_camera_stream], FLAGS,
-                                               camera_setup)
-    return obstacle_tracking_stream
+    return erdos.connect_one_in_one_out(QdTrackOperator, op_config,
+                                        bgr_camera_stream, FLAGS, camera_setup)
 
 
-def add_tracking_evaluation(obstacle_tracking_stream,
-                            ground_obstacles_stream,
-                            evaluate_timely=False,
-                            matching_policy='ceil',
-                            frame_gap=None,
-                            name='tracking_eval_operator'):
+def add_tracking_evaluation(
+        obstacle_tracking_stream: Stream[ObstaclesMessageTuple],
+        ground_obstacles_stream: Stream[ObstaclesMessageTuple],
+        evaluate_timely: bool = False,
+        matching_policy: str = 'ceil',
+        frame_gap: Optional[int] = None,
+        name: str = 'tracking_eval_operator') -> Stream[None]:
     from pylot.perception.tracking.tracking_eval_operator import \
         TrackingEvalOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [finished_indicator_stream
-     ] = erdos.connect(TrackingEvalOperator, op_config,
-                       [obstacle_tracking_stream, ground_obstacles_stream],
-                       evaluate_timely, matching_policy, frame_gap, FLAGS)
-    return finished_indicator_stream
+    return erdos.connect_two_in_one_out(TrackingEvalOperator, op_config,
+                                        obstacle_tracking_stream,
+                                        ground_obstacles_stream,
+                                        evaluate_timely, matching_policy,
+                                        frame_gap, FLAGS)
 
 
-def add_depth_estimation(left_camera_stream,
-                         right_camera_stream,
-                         center_camera_setup,
-                         name='depth_estimation_operator'):
+def add_depth_estimation(
+        left_camera_stream: Stream[CameraFrame],
+        right_camera_stream: Stream[CameraFrame],
+        center_camera_setup: CameraSetup,
+        name: str = 'depth_estimation_operator') -> Stream[DepthFrameMessage]:
     try:
         from pylot.perception.depth_estimation.depth_estimation_operator\
             import DepthEstimationOperator
@@ -329,50 +348,54 @@ def add_depth_estimation(left_camera_stream,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [depth_estimation_stream
-     ] = erdos.connect(DepthEstimationOperator, op_config,
-                       [left_camera_stream, right_camera_stream],
-                       center_camera_setup.get_transform(),
-                       center_camera_setup.get_fov(), FLAGS)
-    return depth_estimation_stream
+    return erdos.connect_two_in_one_out(DepthEstimationOperator, op_config,
+                                        left_camera_stream,
+                                        right_camera_stream,
+                                        center_camera_setup.get_transform(),
+                                        center_camera_setup.get_fov(), FLAGS)
 
 
-def add_segmentation(bgr_camera_stream, name='drn_segmentation_operator'):
+def add_segmentation(
+        bgr_camera_stream: Stream[CameraFrame],
+        name: str = 'drn_segmentation_operator'
+) -> Stream[SegmentedMessageTuple]:
     from pylot.perception.segmentation.segmentation_drn_operator import\
         SegmentationDRNOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [segmented_stream] = erdos.connect(SegmentationDRNOperator, op_config,
-                                       [bgr_camera_stream], FLAGS)
-    return segmented_stream
+    return erdos.connect_one_in_one_out(SegmentationDRNOperator, op_config,
+                                        bgr_camera_stream, FLAGS)
 
 
-def add_segmentation_evaluation(ground_segmented_stream,
-                                segmented_stream,
-                                name='segmentation_evaluation_operator'):
+def add_segmentation_evaluation(
+        ground_segmented_stream: Stream[SegmentedFrame],
+        segmented_stream: SegmentedMessageTuple,
+        name='segmentation_evaluation_operator') -> Stream[None]:
     from pylot.perception.segmentation.segmentation_eval_operator import \
         SegmentationEvalOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(SegmentationEvalOperator, op_config,
-                  [ground_segmented_stream, segmented_stream], FLAGS)
+    return erdos.connect_two_in_one_out(SegmentationEvalOperator, op_config,
+                                        ground_segmented_stream,
+                                        segmented_stream, FLAGS)
 
 
-def add_segmentation_decay(ground_segmented_stream,
-                           name='segmentation_decay_operator'):
+def add_segmentation_decay(
+        ground_segmented_stream: Stream[SegmentedFrame, ],
+        name: str = 'segmentation_decay_operator'
+) -> Stream[Tuple[int, float]]:
     from pylot.perception.segmentation.segmentation_decay_operator import \
         SegmentationDecayOperator
     op_config = erdos.OperatorConfig(name=name,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    [iou_stream] = erdos.connect(SegmentationDecayOperator, op_config,
-                                 [ground_segmented_stream], FLAGS)
-    return iou_stream
+    return erdos.connect_one_in_one_out(SegmentationDecayOperator, op_config,
+                                        ground_segmented_stream, FLAGS)
 
 
 def add_linear_prediction(tracking_stream: Stream,
@@ -963,7 +986,8 @@ def add_visualizer(pose_stream=None,
     return control_display_stream, streams_to_send_top_on
 
 
-def add_perfect_detector(depth_camera_stream, center_camera_stream,
+def add_perfect_detector(depth_camera_stream,
+                         center_camera_stream: Stream[CameraFrame],
                          segmented_camera_stream, pose_stream,
                          ground_obstacles_stream,
                          ground_speed_limit_signs_stream,

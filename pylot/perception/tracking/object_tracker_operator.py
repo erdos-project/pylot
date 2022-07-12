@@ -10,7 +10,9 @@ from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.messages import ObstaclesMessageTuple
 
 
-class ObjectTrackerOperator(OneInOneOut):
+class ObjectTrackerOperator(OneInOneOut[Union[CameraFrame,
+                                              ObstaclesMessageTuple, float],
+                                        ObstaclesMessageTuple]):
     def __init__(self, tracker_type: str, flags):
         self._flags = flags
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -50,22 +52,24 @@ class ObjectTrackerOperator(OneInOneOut):
     def destroy(self):
         self._logger.warn('destroying {}'.format(self.config.name))
 
-    def on_frame(self, context: OneInOneOutContext, frame: CameraFrame):
+    def on_frame(self, context: OneInOneOutContext[ObstaclesMessageTuple],
+                 frame: CameraFrame):
         """Invoked when a CameraFrame is received."""
         self._logger.debug('@{}: {} received frame'.format(
             context.timestamp, self.config.name))
         assert frame.encoding == 'BGR', 'Expects BGR frames'
         self._frames.append(frame)
 
-    def on_obstacles(self, context: OneInOneOutContext,
+    def on_obstacles(self, context: OneInOneOutContext[ObstaclesMessageTuple],
                      obstacles: ObstaclesMessageTuple):
         """Invoked when obstacles are received on the stream."""
         self._logger.debug('@{}: {} received {} obstacles'.format(
             context.timestamp, self.config.name, len(obstacles.obstacles)))
         self._obstacles.append((context.timestamp, obstacles))
 
-    def on_time_to_decision_update(self, context: OneInOneOutContext,
-                                   ttd: float):
+    def on_time_to_decision_update(
+            self, context: OneInOneOutContext[ObstaclesMessageTuple],
+            ttd: float):
         self._logger.debug('@{}: {} received ttd update {}'.format(
             context.timestamp, self.config.name, ttd))
 
@@ -79,7 +83,7 @@ class ObjectTrackerOperator(OneInOneOut):
         result = self._tracker.track(camera_frame)
         return (time.time() - start) * 1000, result
 
-    def on_data(self, context: OneInOneOutContext,
+    def on_data(self, context: OneInOneOutContext[ObstaclesMessageTuple],
                 data: Union[CameraFrame, ObstaclesMessageTuple, float]):
         if isinstance(data, CameraFrame):
             self.on_frame(context, data)
@@ -91,7 +95,7 @@ class ObjectTrackerOperator(OneInOneOut):
             raise ValueError('Unexpected data type')
 
     @erdos.profile_method()
-    def on_watermark(self, context: OneInOneOutContext):
+    def on_watermark(self, context: OneInOneOutContext[ObstaclesMessageTuple]):
         self._logger.debug('@{}: received watermark'.format(context.timestamp))
         if context.timestamp.is_top:
             return
