@@ -13,7 +13,7 @@ from pylot.utils import time_epoch_ms
 class DetectionDecayOperator(OneInOneOut[ObstaclesMessageTuple, Tuple[int,
                                                                       float]]):
     """Computes the timely accuracy metrics of the detected obstacles.
-    
+
     Send the latency and the average precision on the output stream.
 
     Computes the average precision by comparing the bounding boxes of detected

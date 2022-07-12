@@ -13,7 +13,10 @@ from pylot.drivers.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.detection.lane import Lane
-from pylot.perception.messages import ObstacleTrajectoriesMessageTuple, ObstaclesMessageTuple, SegmentedMessageTuple, SpeedSignsMessage, StopSignsMessage
+from pylot.perception.messages import (ObstacleTrajectoriesMessageTuple,
+                                       ObstaclesMessageTuple,
+                                       SegmentedMessageTuple,
+                                       SpeedSignsMessage, StopSignsMessage)
 from pylot.perception.point_cloud import PointCloud
 from pylot.perception.detection.traffic_light import TrafficLight
 

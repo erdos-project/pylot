@@ -14,7 +14,10 @@ from pylot.perception.depth_frame import DepthFrame
 from pylot.perception.detection.lane import Lane
 from pylot.perception.detection.obstacle import Obstacle
 from pylot.perception.detection.traffic_light import TrafficLight
-from pylot.perception.messages import DepthFrameMessage, ObstacleTrajectoriesMessageTuple, ObstaclesMessageTuple, SegmentedMessageTuple
+from pylot.perception.messages import (DepthFrameMessage,
+                                       ObstacleTrajectoriesMessageTuple,
+                                       ObstaclesMessageTuple,
+                                       SegmentedMessageTuple)
 from pylot.perception.point_cloud import PointCloud
 from pylot.perception.segmentation.segmented_frame import SegmentedFrame
 import pylot.utils
@@ -159,7 +162,7 @@ def add_detection_decay(
     ground_obstacles_stream: Stream[ObstaclesMessageTuple]
 ) -> Stream[Tuple[int, float]]:
     """Computes the timely accuracy metric for the detected obstacles.
-    
+
     Returns:
         Stream containing the latency and the average precision.
     """
