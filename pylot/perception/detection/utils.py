@@ -1,6 +1,10 @@
+from __future__ import annotations  # Nicer syntax for Union types (PEP 604)
+
 import copy
 
 import numpy as np
+from pylot.perception.depth_frame import DepthFrame
+from pylot.perception.point_cloud import PointCloud
 
 import pylot.utils
 
@@ -531,12 +535,10 @@ def get_mAP(ground_obstacles, obstacles):
     return avg_precision
 
 
-def get_obstacle_locations(obstacles, depth_msg, ego_transform, camera_setup,
-                           logger):
-    from pylot.perception.messages import PointCloudMessage
-    from pylot.perception.depth_frame import DepthFrame
-    if isinstance(depth_msg, PointCloudMessage):
-        point_cloud = depth_msg.point_cloud
+def get_obstacle_locations(obstacles, depth_obj: PointCloud | DepthFrame,
+                           ego_transform, camera_setup, logger):
+    if isinstance(depth_obj, PointCloud):
+        point_cloud = depth_obj
         # Get the position of the camera in world frame of reference.
         transformed_camera_setup = copy.deepcopy(camera_setup)
         transformed_camera_setup.set_transform(
@@ -556,8 +558,8 @@ def get_obstacle_locations(obstacles, depth_msg, ego_transform, camera_setup,
                     'Could not find world location for obstacle {}'.format(
                         obstacle))
         return obstacles_with_location
-    elif isinstance(depth_msg, DepthFrame):
-        depth_frame = depth_msg
+    elif isinstance(depth_obj, DepthFrame):
+        depth_frame = depth_obj
         depth_frame.camera_setup.set_transform(
             ego_transform * depth_frame.camera_setup.transform)
 

@@ -1,4 +1,5 @@
 import math
+from typing import Optional
 
 import erdos
 from erdos.operator import TwoInOneOut
@@ -16,7 +17,8 @@ class BasePerceptionEvalOperator(TwoInOneOut[ObstaclesMessageTuple,
         flags (absl.flags): Object to be used to access absl flags.
     """
     def __init__(self, evaluate_timely: bool, matching_policy: str,
-                 frame_gap: int, scoring_module, flags):
+                 frame_gap: Optional[int], scoring_module: "ScoringModule",
+                 flags):
         self._logger = erdos.utils.setup_logging(self.config.name,
                                                  self.config.log_file_name)
         self._last_notification = None

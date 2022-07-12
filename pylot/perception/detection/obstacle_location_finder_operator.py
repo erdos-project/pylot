@@ -1,3 +1,5 @@
+from __future__ import annotations  # Nicer syntax for Union types (PEP 604)
+
 from collections import deque
 from typing import List, Union
 
@@ -44,12 +46,11 @@ class ObstacleLocationFinderOperator(OneInOneOut[Union[ObstaclesMessageTuple,
         self._depth_msgs = deque()
         self._pose_msgs = deque()
 
-    def on_data(self, context: OneInOneOutContext,
-                data: Union[ObstaclesMessageTuple, DepthFrame,
-                            pylot.utils.Pose]):
+    def on_data(self, context: OneInOneOutContext, data: ObstaclesMessageTuple
+                | DepthFrame | PointCloud | pylot.utils.Pose):
         if isinstance(data, ObstaclesMessageTuple):
             self.on_obstacles_update(context, data)
-        elif isinstance(data, DepthFrame):
+        elif isinstance(data, (DepthFrame, PointCloud)):
             self.on_depth_update(context, data)
         elif isinstance(data, pylot.utils.Pose):
             self.on_pose_update(context, data)
@@ -62,7 +63,7 @@ class ObstacleLocationFinderOperator(OneInOneOut[Union[ObstaclesMessageTuple,
         self._obstacles_msgs.append(data)
 
     def on_depth_update(self, context: OneInOneOutContext[List[Obstacle]],
-                        data: Union[DepthFrame, PointCloud]):
+                        data: DepthFrame | PointCloud):
         self._logger.debug('@{}: depth update'.format(context.timestamp))
         self._depth_msgs.append(data)
 

@@ -1,7 +1,6 @@
 """Implements an operator that detects obstacles."""
 import logging
 import time
-from typing import Any
 
 import erdos
 from erdos.operator import TwoInOneOut

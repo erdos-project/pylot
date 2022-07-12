@@ -1,10 +1,14 @@
+from __future__ import annotations  # Nicer syntax for Union types (PEP 604)
+
 from collections import defaultdict, deque
 from typing import Union
 
 import erdos
 from erdos.operator import OneInOneOut
 from erdos.context import OneInOneOutContext
+from pylot.drivers.sensor_setup import CameraSetup
 from pylot.perception.depth_frame import DepthFrame
+from pylot.perception.point_cloud import PointCloud
 
 import pylot.utils
 from pylot.perception.detection.utils import get_obstacle_locations
@@ -14,9 +18,10 @@ from pylot.perception.tracking.obstacle_trajectory import ObstacleTrajectory
 
 
 class ObstacleLocationHistoryOperator(
-        OneInOneOut[Union[ObstaclesMessageTuple, DepthFrame, pylot.utils.Pose],
+        OneInOneOut[Union[ObstaclesMessageTuple, DepthFrame, PointCloud,
+                          pylot.utils.Pose],
                     ObstacleTrajectoriesMessageTuple]):
-    def __init__(self, flags, camera_setup):
+    def __init__(self, flags, camera_setup: CameraSetup):
         self._flags = flags
         self._camera_setup = camera_setup
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -35,8 +40,8 @@ class ObstacleLocationHistoryOperator(
 
     def on_data(self,
                 context: OneInOneOutContext[ObstacleTrajectoriesMessageTuple],
-                data: Union[ObstaclesMessageTuple, DepthFrame,
-                            pylot.utils.Pose]):
+                data: ObstaclesMessageTuple | DepthFrame | PointCloud
+                | pylot.utils.Pose):
         if isinstance(data, ObstaclesMessageTuple):
             self.on_obstacles_update(context, data)
         elif isinstance(data, DepthFrame):
@@ -56,7 +61,7 @@ class ObstacleLocationHistoryOperator(
     def on_depth_update(
             self,
             context: OneInOneOutContext[ObstacleTrajectoriesMessageTuple],
-            data: DepthFrame):
+            data: DepthFrame | PointCloud):
         self._logger.debug('@{}: depth update'.format(context.timestamp))
         self._depth_msgs.append(data)
 

@@ -1,5 +1,7 @@
+from __future__ import annotations  # Nicer syntax for Union types (PEP 604)
+
 import logging
-from typing import Tuple
+from typing import List, Optional, Tuple
 
 from absl import flags
 
@@ -8,6 +10,12 @@ from erdos import Stream
 import pylot.operator_creator
 from pylot.drivers.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
     SegmentedCameraSetup, CameraSetup
+from pylot.perception.camera_frame import CameraFrame
+from pylot.perception.depth_frame import DepthFrame
+from pylot.perception.detection.lane import Lane
+from pylot.perception.messages import ObstacleTrajectoriesMessageTuple, ObstaclesMessageTuple, SegmentedMessageTuple, SpeedSignsMessage, StopSignsMessage
+from pylot.perception.point_cloud import PointCloud
+from pylot.perception.detection.traffic_light import TrafficLight
 
 FLAGS = flags.FLAGS
 
@@ -15,16 +23,19 @@ logger = logging.getLogger(__name__)
 
 
 def add_obstacle_detection(
-        center_camera_stream: Stream,
-        center_camera_setup: CameraSetup = None,
-        pose_stream: Stream = None,
-        depth_stream: Stream = None,
-        depth_camera_stream: Stream = None,
-        segmented_camera_stream: Stream = None,
-        ground_obstacles_stream: Stream = None,
-        ground_speed_limit_signs_stream: Stream = None,
-        ground_stop_signs_stream: Stream = None,
-        time_to_decision_stream: Stream = None) -> Tuple[Stream, Stream]:
+    center_camera_stream: Stream[CameraFrame],
+    center_camera_setup: Optional[CameraSetup] = None,
+    pose_stream: Optional[Stream[pylot.utils.Pose]] = None,
+    depth_stream: Optional[Stream[DepthFrame] | Stream[PointCloud]] = None,
+    depth_camera_stream: Optional[Stream[DepthFrame]] = None,
+    segmented_camera_stream: Optional[Stream[SegmentedMessageTuple]] = None,
+    ground_obstacles_stream: Optional[Stream[ObstaclesMessageTuple]] = None,
+    ground_speed_limit_signs_stream: Optional[
+        Stream[SpeedSignsMessage]] = None,
+    ground_stop_signs_stream: Optional[Stream[StopSignsMessage]] = None,
+    time_to_decision_stream: Optional[Stream[float]] = None
+) -> Tuple[Stream[ObstaclesMessageTuple],
+           Optional[Stream[ObstaclesMessageTuple]]]:
     """Adds operators for obstacle detection to the data-flow.
 
     If the `--perfect_obstacle_detection` flag is set, the method adds a
@@ -33,39 +44,26 @@ def add_obstacle_detection(
     a stream of obstacles detected using a trained model.
 
     Args:
-        center_camera_stream (:py:class:`erdos.ReadStream`): Stream on which
-            BGR frames are received.
-        center_camera_setup
-            (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`, optional):
-            The setup of the center camera. This setup is used to calculate the
-            real-world location of the obstacles.
-        pose_stream (:py:class:`erdos.ReadStream`, optional): Stream on
-            which pose info is received.
-        depth_stream (:py:class:`erdos.ReadStream`, optional): Stream on
-            which point cloud or depth frame messages are received.
-        depth_camera_stream (:py:class:`erdos.ReadStream`, optional): Stream
-            on which depth frames are received.
-        segmented_camera__stream (:py:class:`erdos.ReadStream`, optional):
-            Stream on which segmented
-            :py:class:`~pylot.perception.messages.SegmentedFrameMessage`
+        center_camera_stream: Stream on which BGR frames are received.
+        center_camera_setup: The setup of the center camera. This setup is used
+            to calculate the real-world location of the obstacles.
+        pose_stream: Stream on which pose info is received.
+        depth_stream: Stream on which point cloud or depth frame messages are
+            received.
+        depth_camera_stream: Stream on which depth frames are received.
+        segmented_camera__stream: Stream on which segmented frames are
+            received.
+        ground_obstacles_stream: Stream on which obstacles messages are
+            received.
+        ground_speed_limit_signs_stream: Stream on which speed signs messages
             are received.
-        ground_obstacles_stream (:py:class:`erdos.ReadStream`, optional):
-            Stream on which
-            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
-            are received.
-        ground_speed_limit_signs_stream
-            (:py:class:`erdos.ReadStream`, optional): Stream on which
-            :py:class:`~pylot.perception.messages.SpeedSignsMessage`
-            messages are received.
-        ground_stop_signs_stream (:py:class:`erdos.ReadStream`, optional):
-            Stream on which
-            :py:class:`~pylot.perception.messages.StopSignsMessage`
-            messages are received.
+        ground_stop_signs_stream: Stream on which stop signs messages are
+            received.
 
     Returns:
-        :py:class:`erdos.ReadStream`: Stream on which
-        :py:class:`~pylot.perception.messages.ObstaclesMessage` messages are
-        published.
+        Stream of detected obstacles and, if the
+            ``--perfect_obstacle_detection`` flag is set, a stream containing
+            all obstacles in the camera frame.
     """
     obstacles_stream = None
     perfect_obstacles_stream = None
@@ -130,13 +128,15 @@ def add_obstacle_detection(
     return obstacles_stream, perfect_obstacles_stream
 
 
-def add_traffic_light_detection(tl_transform,
-                                vehicle_id_stream,
-                                release_sensor_stream,
-                                pose_stream=None,
-                                depth_stream=None,
-                                ground_traffic_lights_stream=None,
-                                time_to_decision_stream=None):
+def add_traffic_light_detection(
+    tl_transform: pylot.utils.Transform,
+    vehicle_id_stream: Stream[int],
+    release_sensor_stream: Stream[None],
+    pose_stream: Optional[Stream[pylot.utils.Pose]] = None,
+    depth_stream: Optional[Stream[DepthFrame] | Stream[PointCloud]] = None,
+    ground_traffic_lights_stream: Optional[Stream[List[TrafficLight]]] = None,
+    time_to_decision_stream: Optional[Stream[float]] = None
+) -> Tuple[Stream[List[TrafficLight]], Optional[Stream[CameraFrame]]]:
     """Adds traffic light detection operators.
 
     The traffic light detectors use a camera with a narrow field of view.
@@ -147,19 +147,20 @@ def add_traffic_light_detection(tl_transform,
     set it returns a stream of traffic lights detected using a trained model.
 
     Args:
-        tl_transform (:py:class:`~pylot.utils.Transform`): Transform of the
-             traffic light camera relative to the ego vehicle.
-        vehicle_id_stream (:py:class:`erdos.ReadStream`): A stream on which
-            the simulator publishes simulator ego-vehicle id.
-        pose_stream (:py:class:`erdos.ReadStream`, optional): A stream
-            on which pose info is received.
-        depth_stream (:py:class:`erdos.ReadStream`, optional): Stream on
-            which point cloud messages or depth frames are received.
+        tl_transform: Transform of the traffic light camera relative to the ego
+            vehicle.
+        vehicle_id_stream: A stream on which the simulator publishes simulator
+            ego-vehicle id.
+        release_sensor_stream: Sends a watermark to synchronize the sending of
+            sensor data.
+        pose_stream: A stream on which pose info is received.
+        depth_stream: Stream on which point clouds or depth frames are
+            received.
 
     Returns:
-        :py:class:`erdos.ReadStream`: Stream on which
-        :py:class:`~pylot.perception.messages.ObstaclesMessage` traffic light
-        messages are published.
+        A stream of traffic lights, and a stream of camera frames from the
+            camera defined by :param tl_transform:, unless
+            the ``--simulator_traffic_light_detection`` flag is set.
     """
     tl_camera_stream = None
     if FLAGS.traffic_light_detection or FLAGS.perfect_traffic_light_detection:
@@ -222,28 +223,28 @@ def add_traffic_light_detection(tl_transform,
     return traffic_lights_stream, tl_camera_stream
 
 
-def add_depth(transform, vehicle_id_stream, center_camera_setup,
-              depth_camera_stream, release_sensor_stream):
+def add_depth(
+    transform: pylot.utils.Transform, vehicle_id_stream: Stream[id],
+    center_camera_setup: CameraSetup, depth_camera_stream: Stream[DepthFrame],
+    release_sensor_stream: Stream[None]
+) -> Tuple[Stream[DepthFrame], Stream[None], Stream[None]]:
     """Adds operators for depth estimation.
 
     The operator returns depth frames from the simulator if the
     `--perfect_depth_estimation` flag is set.
 
     Args:
-        transform (:py:class:`~pylot.utils.Transform`): Transform of the
-             center camera relative to the ego vehicle.
-        vehicle_id_stream (:py:class:`erdos.ReadStream`): A stream on which
-            the simulator publishes simulator ego-vehicle id.
-        center_camera_setup
-            (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`):
-            The setup of the center camera.
-        depth_camera_stream (:py:class:`erdos.ReadStream`): Stream on which
-            depth frames are received.
+        transform: Transform of the center camera relative to the ego vehicle.
+        vehicle_id_stream: A stream on which the simulator publishes simulator
+            ego-vehicle id.
+        center_camera_setup: The setup of the center camera.
+        depth_camera_stream: Stream on which depth frames are received.
+        release_sensor_stream: Sends a watermark to synchronize the sending of
+            sensor data.
 
     Returns:
-        :py:class:`erdos.ReadStream`: Stream on which
-        :py:class:`~pylot.perception.messages.DepthFrameMessage` messages are
-        published.
+        A stream of depth frames and two streams notifying when the added
+            stereo cameras are ready to send data.
     """
     depth_stream = None
     if FLAGS.depth_estimation:
@@ -263,9 +264,10 @@ def add_depth(transform, vehicle_id_stream, center_camera_setup,
     return depth_stream, notify_left_camera_stream, notify_right_camera_stream
 
 
-def add_lane_detection(center_camera_stream,
-                       pose_stream=None,
-                       open_drive_stream=None):
+def add_lane_detection(
+        center_camera_stream: Stream[CameraFrame],
+        pose_stream: Optional[Stream[pylot.utils.Pose]] = None,
+        open_drive_stream: Optional[Stream[str]] = None) -> Stream[List[Lane]]:
     """Adds operators for lane detection.
 
     If the `--perfect_lane_detection` flag is set, the method adds a perfect
@@ -274,17 +276,15 @@ def add_lane_detection(center_camera_stream,
     detected using a trained model.
 
     Args:
-        center_camera_stream (:py:class:`erdos.ReadStream`): A stream on which
-            camera frames are received.
-        pose_stream (:py:class:`erdos.ReadStream`, optional): A stream on
-            which pose info is received.
-        open_drive_stream (:py:class:`erdos.ReadStream`, optional): Stream on
-            which open drive string representations are received. The operator
-            can construct HDMaps out of the open drive strings.
+        center_camera_stream: Contains frames from the center camera.
+        pose_stream: Contains pose information. Required for perfect lane
+            detection.
+        open_drive_stream: Stream on which open drive string representations
+            are received. The operator can construct HDMaps out of the open
+            drive strings. Required for perfect lane detection.
 
     Returns:
-        :py:class:`erdos.ReadStream`: Stream on which
-        :py:class:`~pylot.perception.messages.LanesMessage` are published.
+        Stream containing a list of lanes.
     """
     lane_detection_stream = None
     if FLAGS.lane_detection:
@@ -311,14 +311,17 @@ def add_lane_detection(center_camera_stream,
     return lane_detection_stream
 
 
-def add_obstacle_tracking(center_camera_stream,
-                          center_camera_setup,
-                          obstacles_stream,
-                          depth_stream=None,
-                          vehicle_id_stream=None,
-                          pose_stream=None,
-                          ground_obstacles_stream=None,
-                          time_to_decision_stream=None):
+def add_obstacle_tracking(
+    center_camera_stream: Stream[CameraFrame],
+    center_camera_setup: CameraSetup,
+    obstacles_stream: Stream[ObstaclesMessageTuple],
+    depth_stream: Optional[Stream[DepthFrame]
+                           | Stream[PointCloud]] = None,
+    vehicle_id_stream: Optional[Stream[int]] = None,
+    pose_stream: Optional[Stream[pylot.utils.Pose]] = None,
+    ground_obstacles_stream: Optional[Stream[ObstaclesMessageTuple]] = None,
+    time_to_decision_stream: Optional[Stream[float]] = None
+) -> Stream[ObstacleTrajectoriesMessageTuple]:
     """Adds operators for obstacle tracking.
 
     If the `--perfect_obstacle_tracking` flag is setup, the method adds an
@@ -327,29 +330,19 @@ def add_obstacle_tracking(center_camera_stream,
     adds operators that use algorithms and trained models to track obstacles.
 
     Args:
-        center_camera_stream (:py:class:`erdos.ReadStream`): Stream on which
-            camera frames are received.
-        center_camera_setup
-            (:py:class:`~pylot.drivers.sensor_setup.CameraSetup`, optional):
-            The setup of the center camera. This setup is used to calculate the
-            real-world location of the obstacles.
-        obstacles_stream (:py:class:`erdos.ReadStream`): Stream on which
-            detected obstacles are received.
-        depth_stream (:py:class:`erdos.ReadStream`, optional): Stream on
-            which point cloud or depth frame messages are received.
-        vehicle_id_stream (:py:class:`erdos.ReadStream`, optional): A stream on
-             which the simulator publishes simulator ego-vehicle id.
-        pose_stream (:py:class:`erdos.ReadStream`, optional): A stream on
-            which pose info is received.
-        ground_obstacles_stream (:py:class:`erdos.ReadStream`, optional):
-            Stream on which
-            :py:class:`~pylot.perception.messages.ObstaclesMessage` messages
-            are received.
+        center_camera_stream: Stream on which camera frames are received.
+        center_camera_setup: The setup of the center camera. This setup is used
+            to calculate the real-world location of the obstacles.
+        obstacles_stream: Stream on which detected obstacles are received.
+        depth_stream: Stream on which point cloud or depth frame messages are
+            received.
+        vehicle_id_stream: A stream on which the simulator publishes simulator
+            ego-vehicle id.
+        pose_stream: A stream on which pose info is received.
+        ground_obstacles_stream: Stream on which obstacles are received.
 
     Returns:
-        :py:class:`erdos.ReadStream`: Stream on which
-        :py:class:`~pylot.perception.messages.ObstacleTrajectoriesMessage`
-        messages are published.
+        A stream of obstacles annotated with their trajectories.
     """
     obstacles_tracking_stream = None
     if FLAGS.obstacle_tracking:
@@ -406,7 +399,9 @@ def add_obstacle_tracking(center_camera_stream,
     return obstacles_tracking_stream
 
 
-def add_segmentation(center_camera_stream, ground_segmented_stream=None):
+def add_segmentation(center_camera_stream: Stream[CameraFrame],
+                     ground_segmented_stream: Optional[
+                         Stream[SegmentedMessageTuple]] = None):
     """Adds operators for pixel semantic segmentation.
 
     If the `--perfect_segmentation` flag is set, the method returns a stream
@@ -414,16 +409,13 @@ def add_segmentation(center_camera_stream, ground_segmented_stream=None):
     method adds operators that use trained models.
 
     Args:
-        center_camera_stream (:py:class:`erdos.ReadStream`): Stream on which
-            camera frames are received.
-        ground_segmented_stream (:py:class:`erdos.ReadStream`, optional):
-            Stream on which perfectly segmented
-            :py:class:`~pylot.perception.messages.SegmentedFrameMessage` are
-            received.
+        center_camera_stream: Stream on which camera frames are received.
+        ground_segmented_stream: Stream on which perfectly segmented frames are
+            received. Required, and returned, if the
+            ``--perfect_segmentation`` flag is set.
 
     Returns:
-        :py:class:`erdos.ReadStream`: Stream on which semantically segmented
-        frames are published.
+        Stream on which semantically segmented frames are published.
     """
     segmented_stream = None
     if FLAGS.segmentation:
