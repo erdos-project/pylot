@@ -7,6 +7,7 @@ import numpy as np
 
 import erdos
 from erdos import Stream
+from pylot import prediction
 
 from pylot.drivers.sensor_setup import (CameraSetup, GNSSSetup, IMUSetup,
                                         LidarSetup)
@@ -293,9 +294,9 @@ def add_obstacle_tracking(
                                         FLAGS.tracker_type, FLAGS)
 
 
-def add_center_track_tracking(bgr_camera_stream,
-                              camera_setup,
-                              name='center_track'):
+def add_center_track_tracking(bgr_camera_stream: Stream[CameraFrame],
+                              camera_setup: Stream[CameraSetup],
+                              name='center_track') -> Stream[List[ObstaclesMessageTuple]]:
     from pylot.perception.tracking.center_track_operator import \
         CenterTrackOperator
     op_config = erdos.OperatorConfig(name='center_track_operator',
@@ -407,7 +408,7 @@ def add_segmentation_decay(
 
 
 def add_linear_prediction(tracking_stream: Stream,
-                          time_to_decision_stream: Stream) -> Stream:
+                          time_to_decision_stream: Stream) -> Stream[prediction]:
     from pylot.prediction.linear_predictor_operator import \
         LinearPredictorOperator
     op_config = erdos.operator.OperatorConfig(
@@ -423,8 +424,8 @@ def add_linear_prediction(tracking_stream: Stream,
     return prediction_stream
 
 
-def add_r2p2_prediction(point_cloud_stream, obstacles_tracking_stream,
-                        time_to_decision_stream, lidar_setup):
+def add_r2p2_prediction(point_cloud_stream: Stream[PointCloud], obstacles_tracking_stream: Stream[ObstaclesMessageTuple],
+                        time_to_decision_stream, lidar_setup: Stream[LidarSetup]) -> Stream[prediction]:
     from pylot.prediction.r2p2_predictor_operator import \
         R2P2PredictorOperator
     op_config = erdos.OperatorConfig(name='r2p2_prediction_operator',
@@ -563,7 +564,7 @@ def add_lane_invasion_sensor(vehicle_id_stream: Stream) -> Stream:
                                         flags=FLAGS)
 
 
-def add_camera_driver(camera_setup, vehicle_id_stream, release_sensor_stream):
+def add_camera_driver(camera_setup, vehicle_id_stream, release_sensor_stream) -> Stream:
     from pylot.drivers.carla_camera_driver_operator import \
         CarlaCameraDriverOperator
     op_config = erdos.OperatorConfig(name=camera_setup.get_name() +
@@ -653,7 +654,7 @@ def add_gnss(transform: pylot.utils.Transform,
 def add_localization(imu_stream: Stream[IMUSetup],
                      gnss_stream: Stream[GNSSSetup],
                      ground_pose_stream: Stream[pylot.utils.Pose],
-                     name="localization") -> Stream[pylot.utils.Pose]:
+                     name="localization") -> Stream:
     from pylot.localization.localization_operator import LocalizationOperator
     op_config = erdos.operator.OperatorConfig(
         name=name + "_operator",
@@ -695,7 +696,7 @@ def add_fusion(pose_stream: Stream[pylot.utils.Pose], obstacles_stream: Stream[O
     return obstacle_pos_stream
 
 
-def add_mpc(pose_stream: Stream[pylot.utils.Pose], waypoints_stream):
+def add_mpc(pose_stream: Stream[pylot.utils.Pose], waypoints_stream) -> Stream:
     from pylot.control.mpc.mpc_operator import MPCOperator
     op_config = erdos.OperatorConfig(name='mpc_operator',
                                      log_file_name=FLAGS.log_file_name,
@@ -706,7 +707,7 @@ def add_mpc(pose_stream: Stream[pylot.utils.Pose], waypoints_stream):
     return control_stream
 
 
-def add_pid_control(pose_stream: Stream[pylot.utils.Pose], waypoints_stream):
+def add_pid_control(pose_stream: Stream[pylot.utils.Pose], waypoints_stream) -> Stream:
     from pylot.control.pid_control_operator import PIDControlOperator
     op_config = erdos.OperatorConfig(name='pid_control_operator',
                                      log_file_name=FLAGS.log_file_name,
@@ -717,7 +718,7 @@ def add_pid_control(pose_stream: Stream[pylot.utils.Pose], waypoints_stream):
     return control_stream
 
 
-def add_synchronizer(ground_vehicle_id_stream, stream_to_sync_on):
+def add_synchronizer(ground_vehicle_id_stream, stream_to_sync_on) -> Stream:
     from pylot.simulation.synchronizer_operator import SynchronizerOperator
     op_config = erdos.OperatorConfig(name='synchronizer_operator',
                                      flow_watermarks=False,
@@ -791,7 +792,7 @@ def add_chauffeur_logging(vehicle_id_stream, pose_stream: Stream[pylot.utils.Pos
 
 def add_eval_metric_logging(collision_stream, lane_invasion_stream,
                             traffic_light_invasion_stream, imu_stream: Stream[IMUSetup],
-                            pose_stream: Stream[pylot.utils.Pose]):
+                            pose_stream: Stream[pylot.utils.Pose]) -> Stream:
     """ Adds an evaluation metric logging operator to the pipeline.
 
     Args:
@@ -819,7 +820,7 @@ def add_eval_metric_logging(collision_stream, lane_invasion_stream,
 
 
 def add_gnss_logging(gnss_stream: Stream[GNSSSetup],
-                     name='gnss_logger_operator') -> Stream[GNSSLoggerOperator]:
+                     name='gnss_logger_operator') -> Stream:
     from pylot.loggers.gnss_logger_operator import GNSSLoggerOperator
     op_config = erdos.operator.OperatorConfig(
         name=name,
@@ -832,7 +833,7 @@ def add_gnss_logging(gnss_stream: Stream[GNSSSetup],
 
 
 def add_pose_logging(pose_stream: Stream[pylot.utils.Pose],
-                     name='pose_logger_operator') -> Stream[PoseLoggerOperator]:
+                     name='pose_logger_operator') -> Stream:
     from pylot.loggers.pose_logger_operator import PoseLoggerOperator
     op_config = erdos.operator.OperatorConfig(
         name=name,
@@ -844,7 +845,7 @@ def add_pose_logging(pose_stream: Stream[pylot.utils.Pose],
     return finished_indicator_stream
 
 
-def add_imu_logging(imu_stream: Stream[IMUSetup], name='imu_logger_operator') -> Stream[IMULoggerOperator]:
+def add_imu_logging(imu_stream: Stream[IMUSetup], name='imu_logger_operator') -> Stream:
     from pylot.loggers.imu_logger_operator import IMULoggerOperator
     op_config = erdos.operator.OperatorConfig(
         name=name,
@@ -858,7 +859,7 @@ def add_imu_logging(imu_stream: Stream[IMUSetup], name='imu_logger_operator') ->
 
 def add_lidar_logging(point_cloud_stream: Stream[PointCloud],
                       name: str = 'lidar_logger_operator',
-                      filename_prefix: str = 'lidar'):
+                      filename_prefix: str = 'lidar') -> Stream:
     from pylot.loggers.lidar_logger_operator import LidarLoggerOperator
     op_config = erdos.operator.OperatorConfig(
         name=name,
@@ -872,7 +873,7 @@ def add_lidar_logging(point_cloud_stream: Stream[PointCloud],
 
 
 def add_multiple_object_tracker_logging(
-        obstacles_stream, name='multiple_object_tracker_logger_operator'):
+        obstacles_stream, name='multiple_object_tracker_logger_operator') -> Stream:
     from pylot.loggers.multiple_object_tracker_logger_operator import \
         MultipleObjectTrackerLoggerOperator
     op_config = erdos.OperatorConfig(name=name,
@@ -914,7 +915,7 @@ def add_visualizer(pose_stream: Stream[pylot.utils.Pose],
                    prediction_stream: Stream[obstacle_prediction],
                    waypoints_stream=None,
                    control_stream=None,
-                   name='visualizer_operator'):
+                   name='visualizer_operator') -> Tuple[Stream, Stream]:
     from pylot.debug.visualizer_operator import VisualizerOperator
     import pygame
     pygame.init()
@@ -996,8 +997,9 @@ def add_visualizer(pose_stream: Stream[pylot.utils.Pose],
 
 def add_perfect_detector(depth_camera_stream,
                          center_camera_stream: Stream[CameraFrame],
-                         segmented_camera_stream, pose_stream,
-                         ground_obstacles_stream,
+                         segmented_camera_stream, 
+                         pose_stream: Stream[pylot.utils.Pose],
+                         ground_obstacles_stream : Stream[Obstacle],
                          ground_speed_limit_signs_stream,
                          ground_stop_signs_stream) -> Stream[ObstaclesMessageTuple]:
     from pylot.simulation.perfect_detector_operator import \
@@ -1017,7 +1019,7 @@ def add_perfect_detector(depth_camera_stream,
 def add_perfect_traffic_light_detector(ground_traffic_lights_stream,
                                        center_camera_stream: Stream[CameraFrame],
                                        depth_camera_stream,
-                                       segmented_camera_stream, pose_stream) -> Stream[TrafficLight]:
+                                       segmented_camera_stream, pose_stream) -> List[Stream]:
     from pylot.simulation.perfect_traffic_light_detector_operator import \
         PerfectTrafficLightDetectorOperator
     op_config = erdos.OperatorConfig(
@@ -1034,7 +1036,7 @@ def add_perfect_traffic_light_detector(ground_traffic_lights_stream,
 
 
 def add_perfect_lane_detector(pose_stream, open_drive_stream,
-                              center_camera_stream: Stream[CameraFrame]):
+                              center_camera_stream: Stream[CameraFrame]) -> List[Stream]:
     from pylot.simulation.perfect_lane_detector_operator import \
         PerfectLaneDetectionOperator
     op_config = erdos.OperatorConfig(name='perfect_lane_detection_operator',
@@ -1049,7 +1051,7 @@ def add_perfect_lane_detector(pose_stream, open_drive_stream,
 
 
 def add_perfect_tracking(vehicle_id_stream, ground_obstacles_stream,
-                         pose_stream):
+                         pose_stream: Stream[pylot.utils.Pose]) -> List[Stream]:
     from pylot.simulation.perfect_tracker_operator import \
         PerfectTrackerOperator
     op_config = erdos.OperatorConfig(name='perfect_tracking_operator',
@@ -1062,7 +1064,7 @@ def add_perfect_tracking(vehicle_id_stream, ground_obstacles_stream,
     return ground_tracking_stream
 
 
-def add_time_to_decision(pose_stream, obstacles_stream: Stream[ObstaclesMessageTuple]):
+def add_time_to_decision(pose_stream: Stream[pylot.utils.Pose], obstacles_stream: Stream[ObstaclesMessageTuple]) -> Stream:
     from pylot.control.time_to_decision_operator import TimeToDecisionOperator
     op_config = erdos.operator.OperatorConfig(
         name='time_to_decision_operator',
