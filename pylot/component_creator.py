@@ -6,12 +6,14 @@ from typing import List, Optional, Tuple
 from absl import flags
 
 from erdos import Stream
+from pylot import prediction
 
 import pylot.operator_creator
-from pylot.drivers.sensor_setup import DepthCameraSetup, RGBCameraSetup, \
+from pylot.drivers.sensor_setup import DepthCameraSetup, IMUSetup, LidarSetup, RGBCameraSetup, \
     SegmentedCameraSetup, CameraSetup
 from pylot.perception.camera_frame import CameraFrame
 from pylot.perception.depth_frame import DepthFrame
+from pylot.perception.detection import obstacle
 from pylot.perception.detection.lane import Lane
 from pylot.perception.messages import (ObstacleTrajectoriesMessageTuple,
                                        ObstaclesMessageTuple,
@@ -438,14 +440,15 @@ def add_segmentation(center_camera_stream: Stream[CameraFrame],
     return segmented_stream
 
 
-def add_prediction(obstacles_tracking_stream,
-                   vehicle_id_stream,
-                   time_to_decision_stream,
-                   camera_transform=None,
-                   release_sensor_stream=None,
-                   pose_stream=None,
-                   point_cloud_stream=None,
-                   lidar_setup=None):
+def add_prediction(obstacles_tracking_stream: Stream[ObstaclesMessageTuple],
+                   vehicle_id_stream: Stream[int],
+                   release_sensor_stream: Stream[None],
+                   point_cloud_stream: Stream[PointCloud],
+                   lidar_setup: Stream[LidarSetup],
+                   pose_stream: Optional[Stream[pylot.utils.Pose]] = None,
+                   Camera_transform = None, 
+                   time_to_decision_stream: Optional[Stream[float]] = None
+                ) -> Tuple[Stream[prediction], Stream[int], Stream]:
     """Adds prediction operators.
 
     Args:
@@ -508,9 +511,14 @@ def add_prediction(obstacles_tracking_stream,
             notify_reading_stream)
 
 
-def add_planning(goal_location, pose_stream, prediction_stream,
-                 traffic_lights_stream, lanes_stream, open_drive_stream,
-                 global_trajectory_stream, time_to_decision_stream):
+def add_planning(goal_location, 
+                 traffic_lights_stream: Stream[TrafficLight], 
+                 lanes_stream: Stream[Lane], 
+                 open_drive_stream: Stream,
+                 global_trajectory_stream, 
+                 prediction_stream: Stream[prediction],
+                 time_to_decision_stream: Optional[Stream[float]] = None,
+                 pose_stream: Optional[Stream[pylot.utils.Pose]] = None) -> Stream:
     """Adds planning operators.
 
     Args:
@@ -544,10 +552,10 @@ def add_planning(goal_location, pose_stream, prediction_stream,
     return waypoints_stream
 
 
-def add_control(pose_stream,
-                waypoints_stream,
-                ground_vehicle_id_stream=None,
-                perfect_obstacles_stream=None):
+def add_control(waypoints_stream,
+                ground_vehicle_id_stream: Stream[int],
+                perfect_obstacles_stream: Stream[obstacle],
+                pose_stream: Optional[Stream[pylot.utils.Pose]] = None) -> Tuple[Stream, Stream]:
     """Adds ego-vehicle control operators.
 
     Args:
@@ -597,7 +605,7 @@ def add_control(pose_stream,
     return control_stream
 
 
-def add_evaluation(vehicle_id_stream, pose_stream, imu_stream):
+def add_evaluation(vehicle_id_stream: Stream[int], pose_stream: Optional[Stream[pylot.utils.Pose]] = None, imu_stream: Optional[Stream[IMUSetup]] = None) -> Stream:
     if FLAGS.evaluation:
         logger.debug('Adding collision logging sensor...')
         collision_stream = pylot.operator_creator.add_collision_sensor(
