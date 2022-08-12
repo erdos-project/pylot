@@ -63,6 +63,12 @@ class Rotation(object):
         return 'Rotation(pitch={}, yaw={}, roll={})'.format(
             self.pitch, self.yaw, self.roll)
 
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Rotation):
+            return (self.pitch == other.pitch and self.yaw == other.yaw
+                    and self.roll == other.roll)
+        return NotImplemented
+
 
 class Quaternion(object):
     """ Represents the Rotation of an obstacle or vehicle in quaternion
@@ -368,6 +374,12 @@ class Vector3D(object):
 
     def __str__(self):
         return 'Vector3D(x={}, y={}, z={})'.format(self.x, self.y, self.z)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Vector3D):
+            return (self.x == other.x and self.y == other.y
+                    and self.z == other.z)
+        return NotImplemented
 
 
 class Vector2D(object):
@@ -826,6 +838,12 @@ class Transform(object):
         else:
             return "Transform({})".format(str(self.matrix))
 
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Transform):
+            return (self.location == other.location
+                    and self.rotation == other.rotation)
+        return NotImplemented
+
 
 class Pose(object):
     """Class used to wrap ego-vehicle information.
@@ -867,6 +885,12 @@ class Pose(object):
     def __str__(self):
         return "Pose(transform: {}, forward speed: {}, velocity vector: {})"\
             .format(self.transform, self.forward_speed, self.velocity_vector)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Pose):
+            return (self.transform == other.transform
+                    and self.forward_speed == other.forward_speed
+                    and self.velocity_vector == other.velocity_vector)
 
 
 class LaneMarkingColor(Enum):
