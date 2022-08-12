@@ -13,7 +13,6 @@ FLAGS = flags.FLAGS
 def add_simulator_bridge(control_stream, sensor_ready_stream,
                          pipeline_finish_notify_stream):
     from pylot.simulation.carla_operator import CarlaOperator
-    from pylot.drivers.carla_pose_driver_operator import CarlaPoseDriverOperator, MatchesOperator
 
     op_config = erdos.OperatorConfig(name='simulator_bridge_operator',
                                      flow_watermarks=False,
@@ -36,6 +35,8 @@ def add_simulator_bridge(control_stream, sensor_ready_stream,
         FLAGS)
 
     # Check that Pose matches
+    from pylot.drivers.carla_pose_driver_operator import CarlaPoseDriverOperator
+    from pylot.utils import MatchesOperator
     pose_driver_config = erdos.OperatorConfig(
         name='pose_driver_operator',
         flow_watermarks=False,

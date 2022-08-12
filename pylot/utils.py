@@ -1103,3 +1103,54 @@ def run_visualizer_control_loop(control_display_stream):
 def verify_keys_in_dict(required_keys, arg_dict):
     assert set(required_keys).issubset(set(arg_dict.keys())), \
             "one or more of {} not found in {}".format(required_keys, arg_dict)
+
+
+import erdos
+
+
+class MatchesOperator(erdos.Operator):
+    def __init__(self, left_stream, right_stream):
+        self._left_msgs = []
+        self._right_msgs = []
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
+
+        left_stream.add_callback(self.on_left_stream)
+        right_stream.add_callback(self.on_right_stream)
+        left_stream.add_watermark_callback(
+            lambda t: self._logger.debug(f"@{t}: got left watermark"))
+        right_stream.add_watermark_callback(
+            lambda t: self._logger.debug(f"@{t}: got right watermark"))
+
+        erdos.add_watermark_callback([left_stream, right_stream], [],
+                                     self.on_watermark)
+
+    @staticmethod
+    def connect(left_stream, right_stream):
+        return []
+
+    def on_left_stream(self, msg):
+        self._logger.debug("got left msg")
+        self._left_msgs.append(msg)
+
+    def on_right_stream(self, msg):
+        self._logger.debug("got right msg")
+        self._right_msgs.append(msg)
+
+    def on_watermark(self, t):
+        left_msgs, self._left_msgs = self._left_msgs, []
+        right_msgs, self._right_msgs = self._right_msgs, []
+        length_matches = (len(left_msgs) == len(right_msgs))
+        left_tuples = [(m.timestamp, m.data) for m in left_msgs]
+        right_tuples = [(m.timestamp, m.data) for m in right_msgs]
+        matches = length_matches and all(
+            map(
+                lambda x: x[0].timestamp == x[1].timestamp and x[0].data == x[
+                    1].data, zip(left_msgs, right_msgs)))
+
+        if matches:
+            self._logger.debug(f"@{t}: left matches right")
+        else:
+            self._logger.warn(
+                f"@{t}: left does not match right\n\tleft: {left_tuples}\n\tright: {right_tuples}"
+            )
