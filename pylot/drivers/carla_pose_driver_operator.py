@@ -40,7 +40,6 @@ class CarlaPoseDriverOperator(erdos.Operator):
         forward_speed = velocity_vector.magnitude()
         pose = pylot.utils.Pose(vec_transform, forward_speed, velocity_vector,
                                 timestamp.coordinates[0])
-        self._logger.debug(f"@{timestamp}: sending {pose}")
         self._pose_stream.send(erdos.Message(timestamp, pose))
         self._pose_stream.send(erdos.WatermarkMessage(timestamp))
 
