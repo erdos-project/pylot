@@ -13,15 +13,81 @@ FLAGS = flags.FLAGS
 def add_simulator_bridge(control_stream, sensor_ready_stream,
                          pipeline_finish_notify_stream):
     from pylot.simulation.carla_operator import CarlaOperator
+    from pylot.drivers.carla_pose_driver_operator import CarlaPoseDriverOperator, MatchesOperator
+
     op_config = erdos.OperatorConfig(name='simulator_bridge_operator',
                                      flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    return erdos.connect(
+    (
+        pose_stream,
+        pose_stream_for_control,
+        ground_traffic_lights_stream,
+        ground_obstacles_stream,
+        ground_speed_limit_signs_stream,
+        ground_stop_signs_stream,
+        vehicle_id_stream,
+        open_drive_stream,
+        global_trajectory_stream,
+    ) = erdos.connect(
         CarlaOperator, op_config,
         [control_stream, sensor_ready_stream, pipeline_finish_notify_stream],
         FLAGS)
+
+    # Check that Pose matches
+    pose_driver_config = erdos.OperatorConfig(
+        name='pose_driver_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    pose_driver_stream, = erdos.connect(CarlaPoseDriverOperator,
+                                        pose_driver_config,
+                                        [vehicle_id_stream],
+                                        FLAGS.simulator_localization_frequency,
+                                        FLAGS)
+
+    matches_pose_driver_config = erdos.OperatorConfig(
+        name='matches_pose_driver_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(MatchesOperator, matches_pose_driver_config,
+                  [pose_stream, pose_driver_stream])
+
+    # Check that Pose for control matches
+    pose_for_control_config = erdos.OperatorConfig(
+        name='pose_for_control_driver_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    pose_for_control_driver_stream, = erdos.connect(
+        CarlaPoseDriverOperator, pose_for_control_config, [vehicle_id_stream],
+        FLAGS.simulator_localization_frequency, FLAGS)
+
+    matches_pose_for_control_driver_config = erdos.OperatorConfig(
+        name='matches_pose_for_control_driver_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(MatchesOperator, matches_pose_for_control_driver_config,
+                  [pose_stream_for_control, pose_for_control_driver_stream])
+
+    return (
+        pose_stream,
+        pose_stream_for_control,
+        ground_traffic_lights_stream,
+        ground_obstacles_stream,
+        ground_speed_limit_signs_stream,
+        ground_stop_signs_stream,
+        vehicle_id_stream,
+        open_drive_stream,
+        global_trajectory_stream,
+    )
 
 
 def add_efficientdet_obstacle_detection(camera_stream,
