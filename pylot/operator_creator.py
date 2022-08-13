@@ -78,6 +78,28 @@ def add_simulator_bridge(control_stream, sensor_ready_stream,
     erdos.connect(MatchesOperator, matches_pose_for_control_driver_config,
                   [pose_stream_for_control, pose_for_control_driver_stream])
 
+    # Check that traffic lights match
+    from pylot.drivers.carla_traffic_lights_driver_operator import CarlaTrafficLightsDriverOperator
+    ground_traffic_lights_config = erdos.OperatorConfig(
+        name='carla_traffic_lights_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    ground_traffic_lights_driver_stream, = erdos.connect(
+        CarlaTrafficLightsDriverOperator, ground_traffic_lights_config,
+        [vehicle_id_stream], FLAGS.simulator_localization_frequency, FLAGS)
+
+    matches_ground_traffic_lights_config = erdos.OperatorConfig(
+        name='matches_ground_traffic_lights_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(
+        MatchesOperator, matches_ground_traffic_lights_config,
+        [ground_traffic_lights_driver_stream, ground_traffic_lights_stream])
+
     return (
         pose_stream,
         pose_stream_for_control,
