@@ -1,4 +1,5 @@
 import threading
+
 import erdos
 from erdos import ReadStream, Timestamp, WriteStream
 
@@ -8,7 +9,21 @@ import pylot.utils
 
 
 class CarlaPoseDriverOperator(erdos.Operator):
-    """Sends pose information."""
+    """Publishes the pose (location, orientation, and velocity) at the provided
+    frequency.
+    
+    This operator attaches to the vehicle using the vehicle ID provided by the
+    ``vehicle_id_stream``, registers callback functions to retrieve the
+    pose at the provided frequency, and publishes it to downstream operators.
+    
+    Args:
+        vehicle_id_stream: Stream on which the operator receives the ID of the
+            ego vehicle. The ID is used to get a simulator handle to the
+            vehicle.
+        pose_stream: Stream on which the operator sends the vehicle's pose.
+        frequency: Rate at which the pose is published, in Hertz.
+        flags: Object used to access absl flags.
+    """
     def __init__(self, vehicle_id_stream: ReadStream, pose_stream: WriteStream,
                  frequency: float, flags):
         # Save the streams.
@@ -44,8 +59,8 @@ class CarlaPoseDriverOperator(erdos.Operator):
         self._pose_stream.send(erdos.WatermarkMessage(timestamp))
 
     def process_gnss(self, gnss_msg):
-        """Callback attached to a GNSS sensor to ensure that pose is sent at a
-        fixed frequency."""
+        """Callback attached to a GNSS sensor to ensure that pose is sent at
+        the provided frequency."""
         game_time = int(gnss_msg.timestamp * 1000)
         timestamp = erdos.Timestamp(coordinates=[game_time])
         with erdos.profile(self.config.name + '.process_gnss',
@@ -57,7 +72,7 @@ class CarlaPoseDriverOperator(erdos.Operator):
     def run(self):
         # Read the vehicle ID from the vehicle ID stream.
         vehicle_id = self._vehicle_id_stream.read().data
-        self._logger.debug("{} received the vehicle id: {}".format(
+        self._logger.debug("{} received vehicle id: {}".format(
             self.config.name, vehicle_id))
 
         # Connect to the world.
