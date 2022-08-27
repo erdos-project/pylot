@@ -35,7 +35,7 @@ class CarlaSpeedLimitSignsDriverOperator(CarlaBaseGNSSDriverOperator):
 
     def process_gnss(self, timestamp: erdos.Timestamp,
                      gnss_msg: carla.GnssMeasurement):
-        """"""
+        """Sends speed limit signs followed by a watermark."""
         speed_limits = list(
             map(SpeedLimitSign.from_simulator_actor, self._speed_limit_actors))
         self._output_stream.send(SpeedSignsMessage(timestamp, speed_limits))

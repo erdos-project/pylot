@@ -40,7 +40,7 @@ class CarlaTrafficLightsDriverOperator(CarlaBaseGNSSDriverOperator):
 
     def process_gnss(self, timestamp: erdos.Timestamp,
                      gnss_msg: carla.GnssMeasurement):
-        """Sends pose information followed by a watermark."""
+        """Sends traffic light information followed by a watermark."""
         traffic_lights = list(
             map(TrafficLight.from_simulator_actor, self._traffic_light_actors))
         self._output_stream.send(
