@@ -3,7 +3,7 @@ import carla
 import erdos
 
 from pylot.perception.detection.speed_limit_sign import SpeedLimitSign
-from pylot.perception.messages import ObstaclesMessage, SpeedSignsMessage
+from pylot.perception.messages import SpeedSignsMessage
 import pylot.utils
 from pylot.drivers.carla_base_gnss_driver_operator import (
     CarlaBaseGNSSDriverOperator)
@@ -36,12 +36,8 @@ class CarlaSpeedLimitSignsDriverOperator(CarlaBaseGNSSDriverOperator):
     def process_gnss(self, timestamp: erdos.Timestamp,
                      gnss_msg: carla.GnssMeasurement):
         """"""
-        actor_list = self._world.get_actors()
-
-        speed_limit_actors = actor_list.filter('traffic.speed_limit*')
         speed_limits = list(
-            map(SpeedLimitSign.from_simulator_actor, speed_limit_actors))
-
+            map(SpeedLimitSign.from_simulator_actor, self._speed_limit_actors))
         self._output_stream.send(SpeedSignsMessage(timestamp, speed_limits))
         self._output_stream.send(erdos.WatermarkMessage(timestamp))
 
