@@ -4,8 +4,6 @@ import carla
 
 import erdos
 
-from pylot.simulation.utils import get_vehicle_handle, get_world, \
-    set_simulation_mode
 import pylot.utils
 from pylot.perception.detection.traffic_light import TrafficLight
 from pylot.perception.messages import TrafficLightsMessage
@@ -38,6 +36,7 @@ class CarlaTrafficLightsDriverOperator(CarlaBaseGNSSDriverOperator):
             self.config.name, transform)
         super().__init__(vehicle_id_stream, traffic_lights_stream, gnss_setup,
                          frequency, flags)
+        self._traffic_light_actors = None
 
     def process_gnss(self, timestamp: erdos.Timestamp,
                      gnss_msg: carla.GnssMeasurement):

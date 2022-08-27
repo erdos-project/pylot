@@ -1,11 +1,9 @@
 import carla
 
 import erdos
+
 from pylot.perception.detection.obstacle import Obstacle
 from pylot.perception.messages import ObstaclesMessage
-
-from pylot.simulation.utils import get_vehicle_handle, get_world, \
-    set_simulation_mode
 import pylot.utils
 from pylot.drivers.carla_base_gnss_driver_operator import (
     CarlaBaseGNSSDriverOperator)

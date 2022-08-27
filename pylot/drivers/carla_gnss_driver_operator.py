@@ -12,8 +12,6 @@ from pylot.drivers.carla_base_gnss_driver_operator import (
     CarlaBaseGNSSDriverOperator)
 from pylot.drivers.sensor_setup import GNSSSetup
 from pylot.localization.messages import GNSSMessage
-from pylot.simulation.utils import get_vehicle_handle, get_world, \
-    set_simulation_mode
 from pylot.utils import Transform
 
 
