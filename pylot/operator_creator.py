@@ -86,19 +86,39 @@ def add_simulator_bridge(control_stream, sensor_ready_stream,
         log_file_name=FLAGS.log_file_name,
         csv_log_file_name=FLAGS.csv_log_file_name,
         profile_file_name=FLAGS.profile_file_name)
-    ground_traffic_lights_driver_stream, = erdos.connect(
+    traffic_lights_driver_stream, = erdos.connect(
         CarlaTrafficLightsDriverOperator, ground_traffic_lights_config,
         [vehicle_id_stream], FLAGS.simulator_localization_frequency, FLAGS)
 
-    matches_ground_traffic_lights_config = erdos.OperatorConfig(
+    matches_ground_obstacles_config = erdos.OperatorConfig(
         name='matches_ground_traffic_lights_operator',
         flow_watermarks=False,
         log_file_name=FLAGS.log_file_name,
         csv_log_file_name=FLAGS.csv_log_file_name,
         profile_file_name=FLAGS.profile_file_name)
-    erdos.connect(
-        MatchesOperator, matches_ground_traffic_lights_config,
-        [ground_traffic_lights_driver_stream, ground_traffic_lights_stream])
+    erdos.connect(MatchesOperator, matches_ground_obstacles_config,
+                  [traffic_lights_driver_stream, ground_traffic_lights_stream])
+
+    # Check that obstacles match
+    from pylot.drivers.carla_obstacles_driver_operator import CarlaObstaclesDriverOperator
+    ground_obstacles_config = erdos.OperatorConfig(
+        name='carla_obstacles_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    obstacles_driver_stream, = erdos.connect(
+        CarlaObstaclesDriverOperator, ground_obstacles_config,
+        [vehicle_id_stream], FLAGS.simulator_localization_frequency, FLAGS)
+
+    matches_ground_obstacles_config = erdos.OperatorConfig(
+        name='matches_obstacles_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(MatchesOperator, matches_ground_obstacles_config,
+                  [ground_obstacles_stream, obstacles_driver_stream])
 
     return (
         pose_stream,

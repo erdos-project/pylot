@@ -1108,8 +1108,17 @@ def verify_keys_in_dict(required_keys, arg_dict):
 import erdos
 
 
+def matches_data(left_msgs, right_msgs):
+    length_matches = (len(left_msgs) == len(right_msgs))
+    return length_matches and all(
+        map(
+            lambda x: x[0].timestamp == x[1].timestamp and x[0].data == x[1].
+            data, zip(left_msgs, right_msgs)))
+
+
 class MatchesOperator(erdos.Operator):
-    def __init__(self, left_stream, right_stream):
+    def __init__(self, left_stream, right_stream, matches_fn=matches_data):
+        self._matches_fn = matches_fn
         self._left_msgs = []
         self._right_msgs = []
         self._logger = erdos.utils.setup_logging(self.config.name,
@@ -1140,17 +1149,11 @@ class MatchesOperator(erdos.Operator):
     def on_watermark(self, t):
         left_msgs, self._left_msgs = self._left_msgs, []
         right_msgs, self._right_msgs = self._right_msgs, []
-        length_matches = (len(left_msgs) == len(right_msgs))
-        left_tuples = [(m.timestamp, m.data) for m in left_msgs]
-        right_tuples = [(m.timestamp, m.data) for m in right_msgs]
-        matches = length_matches and all(
-            map(
-                lambda x: x[0].timestamp == x[1].timestamp and x[0].data == x[
-                    1].data, zip(left_msgs, right_msgs)))
+        matches = self._matches_fn(left_msgs, right_msgs)
 
         if matches:
             self._logger.debug(f"@{t}: left matches right")
         else:
             self._logger.warn(
-                f"@{t}: left does not match right\n\tleft: {left_tuples}\n\tright: {right_tuples}"
+                f"@{t}: left does not match right\n\tleft: {left_msgs}\n\tright: {right_msgs}"
             )
