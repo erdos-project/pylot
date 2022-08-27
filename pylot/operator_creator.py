@@ -144,6 +144,28 @@ def add_simulator_bridge(control_stream, sensor_ready_stream,
         MatchesOperator, matches_speed_limit_signs_config,
         [ground_speed_limit_signs_stream, speed_limit_signs_driver_stream])
 
+    # Check that stop signs match
+    from pylot.drivers.carla_stop_signs_driver_operator import CarlaStopSignsDriverOperator
+    stop_signs_config = erdos.OperatorConfig(
+        name='carla_stop_signs_driver_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    stop_signs_driver_stream, = erdos.connect(
+        CarlaStopSignsDriverOperator, stop_signs_config, [vehicle_id_stream],
+        FLAGS.simulator_localization_frequency, FLAGS)
+
+    # Check that stop signs match
+    matches_stop_signs_config = erdos.OperatorConfig(
+        name='matches_stop_signs_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(MatchesOperator, matches_stop_signs_config,
+                  [ground_stop_signs_stream, stop_signs_driver_stream])
+
     return (
         pose_stream,
         pose_stream_for_control,
