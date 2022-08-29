@@ -44,12 +44,14 @@ def driver():
         ground_stop_signs_stream,
         vehicle_id_stream,
         open_drive_stream,
-        global_trajectory_stream,
-    ) = pylot.operator_creator.add_simulator_bridge(
+    ) = pylot.operator_creator.add_simulator_bridge(  # .add_simulator_bridge(
         control_loop_stream,
         release_sensor_stream,
         pipeline_finish_notify_stream,
     )
+
+    global_trajectory_stream = erdos.IngestStream()
+    streams_to_send_top_on.append(global_trajectory_stream)
 
     # Add sensors.
     center_camera_setup = RGBCameraSetup('center_camera',
