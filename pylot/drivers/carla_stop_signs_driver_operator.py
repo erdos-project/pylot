@@ -36,6 +36,7 @@ class CarlaStopSignsDriverOperator(CarlaBaseGNSSDriverOperator):
     def process_gnss(self, timestamp: erdos.Timestamp,
                      gnss_msg: carla.GnssMeasurement):
         """Send stop signs followed by a watermark."""
+        self._logger.debug('@{}:sending stop signs'.format(timestamp))
         stop_signs = list(
             map(StopSign.from_simulator_actor, self._stop_sign_actors))
         self._output_stream.send(StopSignsMessage(timestamp, stop_signs))

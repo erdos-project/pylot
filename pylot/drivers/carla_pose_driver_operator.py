@@ -35,6 +35,7 @@ class CarlaPoseDriverOperator(CarlaBaseGNSSDriverOperator):
     def process_gnss(self, timestamp: erdos.Timestamp,
                      gnss_msg: carla.GnssMeasurement):
         """Sends pose information followed by a watermark."""
+        self._logger.debug('@{}: sending pose'.format(timestamp))
         vec_transform = pylot.utils.Transform.from_simulator_transform(
             self._vehicle.get_transform())
         velocity_vector = pylot.utils.Vector3D.from_simulator_vector(

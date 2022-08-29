@@ -33,6 +33,8 @@ class CarlaObstaclesDriverOperator(CarlaBaseGNSSDriverOperator):
     def process_gnss(self, timestamp: erdos.Timestamp,
                      gnss_msg: carla.GnssMeasurement):
         """Sends obstacles (vehicles and people) followed by a watermark."""
+        self._logger.debug('@{}: sending obstacles'.format(timestamp))
+
         actor_list = self._world.get_actors()
 
         vec_actors = actor_list.filter('vehicle.*')

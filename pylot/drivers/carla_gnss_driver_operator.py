@@ -44,9 +44,9 @@ class CarlaGNSSDriverOperator(CarlaBaseGNSSDriverOperator):
 
         Sends GNSS measurements to downstream operators.
         """
-        watermark_msg = erdos.WatermarkMessage(timestamp)
+        self._logger.debug('@{}: sending GNSS reading'.format(timestamp))
         msg = GNSSMessage(
             timestamp, Transform.from_simulator_transform(gnss_msg.transform),
             gnss_msg.altitude, gnss_msg.latitude, gnss_msg.longitude)
         self._output_stream.send(msg)
-        self._output_stream.send(watermark_msg)
+        self._output_stream.send(erdos.WatermarkMessage(timestamp))
