@@ -1127,9 +1127,9 @@ class MatchesOperator(erdos.Operator):
         left_stream.add_callback(self.on_left_stream)
         right_stream.add_callback(self.on_right_stream)
         left_stream.add_watermark_callback(
-            lambda t: self._logger.debug(f"@{t}: got left watermark"))
+            lambda t: self._logger.debug("@{}: got left watermark".format(t)))
         right_stream.add_watermark_callback(
-            lambda t: self._logger.debug(f"@{t}: got right watermark"))
+            lambda t: self._logger.debug("@{}: got right watermark".format(t)))
 
         erdos.add_watermark_callback([left_stream, right_stream], [],
                                      self.on_watermark)
@@ -1152,8 +1152,8 @@ class MatchesOperator(erdos.Operator):
         matches = self._matches_fn(left_msgs, right_msgs)
 
         if matches:
-            self._logger.debug(f"@{t}: left matches right")
+            self._logger.debug("@{}: left matches right".format(t))
         else:
             self._logger.warn(
-                f"@{t}: left does not match right\n\tleft: {left_msgs}\n\tright: {right_msgs}"
-            )
+                "@{}: left does not match right\n\tleft: {}\n\tright: {}".
+                format(t, left_msgs, right_msgs))
