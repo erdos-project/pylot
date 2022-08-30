@@ -34,7 +34,7 @@ def driver():
         pipeline_finish_notify_stream = erdos.IngestStream()
     notify_streams = []
 
-    # Create operator that bridges between pipeline and the simulator.
+    # Create operators that bridge between pipeline and the simulator.
     (
         pose_stream,
         pose_stream_for_control,
@@ -44,11 +44,25 @@ def driver():
         ground_stop_signs_stream,
         vehicle_id_stream,
         open_drive_stream,
-    ) = pylot.operator_creator.add_simulator_bridge(  # .add_simulator_bridge(
+    ) = pylot.component_creator.add_simulator(
         control_loop_stream,
-        release_sensor_stream,
         pipeline_finish_notify_stream,
     )
+
+    # (
+    #     pose_stream,
+    #     pose_stream_for_control,
+    #     ground_traffic_lights_stream,
+    #     ground_obstacles_stream,
+    #     ground_speed_limit_signs_stream,
+    #     ground_stop_signs_stream,
+    #     vehicle_id_stream,
+    #     open_drive_stream,
+    # ) = pylot.operator_creator.add_simulator_bridge_old(
+    #     control_loop_stream,
+    #     release_sensor_stream,
+    #     pipeline_finish_notify_stream,
+    # )
 
     global_trajectory_stream = erdos.IngestStream()
     streams_to_send_top_on.append(global_trajectory_stream)
