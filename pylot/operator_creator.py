@@ -1,7 +1,6 @@
 from absl import flags
 
 import erdos
-from pylot.drivers.carla_speed_limit_signs_driver_operator import CarlaSpeedLimitSignsDriverOperator
 
 import pylot.utils
 
@@ -52,12 +51,6 @@ def add_simulator_bridge_old(control_stream, sensor_ready_stream,
 
     # Check that Pose matches
     from pylot.utils import MatchesOperator
-    pose_driver_config = erdos.OperatorConfig(
-        name='pose_driver_operator',
-        flow_watermarks=False,
-        log_file_name=FLAGS.log_file_name,
-        csv_log_file_name=FLAGS.csv_log_file_name,
-        profile_file_name=FLAGS.profile_file_name)
     pose_driver_stream = add_pose(vehicle_id_stream,
                                   FLAGS.simulator_localization_frequency)
 
@@ -734,7 +727,8 @@ def add_localization(imu_stream,
 
 
 def add_pose(vehicle_id_stream, frequency: float, name: str = 'pose'):
-    from pylot.drivers.carla_pose_driver_operator import CarlaPoseDriverOperator
+    from pylot.drivers.carla_pose_driver_operator import (
+        CarlaPoseDriverOperator)
     pose_driver_config = erdos.OperatorConfig(
         name=name + '_operator',
         flow_watermarks=False,
@@ -746,7 +740,8 @@ def add_pose(vehicle_id_stream, frequency: float, name: str = 'pose'):
 
 
 def add_simulator_traffic_lights(vehicle_id_stream):
-    from pylot.drivers.carla_traffic_lights_driver_operator import CarlaTrafficLightsDriverOperator
+    from pylot.drivers.carla_traffic_lights_driver_operator import (
+        CarlaTrafficLightsDriverOperator)
     ground_traffic_lights_config = erdos.OperatorConfig(
         name='simulator_traffic_lights_operator',
         flow_watermarks=False,
@@ -759,7 +754,8 @@ def add_simulator_traffic_lights(vehicle_id_stream):
 
 
 def add_simulator_obstacles(vehicle_id_stream):
-    from pylot.drivers.carla_obstacles_driver_operator import CarlaObstaclesDriverOperator
+    from pylot.drivers.carla_obstacles_driver_operator import (
+        CarlaObstaclesDriverOperator)
     ground_obstacles_config = erdos.OperatorConfig(
         name='simulator_obstacles_operator',
         flow_watermarks=False,
@@ -772,7 +768,8 @@ def add_simulator_obstacles(vehicle_id_stream):
 
 
 def add_simulator_speed_limit_signs(vehicle_id_stream):
-    from pylot.drivers.carla_speed_limit_signs_driver_operator import CarlaSpeedLimitSignsDriverOperator
+    from pylot.drivers.carla_speed_limit_signs_driver_operator import (
+        CarlaSpeedLimitSignsDriverOperator)
     speed_limit_signs_config = erdos.OperatorConfig(
         name='simulator_speed_signs_operator',
         flow_watermarks=False,
@@ -785,7 +782,8 @@ def add_simulator_speed_limit_signs(vehicle_id_stream):
 
 
 def add_simulator_stop_signs(vehicle_id_stream):
-    from pylot.drivers.carla_stop_signs_driver_operator import CarlaStopSignsDriverOperator
+    from pylot.drivers.carla_stop_signs_driver_operator import (
+        CarlaStopSignsDriverOperator)
     stop_signs_config = erdos.OperatorConfig(
         name='simulator_stop_signs_operator',
         flow_watermarks=False,
@@ -798,7 +796,8 @@ def add_simulator_stop_signs(vehicle_id_stream):
 
 
 def add_simulator_open_drive():
-    from pylot.drivers.carla_open_drive_driver_operator import CarlaOpenDriveDriverOperator
+    from pylot.drivers.carla_open_drive_driver_operator import (
+        CarlaOpenDriveDriverOperator)
     open_drive_driver_config = erdos.OperatorConfig(
         name='simulator_open_drive_operator',
         flow_watermarks=False,

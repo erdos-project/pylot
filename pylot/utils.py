@@ -4,6 +4,8 @@ from enum import Enum
 
 import numpy as np
 
+import erdos
+
 
 class Rotation(object):
     """Used to represent the rotation of an actor or obstacle.
@@ -1103,9 +1105,6 @@ def run_visualizer_control_loop(control_display_stream):
 def verify_keys_in_dict(required_keys, arg_dict):
     assert set(required_keys).issubset(set(arg_dict.keys())), \
             "one or more of {} not found in {}".format(required_keys, arg_dict)
-
-
-import erdos
 
 
 def matches_data(left_msgs, right_msgs):

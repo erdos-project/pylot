@@ -14,12 +14,12 @@ logger = logging.getLogger(__name__)
 def add_simulator(control_stream, pipeline_finish_notify_stream):
     """Adds operators to interface with and retrieve ground truth information
     from the simulator.
-    
+
     Args:
         control_stream: Control commands to actuate the ego vehicle.
         pipeline_finish_notify_stream: Sends watermarks when the pipeline
             completes execution. Used in pseudo-async mode.
-    
+
     Returns:
         pose_stream: Sends the ego vehicle's pose at the frequency provided by
             ``--simulator_localization_frequency``.
@@ -44,12 +44,13 @@ def add_simulator(control_stream, pipeline_finish_notify_stream):
     pose_stream_for_control = pylot.operator_creator.add_pose(
         vehicle_id_stream, FLAGS.simulator_control_frequency,
         'pose_for_control')
-    ground_traffic_lights_stream = pylot.operator_creator.add_simulator_traffic_lights(
-        vehicle_id_stream)
+    ground_traffic_lights_stream = (
+        pylot.operator_creator.add_simulator_traffic_lights(vehicle_id_stream))
     ground_obstacles_stream = pylot.operator_creator.add_simulator_obstacles(
         vehicle_id_stream)
-    ground_speed_limit_signs_stream = pylot.operator_creator.add_simulator_speed_limit_signs(
-        vehicle_id_stream)
+    ground_speed_limit_signs_stream = (
+        pylot.operator_creator.add_simulator_speed_limit_signs(
+            vehicle_id_stream))
     ground_stop_signs_stream = pylot.operator_creator.add_simulator_stop_signs(
         vehicle_id_stream)
     open_drive_stream = pylot.operator_creator.add_simulator_open_drive()
