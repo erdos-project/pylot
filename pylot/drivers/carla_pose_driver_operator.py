@@ -10,11 +10,11 @@ from pylot.drivers.carla_base_gnss_driver_operator import (
 class CarlaPoseDriverOperator(CarlaBaseGNSSDriverOperator):
     """Publishes the pose (location, orientation, and velocity) at the provided
     frequency.
-    
+
     This operator attaches to the vehicle using the vehicle ID provided by the
     ``vehicle_id_stream``, registers callback functions to retrieve the
     pose at the provided frequency, and publishes it to downstream operators.
-    
+
     Args:
         vehicle_id_stream: Stream on which the operator receives the ID of the
             ego vehicle. The ID is used to get a simulator handle to the

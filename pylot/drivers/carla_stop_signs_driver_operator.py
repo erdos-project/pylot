@@ -2,17 +2,17 @@ import carla
 
 import erdos
 
-from pylot.perception.detection.stop_sign import StopSign
-from pylot.perception.messages import StopSignsMessage
 import pylot.utils
 from pylot.drivers.carla_base_gnss_driver_operator import (
     CarlaBaseGNSSDriverOperator)
+from pylot.perception.detection.stop_sign import StopSign
+from pylot.perception.messages import StopSignsMessage
 
 
 class CarlaStopSignsDriverOperator(CarlaBaseGNSSDriverOperator):
     """Publishes the locations and values of all stop signs retrieved from the
     simulator at the provided frequency.
-    
+
     Args:
         vehicle_id_stream: Stream on which the operator receives the ID of the
             ego vehicle. The ID is used to get a simulator handle to the

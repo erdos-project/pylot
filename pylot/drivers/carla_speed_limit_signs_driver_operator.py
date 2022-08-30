@@ -2,17 +2,17 @@ import carla
 
 import erdos
 
-from pylot.perception.detection.speed_limit_sign import SpeedLimitSign
-from pylot.perception.messages import SpeedSignsMessage
 import pylot.utils
 from pylot.drivers.carla_base_gnss_driver_operator import (
     CarlaBaseGNSSDriverOperator)
+from pylot.perception.detection.speed_limit_sign import SpeedLimitSign
+from pylot.perception.messages import SpeedSignsMessage
 
 
 class CarlaSpeedLimitSignsDriverOperator(CarlaBaseGNSSDriverOperator):
     """Publishes the locations and values of all speed limit signs retrieved
     from the simulator at the provided frequency.
-    
+
     Args:
         vehicle_id_stream: Stream on which the operator receives the ID of the
             ego vehicle. The ID is used to get a simulator handle to the

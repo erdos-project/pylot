@@ -1,23 +1,21 @@
-import threading
-
 import carla
 
 import erdos
 
 import pylot.utils
-from pylot.perception.detection.traffic_light import TrafficLight
-from pylot.perception.messages import TrafficLightsMessage
 from pylot.drivers.carla_base_gnss_driver_operator import (
     CarlaBaseGNSSDriverOperator)
+from pylot.perception.detection.traffic_light import TrafficLight
+from pylot.perception.messages import TrafficLightsMessage
 
 
 class CarlaTrafficLightsDriverOperator(CarlaBaseGNSSDriverOperator):
     """Publishes the location and state of all traffic lights.
-    
+
     This operator attaches to the vehicle using the vehicle ID provided by the
     ``vehicle_id_stream``, registers callback functions to retrieve the
     state of the traffic lights, and publishes them to downstream operators.
-    
+
     Args:
         vehicle_id_stream: Stream on which the operator receives the ID of the
             ego vehicle. The ID is used to get a simulator handle to the

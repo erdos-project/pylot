@@ -4,17 +4,16 @@ provided frequency.
 The operator attaches a GNSS sensor to the ego vehicle, receives GNSS
 measurements from the simulator, and invokes the user-defined callback.
 """
-
-from abc import abstractmethod
 import threading
+from abc import abstractmethod
 
 import carla
 
 import erdos
 
+from pylot.drivers.sensor_setup import GNSSSetup
 from pylot.simulation.utils import get_vehicle_handle, get_world, \
     set_simulation_mode
-from pylot.drivers.sensor_setup import GNSSSetup
 
 
 class CarlaBaseGNSSDriverOperator(erdos.Operator):
@@ -42,7 +41,7 @@ class CarlaBaseGNSSDriverOperator(erdos.Operator):
             Initialized once the vehicle ID is received.
         _log (threading.Lock): used to ensure that only 1 GNSS reading is
             processed at a time.
-        
+
 
     Args:
         vehicle_id_stream: Stream on which the operator receives the id of the
@@ -83,7 +82,7 @@ class CarlaBaseGNSSDriverOperator(erdos.Operator):
     def process_gnss(self, timestamp: erdos.Timestamp,
                      gnss_msg: carla.GnssMeasurement):
         """Invoked when a GNSS measurement is received from the simulator.
-        
+
         Note:
             Only 1 invocation of this callback will run at a time.
         """

@@ -2,17 +2,17 @@ import carla
 
 import erdos
 
-from pylot.perception.detection.obstacle import Obstacle
-from pylot.perception.messages import ObstaclesMessage
 import pylot.utils
 from pylot.drivers.carla_base_gnss_driver_operator import (
     CarlaBaseGNSSDriverOperator)
+from pylot.perception.detection.obstacle import Obstacle
+from pylot.perception.messages import ObstaclesMessage
 
 
 class CarlaObstaclesDriverOperator(CarlaBaseGNSSDriverOperator):
     """Publishes the bounding boxes of all vehicles and people retrieved from
     the simulator at the provided frequency.
-    
+
     Args:
         vehicle_id_stream: Stream on which the operator receives the ID of the
             ego vehicle. The ID is used to get a simulator handle to the
