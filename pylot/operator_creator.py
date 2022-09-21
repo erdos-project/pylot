@@ -66,9 +66,10 @@ def add_efficientdet_obstacle_detection(
 
 
 def add_obstacle_detection(
-        camera_stream: Stream[CameraFrame],
-        time_to_decision_stream: Stream[float],
-        csv_file_name: Optional[str] = None) -> Stream[ObstaclesMessageTuple]:
+    camera_stream: Stream[CameraFrame],
+    time_to_decision_stream: Stream[float],
+    csv_file_name: Optional[str] = None
+) -> List[Stream[ObstaclesMessageTuple]]:
     from pylot.perception.detection.detection_operator import DetectionOperator
     obstacles_streams = []
     if csv_file_name is None:
