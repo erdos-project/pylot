@@ -52,7 +52,7 @@ def add_efficientdet_obstacle_detection(
         EfficientDetOperator
     if csv_file_name is None:
         csv_file_name = FLAGS.csv_log_file_name
-    op_config = erdos.operators.OperatorConfig(
+    op_config = erdos.operator.OperatorConfig(
         name='efficientdet_operator',
         flow_watermarks=False,
         log_file_name=FLAGS.log_file_name,

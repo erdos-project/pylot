@@ -58,7 +58,7 @@ class DetectionOperator(TwoInOneOut[CameraFrame, float,
     def on_left_data(self, context: TwoInOneOutContext[ObstaclesMessageTuple],
                      data: CameraFrame):
         """Invoked whenever a camera message is received on the stream."""
-        self._logger.debug('@{} received message'.format(self.config.name))
+        self._logger.debug('@{}: received message'.format(context.timestamp))
         start_time = time.time()
 
         # The models expect BGR images.
