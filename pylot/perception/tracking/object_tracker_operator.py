@@ -92,7 +92,7 @@ class ObjectTrackerOperator(OneInOneOut[Union[CameraFrame,
         elif isinstance(data, float):
             self.on_time_to_decision_update(context, data)
         else:
-            raise ValueError('Unexpected data type')
+            raise ValueError(f'Unexpected data type: {type(data)}')
 
     @erdos.profile_method()
     def on_watermark(self, context: OneInOneOutContext[ObstaclesMessageTuple]):

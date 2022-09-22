@@ -7,6 +7,7 @@ from erdos.context import TwoInOneOutContext
 from erdos.operator import TwoInOneOut
 
 import numpy as np
+from pylot.perception.messages import ObstaclesMessageTuple
 
 import pylot.utils
 from pylot.perception.camera_frame import CameraFrame
@@ -18,7 +19,8 @@ import tensorflow as tf
 
 
 # TODO: Remove once transition to TF2 is complete
-class EfficientDetOperator(TwoInOneOut[CameraFrame, float, List[Obstacle]]):
+class EfficientDetOperator(TwoInOneOut[CameraFrame, float,
+                                       ObstaclesMessageTuple]):
     """ Detects obstacles using the EfficientDet set of models.
 
     The operator receives frames on camera stream, and runs a model for each
@@ -177,7 +179,9 @@ class EfficientDetOperator(TwoInOneOut[CameraFrame, float, List[Obstacle]]):
                                                None, self._bbox_colors)
             frame.save(context.timestamp.coordinates[0], self._flags.data_path,
                        'detector-{}'.format(self.config.name))
-        context.write_stream.send(erdos.Message(context.timestamp, obstacles))
+        context.write_stream.send(
+            erdos.Message(context.timestamp,
+                          ObstaclesMessageTuple(obstacles, runtime)))
         context.write_stream.send(erdos.WatermarkMessage(context.timestamp))
 
         operator_time_total_end = time.time()
