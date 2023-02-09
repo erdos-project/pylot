@@ -50,8 +50,8 @@ class CarlaLidarDriverOperator(erdos.Operator):
         self._vehicle = None
         # Handle to the Lidar simulator actor.
         self._lidar = None
-        self._pickle_lock = threading.Lock()
-        self._pickled_messages = {}
+        self._message_lock = threading.Lock()
+        self._messages = {}
         self._lock = threading.Lock()
         # If false then the operator does not send data until it receives
         # release data watermark. Otherwise, it sends as soon as it
@@ -71,14 +71,13 @@ class CarlaLidarDriverOperator(erdos.Operator):
             self._release_data = True
         else:
             watermark_msg = erdos.WatermarkMessage(timestamp)
-            self._lidar_stream.send_pickled(timestamp,
-                                            self._pickled_messages[timestamp])
+            self._lidar_stream.send(self._messages[timestamp])
             # Note: The operator is set not to automatically propagate
             # watermark messages received on input streams. Thus, we can
             # issue watermarks only after the simulator callback is invoked.
             self._lidar_stream.send(watermark_msg)
-            with self._pickle_lock:
-                del self._pickled_messages[timestamp]
+            with self._message_lock:
+                del self._messages[timestamp]
 
     def process_point_clouds(self, simulator_pc):
         """ Invoked when a point cloud is received from the simulator.
@@ -105,11 +104,8 @@ class CarlaLidarDriverOperator(erdos.Operator):
                     self._lidar_stream.send(msg)
                     self._lidar_stream.send(watermark_msg)
                 else:
-                    # Pickle the data, and release it upon release msg receipt.
-                    pickled_msg = pickle.dumps(
-                        msg, protocol=pickle.HIGHEST_PROTOCOL)
-                    with self._pickle_lock:
-                        self._pickled_messages[msg.timestamp] = pickled_msg
+                    with self._message_lock:
+                        self._messages[msg.timestamp] = msg
                     self._notify_reading_stream.send(watermark_msg)
 
     def run(self):
