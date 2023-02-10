@@ -151,19 +151,6 @@ class CameraFrame(object):
                                 dsize=(width, height),
                                 interpolation=cv2.INTER_NEAREST)
 
-    def visualize(self, pygame_display, timestamp=None):
-        """Visualizes the frame on a pygame display."""
-        import pygame
-        if timestamp is not None:
-            pylot.utils.add_timestamp(self.frame, timestamp)
-        if self.encoding != 'RGB':
-            image_np = self.as_rgb_numpy_array()
-        else:
-            image_np = self.frame
-        image_np = np.transpose(image_np, (1, 0, 2))
-        pygame.surfarray.blit_array(pygame_display, image_np)
-        pygame.display.flip()
-
     def save(self, timestamp: int, data_path: str, file_base: str):
         """Saves the camera frame to a file.
 

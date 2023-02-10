@@ -274,15 +274,6 @@ class SegmentedFrame(object):
         img = Image.fromarray(self.as_cityscapes_palette())
         img.save(file_name)
 
-    def visualize(self, pygame_display, timestamp=None):
-        import pygame
-        cityscapes_frame = self.as_cityscapes_palette()
-        if timestamp is not None:
-            pylot.utils.add_timestamp(cityscapes_frame, timestamp)
-        image_np = np.transpose(cityscapes_frame, (1, 0, 2))
-        pygame.surfarray.blit_array(pygame_display, image_np)
-        pygame.display.flip()
-
     def draw_box(self, start_point, end_point, color, thickness=3):
         """Draw a colored box defined by start_point, end_point."""
         start = (int(start_point.x), int(start_point.y))

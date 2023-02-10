@@ -77,3 +77,35 @@ RUN echo "export PATH=$HOME/.local/bin:${PATH}" >> ~/.bashrc
 # Set up ssh access to the container.
 RUN cd ~/ && ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa <<<y 2>&1 >/dev/null
 RUN sudo sed -i 's/#X11UseLocalhost yes/X11UseLocalhost no/g' /etc/ssh/sshd_config
+
+# WIP (for visualization in Foxglove)
+
+# Set up for Foxglove
+RUN sudo apt-get -y install wget
+
+# Install Foxglove Studio
+RUN cd /tmp
+RUN wget https://github.com/foxglove/studio/releases/download/v0.12.0/foxglove-studio-0.12.0-linux-amd64.deb
+RUN sudo apt install -y ./foxglove-studio-*.deb
+RUN rm ./foxglove-studio-*.deb
+
+# Set up for ROS
+RUN sudo apt -y update
+RUN sudo apt install -y lsb-release
+RUN sudo apt install -y curl
+
+# Download ROS
+# From, http://wiki.ros.org/melodic/Installation/Ubuntu:
+# Setup your computer to accept software from packages.ros.org: 
+RUN sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+# Set up your keys
+# RUN sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+RUN curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
+# Make sure your Debian package index is up-to-date
+RUN sudo apt -y update
+# Desktop-Full Install
+RUN sudo apt -y install ros-melodic-desktop-full
+# Set up ROS environment variables
+RUN echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
+RUN source ~/.bashrc
+
