@@ -10,18 +10,146 @@ import tensorflow as tf  # noqa: F401
 FLAGS = flags.FLAGS
 
 
-def add_simulator_bridge(control_stream, sensor_ready_stream,
-                         pipeline_finish_notify_stream):
+def add_simulator_bridge(control_stream, pipeline_finish_notify_stream):
     from pylot.simulation.carla_operator import CarlaOperator
+
     op_config = erdos.OperatorConfig(name='simulator_bridge_operator',
                                      flow_watermarks=False,
                                      log_file_name=FLAGS.log_file_name,
                                      csv_log_file_name=FLAGS.csv_log_file_name,
                                      profile_file_name=FLAGS.profile_file_name)
-    return erdos.connect(
+    vehicle_id_stream, = erdos.connect(
         CarlaOperator, op_config,
+        [control_stream, pipeline_finish_notify_stream], FLAGS)
+
+    return vehicle_id_stream
+
+
+def add_simulator_bridge_old(control_stream, sensor_ready_stream,
+                             pipeline_finish_notify_stream):
+    from pylot.simulation.old_carla_operator import OldCarlaOperator
+
+    op_config = erdos.OperatorConfig(name='simulator_bridge_operator',
+                                     flow_watermarks=False,
+                                     log_file_name=FLAGS.log_file_name,
+                                     csv_log_file_name=FLAGS.csv_log_file_name,
+                                     profile_file_name=FLAGS.profile_file_name)
+    (
+        pose_stream,
+        pose_stream_for_control,
+        ground_traffic_lights_stream,
+        ground_obstacles_stream,
+        ground_speed_limit_signs_stream,
+        ground_stop_signs_stream,
+        vehicle_id_stream,
+        open_drive_stream,
+        global_trajectory_stream,
+    ) = erdos.connect(
+        OldCarlaOperator, op_config,
         [control_stream, sensor_ready_stream, pipeline_finish_notify_stream],
         FLAGS)
+
+    # Check that Pose matches
+    from pylot.utils import MatchesOperator
+    pose_driver_stream = add_pose(vehicle_id_stream,
+                                  FLAGS.simulator_localization_frequency)
+
+    matches_pose_driver_config = erdos.OperatorConfig(
+        name='matches_pose_driver_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(MatchesOperator, matches_pose_driver_config,
+                  [pose_stream, pose_driver_stream])
+
+    # Check that Pose for control matches
+    pose_for_control_driver_stream = add_pose(
+        vehicle_id_stream, flags.simulator_control_frequency,
+        'pose_for_control')
+
+    matches_pose_for_control_driver_config = erdos.OperatorConfig(
+        name='matches_pose_for_control_driver_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(MatchesOperator, matches_pose_for_control_driver_config,
+                  [pose_stream_for_control, pose_for_control_driver_stream])
+
+    # Check that traffic lights match
+    traffic_lights_driver_stream = add_simulator_traffic_lights(
+        vehicle_id_stream)
+
+    matches_ground_obstacles_config = erdos.OperatorConfig(
+        name='matches_ground_traffic_lights_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(MatchesOperator, matches_ground_obstacles_config,
+                  [traffic_lights_driver_stream, ground_traffic_lights_stream])
+
+    # Check that obstacles match
+    obstacles_driver_stream = add_simulator_obstacles(vehicle_id_stream)
+
+    matches_ground_obstacles_config = erdos.OperatorConfig(
+        name='matches_obstacles_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(MatchesOperator, matches_ground_obstacles_config,
+                  [ground_obstacles_stream, obstacles_driver_stream])
+
+    # Check that speed signs match
+    speed_limit_signs_driver_stream = add_simulator_speed_limit_signs(
+        vehicle_id_stream)
+
+    matches_speed_limit_signs_config = erdos.OperatorConfig(
+        name='matches_speed_limit_signs_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(
+        MatchesOperator, matches_speed_limit_signs_config,
+        [ground_speed_limit_signs_stream, speed_limit_signs_driver_stream])
+
+    # Check that stop signs match
+    stop_signs_driver_stream = add_simulator_stop_signs(vehicle_id_stream)
+
+    matches_stop_signs_config = erdos.OperatorConfig(
+        name='matches_stop_signs_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(MatchesOperator, matches_stop_signs_config,
+                  [ground_stop_signs_stream, stop_signs_driver_stream])
+
+    # Check that open drive matches
+    open_drive_driver_stream = add_simulator_open_drive()
+
+    matches_open_drive_config = erdos.OperatorConfig(
+        name='matches_open_drive_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    erdos.connect(MatchesOperator, matches_open_drive_config,
+                  [open_drive_stream, open_drive_driver_stream])
+
+    return (
+        pose_stream,
+        pose_stream_for_control,
+        ground_traffic_lights_stream,
+        ground_obstacles_stream,
+        ground_speed_limit_signs_stream,
+        ground_stop_signs_stream,
+        vehicle_id_stream,
+        open_drive_stream,
+    )
 
 
 def add_efficientdet_obstacle_detection(camera_stream,
@@ -596,6 +724,88 @@ def add_localization(imu_stream,
      ] = erdos.connect(LocalizationOperator, op_config,
                        [imu_stream, gnss_stream, ground_pose_stream], FLAGS)
     return pose_stream
+
+
+def add_pose(vehicle_id_stream, frequency: float, name: str = 'pose'):
+    from pylot.drivers.carla_pose_driver_operator import (
+        CarlaPoseDriverOperator)
+    pose_driver_config = erdos.OperatorConfig(
+        name=name + '_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    return erdos.connect(CarlaPoseDriverOperator, pose_driver_config,
+                         [vehicle_id_stream], frequency, FLAGS)[0]
+
+
+def add_simulator_traffic_lights(vehicle_id_stream):
+    from pylot.drivers.carla_traffic_lights_driver_operator import (
+        CarlaTrafficLightsDriverOperator)
+    ground_traffic_lights_config = erdos.OperatorConfig(
+        name='simulator_traffic_lights_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    return erdos.connect(CarlaTrafficLightsDriverOperator,
+                         ground_traffic_lights_config, [vehicle_id_stream],
+                         FLAGS.simulator_localization_frequency, FLAGS)[0]
+
+
+def add_simulator_obstacles(vehicle_id_stream):
+    from pylot.drivers.carla_obstacles_driver_operator import (
+        CarlaObstaclesDriverOperator)
+    ground_obstacles_config = erdos.OperatorConfig(
+        name='simulator_obstacles_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    return erdos.connect(CarlaObstaclesDriverOperator, ground_obstacles_config,
+                         [vehicle_id_stream],
+                         FLAGS.simulator_localization_frequency, FLAGS)[0]
+
+
+def add_simulator_speed_limit_signs(vehicle_id_stream):
+    from pylot.drivers.carla_speed_limit_signs_driver_operator import (
+        CarlaSpeedLimitSignsDriverOperator)
+    speed_limit_signs_config = erdos.OperatorConfig(
+        name='simulator_speed_signs_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    return erdos.connect(CarlaSpeedLimitSignsDriverOperator,
+                         speed_limit_signs_config, [vehicle_id_stream],
+                         FLAGS.simulator_localization_frequency, FLAGS)[0]
+
+
+def add_simulator_stop_signs(vehicle_id_stream):
+    from pylot.drivers.carla_stop_signs_driver_operator import (
+        CarlaStopSignsDriverOperator)
+    stop_signs_config = erdos.OperatorConfig(
+        name='simulator_stop_signs_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    return erdos.connect(CarlaStopSignsDriverOperator, stop_signs_config,
+                         [vehicle_id_stream],
+                         FLAGS.simulator_localization_frequency, FLAGS)[0]
+
+
+def add_simulator_open_drive():
+    from pylot.drivers.carla_open_drive_driver_operator import (
+        CarlaOpenDriveDriverOperator)
+    open_drive_driver_config = erdos.OperatorConfig(
+        name='simulator_open_drive_operator',
+        flow_watermarks=False,
+        log_file_name=FLAGS.log_file_name,
+        csv_log_file_name=FLAGS.csv_log_file_name,
+        profile_file_name=FLAGS.profile_file_name)
+    return erdos.connect(CarlaOpenDriveDriverOperator,
+                         open_drive_driver_config, [], FLAGS)[0]
 
 
 def add_fusion(pose_stream, obstacles_stream, depth_stream,

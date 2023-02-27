@@ -5,6 +5,7 @@ from absl import app, flags
 import erdos
 
 import pylot.flags
+import pylot.component_creator
 import pylot.operator_creator
 import pylot.simulation.utils
 import pylot.utils
@@ -61,10 +62,8 @@ def main(argv):
         ground_stop_signs_stream,
         vehicle_id_stream,
         open_drive_stream,
-        global_trajectory_stream,
-    ) = pylot.operator_creator.add_simulator_bridge(
-        control_loop_stream, release_sensor_stream,
-        pipeline_finish_notify_stream)
+    ) = pylot.component_creator.add_simulator(control_loop_stream,
+                                              pipeline_finish_notify_stream)
 
     # Add sensors.
     rgb_camera_setup = RGBCameraSetup('center_camera',

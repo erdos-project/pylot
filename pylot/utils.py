@@ -4,6 +4,8 @@ from enum import Enum
 
 import numpy as np
 
+import erdos
+
 
 class Rotation(object):
     """Used to represent the rotation of an actor or obstacle.
@@ -62,6 +64,12 @@ class Rotation(object):
     def __str__(self):
         return 'Rotation(pitch={}, yaw={}, roll={})'.format(
             self.pitch, self.yaw, self.roll)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Rotation):
+            return (self.pitch == other.pitch and self.yaw == other.yaw
+                    and self.roll == other.roll)
+        return NotImplemented
 
 
 class Quaternion(object):
@@ -368,6 +376,12 @@ class Vector3D(object):
 
     def __str__(self):
         return 'Vector3D(x={}, y={}, z={})'.format(self.x, self.y, self.z)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Vector3D):
+            return (self.x == other.x and self.y == other.y
+                    and self.z == other.z)
+        return NotImplemented
 
 
 class Vector2D(object):
@@ -826,6 +840,12 @@ class Transform(object):
         else:
             return "Transform({})".format(str(self.matrix))
 
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Transform):
+            return (self.location == other.location
+                    and self.rotation == other.rotation)
+        return NotImplemented
+
 
 class Pose(object):
     """Class used to wrap ego-vehicle information.
@@ -867,6 +887,12 @@ class Pose(object):
     def __str__(self):
         return "Pose(transform: {}, forward speed: {}, velocity vector: {})"\
             .format(self.transform, self.forward_speed, self.velocity_vector)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Pose):
+            return (self.transform == other.transform
+                    and self.forward_speed == other.forward_speed
+                    and self.velocity_vector == other.velocity_vector)
 
 
 class LaneMarkingColor(Enum):
@@ -1079,3 +1105,54 @@ def run_visualizer_control_loop(control_display_stream):
 def verify_keys_in_dict(required_keys, arg_dict):
     assert set(required_keys).issubset(set(arg_dict.keys())), \
             "one or more of {} not found in {}".format(required_keys, arg_dict)
+
+
+def matches_data(left_msgs, right_msgs):
+    length_matches = (len(left_msgs) == len(right_msgs))
+    return length_matches and all(
+        map(
+            lambda x: x[0].timestamp == x[1].timestamp and x[0].data == x[1].
+            data, zip(left_msgs, right_msgs)))
+
+
+class MatchesOperator(erdos.Operator):
+    def __init__(self, left_stream, right_stream, matches_fn=matches_data):
+        self._matches_fn = matches_fn
+        self._left_msgs = []
+        self._right_msgs = []
+        self._logger = erdos.utils.setup_logging(self.config.name,
+                                                 self.config.log_file_name)
+
+        left_stream.add_callback(self.on_left_stream)
+        right_stream.add_callback(self.on_right_stream)
+        left_stream.add_watermark_callback(
+            lambda t: self._logger.debug("@{}: got left watermark".format(t)))
+        right_stream.add_watermark_callback(
+            lambda t: self._logger.debug("@{}: got right watermark".format(t)))
+
+        erdos.add_watermark_callback([left_stream, right_stream], [],
+                                     self.on_watermark)
+
+    @staticmethod
+    def connect(left_stream, right_stream):
+        return []
+
+    def on_left_stream(self, msg):
+        self._logger.debug("got left msg")
+        self._left_msgs.append(msg)
+
+    def on_right_stream(self, msg):
+        self._logger.debug("got right msg")
+        self._right_msgs.append(msg)
+
+    def on_watermark(self, t):
+        left_msgs, self._left_msgs = self._left_msgs, []
+        right_msgs, self._right_msgs = self._right_msgs, []
+        matches = self._matches_fn(left_msgs, right_msgs)
+
+        if matches:
+            self._logger.debug("@{}: left matches right".format(t))
+        else:
+            self._logger.warn(
+                "@{}: left does not match right\n\tleft: {}\n\tright: {}".
+                format(t, left_msgs, right_msgs))

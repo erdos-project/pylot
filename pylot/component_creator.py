@@ -11,6 +11,62 @@ FLAGS = flags.FLAGS
 logger = logging.getLogger(__name__)
 
 
+def add_simulator(control_stream, pipeline_finish_notify_stream):
+    """Adds operators to interface with and retrieve ground truth information
+    from the simulator.
+
+    Args:
+        control_stream: Control commands to actuate the ego vehicle.
+        pipeline_finish_notify_stream: Sends watermarks when the pipeline
+            completes execution. Used in pseudo-async mode.
+
+    Returns:
+        pose_stream: Sends the ego vehicle's pose at the frequency provided by
+            ``--simulator_localization_frequency``.
+        pose_stream_for_control: Sends the ego vehicle's pose at the frequency
+            provided by ``--simulator_control_frequency``.
+        ground_traffic_lights_stream: Sends the state of all traffic lights.
+        ground_obstacles_stream: Sends the locations and bounding boxes of all
+            vehicles and pedestrians.
+        ground_speed_limit_signs_stream: Sends the locations and values of all
+            speed limit signs.
+        ground_stop_signs_stream: Sends the locations and values of all stop
+            signs.
+        vehicle_id_stream: Sends the ID of the ego vehicle, followed by a top
+            watermark.
+        open_drive_stream: Sends the map in OpenDRIVE format, followed by a top
+            watermark.
+    """
+    vehicle_id_stream = pylot.operator_creator.add_simulator_bridge(
+        control_stream, pipeline_finish_notify_stream)
+    pose_stream = pylot.operator_creator.add_pose(
+        vehicle_id_stream, FLAGS.simulator_localization_frequency)
+    pose_stream_for_control = pylot.operator_creator.add_pose(
+        vehicle_id_stream, FLAGS.simulator_control_frequency,
+        'pose_for_control')
+    ground_traffic_lights_stream = (
+        pylot.operator_creator.add_simulator_traffic_lights(vehicle_id_stream))
+    ground_obstacles_stream = pylot.operator_creator.add_simulator_obstacles(
+        vehicle_id_stream)
+    ground_speed_limit_signs_stream = (
+        pylot.operator_creator.add_simulator_speed_limit_signs(
+            vehicle_id_stream))
+    ground_stop_signs_stream = pylot.operator_creator.add_simulator_stop_signs(
+        vehicle_id_stream)
+    open_drive_stream = pylot.operator_creator.add_simulator_open_drive()
+
+    return (
+        pose_stream,
+        pose_stream_for_control,
+        ground_traffic_lights_stream,
+        ground_obstacles_stream,
+        ground_speed_limit_signs_stream,
+        ground_stop_signs_stream,
+        vehicle_id_stream,
+        open_drive_stream,
+    )
+
+
 def add_obstacle_detection(center_camera_stream,
                            center_camera_setup=None,
                            pose_stream=None,
